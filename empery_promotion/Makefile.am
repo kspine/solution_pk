@@ -18,6 +18,7 @@ lib_LTLIBRARIES = \
 lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/data/promotion.cpp	\
 	src/singletons/account_http_server.cpp	\
+	src/singletons/chinapnr_http_server.cpp	\
 	src/singletons/admin_http_server.cpp	\
 	src/singletons/statistic_daemon.cpp	\
 	src/singletons/account_map.cpp	\
@@ -42,6 +43,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/commit_withdrawal.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
+	src/chinapnr_http_session.cpp	\
 	src/admin_http_session.cpp	\
 	src/utilities.cpp	\
 	src/mmain.cpp

@@ -31,7 +31,7 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 	if(requestHeaders.verb != Poseidon::Http::V_GET){
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_METHOD_NOT_ALLOWED);
 	}
-
+/*
 	const auto servlet = getServlet(uri);
 	if(!servlet){
 		LOG_EMPERY_PROMOTION_WARNING("No servlet available: uri = ", uri);
@@ -49,6 +49,7 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 		LOG_EMPERY_PROMOTION_WARNING("std::exception thrown: what = ", e.what());
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 	}
+*/
 }
 
 }

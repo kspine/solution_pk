@@ -39,7 +39,7 @@ ACCOUNT_SERVLET("withdraw", /* session */, params){
 	const auto wdSlipSerialPrefix = getConfig<std::string>("wd_slip_serial_prefix", "PKWD");
 	const double withdrawalFeeRatio = getConfig<double>("withdrawal_fee_ratio", 0.05);
 
-	const auto serial = randomBillSerial(wdSlipSerialPrefix);
+	const auto serial = generateBillSerial(wdSlipSerialPrefix);
 	const auto localNow = Poseidon::getLocalTime();
 
 	auto amount = deltaBalance;

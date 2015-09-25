@@ -10,7 +10,6 @@
 #include "checked_arithmetic.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/atomic.hpp>
-#include <poseidon/random.hpp>
 #include <poseidon/string.hpp>
 
 namespace EmperyPromotion {
@@ -115,8 +114,8 @@ namespace {
 	void reallyAccumulateBalanceBonus(AccountId referrerId, AccountId accountId, AccountId payerId, boost::uint64_t amount,
 		double levelRatioTotal, const std::vector<double> &extraRatioArray, double generationRatio, unsigned generationCount)
 	{
-		std::vector<ItemTransactionElement> transaction;
-		transaction.reserve(16);
+	 	std::vector<ItemTransactionElement> transaction;
+	 	transaction.reserve(16);
 
 		std::vector<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
 		referrers.reserve(16);
@@ -240,22 +239,20 @@ void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint6
 		levelRatioTotal, extraRatioArray, generationRatio, generationCount);
 }
 
-std::string randomBillSerial(const std::string &prefix){
+std::string generateBillSerial(const std::string &prefix){
 	PROFILE_ME;
 
 	static volatile unsigned s_autoInc = 0;
 
 	std::string serial;
 	serial.reserve(255);
-	serial = prefix;
+	serial.append(prefix);
 	const auto localNow = Poseidon::getLocalTime();
 	const auto dt = Poseidon::breakDownTime(localNow);
 	char temp[256];
-	unsigned len = (unsigned)std::sprintf(temp, "%04u%02u%02u%02u%02u%02u", dt.yr, dt.mon, dt.day, dt.hr, dt.min, dt.sec);
+	unsigned len = (unsigned)std::sprintf(temp, "%04u%02u%02u%02u", dt.yr, dt.mon, dt.day, dt.hr);
 	serial.append(temp, len);
-	len = (unsigned)std::sprintf(temp, "%08u", Poseidon::atomicAdd(s_autoInc, 1, Poseidon::ATOMIC_RELAXED));
-	serial.append(temp + len - 8, 8);
-	len = (unsigned)std::sprintf(temp, "%016llu", (unsigned long long)Poseidon::rand64());
+	len = (unsigned)std::sprintf(temp, "%06u", Poseidon::atomicAdd(s_autoInc, 1, Poseidon::ATOMIC_RELAXED));
 	serial.append(temp + len - 8, 8);
 	return serial;
 }

@@ -20,7 +20,7 @@ extern std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, A
 extern void commitFirstBalanceBonus();
 extern void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount);
 
-extern std::string randomBillSerial(const std::string &prefix);
+extern std::string generateBillSerial(const std::string &prefix);
 
 }
 
