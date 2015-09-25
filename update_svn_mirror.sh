@@ -1,17 +1,21 @@
 #!/bin/bash
 
-prefix=../svn/infinity_of_empery_server
+prefix=../svn/paike_server
 
 mkdir -p $prefix/
 
 git submodule foreach 'git checkout master && git pull'
 
-(find . | grep -P '^.*(\.((h|c)(pp)?|csv|conf|sh|crt|key)|configure\.ac|Makefile\.am|placeholder|README.*|LICENSE.*|\.gitignore)$' |	\
+(cd $prefix/ &&	\
+	svn up)
+
+(find . -name '*.h' -or -name '*.hpp' -or -name '*.c' -or -name '*.cpp' -or -name '*.csv' -or -name '*.conf' -or -name '*.sh'	\
+	-or -name '*.crt' -or -name '*.key' -or -name 'configure.ac' -or -name 'Makefile.am' -or -name 'placeholder' -or -name 'README*'	\
+	-or -name 'LICENSE*' -or -name '.gitignore'	| \
 	xargs -i cp -v {} $prefix/ --parent)
 
 echo ------------------------ Committing... ------------------------
 
 (cd $prefix/ &&	\
-	svn up &&	\
 	svn add --force . &&	\
 	svn ci -m "$(date +'Automated update from git on %Y-%m-%d %H:%M:%S')")
