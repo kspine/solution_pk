@@ -252,8 +252,8 @@ std::string generateBillSerial(const std::string &prefix){
 	char temp[256];
 	unsigned len = (unsigned)std::sprintf(temp, "%04u%02u%02u%02u", dt.yr, dt.mon, dt.day, dt.hr);
 	serial.append(temp, len);
-	len = (unsigned)std::sprintf(temp, "%06u", Poseidon::atomicAdd(s_autoInc, 1, Poseidon::ATOMIC_RELAXED));
-	serial.append(temp + len - 8, 8);
+	len = (unsigned)std::sprintf(temp, "%09u", Poseidon::atomicAdd(s_autoInc, 1, Poseidon::ATOMIC_RELAXED));
+	serial.append(temp + len - 6, 6);
 	return serial;
 }
 

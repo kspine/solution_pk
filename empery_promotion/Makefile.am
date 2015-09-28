@@ -24,6 +24,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/singletons/account_map.cpp	\
 	src/singletons/item_map.cpp	\
 	src/singletons/global_status.cpp	\
+	src/singletons/chinapnr_sign_daemon.cpp	\
 	src/account/try_login_name.cpp	\
 	src/account/query_account_attributes.cpp	\
 	src/account/query_account_items.cpp	\
@@ -41,6 +42,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/get_both_balance_history.cpp	\
 	src/account/get_withdrawal_requests.cpp	\
 	src/account/commit_withdrawal.cpp	\
+	src/account/create_bill.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/chinapnr_http_session.cpp	\
