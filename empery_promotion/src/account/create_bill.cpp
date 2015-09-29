@@ -49,7 +49,7 @@ ACCOUNT_SERVLET("createBill", /* session */, params){
 
 	std::ostringstream oss;
 	oss <<(bgCert.empty() ? "http://" : "https://")
-	    <<serverIp <<':' <<bgPort <<bgPath <<"/settle?serial=" <<Poseidon::Http::urlEncode(serial);
+	    <<serverIp <<':' <<bgPort <<bgPath <<"/settle";
 	auto bgRetUrl = oss.str();
 
 	auto chkValue = ChinaPnrSignDaemon::sign(merId, serial, createdTime, amountStr, bgRetUrl, retUrl);
