@@ -194,6 +194,7 @@ std::string ChinaPnrSignDaemon::sign(const std::string &merId, const std::string
 	dataToCheck.append(retUrl);   // RetUrl
 	dataToCheck.append(usrMp);    // UsrMp
 	dataToCheck.append(bgRetUrl); // BgRetUrl
+	dataToCheck.push_back('Y');   // IsBalance
 
 	Poseidon::StreamBuffer payload;
 	payload.put('S');
