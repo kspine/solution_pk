@@ -48,6 +48,19 @@ boost::uint64_t GlobalStatus::get(unsigned slot){
 	}
 	return it->second->get_value();
 }
+boost::uint64_t GlobalStatus::set(unsigned slot, boost::uint64_t newValue){
+	PROFILE_ME;
+
+	auto it = g_statusMap->find(slot);
+	if(it == g_statusMap->end()){
+		auto obj = boost::make_shared<MySql::Promotion_GlobalStatus>(slot, 0);
+		obj->asyncSave(true);
+		it = g_statusMap->emplace_hint(it, slot, std::move(obj));
+	}
+	const auto oldValue = it->second->get_value();
+	it->second->set_value(newValue);
+	return oldValue;
+}
 
 void GlobalStatus::checkDailyReset(){
 	PROFILE_ME;

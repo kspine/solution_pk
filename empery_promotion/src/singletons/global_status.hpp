@@ -13,9 +13,11 @@ struct GlobalStatus {
 		SLOT_ACC_CARD_UNIT_PRICE        =    2,
 
 		SLOT_SERVER_DAILY_RESET_TIME    = 1000,
+		SLOT_BILL_AUTO_INC              = 1001,
 	};
 
 	static boost::uint64_t get(unsigned slot);
+	static boost::uint64_t set(unsigned slot, boost::uint64_t newValue);
 
 	static void checkDailyReset();
 

@@ -9,7 +9,6 @@
 #include "item_ids.hpp"
 #include "checked_arithmetic.hpp"
 #include <boost/container/flat_map.hpp>
-#include <poseidon/atomic.hpp>
 #include <poseidon/string.hpp>
 
 namespace EmperyPromotion {
@@ -242,7 +241,8 @@ void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint6
 std::string generateBillSerial(const std::string &prefix){
 	PROFILE_ME;
 
-	static volatile unsigned s_autoInc = 0;
+	const auto autoInc = GlobalStatus::get(GlobalStatus::SLOT_BILL_AUTO_INC);
+	GlobalStatus::set(GlobalStatus::SLOT_BILL_AUTO_INC, autoInc + 1);
 
 	std::string serial;
 	serial.reserve(255);
@@ -252,7 +252,7 @@ std::string generateBillSerial(const std::string &prefix){
 	char temp[256];
 	unsigned len = (unsigned)std::sprintf(temp, "%04u%02u%02u%02u", dt.yr, dt.mon, dt.day, dt.hr);
 	serial.append(temp, len);
-	len = (unsigned)std::sprintf(temp, "%09u", Poseidon::atomicAdd(s_autoInc, 1, Poseidon::ATOMIC_RELAXED));
+	len = (unsigned)std::sprintf(temp, "%09u", (unsigned)autoInc);
 	serial.append(temp + len - 6, 6);
 	return serial;
 }
