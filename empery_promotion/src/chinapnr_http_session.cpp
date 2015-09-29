@@ -36,7 +36,7 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 	}
 	uri.erase(0, m_prefix.size());
 
-	if(requestHeaders.verb != Poseidon::Http::V_GET){
+	if(requestHeaders.verb == Poseidon::Http::V_GET){
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 	}
 	if(requestHeaders.verb != Poseidon::Http::V_POST){
