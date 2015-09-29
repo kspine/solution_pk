@@ -49,16 +49,21 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 			LOG_EMPERY_PROMOTION_INFO("Settle params: ", paramStr);
 			const auto params = Poseidon::Http::optionalMapFromUrlEncoded(paramStr);
 
-			const auto &cmdId    = params.at("CmdId");
-			const auto &merId    = params.at("MerId");
-			const auto &respCode = params.at("RespCode");
-			const auto &trxId    = params.at("TrxId");
-			const auto &amount   = params.at("OrdAmt");
-			const auto &serial   = params.at("OrdId");
-//			const auto &retType  = params.at("RetType");
-			const auto &gateId   = params.at("GateId");
-			const auto &chkValue = params.at("ChkValue");
+			const auto &cmdId      = params.at ("CmdId");
+			const auto &merId      = params.at ("MerId");
+			const auto &respCode   = params.at ("RespCode");
+			const auto &trxId      = params.at ("TrxId");
+			const auto &ordAmt     = params.at ("OrdAmt");
+			const auto &curCode    = params.get("CurCode");
+			const auto &pid        = params.get("Pid");
+			const auto &ordId      = params.at ("OrdId");
+			const auto &merPriv    = params.get("MerPriv");
+			const auto &retType    = params.at ("RetType");
+			const auto &divDetails = params.get("DivDetails");
+			const auto &gateId     = params.at ("GateId");
+			const auto &chkValue   = params.at ("ChkValue");
 
+			const auto &serial = ordId;
 			LOG_EMPERY_PROMOTION_INFO("Settle bill: serial = ", serial);
 
 			std::vector<boost::shared_ptr<MySql::Promotion_Bill>> objs;
@@ -71,8 +76,8 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 			}
 			const auto obj = std::move(objs.front());
 
-			if(!ChinaPnrSignDaemon::check(merId, serial,
-				obj->get_createdTime(), amount, cmdId, respCode, gateId, trxId, chkValue))
+			if(!ChinaPnrSignDaemon::check(cmdId, merId, respCode,
+				trxId, ordAmt, curCode, pid, ordId, merPriv, retType, divDetails, gateId, chkValue))
 			{
 				LOG_EMPERY_PROMOTION_WARNING("Error validating ChinaPnR response");
 				DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);

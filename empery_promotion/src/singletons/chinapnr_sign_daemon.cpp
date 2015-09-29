@@ -174,8 +174,8 @@ namespace {
 	};
 }
 
-std::string ChinaPnrSignDaemon::sign(const std::string &merId, const std::string &serial,
-	boost::uint64_t createdTime, const std::string &amount, const std::string &bgRetUrl, const std::string &retUrl)
+std::string ChinaPnrSignDaemon::sign(const std::string &merId, const std::string &serial, boost::uint64_t /* createdTime */,
+	boost::uint64_t amount, const std::string &retUrl, const std::string &usrMp, const std::string &bgRetUrl)
 {
 	PROFILE_ME;
 
@@ -184,14 +184,16 @@ std::string ChinaPnrSignDaemon::sign(const std::string &merId, const std::string
 
 	std::string dataToCheck;
 	dataToCheck.reserve(1023);
-	dataToCheck.append(merId);
-	dataToCheck.append(serial);
-	dataToCheck.append(amount);
-	const auto dt = Poseidon::breakDownTime(createdTime);
-	len = (unsigned)std::sprintf(str, "%04u%02u%02u", dt.yr, dt.mon, dt.day);
-	dataToCheck.append(str, len);
-	dataToCheck.append(bgRetUrl);
-	dataToCheck.append(retUrl);
+	dataToCheck.append("10", 2);  // Version
+	dataToCheck.append("Buy", 3); // CmdId
+	dataToCheck.append(merId);    // MerId
+	dataToCheck.append(serial);   // OrdId
+	len = (unsigned)std::sprintf(str, "%llu.%02u", (unsigned long long)(amount / 100), (unsigned)(amount % 100));
+	dataToCheck.append(str, len); // OrdAmt
+	dataToCheck.append("RMB", 3); // CurCode
+	dataToCheck.append(retUrl);   // RetUrl
+	dataToCheck.append(usrMp);    // UsrMp
+	dataToCheck.append(bgRetUrl); // BgRetUrl
 
 	Poseidon::StreamBuffer payload;
 	payload.put('S');
@@ -217,9 +219,10 @@ std::string ChinaPnrSignDaemon::sign(const std::string &merId, const std::string
 	promise->checkAndRethrow();
 	return client->getResult();
 }
-bool ChinaPnrSignDaemon::check(const std::string &merId, const std::string &serial,
-	boost::uint64_t createdTime, const std::string &amount, const std::string &cmdId, const std::string &respCode,
-	const std::string &gateId, const std::string &trxId, const std::string &chkValue)
+bool ChinaPnrSignDaemon::check(const std::string &cmdId, const std::string &merId, const std::string &respCode,
+	const std::string &trxId, const std::string &ordAmt, const std::string &curCode, const std::string &pid,
+	const std::string &ordId, const std::string &merPriv, const std::string &retType, const std::string &divDetails,
+	const std::string &gateId, const std::string &chkValue)
 {
 	PROFILE_ME;
 
@@ -228,16 +231,18 @@ bool ChinaPnrSignDaemon::check(const std::string &merId, const std::string &seri
 
 	std::string dataToCheck;
 	dataToCheck.reserve(1023);
-	dataToCheck.append(merId);
-	dataToCheck.append(serial);
-	dataToCheck.append(amount);
-	const auto dt = Poseidon::breakDownTime(createdTime);
-	len = (unsigned)std::sprintf(str, "%04u%02u%02u", dt.yr, dt.mon, dt.day);
-	dataToCheck.append(str, len);
 	dataToCheck.append(cmdId);
+	dataToCheck.append(merId);
 	dataToCheck.append(respCode);
-	dataToCheck.append(gateId);
 	dataToCheck.append(trxId);
+	dataToCheck.append(ordAmt);
+	dataToCheck.append(curCode);
+	dataToCheck.append(pid);
+	dataToCheck.append(ordId);
+	dataToCheck.append(merPriv);
+	dataToCheck.append(retType);
+	dataToCheck.append(divDetails);
+	dataToCheck.append(gateId);
 
 	Poseidon::StreamBuffer payload;
 	payload.put('V');

@@ -47,19 +47,20 @@ ACCOUNT_SERVLET("createBill", /* session */, params){
 	obj->asyncSave(true);
 	LOG_EMPERY_PROMOTION_INFO("Created bill: serial = ", serial, ", amount = ", amount, ", accountId = ", info.accountId);
 
+	auto usrMp = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_PHONE_NUMBER);
+
 	std::ostringstream oss;
-	oss <<(bgCert.empty() ? "http://" : "https://")
-	    <<serverIp <<':' <<bgPort <<bgPath <<"/settle";
+	oss <<(bgCert.empty() ? "http://" : "https://") <<serverIp <<':' <<bgPort <<bgPath <<"/settle";
 	auto bgRetUrl = oss.str();
 
-	auto chkValue = ChinaPnrSignDaemon::sign(merId, serial, createdTime, amountStr, bgRetUrl, retUrl);
+	auto chkValue = ChinaPnrSignDaemon::sign(merId, serial, createdTime, amount, retUrl, usrMp, bgRetUrl);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
 	ret[sslit("merId")] = std::move(merId);
 	ret[sslit("ordId")] = std::move(serial);
 	ret[sslit("ordAmt")] = std::move(amountStr);
-	ret[sslit("usrMp")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_PHONE_NUMBER);
+	ret[sslit("usrMp")] = std::move(usrMp);
 	ret[sslit("retUrl")] = std::move(retUrl);
 	ret[sslit("bgRetUrl")] = std::move(bgRetUrl);
 	ret[sslit("chkValue")] = std::move(chkValue);
