@@ -56,7 +56,7 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 			const auto obj = std::move(objs.front());
 
 			const auto oldState = obj->get_state();
-			if(oldState != BillStates::ST_NEW){
+			if(oldState >= BillStates::ST_CANCELLED){
 				LOG_EMPERY_PROMOTION_WARNING("Unexpected bill state: serail = ", serial, ", oldState = ", oldState);
 				DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 			}
