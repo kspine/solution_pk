@@ -19,7 +19,7 @@ struct AccountMap {
 
 		ATTR_GENDER					= 1,
 		ATTR_COUNTRY				= 2,
-		ATTR_PHONE_NUMBER			= 3,
+//		ATTR_PHONE_NUMBER			= 3,
 		ATTR_BANK_ACCOUNT_NAME		= 4,
 		ATTR_BANK_NAME				= 5,
 		ATTR_BANK_ACCOUNT_NUMBER	= 6,
@@ -32,6 +32,7 @@ struct AccountMap {
 	struct AccountInfo {
 		AccountId accountId;
 		std::string loginName;
+		std::string phoneNumber;
 		std::string nick;
 		std::string passwordHash;
 		std::string dealPasswordHash;
@@ -49,6 +50,7 @@ struct AccountMap {
 	static AccountInfo require(const std::string &loginName);
 	static void getAll(std::vector<AccountInfo> &ret);
 
+	static void getByPhoneNumber(std::vector<AccountInfo> &ret, const std::string &phoneNumber);
 	static void getByReferrerId(std::vector<AccountInfo> &ret, AccountId referrerId);
 
 	static std::string getPasswordHash(const std::string &password);
@@ -59,7 +61,7 @@ struct AccountMap {
 	static void setFlags(AccountId accountId, boost::uint64_t flags);
 	static void setBannedUntil(AccountId accountId, boost::uint64_t bannedUntil);
 
-	static AccountId create(std::string loginName, std::string nick,
+	static AccountId create(std::string loginName, std::string phoneNumber, std::string nick,
 		const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags);
 
 	static const std::string &getAttribute(AccountId accountId, unsigned slot);

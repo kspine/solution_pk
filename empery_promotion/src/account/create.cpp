@@ -75,10 +75,18 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
-	const auto newAccountId = AccountMap::create(loginName, nick, password, password, referrerInfo.accountId, 0);
+	std::vector<AccountMap::AccountInfo> tempInfos;
+	AccountMap::getByPhoneNumber(tempInfos, phoneNumber);
+	if(!tempInfos.empty()){
+		ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_PHONE_NUMBER;
+		ret[sslit("errorMessage")] = "Another account with the same phone number already exists";
+		return ret;
+	}
+
+	const auto newAccountId = AccountMap::create(loginName, phoneNumber, nick, password, password, referrerInfo.accountId, 0);
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_GENDER, gender);
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_COUNTRY, country);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_PHONE_NUMBER, phoneNumber);
+//	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_PHONE_NUMBER, phoneNumber);
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_BANK_ACCOUNT_NAME, bankAccountName);
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_BANK_NAME, bankName);
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER, bankAccountNumber);

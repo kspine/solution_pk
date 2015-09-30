@@ -23,6 +23,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 		referrerNick = std::move(referrerInfo.nick);
 	}
 
+	ret[sslit("phoneNumber")] = std::move(info.phoneNumber);
 	ret[sslit("nick")] = std::move(info.nick);
 	ret[sslit("level")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 	ret[sslit("referrerLoginName")] = std::move(referrerLoginName);
@@ -32,7 +33,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 	ret[sslit("createdTime")] = static_cast<boost::uint64_t>(info.createdTime);
 	ret[sslit("gender")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_GENDER);
 	ret[sslit("country")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_COUNTRY);
-	ret[sslit("phoneNumber")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_PHONE_NUMBER);
+//	ret[sslit("phoneNumber")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_PHONE_NUMBER);
 	ret[sslit("bankAccountName")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_BANK_ACCOUNT_NAME);
 	ret[sslit("bankName")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_BANK_NAME);
 	ret[sslit("bankAccountNumber")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER);

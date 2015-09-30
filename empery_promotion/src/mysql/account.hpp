@@ -11,6 +11,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS	\
 	FIELD_BIGINT_UNSIGNED	(accountId)	\
 	FIELD_STRING			(loginName)	\
+	FIELD_STRING			(phoneNumber)	\
 	FIELD_STRING			(nick)	\
 	FIELD_STRING			(passwordHash)	\
 	FIELD_STRING			(dealPasswordHash)	\
