@@ -5,6 +5,7 @@
 #include <poseidon/singletons/timer_daemon.hpp>
 #include "../mysql/global_status.hpp"
 #include "../utilities.hpp"
+#include "../checked_arithmetic.hpp"
 
 namespace EmperyPromotion {
 
@@ -77,7 +78,7 @@ void GlobalStatus::checkDailyReset(){
 	};
 
 	const auto firstBalancingDelay       = getConfig<boost::uint64_t>("first_balancing_delay",     20 * 86400000);
-	const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_begin",   100);
+	const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_begin", 100);
 	const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin", 40000);
 	const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",   50000);
 
@@ -92,7 +93,7 @@ void GlobalStatus::checkDailyReset(){
 		LOG_EMPERY_PROMOTION_WARNING("This seems to be the first run?");
 
 		serverCreatedTimeObj->set_value(localNow);
-		firstBalancingTimeObj->set_value(localNow + firstBalancingDelay);
+		firstBalancingTimeObj->set_value(localNow / 86400000 * 86400000 + firstBalancingDelay);
 		accCardUnitPriceObj->set_value(accCardUnitPriceBegin);
 		return;
 	}
@@ -107,8 +108,7 @@ void GlobalStatus::checkDailyReset(){
 	const auto deltaDays = thisDay - lastDay;
 	LOG_EMPERY_PROMOTION_INFO("Daily reset: deltaDays = ", deltaDays);
 
-	const auto createdDay = serverCreatedTimeObj->get_value() / 86400000;
-	const auto firstBalancingTime = createdDay * 86400000 + firstBalancingDelay;
+	const auto firstBalancingTime = firstBalancingTimeObj->get_value();
 
 	auto newAccCardUnitPrice = accCardUnitPriceObj->get_value();
 	if(localNow >= firstBalancingTime){
@@ -118,7 +118,7 @@ void GlobalStatus::checkDailyReset(){
 		}
 
 		LOG_EMPERY_PROMOTION_INFO("Incrementing acceleration card unit price by ", accCardUnitPriceIncrement);
-		newAccCardUnitPrice += accCardUnitPriceIncrement;
+		newAccCardUnitPrice = checkedAdd(newAccCardUnitPrice, checkedMul(accCardUnitPriceIncrement, deltaDays));
 		if(newAccCardUnitPrice < accCardUnitPriceBegin){
 			newAccCardUnitPrice = accCardUnitPriceBegin;
 		}

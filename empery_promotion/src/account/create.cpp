@@ -1,10 +1,15 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include <poseidon/string.hpp>
 #include "../singletons/account_map.hpp"
+#include "../singletons/item_map.hpp"
+#include "../item_transaction_element.hpp"
 #include "../msg/err_account.hpp"
 #include "../data/promotion.hpp"
 #include "../utilities.hpp"
 #include "../events/account.hpp"
+#include "../item_ids.hpp"
+#include "../events/item.hpp"
 
 namespace EmperyPromotion {
 
@@ -91,6 +96,24 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 	accumulateBalanceBonus(newAccountId, payerInfo.accountId, promotionData->price);
+
+	const auto initGoldCoinArray = Poseidon::explode<boost::uint64_t>(',',
+	                               getConfig<std::string>("init_gold_coins_array", "100,50,50"));
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(initGoldCoinArray.size());
+	auto addGoldCoinsToWhom = newAccountId;
+	for(auto it = initGoldCoinArray.begin(); it != initGoldCoinArray.end(); ++it){
+		transaction.emplace_back(addGoldCoinsToWhom,
+			ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD_COINS, *it);
+
+		const auto info = AccountMap::require(addGoldCoinsToWhom);
+		addGoldCoinsToWhom = info.referrerId;
+		if(!addGoldCoinsToWhom){
+			break;
+		}
+	}
+	ItemMap::commitTransaction(transaction.data(), transaction.size(),
+		Events::ItemChanged::R_CREATE_ACCOUNT, newAccountId.get(), payerInfo.accountId.get(), promotionData->price, remarks);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

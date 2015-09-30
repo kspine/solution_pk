@@ -18,10 +18,18 @@ ACCOUNT_SERVLET("queryAccountItems", /* session */, params){
 		return ret;
 	}
 
+	Poseidon::JsonObject items;
+	boost::container::flat_map<ItemId, boost::uint64_t> itemMap;
+	ItemMap::getAllByAccountId(itemMap, info.accountId);
+	for(auto it = itemMap.begin(); it != itemMap.end(); ++it){
+		char str[256];
+		unsigned len = (unsigned)std::sprintf(str, "%llu", (unsigned long long)it->first.get());
+		items[SharedNts(str, len)] = it->second;
+	}
+
 	ret[sslit("nick")] = std::move(info.nick);
 	ret[sslit("level")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-	ret[sslit("accelerationCards")] = ItemMap::getCount(info.accountId, ItemIds::ID_ACCELERATION_CARDS);
-	ret[sslit("accountBalance")] = ItemMap::getCount(info.accountId, ItemIds::ID_ACCOUNT_BALANCE);
+	ret[sslit("items")] = std::move(items);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

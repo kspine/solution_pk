@@ -228,6 +228,13 @@ void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint6
 		return;
 	}
 
+	const auto localNow = Poseidon::getLocalTime();
+	const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+	if(localNow < firstBalancingTime){
+		LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
+		return;
+	}
+
 	const auto levelRatioTotal = getConfig<double>("balance_level_bonus_ratio_total", 0.70);
 	const auto extraRatioArray = Poseidon::explode<double>(',',
 	                             getConfig<std::string>("balance_level_bonus_extra_ratio_array", "0.02,0.02,0.01"));

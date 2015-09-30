@@ -11,6 +11,7 @@ namespace EmperyPromotion {
 		DEF_(ID_ACCELERATION_CARDS,         10001);
 		DEF_(ID_ACCOUNT_BALANCE,            10002);
 		DEF_(ID_WITHDRAWN_BALANCE,          10003);
+		DEF_(ID_GOLD_COINS,                 10004);
 
 #undef DEF_
 
