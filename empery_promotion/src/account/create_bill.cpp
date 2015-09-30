@@ -15,6 +15,7 @@ ACCOUNT_SERVLET("createBill", /* session */, params){
 	const auto amount = boost::lexical_cast<boost::uint64_t>(params.at("amount"));
 	const auto &serverIp = params.at("serverIp");
 	const auto &retUrl = params.at("retUrl");
+	const auto &remarks = params.get("remarks");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get(loginName);
@@ -43,7 +44,7 @@ ACCOUNT_SERVLET("createBill", /* session */, params){
 	auto amountStr = std::string(str, len);
 
 	const auto obj = boost::make_shared<MySql::Promotion_Bill>(
-		serial, createdTime, amount, info.accountId.get(), BillStates::ST_NEW, std::string(), std::string());
+		serial, createdTime, amount, info.accountId.get(), BillStates::ST_NEW, std::string(), remarks);
 	obj->asyncSave(true);
 	LOG_EMPERY_PROMOTION_INFO("Created bill: serial = ", serial, ", amount = ", amount, ", accountId = ", info.accountId);
 
