@@ -20,6 +20,7 @@ namespace Msg {
 		ERR_TRANSFER_DEST_NOT_FOUND     = 80109,
 		ERR_TRANSFER_DEST_BANNED        = 80110,
 		ERR_NO_SUCH_PAYER               = 80111,
+		ERR_NO_SUCH_BILL                = 80112,
 
 		ERR_W_D_SLIP_NOT_FOUND          = 80201,
 		ERR_W_D_SLIP_CANCELLED          = 80202,
