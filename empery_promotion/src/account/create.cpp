@@ -62,11 +62,14 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
-	const auto promotionData = Data::Promotion::get(level);
-	if(!promotionData){
-		ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
-		ret[sslit("errorMessage")] = "Account level is not found";
-		return ret;
+	boost::shared_ptr<const Data::Promotion> promotionData;
+	if(level != 0){
+		promotionData = Data::Promotion::get(level);
+		if(!promotionData){
+			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
+			ret[sslit("errorMessage")] = "Account level is not found";
+			return ret;
+		}
 	}
 
 	if(AccountMap::has(loginName)){
@@ -96,14 +99,18 @@ ACCOUNT_SERVLET("create", session, params){
 	Poseidon::asyncRaiseEvent(
 		boost::make_shared<Events::AccountCreated>(newAccountId, session->getRemoteInfo().ip));
 
-	const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks);
-	ret[sslit("balanceToConsume")] = result.second;
-	if(!result.first){
-		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
-		ret[sslit("errorMessage")] = "No enough account balance";
-		return ret;
+	if(promotionData){
+		const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks);
+		ret[sslit("balanceToConsume")] = result.second;
+		if(!result.first){
+			ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
+			ret[sslit("errorMessage")] = "No enough account balance";
+			return ret;
+		}
+		accumulateBalanceBonus(newAccountId, payerInfo.accountId, promotionData->price);
+	} else {
+		ret[sslit("balanceToConsume")] = 0;
 	}
-	accumulateBalanceBonus(newAccountId, payerInfo.accountId, promotionData->price);
 
 	const auto initGoldCoinArray = Poseidon::explode<boost::uint64_t>(',',
 	                               getConfig<std::string>("init_gold_coins_array", "100,50,50"));
@@ -121,7 +128,7 @@ ACCOUNT_SERVLET("create", session, params){
 		}
 	}
 	ItemMap::commitTransaction(transaction.data(), transaction.size(),
-		Events::ItemChanged::R_CREATE_ACCOUNT, newAccountId.get(), payerInfo.accountId.get(), promotionData->price, remarks);
+		Events::ItemChanged::R_CREATE_ACCOUNT, newAccountId.get(), payerInfo.accountId.get(), level, remarks);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
