@@ -35,6 +35,7 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 					::Poseidon::OptionalMap headers_;	\
 					headers_.set("Content-Type", "application/json");	\
 					headers_.set("Access-Control-Allow-Origin", "*");	\
+					LOG_EMPERY_PROMOTION_DEBUG("Sending response: ", result_.dump());	\
 					session_->send(::Poseidon::Http::ST_OK, ::std::move(headers_), ::Poseidon::StreamBuffer(result_.dump()));	\
 				}	\
 			}	\
