@@ -26,13 +26,13 @@ namespace {
 		std::string loginName;
 		std::string phoneNumber;
 		std::string nick;
-		AccountId referrereId;
+		AccountId referrerId;
 
 		explicit AccountElement(boost::shared_ptr<MySql::Promotion_Account> obj_)
 			: obj(std::move(obj_))
 			, accountId(obj->get_accountId()), loginName(obj->unlockedGet_loginName())
 			, phoneNumber(obj->unlockedGet_phoneNumber()), nick(obj->unlockedGet_nick())
-			, referrereId(obj->get_referrerId())
+			, referrerId(obj->get_referrerId())
 		{
 		}
 	};
@@ -42,7 +42,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(loginName, StringCaseComparator)
 		MULTI_MEMBER_INDEX(phoneNumber)
 		MULTI_MEMBER_INDEX(nick, StringCaseComparator)
-		MULTI_MEMBER_INDEX(referrereId)
+		MULTI_MEMBER_INDEX(referrerId)
 	)
 
 	boost::shared_ptr<AccountMapDelegator> g_accountMap;

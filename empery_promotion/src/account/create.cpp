@@ -15,7 +15,7 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("create", session, params){
 	const auto &payerLoginName = params.at("payerLoginName");
-	const auto &dealPassword = params.at("dealPassword");
+	const auto &dealPassword = params.get("dealPassword");
 	const auto &loginName = params.at("loginName");
 	const auto &nick = params.at("nick");
 	const auto level = boost::lexical_cast<boost::uint64_t>(params.at("level"));
@@ -38,10 +38,12 @@ ACCOUNT_SERVLET("create", session, params){
 		ret[sslit("errorMessage")] = "Payer is not found";
 		return ret;
 	}
-	if(AccountMap::getPasswordHash(dealPassword) != payerInfo.dealPasswordHash){
-		ret[sslit("errorCode")] = (int)Msg::ERR_INVALID_DEAL_PASSWORD;
-		ret[sslit("errorMessage")] = "Deal password is incorrect";
-		return ret;
+	if(level != 0){
+		if(AccountMap::getPasswordHash(dealPassword) != payerInfo.dealPasswordHash){
+			ret[sslit("errorCode")] = (int)Msg::ERR_INVALID_DEAL_PASSWORD;
+			ret[sslit("errorMessage")] = "Deal password is incorrect";
+			return ret;
+		}
 	}
 	const auto localNow = Poseidon::getLocalTime();
 	if((payerInfo.bannedUntil != 0) && (localNow < payerInfo.bannedUntil)){
@@ -125,7 +127,7 @@ ACCOUNT_SERVLET("create", session, params){
 			ret[sslit("errorMessage")] = "No enough account balance";
 			return ret;
 		}
-		accumulateBalanceBonus(newAccountId, payerInfo.accountId, promotionData->price);
+		accumulateBalanceBonus(newAccountId, payerInfo.accountId, result.second);
 	} else {
 		ret[sslit("balanceToConsume")] = 0;
 	}

@@ -113,6 +113,12 @@ namespace {
 	void reallyAccumulateBalanceBonus(AccountId referrerId, AccountId accountId, AccountId payerId, boost::uint64_t amount,
 		double levelRatioTotal, const std::vector<double> &extraRatioArray, double generationRatio, unsigned generationCount)
 	{
+		PROFILE_ME;
+		LOG_EMPERY_PROMOTION_INFO("Balance bonus: referrerId = ", referrerId, ", accountId = ", accountId,
+			", accountId = ", accountId, ", amount = ", amount, ", levelRatioTotal = ", levelRatioTotal,
+			", extraRatioArray = [", Poseidon::implode(',', extraRatioArray),
+			"], generationRatio = ", generationRatio, ", generationCount = ", generationCount);
+
 	 	std::vector<ItemTransactionElement> transaction;
 	 	transaction.reserve(16);
 
@@ -126,6 +132,7 @@ namespace {
 		}
 
 		const auto levelDividendTotal = static_cast<boost::uint64_t>(amount * levelRatioTotal);
+		LOG_EMPERY_PROMOTION_DEBUG("> levelDividendTotal = ", levelDividendTotal);
 		boost::uint64_t dividendAccumulated = 0;
 		for(auto referrerIt = referrers.begin(); (referrerIt != referrers.end()) && (dividendAccumulated < levelDividendTotal); ++referrerIt){
 			const auto currentReferrerId = referrerIt->first;
@@ -135,6 +142,8 @@ namespace {
 				continue;
 			}
 			const auto maxDividendForReferrer = static_cast<boost::uint64_t>(levelDividendTotal * referrerPromotionData->taxRatio);
+			LOG_EMPERY_PROMOTION_DEBUG("> currentReferrerId = ", currentReferrerId,
+				", taxRatio = ", referrerPromotionData->taxRatio, ", maxDividendForReferrer = ", maxDividendForReferrer);
 			if(maxDividendForReferrer < dividendAccumulated){
 				continue;
 			}
