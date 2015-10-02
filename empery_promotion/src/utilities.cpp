@@ -116,14 +116,13 @@ namespace {
 		PROFILE_ME;
 		LOG_EMPERY_PROMOTION_INFO("Balance bonus: referrerId = ", referrerId, ", accountId = ", accountId,
 			", accountId = ", accountId, ", amount = ", amount, ", levelRatioTotal = ", levelRatioTotal,
-			", extraRatioArray = [", Poseidon::implode(',', extraRatioArray),
-			"], generationRatio = ", generationRatio, ", generationCount = ", generationCount);
+			", extraRatioArray = [", Poseidon::implode(',', extraRatioArray), "]",
+			", generationRatio = ", generationRatio, ", generationCount = ", generationCount);
 
 	 	std::vector<ItemTransactionElement> transaction;
 	 	transaction.reserve(16);
 
-		std::vector<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
-		referrers.reserve(16);
+		std::deque<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
 		for(auto currentId = referrerId; currentId; currentId = AccountMap::require(currentId).referrerId){
 			const auto referrerLevel = AccountMap::castAttribute<boost::uint64_t>(currentId, AccountMap::ATTR_ACCOUNT_LEVEL);
 			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: currentId = ", currentId, ", referrerLevel = ", referrerLevel);
@@ -134,9 +133,9 @@ namespace {
 		const auto levelDividendTotal = static_cast<boost::uint64_t>(amount * levelRatioTotal);
 		LOG_EMPERY_PROMOTION_DEBUG("> levelDividendTotal = ", levelDividendTotal);
 		boost::uint64_t dividendAccumulated = 0;
-		for(auto referrerIt = referrers.begin(); (referrerIt != referrers.end()) && (dividendAccumulated < levelDividendTotal); ++referrerIt){
-			const auto currentReferrerId = referrerIt->first;
-			const auto &referrerPromotionData = referrerIt->second;
+		for(; !referrers.empty() && (dividendAccumulated < levelDividendTotal); referrers.pop_front()){
+			const auto currentReferrerId = referrers.front().first;
+			const auto &referrerPromotionData = referrers.front().second;
 
 			if(!referrerPromotionData){
 				continue;
@@ -153,41 +152,47 @@ namespace {
 			transaction.emplace_back(currentReferrerId,
 				ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, realDividendForReferrer);
 			dividendAccumulated = maxDividendForReferrer;
-		}
 
-		const auto accountLevel = AccountMap::castAttribute<boost::uint64_t>(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-		const auto promotionData = Data::Promotion::get(accountLevel);
-		if(promotionData->taxExtra){
-			auto extraIt = extraRatioArray.begin();
-			for(auto referrerIt = referrers.begin(); (referrerIt != referrers.end()) && (extraIt != extraRatioArray.end()); ++referrerIt){
+			std::vector<ItemTransactionElement> extraTransaction;
+			extraTransaction.reserve(16);
+			const auto generationDividend = static_cast<boost::uint64_t>(realDividendForReferrer * generationRatio);
+			unsigned generation = 0;
+			for(auto referrerIt = referrers.begin(); (referrerIt != referrers.end()) && (generation < generationCount); ++referrerIt){
 				const auto currentReferrerId = referrerIt->first;
-				const auto &referrerPromotionData = referrerIt->second;
 
-				if(!referrerPromotionData){
-					continue;
-				}
-				if(!referrerPromotionData->taxExtra){
-					continue;
-				}
-				const auto dividendForReferrer = static_cast<boost::uint64_t>(amount * (*extraIt));
-				LOG_EMPERY_PROMOTION_DEBUG("> Extra bonus: currentReferrerId = ", currentReferrerId,
-					", extraGeneration = ", extraIt - extraRatioArray.begin(), ", dividendForReferrer = ", dividendForReferrer);
-				transaction.emplace_back(currentReferrerId,
-					ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, dividendForReferrer);
-				++extraIt;
+				LOG_EMPERY_PROMOTION_DEBUG("> Generation bonus: currentReferrerId = ", currentReferrerId,
+					", generationDividend = ", generationDividend);
+				extraTransaction.emplace_back(currentReferrerId,
+					ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, generationDividend);
+				++generation;
 			}
-		}
+			ItemMap::commitTransaction(extraTransaction.data(), extraTransaction.size(),
+				Events::ItemChanged::R_INCOME_TAX, realDividendForReferrer, 0, 0, { });
 
-		const auto generationDividend = static_cast<boost::uint64_t>(amount * generationRatio);
-		unsigned generation = 0;
-		for(auto referrerIt = referrers.begin(); (referrerIt != referrers.end()) && (generation < generationCount); ++referrerIt){
-			const auto currentReferrerId = referrerIt->first;
+			if(referrerPromotionData->taxExtra){
+				extraTransaction.clear();
 
-			LOG_EMPERY_PROMOTION_DEBUG("> Generation bonus: currentReferrerId = ", currentReferrerId,
-				", generationDividend = ", generationDividend);
-			transaction.emplace_back(currentReferrerId,
-				ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, generationDividend);
-			++generation;
+				auto extraIt = extraRatioArray.begin();
+				for(auto referrerIt = referrers.begin(); (referrerIt != referrers.end()) && (extraIt != extraRatioArray.end()); ++referrerIt){
+					const auto currentReferrerId = referrerIt->first;
+					const auto &referrerPromotionData = referrerIt->second;
+
+					if(!referrerPromotionData){
+						continue;
+					}
+					if(!referrerPromotionData->taxExtra){
+						continue;
+					}
+					const auto dividendForReferrer = static_cast<boost::uint64_t>(realDividendForReferrer * (*extraIt));
+					LOG_EMPERY_PROMOTION_DEBUG("> Extra bonus: currentReferrerId = ", currentReferrerId,
+						", extraGeneration = ", extraIt - extraRatioArray.begin(), ", dividendForReferrer = ", dividendForReferrer);
+					extraTransaction.emplace_back(currentReferrerId,
+						ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, dividendForReferrer);
+					++extraIt;
+				}
+				ItemMap::commitTransaction(extraTransaction.data(), extraTransaction.size(),
+					Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), amount, { });
+			}
 		}
 
 		ItemMap::commitTransaction(transaction.data(), transaction.size(),
