@@ -30,8 +30,8 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 					const ::boost::shared_ptr<AccountHttpSession> &session_, const ::Poseidon::OptionalMap &params_)	\
 				{	\
 					PROFILE_ME;	\
+					LOG_EMPERY_PROMOTION_DEBUG("Account servlet response: uri = ", uri_);	\
 					::Poseidon::JsonObject result_ = TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (session_, params_);	\
-					LOG_EMPERY_PROMOTION_TRACE("Account servlet response: uri = ", uri_, ", result = ", result_.dump());	\
 					::Poseidon::OptionalMap headers_;	\
 					headers_.set("Content-Type", "application/json");	\
 					headers_.set("Access-Control-Allow-Origin", "*");	\
