@@ -99,19 +99,6 @@ ACCOUNT_SERVLET("create", session, params){
 	Poseidon::asyncRaiseEvent(
 		boost::make_shared<Events::AccountCreated>(newAccountId, session->getRemoteInfo().ip));
 
-	if(promotionData){
-		const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks);
-		ret[sslit("balanceToConsume")] = result.second;
-		if(!result.first){
-			ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
-			ret[sslit("errorMessage")] = "No enough account balance";
-			return ret;
-		}
-		accumulateBalanceBonus(newAccountId, payerInfo.accountId, promotionData->price);
-	} else {
-		ret[sslit("balanceToConsume")] = 0;
-	}
-
 	const auto initGoldCoinArray = Poseidon::explode<boost::uint64_t>(',',
 	                               getConfig<std::string>("init_gold_coins_array", "100,50,50"));
 	std::vector<ItemTransactionElement> transaction;
@@ -129,6 +116,19 @@ ACCOUNT_SERVLET("create", session, params){
 	}
 	ItemMap::commitTransaction(transaction.data(), transaction.size(),
 		Events::ItemChanged::R_CREATE_ACCOUNT, newAccountId.get(), payerInfo.accountId.get(), level, remarks);
+
+	if(promotionData){
+		const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks);
+		ret[sslit("balanceToConsume")] = result.second;
+		if(!result.first){
+			ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
+			ret[sslit("errorMessage")] = "No enough account balance";
+			return ret;
+		}
+		accumulateBalanceBonus(newAccountId, payerInfo.accountId, promotionData->price);
+	} else {
+		ret[sslit("balanceToConsume")] = 0;
+	}
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
