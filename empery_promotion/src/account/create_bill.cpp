@@ -37,7 +37,12 @@ ACCOUNT_SERVLET("createBill", /* session */, params){
 //	auto pubKey  = getConfig<std::string>("chinapnr_public_key");
 
 	auto serial = generateBillSerial(serialPrefix);
-	const auto createdTime = Poseidon::getLocalTime();
+	const auto createdTime = Poseidon::getUtcTime() + 8 * 3600 * 1000; // XXX 转换到北京时间。
+
+	auto usrMp = std::move(info.phoneNumber);
+	if((usrMp.size() >= 4) && (std::memcmp(usrMp.data(), "+86-", 4) == 0)){ // XXX 去掉国际区号。
+		usrMp.erase(0, 4);
+	}
 
 	char str[256];
 	auto len = (unsigned)std::sprintf(str, "%llu.%02u", (unsigned long long)(amount / 100), (unsigned)(amount % 100));
@@ -52,14 +57,14 @@ ACCOUNT_SERVLET("createBill", /* session */, params){
 	oss <<(bgCert.empty() ? "http://" : "https://") <<serverIp <<':' <<bgPort <<bgPath <<"/settle";
 	auto bgRetUrl = oss.str();
 
-	auto chkValue = ChinaPnrSignDaemon::sign(merId, serial, createdTime, amount, retUrl, info.phoneNumber, bgRetUrl);
+	auto chkValue = ChinaPnrSignDaemon::sign(merId, serial, createdTime, amount, retUrl, usrMp, bgRetUrl);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
 	ret[sslit("merId")] = std::move(merId);
 	ret[sslit("ordId")] = std::move(serial);
 	ret[sslit("ordAmt")] = std::move(amountStr);
-	ret[sslit("usrMp")] = std::move(info.phoneNumber);
+	ret[sslit("usrMp")] = std::move(usrMp);
 	ret[sslit("retUrl")] = std::move(retUrl);
 	ret[sslit("bgRetUrl")] = std::move(bgRetUrl);
 	ret[sslit("chkValue")] = std::move(chkValue);
