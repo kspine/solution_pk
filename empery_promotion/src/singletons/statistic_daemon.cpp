@@ -1,6 +1,7 @@
 #include "../precompiled.hpp"
 #include <poseidon/singletons/event_dispatcher.hpp>
 #include <poseidon/http/utilities.hpp>
+#include <poseidon/atomic.hpp>
 #include "global_status.hpp"
 #include "account_map.hpp"
 #include "item_map.hpp"
@@ -10,6 +11,10 @@
 #include "../mysql/outcome_balance_history.hpp"
 
 namespace EmperyPromotion {
+
+namespace {
+	volatile boost::uint32_t g_autoId = 0;
+}
 
 MODULE_RAII_PRIORITY(handles, 9000){
 	auto listener = Poseidon::EventDispatcher::registerListener<Events::ItemChanged>(
@@ -71,13 +76,13 @@ MODULE_RAII_PRIORITY(handles, 9000){
 			}
 			if(event->oldCount < event->newCount){
 				const auto obj = boost::make_shared<MySql::Promotion_IncomeBalanceHistory>(
-					event->accountId.get(), localNow, event->newCount - event->oldCount,
-					event->reason, event->param1, event->param2, event->param3, oss.str());
+					event->accountId.get(), localNow, Poseidon::atomicAdd(g_autoId, 1, Poseidon::ATOMIC_RELAXED),
+					event->newCount - event->oldCount, event->reason, event->param1, event->param2, event->param3, oss.str());
 				obj->asyncSave(true);
-			} else {
+			} else if(event->oldCount > event->newCount){
 				const auto obj = boost::make_shared<MySql::Promotion_OutcomeBalanceHistory>(
-					event->accountId.get(), localNow, event->oldCount - event->newCount,
-					event->reason, event->param1, event->param2, event->param3, oss.str());
+					event->accountId.get(), localNow, Poseidon::atomicAdd(g_autoId, 1, Poseidon::ATOMIC_RELAXED),
+					event->oldCount - event->newCount, event->reason, event->param1, event->param2, event->param3, oss.str());
 				obj->asyncSave(true);
 			}
 		});

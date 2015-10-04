@@ -149,6 +149,7 @@ namespace {
 		}
 
 		const auto dividendTotal = static_cast<boost::uint64_t>(amount * g_bonusRatio);
+		const auto incomeTaxRatioTotal = std::accumulate(g_incomeTaxRatioArray.begin(), g_incomeTaxRatioArray.end(), 0.0);
 
 		boost::uint64_t dividendAccumulated = 0;
 		while(!referrers.empty()){
@@ -184,7 +185,7 @@ namespace {
 					if(!(it->second && it->second->taxExtra)){
 						continue;
 					}
-					const auto extra = static_cast<boost::uint64_t>(std::round(myDividend * g_extraTaxRatioArray.at(generation)));
+					const auto extra = static_cast<boost::uint64_t>(std::ceil(myDividend * g_extraTaxRatioArray.at(generation)));
 					transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), amount, std::string());
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
@@ -193,11 +194,14 @@ namespace {
 				}
 			}
 
+			// 扣除个税即使没有上家（视为被系统回收）。
+			const auto taxTotal = static_cast<boost::uint64_t>(std::ceil(myDividend * incomeTaxRatioTotal));
+			transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, taxTotal,
+				Events::ItemChanged::R_INCOME_TAX, myDividend, 0, 0, std::string());
+
 			generation = 0;
 			for(auto it = referrers.begin();(generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
-				const auto tax = static_cast<boost::uint64_t>(std::round(myDividend * g_incomeTaxRatioArray.at(generation)));
-				transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax,
-					Events::ItemChanged::R_INCOME_TAX, myDividend, 0, 0, std::string());
+				const auto tax = static_cast<boost::uint64_t>(std::ceil(myDividend * g_incomeTaxRatioArray.at(generation)));
 				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
 					Events::ItemChanged::R_INCOME_TAX, myDividend, 0, 0, std::string());
 				++generation;

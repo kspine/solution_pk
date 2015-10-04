@@ -11,6 +11,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS	\
 	FIELD_BIGINT_UNSIGNED	(accountId)	\
 	FIELD_BIGINT_UNSIGNED	(timestamp)	\
+	FIELD_INTEGER_UNSIGNED	(autoId)	\
 	FIELD_BIGINT_UNSIGNED	(incomeBalance)	\
 	FIELD_INTEGER_UNSIGNED	(reason)	\
 	FIELD_BIGINT_UNSIGNED	(param1)	\
