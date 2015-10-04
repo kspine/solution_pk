@@ -48,6 +48,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 				oss <<Poseidon::Http::base64Encode(event->remarks) <<',';
 				break;
 			case Events::ItemChanged::R_BALANCE_BONUS:
+			case Events::ItemChanged::R_BALANCE_BONUS_EXTRA:
 				info = AccountMap::get(AccountId(event->param1));
 				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
 				info = AccountMap::get(AccountId(event->param2));
@@ -58,6 +59,11 @@ MODULE_RAII_PRIORITY(handles, 9000){
 			case Events::ItemChanged::R_WITHDRAW:
 				info = AccountMap::get(AccountId(event->param1));
 				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
+				break;
+			case Events::ItemChanged::R_COMMIT_WITHDRAWAL:
+				break;
+			case Events::ItemChanged::R_INCOME_TAX:
+				oss <<event->param1 <<',';
 				break;
 			default:
 				LOG_EMPERY_PROMOTION_WARNING("Unknown reason: ", (unsigned)event->reason);

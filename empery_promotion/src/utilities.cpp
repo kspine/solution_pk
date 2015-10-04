@@ -174,15 +174,7 @@ namespace {
 			transaction.emplace_back(referrerId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, myDividend,
 				Events::ItemChanged::R_BALANCE_BONUS, accountId.get(), payerId.get(), amount, std::string());
 
-			unsigned generation = 0;
-			for(auto it = referrers.begin();(generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
-				const auto tax = static_cast<boost::uint64_t>(std::round(amount * g_incomeTaxRatioArray.at(generation)));
-				transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax,
-					Events::ItemChanged::R_INCOME_TAX, amount, 0, 0, std::string());
-				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
-					Events::ItemChanged::R_INCOME_TAX, amount, 0, 0, std::string());
-				++generation;
-			}
+			unsigned generation;
 
 			if(promotionData && promotionData->taxExtra){
 				generation = 0;
@@ -190,13 +182,23 @@ namespace {
 					if(!(it->second && it->second->taxExtra)){
 						continue;
 					}
-					const auto extra = static_cast<boost::uint64_t>(std::round(amount * g_extraTaxRatioArray.at(generation)));
+					const auto extra = static_cast<boost::uint64_t>(std::round(myDividend * g_extraTaxRatioArray.at(generation)));
 					transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), amount, std::string());
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), amount, std::string());
 					++generation;
 				}
+			}
+
+			generation = 0;
+			for(auto it = referrers.begin();(generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
+				const auto tax = static_cast<boost::uint64_t>(std::round(myDividend * g_incomeTaxRatioArray.at(generation)));
+				transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax,
+					Events::ItemChanged::R_INCOME_TAX, myDividend, 0, 0, std::string());
+				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
+					Events::ItemChanged::R_INCOME_TAX, myDividend, 0, 0, std::string());
+				++generation;
 			}
 		}
 
