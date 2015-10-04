@@ -148,6 +148,8 @@ namespace {
 			referrers.emplace_back(currentId, std::move(referrerPromotionData));
 		}
 
+		const auto dividendTotal = static_cast<boost::uint64_t>(amount * g_bonusRatio);
+
 		boost::uint64_t dividendAccumulated = 0;
 		while(!referrers.empty()){
 			const auto referrerId = referrers.front().first;
@@ -159,17 +161,17 @@ namespace {
 				continue;
 			}
 
-			const auto maxDividend = static_cast<boost::uint64_t>(amount * g_bonusRatio);
+			const auto myMaxDividend = dividendTotal * referrerPromotionData->taxRatio;
 			LOG_EMPERY_PROMOTION_DEBUG("> Current referrer: referrerId = ", referrerId,
 				", level = ", referrerPromotionData->price, ", taxRatio = ", referrerPromotionData->taxRatio,
-				", dividendAccumulated = ", dividendAccumulated, ", maxDividend = ", maxDividend);
+				", dividendAccumulated = ", dividendAccumulated, ", myMaxDividend = ", myMaxDividend);
 
 			// 级差制。
-			if(dividendAccumulated >= maxDividend){
+			if(dividendAccumulated >= myMaxDividend){
 				continue;
 			}
-			const auto myDividend = maxDividend - dividendAccumulated;
-			dividendAccumulated = maxDividend;
+			const auto myDividend = myMaxDividend - dividendAccumulated;
+			dividendAccumulated = myMaxDividend;
 
 			transaction.emplace_back(referrerId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, myDividend,
 				Events::ItemChanged::R_BALANCE_BONUS, accountId.get(), payerId.get(), amount, std::string());
