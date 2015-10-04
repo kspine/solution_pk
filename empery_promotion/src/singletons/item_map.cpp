@@ -180,13 +180,14 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 				if(resultIt == tempResults.end<0>()){
 					resultIt = tempResults.insert<0>(resultIt, TempResultElement(itemIt->obj));
 				}
-				resultIt->newCount = checkedAdd(resultIt->newCount, deltaCount);
+				const auto oldCount = resultIt->newCount;
+				resultIt->newCount = checkedAdd(oldCount, deltaCount);
 
 				LOG_EMPERY_PROMOTION_DEBUG("@ Item transaction: add: accountId = ", accountId, ", itemId = ", itemId,
 					", deltaCount = ", deltaCount, ", oldCount = ", resultIt->oldCount, ", newCount = ", resultIt->newCount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3, ", remarks = ", remarks);
 				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ItemChanged>(accountId, itemId, resultIt->oldCount, resultIt->newCount,
+					boost::make_shared<Events::ItemChanged>(accountId, itemId, oldCount, resultIt->newCount,
 						static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, std::move(remarks)),
 					withdrawn);
 			}
@@ -207,21 +208,22 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 				if(resultIt == tempResults.end<0>()){
 					resultIt = tempResults.insert<0>(resultIt, TempResultElement(itemIt->obj));
 				}
+				const auto oldCount = resultIt->newCount;
 				if(resultIt->newCount >= deltaCount){
 					resultIt->newCount -= deltaCount;
 				} else {
 					if(operation != ItemTransactionElement::OP_REMOVE_SATURATED){
 						LOG_EMPERY_PROMOTION_DEBUG("No enough items: accountId = ", accountId, ", itemId = ", itemId,
-							", oldCount = ", resultIt->newCount, ", deltaCount = ", deltaCount);
+							", oldCount = ", oldCount, ", deltaCount = ", deltaCount);
 						return itemId;
 					}
 					resultIt->newCount = 0;
 				}
 				LOG_EMPERY_PROMOTION_DEBUG("@ Item transaction: remove: accountId = ", accountId, ", itemId = ", itemId,
-					", deltaCount = ", deltaCount, ", oldCount = ", resultIt->oldCount, ", newCount = ", resultIt->newCount,
+					", deltaCount = ", deltaCount, ", oldCount = ", oldCount, ", newCount = ", resultIt->newCount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3, ", remarks = ", remarks);
 				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ItemChanged>(accountId, itemId, resultIt->oldCount, resultIt->newCount,
+					boost::make_shared<Events::ItemChanged>(accountId, itemId, oldCount, resultIt->newCount,
 						static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, std::move(remarks)),
 					withdrawn);
 			}
