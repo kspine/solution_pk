@@ -77,10 +77,10 @@ void GlobalStatus::checkDailyReset(){
 		return it->second;
 	};
 
-	const auto firstBalancingDelay       = getConfig<boost::uint64_t>("first_balancing_delay",     20 * 86400000);
-	const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_begin", 100);
-	const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin", 40000);
-	const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",   50000);
+	const auto firstBalancingDelay       = getConfig<boost::uint64_t>("first_balancing_delay",         20 * 86400000);
+	const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_increment", 100);
+	const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin",     40000);
+	const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",       50000);
 
 	const auto localNow = Poseidon::getLocalTime();
 
