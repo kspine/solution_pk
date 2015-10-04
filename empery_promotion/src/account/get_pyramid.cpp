@@ -30,9 +30,11 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 			currentMembers.emplace_back(Poseidon::JsonObject());
 			auto &member = currentMembers.back().get<Poseidon::JsonObject>();
 
+			const auto level = AccountMap::getAttribute(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+
 			member[sslit("loginName")] = std::move(it->loginName);
 			member[sslit("nick")] = std::move(it->nick);
-			member[sslit("level")] = AccountMap::getAttribute(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+			member[sslit("level")] = boost::lexical_cast<std::string>(level);
 			member[sslit("members")] = Poseidon::JsonArray();
 
 			queue.emplace_back(it->accountId, &(member.at(sslit("members")).get<Poseidon::JsonArray>()));

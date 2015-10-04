@@ -23,9 +23,11 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 		referrerNick = std::move(referrerInfo.nick);
 	}
 
+	const auto level = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+
 	ret[sslit("phoneNumber")] = std::move(info.phoneNumber);
 	ret[sslit("nick")] = std::move(info.nick);
-	ret[sslit("level")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+	ret[sslit("level")] = boost::lexical_cast<std::string>(level);
 	ret[sslit("referrerLoginName")] = std::move(referrerLoginName);
 	ret[sslit("referrerNick")] = std::move(referrerNick);
 	ret[sslit("flags")] = info.flags;

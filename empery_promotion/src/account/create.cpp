@@ -107,8 +107,8 @@ ACCOUNT_SERVLET("create", session, params){
 	transaction.reserve(initGoldCoinArray.size());
 	auto addGoldCoinsToWhom = newAccountId;
 	for(auto it = initGoldCoinArray.begin(); it != initGoldCoinArray.end(); ++it){
-		transaction.emplace_back(addGoldCoinsToWhom,
-			ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD_COINS, *it);
+		transaction.emplace_back(addGoldCoinsToWhom, ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD_COINS, *it,
+			Events::ItemChanged::R_CREATE_ACCOUNT, newAccountId.get(), payerInfo.accountId.get(), level, remarks);
 
 		const auto info = AccountMap::require(addGoldCoinsToWhom);
 		addGoldCoinsToWhom = info.referrerId;
@@ -116,8 +116,7 @@ ACCOUNT_SERVLET("create", session, params){
 			break;
 		}
 	}
-	ItemMap::commitTransaction(transaction.data(), transaction.size(),
-		Events::ItemChanged::R_CREATE_ACCOUNT, newAccountId.get(), payerInfo.accountId.get(), level, remarks);
+	ItemMap::commitTransaction(transaction.data(), transaction.size());
 
 	if(promotionData){
 		const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks);

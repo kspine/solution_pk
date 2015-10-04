@@ -47,12 +47,11 @@ ACCOUNT_SERVLET("transfer", /* session */, params){
 	}
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(srcInfo.accountId,
-		ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, deltaBalance);
-	transaction.emplace_back(dstInfo.accountId,
-		ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, deltaBalance);
-	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size(),
+	transaction.emplace_back(srcInfo.accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, deltaBalance,
 		Events::ItemChanged::R_TRANSFER, srcInfo.accountId.get(), dstInfo.accountId.get(), 0, remarks);
+	transaction.emplace_back(dstInfo.accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, deltaBalance,
+		Events::ItemChanged::R_TRANSFER, srcInfo.accountId.get(), dstInfo.accountId.get(), 0, remarks);
+	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
 	if(insufficientItemId){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
 		ret[sslit("errorMessage")] = "No enough account balance";

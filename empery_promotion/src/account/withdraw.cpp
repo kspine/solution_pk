@@ -53,12 +53,11 @@ ACCOUNT_SERVLET("withdraw", /* session */, params){
 		serial, localNow, amount, fee, info.accountId.get(), BillStates::ST_NEW, std::string(), remarks);
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(info.accountId,
-		ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, deltaBalance);
-	transaction.emplace_back(info.accountId,
-		ItemTransactionElement::OP_ADD, ItemIds::ID_WITHDRAWN_BALANCE, amount);
-	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size(),
+	transaction.emplace_back(info.accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, deltaBalance,
 		Events::ItemChanged::R_WITHDRAW, info.accountId.get(), 0, 0, remarks);
+	transaction.emplace_back(info.accountId,ItemTransactionElement::OP_ADD, ItemIds::ID_WITHDRAWN_BALANCE, amount,
+		Events::ItemChanged::R_WITHDRAW, info.accountId.get(), 0, 0, remarks);
+	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
 	if(insufficientItemId){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
 		ret[sslit("errorMessage")] = "No enough account balance";

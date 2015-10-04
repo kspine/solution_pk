@@ -15,7 +15,7 @@ namespace Data {
 
 // <succeeded, balanceToConsume>
 extern std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountId payerId, bool isCreatingAccount,
-	const boost::shared_ptr<const Data::Promotion> &promotionData, std::string remarks);
+	const boost::shared_ptr<const Data::Promotion> &promotionData, const std::string &remarks);
 
 extern void commitFirstBalanceBonus();
 extern void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount);

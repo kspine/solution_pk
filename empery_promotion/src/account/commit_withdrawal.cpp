@@ -49,10 +49,9 @@ ACCOUNT_SERVLET("commitWithdrawal", session, params){
 
 	const auto accountId = AccountId(wdSlipObj->get_accountId());
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(accountId,
-		ItemTransactionElement::OP_REMOVE, ItemIds::ID_WITHDRAWN_BALANCE, amount);
-	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size(),
+	transaction.emplace_back(accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_WITHDRAWN_BALANCE, amount,
 		Events::ItemChanged::R_COMMIT_WITHDRAWAL, accountId.get(), 0, 0, wdSlipObj->unlockedGet_remarks());
+	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
 	if(insufficientItemId){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_W_D_BALANCE;
 		ret[sslit("errorMessage")] = "No enough withdrawn balance";

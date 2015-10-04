@@ -92,11 +92,12 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 			obj->set_callbackIp(getRemoteInfo().ip.get());
 			obj->set_state(BillStates::ST_CALLBACK_RECEIVED);
 
+			const auto accountId = AccountId(obj->get_accountId());
+
 			std::vector<ItemTransactionElement> transaction;
-			transaction.emplace_back(AccountId(obj->get_accountId()),
-				ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, obj->get_amount());
-			ItemMap::commitTransaction(transaction.data(), transaction.size(),
-				Events::ItemChanged::R_RECHARGE, obj->get_accountId(), 0, 0, { });
+			transaction.emplace_back(accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, obj->get_amount(),
+				Events::ItemChanged::R_RECHARGE, obj->get_accountId(), 0, 0, serial);
+			ItemMap::commitTransaction(transaction.data(), transaction.size());
 			obj->set_state(BillStates::ST_SETTLED);
 
 			Poseidon::StreamBuffer data;

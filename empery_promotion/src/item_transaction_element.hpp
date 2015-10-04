@@ -3,8 +3,8 @@
 
 #include <boost/cstdint.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
 #include "id_types.hpp"
+#include "events/item.hpp"
 
 namespace EmperyPromotion {
 
@@ -21,16 +21,17 @@ public:
 		OP_REMOVE_SATURATED	= 3,
 	};
 
-public:
-	typedef boost::function<void ()> Callback;
-
 private:
 	AccountId m_accountId;
 	Operation m_operation;
 	ItemId m_itemId;
 	boost::uint64_t m_deltaCount;
 
-	Callback m_callback; // 抛出的任何异常都会被直接吃掉。
+	Events::ItemChanged::Reason m_reason;
+	boost::uint64_t m_param1;
+	boost::uint64_t m_param2;
+	boost::uint64_t m_param3;
+	std::string m_remarks;
 
 public:
 	ItemTransactionElement()
@@ -38,9 +39,9 @@ public:
 	{
 	}
 	ItemTransactionElement(AccountId accountId, Operation operation, ItemId itemId, boost::uint64_t deltaCount,
-		Callback callback = Callback())
+		Events::ItemChanged::Reason reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3, std::string remarks)
 		: m_accountId(accountId), m_operation(operation), m_itemId(itemId), m_deltaCount(deltaCount)
-		, m_callback(std::move(callback))
+		, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3), m_remarks(std::move(remarks))
 	{
 	}
 };

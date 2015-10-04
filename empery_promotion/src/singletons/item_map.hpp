@@ -15,11 +15,9 @@ struct ItemMap {
 	static void getAllByAccountId(boost::container::flat_map<ItemId, boost::uint64_t> &ret, AccountId accountId);
 	static void getAllByItemId(boost::container::flat_map<AccountId, boost::uint64_t> &ret, ItemId itemId);
 
-	static void commitTransaction(const ItemTransactionElement *elements, std::size_t count,
-		unsigned reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3, const std::string &remarks);
+	static void commitTransaction(const ItemTransactionElement *elements, std::size_t count);
 	// 返回不足的道具数量。
-	static ItemId commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count,
-		unsigned reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3, const std::string &remarks);
+	static ItemId commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count);
 
 private:
 	ItemMap();

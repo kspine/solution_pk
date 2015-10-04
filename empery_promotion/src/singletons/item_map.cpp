@@ -119,21 +119,17 @@ namespace {
 	)
 }
 
-void ItemMap::commitTransaction(const ItemTransactionElement *elements, std::size_t count,
-	unsigned reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3, const std::string &remarks)
-{
+void ItemMap::commitTransaction(const ItemTransactionElement *elements, std::size_t count){
 	PROFILE_ME;
 
-	const auto insufficientItemId = commitTransactionNoThrow(elements, count, reason, param1, param2, param3, remarks);
+	const auto insufficientItemId = commitTransactionNoThrow(elements, count);
 	if(insufficientItemId){
 		LOG_EMPERY_PROMOTION_ERROR("Item transaction failure: insufficientItemId = ", insufficientItemId);
 		DEBUG_THROW(Exception, sslit("Item transaction failure"));
 	}
 }
 
-ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count,
-	unsigned reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3, const std::string &remarks)
-{
+ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count){
 	PROFILE_ME;
 
 	if(count == 0){
@@ -152,10 +148,16 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 	TempResultMap tempResults;
 
 	for(std::size_t i = 0; i < count; ++i){
-		const auto accountId = elements[i].m_accountId;
-		const auto operation = elements[i].m_operation;
-		const auto itemId = elements[i].m_itemId;
+		const auto accountId  = elements[i].m_accountId;
+		const auto operation  = elements[i].m_operation;
+		const auto itemId     = elements[i].m_itemId;
 		const auto deltaCount = elements[i].m_deltaCount;
+
+		auto &reason  = elements[i].m_reason;
+		auto &param1  = elements[i].m_param1;
+		auto &param2  = elements[i].m_param2;
+		auto &param3  = elements[i].m_param3;
+		auto &remarks = elements[i].m_remarks;
 
 		if(deltaCount == 0){
 			continue;
@@ -184,7 +186,7 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 					", oldCount = ", resultIt->oldCount, ", newCount = ", resultIt->newCount);
 				Poseidon::asyncRaiseEvent(
 					boost::make_shared<Events::ItemChanged>(accountId, itemId, resultIt->oldCount, resultIt->newCount,
-						static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, remarks),
+						static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, std::move(remarks)),
 					withdrawn);
 			}
 			break;
@@ -217,7 +219,7 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 						", oldCount = ", resultIt->oldCount, ", newCount = ", resultIt->newCount);
 					Poseidon::asyncRaiseEvent(
 						boost::make_shared<Events::ItemChanged>(accountId, itemId, resultIt->oldCount, resultIt->newCount,
-							static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, remarks),
+							static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, std::move(remarks)),
 						withdrawn);
 				}
 			}
@@ -231,17 +233,6 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 
 	for(auto it = tempResults.begin<0>(); it != tempResults.end<0>(); ++it){
 		it->obj->set_count(it->newCount); // noexcept
-	}
-	for(std::size_t i = 0; i < count; ++i){
-		const auto &callback = elements[i].m_callback;
-		if(!callback){
-			continue;
-		}
-		try {
-			callback();
-		} catch(std::exception &e){
-			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
-		}
 	}
 	*withdrawn = false;
 
