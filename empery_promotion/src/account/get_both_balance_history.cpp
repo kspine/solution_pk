@@ -86,8 +86,9 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 	ossIn  <<") ";
 	ossOut <<") ";
 	std::ostringstream oss;
-	oss <<ossIn.str() <<" UNION ALL " <<ossOut.str() <<" ORDER BY `timestamp` DESC ";
+	oss <<ossIn.str() <<" UNION ALL " <<ossOut.str() <<" ";
 	if(briefMode.empty()){
+		oss <<"ORDER BY `timestamp` DESC ";
 		if(!begin.empty()){
 			auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
 			auto numCount = boost::lexical_cast<boost::uint64_t>(count);
