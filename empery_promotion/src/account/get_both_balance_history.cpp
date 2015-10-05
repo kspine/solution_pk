@@ -54,16 +54,16 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 
 	std::vector<boost::shared_ptr<MySql::BothBalanceHistoryResult> > objs;
 	std::ostringstream ossIn, ossOut;
-	ossIn  <<"(SELECT ";
-	ossOut <<"(SELECT ";
+	ossIn  <<"SELECT ";
+	ossOut <<"SELECT ";
 	if(briefMode.empty()){
-		ossIn  <<"*, CAST(`incomeBalance` AS SIGNED) AS `deltaBalance` ";
+		ossIn  <<"*,   CAST(`incomeBalance`  AS SIGNED) AS `deltaBalance` ";
 		ossOut <<"*, - CAST(`outcomeBalance` AS SIGNED) AS `deltaBalance` ";
 	} else {
-		ossIn  <<"SUM(CAST(`incomeBalance` AS SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
+		ossIn  <<"SUM(  CAST(`incomeBalance`  AS SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
 		ossOut <<"SUM(- CAST(`outcomeBalance` AS SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
 	}
-	ossIn  <<"FROM `Promotion_IncomeBalanceHistory` WHERE 1=1 ";
+	ossIn  <<"FROM `Promotion_IncomeBalanceHistory`  WHERE 1=1 ";
 	ossOut <<"FROM `Promotion_OutcomeBalanceHistory` WHERE 1=1 ";
 	if(!timeBegin.empty()){
 		char str[256];
@@ -83,10 +83,8 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 		ossIn  <<"AND `accountId` = " <<accountId <<" ";
 		ossOut <<"AND `accountId` = " <<accountId <<" ";
 	}
-	ossIn  <<") ";
-	ossOut <<") ";
 	std::ostringstream oss;
-	oss <<ossIn.str() <<" UNION ALL " <<ossOut.str() <<" ";
+	oss <<"(" <<ossIn.str() <<") UNION ALL (" <<ossOut.str() <<") ";
 	if(briefMode.empty()){
 		oss <<"ORDER BY `timestamp` DESC ";
 		if(!begin.empty()){
