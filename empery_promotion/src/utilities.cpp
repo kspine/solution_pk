@@ -187,8 +187,8 @@ namespace {
 						continue;
 					}
 					const auto extra = static_cast<boost::uint64_t>(std::floor(myDividend * g_extraTaxRatioArray.at(generation)));
-					transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, extra,
-						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), amount, std::string());
+//					transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, extra,
+//						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), amount, std::string());
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), amount, std::string());
 					++generation;
