@@ -88,7 +88,7 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 				break;
 			}
 			auto nextPromotionData = Data::Promotion::get(referrerPromotionData->price + 1);
-			if(!nextPromotionData){
+			if(!nextPromotionData || (nextPromotionData == referrerPromotionData)){
 				break;
 			}
 			referrerPromotionData = std::move(nextPromotionData);
