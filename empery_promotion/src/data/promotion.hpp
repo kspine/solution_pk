@@ -11,6 +11,8 @@ namespace Data {
 		static boost::shared_ptr<const Promotion> get(boost::uint64_t price);
 		static boost::shared_ptr<const Promotion> require(boost::uint64_t price);
 
+		static boost::shared_ptr<const Promotion> getNext(boost::uint64_t price);
+
 	public:
 		boost::uint64_t price;
 		unsigned level;

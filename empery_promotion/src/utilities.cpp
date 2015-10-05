@@ -84,11 +84,15 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 			for(auto it = levelCounts.lower_bound(referrerPromotionData->price); it != levelCounts.end(); ++it){
 				currentAutoUpgradeCount += it->second;
 			}
+			LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: price = ", referrerPromotionData->price,
+				", currentAutoUpgradeCount = ", currentAutoUpgradeCount, ", autoUpgradeCount = ", referrerPromotionData->autoUpgradeCount);
 			if(currentAutoUpgradeCount < referrerPromotionData->autoUpgradeCount){
+				LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
 				break;
 			}
-			auto nextPromotionData = Data::Promotion::get(referrerPromotionData->price + 1);
+			auto nextPromotionData = Data::Promotion::getNext(referrerPromotionData->price);
 			if(!nextPromotionData || (nextPromotionData == referrerPromotionData)){
+				LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
 				break;
 			}
 			referrerPromotionData = std::move(nextPromotionData);

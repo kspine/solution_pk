@@ -67,6 +67,20 @@ namespace Data {
 		}
 		return ret;
 	}
+
+	boost::shared_ptr<const Promotion> Promotion::getNext(boost::uint64_t price){
+		auto map = g_map.lock();
+		if(!map){
+			LOG_EMPERY_PROMOTION_ERROR("Promotion data has not been loaded.");
+			return { };
+		}
+
+		auto it = map->upperBound<0>(price);
+		if(it == map->end<0>()){
+			return { };
+		}
+		return boost::shared_ptr<const Promotion>(std::move(map), &*it);
+	}
 }
 
 }
