@@ -69,6 +69,8 @@ MODULE_RAII_PRIORITY(handles, 9000){
 				break;
 			case Events::ItemChanged::R_INCOME_TAX:
 				oss <<event->param1 <<',';
+				info = AccountMap::get(AccountId(event->param2));
+				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
 				break;
 			default:
 				LOG_EMPERY_PROMOTION_WARNING("Unknown reason: ", (unsigned)event->reason);
