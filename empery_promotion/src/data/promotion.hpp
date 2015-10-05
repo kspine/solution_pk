@@ -19,7 +19,7 @@ namespace Data {
 		bool taxExtra;
 		boost::uint64_t immediatePrice;
 		double immediateDiscount;
-		unsigned prevLevelCountToAutoUpgrade;
+		unsigned autoUpgradeCount;
 	};
 }
 

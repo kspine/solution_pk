@@ -24,14 +24,14 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::Promotion elem = { };
 
-		csv.get(elem.price,                       "price");
-		csv.get(elem.level,                       "level");
-		csv.get(elem.name,                        "name");
-		csv.get(elem.taxRatio,                    "taxRatio");
-		csv.get(elem.taxExtra,                    "taxExtra");
-		csv.get(elem.immediatePrice,              "immediatePrice");
-		csv.get(elem.immediateDiscount,           "immediateDiscount");
-		csv.get(elem.prevLevelCountToAutoUpgrade, "prevLevelCountToAutoUpgrade");
+		csv.get(elem.price,             "price");
+		csv.get(elem.level,             "level");
+		csv.get(elem.name,              "name");
+		csv.get(elem.taxRatio,          "taxRatio");
+		csv.get(elem.taxExtra,          "taxExtra");
+		csv.get(elem.immediatePrice,    "immediatePrice");
+		csv.get(elem.immediateDiscount, "immediateDiscount");
+		csv.get(elem.autoUpgradeCount,  "autoUpgradeCount");
 
 		if(!map->insert(std::move(elem)).second){
 			LOG_EMPERY_PROMOTION_ERROR("Duplicate promotion element: price = ", elem.price);
