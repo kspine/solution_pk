@@ -8,7 +8,7 @@ namespace EmperyPromotion {
 
 namespace {
 	MULTI_INDEX_MAP(PromotionMap, Data::Promotion,
-		UNIQUE_MEMBER_INDEX(price)
+		UNIQUE_MEMBER_INDEX(level)
 	);
 
 	const char DATA_FILE[] = "empery_data/promotion.csv";
@@ -24,8 +24,8 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::Promotion elem = { };
 
-		csv.get(elem.price,             "price");
 		csv.get(elem.level,             "level");
+		csv.get(elem.displayLevel,      "displayLevel");
 		csv.get(elem.name,              "name");
 		csv.get(elem.taxRatio,          "taxRatio");
 		csv.get(elem.taxExtra,          "taxExtra");
@@ -34,7 +34,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		csv.get(elem.autoUpgradeCount,  "autoUpgradeCount");
 
 		if(!map->insert(std::move(elem)).second){
-			LOG_EMPERY_PROMOTION_ERROR("Duplicate promotion element: price = ", elem.price);
+			LOG_EMPERY_PROMOTION_ERROR("Duplicate promotion element: level = ", elem.level);
 			DEBUG_THROW(Exception, sslit("Duplicate promotion element"));
 		}
 	}

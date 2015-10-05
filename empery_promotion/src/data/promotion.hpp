@@ -14,8 +14,8 @@ namespace Data {
 		static boost::shared_ptr<const Promotion> getNext(boost::uint64_t price);
 
 	public:
-		boost::uint64_t price;
-		unsigned level;
+		boost::uint64_t level;
+		unsigned displayLevel;
 		std::string name;
 		double taxRatio;
 		bool taxExtra;

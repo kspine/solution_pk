@@ -17,10 +17,10 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 	const boost::shared_ptr<const Data::Promotion> &promotionData, const std::string &remarks)
 {
 	PROFILE_ME;
-	LOG_EMPERY_PROMOTION_INFO("Upgrading account: accountId = ", accountId, ", price = ", promotionData->price);
+	LOG_EMPERY_PROMOTION_INFO("Upgrading account: accountId = ", accountId, ", level = ", promotionData->level);
 
 	const auto oldLevel = AccountMap::castAttribute<boost::uint64_t>(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-	const auto level = promotionData->price;
+	const auto level = promotionData->level;
 
 	auto levelStr = boost::lexical_cast<std::string>(level);
 	AccountMap::touchAttribute(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
@@ -40,9 +40,9 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 
 		std::vector<ItemTransactionElement> transaction;
 		transaction.emplace_back(accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARDS, cardsToBuy,
-			reason, accountId.get(), payerId.get(), promotionData->price, remarks);
+			reason, accountId.get(), payerId.get(), promotionData->level, remarks);
 		transaction.emplace_back(payerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, balanceToConsume,
-			reason, accountId.get(), payerId.get(), promotionData->price, remarks);
+			reason, accountId.get(), payerId.get(), promotionData->level, remarks);
 		const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
 		if(insufficientItemId){
 			return std::make_pair(false, balanceToConsume);
@@ -81,29 +81,29 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 		}
 		for(;;){
 			std::size_t currentAutoUpgradeCount = 0;
-			for(auto it = levelCounts.lower_bound(referrerPromotionData->price); it != levelCounts.end(); ++it){
+			for(auto it = levelCounts.lower_bound(referrerPromotionData->level); it != levelCounts.end(); ++it){
 				currentAutoUpgradeCount += it->second;
 			}
-			LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: price = ", referrerPromotionData->price,
+			LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", referrerPromotionData->level,
 				", currentAutoUpgradeCount = ", currentAutoUpgradeCount, ", autoUpgradeCount = ", referrerPromotionData->autoUpgradeCount);
 			if(currentAutoUpgradeCount < referrerPromotionData->autoUpgradeCount){
 				LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
 				break;
 			}
-			auto nextPromotionData = Data::Promotion::getNext(referrerPromotionData->price);
+			auto nextPromotionData = Data::Promotion::getNext(referrerPromotionData->level);
 			if(!nextPromotionData || (nextPromotionData == referrerPromotionData)){
 				LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
 				break;
 			}
 			referrerPromotionData = std::move(nextPromotionData);
 		}
-		if(referrerPromotionData->price == referrerLevel){
+		if(referrerPromotionData->level == referrerLevel){
 			LOG_EMPERY_PROMOTION_DEBUG("Not auto upgradeable: referrerId = ", referrerId);
 			break;
 		}
 
-		LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: referrerId = ", referrerId, ", price = ", referrerPromotionData->price);
-		auto levelStr = boost::lexical_cast<std::string>(referrerPromotionData->price);
+		LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: referrerId = ", referrerId, ", level = ", referrerPromotionData->level);
+		auto levelStr = boost::lexical_cast<std::string>(referrerPromotionData->level);
 		AccountMap::setAttribute(referrerId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(levelStr));
 	}
 
@@ -165,7 +165,7 @@ namespace {
 
 			const auto myMaxDividend = dividendTotal * referrerPromotionData->taxRatio;
 			LOG_EMPERY_PROMOTION_DEBUG("> Current referrer: referrerId = ", referrerId,
-				", level = ", referrerPromotionData->price, ", taxRatio = ", referrerPromotionData->taxRatio,
+				", level = ", referrerPromotionData->level, ", taxRatio = ", referrerPromotionData->taxRatio,
 				", dividendAccumulated = ", dividendAccumulated, ", myMaxDividend = ", myMaxDividend);
 
 			// 级差制。
