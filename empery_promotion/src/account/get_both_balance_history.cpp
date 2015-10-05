@@ -12,7 +12,7 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME	BothBalanceHistoryResult
 #define MYSQL_OBJECT_FIELDS	\
 	FIELD_BIGINT_UNSIGNED	(accountId)	\
-	FIELD_BIGINT_UNSIGNED	(timestamp)	\
+	FIELD_DATETIME			(timestamp)	\
 	FIELD_BIGINT			(deltaBalance)	\
 	FIELD_INTEGER_UNSIGNED	(reason)	\
 	FIELD_BIGINT_UNSIGNED	(param1)	\
