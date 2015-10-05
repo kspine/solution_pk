@@ -10,7 +10,7 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME	Promotion_OutcomeBalanceHistory
 #define MYSQL_OBJECT_FIELDS	\
 	FIELD_BIGINT_UNSIGNED	(accountId)	\
-	FIELD_BIGINT_UNSIGNED	(timestamp)	\
+	FIELD_DATETIME			(timestamp)	\
 	FIELD_INTEGER_UNSIGNED	(autoId)	\
 	FIELD_BIGINT_UNSIGNED	(outcomeBalance)	\
 	FIELD_INTEGER_UNSIGNED	(reason)	\
