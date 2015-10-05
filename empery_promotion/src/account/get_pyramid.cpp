@@ -17,30 +17,38 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 	}
 
 	Poseidon::JsonArray members;
-	std::deque<std::pair<AccountId, Poseidon::JsonArray *>> queue;
-	queue.emplace_back(info.accountId, &members);
-	std::vector<AccountMap::AccountInfo> memberInfos;
-	for(unsigned depth = 0; (depth < 32) && !queue.empty(); ++depth){
-		const auto currentAccountId = queue.front().first;
-		auto &currentMembers = *(queue.front().second);
-
-		memberInfos.clear();
-		AccountMap::getByReferrerId(memberInfos, currentAccountId);
-		for(auto it = memberInfos.begin(); it != memberInfos.end(); ++it){
-			currentMembers.emplace_back(Poseidon::JsonObject());
-			auto &member = currentMembers.back().get<Poseidon::JsonObject>();
-
-			const auto level = AccountMap::castAttribute<boost::uint64_t>(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-
-			member[sslit("loginName")] = std::move(it->loginName);
-			member[sslit("nick")] = std::move(it->nick);
-			member[sslit("level")] = boost::lexical_cast<std::string>(level);
-			member[sslit("members")] = Poseidon::JsonArray();
-
-			queue.emplace_back(it->accountId, &(member.at(sslit("members")).get<Poseidon::JsonArray>()));
+	std::deque<std::pair<AccountId, Poseidon::JsonArray *>> thisLevel, nextLevel;
+	thisLevel.emplace_back(info.accountId, &members);
+	for(unsigned depth = 0; depth < 32; ++depth){
+		if(thisLevel.empty()){
+			break;
 		}
+		do {
+			const auto currentAccountId = thisLevel.front().first;
+			const auto currentArrayDest = thisLevel.front().second;
+			thisLevel.pop_front();
 
-		queue.pop_front();
+			std::vector<AccountMap::AccountInfo> memberInfos;
+			AccountMap::getByReferrerId(memberInfos, currentAccountId);
+			for(auto it = memberInfos.begin(); it != memberInfos.end(); ++it){
+				const auto level = AccountMap::castAttribute<boost::uint64_t>(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+				LOG_EMPERY_PROMOTION_DEBUG("> Depth ", depth, ", accountId = ", it->accountId, ", level = ", level);
+
+				currentArrayDest->emplace_back(Poseidon::JsonObject());
+				auto &member = currentArrayDest->back().get<Poseidon::JsonObject>();
+				auto &membersOfMember = member[sslit("members")];
+
+				member[sslit("loginName")] = std::move(it->loginName);
+				member[sslit("nick")]      = std::move(it->nick);
+				member[sslit("level")]     = boost::lexical_cast<std::string>(level);
+				membersOfMember            = Poseidon::JsonArray();
+
+				nextLevel.emplace_back(it->accountId, &membersOfMember.get<Poseidon::JsonArray>());
+			}
+		} while(!thisLevel.empty());
+
+		thisLevel.swap(nextLevel);
+		nextLevel.clear();
 	}
 	ret[sslit("members")] = std::move(members);
 
