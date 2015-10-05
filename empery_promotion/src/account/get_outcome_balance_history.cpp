@@ -3,6 +3,7 @@
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
 #include "../mysql/outcome_balance_history.hpp"
+#include "../mysql/sum_rows.hpp"
 
 namespace EmperyPromotion {
 
@@ -13,6 +14,7 @@ ACCOUNT_SERVLET("getOutcomeBalanceHistory", /* session */, params){
 	const auto &reason = params.get("reason");
 	const auto &timeBegin = params.get("timeBegin");
 	const auto &timeEnd = params.get("timeEnd");
+	const auto &briefMode = params.get("briefMode");
 
 	Poseidon::JsonObject ret;
 
@@ -29,7 +31,13 @@ ACCOUNT_SERVLET("getOutcomeBalanceHistory", /* session */, params){
 
 	std::vector<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory> > objs;
 	std::ostringstream oss;
-	oss <<"SELECT * FROM `Promotion_OutcomeBalanceHistory` WHERE 1=1 ";
+	oss <<"SELECT ";
+	if(briefMode.empty()){
+		oss <<"* ";
+	} else {
+		oss <<"SUM(`outcomeBalance`) AS `sum`, COUNT(*) AS `rows` ";
+	}
+	oss <<"FROM `Promotion_OutcomeBalanceHistory` WHERE 1=1 ";
 	if(!timeBegin.empty()){
 		char str[256];
 		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeBegin), false);
@@ -44,27 +52,34 @@ ACCOUNT_SERVLET("getOutcomeBalanceHistory", /* session */, params){
 	if(!loginName.empty()){
 		oss <<"AND `accountId` = " <<accountId <<" ";
 	}
-	if(!begin.empty()){
-		auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
-		auto numCount = boost::lexical_cast<boost::uint64_t>(count);
-		oss <<"LIMIT " <<numBegin <<", " <<numCount;
-	}
-	MySql::Promotion_OutcomeBalanceHistory::batchLoad(objs, oss.str());
+	if(briefMode.empty()){
+		if(!begin.empty()){
+			auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
+			auto numCount = boost::lexical_cast<boost::uint64_t>(count);
+			oss <<"LIMIT " <<numBegin <<", " <<numCount;
+		}
+		MySql::Promotion_OutcomeBalanceHistory::batchLoad(objs, oss.str());
 
-	Poseidon::JsonArray history;
-	for(auto it = objs.begin(); it != objs.end(); ++it){
-		const auto &obj = *it;
-		Poseidon::JsonObject elem;
-		elem[sslit("timestamp")] = obj->get_timestamp();
-		elem[sslit("outcomeBalance")] = obj->get_outcomeBalance();
-		elem[sslit("reason")] = obj->get_reason();
-		elem[sslit("param1")] = obj->get_param1();
-		elem[sslit("param2")] = obj->get_param2();
-		elem[sslit("param3")] = obj->get_param3();
-		elem[sslit("remarks")] = obj->unlockedGet_remarks();
-		history.emplace_back(std::move(elem));
+		Poseidon::JsonArray history;
+		for(auto it = objs.begin(); it != objs.end(); ++it){
+			const auto &obj = *it;
+			Poseidon::JsonObject elem;
+			elem[sslit("timestamp")] = obj->get_timestamp();
+			elem[sslit("outcomeBalance")] = obj->get_outcomeBalance();
+			elem[sslit("reason")] = obj->get_reason();
+			elem[sslit("param1")] = obj->get_param1();
+			elem[sslit("param2")] = obj->get_param2();
+			elem[sslit("param3")] = obj->get_param3();
+			elem[sslit("remarks")] = obj->unlockedGet_remarks();
+			history.emplace_back(std::move(elem));
+		}
+		ret[sslit("history")] = std::move(history);
+	} else {
+		const auto obj = boost::make_shared<MySql::Promotion_SumRows>();
+		obj->syncLoad(oss.str());
+		ret[sslit("sum")] = obj->get_sum();
+		ret[sslit("rows")] = obj->get_rows();
 	}
-	ret[sslit("history")] = std::move(history);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
