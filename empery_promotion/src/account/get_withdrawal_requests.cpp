@@ -60,12 +60,25 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 		Poseidon::JsonArray requests;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
+			const auto accountId = AccountId(obj->get_accountId());
+
+			auto info = AccountMap::get(accountId);
+			if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+				LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", accountId);
+				continue;
+			}
+
 			Poseidon::JsonObject elem;
-			elem[sslit("serial")] = obj->get_serial();
-			elem[sslit("createdTime")] = obj->get_createdTime();
-			elem[sslit("amount")] = obj->get_amount();
-			elem[sslit("fee")] = obj->get_fee();
-			elem[sslit("remarks")] = obj->unlockedGet_remarks();
+			elem[sslit("serial")]            = obj->get_serial();
+			elem[sslit("createdTime")]       = obj->get_createdTime();
+			elem[sslit("amount")]            = obj->get_amount();
+			elem[sslit("fee")]               = obj->get_fee();
+			elem[sslit("remarks")]           = obj->unlockedGet_remarks();
+			elem[sslit("loginName")]         = std::move(info.loginName);
+			elem[sslit("bankAccountName")]   = AccountMap::getAttribute(accountId, AccountMap::ATTR_BANK_ACCOUNT_NAME);
+			elem[sslit("bankName")]          = AccountMap::getAttribute(accountId, AccountMap::ATTR_BANK_NAME);
+			elem[sslit("bankAccountNumber")] = AccountMap::getAttribute(accountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER);
+			elem[sslit("bankSwiftCode")]     = AccountMap::getAttribute(accountId, AccountMap::ATTR_BANK_SWIFT_CODE);
 			requests.emplace_back(std::move(elem));
 		}
 		ret[sslit("requests")] = std::move(requests);
