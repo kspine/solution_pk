@@ -55,6 +55,7 @@ struct AccountMap {
 
 	static std::string getPasswordHash(const std::string &password);
 
+	static void setPhoneNumber(AccountId accountId, std::string phoneNumber);
 	static void setNick(AccountId accountId, std::string nick);
 	static void setPassword(AccountId accountId, const std::string &password);
 	static void setDealPassword(AccountId accountId, const std::string &dealPassword);

@@ -279,6 +279,21 @@ std::string AccountMap::getPasswordHash(const std::string &password){
 	return Poseidon::Http::base64Encode(sha256.data(), sha256.size());
 }
 
+void AccountMap::setPhoneNumber(AccountId accountId, std::string phoneNumber){
+	PROFILE_ME;
+
+	const auto it = g_accountMap->find<0>(accountId);
+	if(it == g_accountMap->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+		DEBUG_THROW(Exception, sslit("Account not found"));
+	}
+	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+		DEBUG_THROW(Exception, sslit("Account deleted"));
+	}
+
+	it->obj->set_phoneNumber(std::move(phoneNumber));
+}
 void AccountMap::setNick(AccountId accountId, std::string nick){
 	PROFILE_ME;
 

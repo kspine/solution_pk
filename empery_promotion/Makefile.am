@@ -27,6 +27,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/singletons/chinapnr_sign_daemon.cpp	\
 	src/account/try_login_name.cpp	\
 	src/account/query_account_attributes.cpp	\
+	src/account/set_account_attributes.cpp	\
 	src/account/query_account_items.cpp	\
 	src/account/query_global_status.cpp	\
 	src/account/check_login.cpp	\

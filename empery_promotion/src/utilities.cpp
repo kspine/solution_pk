@@ -183,10 +183,16 @@ namespace {
 			if(promotionData && promotionData->taxExtra){
 				generation = 0;
 				for(auto it = referrers.begin(); (generation < g_extraTaxRatioArray.size()) && (it != referrers.end()); ++it){
-					if(!(it->second && it->second->taxExtra)){
+					if(!(it->second)){
+						continue;
+					}
+					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level);
+					if(!(it->second->taxExtra)){
+						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
 						continue;
 					}
 					const auto extra = static_cast<boost::uint64_t>(std::floor(myDividend * g_extraTaxRatioArray.at(generation)));
+					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
 //					transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, extra,
 //						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), level, std::string());
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
@@ -202,7 +208,11 @@ namespace {
 
 			generation = 0;
 			for(auto it = referrers.begin();(generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
+				if(!(it->second)){
+					continue;
+				}
 				const auto tax = static_cast<boost::uint64_t>(std::floor(myDividend * g_incomeTaxRatioArray.at(generation)));
+				LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
 				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
 					Events::ItemChanged::R_INCOME_TAX, myDividend, referrerId.get(), 0, std::string());
 				++generation;
