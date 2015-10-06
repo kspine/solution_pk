@@ -85,7 +85,7 @@ ACCOUNT_SERVLET("getAccountList", /* session */, params){
 			elem[sslit("referrerId")] = referrerInfo.accountId.get();
 			elem[sslit("referrerLoginName")] = std::move(referrerInfo.loginName);
 			elem[sslit("createdTime")] = info.createdTime;
-			ret[sslit("items")] = std::move(items);
+			elem[sslit("items")] = std::move(items);
 
 			accounts.emplace_back(std::move(elem));
 		}
