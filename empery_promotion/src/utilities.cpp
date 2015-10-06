@@ -191,10 +191,8 @@ namespace {
 						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
 						continue;
 					}
-					const auto extra = static_cast<boost::uint64_t>(std::floor(myDividend * g_extraTaxRatioArray.at(generation)));
+					const auto extra = static_cast<boost::uint64_t>(std::floor(dividendTotal * g_extraTaxRatioArray.at(generation)));
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
-//					transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, extra,
-//						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), level, std::string());
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), level, std::string());
 					++generation;
