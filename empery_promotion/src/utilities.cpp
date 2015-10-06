@@ -40,9 +40,9 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 
 		std::vector<ItemTransactionElement> transaction;
 		transaction.emplace_back(accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARDS, cardsToBuy,
-			reason, accountId.get(), payerId.get(), promotionData->level, remarks);
+			reason, accountId.get(), payerId.get(), level, remarks);
 		transaction.emplace_back(payerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, balanceToConsume,
-			reason, accountId.get(), payerId.get(), promotionData->level, remarks);
+			reason, accountId.get(), payerId.get(), level, remarks);
 		const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
 		if(insufficientItemId){
 			return std::make_pair(false, balanceToConsume);
@@ -176,7 +176,7 @@ namespace {
 			dividendAccumulated = myMaxDividend;
 
 			transaction.emplace_back(referrerId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, myDividend,
-				Events::ItemChanged::R_BALANCE_BONUS, accountId.get(), payerId.get(),level, std::string());
+				Events::ItemChanged::R_BALANCE_BONUS, accountId.get(), payerId.get(), level, std::string());
 
 			unsigned generation;
 

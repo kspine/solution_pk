@@ -31,49 +31,45 @@ MODULE_RAII_PRIORITY(handles, 9000){
 
 			const auto localNow = Poseidon::getLocalTime();
 
-			std::ostringstream oss;
 			AccountMap::AccountInfo info;
+
+#define PUT_NUMBER(param_)      oss <<event->param_ <<',';
+#define PUT_ACCOUNT(param_)     info = AccountMap::get(AccountId(event->param_));	\
+                                oss <<Poseidon::Http::base64Encode(info.loginName) <<','	\
+                                    <<Poseidon::Http::base64Encode(info.nick) <<',';
+#define PUT_STRING(param_)      oss <<Poseidon::Http::base64Encode(event->param_) <<',';
+
+			std::ostringstream oss;
 			switch(event->reason){
 			case Events::ItemChanged::R_ADMIN_OPERATION:
 				break;
 			case Events::ItemChanged::R_TRANSFER:
-				info = AccountMap::get(AccountId(event->param1));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
-				info = AccountMap::get(AccountId(event->param2));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
-				oss <<Poseidon::Http::base64Encode(event->remarks) <<',';
+				PUT_ACCOUNT(param1)
+				PUT_ACCOUNT(param2)
+				PUT_STRING(remarks)
 				break;
 			case Events::ItemChanged::R_UPGRADE_ACCOUNT:
 			case Events::ItemChanged::R_CREATE_ACCOUNT:
-				info = AccountMap::get(AccountId(event->param1));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
-				info = AccountMap::get(AccountId(event->param2));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
-				oss <<event->param3 <<',';
-				oss <<Poseidon::Http::base64Encode(event->remarks) <<',';
-				break;
 			case Events::ItemChanged::R_BALANCE_BONUS:
 			case Events::ItemChanged::R_BALANCE_BONUS_EXTRA:
-				info = AccountMap::get(AccountId(event->param1));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
-				info = AccountMap::get(AccountId(event->param2));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
-				oss <<event->param3 <<',';
+				PUT_ACCOUNT(param1)
+				PUT_ACCOUNT(param2)
+				PUT_NUMBER(param3)
+				PUT_STRING(remarks)
 				break;
 			case Events::ItemChanged::R_RECHARGE:
 			case Events::ItemChanged::R_WITHDRAW:
-				info = AccountMap::get(AccountId(event->param1));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
-				break;
 			case Events::ItemChanged::R_COMMIT_WITHDRAWAL:
+				PUT_ACCOUNT(param1)
+				PUT_STRING(remarks)
 				break;
 			case Events::ItemChanged::R_INCOME_TAX:
-				oss <<event->param1 <<',';
-				info = AccountMap::get(AccountId(event->param2));
-				oss <<Poseidon::Http::base64Encode(info.loginName) <<',' <<Poseidon::Http::base64Encode(info.nick) <<',';
+				PUT_NUMBER(param1)
+				PUT_ACCOUNT(param2)
 				break;
 			default:
-				LOG_EMPERY_PROMOTION_WARNING("Unknown reason: ", (unsigned)event->reason);
+				LOG_EMPERY_PROMOTION_WARNING("Unknown reason: ", (unsigned)event->reason, ", param1 = ", event->param1,
+					", param2 = ", event->param2, ", param3 = ", event->param3, ", remarks = ", event->remarks);
 				break;
 			}
 			if(event->oldCount < event->newCount){

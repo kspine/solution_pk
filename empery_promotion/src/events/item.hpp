@@ -12,8 +12,8 @@ namespace Events {
 		enum Reason {                         // param1         param2          param3
 			R_ADMIN_OPERATION       = 201001, // 自定义         自定义          自定义
 			R_TRANSFER              = 201002, // 源账号         目标账号        0
-			R_UPGRADE_ACCOUNT       = 201003, // 升级账号       付款人账号      价格
-			R_CREATE_ACCOUNT        = 201004, // 新账号         付款人账号      价格
+			R_UPGRADE_ACCOUNT       = 201003, // 升级账号       付款人账号      升级到等级
+			R_CREATE_ACCOUNT        = 201004, // 新账号         付款人账号      升级到等级
 			R_BALANCE_BONUS         = 201005, // 升级账号       付款人账号      升级到等级
 			R_RECHARGE              = 201006, // 充值账号       0               0
 			R_WITHDRAW              = 201007, // 提款账号       0               0
