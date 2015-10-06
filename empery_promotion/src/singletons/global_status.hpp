@@ -18,6 +18,7 @@ struct GlobalStatus {
 
 	static boost::uint64_t get(unsigned slot);
 	static boost::uint64_t set(unsigned slot, boost::uint64_t newValue);
+	static boost::uint64_t fetchAdd(unsigned slot, boost::uint64_t deltaValue);
 
 	static void checkDailyReset();
 

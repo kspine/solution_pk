@@ -48,7 +48,9 @@ struct AccountMap {
 	static AccountInfo get(const std::string &loginName);
 	static AccountInfo require(AccountId accountId);
 	static AccountInfo require(const std::string &loginName);
-	static void getAll(std::vector<AccountInfo> &ret);
+
+	static boost::uint64_t getCount();
+	static void getAll(std::vector<AccountInfo> &ret, boost::uint64_t begin = 0, boost::uint64_t max = (boost::uint64_t)-1);
 
 	static void getByPhoneNumber(std::vector<AccountInfo> &ret, const std::string &phoneNumber);
 	static void getByReferrerId(std::vector<AccountInfo> &ret, AccountId referrerId);
@@ -66,7 +68,7 @@ struct AccountMap {
 		const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags);
 
 	static const std::string &getAttribute(AccountId accountId, unsigned slot);
-	static void getAttributes(std::vector<std::pair<unsigned, std::string> > &ret, AccountId accountId);
+	static void getAttributes(std::vector<std::pair<unsigned, std::string>> &ret, AccountId accountId);
 	static void touchAttribute(AccountId accountId, unsigned slot);
 	static void setAttribute(AccountId accountId, unsigned slot, std::string value);
 

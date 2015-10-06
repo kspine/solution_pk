@@ -18,7 +18,7 @@ ACCOUNT_SERVLET("commitWithdrawal", session, params){
 
 	Poseidon::JsonObject ret;
 
-	std::vector<boost::shared_ptr<MySql::Promotion_WdSlip> > objs;
+	std::vector<boost::shared_ptr<MySql::Promotion_WdSlip>> objs;
 	std::ostringstream oss;
 	oss <<"SELECT * FROM `Promotion_WdSlip` WHERE `serial` = '" <<Poseidon::MySql::StringEscaper(serial) <<"' LIMIT 0, 1";
 	MySql::Promotion_WdSlip::batchLoad(objs, oss.str());
@@ -50,6 +50,8 @@ ACCOUNT_SERVLET("commitWithdrawal", session, params){
 	const auto accountId = AccountId(wdSlipObj->get_accountId());
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_WITHDRAWN_BALANCE, amount,
+		Events::ItemChanged::R_COMMIT_WITHDRAWAL, accountId.get(), 0, 0, wdSlipObj->unlockedGet_remarks());
+	transaction.emplace_back(accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_BALANCE_WITHDRAWN_HISTORICAL, amount,
 		Events::ItemChanged::R_COMMIT_WITHDRAWAL, accountId.get(), 0, 0, wdSlipObj->unlockedGet_remarks());
 	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
 	if(insufficientItemId){

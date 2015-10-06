@@ -11,7 +11,7 @@ namespace EmperyPromotion {
 namespace {
 	typedef AccountHttpSession::ServletCallback ServletCallback;
 
-	std::map<std::string, boost::weak_ptr<const ServletCallback> > g_servletMap;
+	std::map<std::string, boost::weak_ptr<const ServletCallback>> g_servletMap;
 }
 
 AccountHttpSession::AccountHttpSession(Poseidon::UniqueFile socket,

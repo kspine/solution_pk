@@ -202,11 +202,25 @@ AccountMap::AccountInfo AccountMap::require(const std::string &loginName){
 	}
 	return info;
 }
-void AccountMap::getAll(std::vector<AccountMap::AccountInfo> &ret){
+
+boost::uint64_t AccountMap::getCount(){
+	return g_accountMap->size();
+}
+void AccountMap::getAll(std::vector<AccountMap::AccountInfo> &ret, boost::uint64_t begin, boost::uint64_t max){
 	PROFILE_ME;
 
-	ret.reserve(ret.size() + g_accountMap->size());
-	for(auto it = g_accountMap->begin(); it != g_accountMap->end(); ++it){
+	const auto size = g_accountMap->size();
+	if(begin >= size){
+		return;
+	}
+	auto count = size - begin;
+	if(count > max){
+		count = max;
+	}
+	ret.reserve(ret.size() + count);
+	auto it = g_accountMap->begin();
+	std::advance(it, static_cast<std::ptrdiff_t>(begin));
+	for(boost::uint64_t i = 0; i < count; ++it, ++i){
 		AccountInfo info;
 		info.accountId = AccountId(it->obj->get_accountId());
 		info.loginName = it->obj->unlockedGet_loginName();
@@ -406,7 +420,7 @@ const std::string &AccountMap::getAttribute(AccountId accountId, unsigned slot){
 	}
 	return it->obj->unlockedGet_value();
 }
-void AccountMap::getAttributes(std::vector<std::pair<unsigned, std::string> > &ret, AccountId accountId){
+void AccountMap::getAttributes(std::vector<std::pair<unsigned, std::string>> &ret, AccountId accountId){
 	PROFILE_ME;
 
 	const auto range = g_attributeMap->equalRange<0>(accountId);

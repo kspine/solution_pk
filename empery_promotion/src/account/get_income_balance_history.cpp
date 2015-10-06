@@ -29,7 +29,7 @@ ACCOUNT_SERVLET("getIncomeBalanceHistory", /* session */, params){
 		accountId = info.accountId;
 	}
 
-	std::vector<boost::shared_ptr<MySql::Promotion_IncomeBalanceHistory> > objs;
+	std::vector<boost::shared_ptr<MySql::Promotion_IncomeBalanceHistory>> objs;
 	std::ostringstream oss;
 	oss <<"SELECT ";
 	if(briefMode.empty()){

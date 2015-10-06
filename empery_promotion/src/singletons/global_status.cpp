@@ -10,7 +10,7 @@
 namespace EmperyPromotion {
 
 namespace {
-	using StatusMap = boost::container::flat_map<unsigned, boost::shared_ptr<MySql::Promotion_GlobalStatus> >;
+	using StatusMap = boost::container::flat_map<unsigned, boost::shared_ptr<MySql::Promotion_GlobalStatus>>;
 
 	boost::shared_ptr<StatusMap> g_statusMap;
 
@@ -60,6 +60,19 @@ boost::uint64_t GlobalStatus::set(unsigned slot, boost::uint64_t newValue){
 	}
 	const auto oldValue = it->second->get_value();
 	it->second->set_value(newValue);
+	return oldValue;
+}
+boost::uint64_t GlobalStatus::fetchAdd(unsigned slot, boost::uint64_t deltaValue){
+	PROFILE_ME;
+
+	auto it = g_statusMap->find(slot);
+	if(it == g_statusMap->end()){
+		auto obj = boost::make_shared<MySql::Promotion_GlobalStatus>(slot, 0);
+		obj->asyncSave(true);
+		it = g_statusMap->emplace_hint(it, slot, std::move(obj));
+	}
+	const auto oldValue = it->second->get_value();
+	it->second->set_value(oldValue + deltaValue);
 	return oldValue;
 }
 

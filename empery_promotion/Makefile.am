@@ -45,6 +45,8 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/commit_withdrawal.cpp	\
 	src/account/create_bill.cpp	\
 	src/account/query_bill_state.cpp	\
+	src/account/get_economy_summary.cpp	\
+	src/account/get_account_list.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/chinapnr_http_session.cpp	\

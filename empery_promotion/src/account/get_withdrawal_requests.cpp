@@ -29,7 +29,7 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 		accountId = info.accountId;
 	}
 
-	std::vector<boost::shared_ptr<MySql::Promotion_WdSlip> > objs;
+	std::vector<boost::shared_ptr<MySql::Promotion_WdSlip>> objs;
 	std::ostringstream oss;
 	oss <<"SELECT ";
 	if(briefMode.empty()){
@@ -48,7 +48,7 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 	if(!loginName.empty()){
 		oss <<"AND `accountId` = " <<accountId <<" ";
 	}
-	oss <<"AND `state` < " <<(unsigned)BillStates::ST_CANCELLED;
+	oss <<"ORDER BY `state` ASC, `serial` ASC ";
 	if(briefMode.empty()){
 		if(!begin.empty()){
 			auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);

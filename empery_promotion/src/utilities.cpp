@@ -270,8 +270,7 @@ void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint6
 std::string generateBillSerial(const std::string &prefix){
 	PROFILE_ME;
 
-	const auto autoInc = GlobalStatus::get(GlobalStatus::SLOT_BILL_AUTO_INC);
-	GlobalStatus::set(GlobalStatus::SLOT_BILL_AUTO_INC, autoInc + 1);
+	const auto autoInc = GlobalStatus::fetchAdd(GlobalStatus::SLOT_BILL_AUTO_INC, 1);
 
 	std::string serial;
 	serial.reserve(255);

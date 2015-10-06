@@ -97,6 +97,8 @@ void ChinaPnRHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &re
 			std::vector<ItemTransactionElement> transaction;
 			transaction.emplace_back(accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, obj->get_amount(),
 				Events::ItemChanged::R_RECHARGE, obj->get_accountId(), 0, 0, serial);
+			transaction.emplace_back(accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_BALANCE_RECHARGED_HISTORICAL, obj->get_amount(),
+				Events::ItemChanged::R_RECHARGE, obj->get_accountId(), 0, 0, serial);
 			ItemMap::commitTransaction(transaction.data(), transaction.size());
 			obj->set_state(BillStates::ST_SETTLED);
 

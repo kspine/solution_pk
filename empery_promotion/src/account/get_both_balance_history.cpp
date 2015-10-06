@@ -52,7 +52,7 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 		accountId = info.accountId;
 	}
 
-	std::vector<boost::shared_ptr<MySql::BothBalanceHistoryResult> > objs;
+	std::vector<boost::shared_ptr<MySql::BothBalanceHistoryResult>> objs;
 	std::ostringstream ossIn, ossOut;
 	ossIn  <<"SELECT ";
 	ossOut <<"SELECT ";
