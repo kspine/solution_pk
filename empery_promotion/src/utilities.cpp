@@ -116,17 +116,17 @@ namespace {
 
 	MODULE_RAII(){
 		auto val = getConfig<double>("balance_bonus_ratio", 0.70);
-		LOG_EMPERY_PROMOTION_INFO("Balance bonus ratio: ", val);
+		LOG_EMPERY_PROMOTION_INFO("> Balance bonus ratio: ", val);
 		g_bonusRatio = val;
 
 		auto str = getConfig<std::string>("balance_income_tax_ratio_array", "0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01");
 		auto ratioArray = Poseidon::explode<double>(',', str);
-		LOG_EMPERY_PROMOTION_INFO("Balance income tax ratio array: ", Poseidon::implode(',', ratioArray));
+		LOG_EMPERY_PROMOTION_INFO("> Balance income tax ratio array: ", Poseidon::implode(',', ratioArray));
 		g_incomeTaxRatioArray = std::move(ratioArray);
 
 		str = getConfig<std::string>("balance_extra_tax_ratio_array", "0.02,0.02,0.01");
 		ratioArray = Poseidon::explode<double>(',', str);
-		LOG_EMPERY_PROMOTION_INFO("Balance extra tax ratio array: ", Poseidon::implode(',', ratioArray));
+		LOG_EMPERY_PROMOTION_INFO("> Balance extra tax ratio array: ", Poseidon::implode(',', ratioArray));
 		g_extraTaxRatioArray = std::move(ratioArray);
 	}
 
@@ -180,7 +180,7 @@ namespace {
 
 			unsigned generation;
 
-			if(promotionData && promotionData->taxExtra){
+			if(referrerPromotionData && referrerPromotionData->taxExtra){
 				generation = 0;
 				for(auto it = referrers.begin(); (generation < g_extraTaxRatioArray.size()) && (it != referrers.end()); ++it){
 					if(!(it->second)){
