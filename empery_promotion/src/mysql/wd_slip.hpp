@@ -10,7 +10,7 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME	Promotion_WdSlip
 #define MYSQL_OBJECT_FIELDS	\
 	FIELD_STRING			(serial)	\
-	FIELD_BIGINT_UNSIGNED	(createdTime)	\
+	FIELD_DATETIME			(createdTime)	\
 	FIELD_BIGINT_UNSIGNED	(amount)	\
 	FIELD_BIGINT_UNSIGNED	(fee)	\
 	FIELD_BIGINT_UNSIGNED	(accountId)	\
