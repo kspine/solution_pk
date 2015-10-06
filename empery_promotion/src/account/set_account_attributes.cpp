@@ -9,6 +9,8 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 	const auto &loginName         = params.at("loginName");
 	const auto &phoneNumber       = params.get("phoneNumber");
 	const auto &nick              = params.get("nick");
+	const auto &password          = params.get("password");
+	const auto &dealPassword      = params.get("dealPassword");
 	const auto &bannedUntil       = params.get("bannedUntil");
 	const auto &gender            = params.get("gender");
 	const auto &country           = params.get("country");
@@ -31,6 +33,12 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 	}
 	if(!nick.empty()){
 		AccountMap::setNick(info.accountId, std::move(nick));
+	}
+	if(!password.empty()){
+		AccountMap::setPassword(info.accountId, std::move(password));
+	}
+	if(!dealPassword.empty()){
+		AccountMap::setDealPassword(info.accountId, std::move(dealPassword));
 	}
 	if(!bannedUntil.empty()){
 		AccountMap::setBannedUntil(info.accountId, boost::lexical_cast<boost::uint64_t>(bannedUntil));
