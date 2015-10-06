@@ -41,9 +41,9 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 	if(!timeBegin.empty()){
 		char str[256];
 		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeBegin), false);
-		oss <<"AND '" <<str <<"' <= `timestamp` ";
+		oss <<"AND '" <<str <<"' <= `createdTime` ";
 		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeEnd), false);
-		oss <<"AND `timestamp` < '" <<str <<"' ";
+		oss <<"AND `createdTime` < '" <<str <<"' ";
 	}
 	if(!loginName.empty()){
 		oss <<"AND `accountId` = " <<accountId <<" ";
