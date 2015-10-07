@@ -191,7 +191,7 @@ namespace {
 						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
 						continue;
 					}
-					const auto extra = static_cast<boost::uint64_t>(std::floor(dividendTotal * g_extraTaxRatioArray.at(generation)));
+					const auto extra = static_cast<boost::uint64_t>(std::round(dividendTotal * g_extraTaxRatioArray.at(generation)));
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), level, std::string());
@@ -200,7 +200,7 @@ namespace {
 			}
 
 			// 扣除个税即使没有上家（视为被系统回收）。
-			const auto taxTotal = static_cast<boost::uint64_t>(std::floor(myDividend * incomeTaxRatioTotal));
+			const auto taxTotal = static_cast<boost::uint64_t>(std::round(myDividend * incomeTaxRatioTotal));
 			transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, taxTotal,
 				Events::ItemChanged::R_INCOME_TAX, myDividend, referrerId.get(), 0, std::string());
 
@@ -209,7 +209,7 @@ namespace {
 				if(!(it->second)){
 					continue;
 				}
-				const auto tax = static_cast<boost::uint64_t>(std::floor(myDividend * g_incomeTaxRatioArray.at(generation)));
+				const auto tax = static_cast<boost::uint64_t>(std::round(myDividend * g_incomeTaxRatioArray.at(generation)));
 				LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
 				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
 					Events::ItemChanged::R_INCOME_TAX, myDividend, referrerId.get(), 0, std::string());
