@@ -87,10 +87,14 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 	oss <<"(" <<ossIn.str() <<") UNION ALL (" <<ossOut.str() <<") ";
 	if(briefMode.empty()){
 		oss <<"ORDER BY `timestamp` DESC ";
-		if(!begin.empty()){
-			auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
+		if(!count.empty()){
+			oss <<"LIMIT ";
+			if(!begin.empty()){
+				auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
+				oss <<numBegin <<", ";
+			}
 			auto numCount = boost::lexical_cast<boost::uint64_t>(count);
-			oss <<"LIMIT " <<numBegin <<", " <<numCount;
+			oss <<numCount;
 		}
 		MySql::BothBalanceHistoryResult::batchLoad(objs, oss.str());
 

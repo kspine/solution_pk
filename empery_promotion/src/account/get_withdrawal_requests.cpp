@@ -50,10 +50,14 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 	}
 	oss <<"ORDER BY `state` ASC, `serial` ASC ";
 	if(briefMode.empty()){
-		if(!begin.empty()){
-			auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
+		if(!count.empty()){
+			oss <<"LIMIT ";
+			if(!begin.empty()){
+				auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
+				oss <<numBegin <<", ";
+			}
 			auto numCount = boost::lexical_cast<boost::uint64_t>(count);
-			oss <<"LIMIT " <<numBegin <<", " <<numCount;
+			oss <<numCount;
 		}
 		MySql::Promotion_WdSlip::batchLoad(objs, oss.str());
 

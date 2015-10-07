@@ -1,24 +1,26 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../singletons/account_map.hpp"
+#include "../data/promotion.hpp"
 #include "../msg/err_account.hpp"
 
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
-	const auto &loginName         = params.at("loginName");
-	const auto &phoneNumber       = params.get("phoneNumber");
-	const auto &nick              = params.get("nick");
-	const auto &password          = params.get("password");
-	const auto &dealPassword      = params.get("dealPassword");
-	const auto &bannedUntil       = params.get("bannedUntil");
-	const auto &gender            = params.get("gender");
-	const auto &country           = params.get("country");
-	const auto &bankAccountName   = params.get("bankAccountName");
-	const auto &bankName          = params.get("bankName");
-	const auto &bankAccountNumber = params.get("bankAccountNumber");
-	const auto &bankSwiftCode     = params.get("bankSwiftCode");
-	const auto &remarks           = params.get("remarks");
+	const auto &loginName  = params.at("loginName");
+	auto phoneNumber       = params.get("phoneNumber");
+	auto nick              = params.get("nick");
+	auto password          = params.get("password");
+	auto dealPassword      = params.get("dealPassword");
+	auto bannedUntil       = params.get("bannedUntil");
+	auto gender            = params.get("gender");
+	auto country           = params.get("country");
+	auto bankAccountName   = params.get("bankAccountName");
+	auto bankName          = params.get("bankName");
+	auto bankAccountNumber = params.get("bankAccountNumber");
+	auto bankSwiftCode     = params.get("bankSwiftCode");
+	auto remarks           = params.get("remarks");
+	auto level             = params.get("level");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get(loginName);
@@ -26,6 +28,16 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
+	}
+
+	if(!level.empty()){
+		const auto newPromotionData = Data::Promotion::get(boost::lexical_cast<boost::uint64_t>(level));
+		if(!newPromotionData){
+			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
+			ret[sslit("errorMessage")] = "Account level is not found";
+			return ret;
+		}
+		level = boost::lexical_cast<std::string>(newPromotionData->level);
 	}
 
 	if(!phoneNumber.empty()){
@@ -64,6 +76,9 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 	}
 	if(!remarks.empty()){
 		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_REMARKS, std::move(remarks));
+	}
+	if(!level.empty()){
+		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(level));
 	}
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

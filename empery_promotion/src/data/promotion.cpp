@@ -41,41 +41,41 @@ MODULE_RAII_PRIORITY(handles, 1000){
 
 	LOG_EMPERY_PROMOTION_INFO("Done loading promotion");
 	g_map = map;
-//	handles.push(ResourceHttpSession::createServlet("promotion", serializeCsv(csv, "price")));
+//	handles.push(ResourceHttpSession::createServlet("promotion", serializeCsv(csv, "level")));
 	handles.push(map);
 }
 
 namespace Data {
-	boost::shared_ptr<const Promotion> Promotion::get(boost::uint64_t price){
+	boost::shared_ptr<const Promotion> Promotion::get(boost::uint64_t level){
 		auto map = g_map.lock();
 		if(!map){
 			LOG_EMPERY_PROMOTION_ERROR("Promotion data has not been loaded.");
 			return { };
 		}
 
-		auto it = map->upperBound<0>(price);
+		auto it = map->upperBound<0>(level);
 		if(it == map->begin<0>()){
 			return { };
 		}
 		--it;
 		return boost::shared_ptr<const Promotion>(std::move(map), &*it);
 	}
-	boost::shared_ptr<const Promotion> Promotion::require(boost::uint64_t price){
-		auto ret = get(price);
+	boost::shared_ptr<const Promotion> Promotion::require(boost::uint64_t level){
+		auto ret = get(level);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("Promotion element not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const Promotion> Promotion::getNext(boost::uint64_t price){
+	boost::shared_ptr<const Promotion> Promotion::getNext(boost::uint64_t level){
 		auto map = g_map.lock();
 		if(!map){
 			LOG_EMPERY_PROMOTION_ERROR("Promotion data has not been loaded.");
 			return { };
 		}
 
-		auto it = map->upperBound<0>(price);
+		auto it = map->upperBound<0>(level);
 		if(it == map->end<0>()){
 			return { };
 		}
