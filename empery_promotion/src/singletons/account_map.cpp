@@ -102,6 +102,21 @@ namespace {
 		g_attributeMap = attributeMap;
 		handles.push(attributeMap);
 	}
+
+	void fillAccountInfo(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Promotion_Account> &obj){
+		PROFILE_ME;
+
+		info.accountId = AccountId(obj->get_accountId());
+		info.loginName = obj->unlockedGet_loginName();
+		info.phoneNumber = obj->unlockedGet_phoneNumber();
+		info.nick = obj->unlockedGet_nick();
+		info.passwordHash = obj->unlockedGet_passwordHash();
+		info.dealPasswordHash = obj->unlockedGet_dealPasswordHash();
+		info.referrerId = AccountId(obj->get_referrerId());
+		info.flags = obj->get_flags();
+		info.bannedUntil = obj->get_bannedUntil();
+		info.createdTime = obj->get_createdTime();
+	}
 }
 
 bool AccountMap::has(AccountId accountId){
@@ -147,15 +162,7 @@ AccountMap::AccountInfo AccountMap::get(AccountId accountId){
 		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
 		return info;
 	}
-	info.loginName = it->obj->unlockedGet_loginName();
-	info.phoneNumber = it->obj->unlockedGet_phoneNumber();
-	info.nick = it->obj->unlockedGet_nick();
-	info.passwordHash = it->obj->unlockedGet_passwordHash();
-	info.dealPasswordHash = it->obj->unlockedGet_dealPasswordHash();
-	info.referrerId = AccountId(it->obj->get_referrerId());
-	info.flags = it->obj->get_flags();
-	info.bannedUntil = it->obj->get_bannedUntil();
-	info.createdTime = it->obj->get_createdTime();
+	fillAccountInfo(info, it->obj);
 	return info;
 }
 AccountMap::AccountInfo AccountMap::get(const std::string &loginName){
@@ -173,15 +180,7 @@ AccountMap::AccountInfo AccountMap::get(const std::string &loginName){
 		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: loginName = ", loginName);
 		return info;
 	}
-	info.accountId = AccountId(it->obj->get_accountId());
-	info.phoneNumber = it->obj->unlockedGet_phoneNumber();
-	info.nick = it->obj->unlockedGet_nick();
-	info.passwordHash = it->obj->unlockedGet_passwordHash();
-	info.dealPasswordHash = it->obj->unlockedGet_dealPasswordHash();
-	info.referrerId = AccountId(it->obj->get_referrerId());
-	info.flags = it->obj->get_flags();
-	info.bannedUntil = it->obj->get_bannedUntil();
-	info.createdTime = it->obj->get_createdTime();
+	fillAccountInfo(info, it->obj);
 	return info;
 }
 AccountMap::AccountInfo AccountMap::require(AccountId accountId){
@@ -222,16 +221,7 @@ void AccountMap::getAll(std::vector<AccountMap::AccountInfo> &ret, boost::uint64
 	std::advance(it, static_cast<std::ptrdiff_t>(begin));
 	for(boost::uint64_t i = 0; i < count; ++it, ++i){
 		AccountInfo info;
-		info.accountId = AccountId(it->obj->get_accountId());
-		info.loginName = it->obj->unlockedGet_loginName();
-		info.phoneNumber = it->obj->unlockedGet_phoneNumber();
-		info.nick = it->obj->unlockedGet_nick();
-		info.passwordHash = it->obj->unlockedGet_passwordHash();
-		info.dealPasswordHash = it->obj->unlockedGet_dealPasswordHash();
-		info.referrerId = AccountId(it->obj->get_referrerId());
-		info.flags = it->obj->get_flags();
-		info.bannedUntil = it->obj->get_bannedUntil();
-		info.createdTime = it->obj->get_createdTime();
+		fillAccountInfo(info, it->obj);
 		ret.push_back(std::move(info));
 	}
 }
@@ -247,16 +237,7 @@ void AccountMap::getByPhoneNumber(std::vector<AccountMap::AccountInfo> &ret, con
 			continue;
 		}
 		AccountInfo info;
-		info.accountId = AccountId(it->obj->get_accountId());
-		info.loginName = it->obj->unlockedGet_loginName();
-		info.phoneNumber = it->obj->unlockedGet_phoneNumber();
-		info.nick = it->obj->unlockedGet_nick();
-		info.passwordHash = it->obj->unlockedGet_passwordHash();
-		info.dealPasswordHash = it->obj->unlockedGet_dealPasswordHash();
-		info.referrerId = AccountId(it->obj->get_referrerId());
-		info.flags = it->obj->get_flags();
-		info.bannedUntil = it->obj->get_bannedUntil();
-		info.createdTime = it->obj->get_createdTime();
+		fillAccountInfo(info, it->obj);
 		ret.push_back(std::move(info));
 	}
 }
@@ -271,16 +252,7 @@ void AccountMap::getByReferrerId(std::vector<AccountMap::AccountInfo> &ret, Acco
 			continue;
 		}
 		AccountInfo info;
-		info.accountId = AccountId(it->obj->get_accountId());
-		info.loginName = it->obj->unlockedGet_loginName();
-		info.phoneNumber = it->obj->unlockedGet_phoneNumber();
-		info.nick = it->obj->unlockedGet_nick();
-		info.passwordHash = it->obj->unlockedGet_passwordHash();
-		info.dealPasswordHash = it->obj->unlockedGet_dealPasswordHash();
-		info.referrerId = AccountId(it->obj->get_referrerId());
-		info.flags = it->obj->get_flags();
-		info.bannedUntil = it->obj->get_bannedUntil();
-		info.createdTime = it->obj->get_createdTime();
+		fillAccountInfo(info, it->obj);
 		ret.push_back(std::move(info));
 	}
 }
