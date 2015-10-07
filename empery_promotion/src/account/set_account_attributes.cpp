@@ -41,6 +41,16 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 	}
 
 	if(!phoneNumber.empty()){
+		std::vector<AccountMap::AccountInfo> tempInfos;
+		AccountMap::getByPhoneNumber(tempInfos, phoneNumber);
+		if(!tempInfos.empty() && (tempInfos.front().accountId != info.accountId)){
+			ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_PHONE_NUMBER;
+			ret[sslit("errorMessage")] = "Another account with the same phone number already exists";
+			return ret;
+		}
+	}
+
+	if(!phoneNumber.empty()){
 		AccountMap::setPhoneNumber(info.accountId, std::move(phoneNumber));
 	}
 	if(!nick.empty()){
