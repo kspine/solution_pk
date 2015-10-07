@@ -130,8 +130,9 @@ void GlobalStatus::checkDailyReset(){
 			commitFirstBalanceBonus();
 		}
 
-		LOG_EMPERY_PROMOTION_INFO("Incrementing acceleration card unit price by ", accCardUnitPriceIncrement);
-		newAccCardUnitPrice = checkedAdd(newAccCardUnitPrice, checkedMul(accCardUnitPriceIncrement, deltaDays));
+		const auto delatPrice = checkedMul(accCardUnitPriceIncrement, deltaDays);
+		LOG_EMPERY_PROMOTION_INFO("Incrementing acceleration card unit price by ", delatPrice);
+		newAccCardUnitPrice = checkedAdd(newAccCardUnitPrice, delatPrice);
 		if(newAccCardUnitPrice < accCardUnitPriceBegin){
 			newAccCardUnitPrice = accCardUnitPriceBegin;
 		}
