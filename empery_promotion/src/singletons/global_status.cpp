@@ -107,8 +107,9 @@ void GlobalStatus::checkDailyReset(){
 	if(serverCreatedTimeObj->get_value() == 0){
 		LOG_EMPERY_PROMOTION_WARNING("This seems to be the first run?");
 
-		const auto rootUserName = getConfig<std::string>("init_root_username", "root");
-		const auto rootPassword = getConfig<std::string>("init_root_password", "root");
+		auto rootUserName = getConfig<std::string>("init_root_username", "root");
+		auto rootNick     = getConfig<std::string>("init_root_nick",     "root");
+		auto rootPassword = getConfig<std::string>("init_root_password", "root");
 
 		LOG_EMPERY_PROMOTION_DEBUG("Determining max promotion level...");
 		const auto maxPromotionData = Data::Promotion::get(UINT64_MAX);
@@ -119,7 +120,7 @@ void GlobalStatus::checkDailyReset(){
 
 		LOG_EMPERY_PROMOTION_WARNING("Creating root user: rootUserName = ", rootUserName, ", rootPassword = ", rootPassword,
 			", level = ", maxPromotionData->level);
-		const auto accountId = AccountMap::create(std::move(rootUserName), std::string(), "root",
+		const auto accountId = AccountMap::create(std::move(rootUserName), std::string(), std::move(rootNick),
 			rootPassword, rootPassword, AccountId(0), AccountMap::FL_ROBOT);
 		LOG_EMPERY_PROMOTION_INFO("> accountId = ", accountId);
 
