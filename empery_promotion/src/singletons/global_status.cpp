@@ -6,6 +6,8 @@
 #include "../mysql/global_status.hpp"
 #include "../utilities.hpp"
 #include "../checked_arithmetic.hpp"
+#include "../data/promotion.hpp"
+#include "account_map.hpp"
 
 namespace EmperyPromotion {
 
@@ -105,9 +107,26 @@ void GlobalStatus::checkDailyReset(){
 	if(serverCreatedTimeObj->get_value() == 0){
 		LOG_EMPERY_PROMOTION_WARNING("This seems to be the first run?");
 
+		const auto rootUserName = getConfig<std::string>("init_root_username", "root");
+		const auto rootPassword = getConfig<std::string>("init_root_password", "root");
+
+		LOG_EMPERY_PROMOTION_DEBUG("Determining max promotion level...");
+		const auto maxPromotionData = Data::Promotion::get(UINT64_MAX);
+		if(!maxPromotionData){
+			LOG_EMPERY_PROMOTION_ERROR("Failed to determine max promotion level!");
+			DEBUG_THROW(Exception, sslit("Failed to determine max promotion level"));
+		}
+
+		LOG_EMPERY_PROMOTION_WARNING("Creating root user: rootUserName = ", rootUserName, ", rootPassword = ", rootPassword,
+			", level = ", maxPromotionData->level);
+		const auto accountId = AccountMap::create(std::move(rootUserName), std::string(), "root",
+			rootPassword, rootPassword, AccountId(0), AccountMap::FL_ROBOT);
+		LOG_EMPERY_PROMOTION_INFO("> accountId = ", accountId);
+
 		serverCreatedTimeObj->set_value(localNow);
 		firstBalancingTimeObj->set_value(localNow / 86400000 * 86400000 + firstBalancingDelay);
 		accCardUnitPriceObj->set_value(accCardUnitPriceBegin);
+		serverDailyResetTimeObj->set_value(localNow);
 		return;
 	}
 
@@ -115,7 +134,7 @@ void GlobalStatus::checkDailyReset(){
 
 	const auto thisDay = localNow / 86400000;
 	const auto lastDay = lastResetTime / 86400000;
-	if(thisDay < lastDay){
+	if(thisDay <= lastDay){
 		return;
 	}
 	const auto deltaDays = thisDay - lastDay;
