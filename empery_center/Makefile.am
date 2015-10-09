@@ -16,4 +16,5 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-center.la
 
 lib_libposeidon_empery_center_la_SOURCES = \
+	src/singletons/world_map.cpp	\
 	src/mmain.cpp

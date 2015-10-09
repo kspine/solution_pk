@@ -1,11 +1,12 @@
-#ifndef EMPERY_PROMOTION_ID_TYPES_HPP_
-#define EMPERY_PROMOTION_ID_TYPES_HPP_
+#ifndef EMPERY_CENTER_ID_TYPES_HPP_
+#define EMPERY_CENTER_ID_TYPES_HPP_
 
 #include <iosfwd>
 #include <boost/cstdint.hpp>
 #include <poseidon/cxx_ver.hpp>
+#include <poseidon/uuid.hpp>
 
-namespace EmperyPromotion {
+namespace EmperyCenter {
 
 template<typename UnderlyingT, int>
 class GenericId {
@@ -102,9 +103,71 @@ std::istream &operator>>(std::istream &is, GenericId<UnderlyingT, MAGIC_T> &id){
 	return is;
 }
 
-using ItemId        = GenericId<boost::uint32_t, 10000>;
+template<int>
+class GenericUuid {
+private:
+	Poseidon::Uuid m_uuid;
 
-using AccountId     = GenericId<boost::uint64_t, 20000>;
+public:
+	explicit constexpr GenericUuid()
+		: m_uuid()
+	{
+	}
+
+public:
+	constexpr const Poseidon::Uuid &get() const {
+		return m_uuid;
+	}
+	void set(const Poseidon::Uuid &uuid){
+		m_uuid = uuid;
+	}
+
+public:
+	constexpr bool operator==(const GenericUuid &rhs) const {
+		return get() == rhs.get();
+	}
+	constexpr bool operator!=(const GenericUuid &rhs) const {
+		return get() != rhs.get();
+	}
+	constexpr bool operator<(const GenericUuid &rhs) const {
+		return get() < rhs.get();
+	}
+	constexpr bool operator>(const GenericUuid &rhs) const {
+		return get() > rhs.get();
+	}
+	constexpr bool operator<=(const GenericUuid &rhs) const {
+		return get() <= rhs.get();
+	}
+	constexpr bool operator>=(const GenericUuid &rhs) const {
+		return get() >= rhs.get();
+	}
+
+	constexpr explicit operator bool() const noexcept {
+		return get() != Poseidon::Uuid();
+	}
+};
+
+template<int MAGIC_T>
+std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &id){
+	os <<id.get();
+	return os;
+}
+template<int MAGIC_T>
+std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &id){
+	Poseidon::Uuid tmp;
+	if(is >>tmp){
+		id.set(tmp);
+	}
+	return is;
+}
+
+using TerrainId         = GenericId<boost::uint32_t, 110001>;
+using OverlayId         = GenericId<boost::uint32_t, 110002>;
+using ResourceId        = GenericId<boost::uint32_t, 110003>
+
+using AccountUuid       = GenericUuid<21001>;
+using CastleUuid        = GenericUuid<21002>;
+using UnitUuid          = GenericUuid<21003>;
 
 }
 

@@ -9,9 +9,8 @@ namespace EmperyPromotion {
 
 class AdminHttpSession : public Poseidon::Http::Session {
 public:
-	typedef boost::function<
-		void (const boost::shared_ptr<AdminHttpSession> &session, const Poseidon::OptionalMap &params)
-		> ServletCallback;
+	using ServletCallback = boost::function<
+		void (const boost::shared_ptr<AdminHttpSession> &session, const Poseidon::OptionalMap &params)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> createServlet(const std::string &uri, ServletCallback callback);

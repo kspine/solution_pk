@@ -8,9 +8,9 @@
 
 namespace EmperyPromotion {
 
-namespace {
-	typedef AccountHttpSession::ServletCallback ServletCallback;
+using ServletCallback = AccountHttpSession::ServletCallback;
 
+namespace {
 	std::map<std::string, boost::weak_ptr<const ServletCallback>> g_servletMap;
 }
 

@@ -20,8 +20,8 @@
 
 namespace EmperyPromotion {
 
-typedef Poseidon::Exception		Exception;
-typedef Poseidon::SharedNts		SharedNts;
+using Poseidon::Exception;
+using Poseidon::SharedNts;
 
 DECLARE_MODULE_CONFIG(getConfig, getConfigV)
 
