@@ -240,8 +240,16 @@ void commitFirstBalanceBonus(){
 			AccountMap::getByReferrerId(temp, info.accountId);
 			for(auto it = temp.begin(); it != temp.end(); ++it){
 				const auto level = AccountMap::castAttribute<boost::uint64_t>(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-				reallyAccumulateBalanceBonus(info.accountId, it->accountId, it->accountId, level);
+				if(level == 0){
+					continue;
+				}
+				const auto promotionData = Data::Promotion::get(level);
+				if(!promotionData){
+					continue;
+				}
+				reallyAccumulateBalanceBonus(info.accountId, it->accountId, it->accountId, promotionData->immediatePrice);
 			}
+			std::copy(std::make_move_iterator(temp.begin()), std::make_move_iterator(temp.end()), std::back_inserter(queue));
 		} catch(std::exception &e){
 			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 		}
