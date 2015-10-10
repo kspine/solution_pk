@@ -2,6 +2,7 @@
 #define EMPERY_CENTER_ID_TYPES_HPP_
 
 #include <iosfwd>
+#include <iomanip>
 #include <boost/cstdint.hpp>
 #include <poseidon/cxx_ver.hpp>
 #include <poseidon/uuid.hpp>
@@ -96,9 +97,9 @@ std::ostream &operator<<(std::ostream &os, const GenericId<UnderlyingT, MAGIC_T>
 }
 template<typename UnderlyingT, int MAGIC_T>
 std::istream &operator>>(std::istream &is, GenericId<UnderlyingT, MAGIC_T> &id){
-	UnderlyingT tmp;
-	if(is >>tmp){
-		id.set(tmp);
+	UnderlyingT temp;
+	if(is >>temp){
+		id.set(temp);
 	}
 	return is;
 }
@@ -149,21 +150,24 @@ public:
 
 template<int MAGIC_T>
 std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &id){
-	os <<id.get();
+	char str[37];
+	id.toString(reinterpret_cast<char (&)[36]>(str));
+	str[36] = 0;
+	os <<str;
 	return os;
 }
 template<int MAGIC_T>
 std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &id){
-	Poseidon::Uuid tmp;
-	if(is >>tmp){
-		id.set(tmp);
+	char str[37];
+	if(is >>std::setw(sizeof(str)) >>str){
+		id.fromString(reinterpret_cast<const char (&)[36]>(str));
 	}
 	return is;
 }
 
 using TerrainId         = GenericId<boost::uint32_t, 110001>;
 using OverlayId         = GenericId<boost::uint32_t, 110002>;
-using ResourceId        = GenericId<boost::uint32_t, 110003>
+using ResourceId        = GenericId<boost::uint32_t, 110003>;
 
 using AccountUuid       = GenericUuid<21001>;
 using CastleUuid        = GenericUuid<21002>;

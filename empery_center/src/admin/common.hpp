@@ -13,7 +13,7 @@
 #include <poseidon/optional_map.hpp>
 #include <poseidon/json.hpp>
 #include "../singletons/account_map.hpp"
-#include "../admin_http_session.hpp"
+#include "../admin_session.hpp"
 #include "../msg/err_account.hpp"
 #include "../log.hpp"
 
@@ -48,6 +48,6 @@ ADMIN_SERVLET(请求 URI, 会话形参名, GET 参数){
 	::Poseidon::JsonObject EmperyCenter::Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<AdminHttpSession> &sessionArg_, const ::Poseidon::OptionalMap &paramsArg_)	\
 
-#define ADMIN_THROW(code_)				DEBUG_THROW(::Poseidon::Http::Exception, code_)
+#define ADMIN_THROW(code_)              DEBUG_THROW(::Poseidon::Http::Exception, (code_))
 
 #endif

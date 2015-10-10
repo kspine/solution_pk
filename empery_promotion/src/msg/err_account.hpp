@@ -22,6 +22,9 @@ namespace Msg {
 		ERR_NO_SUCH_PAYER               = 80111,
 		ERR_NO_SUCH_BILL                = 80112,
 		ERR_DUPLICATE_PHONE_NUMBER      = 80113,
+		ERR_BILL_CANCELLED              = 80114,
+		ERR_BILL_SETTLED                = 80115,
+		ERR_BILL_AMOUNT_MISMATCH        = 80116,
 
 		ERR_W_D_SLIP_NOT_FOUND          = 80201,
 		ERR_W_D_SLIP_CANCELLED          = 80202,
