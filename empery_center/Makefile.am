@@ -16,8 +16,12 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-center.la
 
 lib_libposeidon_empery_center_la_SOURCES = \
-	src/singletons/player_map.cpp	\
-	src/singletons/cluster_map.cpp	\
+	src/singletons/player_websocket_server.cpp	\
+	src/singletons/cluster_cbpp_server.cpp	\
+	src/singletons/admin_http_server.cpp	\
+	src/singletons/player_session_map.cpp	\
+	src/singletons/cluster_session_map.cpp	\
 	src/player_session.cpp	\
 	src/cluster_session.cpp	\
+	src/admin_session.cpp	\
 	src/mmain.cpp
