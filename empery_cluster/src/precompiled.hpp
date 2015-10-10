@@ -1,5 +1,5 @@
-#ifndef EMPERY_MAP_PRECOMPILED_HPP_
-#define EMPERY_MAP_PRECOMPILED_HPP_
+#ifndef EMPERY_CLUSTER_PRECOMPILED_HPP_
+#define EMPERY_CLUSTER_PRECOMPILED_HPP_
 
 #include <poseidon/precompiled.hpp>
 
@@ -18,7 +18,7 @@
 
 #include "log.hpp"
 
-namespace EmperyMap {
+namespace EmperyCluster {
 
 typedef Poseidon::Exception		Exception;
 typedef Poseidon::SharedNts		SharedNts;
