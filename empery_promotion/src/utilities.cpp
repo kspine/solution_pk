@@ -22,6 +22,8 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 	const auto oldLevel = AccountMap::castAttribute<boost::uint64_t>(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 	const auto level = promotionData->level;
 
+	auto info = AccountMap::require(accountId);
+
 	auto levelStr = boost::lexical_cast<std::string>(level);
 	AccountMap::touchAttribute(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 
@@ -53,58 +55,60 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 		AccountMap::setAttribute(accountId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(levelStr));
 	}
 
-	for(auto referrerId = AccountMap::require(accountId).referrerId; referrerId; referrerId = AccountMap::require(referrerId).referrerId){
-		const auto referrerLevel = AccountMap::castAttribute<boost::uint64_t>(referrerId, AccountMap::ATTR_ACCOUNT_LEVEL);
-		if(referrerLevel == 0){
-			LOG_EMPERY_PROMOTION_DEBUG("Referrer is at level zero: referrerId = ", referrerId);
-			break;
-		}
+	std::deque<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
+	for(auto currentId = info.referrerId; currentId; currentId = AccountMap::require(currentId).referrerId){
+		const auto referrerLevel = AccountMap::castAttribute<boost::uint64_t>(currentId, AccountMap::ATTR_ACCOUNT_LEVEL);
+		LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: currentId = ", currentId, ", referrerLevel = ", referrerLevel);
 		auto referrerPromotionData = Data::Promotion::get(referrerLevel);
+		referrers.emplace_back(currentId, std::move(referrerPromotionData));
+	}
+
+	boost::container::flat_map<boost::uint64_t, boost::uint64_t> subordinateLevelCounts;
+	subordinateLevelCounts.reserve(32);
+	while(!referrers.empty()){
+		const auto referrerId = referrers.front().first;
+		const auto referrerPromotionData = std::move(referrers.front().second);
+		referrers.pop_front();
+
 		if(!referrerPromotionData){
-			LOG_EMPERY_PROMOTION_ERROR("No such promotion data: referrerLevel = ", referrerLevel);
-			break;
+			LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero: referrerId = ", referrerId);
+			continue;
 		}
-		LOG_EMPERY_PROMOTION_DEBUG("Checking for auto upgrade: referrerId = ", referrerId, ", referrerLevel = ", referrerLevel);
+		LOG_EMPERY_PROMOTION_DEBUG("> Checking for auto upgrade: referrerId = ", referrerId, ", level = ", referrerPromotionData->level);
 
 		std::vector<AccountMap::AccountInfo> subordinates;
 		AccountMap::getByReferrerId(subordinates, referrerId);
-		boost::container::flat_map<boost::uint64_t, std::size_t> levelCounts;
-		levelCounts.reserve(32);
 		for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
 			const auto subordinateLevel = AccountMap::castAttribute<boost::uint64_t>(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 			LOG_EMPERY_PROMOTION_DEBUG("> Subordinate: accountId = ", it->accountId, ", subordinateLevel = ", subordinateLevel);
-			++levelCounts[subordinateLevel];
+			++subordinateLevelCounts[subordinateLevel];
 		}
-		if(levelCounts.empty()){
-			LOG_EMPERY_PROMOTION_DEBUG("No subordinates...");
-			break;
-		}
+		auto nextPromotionData = referrerPromotionData;
 		for(;;){
 			std::size_t currentAutoUpgradeCount = 0;
-			for(auto it = levelCounts.lower_bound(referrerPromotionData->level); it != levelCounts.end(); ++it){
+			for(auto it = subordinateLevelCounts.lower_bound(nextPromotionData->level); it != subordinateLevelCounts.end(); ++it){
 				currentAutoUpgradeCount += it->second;
 			}
-			LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", referrerPromotionData->level,
-				", currentAutoUpgradeCount = ", currentAutoUpgradeCount, ", autoUpgradeCount = ", referrerPromotionData->autoUpgradeCount);
-			if(currentAutoUpgradeCount < referrerPromotionData->autoUpgradeCount){
+			LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", nextPromotionData->level,
+				", currentAutoUpgradeCount = ", currentAutoUpgradeCount, ", autoUpgradeCount = ", nextPromotionData->autoUpgradeCount);
+			if(currentAutoUpgradeCount < nextPromotionData->autoUpgradeCount){
 				LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
 				break;
 			}
-			auto nextPromotionData = Data::Promotion::getNext(referrerPromotionData->level);
-			if(!nextPromotionData || (nextPromotionData == referrerPromotionData)){
+			auto testPromotionData = Data::Promotion::getNext(nextPromotionData->level);
+			if(!testPromotionData || (testPromotionData == nextPromotionData)){
 				LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
 				break;
 			}
-			referrerPromotionData = std::move(nextPromotionData);
+			nextPromotionData = std::move(testPromotionData);
 		}
-		if(referrerPromotionData->level == referrerLevel){
+		if(nextPromotionData == referrerPromotionData){
 			LOG_EMPERY_PROMOTION_DEBUG("Not auto upgradeable: referrerId = ", referrerId);
-			break;
+		} else {
+			LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: referrerId = ", referrerId, ", level = ", referrerPromotionData->level);
+			auto levelStr = boost::lexical_cast<std::string>(referrerPromotionData->level);
+			AccountMap::setAttribute(referrerId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(levelStr));
 		}
-
-		LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: referrerId = ", referrerId, ", level = ", referrerPromotionData->level);
-		auto levelStr = boost::lexical_cast<std::string>(referrerPromotionData->level);
-		AccountMap::setAttribute(referrerId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(levelStr));
 	}
 
 	return std::make_pair(true, balanceToConsume);
@@ -162,7 +166,6 @@ namespace {
 				LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero: referrerId = ", referrerId);
 				continue;
 			}
-
 			const auto myMaxDividend = dividendTotal * referrerPromotionData->taxRatio;
 			LOG_EMPERY_PROMOTION_DEBUG("> Current referrer: referrerId = ", referrerId,
 				", level = ", referrerPromotionData->level, ", taxRatio = ", referrerPromotionData->taxRatio,
