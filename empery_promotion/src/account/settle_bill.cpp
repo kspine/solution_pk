@@ -36,7 +36,7 @@ ACCOUNT_SERVLET("settleBill", session, params){
 	}
 	if(billObj->get_state() == (unsigned)BillStates::ST_SETTLED){
 		ret[sslit("errorCode")] = (int)Msg::ERR_BILL_SETTLED;
-		ret[sslit("errorMessage")] = "Bill is settled";
+		ret[sslit("errorMessage")] = "Bill is already settled";
 		return ret;
 	}
 	if(amount != billObj->get_amount()){

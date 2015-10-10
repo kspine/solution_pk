@@ -36,7 +36,7 @@ ACCOUNT_SERVLET("commitWithdrawal", session, params){
 	}
 	if(wdSlipObj->get_state() == (unsigned)BillStates::ST_SETTLED){
 		ret[sslit("errorCode")] = (int)Msg::ERR_W_D_SLIP_SETTLED;
-		ret[sslit("errorMessage")] = "Withdrawal slip is settled";
+		ret[sslit("errorMessage")] = "Withdrawal slip is already settled";
 		return ret;
 	}
 	if(amount != wdSlipObj->get_amount()){
