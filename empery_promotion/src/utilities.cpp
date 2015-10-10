@@ -205,7 +205,7 @@ namespace {
 				Events::ItemChanged::R_INCOME_TAX, myDividend, referrerId.get(), 0, std::string());
 
 			generation = 0;
-			for(auto it = referrers.begin();(generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
+			for(auto it = referrers.begin(); (generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
 				if(!(it->second)){
 					continue;
 				}

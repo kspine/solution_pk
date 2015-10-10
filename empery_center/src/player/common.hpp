@@ -12,6 +12,7 @@
 #include "../singletons/account_map.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
+#include "../msg/err_account.hpp"
 #include "../log.hpp"
 
 /*
