@@ -92,7 +92,8 @@ void GlobalStatus::checkDailyReset(){
 		return it->second;
 	};
 
-	const auto firstBalancingDelay       = getConfig<boost::uint64_t>("first_balancing_delay",         20 * 86400000);
+	const auto firstBalancingTime        = Poseidon::scanTime(
+	                                       getConfig<std::string>("first_balancing_time").c_str());
 	const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_increment", 100);
 	const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin",     40000);
 	const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",       50000);
@@ -125,10 +126,9 @@ void GlobalStatus::checkDailyReset(){
 		LOG_EMPERY_PROMOTION_INFO("> accountId = ", accountId);
 
 		serverCreatedTimeObj->set_value(localNow);
-		firstBalancingTimeObj->set_value(localNow / 86400000 * 86400000 + firstBalancingDelay);
+		firstBalancingTimeObj->set_value(firstBalancingTime);
 		accCardUnitPriceObj->set_value(accCardUnitPriceBegin);
 		serverDailyResetTimeObj->set_value(localNow);
-		return;
 	}
 
 	const auto lastResetTime = serverDailyResetTimeObj->get_value();
@@ -141,7 +141,7 @@ void GlobalStatus::checkDailyReset(){
 	const auto deltaDays = thisDay - lastDay;
 	LOG_EMPERY_PROMOTION_INFO("Daily reset: deltaDays = ", deltaDays);
 
-	const auto firstBalancingTime = firstBalancingTimeObj->get_value();
+//	const auto firstBalancingTime = firstBalancingTimeObj->get_value();
 
 	auto newAccCardUnitPrice = accCardUnitPriceObj->get_value();
 	if(localNow >= firstBalancingTime){

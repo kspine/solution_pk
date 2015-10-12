@@ -36,15 +36,24 @@ namespace {
 		handles.push(sessionMap);
 	}
 }
-/*
-boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const AccountUuid &accountUuid);
 
-AccountUuid PlayerSessionMap::getAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession);
-AccountUuid PlayerSessionMap::requireAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession);
+boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const AccountUuid &accountUuid){
+	return { };
+}
 
-void PlayerSessionMap::add(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session);
-void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept;
+AccountUuid PlayerSessionMap::getAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession){
+	return { };
+}
+AccountUuid PlayerSessionMap::requireAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession){
+	return { };
+}
 
-void PlayerSessionMap::getAll(boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> &ret);
-*/
+void PlayerSessionMap::add(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session){
+}
+void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept {
+}
+
+void PlayerSessionMap::getAll(boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> &ret){
+}
+
 }
