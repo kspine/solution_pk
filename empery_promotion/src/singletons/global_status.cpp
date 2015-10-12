@@ -35,7 +35,15 @@ namespace {
 
 		auto timer = Poseidon::TimerDaemon::registerDailyTimer(0, 1, 0,
 			boost::bind(&GlobalStatus::checkDailyReset));
-		handles.push(timer);
+		handles.push(std::move(timer));
+
+		const auto firstBalancingTime = Poseidon::scanTime(getConfig<std::string>("first_balancing_time").c_str());
+		const auto localNow = Poseidon::getLocalTime();
+		if(firstBalancingTime < localNow){
+			timer = Poseidon::TimerDaemon::registerTimer(firstBalancingTime - localNow, 0,
+				boost::bind(&GlobalStatus::checkDailyReset));
+			handles.push(std::move(timer));
+		}
 
 		GlobalStatus::checkDailyReset();
 	}
