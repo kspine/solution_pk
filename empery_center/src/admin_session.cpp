@@ -11,7 +11,7 @@ namespace EmperyCenter {
 using ServletCallback = AdminHttpSession::ServletCallback;
 
 namespace {
-	std::map<std::string, boost::weak_ptr<const ServletCallback> > g_servletMap;
+	std::map<std::string, boost::weak_ptr<const ServletCallback>> g_servletMap;
 }
 
 AdminHttpSession::AdminHttpSession(Poseidon::UniqueFile socket,

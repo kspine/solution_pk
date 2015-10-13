@@ -9,14 +9,17 @@ namespace Msg {
 	using namespace Poseidon::Cbpp::StatusCodes;
 
 	enum {
-		ERR_NO_SUCH_ACCOUNT        = 60201,
-		ERR_TOKEN_EXPIRED          = 60202,
-		ERR_ACCOUNT_BANNED         = 60203,
-		ERR_NOT_LOGGED_IN          = 60204,
-		ERR_INVALID_TOKEN          = 60205,
-		ERR_ATTR_NOT_SETTABLE      = 60206,
-		ERR_ATTR_TOO_LONG          = 60207,
-		ERR_NO_SUCH_ACCOUNT_NICK   = 60208,
+		ERR_NO_SUCH_ACCOUNT        = 71201,
+		ERR_TOKEN_EXPIRED          = 71202,
+		ERR_ACCOUNT_BANNED         = 71203,
+		ERR_NOT_LOGGED_IN          = 71204,
+		ERR_INVALID_TOKEN          = 71205,
+		ERR_ATTR_NOT_SETTABLE      = 71206,
+		ERR_ATTR_TOO_LONG          = 71207,
+		ERR_NO_SUCH_ACCOUNT_NICK   = 71208,
+		ERR_NO_SUCH_LOGIN_NAME     = 71209,
+		ERR_MULTIPLE_LOGIN         = 71210,
+		ERR_NICK_TOO_LONG          = 71211,
 	};
 }
 

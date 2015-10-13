@@ -21,7 +21,7 @@ struct PlayerSessionMap {
 	static void add(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session);
 	static void remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept;
 
-	static void getAll(boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> &ret);
+	static void getAll(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret);
 
 private:
 	PlayerSessionMap();

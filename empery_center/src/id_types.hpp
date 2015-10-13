@@ -110,8 +110,12 @@ private:
 	Poseidon::Uuid m_uuid;
 
 public:
-	explicit constexpr GenericUuid()
-		: m_uuid()
+	explicit constexpr GenericUuid(const Poseidon::Uuid &uuid = Poseidon::Uuid())
+		: m_uuid(uuid)
+	{
+	}
+	GenericUuid(const std::string &str)
+		: m_uuid(str)
 	{
 	}
 
@@ -121,6 +125,10 @@ public:
 	}
 	void set(const Poseidon::Uuid &uuid){
 		m_uuid = uuid;
+	}
+
+	std::string str() const {
+		return m_uuid.toString();
 	}
 
 public:
@@ -151,7 +159,7 @@ public:
 template<int MAGIC_T>
 std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &id){
 	char str[37];
-	id.toString(reinterpret_cast<char (&)[36]>(str));
+	id.get().toString(reinterpret_cast<char (&)[36]>(str));
 	str[36] = 0;
 	os <<str;
 	return os;
@@ -165,13 +173,15 @@ std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &id){
 	return is;
 }
 
-using TerrainId         = GenericId<boost::uint32_t, 110001>;
-using OverlayId         = GenericId<boost::uint32_t, 110002>;
-using ResourceId        = GenericId<boost::uint32_t, 110003>;
+using PlatformId        = GenericId<boost::uint32_t, 110001>;
 
-using AccountUuid       = GenericUuid<21001>;
-using CastleUuid        = GenericUuid<21002>;
-using UnitUuid          = GenericUuid<21003>;
+using TerrainId         = GenericId<boost::uint32_t, 120001>;
+using OverlayId         = GenericId<boost::uint32_t, 120002>;
+using ResourceId        = GenericId<boost::uint32_t, 120003>;
+
+using AccountUuid       = GenericUuid<               210001>;
+using CastleUuid        = GenericUuid<               210002>;
+using UnitUuid          = GenericUuid<               210003>;
 
 }
 

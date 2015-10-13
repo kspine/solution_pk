@@ -28,16 +28,16 @@ namespace {
 }
 
 MODULE_RAII_PRIORITY(handles, 9000){
-	auto bind = getConfig<std::string> ("admin_http_server_bind"           , "0.0.0.0");
-	auto port = getConfig<unsigned>    ("admin_http_server_port"           , 13218);
-	auto cert = getConfig<std::string> ("admin_http_server_certificate"    );
-	auto pkey = getConfig<std::string> ("admin_http_server_private_key"    );
-	auto auth = getConfigV<std::string>("admin_http_server_auth_user_pass" );
-	auto path = getConfig<std::string> ("admin_http_server_path"           , "/empery/admin");
+	auto bind = getConfig<std::string> ("admin_http_server_bind", "0.0.0.0");
+	auto port = getConfig<unsigned>    ("admin_http_server_port", 13218);
+	auto cert = getConfig<std::string> ("admin_http_server_certificate");
+	auto pkey = getConfig<std::string> ("admin_http_server_private_key");
+	auto auth = getConfigV<std::string>("admin_http_server_auth_user_pass");
+	auto path = getConfig<std::string> ("admin_http_server_path", "/empery/admin");
 
 	const auto bindAddr = Poseidon::IpPort(SharedNts(bind), port);
 	LOG_EMPERY_CENTER_INFO("Creating admin HTTP server on ", bindAddr, path);
-	const AUTO(server, boost::make_shared<AdminHttpServer>(bindAddr, cert, pkey, std::move(auth), std::move(path)));
+	const auto server = boost::make_shared<AdminHttpServer>(bindAddr, cert, pkey, std::move(auth), std::move(path));
 	Poseidon::EpollDaemon::registerServer(server);
 	handles.push(server);
 }
