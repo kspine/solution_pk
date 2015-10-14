@@ -23,9 +23,9 @@ ACCOUNT_SERVLET("create", session, params){
 	const auto &country = params.at("country");
 	const auto &password = params.at("password");
 	const auto &phoneNumber = params.at("phoneNumber");
-	const auto &bankAccountName = params.at("bankAccountName");
-	const auto &bankName = params.at("bankName");
-	const auto &bankAccountNumber = params.at("bankAccountNumber");
+	const auto &bankAccountName = params.get("bankAccountName");
+	const auto &bankName = params.get("bankName");
+	const auto &bankAccountNumber = params.get("bankAccountNumber");
 	const auto &referrerLoginName = params.get("referrerLoginName");
 	const auto &bankSwiftCode = params.get("bankSwiftCode");
 	const auto &remarks = params.get("remarks");
