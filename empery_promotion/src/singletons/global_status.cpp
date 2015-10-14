@@ -33,7 +33,8 @@ namespace {
 		g_statusMap = statusMap;
 		handles.push(statusMap);
 
-		auto timer = Poseidon::TimerDaemon::registerDailyTimer(0, 1, 0,
+		const auto dailyResetAtOClock = getConfig<unsigned>("daily_reset_at_o_clock", 8);
+		auto timer = Poseidon::TimerDaemon::registerDailyTimer(dailyResetAtOClock, 0, 5,
 			boost::bind(&GlobalStatus::checkDailyReset));
 		handles.push(std::move(timer));
 
