@@ -30,6 +30,7 @@ ACCOUNT_SERVLET("queryAccountItems", /* session */, params){
 	const auto level = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 
 	ret[sslit("nick")] = std::move(info.nick);
+	ret[sslit("phoneNumber")] = std::move(info.phoneNumber);
 	ret[sslit("level")] = boost::lexical_cast<std::string>(level);
 	ret[sslit("items")] = std::move(items);
 
