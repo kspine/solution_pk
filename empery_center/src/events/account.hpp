@@ -32,12 +32,12 @@ namespace Events {
 		PlatformId platformId;
 		std::string loginName;
 		std::string loginToken;
-		boost::uint64_t expiryDuration;
+		boost::uint64_t expiryTime;
 
 		AccountSetToken(PlatformId platformId_, std::string loginName_,
-			std::string loginToken_, boost::uint64_t expiryDuration_)
+			std::string loginToken_, boost::uint64_t expiryTime_)
 			: platformId(platformId_), loginName(std::move(loginName_))
-			, loginToken(std::move(loginToken_)), expiryDuration(expiryDuration_)
+			, loginToken(std::move(loginToken_)), expiryTime(expiryTime_)
 		{
 		}
 	};

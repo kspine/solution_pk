@@ -158,6 +158,7 @@ void AccountMap::setPassword(const std::string &accountName, const std::string &
 		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
+
 	it->obj->set_passwordHash(getPasswordHash(password));
 }
 void AccountMap::setDisposablePassword(const std::string &accountName, const std::string &password, boost::uint64_t expiryTime){
@@ -172,6 +173,7 @@ void AccountMap::setDisposablePassword(const std::string &accountName, const std
 		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
+
 	it->obj->set_disposablePasswordHash(getPasswordHash(password));
 	it->obj->set_disposablePasswordExpiryTime(expiryTime);
 }
@@ -207,7 +209,7 @@ void AccountMap::setPasswordRegainCooldownTime(const std::string &accountName, b
 
 	it->obj->set_passwordRegainCooldownTime(expiryTime);
 }
-void AccountMap::setToken(const std::string &accountName, std::string token){
+void AccountMap::setToken(const std::string &accountName, std::string token, boost::uint64_t expiryTime){
 	PROFILE_ME;
 
 	const auto it = g_accountMap->find<0>(accountName);
@@ -219,7 +221,9 @@ void AccountMap::setToken(const std::string &accountName, std::string token){
 		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
+
 	it->obj->set_token(std::move(token));
+	it->obj->set_tokenExpiryTime(expiryTime);
 }
 void AccountMap::setLastLogin(const std::string &accountName, std::string lastLoginIp, boost::uint64_t lastLoginTime){
 	PROFILE_ME;
@@ -233,6 +237,7 @@ void AccountMap::setLastLogin(const std::string &accountName, std::string lastLo
 		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
+
 	it->obj->set_lastLoginIp(std::move(lastLoginIp));
 	it->obj->set_lastLoginTime(lastLoginTime);
 }

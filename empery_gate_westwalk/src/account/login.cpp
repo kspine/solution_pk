@@ -48,16 +48,16 @@ ACCOUNT_SERVLET("login", /* session */, params){
 		return ret;
 	}
 
-	AccountMap::setToken(accountName, token);
 	AccountMap::resetPasswordRetryCount(accountName);
 
 	const auto platformId          = getConfig<EmperyCenter::PlatformId>("platform_id");
 	const auto tokenExpiryDuration = getConfig<boost::uint64_t>("token_expiry_duration", 604800000);
 
 	LOG_EMPERY_GATE_WESTWALK_INFO("Account login: accountName = ", accountName, ", token = ", token);
+	AccountMap::setToken(accountName, token, localNow + tokenExpiryDuration);
 	Poseidon::EventDispatcher::syncRaise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platformId, accountName, token, tokenExpiryDuration));
+			platformId, accountName, token, localNow + tokenExpiryDuration));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";

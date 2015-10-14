@@ -47,7 +47,7 @@ struct AccountMap {
 	static void setDisposablePassword(const std::string &accountName, const std::string &password, boost::uint64_t expiryTime);
 	static void commitDisposablePassword(const std::string &accountName);
 	static void setPasswordRegainCooldownTime(const std::string &accountName, boost::uint64_t expiryTime);
-	static void setToken(const std::string &accountName, std::string token);
+	static void setToken(const std::string &accountName, std::string token, boost::uint64_t expiryTime);
 	static void setLastLogin(const std::string &accountName, std::string lastLoginIp, boost::uint64_t lastLoginTime);
 	static void setBannedUntil(const std::string &accountName, boost::uint64_t bannedUntil);
 	static boost::uint32_t decrementPasswordRetryCount(const std::string &accountName);

@@ -114,9 +114,9 @@ namespace {
 			[](const boost::shared_ptr<Events::AccountSetToken> &event){
 				PROFILE_ME;
 				LOG_EMPERY_CENTER_INFO("Set token: platformId = ", event->platformId, ", loginName = ", event->loginName,
-					", loginToken = ", event->loginToken, ", expiryDuration = ", event->expiryDuration);
+					", loginToken = ", event->loginToken, ", expiryTime = ", event->expiryTime);
 				const auto accountUuid = AccountMap::create(event->platformId, event->loginName, event->loginName, 0).first;
-				AccountMap::setLoginToken(accountUuid, event->loginToken, Poseidon::getLocalTime() + event->expiryDuration);
+				AccountMap::setLoginToken(accountUuid, event->loginToken, event->expiryTime);
 			});
 		LOG_EMPERY_CENTER_DEBUG("Created AccountSetToken listener");
 		handles.push(listener);

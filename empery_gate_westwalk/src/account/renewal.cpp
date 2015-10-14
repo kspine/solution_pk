@@ -46,9 +46,10 @@ ACCOUNT_SERVLET("renewal", /* session */, params){
 	const auto tokenExpiryDuration = getConfig<boost::uint64_t>("token_expiry_duration", 604800000);
 
 	LOG_EMPERY_GATE_WESTWALK_INFO("Renewal token: accountName = ", accountName, ", oldToken = ", oldToken, ", token = ", token);
-	AccountMap::setToken(accountName, token);
+	AccountMap::setToken(accountName, token, localNow + tokenExpiryDuration);
 	Poseidon::EventDispatcher::syncRaise(
-		boost::make_shared<EmperyCenter::Events::AccountSetToken>(platformId, accountName, token, tokenExpiryDuration));
+		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
+			platformId, accountName, token, localNow + tokenExpiryDuration));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";
