@@ -1,11 +1,11 @@
-#ifndef TEXAS_GATE_WESTWALK_SMS_HTTP_CLIENT_HPP_
-#define TEXAS_GATE_WESTWALK_SMS_HTTP_CLIENT_HPP_
+#ifndef EMPERY_GATE_WESTWALK_SMS_HTTP_CLIENT_HPP_
+#define EMPERY_GATE_WESTWALK_SMS_HTTP_CLIENT_HPP_
 
 #include <poseidon/cxx_util.hpp>
 #include <poseidon/sock_addr.hpp>
 #include <poseidon/fwd.hpp>
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 class SmsHttpClient : NONCOPYABLE, public boost::enable_shared_from_this<SmsHttpClient> {
 private:
@@ -24,7 +24,7 @@ public:
 	~SmsHttpClient();
 
 private:
-	void timerProc() NOEXCEPT;
+	void timerProc() noexcept;
 
 public:
 	void commit();

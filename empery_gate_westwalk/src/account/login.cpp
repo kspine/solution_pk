@@ -3,32 +3,32 @@
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
 #include <poseidon/singletons/event_dispatcher.hpp>
-#include "../../../texas_cluster/src/events/account.hpp"
+#include "../../../empery_center/src/events/account.hpp"
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 ACCOUNT_SERVLET("login", /* session */, params){
-	const AUTO_REF(accountName, params.at("accountName"));
-	const AUTO_REF(password, params.at("password"));
-	const AUTO_REF(token, params.at("token"));
+	const auto &accountName = params.at("accountName");
+	const auto &password    = params.at("password");
+	const auto &token       = params.at("token");
 
 	Poseidon::JsonObject ret;
-	AUTO(info, AccountMap::get(accountName));
+	auto info = AccountMap::get(accountName);
 	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("msg")] = "The specified account is not found";
 		return ret;
 	}
-	const AUTO(passwordHash, AccountMap::getPasswordHash(password));
+	const auto passwordHash = AccountMap::getPasswordHash(password);
 	if(Poseidon::hasAnyFlagsOf(info.flags, AccountMap::FL_FROZEN) && (passwordHash != info.disposablePasswordHash)){
 		ret[sslit("errCode")] = (int)Msg::ERR_ACCOUNT_FROZEN;
 		ret[sslit("msg")] = "The specified account is frozen";
 		return ret;
 	}
-	const AUTO(localNow, Poseidon::getLocalTime());
+	const auto localNow = Poseidon::getLocalTime();
 	if(passwordHash != info.passwordHash){
 		if(passwordHash != info.disposablePasswordHash){
-			const AUTO(retryCount, AccountMap::decrementPasswordRetryCount(accountName));
+			const auto retryCount = AccountMap::decrementPasswordRetryCount(accountName);
 
 			ret[sslit("errCode")] = (int)Msg::ERR_PASSWORD_INCORRECT;
 			ret[sslit("msg")] = "Password is incorrect";
@@ -51,12 +51,12 @@ ACCOUNT_SERVLET("login", /* session */, params){
 	AccountMap::setToken(accountName, token);
 	AccountMap::resetPasswordRetryCount(accountName);
 
-	const AUTO(platformId, getConfig<TexasCluster::PlatformId>("platform_id"));
-	const AUTO(tokenExpiryDuration, getConfig<boost::uint64_t>("token_expiry_duration", 604800000));
+	const auto platformId          = getConfig<EmperyCenter::PlatformId>("platform_id");
+	const auto tokenExpiryDuration = getConfig<boost::uint64_t>("token_expiry_duration", 604800000);
 
-	LOG_TEXAS_GATE_WESTWALK_INFO("Account login: accountName = ", accountName, ", token = ", token);
+	LOG_EMPERY_GATE_WESTWALK_INFO("Account login: accountName = ", accountName, ", token = ", token);
 	Poseidon::EventDispatcher::syncRaise(
-		boost::make_shared<TexasCluster::Events::AccountSetToken>(
+		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
 			platformId, accountName, token, tokenExpiryDuration));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;

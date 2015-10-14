@@ -1,5 +1,5 @@
-#ifndef TEXAS_GATE_WESTWALK_ACCOUNT_COMMON_HPP_
-#define TEXAS_GATE_WESTWALK_ACCOUNT_COMMON_HPP_
+#ifndef EMPERY_GATE_WESTWALK_ACCOUNT_COMMON_HPP_
+#define EMPERY_GATE_WESTWALK_ACCOUNT_COMMON_HPP_
 
 #include <poseidon/cxx_ver.hpp>
 #include <poseidon/cxx_util.hpp>
@@ -21,7 +21,7 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 }
 */
 #define ACCOUNT_SERVLET(uri_, sessionArg_, paramsArg_)	\
-	namespace TexasGateWestwalk {	\
+	namespace EmperyGateWestwalk {	\
 		namespace {	\
 			namespace Impl_ {	\
 				::Poseidon::JsonObject TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
@@ -31,7 +31,7 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 				{	\
 					PROFILE_ME;	\
 					::Poseidon::JsonObject result_ = TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (session_, params_);	\
-					LOG_TEXAS_GATE_WESTWALK_TRACE("Account servlet response: uri = ", uri_, ", result = ", result_.dump());	\
+					LOG_EMPERY_GATE_WESTWALK_TRACE("Account servlet response: uri = ", uri_, ", result = ", result_.dump());	\
 					::Poseidon::OptionalMap headers_;	\
 					headers_.set("Content-Type", "application/json");	\
 					headers_.set("Access-Control-Allow-Origin", "*");	\
@@ -43,7 +43,7 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 			handles_.push(AccountHttpSession::createServlet(uri_, & Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Entry_)));	\
 		}	\
 	}	\
-	::Poseidon::JsonObject TexasGateWestwalk::Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
+	::Poseidon::JsonObject EmperyGateWestwalk::Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<AccountHttpSession> &sessionArg_, const ::Poseidon::OptionalMap &paramsArg_)	\
 
 #define ACCOUNT_THROW(code_)				DEBUG_THROW(::Poseidon::Http::Exception, code_)

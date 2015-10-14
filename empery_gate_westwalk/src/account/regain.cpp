@@ -4,13 +4,13 @@
 #include "../msg/err_account.hpp"
 #include "../sms_http_client.hpp"
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 ACCOUNT_SERVLET("regain", /* session */, params){
-	const AUTO_REF(accountName, params.at("accountName"));
+	const auto &accountName = params.at("accountName");
 
 	Poseidon::JsonObject ret;
-	AUTO(info, AccountMap::get(accountName));
+	auto info = AccountMap::get(accountName);
 	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("msg")] = "The specified account is not found";
@@ -21,7 +21,7 @@ ACCOUNT_SERVLET("regain", /* session */, params){
 		ret[sslit("msg")] = "The specified account is frozen";
 		return ret;
 	}
-	const AUTO(localNow, Poseidon::getLocalTime());
+	const auto localNow = Poseidon::getLocalTime();
 	if((info.bannedUntil != 0) && (localNow < info.bannedUntil)){
 		ret[sslit("errCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("msg")] = "Account is banned";
@@ -33,14 +33,14 @@ ACCOUNT_SERVLET("regain", /* session */, params){
 		return ret;
 	}
 
-	const AUTO(disposablePasswordExpiryDuration, getConfig<boost::uint64_t>("disposable_password_expiry_duration", 86400000));
-	const AUTO(passwordRegainCooldown, getConfig<boost::uint64_t>("password_regain_cooldown", 120000));
+	const auto disposablePasswordExpiryDuration = getConfig<boost::uint64_t>("disposable_password_expiry_duration", 86400000);
+	const auto passwordRegainCooldown           = getConfig<boost::uint64_t>("password_regain_cooldown", 120000);
 
-	AUTO(disposablePassword, AccountMap::randomPassword());
-	LOG_TEXAS_GATE_WESTWALK_INFO("Regain: accountName = ", accountName, ", disposablePassword = ", disposablePassword);
+	auto disposablePassword = AccountMap::randomPassword();
+	LOG_EMPERY_GATE_WESTWALK_INFO("Regain: accountName = ", accountName, ", disposablePassword = ", disposablePassword);
 	AccountMap::setDisposablePassword(accountName, disposablePassword, localNow + disposablePasswordExpiryDuration);
 
-	const AUTO(client, boost::make_shared<SmsHttpClient>(accountName, STD_MOVE(disposablePassword)));
+	const auto client = boost::make_shared<SmsHttpClient>(accountName, std::move(disposablePassword));
 	client->commit();
 	AccountMap::setPasswordRegainCooldownTime(accountName, localNow + passwordRegainCooldown);
 

@@ -7,7 +7,7 @@
 #include <poseidon/http/client.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 namespace {
 	std::string     g_httpHost           = "localhost";
@@ -27,14 +27,14 @@ namespace {
 		getConfig(g_httpAccount,        "sms_http_account");
 		getConfig(g_httpPassword,       "sms_http_password");
 
-		LOG_TEXAS_GATE_WESTWALK_INFO("Looking up SMS server: ", g_httpHost, ':', g_httpPort);
+		LOG_EMPERY_GATE_WESTWALK_INFO("Looking up SMS server: ", g_httpHost, ':', g_httpPort);
 
 		char portStr[64];
 		std::sprintf(portStr, "%u", g_httpPort);
 		::addrinfo *res;
-		const int errCode = ::getaddrinfo(g_httpHost.c_str(), portStr, NULLPTR, &res);
+		const int errCode = ::getaddrinfo(g_httpHost.c_str(), portStr, nullptr, &res);
 		if(errCode != 0){
-			LOG_TEXAS_GATE_WESTWALK_FATAL("Error looking up SMS server: errCode = ", errCode, ", message = ", ::gai_strerror(errCode));
+			LOG_EMPERY_GATE_WESTWALK_FATAL("Error looking up SMS server: errCode = ", errCode, ", message = ", ::gai_strerror(errCode));
 			DEBUG_THROW(Exception, sslit("Error looking up SMS server"));
 		}
 		try {
@@ -44,7 +44,7 @@ namespace {
 			throw;
 		}
 		::freeaddrinfo(res);
-		LOG_TEXAS_GATE_WESTWALK_INFO("Result is ", Poseidon::getIpPortFromSockAddr(g_httpAddr));
+		LOG_EMPERY_GATE_WESTWALK_INFO("Result is ", Poseidon::getIpPortFromSockAddr(g_httpAddr));
 	}
 }
 
@@ -57,18 +57,18 @@ public:
 public:
 	HttpConnector(const Poseidon::SockAddr &sockAddr, bool useSsl, boost::weak_ptr<SmsHttpClient> client)
 		: Poseidon::Http::Client(sockAddr, useSsl)
-		, m_client(STD_MOVE(client))
+		, m_client(std::move(client))
 	{
 	}
 
 protected:
 	void onSyncResponseHeaders(Poseidon::Http::ResponseHeaders responseHeaders,
-		std::string /* transferEncoding */, boost::uint64_t /* contentLength */) OVERRIDE
+		std::string /* transferEncoding */, boost::uint64_t /* contentLength */) override
 	{
 		PROFILE_ME;
-		LOG_TEXAS_GATE_WESTWALK_INFO("SMS server response: HTTP status = ", responseHeaders.statusCode);
+		LOG_EMPERY_GATE_WESTWALK_INFO("SMS server response: HTTP status = ", responseHeaders.statusCode);
 
-		const AUTO(client, m_client.lock());
+		const auto client = m_client.lock();
 		if(!client){
 			forceShutdown();
 			return;
@@ -77,37 +77,37 @@ protected:
 		if(responseHeaders.statusCode == Poseidon::Http::ST_OK){
 			client->m_timer.reset();
 		} else {
-			LOG_TEXAS_GATE_WESTWALK_ERROR("SMS server has returned an error: statusCode = ", responseHeaders.statusCode);
+			LOG_EMPERY_GATE_WESTWALK_ERROR("SMS server has returned an error: statusCode = ", responseHeaders.statusCode);
 		}
 	}
-	void onSyncResponseEntity(boost::uint64_t /* entityOffset */, bool /* isChunked */, Poseidon::StreamBuffer entity) OVERRIDE {
+	void onSyncResponseEntity(boost::uint64_t /* entityOffset */, bool /* isChunked */, Poseidon::StreamBuffer entity) override {
 		m_contents.splice(entity);
 	}
-	void onSyncResponseEnd(boost::uint64_t contentLength, bool /* isChunked */, Poseidon::OptionalMap /* headers */) OVERRIDE {
-		LOG_TEXAS_GATE_WESTWALK_INFO("SMS server response entity: contentLength = ", contentLength, ", contents = ", m_contents.dump());
+	void onSyncResponseEnd(boost::uint64_t contentLength, bool /* isChunked */, Poseidon::OptionalMap /* headers */) override {
+		LOG_EMPERY_GATE_WESTWALK_INFO("SMS server response entity: contentLength = ", contentLength, ", contents = ", m_contents.dump());
 	}
 };
 
 SmsHttpClient::SmsHttpClient(std::string phone, std::string password)
-	: m_phone(STD_MOVE(phone)), m_password(STD_MOVE(password))
+	: m_phone(std::move(phone)), m_password(std::move(password))
 	, m_retryCount(0)
 {
 }
 SmsHttpClient::~SmsHttpClient(){
 }
 
-void SmsHttpClient::timerProc() NOEXCEPT {
+void SmsHttpClient::timerProc() noexcept {
 	PROFILE_ME;
 
 	if(!m_connector.expired()){
-		LOG_TEXAS_GATE_WESTWALK_DEBUG("Already connected...");
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Already connected...");
 		return;
 	}
 
 	try {
 		const auto maxRetryCount = getConfig<unsigned>("sms_max_retry_count", 6);
 		if(m_retryCount > maxRetryCount){
-			LOG_TEXAS_GATE_WESTWALK_WARNING("Max retry count exceeded: retryCount = ", m_retryCount, ", maxRetryCount = ", maxRetryCount);
+			LOG_EMPERY_GATE_WESTWALK_WARNING("Max retry count exceeded: retryCount = ", m_retryCount, ", maxRetryCount = ", maxRetryCount);
 			DEBUG_THROW(Exception, sslit("Max retry count exceeded"));
 		}
 		++m_retryCount;
@@ -117,9 +117,9 @@ void SmsHttpClient::timerProc() NOEXCEPT {
 
 		auto text = getConfig<std::string>("sms_text");
 
-		static const char S_PHONE    [] = "$(phone)";
-		static const char S_PASSWORD [] = "$(password)";
-		static const char S_MINUTES  [] = "$(minutes)";
+		static constexpr char S_PHONE    [] = "$(phone)";
+		static constexpr char S_PASSWORD [] = "$(password)";
+		static constexpr char S_MINUTES  [] = "$(minutes)";
 
 		std::size_t pos;
 		pos = text.find(S_PHONE);
@@ -144,20 +144,20 @@ void SmsHttpClient::timerProc() NOEXCEPT {
 		headers.getParams.set(sslit("account"),     g_httpAccount);
 		headers.getParams.set(sslit("pswd"),        g_httpPassword);
 		headers.getParams.set(sslit("mobile"),      m_phone);
-		headers.getParams.set(sslit("msg"),         STD_MOVE(text));
+		headers.getParams.set(sslit("msg"),         std::move(text));
 		headers.getParams.set(sslit("needstatus"),  "false");
-		headers.getParams.set(sslit("product"),     STD_MOVE(product));
+		headers.getParams.set(sslit("product"),     std::move(product));
 		headers.headers.set("Host", g_httpHost);
 
-		const AUTO(connector, boost::make_shared<HttpConnector>(g_httpAddr, g_httpUseSsl, shared_from_this()));
-		if(!connector->send(STD_MOVE(headers))){
-			LOG_TEXAS_GATE_WESTWALK_WARNING("Failed to send data to SMS server");
+		const auto connector = boost::make_shared<HttpConnector>(g_httpAddr, g_httpUseSsl, shared_from_this());
+		if(!connector->send(std::move(headers))){
+			LOG_EMPERY_GATE_WESTWALK_WARNING("Failed to send data to SMS server");
 			DEBUG_THROW(Exception, sslit("Failed to send data to SMS server"));
 		}
 		connector->goResident();
 		m_connector = connector;
 	} catch(std::exception &e){
-		LOG_TEXAS_GATE_WESTWALK_WARNING("std::exception thrown: what = ", e.what());
+		LOG_EMPERY_GATE_WESTWALK_WARNING("std::exception thrown: what = ", e.what());
 		m_timer.reset();
 	}
 }

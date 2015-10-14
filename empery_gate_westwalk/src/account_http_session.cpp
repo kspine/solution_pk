@@ -6,18 +6,18 @@
 #include <poseidon/http/utilities.hpp>
 #include <poseidon/job_base.hpp>
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
+
+using ServletCallback = AccountHttpSession::ServletCallback;
 
 namespace {
-	typedef AccountHttpSession::ServletCallback ServletCallback;
-
 	std::map<std::string, boost::weak_ptr<const ServletCallback> > g_servletMap;
 }
 
 AccountHttpSession::AccountHttpSession(Poseidon::UniqueFile socket,
 	boost::shared_ptr<const Poseidon::Http::AuthInfo> authInfo, std::string prefix)
-	: Poseidon::Http::Session(STD_MOVE(socket))
-	, m_authInfo(STD_MOVE(authInfo)), m_prefix(STD_MOVE(prefix))
+	: Poseidon::Http::Session(std::move(socket))
+	, m_authInfo(std::move(authInfo)), m_prefix(std::move(prefix))
 {
 }
 AccountHttpSession::~AccountHttpSession(){
@@ -26,19 +26,19 @@ AccountHttpSession::~AccountHttpSession(){
 boost::shared_ptr<const ServletCallback> AccountHttpSession::createServlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
-	AUTO(servlet, boost::make_shared<ServletCallback>(STD_MOVE_IDN(callback)));
+	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
 	if(!g_servletMap.insert(std::make_pair(uri, servlet)).second){
-		LOG_TEXAS_GATE_WESTWALK_ERROR("Duplicate account HTTP servlet: uri = ", uri);
+		LOG_EMPERY_GATE_WESTWALK_ERROR("Duplicate account HTTP servlet: uri = ", uri);
 		DEBUG_THROW(Exception, sslit("Duplicate account HTTP servlet"));
 	}
-	return STD_MOVE(servlet);
+	return std::move(servlet);
 }
 boost::shared_ptr<const ServletCallback> AccountHttpSession::getServlet(const std::string &uri){
 	PROFILE_ME;
 
-	const AUTO(it, g_servletMap.find(uri));
+	const auto it = g_servletMap.find(uri);
 	if(it == g_servletMap.end()){
-		return VAL_INIT;
+		return { };
 	}
 	return it->second.lock();
 }
@@ -53,12 +53,12 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AccountHttpSession::predi
 
 void AccountHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &requestHeaders, const Poseidon::StreamBuffer & /* entity */){
 	PROFILE_ME;
-	LOG_TEXAS_GATE_WESTWALK(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+	LOG_EMPERY_GATE_WESTWALK(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted account HTTP request from ", getRemoteInfo());
 
-	AUTO(uri, Poseidon::Http::urlDecode(requestHeaders.uri));
+	auto uri = Poseidon::Http::urlDecode(requestHeaders.uri);
 	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){
-		LOG_TEXAS_GATE_WESTWALK_WARNING("Inacceptable account HTTP request: uri = ", uri, ", prefix = ", m_prefix);
+		LOG_EMPERY_GATE_WESTWALK_WARNING("Inacceptable account HTTP request: uri = ", uri, ", prefix = ", m_prefix);
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 	uri.erase(0, m_prefix.size());
@@ -67,9 +67,9 @@ void AccountHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &req
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_METHOD_NOT_ALLOWED);
 	}
 
-	const AUTO(servlet, getServlet(uri));
+	const auto servlet = getServlet(uri);
 	if(!servlet){
-		LOG_TEXAS_GATE_WESTWALK_WARNING("No servlet available: uri = ", uri);
+		LOG_EMPERY_GATE_WESTWALK_WARNING("No servlet available: uri = ", uri);
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 
@@ -78,10 +78,10 @@ void AccountHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &req
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(std::logic_error &e){
-		LOG_TEXAS_GATE_WESTWALK_WARNING("std::logic_error thrown: what = ", e.what());
+		LOG_EMPERY_GATE_WESTWALK_WARNING("std::logic_error thrown: what = ", e.what());
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_BAD_REQUEST);
 	} catch(std::exception &e){
-		LOG_TEXAS_GATE_WESTWALK_WARNING("std::exception thrown: what = ", e.what());
+		LOG_EMPERY_GATE_WESTWALK_WARNING("std::exception thrown: what = ", e.what());
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 	}
 }

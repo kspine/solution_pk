@@ -3,10 +3,10 @@
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 ACCOUNT_SERVLET("check", /* session */, params){
-	const AUTO_REF(accountName, params.at("accountName"));
+	const auto &accountName = params.at("accountName");
 
 	Poseidon::JsonObject ret;
 	if(AccountMap::has(accountName)){

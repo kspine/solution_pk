@@ -1,9 +1,9 @@
-#ifndef TEXAS_GATE_WESTWALK_MSG_ERR_ACCOUNT_HPP_
-#define TEXAS_GATE_WESTWALK_MSG_ERR_ACCOUNT_HPP_
+#ifndef EMPERY_GATE_WESTWALK_MSG_ERR_ACCOUNT_HPP_
+#define EMPERY_GATE_WESTWALK_MSG_ERR_ACCOUNT_HPP_
 
 #include <poseidon/cbpp/status_codes.hpp>
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 namespace Msg {
 	using namespace Poseidon::Cbpp::StatusCodes;

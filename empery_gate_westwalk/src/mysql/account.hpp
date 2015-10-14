@@ -1,9 +1,9 @@
-#ifndef TEXAS_GATE_WESTWALK_MYSQL_ACCOUNT_HPP_
-#define TEXAS_GATE_WESTWALK_MYSQL_ACCOUNT_HPP_
+#ifndef EMPERY_GATE_WESTWALK_MYSQL_ACCOUNT_HPP_
+#define EMPERY_GATE_WESTWALK_MYSQL_ACCOUNT_HPP_
 
 #include <poseidon/mysql/object_base.hpp>
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 namespace MySql {
 

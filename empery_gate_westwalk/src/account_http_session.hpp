@@ -1,17 +1,16 @@
-#ifndef TEXAS_GATE_WESTWALK_ACCOUNT_HTTP_SESSION_HPP_
-#define TEXAS_GATE_WESTWALK_ACCOUNT_HTTP_SESSION_HPP_
+#ifndef EMPERY_GATE_WESTWALK_ACCOUNT_HTTP_SESSION_HPP_
+#define EMPERY_GATE_WESTWALK_ACCOUNT_HTTP_SESSION_HPP_
 
 #include <boost/function.hpp>
 #include <poseidon/http/session.hpp>
 #include <poseidon/http/authorization.hpp>
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 class AccountHttpSession : public Poseidon::Http::Session {
 public:
-	typedef boost::function<
-		void (const boost::shared_ptr<AccountHttpSession> &session, const Poseidon::OptionalMap &params)
-		> ServletCallback;
+	using ServletCallback = boost::function<
+		void (const boost::shared_ptr<AccountHttpSession> &session, const Poseidon::OptionalMap &params)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> createServlet(const std::string &uri, ServletCallback callback);
@@ -28,9 +27,8 @@ public:
 
 protected:
 	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatchRequest(
-		Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity) OVERRIDE;
-
-	void onSyncRequest(const Poseidon::Http::RequestHeaders &requestHeaders, const Poseidon::StreamBuffer &entity) OVERRIDE;
+		Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity) override;
+	void onSyncRequest(const Poseidon::Http::RequestHeaders &requestHeaders, const Poseidon::StreamBuffer &entity) override;
 };
 
 }

@@ -1,5 +1,5 @@
-#ifndef TEXAS_GATE_WESTWALK_PRECOMPILED_HPP_
-#define TEXAS_GATE_WESTWALK_PRECOMPILED_HPP_
+#ifndef EMPERY_GATE_WESTWALK_PRECOMPILED_HPP_
+#define EMPERY_GATE_WESTWALK_PRECOMPILED_HPP_
 
 #include <poseidon/precompiled.hpp>
 
@@ -18,10 +18,10 @@
 
 #include "log.hpp"
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
-typedef Poseidon::Exception		Exception;
-typedef Poseidon::SharedNts		SharedNts;
+using Poseidon::Exception;
+using Poseidon::SharedNts;
 
 DECLARE_MODULE_CONFIG(getConfig, getConfigV)
 

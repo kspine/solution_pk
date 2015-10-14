@@ -1,20 +1,20 @@
-#ifndef TEXAS_GATE_WESTWALK_SINGLETONS_ACCOUNT_MAP_HPP_
-#define TEXAS_GATE_WESTWALK_SINGLETONS_ACCOUNT_MAP_HPP_
+#ifndef EMPERY_GATE_WESTWALK_SINGLETONS_ACCOUNT_MAP_HPP_
+#define EMPERY_GATE_WESTWALK_SINGLETONS_ACCOUNT_MAP_HPP_
 
 #include <string>
 #include <vector>
 #include <cstddef>
 #include <boost/shared_ptr.hpp>
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
 struct AccountMap {
 	enum {
-		FL_VALID					= 0x0001,
-		FL_ROBOT					= 0x0002,
-		FL_FROZEN					= 0x0004,
+		FL_VALID                    = 0x0001,
+		FL_ROBOT                    = 0x0002,
+		FL_FROZEN                   = 0x0004,
 
-		MAX_ACCOUNT_NAME_LEN		= 31,
+		MAX_ACCOUNT_NAME_LEN        = 31,
 	};
 
 	struct AccountInfo {

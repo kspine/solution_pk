@@ -1,4 +1,4 @@
-AC_INIT([texas-gate-westwalk], [0.1], [lh_mouse@126.com])
+AC_INIT([empery-gate-westwalk], [0.1], [lh_mouse@126.com])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])

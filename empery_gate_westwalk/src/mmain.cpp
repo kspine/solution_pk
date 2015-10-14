@@ -1,7 +1,7 @@
 #include "precompiled.hpp"
 
-namespace TexasGateWestwalk {
+namespace EmperyGateWestwalk {
 
-DEFINE_MODULE_CONFIG("texas_gate_westwalk.conf")
+DEFINE_MODULE_CONFIG("empery_gate_westwalk.conf")
 
 }

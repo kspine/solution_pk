@@ -13,9 +13,9 @@ CLEANFILES = \
 	src/precompiled.hpp.gch
 
 lib_LTLIBRARIES = \
-	lib/libposeidon-texas-gate-westwalk.la
+	lib/libposeidon-empery-gate-westwalk.la
 
-lib_libposeidon_texas_gate_westwalk_la_SOURCES = \
+lib_libposeidon_empery_gate_westwalk_la_SOURCES = \
 	src/singletons/account_http_server.cpp	\
 	src/singletons/account_map.cpp	\
 	src/account/check.cpp	\
