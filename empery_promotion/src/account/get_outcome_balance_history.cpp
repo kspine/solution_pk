@@ -8,6 +8,7 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("getOutcomeBalanceHistory", /* session */, params){
+	const auto &fetchAllData = params.get("fetchAllData");
 	const auto &loginName = params.get("loginName");
 	const auto &begin = params.get("begin");
 	const auto &count = params.get("count");
@@ -19,7 +20,7 @@ ACCOUNT_SERVLET("getOutcomeBalanceHistory", /* session */, params){
 	Poseidon::JsonObject ret;
 
 	AccountId accountId;
-	if(!loginName.empty()){
+	if(fetchAllData.empty() || !loginName.empty()){
 		auto info = AccountMap::get(loginName);
 		if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
