@@ -81,6 +81,7 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 			elem[sslit("state")]             = obj->get_state();
 			elem[sslit("remarks")]           = obj->unlockedGet_remarks();
 			elem[sslit("loginName")]         = std::move(info.loginName);
+			elem[sslit("nick")]              = std::move(info.nick);
 			elem[sslit("bankAccountName")]   = AccountMap::getAttribute(accountId, AccountMap::ATTR_BANK_ACCOUNT_NAME);
 			elem[sslit("bankName")]          = AccountMap::getAttribute(accountId, AccountMap::ATTR_BANK_NAME);
 			elem[sslit("bankAccountNumber")] = AccountMap::getAttribute(accountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER);

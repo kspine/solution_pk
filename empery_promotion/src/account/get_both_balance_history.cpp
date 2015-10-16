@@ -102,7 +102,13 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 		Poseidon::JsonArray history;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
+
 			auto info = AccountMap::get(AccountId(obj->get_accountId()));
+			if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+				LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", info.accountId);
+				continue;
+			}
+
 			Poseidon::JsonObject elem;
 			elem[sslit("timestamp")] = obj->get_timestamp();
 			elem[sslit("deltaBalance")] = obj->get_deltaBalance();
@@ -112,6 +118,7 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 			elem[sslit("param3")] = obj->get_param3();
 			elem[sslit("remarks")] = obj->unlockedGet_remarks();
 			elem[sslit("loginName")] = std::move(info.loginName);
+			elem[sslit("nick")] = std::move(info.nick);
 			history.emplace_back(std::move(elem));
 		}
 		ret[sslit("history")] = std::move(history);

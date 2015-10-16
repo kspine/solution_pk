@@ -86,6 +86,7 @@ ACCOUNT_SERVLET("getAccountList", /* session */, params){
 			Poseidon::JsonObject elem;
 			elem[sslit("accountId")] = info.accountId.get();
 			elem[sslit("loginName")] = std::move(info.loginName);
+			elem[sslit("nick")] = std::move(info.nick);
 			elem[sslit("level")] = boost::lexical_cast<std::string>(level);
 			elem[sslit("referrerId")] = referrerInfo.accountId.get();
 			elem[sslit("referrerLoginName")] = std::move(referrerInfo.loginName);
