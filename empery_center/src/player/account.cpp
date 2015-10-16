@@ -99,7 +99,9 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, accountUuid, session, req){
 	std::vector<AccountMap::AccountInfo> infos;
 	AccountMap::getByNick(infos, req.nick);
 	for(auto it = infos.begin(); it != infos.end(); ++it){
-		sendAccountInfoToClient(it->accountUuid, session, true, true, false, true);
+		const auto otherUuid = AccountUuid(it->accountUuid);
+
+		sendAccountInfoToClient(otherUuid, session, true, true, otherUuid == accountUuid, true);
 	}
 }
 
@@ -123,7 +125,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, accountUuid, session, req){
 			continue;
 		}
 		sendAccountInfoToClient(otherUuid, session,
-			it->detailFlags & FL_NICK, it->detailFlags & FL_ATTRIBUTES, false, it->detailFlags & FL_ITEMS);
+			it->detailFlags & FL_NICK, it->detailFlags & FL_ATTRIBUTES, otherUuid == accountUuid, it->detailFlags & FL_ITEMS);
 		account.errorCode = Msg::ST_OK;
 	}
 	session->send(msg);
