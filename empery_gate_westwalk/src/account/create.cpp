@@ -19,6 +19,8 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
+	const auto localNow = Poseidon::getLocalTime();
+
 	const auto platformId          = getConfig<EmperyCenter::PlatformId>("platform_id");
 	const auto tokenExpiryDuration = getConfig<boost::uint64_t>("token_expiry_duration", 604800000);
 
@@ -27,7 +29,7 @@ ACCOUNT_SERVLET("create", session, params){
 		", remoteInfo = ", session->getRemoteInfo(), ", remarks = ", remarks);
 	Poseidon::EventDispatcher::syncRaise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platformId, accountName, token, tokenExpiryDuration));
+			platformId, accountName, token, localNow + tokenExpiryDuration));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";
