@@ -278,6 +278,7 @@ void AccountMap::setPhoneNumber(AccountId accountId, std::string phoneNumber){
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
+	g_accountMap->setKey<0, 2>(it, phoneNumber);
 	it->obj->set_phoneNumber(std::move(phoneNumber));
 }
 void AccountMap::setNick(AccountId accountId, std::string nick){
@@ -293,6 +294,7 @@ void AccountMap::setNick(AccountId accountId, std::string nick){
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
+	g_accountMap->setKey<0, 3>(it, nick);
 	it->obj->set_nick(std::move(nick));
 }
 void AccountMap::setPassword(AccountId accountId, const std::string &password){
