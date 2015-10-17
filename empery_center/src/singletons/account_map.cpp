@@ -268,7 +268,7 @@ void AccountMap::setNick(const AccountUuid &accountUuid, std::string nick){
 		LOG_EMPERY_CENTER_DEBUG("Account deleted: accountUuid = ", accountUuid);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
-LOG_EMPERY_CENTER_FATAL("--- SET NICK: accountUuid = ", accountUuid, ", nick = ", nick);
+
 	g_accountMap.setKey<0, 1>(it, nick); // throws std::bad_alloc
 	it->obj->set_nick(std::move(nick)); // noexcept
 
