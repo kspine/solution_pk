@@ -9,6 +9,7 @@ namespace EmperyPromotion {
 ACCOUNT_SERVLET("checkLogin", session, params){
 	const auto &loginName = params.at("loginName");
 	const auto &password = params.at("password");
+	const auto &ip = params.get("ip");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get(loginName);
@@ -28,8 +29,8 @@ ACCOUNT_SERVLET("checkLogin", session, params){
 		return ret;
 	}
 
-	Poseidon::asyncRaiseEvent(boost::make_shared<Events::AccountCreated>(
-		info.accountId, session->getRemoteInfo().ip));
+	Poseidon::asyncRaiseEvent(boost::make_shared<Events::AccountLoggedIn>(
+		info.accountId, ip));
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

@@ -29,6 +29,7 @@ ACCOUNT_SERVLET("create", session, params){
 	const auto &referrerLoginName = params.get("referrerLoginName");
 	const auto &bankSwiftCode = params.get("bankSwiftCode");
 	const auto &remarks = params.get("remarks");
+	const auto &ip = params.get("ip");
 
 	Poseidon::JsonObject ret;
 
@@ -99,7 +100,7 @@ ACCOUNT_SERVLET("create", session, params){
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_REMARKS, remarks);
 
 	Poseidon::asyncRaiseEvent(
-		boost::make_shared<Events::AccountCreated>(newAccountId, session->getRemoteInfo().ip));
+		boost::make_shared<Events::AccountCreated>(newAccountId, ip));
 
 	const auto initGoldCoinArray = Poseidon::explode<boost::uint64_t>(',',
 	                               getConfig<std::string>("init_gold_coins_array", "100,50,50"));

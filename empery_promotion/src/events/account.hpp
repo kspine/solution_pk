@@ -10,18 +10,18 @@ namespace EmperyPromotion {
 namespace Events {
 	struct AccountCreated : public Poseidon::EventBase<330101> {
 		AccountId accountId;
-		Poseidon::SharedNts remoteIp;
+		std::string remoteIp;
 
-		AccountCreated(AccountId accountId_, Poseidon::SharedNts remoteIp_)
+		AccountCreated(AccountId accountId_, std::string remoteIp_)
 			: accountId(accountId_), remoteIp(std::move(remoteIp_))
 		{
 		}
 	};
 	struct AccountLoggedIn : public Poseidon::EventBase<330102> {
 		AccountId accountId;
-		Poseidon::SharedNts remoteIp;
+		std::string remoteIp;
 
-		AccountLoggedIn(AccountId accountId_, Poseidon::SharedNts remoteIp_)
+		AccountLoggedIn(AccountId accountId_, std::string remoteIp_)
 			: accountId(accountId_), remoteIp(std::move(remoteIp_))
 		{
 		}
