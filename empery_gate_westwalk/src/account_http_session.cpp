@@ -51,7 +51,7 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AccountHttpSession::predi
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
 }
 
-void AccountHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &requestHeaders, const Poseidon::StreamBuffer & /* entity */){
+void AccountHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_GATE_WESTWALK(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted account HTTP request from ", getRemoteInfo());
@@ -74,7 +74,7 @@ void AccountHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &req
 	}
 
 	try {
-		(*servlet)(virtualSharedFromThis<AccountHttpSession>(), requestHeaders.getParams);
+		(*servlet)(virtualSharedFromThis<AccountHttpSession>(), std::move(requestHeaders.getParams));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(std::logic_error &e){

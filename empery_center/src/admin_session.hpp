@@ -10,7 +10,7 @@ namespace EmperyCenter {
 class AdminHttpSession : public Poseidon::Http::Session {
 public:
 	using ServletCallback = boost::function<
-		void (const boost::shared_ptr<AdminHttpSession> &session, const Poseidon::OptionalMap &params)>;
+		void (const boost::shared_ptr<AdminHttpSession> &session, Poseidon::OptionalMap params)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> createServlet(const std::string &uri, ServletCallback callback);
@@ -29,7 +29,7 @@ protected:
 	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatchRequest(
 		Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity) override;
 
-	void onSyncRequest(const Poseidon::Http::RequestHeaders &requestHeaders, const Poseidon::StreamBuffer &entity) override;
+	void onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer entity) override;
 };
 
 }

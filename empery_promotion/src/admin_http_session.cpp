@@ -51,7 +51,7 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AdminHttpSession::predisp
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
 }
 
-void AdminHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &requestHeaders, const Poseidon::StreamBuffer & /* entity */){
+void AdminHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_PROMOTION(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted admin HTTP request from ", getRemoteInfo());
@@ -74,7 +74,7 @@ void AdminHttpSession::onSyncRequest(const Poseidon::Http::RequestHeaders &reque
 	}
 
 	try {
-		(*servlet)(virtualSharedFromThis<AdminHttpSession>(), requestHeaders.getParams);
+		(*servlet)(virtualSharedFromThis<AdminHttpSession>(), std::move(requestHeaders.getParams));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(std::logic_error &e){

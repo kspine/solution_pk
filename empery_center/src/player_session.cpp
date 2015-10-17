@@ -34,14 +34,43 @@ namespace {
 		boost::weak_ptr<const void> getCategory() const override {
 			return m_session;
 		}
-		void perform() const override {
+		void perform() override {
 			PROFILE_ME;
 
 			PlayerSessionMap::remove(m_session); // noexcept
 		}
 	};
 
-	std::map<unsigned, boost::weak_ptr<const ServletCallback> > g_servletMap;
+	std::map<unsigned, boost::weak_ptr<const ServletCallback>> g_servletMap;
+
+	MODULE_RAII(handles){
+		auto servlet = boost::make_shared<const ServletCallback>(
+			[](const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer payload){
+				PROFILE_ME;
+
+				Poseidon::Cbpp::ControlMessage req(std::move(payload));
+				LOG_EMPERY_CENTER_DEBUG("Received control message from ", session->getRemoteInfo(),
+					", controlCode = ", req.controlCode, ", vintParam = ", req.vintParam, ", stringParam = ", req.stringParam);
+
+				switch(req.controlCode){
+				case Poseidon::Cbpp::CTL_PING:
+					LOG_EMPERY_CENTER_TRACE("Received ping from ", session->getRemoteInfo());
+					session->send(Poseidon::Cbpp::ControlMessage(
+						Poseidon::Cbpp::ControlMessage::ID, Poseidon::Cbpp::ST_PONG, std::move(req.stringParam)));
+					break;
+
+				case Poseidon::Cbpp::CTL_SHUTDOWN:
+					session->shutdown(Poseidon::Cbpp::ST_SHUTDOWN_REQUEST, req.stringParam.c_str());
+					break;
+
+				default:
+					LOG_EMPERY_CENTER_WARNING("Unknown control code: ", req.controlCode);
+					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_UNKNOWN_CTL_CODE, SharedNts(req.stringParam));
+				}
+			});
+		g_servletMap[Poseidon::Cbpp::ControlMessage::ID] = servlet;
+		handles.push(servlet);
+	}
 }
 
 class PlayerSession::WebSocketImpl : public Poseidon::WebSocket::Session {
@@ -52,7 +81,7 @@ public:
 	}
 
 protected:
-	void onSyncDataMessage(Poseidon::WebSocket::OpCode opcode, const Poseidon::StreamBuffer &payload) override {
+	void onSyncDataMessage(Poseidon::WebSocket::OpCode opcode, Poseidon::StreamBuffer payload) override {
 		PROFILE_ME;
 
 		const auto parent = boost::dynamic_pointer_cast<PlayerSession>(getParent());
@@ -67,8 +96,7 @@ protected:
 				LOG_EMPERY_CENTER_WARNING("Invalid message type: opcode = ", opcode);
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
-			auto cbppMessage = payload;
-			auto read = Poseidon::StreamBuffer::ReadIterator(cbppMessage);
+			auto read = Poseidon::StreamBuffer::ReadIterator(payload);
 			boost::uint64_t messageId64;
 			if(!Poseidon::vuint50FromBinary(messageId64, read, payload.size())){
 				LOG_EMPERY_CENTER_WARNING("Packet too small");
@@ -85,7 +113,7 @@ protected:
 				LOG_EMPERY_CENTER_WARNING("No servlet found: messageId = ", messageId);
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 			}
-			(*servlet)(parent, std::move(cbppMessage));
+			(*servlet)(parent, std::move(payload));
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"Poseidon::Cbpp::Exception thrown: messageId = ", messageId, ", what = ", e.what());
@@ -121,7 +149,12 @@ boost::shared_ptr<const ServletCallback> PlayerSession::getServlet(boost::uint16
 	if(it == g_servletMap.end()){
 		return { };
 	}
-	return it->second.lock();
+	auto servlet = it->second.lock();
+	if(!servlet){
+		g_servletMap.erase(it);
+		return { };
+	}
+	return servlet;
 }
 
 PlayerSession::PlayerSession(Poseidon::UniqueFile socket, std::string path)
@@ -172,11 +205,8 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatc
 
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
 }
-void PlayerSession::onSyncRequest(const Poseidon::Http::RequestHeaders &requestHeaders, const Poseidon::StreamBuffer &entity){
+void PlayerSession::onSyncRequest(Poseidon::Http::RequestHeaders /* requestHeaders */, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
-
-	(void)requestHeaders;
-	(void)entity;
 
 	DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 }

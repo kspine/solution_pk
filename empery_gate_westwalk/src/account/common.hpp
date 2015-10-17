@@ -25,12 +25,12 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 		namespace {	\
 			namespace Impl_ {	\
 				::Poseidon::JsonObject TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
-					const ::boost::shared_ptr<AccountHttpSession> &, const ::Poseidon::OptionalMap &);	\
+					const ::boost::shared_ptr<AccountHttpSession> &, ::Poseidon::OptionalMap);	\
 				void TOKEN_CAT3(AccountServlet, __LINE__, Entry_) (	\
-					const ::boost::shared_ptr<AccountHttpSession> &session_, const ::Poseidon::OptionalMap &params_)	\
+					const ::boost::shared_ptr<AccountHttpSession> &session_, ::Poseidon::OptionalMap params_)	\
 				{	\
 					PROFILE_ME;	\
-					::Poseidon::JsonObject result_ = TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (session_, params_);	\
+					::Poseidon::JsonObject result_ = TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (session_, ::std::move(params_));	\
 					LOG_EMPERY_GATE_WESTWALK_TRACE("Account servlet response: uri = ", uri_, ", result = ", result_.dump());	\
 					::Poseidon::OptionalMap headers_;	\
 					headers_.set("Content-Type", "application/json");	\
@@ -44,7 +44,7 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 		}	\
 	}	\
 	::Poseidon::JsonObject EmperyGateWestwalk::Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<AccountHttpSession> &sessionArg_, const ::Poseidon::OptionalMap &paramsArg_)	\
+		const ::boost::shared_ptr<AccountHttpSession> &sessionArg_, ::Poseidon::OptionalMap paramsArg_)	\
 
 #define ACCOUNT_THROW(code_)				DEBUG_THROW(::Poseidon::Http::Exception, code_)
 

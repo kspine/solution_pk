@@ -363,6 +363,25 @@ AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std
 {
 	PROFILE_ME;
 
+	if(referrerId){
+		auto referrerIt = g_accountMap->find<0>(referrerId);
+		for(;;){
+			if(referrerIt == g_accountMap->end<0>()){
+				LOG_EMPERY_PROMOTION_DEBUG("No such referrer: referrerId = ", referrerId);
+				DEBUG_THROW(Exception, sslit("No such referrer"));
+			}
+			const auto nextReferrerId = referrerIt->referrerId;
+			if(!nextReferrerId){
+				break;
+			}
+			if(nextReferrerId == referrerId){
+				LOG_EMPERY_PROMOTION_ERROR("Circular referrer loop detected! referrerId = ", referrerId);
+				DEBUG_THROW(Exception, sslit("Circular referrer loop detected"));
+			}
+			referrerIt = g_accountMap->find<0>(nextReferrerId);
+		}
+	}
+
 	auto it = g_accountMap->find<1>(loginName);
 	if(it != g_accountMap->end<1>()){
 		LOG_EMPERY_PROMOTION_DEBUG("Duplicate loginName: loginName = ", loginName);

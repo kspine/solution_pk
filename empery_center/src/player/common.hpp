@@ -28,10 +28,10 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 				void TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
 					const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
 				void TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_) (	\
-					const ::boost::shared_ptr<PlayerSession> &session_, const ::Poseidon::StreamBuffer &payload_)	\
+					const ::boost::shared_ptr<PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 				{	\
 					PROFILE_ME;	\
-					MsgType_ msg_(payload_);	\
+					MsgType_ msg_(::std::move(payload_));	\
 					LOG_EMPERY_CENTER_TRACE("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
 					TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
 					session_->sendControl(MsgType_::ID, ::Poseidon::Cbpp::ST_OK);	\

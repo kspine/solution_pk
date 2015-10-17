@@ -25,12 +25,12 @@ ADMIN_SERVLET(请求 URI, 会话形参名, GET 参数){
 		namespace {	\
 			namespace Impl_ {	\
 				::Poseidon::JsonObject TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
-					const ::boost::shared_ptr<AdminHttpSession> &, const ::Poseidon::OptionalMap &);	\
+					const ::boost::shared_ptr<AdminHttpSession> &, ::Poseidon::OptionalMap);	\
 				void TOKEN_CAT3(AdminServlet, __LINE__, Entry_) (	\
-					const ::boost::shared_ptr<AdminHttpSession> &session_, const ::Poseidon::OptionalMap &params_)	\
+					const ::boost::shared_ptr<AdminHttpSession> &session_, ::Poseidon::OptionalMap params_)	\
 				{	\
 					PROFILE_ME;	\
-					::Poseidon::JsonObject result_ = TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (session_, params_);	\
+					::Poseidon::JsonObject result_ = TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (session_, ::std::move(params_));	\
 					LOG_EMPERY_PROMOTION_TRACE("Admin servlet response: uri = ", uri_, ", result = ", result_.dump());	\
 					::Poseidon::OptionalMap headers_;	\
 					headers_.set("Content-Type", "application/json");	\
@@ -44,7 +44,7 @@ ADMIN_SERVLET(请求 URI, 会话形参名, GET 参数){
 		}	\
 	}	\
 	::Poseidon::JsonObject EmperyPromotion::Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<AdminHttpSession> &sessionArg_, const ::Poseidon::OptionalMap &paramsArg_)	\
+		const ::boost::shared_ptr<AdminHttpSession> &sessionArg_, ::Poseidon::OptionalMap paramsArg_)	\
 
 #define ADMIN_THROW(code_)				DEBUG_THROW(::Poseidon::Http::Exception, code_)
 
