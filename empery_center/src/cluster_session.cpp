@@ -7,6 +7,7 @@
 
 namespace EmperyCenter {
 
+using Result          = ClusterSession::Result;
 using ServletCallback = ClusterSession::ServletCallback;
 
 namespace {
@@ -80,12 +81,12 @@ void ClusterSession::onSyncDataMessage(boost::uint16_t messageId, Poseidon::Stre
 
 	if(messageId == Msg::SS_PackedRequest::ID){
 		Msg::SS_PackedRequest packed(std::move(payload));
-		std::pair<Poseidon::Cbpp::StatusCode, std::string> result;
+		Result result;
 		try {
 			const auto servlet = getServlet(packed.messageId);
 			if(!servlet){
 				LOG_EMPERY_CENTER_WARNING("No servlet found: messageId = ", packed.messageId);
-				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
+				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
 			}
 			result = (*servlet)(virtualSharedFromThis<ClusterSession>(), Poseidon::StreamBuffer(packed.payload));
 		} catch(Poseidon::Cbpp::Exception &e){
@@ -116,7 +117,7 @@ void ClusterSession::onSyncDataMessage(boost::uint16_t messageId, Poseidon::Stre
 		}
 	} else {
 		LOG_EMPERY_CENTER_WARNING("Unknown message from cluster server: remote = ", getRemoteInfo(), ", messageId = ", messageId);
-		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
+		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 	}
 }
 
@@ -134,14 +135,14 @@ void ClusterSession::shutdown(Poseidon::Cbpp::StatusCode errorCode, std::string 
 	shutdownWrite();
 }
 
-std::pair<Poseidon::Cbpp::StatusCode, std::string> ClusterSession::sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuffer body){
+Result ClusterSession::sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
-	std::pair<Poseidon::Cbpp::StatusCode, std::string> ret;
+	Result ret;
 
 	const auto serial = ++m_serial;
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
-	const auto it = m_requests.insert(std::make_pair(serial, RequestElement(&ret, promise)));
+	m_requests.insert(std::make_pair(serial, RequestElement(&ret, promise)));
 	try {
 		if(!Poseidon::Cbpp::Session::send(Msg::SS_PackedRequest(serial, messageId, body.dump()))){
 			DEBUG_THROW(Exception, sslit("Could not send data to cluster server"));
@@ -149,10 +150,10 @@ std::pair<Poseidon::Cbpp::StatusCode, std::string> ClusterSession::sendAndWait(b
 		Poseidon::JobDispatcher::yield(promise);
 		promise->checkAndRethrow();
 	} catch(...){
-		m_requests.erase(it);
+		m_requests.erase(serial);
 		throw;
 	}
-	m_requests.erase(it);
+	m_requests.erase(serial);
 
 	return ret;
 }

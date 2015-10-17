@@ -16,5 +16,6 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-map.la
 
 lib_libposeidon_empery_map_la_SOURCES = \
+	src/cluster/map.cpp	\
 	src/cluster_client.cpp	\
 	src/mmain.cpp

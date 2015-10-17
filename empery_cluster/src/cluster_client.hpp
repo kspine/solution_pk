@@ -13,8 +13,10 @@ namespace EmperyCluster {
 
 class ClusterClient : public Poseidon::Cbpp::Client {
 public:
+	using Result = std::pair<Poseidon::Cbpp::StatusCode, std::string>;
+
 	using ServletCallback = boost::function<
-		std::pair<Poseidon::Cbpp::StatusCode, std::string> (const boost::shared_ptr<ClusterClient> &client, Poseidon::StreamBuffer req)>;
+		Result (const boost::shared_ptr<ClusterClient> &client, Poseidon::StreamBuffer req)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> createServlet(boost::uint16_t messageId, ServletCallback callback);
@@ -22,10 +24,10 @@ public:
 
 private:
 	struct RequestElement {
-		std::pair<Poseidon::Cbpp::StatusCode, std::string> *result;
+		Result *result;
 		boost::shared_ptr<Poseidon::JobPromise> promise;
 
-		RequestElement(std::pair<Poseidon::Cbpp::StatusCode, std::string> *result_, boost::shared_ptr<Poseidon::JobPromise> promise_)
+		RequestElement(Result *result_, boost::shared_ptr<Poseidon::JobPromise> promise_)
 			: result(result_), promise(std::move(promise_))
 		{
 		}
@@ -53,7 +55,7 @@ public:
 	bool send(boost::uint16_t messageId, Poseidon::StreamBuffer body);
 	void shutdown(Poseidon::Cbpp::StatusCode errorCode, std::string errorMessage);
 
-	std::pair<Poseidon::Cbpp::StatusCode, std::string> sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuffer body);
+	Result sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
@@ -61,7 +63,7 @@ public:
 		return send(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 	template<typename MsgT>
-	std::pair<Poseidon::Cbpp::StatusCode, std::string> sendAndWait(const MsgT &msg){
+	Result sendAndWait(const MsgT &msg){
 		LOG_EMPERY_CLUSTER_DEBUG("Sending request to cluster: remote = ", getRemoteInfo(), ", msg = ", msg);
 		auto ret = sendAndWait(MsgT::ID, Poseidon::StreamBuffer(msg));
 		LOG_EMPERY_CLUSTER_DEBUG("Received response from cluster: remote = ", getRemoteInfo(),
