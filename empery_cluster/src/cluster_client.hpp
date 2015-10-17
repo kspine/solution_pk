@@ -55,6 +55,7 @@ public:
 	bool send(boost::uint16_t messageId, Poseidon::StreamBuffer body);
 	void shutdown(Poseidon::Cbpp::StatusCode errorCode, std::string errorMessage);
 
+	// 警告：不能在 servlet 中调用，否则会造成死锁。
 	Result sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
