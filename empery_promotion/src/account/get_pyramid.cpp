@@ -7,6 +7,7 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("getPyramid", /* session */, params){
 	const auto &loginName = params.at("loginName");
+	const auto &maxDepthStr = params.get("maxDepth");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get(loginName);
@@ -16,10 +17,19 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 		return ret;
 	}
 
+	const auto pyramidDepthLimit = getConfig<unsigned>("pyramid_depth_limit", 32);
+
 	Poseidon::JsonArray members;
 	std::deque<std::pair<AccountId, Poseidon::JsonArray *>> thisLevel, nextLevel;
 	thisLevel.emplace_back(info.accountId, &members);
-	for(unsigned depth = 0; depth < 32; ++depth){
+	unsigned maxDepth = UINT_MAX;
+	if(!maxDepthStr.empty()){
+		maxDepth = boost::lexical_cast<unsigned>(maxDepthStr);
+	}
+	if(maxDepth > pyramidDepthLimit){
+		maxDepth = pyramidDepthLimit;
+	}
+	for(unsigned depth = 0; depth < maxDepth; ++depth){
 		if(thisLevel.empty()){
 			break;
 		}
