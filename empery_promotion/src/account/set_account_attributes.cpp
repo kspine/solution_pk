@@ -8,6 +8,7 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 	const auto &loginName  = params.at("loginName");
+	auto newLoginName      = params.get("newLoginName");
 	auto phoneNumber       = params.get("phoneNumber");
 	auto nick              = params.get("nick");
 	auto password          = params.get("password");
@@ -23,21 +24,20 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 	auto level             = params.get("level");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::get(loginName);
+	auto info = AccountMap::getByLoginName(loginName);
 	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
 	}
 
-	if(!level.empty()){
-		const auto newPromotionData = Data::Promotion::get(boost::lexical_cast<boost::uint64_t>(level));
-		if(!newPromotionData){
-			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
-			ret[sslit("errorMessage")] = "Account level is not found";
+	if(!newLoginName.empty()){
+		auto tempInfo = AccountMap::getByLoginName(newLoginName);
+		if(Poseidon::hasAnyFlagsOf(tempInfo.flags, AccountMap::FL_VALID) && (tempInfo.accountId != info.accountId)){
+			ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_LOGIN_NAME;
+			ret[sslit("errorMessage")] = "Another account with the same login name already exists";
 			return ret;
 		}
-		level = boost::lexical_cast<std::string>(newPromotionData->level);
 	}
 
 	if(!phoneNumber.empty()){
@@ -50,6 +50,19 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 		}
 	}
 
+	if(!level.empty()){
+		const auto newPromotionData = Data::Promotion::get(boost::lexical_cast<boost::uint64_t>(level));
+		if(!newPromotionData){
+			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
+			ret[sslit("errorMessage")] = "Account level is not found";
+			return ret;
+		}
+		level = boost::lexical_cast<std::string>(newPromotionData->level);
+	}
+
+	if(!newLoginName.empty()){
+		AccountMap::setLoginName(info.accountId, std::move(newLoginName));
+	}
 	if(!phoneNumber.empty()){
 		AccountMap::setPhoneNumber(info.accountId, std::move(phoneNumber));
 	}

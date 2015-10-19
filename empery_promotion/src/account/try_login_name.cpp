@@ -9,7 +9,8 @@ ACCOUNT_SERVLET("tryLoginName", /* session */, params){
 	const auto &loginName = params.at("loginName");
 
 	Poseidon::JsonObject ret;
-	if(AccountMap::has(loginName)){
+	auto info = AccountMap::getByLoginName(loginName);
+	if(Poseidon::hasAnyFlagsOf(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_LOGIN_NAME;
 		ret[sslit("errorMessage")] = "Another account with the same login name already exists";
 		return ret;

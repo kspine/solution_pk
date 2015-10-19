@@ -33,7 +33,7 @@ ACCOUNT_SERVLET("create", session, params){
 
 	Poseidon::JsonObject ret;
 
-	auto payerInfo = AccountMap::get(payerLoginName);
+	auto payerInfo = AccountMap::getByLoginName(payerLoginName);
 	if(Poseidon::hasNoneFlagsOf(payerInfo.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_PAYER;
 		ret[sslit("errorMessage")] = "Payer is not found";
@@ -53,7 +53,7 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
-	auto referrerInfo = referrerLoginName.empty() ? payerInfo : AccountMap::get(referrerLoginName);
+	auto referrerInfo = referrerLoginName.empty() ? payerInfo : AccountMap::getByLoginName(referrerLoginName);
 	if(Poseidon::hasNoneFlagsOf(referrerInfo.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_REFERRER;
 		ret[sslit("errorMessage")] = "Referrer is not found";
@@ -75,7 +75,8 @@ ACCOUNT_SERVLET("create", session, params){
 		}
 	}
 
-	if(AccountMap::has(loginName)){
+	auto tempInfo = AccountMap::getByLoginName(loginName);
+	if(Poseidon::hasAnyFlagsOf(tempInfo.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_LOGIN_NAME;
 		ret[sslit("errorMessage")] = "Another account with the same login name already exists";
 		return ret;
@@ -89,7 +90,7 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
-	const auto newAccountId = AccountMap::create(loginName, phoneNumber, nick, password, password, referrerInfo.accountId, 0);
+	const auto newAccountId = AccountMap::create(loginName, phoneNumber, nick, password, password, referrerInfo.accountId, 0, ip);
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_GENDER, gender);
 	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_COUNTRY, country);
 //	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_PHONE_NUMBER, phoneNumber);

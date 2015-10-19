@@ -21,7 +21,7 @@ ACCOUNT_SERVLET("getAccountList", /* session */, params){
 
 	AccountId accountId;
 	if(fetchAllData.empty() || !loginName.empty()){
-		auto info = AccountMap::get(loginName);
+		auto info = AccountMap::getByLoginName(loginName);
 		if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 			ret[sslit("errorMessage")] = "Account is not found";
@@ -49,6 +49,7 @@ ACCOUNT_SERVLET("getAccountList", /* session */, params){
 	if(!loginName.empty()){
 		oss <<"AND `accountId` = " <<accountId <<" ";
 	}
+	oss <<"ORDER BY `createdTime` DESC ";
 	if(briefMode.empty()){
 		if(!count.empty()){
 			oss <<"LIMIT ";
@@ -91,6 +92,7 @@ ACCOUNT_SERVLET("getAccountList", /* session */, params){
 			elem[sslit("referrerId")] = referrerInfo.accountId.get();
 			elem[sslit("referrerLoginName")] = std::move(referrerInfo.loginName);
 			elem[sslit("createdTime")] = info.createdTime;
+			elem[sslit("createdIp")] = std::move(info.createdIp);
 			elem[sslit("items")] = std::move(items);
 
 			accounts.emplace_back(std::move(elem));

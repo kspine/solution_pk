@@ -1,6 +1,8 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 
+#include <poseidon/singletons/timer_daemon.hpp>
+
 namespace EmperyCluster {
 
 // FIXME  REMOVE TEST
@@ -24,10 +26,16 @@ CLUSTER_SERVLET(Msg::TestNestedMessage, client, req){
     return std::make_pair(999, "world!");
 }
 
-MODULE_RAII(){
+MODULE_RAII(handles){
 	auto client = boost::make_shared<ClusterClient>(Poseidon::IpPort(sslit("127.0.0.1"), 13217), false, 15000);
 	client->send(Msg::TestMessage(std::string("meow!")));
 	client->goResident();
+
+	auto timer = Poseidon::TimerDaemon::registerTimer(1000, 0, std::bind([=](){
+		LOG_EMPERY_CLUSTER_WARNING("Shutdown client now!");
+		client->shutdownWrite();
+	}));
+	handles.push(timer);
 }
 
 }

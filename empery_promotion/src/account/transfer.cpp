@@ -17,7 +17,7 @@ ACCOUNT_SERVLET("transfer", /* session */, params){
 	const auto &remarks = params.get("remarks");
 
 	Poseidon::JsonObject ret;
-	auto srcInfo = AccountMap::get(loginName);
+	auto srcInfo = AccountMap::getByLoginName(loginName);
 	if(Poseidon::hasNoneFlagsOf(srcInfo.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
@@ -34,7 +34,7 @@ ACCOUNT_SERVLET("transfer", /* session */, params){
 		return ret;
 	}
 
-	auto dstInfo = AccountMap::get(toLoginName);
+	auto dstInfo = AccountMap::getByLoginName(toLoginName);
 	if(Poseidon::hasNoneFlagsOf(dstInfo.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_TRANSFER_DEST_NOT_FOUND;
 		ret[sslit("errorMessage")] = "Destination account is not found";

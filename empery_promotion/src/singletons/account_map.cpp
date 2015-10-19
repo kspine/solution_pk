@@ -39,7 +39,7 @@ namespace {
 
 	MULTI_INDEX_MAP(AccountMapDelegator, AccountElement,
 		UNIQUE_MEMBER_INDEX(accountId)
-		UNIQUE_MEMBER_INDEX(loginName, StringCaseComparator)
+		MULTI_MEMBER_INDEX(loginName, StringCaseComparator)
 		MULTI_MEMBER_INDEX(phoneNumber)
 		MULTI_MEMBER_INDEX(nick, StringCaseComparator)
 		MULTI_MEMBER_INDEX(referrerId)
@@ -106,16 +106,17 @@ namespace {
 	void fillAccountInfo(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Promotion_Account> &obj){
 		PROFILE_ME;
 
-		info.accountId = AccountId(obj->get_accountId());
-		info.loginName = obj->unlockedGet_loginName();
-		info.phoneNumber = obj->unlockedGet_phoneNumber();
-		info.nick = obj->unlockedGet_nick();
-		info.passwordHash = obj->unlockedGet_passwordHash();
+		info.accountId        = AccountId(obj->get_accountId());
+		info.loginName        = obj->unlockedGet_loginName();
+		info.phoneNumber      = obj->unlockedGet_phoneNumber();
+		info.nick             = obj->unlockedGet_nick();
+		info.passwordHash     = obj->unlockedGet_passwordHash();
 		info.dealPasswordHash = obj->unlockedGet_dealPasswordHash();
-		info.referrerId = AccountId(obj->get_referrerId());
-		info.flags = obj->get_flags();
-		info.bannedUntil = obj->get_bannedUntil();
-		info.createdTime = obj->get_createdTime();
+		info.referrerId       = AccountId(obj->get_referrerId());
+		info.flags            = obj->get_flags();
+		info.bannedUntil      = obj->get_bannedUntil();
+		info.createdTime      = obj->get_createdTime();
+		info.createdIp        = obj->get_createdIp();
 	}
 }
 
@@ -129,20 +130,6 @@ bool AccountMap::has(AccountId accountId){
 	}
 	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
 		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
-		return false;
-	}
-	return true;
-}
-bool AccountMap::has(const std::string &loginName){
-	PROFILE_ME;
-
-	const auto it = g_accountMap->find<1>(loginName);
-	if(it == g_accountMap->end<1>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: loginName = ", loginName);
-		return false;
-	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: loginName = ", loginName);
 		return false;
 	}
 	return true;
@@ -165,37 +152,10 @@ AccountMap::AccountInfo AccountMap::get(AccountId accountId){
 	fillAccountInfo(info, it->obj);
 	return info;
 }
-AccountMap::AccountInfo AccountMap::get(const std::string &loginName){
-	PROFILE_ME;
-
-	AccountInfo info = { };
-	info.loginName = loginName;
-
-	const auto it = g_accountMap->find<1>(loginName);
-	if(it == g_accountMap->end<1>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: loginName = ", loginName);
-		return info;
-	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: loginName = ", loginName);
-		return info;
-	}
-	fillAccountInfo(info, it->obj);
-	return info;
-}
 AccountMap::AccountInfo AccountMap::require(AccountId accountId){
 	PROFILE_ME;
 
 	auto info = get(accountId);
-	if(Poseidon::hasNoneFlagsOf(info.flags, FL_VALID)){
-		DEBUG_THROW(Exception, sslit("Account not found"));
-	}
-	return info;
-}
-AccountMap::AccountInfo AccountMap::require(const std::string &loginName){
-	PROFILE_ME;
-
-	auto info = get(loginName);
 	if(Poseidon::hasNoneFlagsOf(info.flags, FL_VALID)){
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
@@ -224,6 +184,25 @@ void AccountMap::getAll(std::vector<AccountMap::AccountInfo> &ret, boost::uint64
 		fillAccountInfo(info, it->obj);
 		ret.push_back(std::move(info));
 	}
+}
+
+AccountMap::AccountInfo AccountMap::getByLoginName(const std::string &loginName){
+	PROFILE_ME;
+
+	AccountInfo info = { };
+	info.loginName = loginName;
+
+	const auto it = g_accountMap->find<1>(loginName);
+	if(it == g_accountMap->end<1>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: loginName = ", loginName);
+		return info;
+	}
+	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: loginName = ", loginName);
+		return info;
+	}
+	fillAccountInfo(info, it->obj);
+	return info;
 }
 
 void AccountMap::getByPhoneNumber(std::vector<AccountMap::AccountInfo> &ret, const std::string &phoneNumber){
@@ -265,6 +244,22 @@ std::string AccountMap::getPasswordHash(const std::string &password){
 	return Poseidon::Http::base64Encode(sha256.data(), sha256.size());
 }
 
+void AccountMap::setLoginName(AccountId accountId, std::string loginName){
+	PROFILE_ME;
+
+	const auto it = g_accountMap->find<0>(accountId);
+	if(it == g_accountMap->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+		DEBUG_THROW(Exception, sslit("Account not found"));
+	}
+	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+		DEBUG_THROW(Exception, sslit("Account deleted"));
+	}
+
+	g_accountMap->setKey<0, 1>(it, loginName);
+	it->obj->set_loginName(std::move(loginName));
+}
 void AccountMap::setPhoneNumber(AccountId accountId, std::string phoneNumber){
 	PROFILE_ME;
 
@@ -359,7 +354,7 @@ void AccountMap::setBannedUntil(AccountId accountId, boost::uint64_t bannedUntil
 }
 
 AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std::string nick,
-	const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags)
+	const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags, std::string createdIp)
 {
 	PROFILE_ME;
 
@@ -395,8 +390,9 @@ AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std
 
 	Poseidon::addFlags(flags, AccountMap::FL_VALID);
 	const auto localNow = Poseidon::getLocalTime();
-	auto obj = boost::make_shared<MySql::Promotion_Account>(accountId.get(), std::move(loginName), std::move(phoneNumber),
-		std::move(nick), getPasswordHash(password), getPasswordHash(dealPassword), referrerId.get(), flags, 0, localNow);
+	auto obj = boost::make_shared<MySql::Promotion_Account>(accountId.get(), std::move(loginName),
+		std::move(phoneNumber), std::move(nick), getPasswordHash(password), getPasswordHash(dealPassword),
+		referrerId.get(), flags, 0, localNow, std::move(createdIp));
 	obj->asyncSave(true);
 	it = g_accountMap->insert<1>(it, AccountElement(std::move(obj)));
 

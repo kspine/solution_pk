@@ -9,7 +9,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 	const auto &loginName = params.at("loginName");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::get(loginName);
+	auto info = AccountMap::getByLoginName(loginName);
 	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
@@ -33,6 +33,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 	ret[sslit("flags")] = info.flags;
 	ret[sslit("bannedUntil")] = static_cast<boost::int64_t>(info.bannedUntil);
 	ret[sslit("createdTime")] = static_cast<boost::uint64_t>(info.createdTime);
+	ret[sslit("createdIp")] = std::move(info.createdIp);
 	ret[sslit("gender")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_GENDER);
 	ret[sslit("country")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_COUNTRY);
 //	ret[sslit("phoneNumber")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_PHONE_NUMBER);

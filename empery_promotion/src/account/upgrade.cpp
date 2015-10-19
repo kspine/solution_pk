@@ -16,7 +16,7 @@ ACCOUNT_SERVLET("upgrade", /* session */, params){
 
 	Poseidon::JsonObject ret;
 
-	auto payerInfo = AccountMap::get(payerLoginName);
+	auto payerInfo = AccountMap::getByLoginName(payerLoginName);
 	if(Poseidon::hasNoneFlagsOf(payerInfo.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_PAYER;
 		ret[sslit("errorMessage")] = "Payer is not found";
@@ -34,7 +34,7 @@ ACCOUNT_SERVLET("upgrade", /* session */, params){
 		return ret;
 	}
 
-	auto info = AccountMap::get(loginName);
+	auto info = AccountMap::getByLoginName(loginName);
 	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";

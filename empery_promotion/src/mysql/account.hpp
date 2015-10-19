@@ -18,7 +18,8 @@ namespace MySql {
 	FIELD_BIGINT_UNSIGNED	(referrerId)	\
 	FIELD_BIGINT_UNSIGNED	(flags)	\
 	FIELD_DATETIME			(bannedUntil)	\
-	FIELD_DATETIME			(createdTime)
+	FIELD_DATETIME			(createdTime)	\
+	FIELD_STRING			(createdIp)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

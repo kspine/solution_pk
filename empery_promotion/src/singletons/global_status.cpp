@@ -131,7 +131,7 @@ void GlobalStatus::checkDailyReset(){
 		LOG_EMPERY_PROMOTION_WARNING("Creating root user: rootUserName = ", rootUserName, ", rootPassword = ", rootPassword,
 			", level = ", maxPromotionData->level);
 		const auto accountId = AccountMap::create(std::move(rootUserName), std::string(), std::move(rootNick),
-			rootPassword, rootPassword, AccountId(0), AccountMap::FL_ROBOT);
+			rootPassword, rootPassword, AccountId(0), AccountMap::FL_ROBOT, "127.0.0.1");
 		LOG_EMPERY_PROMOTION_INFO("> accountId = ", accountId);
 
 		serverCreatedTimeObj->set_value(localNow);

@@ -40,23 +40,24 @@ struct AccountMap {
 		boost::uint64_t flags;
 		boost::uint64_t bannedUntil;
 		boost::uint64_t createdTime;
+		std::string createdIp;
 	};
 
 	static bool has(AccountId accountId);
-	static bool has(const std::string &loginName);
 	static AccountInfo get(AccountId accountId);
-	static AccountInfo get(const std::string &loginName);
 	static AccountInfo require(AccountId accountId);
-	static AccountInfo require(const std::string &loginName);
 
 	static boost::uint64_t getCount();
 	static void getAll(std::vector<AccountInfo> &ret, boost::uint64_t begin = 0, boost::uint64_t max = (boost::uint64_t)-1);
+
+	static AccountInfo getByLoginName(const std::string &loginName);
 
 	static void getByPhoneNumber(std::vector<AccountInfo> &ret, const std::string &phoneNumber);
 	static void getByReferrerId(std::vector<AccountInfo> &ret, AccountId referrerId);
 
 	static std::string getPasswordHash(const std::string &password);
 
+	static void setLoginName(AccountId accountId, std::string loginName);
 	static void setPhoneNumber(AccountId accountId, std::string phoneNumber);
 	static void setNick(AccountId accountId, std::string nick);
 	static void setPassword(AccountId accountId, const std::string &password);
@@ -65,7 +66,7 @@ struct AccountMap {
 	static void setBannedUntil(AccountId accountId, boost::uint64_t bannedUntil);
 
 	static AccountId create(std::string loginName, std::string phoneNumber, std::string nick,
-		const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags);
+		const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags, std::string createdIp);
 
 	static const std::string &getAttribute(AccountId accountId, unsigned slot);
 	static void getAttributes(std::vector<std::pair<unsigned, std::string>> &ret, AccountId accountId);

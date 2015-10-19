@@ -11,7 +11,7 @@ ACCOUNT_SERVLET("setPassword", /* session */, params){
 	auto newPassword = params.at("newPassword");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::get(loginName);
+	auto info = AccountMap::getByLoginName(loginName);
 	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";

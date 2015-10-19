@@ -45,7 +45,9 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 		}	\
 	}	\
 	::Poseidon::JsonObject EmperyPromotion::Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<AccountHttpSession> &sessionArg_, ::Poseidon::OptionalMap paramsArg_)	\
+		const ::boost::shared_ptr<AccountHttpSession> &sessionArg_ __attribute__((__unused__)),	\
+		::Poseidon::OptionalMap paramsArg_ __attribute__((__unused__))	\
+		)
 
 #define ACCOUNT_THROW(code_)				DEBUG_THROW(::Poseidon::Http::Exception, code_)
 
