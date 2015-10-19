@@ -31,9 +31,10 @@ MODULE_RAII(handles){
 	client->send(Msg::TestMessage(std::string("meow!")));
 	client->goResident();
 
-	auto timer = Poseidon::TimerDaemon::registerTimer(1000, 0, std::bind([=](){
+	auto timer = Poseidon::TimerDaemon::registerTimer(1000, 0, std::bind([=]() mutable {
 		LOG_EMPERY_CLUSTER_WARNING("Shutdown client now!");
 		client->shutdownWrite();
+		client.reset();
 	}));
 	handles.push(timer);
 }
