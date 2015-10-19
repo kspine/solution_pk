@@ -45,17 +45,29 @@ boost::shared_ptr<const ServletCallback> ClusterClient::getServlet(boost::uint16
 	return servlet;
 }
 
-ClusterClient::ClusterClient(const Poseidon::IpPort &addr, bool useSsl, boost::uint64_t keepAliveInterval)
+ClusterClient::ClusterClient(const Poseidon::IpPort &addr, bool useSsl, boost::uint64_t keepAliveInterval,
+	boost::int64_t mapX, boost::int64_t mapY)
 	: Poseidon::Cbpp::Client(addr, useSsl, keepAliveInterval)
 	, m_messageId(0), m_payload()
+	, m_mapX(mapX), m_mapY(mapY)
 	, m_serial(0)
 {
-	LOG_EMPERY_CLUSTER_INFO("ClusterClient constructor: this = ", (void *)this, ", addr = ", addr, ", useSsl = ", useSsl);
+	LOG_EMPERY_CLUSTER_INFO("ClusterClient constructor: this = ", (void *)this, ", addr = ", addr, ", useSsl = ", useSsl,
+		", mapX = ", m_mapX, ", mapY = ", m_mapY);
 }
 ClusterClient::~ClusterClient(){
-	LOG_EMPERY_CLUSTER_INFO("ClusterClient destructor: this = ", (void *)this);
+	LOG_EMPERY_CLUSTER_INFO("ClusterClient destructor: this = ", (void *)this,
+		", mapX = ", m_mapX, ", mapY = ", m_mapY);
 }
 
+void ClusterClient::onConnect(){
+	PROFILE_ME;
+	LOG_EMPERY_CLUSTER_INFO("Cluster client connected");
+
+//	send(
+
+	Poseidon::Cbpp::Client::onConnect();
+}
 void ClusterClient::onClose(int errCode) noexcept {
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_INFO("Cluster client closed: errCode = ", errCode);

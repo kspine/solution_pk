@@ -2,6 +2,6 @@
 
 namespace EmperyCluster {
 
-DEFINE_MODULE_CONFIG("empery_map.conf")
+DEFINE_MODULE_CONFIG("empery_cluster.conf")
 
 }

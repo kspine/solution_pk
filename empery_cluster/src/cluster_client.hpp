@@ -37,14 +37,19 @@ private:
 	unsigned m_messageId;
 	Poseidon::StreamBuffer m_payload;
 
+	const boost::int64_t m_mapX;
+	const boost::int64_t m_mapY;
+
 	boost::uint64_t m_serial;
 	std::multimap<boost::uint64_t, RequestElement> m_requests;
 
 public:
-	explicit ClusterClient(const Poseidon::IpPort &addr, bool useSsl, boost::uint64_t keepAliveInterval);
+	explicit ClusterClient(const Poseidon::IpPort &addr, bool useSsl, boost::uint64_t keepAliveInterval,
+		boost::int64_t mapX, boost::int64_t mapY);
 	~ClusterClient();
 
 protected:
+	void onConnect() override;
 	void onClose(int errCode) noexcept override;
 
 	void onSyncDataMessageHeader(boost::uint16_t messageId, boost::uint64_t payloadSize) override;

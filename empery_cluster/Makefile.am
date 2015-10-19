@@ -13,9 +13,10 @@ CLEANFILES = \
 	src/precompiled.hpp.gch
 
 lib_LTLIBRARIES = \
-	lib/libposeidon-empery-map.la
+	lib/libposeidon-empery-cluster.la
 
-lib_libposeidon_empery_map_la_SOURCES = \
+lib_libposeidon_empery_cluster_la_SOURCES = \
+	src/singletons/cluster_client_map.cpp	\
 	src/cluster/map.cpp	\
 	src/cluster_client.cpp	\
 	src/mmain.cpp
