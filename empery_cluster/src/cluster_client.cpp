@@ -50,8 +50,10 @@ ClusterClient::ClusterClient(const Poseidon::IpPort &addr, bool useSsl, boost::u
 	, m_messageId(0), m_payload()
 	, m_serial(0)
 {
+	LOG_EMPERY_CLUSTER_INFO("ClusterClient constructor: this = ", (void *)this, ", addr = ", addr, ", useSsl = ", useSsl);
 }
 ClusterClient::~ClusterClient(){
+	LOG_EMPERY_CLUSTER_INFO("ClusterClient destructor: this = ", (void *)this);
 }
 
 void ClusterClient::onClose(int errCode) noexcept {

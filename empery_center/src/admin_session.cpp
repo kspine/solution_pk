@@ -5,6 +5,7 @@
 #include <poseidon/http/exception.hpp>
 #include <poseidon/http/utilities.hpp>
 #include <poseidon/job_base.hpp>
+#include <poseidon/json.hpp>
 
 namespace EmperyCenter {
 
@@ -78,8 +79,9 @@ void AdminHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeade
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 
+	Poseidon::JsonObject result;
 	try {
-		(*servlet)(virtualSharedFromThis<AdminHttpSession>(), std::move(requestHeaders.getParams));
+		result = (*servlet)(virtualSharedFromThis<AdminHttpSession>(), std::move(requestHeaders.getParams));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(std::logic_error &e){
@@ -89,6 +91,11 @@ void AdminHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeade
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 	}
+	LOG_EMPERY_CENTER_DEBUG("Sending response: ", result.dump());
+	::Poseidon::OptionalMap headers;
+	headers.set("Content-Type", "application/json");
+	headers.set("Access-Control-Allow-Origin", "*");
+	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
 }
 
 }

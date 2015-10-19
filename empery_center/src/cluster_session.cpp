@@ -47,8 +47,10 @@ ClusterSession::ClusterSession(Poseidon::UniqueFile socket)
 	: Poseidon::Cbpp::Session(std::move(socket))
 	, m_serial(0)
 {
+	LOG_EMPERY_CENTER_INFO("ClusterSession constructor: this = ", (void *)this);
 }
 ClusterSession::~ClusterSession(){
+	LOG_EMPERY_CENTER_INFO("ClusterSession destructor: this = ", (void *)this);
 }
 
 void ClusterSession::onClose(int errCode) noexcept {

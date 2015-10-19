@@ -18,7 +18,7 @@ namespace EmperyCenter {
 class PlayerSession : public Poseidon::Http::Session {
 public:
 	using ServletCallback = boost::function<
-		void (const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer req)>;
+		std::pair<long, std::string> (const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer req)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> createServlet(boost::uint16_t messageId, ServletCallback callback);

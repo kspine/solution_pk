@@ -45,7 +45,7 @@ namespace {
 
 	MODULE_RAII(handles){
 		auto servlet = boost::make_shared<const ServletCallback>(
-			[](const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer payload){
+			[](const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer payload) -> std::pair<long, std::string> {
 				PROFILE_ME;
 
 				Poseidon::Cbpp::ControlMessage req(std::move(payload));
@@ -67,6 +67,8 @@ namespace {
 					LOG_EMPERY_CENTER_WARNING("Unknown control code: ", req.controlCode);
 					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_UNKNOWN_CTL_CODE, SharedNts(req.stringParam));
 				}
+
+				return { };
 			});
 		g_servletMap[Poseidon::Cbpp::ControlMessage::ID] = servlet;
 		handles.push(servlet);
@@ -91,6 +93,7 @@ protected:
 		}
 
 		unsigned messageId = UINT_MAX;
+		std::pair<long, std::string> result;
 		try {
 			if(opcode != Poseidon::WebSocket::OP_DATA_BIN){
 				LOG_EMPERY_CENTER_WARNING("Invalid message type: opcode = ", opcode);
@@ -113,7 +116,7 @@ protected:
 				LOG_EMPERY_CENTER_WARNING("No servlet found: messageId = ", messageId);
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 			}
-			(*servlet)(parent, std::move(payload));
+			result = (*servlet)(parent, std::move(payload));
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"Poseidon::Cbpp::Exception thrown: messageId = ", messageId, ", what = ", e.what());
@@ -127,6 +130,8 @@ protected:
 				"std::exception thrown: messageId = ", messageId, ", what = ", e.what());
 			parent->shutdown(Msg::ST_INTERNAL_ERROR, e.what());
 		}
+		LOG_EMPERY_CENTER_DEBUG("Sending response: code = ", result.first, ", message = ", result.second);
+		parent->sendControl(messageId, result.first, std::move(result.second));
 	}
 };
 

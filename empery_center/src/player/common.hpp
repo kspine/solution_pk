@@ -25,16 +25,15 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 	namespace EmperyCenter {	\
 		namespace {	\
 			namespace Impl_ {	\
-				void TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
+				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
 					const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
-				void TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_) (	\
+				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_) (	\
 					const ::boost::shared_ptr<PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 				{	\
 					PROFILE_ME;	\
 					MsgType_ msg_(::std::move(payload_));	\
 					LOG_EMPERY_CENTER_TRACE("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
-					TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
-					session_->sendControl(MsgType_::ID, ::Poseidon::Cbpp::ST_OK);	\
+					return TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
 				}	\
 			}	\
 		}	\
@@ -42,7 +41,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 			handles_.push(PlayerSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_)));	\
 		}	\
 	}	\
-	void EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
+	::std::pair<long, ::std::string> EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<PlayerSession> & (sessionArg_) __attribute__((__unused__)),	\
 		MsgType_ (reqArg_) __attribute__((__unused__))	\
 		)	\
@@ -51,9 +50,9 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 	namespace EmperyCenter {	\
 		namespace {	\
 			namespace Impl_ {	\
-				void TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
+				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
 					const ::EmperyCenter::AccountUuid &, const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
-				void TOKEN_CAT3(PlayerServlet, __LINE__, Entry_) (	\
+				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Entry_) (	\
 					const ::boost::shared_ptr<PlayerSession> &session_, const ::Poseidon::StreamBuffer &payload_)	\
 				{	\
 					PROFILE_ME;	\
@@ -64,8 +63,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 					MsgType_ msg_(payload_);	\
 					LOG_EMPERY_CENTER_TRACE("Received request from account ", accountUuid_, " on ",	\
 						session_->getRemoteInfo(), ": ", msg_);	\
-					TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (accountUuid_, session_, ::std::move(msg_));	\
-					session_->sendControl(MsgType_::ID, ::Poseidon::Cbpp::ST_OK);	\
+					return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (accountUuid_, session_, ::std::move(msg_));	\
 				}	\
 			}	\
 		}	\
@@ -73,7 +71,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 			handles_.push(PlayerSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Entry_)));	\
 		}	\
 	}	\
-	void EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
+	::std::pair<long, ::std::string> EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
 		const ::EmperyCenter::AccountUuid & (accountUuidArg_) __attribute__((__unused__)),	\
 		const ::boost::shared_ptr<PlayerSession> & (sessionArg_) __attribute__((__unused__)),	\
 		MsgType_ (reqArg_) __attribute__((__unused__))	\
