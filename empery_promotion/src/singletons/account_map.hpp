@@ -28,6 +28,8 @@ struct AccountMap {
 		ATTR_REMARKS                = 8,
 
 		ATTR_ACCOUNT_LEVEL          = 100,
+		ATTR_SUBORD_COUNT           = 101,
+		ATTR_MAX_SUBORD_LEVEL       = 102,
 	};
 
 	struct AccountInfo {

@@ -6,6 +6,7 @@
 #include <poseidon/singletons/event_dispatcher.hpp>
 #include <poseidon/hash.hpp>
 #include <poseidon/http/utilities.hpp>
+#include <boost/container/flat_map.hpp>
 #include "../mysql/account.hpp"
 #include "../mysql/account_attribute.hpp"
 #include "../events/account.hpp"
@@ -68,6 +69,11 @@ namespace {
 
 	boost::shared_ptr<AccountAttributeMapDelegator> g_attributeMap;
 
+	struct SubordinateInfoCacheElement {
+		boost::uint64_t subordCount;
+		boost::uint64_t maxSubordLevel;
+	};
+
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::createConnection();
 
@@ -101,6 +107,43 @@ namespace {
 		LOG_EMPERY_PROMOTION_INFO("Loaded ", attributeMap->size(), " account attribute(s).");
 		g_attributeMap = attributeMap;
 		handles.push(attributeMap);
+
+		LOG_EMPERY_PROMOTION_INFO("Updating subordinate info cache...");
+		boost::container::flat_map<AccountId, SubordinateInfoCacheElement> tempMap;
+		tempMap.reserve(accountMap->size());
+		for(auto it = accountMap->begin(); it != accountMap->end(); ++it){
+			boost::uint64_t level = 0;
+			auto attrIt = attributeMap->find<1>(std::make_pair(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL));
+			if(attrIt != attributeMap->end<1>()){
+				level = boost::lexical_cast<boost::uint64_t>(attrIt->obj->unlockedGet_value());
+			}
+
+			auto referrerIt = accountMap->find<0>(it->referrerId);
+			while(referrerIt != accountMap->end<0>()){
+				const auto currentReferrerId = referrerIt->accountId;
+				auto &elem = tempMap[currentReferrerId];
+				++elem.subordCount;
+				if(elem.maxSubordLevel < level){
+					elem.maxSubordLevel = level;
+				}
+				referrerIt = accountMap->find<0>(referrerIt->referrerId);
+			}
+		}
+		for(auto it = tempMap.begin(); it != tempMap.end(); ++it){
+			const auto reallySetAttribute = [&](unsigned slot, std::string str){
+				auto attrIt = attributeMap->find<1>(std::make_pair(it->first, slot));
+				if(attrIt == attributeMap->end<1>()){
+					attrIt = attributeMap->insert<1>(attrIt, AccountAttributeElement(
+						boost::make_shared<MySql::Promotion_AccountAttribute>(it->first.get(), slot, std::move(str))));
+					attrIt->obj->asyncSave(true);
+				} else {
+					attrIt->obj->set_value(std::move(str));
+				}
+			};
+
+			reallySetAttribute(AccountMap::ATTR_SUBORD_COUNT,     boost::lexical_cast<std::string>(it->second.subordCount));
+			reallySetAttribute(AccountMap::ATTR_MAX_SUBORD_LEVEL, boost::lexical_cast<std::string>(it->second.maxSubordLevel));
+		}
 	}
 
 	void fillAccountInfo(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Promotion_Account> &obj){
@@ -396,6 +439,21 @@ AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std
 	obj->asyncSave(true);
 	it = g_accountMap->insert<1>(it, AccountElement(std::move(obj)));
 
+	auto referrerIt = g_accountMap->find<0>(referrerId);
+	while(referrerIt != g_accountMap->end<0>()){
+		const auto currentReferrerId = referrerIt->accountId;
+		try {
+			const auto oldCount = castAttribute<boost::uint64_t>(currentReferrerId, ATTR_SUBORD_COUNT);
+			boost::uint64_t newCount = oldCount + 1;
+			LOG_EMPERY_PROMOTION_DEBUG("Updating subordinate count: currentReferrerId = ", currentReferrerId,
+				", oldCount = ", oldCount, ", newCount = ", newCount);
+			setAttribute(currentReferrerId, ATTR_SUBORD_COUNT, boost::lexical_cast<std::string>(newCount));
+		} catch(std::exception &e){
+			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
+		}
+		referrerIt = g_accountMap->find<0>(currentReferrerId);
+	}
+
 	return accountId;
 }
 
@@ -431,13 +489,64 @@ void AccountMap::touchAttribute(AccountId accountId, unsigned slot){
 void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string value){
 	PROFILE_ME;
 
+	const auto accountIt = g_accountMap->find<0>(accountId);
+	if(accountIt == g_accountMap->end<0>()){
+		LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", accountId);
+		DEBUG_THROW(Exception, sslit("No such account"));
+	}
+
+	boost::uint64_t oldLevel = 0, newLevel = 0;
+
+	if(slot == ATTR_ACCOUNT_LEVEL){
+		newLevel = boost::lexical_cast<boost::uint64_t>(value);
+	}
+
 	auto it = g_attributeMap->find<1>(std::make_pair(accountId, slot));
 	if(it == g_attributeMap->end<1>()){
 		it = g_attributeMap->insert<1>(it, AccountAttributeElement(
 			boost::make_shared<MySql::Promotion_AccountAttribute>(accountId.get(), slot, std::move(value))));
 		it->obj->asyncSave(true);
 	} else {
+		if(slot == ATTR_ACCOUNT_LEVEL){
+			oldLevel = boost::lexical_cast<boost::uint64_t>(it->obj->unlockedGet_value());
+		}
+
 		it->obj->set_value(std::move(value));
+	}
+
+	if(oldLevel != newLevel){
+		auto referrerIt = g_accountMap->find<0>(accountIt->referrerId);
+		while(referrerIt != g_accountMap->end<0>()){
+			const auto currentReferrerId = referrerIt->accountId;
+			try {
+				const auto oldMaxLevel = castAttribute<boost::uint64_t>(currentReferrerId, ATTR_MAX_SUBORD_LEVEL);
+				boost::uint64_t newMaxLevel;
+				if(oldLevel < newLevel){
+					newMaxLevel = oldMaxLevel;
+					if(newMaxLevel < newLevel){
+						newMaxLevel = newLevel;
+					}
+				} else {
+					newMaxLevel = 0;
+					const auto range = g_accountMap->equalRange<4>(currentReferrerId);
+					for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
+						const auto level = castAttribute<boost::uint64_t>(subordIt->accountId, ATTR_MAX_SUBORD_LEVEL);
+						if(newMaxLevel < level){
+							newMaxLevel = level;
+						}
+					}
+				}
+				if(oldMaxLevel == newMaxLevel){
+					break;
+				}
+				LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: currentReferrerId = ", currentReferrerId,
+					", oldMaxLevel = ", oldMaxLevel, ", newMaxLevel = ", newMaxLevel);
+				setAttribute(currentReferrerId, ATTR_MAX_SUBORD_LEVEL, boost::lexical_cast<std::string>(newLevel));
+			} catch(std::exception &e){
+				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
+			}
+			referrerIt = g_accountMap->find<0>(currentReferrerId);
+		}
 	}
 }
 
