@@ -17,6 +17,10 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 		return ret;
 	}
 
+	const auto level          = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+	const auto subordCount    = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_SUBORD_COUNT);
+	const auto maxSubordLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_MAX_SUBORD_LEVEL);
+
 	const auto pyramidDepthLimit = getConfig<unsigned>("pyramid_depth_limit", 32);
 
 	Poseidon::JsonArray members;
@@ -49,29 +53,28 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 
 				currentArrayDest->emplace_back(Poseidon::JsonObject());
 				auto &member = currentArrayDest->back().get<Poseidon::JsonObject>();
-				auto &membersOfMember = member[sslit("members")];
 
 				member[sslit("loginName")]      = std::move(it->loginName);
 				member[sslit("nick")]           = std::move(it->nick);
 				member[sslit("level")]          = boost::lexical_cast<std::string>(level);
 				member[sslit("subordCount")]    = subordCount;
 				member[sslit("maxSubordLevel")] = maxSubordLevel;
-				membersOfMember                 = Poseidon::JsonArray();
+				member[sslit("members")]        = Poseidon::JsonArray();
 
-				nextLevel.emplace_back(it->accountId, &membersOfMember.get<Poseidon::JsonArray>());
+				nextLevel.emplace_back(it->accountId, &member[sslit("members")].get<Poseidon::JsonArray>());
 			}
 		} while(!thisLevel.empty());
 
 		thisLevel.swap(nextLevel);
 		nextLevel.clear();
 	}
-	ret[sslit("members")] = std::move(members);
 
 	ret[sslit("loginName")]      = std::move(info.loginName);
 	ret[sslit("nick")]           = std::move(info.nick);
-	ret[sslit("level")]          = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-	ret[sslit("subordCount")]    = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_SUBORD_COUNT);
-	ret[sslit("maxSubordLevel")] = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_MAX_SUBORD_LEVEL);
+	ret[sslit("level")]          = boost::lexical_cast<std::string>(level);
+	ret[sslit("subordCount")]    = subordCount;
+	ret[sslit("maxSubordLevel")] = maxSubordLevel;
+	ret[sslit("members")]        = std::move(members);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
