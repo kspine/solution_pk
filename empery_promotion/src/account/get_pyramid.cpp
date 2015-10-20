@@ -67,6 +67,12 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 	}
 	ret[sslit("members")] = std::move(members);
 
+	ret[sslit("loginName")]      = std::move(info.loginName);
+	ret[sslit("nick")]           = std::move(info.nick);
+	ret[sslit("level")]          = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+	ret[sslit("subordCount")]    = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_SUBORD_COUNT);
+	ret[sslit("maxSubordLevel")] = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_MAX_SUBORD_LEVEL);
+
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
 	return ret;
