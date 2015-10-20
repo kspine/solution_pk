@@ -52,7 +52,9 @@ boost::shared_ptr<const ServletCallback> AdminHttpSession::getServlet(const std:
 boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AdminHttpSession::predispatchRequest(
 	Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity)
 {
-	checkAndThrowIfUnauthorized(m_authInfo, getRemoteInfo(), requestHeaders);
+	Poseidon::OptionalMap headers;
+	headers.set("Access-Control-Allow-Origin", "*");
+	checkAndThrowIfUnauthorized(m_authInfo, getRemoteInfo(), requestHeaders, false, std::move(headers));
 
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
 }
@@ -92,7 +94,7 @@ void AdminHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeade
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 	}
 	LOG_EMPERY_CENTER_DEBUG("Sending response: ", result.dump());
-	::Poseidon::OptionalMap headers;
+	Poseidon::OptionalMap headers;
 	headers.set("Content-Type", "application/json");
 	headers.set("Access-Control-Allow-Origin", "*");
 	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
