@@ -4,13 +4,14 @@
 #include <boost/function.hpp>
 #include <poseidon/http/session.hpp>
 #include <poseidon/http/authorization.hpp>
+#include <poseidon/fwd.hpp>
 
 namespace EmperyPromotion {
 
 class AccountHttpSession : public Poseidon::Http::Session {
 public:
 	using ServletCallback = boost::function<
-		void (const boost::shared_ptr<AccountHttpSession> &session, const Poseidon::OptionalMap &params)>;
+		Poseidon::JsonObject (const boost::shared_ptr<AccountHttpSession> &session, const Poseidon::OptionalMap &params)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> createServlet(const std::string &uri, ServletCallback callback);

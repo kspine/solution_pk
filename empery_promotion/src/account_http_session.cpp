@@ -5,6 +5,7 @@
 #include <poseidon/http/exception.hpp>
 #include <poseidon/http/utilities.hpp>
 #include <poseidon/job_base.hpp>
+#include <poseidon/json.hpp>
 
 namespace EmperyPromotion {
 
@@ -73,8 +74,9 @@ void AccountHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHea
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 
+	Poseidon::JsonObject result;
 	try {
-		(*servlet)(virtualSharedFromThis<AccountHttpSession>(), std::move(requestHeaders.getParams));
+		result = (*servlet)(virtualSharedFromThis<AccountHttpSession>(), std::move(requestHeaders.getParams));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(std::logic_error &e){
@@ -84,6 +86,11 @@ void AccountHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHea
 		LOG_EMPERY_PROMOTION_WARNING("std::exception thrown: what = ", e.what());
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 	}
+	LOG_EMPERY_PROMOTION_DEBUG("Account response: uri = ", uri, ", result = ", result.dump());
+	Poseidon::OptionalMap headers;
+	headers.set(sslit("Access-Control-Allow-Origin"), "*");
+	headers.set(sslit("Content-Type"), "application/json; charset=utf-8");
+	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
 }
 
 }

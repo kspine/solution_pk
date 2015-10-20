@@ -26,17 +26,12 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 			namespace Impl_ {	\
 				::Poseidon::JsonObject TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
 					const ::boost::shared_ptr<AccountHttpSession> &, ::Poseidon::OptionalMap);	\
-				void TOKEN_CAT3(AccountServlet, __LINE__, Entry_) (	\
+				::Poseidon::JsonObject TOKEN_CAT3(AccountServlet, __LINE__, Entry_) (	\
 					const ::boost::shared_ptr<AccountHttpSession> &session_, ::Poseidon::OptionalMap params_)	\
 				{	\
 					PROFILE_ME;	\
 					LOG_EMPERY_PROMOTION_DEBUG("Account servlet response: uri = ", uri_);	\
-					::Poseidon::JsonObject result_ = TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (session_, ::std::move(params_));	\
-					::Poseidon::OptionalMap headers_;	\
-					headers_.set("Content-Type", "application/json");	\
-					headers_.set("Access-Control-Allow-Origin", "*");	\
-					LOG_EMPERY_PROMOTION_DEBUG("Sending response: ", result_.dump());	\
-					session_->send(::Poseidon::Http::ST_OK, ::std::move(headers_), ::Poseidon::StreamBuffer(result_.dump()));	\
+					return TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (session_, ::std::move(params_));	\
 				}	\
 			}	\
 		}	\
