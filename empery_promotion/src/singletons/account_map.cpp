@@ -137,7 +137,9 @@ namespace {
 						boost::make_shared<MySql::Promotion_AccountAttribute>(it->first.get(), slot, std::move(str))));
 					attrIt->obj->asyncSave(true);
 				} else {
-					attrIt->obj->set_value(std::move(str));
+					if(attrIt->obj->unlockedGet_value() != str){
+						attrIt->obj->set_value(std::move(str));
+					}
 				}
 			};
 
