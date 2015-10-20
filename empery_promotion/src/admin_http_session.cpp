@@ -47,7 +47,9 @@ boost::shared_ptr<const ServletCallback> AdminHttpSession::getServlet(const std:
 boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AdminHttpSession::predispatchRequest(
 	Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity)
 {
-	checkAndThrowIfUnauthorized(m_authInfo, getRemoteInfo(), requestHeaders);
+	Poseidon::OptionalMap headers;
+	headers.set(sslit("Access-Control-Allow-Origin"), "*");
+	checkAndThrowIfUnauthorized(m_authInfo, getRemoteInfo(), requestHeaders, false, std::move(headers));
 
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
 }
