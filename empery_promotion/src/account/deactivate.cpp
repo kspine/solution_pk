@@ -50,7 +50,7 @@ ACCOUNT_SERVLET("deactivate", /* session */, params){
 	Poseidon::addFlags(info.flags, AccountMap::FL_DEACTIVATED);
 	AccountMap::setFlags(info.accountId, info.flags);
 
-	AccountMap::setBannedUntil(info.accountId, UINT64_MAX);
+	AccountMap::setBannedUntil(info.accountId, (boost::uint64_t)-1);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

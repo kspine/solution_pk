@@ -60,6 +60,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 			case Events::ItemChanged::R_RECHARGE:
 			case Events::ItemChanged::R_WITHDRAW:
 			case Events::ItemChanged::R_COMMIT_WITHDRAWAL:
+			case Events::ItemChanged::R_DEACTIVATE_ACCOUNT:
 				PUT_ACCOUNT(param1)
 				PUT_STRING(remarks)
 				break;
