@@ -453,7 +453,7 @@ AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std
 		} catch(std::exception &e){
 			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 		}
-		referrerIt = g_accountMap->find<0>(currentReferrerId);
+		referrerIt = g_accountMap->find<0>(referrerIt->referrerId);
 	}
 
 	return accountId;
@@ -547,7 +547,7 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 			} catch(std::exception &e){
 				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 			}
-			referrerIt = g_accountMap->find<0>(currentReferrerId);
+			referrerIt = g_accountMap->find<0>(referrerIt->referrerId);
 		}
 	}
 }
