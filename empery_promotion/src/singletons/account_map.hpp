@@ -14,6 +14,7 @@ struct AccountMap {
 	enum {
 		FL_VALID                    = 0x0001,
 		FL_ROBOT                    = 0x0002,
+		FL_DEACTIVATED              = 0x0004,
 
 		MAX_ATTR_LEN                = 4096,
 

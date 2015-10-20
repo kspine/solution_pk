@@ -20,6 +20,7 @@ namespace Events {
 			R_COMMIT_WITHDRAWAL     = 201008, // 提款账号       0               0
 			R_INCOME_TAX            = 201009, // 原始收入       收取谁的        0
 			R_BALANCE_BONUS_EXTRA   = 201010, // 升级账号       付款人账号      升级到等级
+			R_DEACTIVATE_ACCOUNT    = 201011, // 删除账号       0               0
 		};
 
 		AccountId accountId;
