@@ -32,7 +32,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 				{	\
 					PROFILE_ME;	\
 					MsgType_ msg_(::std::move(payload_));	\
-					LOG_EMPERY_CENTER_TRACE("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
+					LOG_EMPERY_CENTER_DEBUG("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
 					return TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
 				}	\
 			}	\
@@ -61,7 +61,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 						DEBUG_THROW(::Poseidon::Cbpp::Exception, ::EmperyCenter::Msg::ERR_NOT_LOGGED_IN, sslit(""));	\
 					}	\
 					MsgType_ msg_(payload_);	\
-					LOG_EMPERY_CENTER_TRACE("Received request from account ", accountUuid_, " on ",	\
+					LOG_EMPERY_CENTER_DEBUG("Received request from account ", accountUuid_, " on ",	\
 						session_->getRemoteInfo(), ": ", msg_);	\
 					return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (accountUuid_, session_, ::std::move(msg_));	\
 				}	\

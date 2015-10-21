@@ -29,7 +29,7 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 				{	\
 					PROFILE_ME;	\
 					MsgType_ msg_(::std::move(payload_));	\
-					LOG_EMPERY_CLUSTER_TRACE("Received request from ", client_->getRemoteInfo(), ": ", msg_);	\
+					LOG_EMPERY_CLUSTER_DEBUG("Received request from ", client_->getRemoteInfo(), ": ", msg_);	\
 					return TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (client_, ::std::move(msg_));	\
 				}	\
 			}	\
