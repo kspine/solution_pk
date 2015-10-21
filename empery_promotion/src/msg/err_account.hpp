@@ -26,6 +26,7 @@ namespace Msg {
 		ERR_BILL_SETTLED                = 80115,
 		ERR_BILL_AMOUNT_MISMATCH        = 80116,
 		ERR_ACCOUNT_DEACTIVATED         = 80117,
+		ERR_NOT_SUBORDINATE             = 80118,
 
 		ERR_W_D_SLIP_NOT_FOUND          = 80201,
 		ERR_W_D_SLIP_CANCELLED          = 80202,
