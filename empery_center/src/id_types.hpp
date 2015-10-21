@@ -15,7 +15,11 @@ private:
 	UnderlyingT m_id;
 
 public:
-	explicit constexpr GenericId(UnderlyingT id = 0)
+	constexpr GenericId()
+		: m_id()
+	{
+	}
+	explicit constexpr GenericId(UnderlyingT id)
 		: m_id(id)
 	{
 	}
@@ -110,7 +114,11 @@ private:
 	Poseidon::Uuid m_uuid;
 
 public:
-	explicit constexpr GenericUuid(const Poseidon::Uuid &uuid = Poseidon::Uuid())
+	constexpr GenericUuid()
+		: m_uuid()
+	{
+	}
+	explicit constexpr GenericUuid(const Poseidon::Uuid &uuid)
 		: m_uuid(uuid)
 	{
 	}
