@@ -7,21 +7,22 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
-	const auto &loginName  = params.at("loginName");
-	auto newLoginName      = params.get("newLoginName");
-	auto phoneNumber       = params.get("phoneNumber");
-	auto nick              = params.get("nick");
-	auto password          = params.get("password");
-	auto dealPassword      = params.get("dealPassword");
-	auto bannedUntil       = params.get("bannedUntil");
-	auto gender            = params.get("gender");
-	auto country           = params.get("country");
-	auto bankAccountName   = params.get("bankAccountName");
-	auto bankName          = params.get("bankName");
-	auto bankAccountNumber = params.get("bankAccountNumber");
-	auto bankSwiftCode     = params.get("bankSwiftCode");
-	auto remarks           = params.get("remarks");
-	auto level             = params.get("level");
+	const auto &loginName      = params.at("loginName");
+	auto newLoginName          = params.get("newLoginName");
+	auto phoneNumber           = params.get("phoneNumber");
+	auto nick                  = params.get("nick");
+	auto password              = params.get("password");
+	auto dealPassword          = params.get("dealPassword");
+	auto bannedUntil           = params.get("bannedUntil");
+	auto gender                = params.get("gender");
+	auto country               = params.get("country");
+	auto bankAccountName       = params.get("bankAccountName");
+	auto bankName              = params.get("bankName");
+	auto bankAccountNumber     = params.get("bankAccountNumber");
+	auto bankSwiftCode         = params.get("bankSwiftCode");
+	auto remarks               = params.get("remarks");
+	auto level                 = params.get("level");
+	auto maxVisibleSubordDepth = params.get("maxVisibleSubordDepth");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::getByLoginName(loginName);
@@ -49,7 +50,6 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 			return ret;
 		}
 	}
-
 	if(!level.empty()){
 		const auto newPromotionData = Data::Promotion::get(boost::lexical_cast<boost::uint64_t>(level));
 		if(!newPromotionData){
@@ -58,6 +58,10 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 			return ret;
 		}
 		level = boost::lexical_cast<std::string>(newPromotionData->level);
+	}
+	if(!maxVisibleSubordDepth.empty()){
+		const auto depth = boost::lexical_cast<boost::uint64_t>(maxVisibleSubordDepth);
+		maxVisibleSubordDepth = boost::lexical_cast<std::string>(depth);
 	}
 
 	if(!newLoginName.empty()){
@@ -102,6 +106,9 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 	}
 	if(!level.empty()){
 		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(level));
+	}
+	if(!maxVisibleSubordDepth.empty()){
+		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH, std::move(maxVisibleSubordDepth));
 	}
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

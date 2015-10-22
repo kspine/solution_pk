@@ -42,6 +42,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 	ret[sslit("bankAccountNumber")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER);
 	ret[sslit("bankSwiftCode")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_BANK_SWIFT_CODE);
 	ret[sslit("remarks")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_REMARKS);
+	ret[sslit("maxVisibleSubordDepth")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

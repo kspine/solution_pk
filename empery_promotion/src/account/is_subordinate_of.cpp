@@ -25,6 +25,7 @@ ACCOUNT_SERVLET("isSubordinateOf", session, params){
 	}
 
 	auto currentReferrerId = info.referrerId;
+	boost::uint64_t depth = 1;
 	for(;;){
 		if(!currentReferrerId){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NOT_SUBORDINATE;
@@ -35,7 +36,10 @@ ACCOUNT_SERVLET("isSubordinateOf", session, params){
 			break;
 		}
 		currentReferrerId = AccountMap::require(currentReferrerId).referrerId;
+		++depth;
 	}
+
+	ret[sslit("depth")] = depth;
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
