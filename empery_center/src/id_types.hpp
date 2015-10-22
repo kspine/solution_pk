@@ -181,15 +181,19 @@ std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &id){
 	return is;
 }
 
-using PlatformId        = GenericId<boost::uint32_t, 110001>;
+namespace IdTypes {
+	using PlatformId        = GenericId<boost::uint32_t, 110001>;
 
-using TerrainId         = GenericId<boost::uint32_t, 120001>;
-using OverlayId         = GenericId<boost::uint32_t, 120002>;
-using ResourceId        = GenericId<boost::uint32_t, 120003>;
+	using TerrainId         = GenericId<boost::uint32_t, 120001>;
+	using OverlayId         = GenericId<boost::uint32_t, 120002>;
+	using ResourceId        = GenericId<boost::uint32_t, 120003>;
 
-using AccountUuid       = GenericUuid<               210001>;
-using CastleUuid        = GenericUuid<               210002>;
-using UnitUuid          = GenericUuid<               210003>;
+	using AccountUuid       = GenericUuid<               210001>;
+	using CastleUuid        = GenericUuid<               210002>;
+	using UnitUuid          = GenericUuid<               210003>;
+}
+
+using namespace IdTypes;
 
 }
 
