@@ -11,7 +11,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(level)
 	);
 
-	const char DATA_FILE[] = "empery_data/promotion.csv";
+	const char DATA_FILE[] = "empery_promotion_levels.csv";
 
 	boost::weak_ptr<const PromotionMap> g_map;
 }

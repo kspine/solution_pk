@@ -39,6 +39,7 @@ protected:
 
 	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatchRequest(
 		Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity) override;
+
 	void onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer entity) override;
 
 public:

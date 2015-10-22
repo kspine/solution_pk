@@ -210,6 +210,7 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatc
 
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
 }
+
 void PlayerSession::onSyncRequest(Poseidon::Http::RequestHeaders /* requestHeaders */, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 

@@ -18,6 +18,7 @@ lib_LTLIBRARIES = \
 lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/player_websocket_server.cpp	\
 	src/singletons/cluster_cbpp_server.cpp	\
+	src/singletons/data_http_server.cpp	\
 	src/singletons/admin_http_server.cpp	\
 	src/singletons/account_map.cpp	\
 	src/singletons/player_session_map.cpp	\
@@ -27,5 +28,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/account.cpp	\
 	src/player_session.cpp	\
 	src/cluster_session.cpp	\
+	src/data_session.cpp	\
 	src/admin_session.cpp	\
 	src/mmain.cpp
