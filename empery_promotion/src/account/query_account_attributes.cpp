@@ -25,6 +25,12 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 
 	const auto level = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 
+	boost::uint64_t maxVisibleSubordDepth = 2;
+	const auto &str = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
+	if(!str.empty()){
+		maxVisibleSubordDepth = boost::lexical_cast<boost::uint64_t>(str);
+	}
+
 	ret[sslit("phoneNumber")] = std::move(info.phoneNumber);
 	ret[sslit("nick")] = std::move(info.nick);
 	ret[sslit("level")] = boost::lexical_cast<std::string>(level);
@@ -42,7 +48,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 	ret[sslit("bankAccountNumber")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER);
 	ret[sslit("bankSwiftCode")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_BANK_SWIFT_CODE);
 	ret[sslit("remarks")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_REMARKS);
-	ret[sslit("maxVisibleSubordDepth")] = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
+	ret[sslit("maxVisibleSubordDepth")] = boost::lexical_cast<std::string>(maxVisibleSubordDepth);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
