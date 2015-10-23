@@ -25,9 +25,11 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 
 	const auto level = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 
-	boost::uint64_t maxVisibleSubordDepth = 2;
+	boost::uint64_t maxVisibleSubordDepth;
 	const auto &str = AccountMap::getAttribute(info.accountId, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
-	if(!str.empty()){
+	if(str.empty()){
+		maxVisibleSubordDepth = getConfig<boost::uint64_t>("default_max_visible_subord_depth", 2);
+	} else {
 		maxVisibleSubordDepth = boost::lexical_cast<boost::uint64_t>(str);
 	}
 
