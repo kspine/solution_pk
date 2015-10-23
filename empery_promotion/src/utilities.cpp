@@ -118,19 +118,19 @@ namespace {
 	double g_bonusRatio;
 	std::vector<double> g_incomeTaxRatioArray, g_extraTaxRatioArray;
 
-	MODULE_RAII(){
+	MODULE_RAII_PRIORITY(/* handles */, 1000){
 		auto val = getConfig<double>("balance_bonus_ratio", 0.70);
-		LOG_EMPERY_PROMOTION_INFO("> Balance bonus ratio: ", val);
+		LOG_EMPERY_PROMOTION_DEBUG("> Balance bonus ratio: ", val);
 		g_bonusRatio = val;
 
 		auto str = getConfig<std::string>("balance_income_tax_ratio_array", "0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01");
 		auto ratioArray = Poseidon::explode<double>(',', str);
-		LOG_EMPERY_PROMOTION_INFO("> Balance income tax ratio array: ", Poseidon::implode(',', ratioArray));
+		LOG_EMPERY_PROMOTION_DEBUG("> Balance income tax ratio array: ", Poseidon::implode(',', ratioArray));
 		g_incomeTaxRatioArray = std::move(ratioArray);
 
 		str = getConfig<std::string>("balance_extra_tax_ratio_array", "0.02,0.02,0.01");
 		ratioArray = Poseidon::explode<double>(',', str);
-		LOG_EMPERY_PROMOTION_INFO("> Balance extra tax ratio array: ", Poseidon::implode(',', ratioArray));
+		LOG_EMPERY_PROMOTION_DEBUG("> Balance extra tax ratio array: ", Poseidon::implode(',', ratioArray));
 		g_extraTaxRatioArray = std::move(ratioArray);
 	}
 
