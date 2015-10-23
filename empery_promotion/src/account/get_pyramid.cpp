@@ -26,7 +26,7 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 	Poseidon::JsonArray members;
 	std::deque<std::pair<AccountId, Poseidon::JsonArray *>> thisLevel, nextLevel;
 	thisLevel.emplace_back(info.accountId, &members);
-	unsigned maxDepth = UINT_MAX;
+	unsigned maxDepth = 1;
 	if(!maxDepthStr.empty()){
 		maxDepth = boost::lexical_cast<unsigned>(maxDepthStr);
 	}
