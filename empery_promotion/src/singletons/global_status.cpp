@@ -34,14 +34,14 @@ namespace {
 		handles.push(statusMap);
 
 		const auto dailyResetAtOClock = getConfig<unsigned>("daily_reset_at_o_clock", 8);
-		auto timer = Poseidon::TimerDaemon::registerDailyTimer(dailyResetAtOClock, 0, 5,
+		auto timer = Poseidon::TimerDaemon::registerDailyTimer(dailyResetAtOClock, 0, 10, // 推迟十秒钟。
 			boost::bind(&GlobalStatus::checkDailyReset));
 		handles.push(std::move(timer));
 
 		const auto firstBalancingTime = Poseidon::scanTime(getConfig<std::string>("first_balancing_time").c_str());
 		const auto localNow = Poseidon::getLocalTime();
 		if(firstBalancingTime < localNow){
-			timer = Poseidon::TimerDaemon::registerTimer(firstBalancingTime - localNow, 0,
+			timer = Poseidon::TimerDaemon::registerTimer(firstBalancingTime - localNow + 10000, 0, // 推迟十秒钟。
 				boost::bind(&GlobalStatus::checkDailyReset));
 			handles.push(std::move(timer));
 		}
@@ -101,21 +101,20 @@ void GlobalStatus::checkDailyReset(){
 		return it->second;
 	};
 
-	const auto firstBalancingTime        = Poseidon::scanTime(
-	                                       getConfig<std::string>("first_balancing_time").c_str());
-	const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_increment", 100);
-	const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin",     40000);
-	const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",       50000);
-
 	const auto localNow = Poseidon::getLocalTime();
 
 	const auto serverCreatedTimeObj      = getObj(SLOT_SERVER_CREATED_TIME);
 	const auto firstBalancingTimeObj     = getObj(SLOT_FIRST_BALANCING_TIME);
 	const auto accCardUnitPriceObj       = getObj(SLOT_ACC_CARD_UNIT_PRICE);
 	const auto serverDailyResetTimeObj   = getObj(SLOT_SERVER_DAILY_RESET_TIME);
+	const auto firstBalancingDoneObj     = getObj(SLOT_FIRST_BALANCING_DONE);
 
 	if(serverCreatedTimeObj->get_value() == 0){
 		LOG_EMPERY_PROMOTION_WARNING("This seems to be the first run?");
+
+		const auto firstBalancingTime     = Poseidon::scanTime(
+	                                        getConfig<std::string>("first_balancing_time").c_str());
+		const auto accCardUnitPriceBegin  = getConfig<boost::uint64_t>("acc_card_unit_price_begin", 40000);
 
 		auto rootUserName = getConfig<std::string>("init_root_username", "root");
 		auto rootNick     = getConfig<std::string>("init_root_nick",     "root");
@@ -140,28 +139,33 @@ void GlobalStatus::checkDailyReset(){
 		serverDailyResetTimeObj->set_value(localNow);
 	}
 
-	const auto lastResetTime = serverDailyResetTimeObj->get_value();
+	const auto firstBalancingTime = firstBalancingTimeObj->get_value();
+	if(firstBalancingTime < localNow){
+		if(firstBalancingDoneObj->get_value() == false){
+			firstBalancingDoneObj->set_value(true);
 
-	const auto thisDay = localNow / 86400000;
-	const auto lastDay = lastResetTime / 86400000;
-	if(thisDay <= lastDay){
-		return;
-	}
-	const auto deltaDays = thisDay - lastDay;
-	LOG_EMPERY_PROMOTION_INFO("Daily reset: deltaDays = ", deltaDays);
-
-//	const auto firstBalancingTime = firstBalancingTimeObj->get_value();
-
-	auto newAccCardUnitPrice = accCardUnitPriceObj->get_value();
-	if(localNow >= firstBalancingTime){
-		if(lastResetTime < firstBalancingTime){
 			LOG_EMPERY_PROMOTION_WARNING("Commit first balance bonus!");
 			commitFirstBalanceBonus();
+			LOG_EMPERY_PROMOTION_WARNING("Done committing first balance bonus.");
 		}
+	}
 
-		const auto delatPrice = checkedMul(accCardUnitPriceIncrement, deltaDays);
-		LOG_EMPERY_PROMOTION_INFO("Incrementing acceleration card unit price by ", delatPrice);
-		newAccCardUnitPrice = checkedAdd(newAccCardUnitPrice, delatPrice);
+	const auto lastResetTime = serverDailyResetTimeObj->get_value();
+	serverDailyResetTimeObj->set_value(localNow);
+	const auto thisDay = localNow / 86400000;
+	const auto lastDay = lastResetTime / 86400000;
+	if(lastDay < thisDay){
+		const auto deltaDays = thisDay - lastDay;
+		LOG_EMPERY_PROMOTION_INFO("Daily reset: deltaDays = ", deltaDays);
+
+		const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_increment", 100);
+		const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin",     40000);
+		const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",       50000);
+
+		auto newAccCardUnitPrice = accCardUnitPriceObj->get_value();
+		const auto deltaPrice = checkedMul(accCardUnitPriceIncrement, deltaDays);
+		LOG_EMPERY_PROMOTION_INFO("Incrementing acceleration card unit price by ", deltaPrice);
+		newAccCardUnitPrice = checkedAdd(newAccCardUnitPrice, deltaPrice);
 		if(newAccCardUnitPrice < accCardUnitPriceBegin){
 			newAccCardUnitPrice = accCardUnitPriceBegin;
 		}
@@ -169,10 +173,8 @@ void GlobalStatus::checkDailyReset(){
 			newAccCardUnitPrice = accCardUnitPriceEnd;
 		}
 		LOG_EMPERY_PROMOTION_INFO("Incremented acceleration card unit price to ", newAccCardUnitPrice);
+		accCardUnitPriceObj->set_value(newAccCardUnitPrice);
 	}
-	accCardUnitPriceObj->set_value(newAccCardUnitPrice);
-
-	serverDailyResetTimeObj->set_value(localNow);
 }
 
 }

@@ -14,6 +14,7 @@ struct GlobalStatus {
 
 		SLOT_SERVER_DAILY_RESET_TIME    = 1000,
 		SLOT_BILL_AUTO_INC              = 1001,
+		SLOT_FIRST_BALANCING_DONE       = 1002,
 	};
 
 	static boost::uint64_t get(unsigned slot);
