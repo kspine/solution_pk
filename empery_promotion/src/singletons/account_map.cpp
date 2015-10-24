@@ -65,7 +65,7 @@ namespace {
 	MULTI_INDEX_MAP(AccountAttributeMapDelegator, AccountAttributeElement,
 		MULTI_MEMBER_INDEX(accountId)
 		UNIQUE_MEMBER_INDEX(accountSlot)
-	);
+	)
 
 	boost::shared_ptr<AccountAttributeMapDelegator> g_attributeMap;
 
@@ -115,7 +115,10 @@ namespace {
 			boost::uint64_t level = 0;
 			auto attrIt = attributeMap->find<1>(std::make_pair(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL));
 			if(attrIt != attributeMap->end<1>()){
-				level = boost::lexical_cast<boost::uint64_t>(attrIt->obj->unlockedGet_value());
+				const auto &levelStr = attrIt->obj->unlockedGet_value();
+				if(!levelStr.empty()){
+					level = boost::lexical_cast<boost::uint64_t>(levelStr);
+				}
 			}
 
 			auto referrerIt = accountMap->find<0>(it->referrerId);
@@ -510,7 +513,10 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 		it->obj->asyncSave(true);
 	} else {
 		if(slot == ATTR_ACCOUNT_LEVEL){
-			oldLevel = boost::lexical_cast<boost::uint64_t>(it->obj->unlockedGet_value());
+			const auto &oldLevelStr = it->obj->unlockedGet_value();
+			if(!oldLevelStr.empty()){
+				oldLevel = boost::lexical_cast<boost::uint64_t>(oldLevelStr);
+			}
 		}
 
 		it->obj->set_value(std::move(value));
