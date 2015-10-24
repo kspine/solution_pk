@@ -71,7 +71,17 @@ void ClusterClient::onConnect(){
 		if(!client){
 			return;
 		}
-		client->sendAndWait(EmperyCenter::Msg::KS_InitRegisterCluster(client->m_mapX, client->m_mapY));
+		try {
+			const auto result = client->sendAndWait(EmperyCenter::Msg::KS_InitRegisterCluster(client->m_mapX, client->m_mapY));
+			if(result.first != 0){
+				LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
+				DEBUG_THROW(Exception, SharedNts(result.second));
+			}
+			LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: mapX = ", client->m_mapX, ", mapY = ", client->m_mapY);
+		} catch(std::exception &e){
+			LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
+			client->forceShutdown();
+		}
 	}, virtualWeakFromThis<ClusterClient>()));
 
 	Poseidon::Cbpp::Client::onConnect();
@@ -101,20 +111,20 @@ void ClusterClient::onClose(int errCode) noexcept {
 
 void ClusterClient::onSyncDataMessageHeader(boost::uint16_t messageId, boost::uint64_t payloadSize){
 	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_DEBUG("Message header: messageId = ", messageId, ", payloadSize = ", payloadSize);
+	LOG_EMPERY_CLUSTER_TRACE("Message header: messageId = ", messageId, ", payloadSize = ", payloadSize);
 
 	m_messageId = messageId;
 	m_payload.clear();
 }
 void ClusterClient::onSyncDataMessagePayload(boost::uint64_t payloadOffset, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_DEBUG("Message payload: payloadOffset = ", payloadOffset, ", payloadSize = ", payload.size());
+	LOG_EMPERY_CLUSTER_TRACE("Message payload: payloadOffset = ", payloadOffset, ", payloadSize = ", payload.size());
 
 	m_payload.splice(payload);
 }
 void ClusterClient::onSyncDataMessageEnd(boost::uint64_t payloadSize){
 	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_DEBUG("Message end: payloadSize = ", payloadSize);
+	LOG_EMPERY_CLUSTER_TRACE("Message end: payloadSize = ", payloadSize);
 
 	auto messageId = m_messageId;
 	auto payload = std::move(m_payload);

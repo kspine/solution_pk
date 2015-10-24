@@ -2,7 +2,7 @@
 #include "common.hpp"
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
-#include "../msg/err_map.hpp"
+#include "../msg/cerr_map.hpp"
 #include "../singletons/cluster_session_map.hpp"
 
 namespace EmperyCenter {

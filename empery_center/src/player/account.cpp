@@ -3,7 +3,7 @@
 #include <poseidon/singletons/event_dispatcher.hpp>
 #include "../msg/cs_account.hpp"
 #include "../msg/sc_account.hpp"
-#include "../msg/err_account.hpp"
+#include "../msg/cerr_account.hpp"
 
 namespace EmperyCenter {
 
@@ -46,27 +46,27 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 
 	const auto oldAccountUuid = PlayerSessionMap::getAccountUuid(session);
 	if(oldAccountUuid){
-		return { Msg::ERR_MULTIPLE_LOGIN, oldAccountUuid.str() };
+		return { Msg::CERR_MULTIPLE_LOGIN, oldAccountUuid.str() };
 	}
 
 	const auto loginInfo = AccountMap::getLoginInfo(PlatformId(req.platformId), req.loginName);
 	if(Poseidon::hasNoneFlagsOf(loginInfo.flags, AccountMap::FL_VALID)){
-		return { Msg::ERR_NO_SUCH_ACCOUNT, std::move(req.loginName) };
+		return { Msg::CERR_NO_SUCH_ACCOUNT, std::move(req.loginName) };
 	}
 	const auto localNow = Poseidon::getLocalTime();
 	if(localNow >= loginInfo.loginTokenExpiryTime){
-		return { Msg::ERR_TOKEN_EXPIRED, std::move(req.loginName) };
+		return { Msg::CERR_TOKEN_EXPIRED, std::move(req.loginName) };
 	}
 	if(req.loginToken.empty()){
 		LOG_EMPERY_CENTER_DEBUG("Empty token");
-		return { Msg::ERR_INVALID_TOKEN, std::move(req.loginName) };
+		return { Msg::CERR_INVALID_TOKEN, std::move(req.loginName) };
 	}
 	if(req.loginToken != loginInfo.loginToken){
 		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", loginInfo.loginToken, ", got ", req.loginToken);
-		return { Msg::ERR_INVALID_TOKEN, std::move(req.loginName) };
+		return { Msg::CERR_INVALID_TOKEN, std::move(req.loginName) };
 	}
 	if(localNow < loginInfo.bannedUntil){
-		return { Msg::ERR_ACCOUNT_BANNED, std::move(req.loginName) };
+		return { Msg::CERR_ACCOUNT_BANNED, std::move(req.loginName) };
 	}
 
 	const auto accountUuid = loginInfo.accountUuid;
@@ -79,10 +79,10 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 
 PLAYER_SERVLET(Msg::CS_AccountSetAttribute, accountUuid, session, req){
 	if(req.slot >= AccountMap::ATTR_CUSTOM_END){
-		return { Msg::ERR_ATTR_NOT_SETTABLE, boost::lexical_cast<std::string>(req.slot) };
+		return { Msg::CERR_ATTR_NOT_SETTABLE, boost::lexical_cast<std::string>(req.slot) };
 	}
 	if(req.value.size() > AccountMap::MAX_ATTRIBUTE_LEN){
-		return { Msg::ERR_ATTR_TOO_LONG, boost::lexical_cast<std::string>(AccountMap::MAX_ATTRIBUTE_LEN) };
+		return { Msg::CERR_ATTR_TOO_LONG, boost::lexical_cast<std::string>(AccountMap::MAX_ATTRIBUTE_LEN) };
 	}
 
 	AccountMap::setAttribute(accountUuid, req.slot, std::move(req.value));
@@ -91,7 +91,7 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, accountUuid, session, req){
 
 PLAYER_SERVLET(Msg::CS_AccountSetNick, accountUuid, session, req){
 	if(req.nick.size() > AccountMap::MAX_NICK_LEN){
-		return { Msg::ERR_NICK_TOO_LONG, boost::lexical_cast<std::string>(AccountMap::MAX_NICK_LEN) };
+		return { Msg::CERR_NICK_TOO_LONG, boost::lexical_cast<std::string>(AccountMap::MAX_NICK_LEN) };
 	}
 
 	AccountMap::setNick(accountUuid, std::move(req.nick));
@@ -124,7 +124,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, accountUuid, session, req){
 		msg.accounts.emplace_back();
 		auto &account = msg.accounts.back();
 		account.accountUuid = std::move(it->accountUuid);
-		account.errorCode = Msg::ERR_NO_SUCH_ACCOUNT;
+		account.errorCode = Msg::CERR_NO_SUCH_ACCOUNT;
 		if(!AccountMap::has(otherUuid)){
 			continue;
 		}

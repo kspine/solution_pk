@@ -12,7 +12,7 @@
 #include "../singletons/account_map.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
-#include "../msg/err_account.hpp"
+#include "../msg/cerr_account.hpp"
 #include "../log.hpp"
 
 /*
@@ -58,7 +58,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 					PROFILE_ME;	\
 					const auto accountUuid_ = ::EmperyCenter::PlayerSessionMap::getAccountUuid(session_);	\
 					if(!accountUuid_){	\
-						DEBUG_THROW(::Poseidon::Cbpp::Exception, ::EmperyCenter::Msg::ERR_NOT_LOGGED_IN, sslit(""));	\
+						DEBUG_THROW(::Poseidon::Cbpp::Exception, ::EmperyCenter::Msg::CERR_NOT_LOGGED_IN, sslit(""));	\
 					}	\
 					MsgType_ msg_(payload_);	\
 					LOG_EMPERY_CENTER_DEBUG("Received request from account ", accountUuid_, " on ",	\
