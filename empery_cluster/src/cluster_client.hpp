@@ -65,14 +65,14 @@ public:
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
-		LOG_EMPERY_CLUSTER_DEBUG("Sending request to cluster: remote = ", getRemoteInfo(), ", msg = ", msg);
+		LOG_EMPERY_CLUSTER_DEBUG("Sending request to center: remote = ", getRemoteInfo(), ", msg = ", msg);
 		return send(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 	template<typename MsgT>
 	Result sendAndWait(const MsgT &msg){
-		LOG_EMPERY_CLUSTER_DEBUG("Sending request to cluster: remote = ", getRemoteInfo(), ", msg = ", msg);
+		LOG_EMPERY_CLUSTER_DEBUG("Sending request to center: remote = ", getRemoteInfo(), ", msg = ", msg);
 		auto ret = sendAndWait(MsgT::ID, Poseidon::StreamBuffer(msg));
-		LOG_EMPERY_CLUSTER_DEBUG("Received response from cluster: remote = ", getRemoteInfo(),
+		LOG_EMPERY_CLUSTER_DEBUG("Received response from center: remote = ", getRemoteInfo(),
 			", errorCode = ", static_cast<int>(ret.first), ", errorMessage = ", ret.second);
 		return ret;
 	}
