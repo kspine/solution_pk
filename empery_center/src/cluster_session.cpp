@@ -94,14 +94,20 @@ void ClusterSession::onSyncDataMessage(boost::uint16_t messageId, Poseidon::Stre
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"Poseidon::Cbpp::Exception thrown: messageId = ", messageId, ", what = ", e.what());
-			Poseidon::Cbpp::Session::send(Msg::G_PackedResponse(packed.serial, e.statusCode(), e.what()));
+			result.first = e.statusCode();
+			result.second = e.what();
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"std::exception thrown: messageId = ", messageId, ", what = ", e.what());
-			Poseidon::Cbpp::Session::send(Msg::G_PackedResponse(packed.serial, Poseidon::Cbpp::ST_INTERNAL_ERROR, e.what()));
+			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
+			result.second = e.what();
 		}
 		LOG_EMPERY_CENTER_DEBUG("Sending response to cluster server: code = ", result.first, ", message = ", result.second);
 		Poseidon::Cbpp::Session::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
+		if(result.first < 0){
+			shutdownRead();
+			shutdownWrite();
+		}
 	} else if(messageId == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(std::move(payload));
 		LOG_EMPERY_CENTER_DEBUG("Received response from cluster server: code = ", packed.code, ", message = ", packed.message);

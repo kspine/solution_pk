@@ -120,18 +120,20 @@ protected:
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"Poseidon::Cbpp::Exception thrown: messageId = ", messageId, ", what = ", e.what());
-			if(e.statusCode() < 0){
-				parent->shutdown(e.statusCode(), e.what());
-			} else {
-				parent->sendControl(messageId, e.statusCode(), e.what());
-			}
+			result.first = e.statusCode();
+			result.second = e.what();
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"std::exception thrown: messageId = ", messageId, ", what = ", e.what());
-			parent->shutdown(Msg::ST_INTERNAL_ERROR, e.what());
+			result.first = Msg::ST_INTERNAL_ERROR;
+			result.second = e.what();
 		}
 		LOG_EMPERY_CENTER_DEBUG("Sending response: code = ", result.first, ", message = ", result.second);
-		parent->sendControl(messageId, result.first, std::move(result.second));
+		if(result.first < 0){
+			parent->shutdown(result.first, result.second.c_str());
+		} else {
+			parent->sendControl(messageId, result.first, std::move(result.second));
+		}
 	}
 };
 
