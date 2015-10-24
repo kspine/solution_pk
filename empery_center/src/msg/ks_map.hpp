@@ -7,7 +7,12 @@ namespace EmperyCenter {
 
 namespace Msg {
 
-
+#define MESSAGE_NAME	KS_MapRegisterCluster
+#define MESSAGE_ID		32300
+#define MESSAGE_FIELDS	\
+	FIELD_VINT			(mapX)	\
+	FIELD_VINT			(mapY)
+#include <poseidon/cbpp/message_generator.hpp>
 
 }
 

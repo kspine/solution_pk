@@ -5,7 +5,7 @@
 #include <poseidon/async_job.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "../../empery_center/src/msg/g_packed.hpp"
-#include "../../empery_center/src/msg/ks_init.hpp"
+#include "../../empery_center/src/msg/ks_map.hpp"
 
 namespace EmperyCluster {
 
@@ -72,7 +72,7 @@ void ClusterClient::onConnect(){
 			return;
 		}
 		try {
-			const auto result = client->sendAndWait(EmperyCenter::Msg::KS_InitRegisterCluster(client->m_mapX, client->m_mapY));
+			const auto result = client->sendAndWait(Msg::KS_MapRegisterCluster(client->m_mapX, client->m_mapY));
 			if(result.first != 0){
 				LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
 				DEBUG_THROW(Exception, SharedNts(result.second));
