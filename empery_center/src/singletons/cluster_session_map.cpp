@@ -92,6 +92,7 @@ void ClusterSessionMap::set(boost::int64_t mapX, boost::int64_t mapY, const boos
 		DEBUG_THROW(Exception, sslit("Duplicate cluster session"));
 	}
 
+	LOG_EMPERY_CENTER_INFO("Setting up cluster server: mapX = ", mapX, ", mapY = ", mapY);
 	auto it = sessionMap->find<0>(std::make_pair(mapX, mapY));
 	if(it == sessionMap->end<0>()){
 		it = sessionMap->insert<0>(it, ClusterSessionElement(mapX, mapY, session));
@@ -105,8 +106,6 @@ void ClusterSessionMap::set(boost::int64_t mapX, boost::int64_t mapY, const boos
 }
 
 std::pair<boost::int64_t, boost::int64_t> ClusterSessionMap::requireMapCoord(const boost::weak_ptr<ClusterSession> &session){
-	PROFILE_ME;
-
 	PROFILE_ME;
 
 	const auto sessionMap = g_sessionMap.lock();

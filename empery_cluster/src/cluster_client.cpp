@@ -2,9 +2,10 @@
 #include "cluster_client.hpp"
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
+#include <poseidon/async_job.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "../../empery_center/src/msg/g_packed.hpp"
-#include "../../empery_center/src/msg/kc_init.hpp"
+#include "../../empery_center/src/msg/ks_init.hpp"
 
 namespace EmperyCluster {
 
@@ -65,9 +66,15 @@ void ClusterClient::onConnect(){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_INFO("Cluster client connected");
 
-	Poseidon::Cbpp::Client::onConnect();
+	Poseidon::enqueueAsyncJob(std::bind([](const boost::weak_ptr<ClusterClient> &weak){
+		const auto client = weak.lock();
+		if(!client){
+			return;
+		}
+		client->sendAndWait(EmperyCenter::Msg::KS_InitRegisterCluster(client->m_mapX, client->m_mapY));
+	}, virtualWeakFromThis<ClusterClient>()));
 
-	send(EmperyCenter::Msg::KC_InitRegisterCluster(m_mapX, m_mapY));
+	Poseidon::Cbpp::Client::onConnect();
 }
 void ClusterClient::onClose(int errCode) noexcept {
 	PROFILE_ME;
