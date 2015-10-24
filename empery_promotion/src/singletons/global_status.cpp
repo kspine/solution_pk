@@ -148,32 +148,33 @@ void GlobalStatus::checkDailyReset(){
 			commitFirstBalanceBonus();
 			LOG_EMPERY_PROMOTION_WARNING("Done committing first balance bonus.");
 		}
-	}
 
-	const auto lastResetTime = serverDailyResetTimeObj->get_value();
-	serverDailyResetTimeObj->set_value(localNow);
-	const auto thisDay = localNow / 86400000;
-	const auto lastDay = lastResetTime / 86400000;
-	if(lastDay < thisDay){
-		const auto deltaDays = thisDay - lastDay;
-		LOG_EMPERY_PROMOTION_INFO("Daily reset: deltaDays = ", deltaDays);
+		// 首次结算之前不涨价。
+		const auto lastResetTime = serverDailyResetTimeObj->get_value();
+		serverDailyResetTimeObj->set_value(localNow);
+		const auto thisDay = localNow / 86400000;
+		const auto lastDay = lastResetTime / 86400000;
+		if(lastDay < thisDay){
+			const auto deltaDays = thisDay - lastDay;
+			LOG_EMPERY_PROMOTION_INFO("Daily reset: deltaDays = ", deltaDays);
 
-		const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_increment", 100);
-		const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin",     40000);
-		const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",       50000);
+			const auto accCardUnitPriceIncrement = getConfig<boost::uint64_t>("acc_card_unit_price_increment", 100);
+			const auto accCardUnitPriceBegin     = getConfig<boost::uint64_t>("acc_card_unit_price_begin",     40000);
+			const auto accCardUnitPriceEnd       = getConfig<boost::uint64_t>("acc_card_unit_price_end",       50000);
 
-		auto newAccCardUnitPrice = accCardUnitPriceObj->get_value();
-		const auto deltaPrice = checkedMul(accCardUnitPriceIncrement, deltaDays);
-		LOG_EMPERY_PROMOTION_INFO("Incrementing acceleration card unit price by ", deltaPrice);
-		newAccCardUnitPrice = checkedAdd(newAccCardUnitPrice, deltaPrice);
-		if(newAccCardUnitPrice < accCardUnitPriceBegin){
-			newAccCardUnitPrice = accCardUnitPriceBegin;
+			auto newAccCardUnitPrice = accCardUnitPriceObj->get_value();
+			const auto deltaPrice = checkedMul(accCardUnitPriceIncrement, deltaDays);
+			LOG_EMPERY_PROMOTION_INFO("Incrementing acceleration card unit price by ", deltaPrice);
+			newAccCardUnitPrice = checkedAdd(newAccCardUnitPrice, deltaPrice);
+			if(newAccCardUnitPrice < accCardUnitPriceBegin){
+				newAccCardUnitPrice = accCardUnitPriceBegin;
+			}
+			if(newAccCardUnitPrice > accCardUnitPriceEnd){
+				newAccCardUnitPrice = accCardUnitPriceEnd;
+			}
+			LOG_EMPERY_PROMOTION_INFO("Incremented acceleration card unit price to ", newAccCardUnitPrice);
+			accCardUnitPriceObj->set_value(newAccCardUnitPrice);
 		}
-		if(newAccCardUnitPrice > accCardUnitPriceEnd){
-			newAccCardUnitPrice = accCardUnitPriceEnd;
-		}
-		LOG_EMPERY_PROMOTION_INFO("Incremented acceleration card unit price to ", newAccCardUnitPrice);
-		accCardUnitPriceObj->set_value(newAccCardUnitPrice);
 	}
 }
 

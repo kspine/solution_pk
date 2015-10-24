@@ -4,6 +4,7 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "../../empery_center/src/msg/g_packed.hpp"
+#include "../../empery_center/src/msg/kc_init.hpp"
 
 namespace EmperyCluster {
 
@@ -64,9 +65,9 @@ void ClusterClient::onConnect(){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_INFO("Cluster client connected");
 
-//	send(
-
 	Poseidon::Cbpp::Client::onConnect();
+
+	send(EmperyCenter::Msg::KC_InitRegisterCluster(m_mapX, m_mapY));
 }
 void ClusterClient::onClose(int errCode) noexcept {
 	PROFILE_ME;
