@@ -189,8 +189,7 @@ namespace IdTypes {
 	using ResourceId        = GenericId<boost::uint32_t, 120003>;
 
 	using AccountUuid       = GenericUuid<               210001>;
-	using CastleUuid        = GenericUuid<               210002>;
-	using UnitUuid          = GenericUuid<               210003>;
+	using MapObjectUuid     = GenericUuid<               210002>;
 }
 
 using namespace IdTypes;
