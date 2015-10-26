@@ -3,6 +3,7 @@
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
+#include <poseidon/async_job.hpp>
 #include "../mysql/global_status.hpp"
 #include "../utilities.hpp"
 #include "../checked_arithmetic.hpp"
@@ -46,7 +47,7 @@ namespace {
 			handles.push(std::move(timer));
 		}
 
-		GlobalStatus::checkDailyReset();
+		Poseidon::enqueueAsyncJob(GlobalStatus::checkDailyReset);
 	}
 }
 

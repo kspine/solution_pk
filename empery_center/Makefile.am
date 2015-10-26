@@ -30,4 +30,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/cluster_session.cpp	\
 	src/data_session.cpp	\
 	src/admin_session.cpp	\
+	src/map_object.cpp	\
 	src/mmain.cpp

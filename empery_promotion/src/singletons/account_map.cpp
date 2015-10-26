@@ -503,7 +503,9 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 	boost::uint64_t oldLevel = 0, newLevel = 0;
 
 	if(slot == ATTR_ACCOUNT_LEVEL){
-		newLevel = boost::lexical_cast<boost::uint64_t>(value);
+		if(!value.empty()){
+			newLevel = boost::lexical_cast<boost::uint64_t>(value);
+		}
 	}
 
 	auto it = g_attributeMap->find<1>(std::make_pair(accountId, slot));
@@ -549,7 +551,7 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 				}
 				LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: currentReferrerId = ", currentReferrerId,
 					", oldMaxLevel = ", oldMaxLevel, ", newMaxLevel = ", newMaxLevel);
-				setAttribute(currentReferrerId, ATTR_MAX_SUBORD_LEVEL, boost::lexical_cast<std::string>(newLevel));
+				setAttribute(currentReferrerId, ATTR_MAX_SUBORD_LEVEL, boost::lexical_cast<std::string>(newMaxLevel));
 			} catch(std::exception &e){
 				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 			}

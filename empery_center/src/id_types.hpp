@@ -187,6 +187,7 @@ namespace IdTypes {
 	using TerrainId         = GenericId<boost::uint32_t, 120001>;
 	using OverlayId         = GenericId<boost::uint32_t, 120002>;
 	using ResourceId        = GenericId<boost::uint32_t, 120003>;
+	using MapObjectTypeId   = GenericId<boost::uint32_t, 120004>;
 
 	using AccountUuid       = GenericUuid<               210001>;
 	using MapObjectUuid     = GenericUuid<               210002>;
