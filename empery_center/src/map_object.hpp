@@ -11,38 +11,30 @@ namespace EmperyCenter {
 
 namespace MySql {
 	class Center_MapObject;
+	class Center_MapObjectAttribute;
 }
 
 class MapObject : NONCOPYABLE {
 private:
-	const boost::shared_ptr<MySql::Center_MapObject> m_obj;
-
-	boost::container::flat_map<unsigned, boost::uint64_t> m_attributes;
+	boost::shared_ptr<MySql::Center_MapObject> m_obj;
+	boost::container::flat_map<MapObjectAttrId, boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 public:
-	MapObject(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid, boost::uint64_t hitPoints,
-		boost::int64_t x, boost::int64_t y, boost::container::flat_map<unsigned, boost::uint64_t> attributes);
-	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj);
+	MapObject(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid);
+	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
+		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	~MapObject();
 
 public:
-	void deleteFromGame();
-
 	MapObjectUuid getMapObjectUuid() const;
 	MapObjectTypeId getMapObjectTypeId() const;
-
 	AccountUuid getOwnerUuid() const;
-	void setOwnerUuid(const AccountUuid &ownerUuid);
+	boost::uint64_t getCreatedTime() const;
 
-	boost::uint64_t getHitPoints() const;
-	void setHitPoints(boost::uint64_t hitPoints);
+	void deleteFromGame();
 
-	std::pair<boost::int64_t, boost::int64_t> getCoord() const;
-	void setCoord(boost::int64_t x, boost::int64_t y);
-
-	const boost::container::flat_map<unsigned, boost::uint64_t> &getAttributes() const;
-	boost::uint64_t getAttribute(unsigned slot) const;
-	void setAttribute(unsigned slot, boost::uint64_t value);
+	boost::uint64_t getAttribute(MapObjectAttrId mapObjectAttrId) const;
+	void setAttribute(MapObjectAttrId mapObjectAttrId, boost::uint64_t value);
 };
 
 }

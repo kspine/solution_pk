@@ -51,13 +51,18 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 		}
 	}
 	if(!level.empty()){
-		const auto newPromotionData = Data::Promotion::get(boost::lexical_cast<boost::uint64_t>(level));
-		if(!newPromotionData){
-			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
-			ret[sslit("errorMessage")] = "Account level is not found";
-			return ret;
+		const auto num = boost::lexical_cast<boost::uint64_t>(level);
+		if(num == 0){
+			level = "0";
+		} else {
+			const auto newPromotionData = Data::Promotion::get(num);
+			if(!newPromotionData){
+				ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
+				ret[sslit("errorMessage")] = "Account level is not found";
+				return ret;
+			}
+			level = boost::lexical_cast<std::string>(newPromotionData->level);
 		}
-		level = boost::lexical_cast<std::string>(newPromotionData->level);
 	}
 	if(!maxVisibleSubordDepth.empty()){
 		const auto depth = boost::lexical_cast<boost::uint64_t>(maxVisibleSubordDepth);
