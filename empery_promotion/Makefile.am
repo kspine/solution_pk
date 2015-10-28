@@ -49,6 +49,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/find_by_phone_number.cpp	\
 	src/account/deactivate.cpp	\
 	src/account/is_subordinate_of.cpp	\
+	src/account/buy_more_cards.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\

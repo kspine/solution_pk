@@ -21,6 +21,7 @@ namespace Events {
 			R_INCOME_TAX            = 201009, // 原始收入       收取谁的        0
 			R_BALANCE_BONUS_EXTRA   = 201010, // 升级账号       付款人账号      升级到等级
 			R_DEACTIVATE_ACCOUNT    = 201011, // 删除账号       0               0
+			R_BUY_MORE_CARDS        = 201012, // 自己账号       付款时卡单价    0
 		};
 
 		AccountId accountId;
