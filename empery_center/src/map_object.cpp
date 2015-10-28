@@ -35,28 +35,31 @@ boost::uint64_t MapObject::getCreatedTime() const {
 	return m_obj->get_createdTime();
 }
 
+bool MapObject::hasBeenDeleted() const {
+	PROFILE_ME;
+
+	return m_obj->get_deleted();
+}
 void MapObject::deleteFromGame(){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Deleting map object from game: mapObjectUuid = ", getMapObjectUuid());
 
 	m_obj->set_deleted(true);
 
-	std::ostringstream oss;
-	oss <<"DELETE `Center_MapObject`, `Center_MapObjectAttribute` "
-	    <<"  FROM `Center_MapObject` LEFT JOIN `Center_MapObjectAttribute` "
-	    <<"    ON `Center_MapObject`.`mapObjectUuid` = `Center_MapObjectAttribute`.`mapObjectUuid` "
-	    <<"  WHERE `Center_MapObject`.`mapObjectUuid` = '" <<m_obj->unlockedGet_mapObjectUuid() <<"' ";
-	auto deleteQuery = oss.str();
-
 	m_obj->disableAutoSaving();
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		it->second->disableAutoSaving();
 	}
 
-	Poseidon::MySqlDaemon::enqueueForBatchLoading({ }, nullptr, m_obj->getTableName(), std::move(deleteQuery));
+	std::ostringstream oss;
+	oss <<"DELETE `Center_MapObject`, `Center_MapObjectAttribute` "
+	    <<"  FROM `Center_MapObject` LEFT JOIN `Center_MapObjectAttribute` "
+	    <<"    ON `Center_MapObject`.`mapObjectUuid` = `Center_MapObjectAttribute`.`mapObjectUuid` "
+	    <<"  WHERE `Center_MapObject`.`mapObjectUuid` = '" <<m_obj->unlockedGet_mapObjectUuid() <<"' ";
+	Poseidon::MySqlDaemon::enqueueForBatchLoading({ }, nullptr, m_obj->getTableName(), oss.str());
 }
 
-boost::uint64_t MapObject::getAttribute(MapObjectAttrId mapObjectAttrId) const {
+boost::int64_t MapObject::getAttribute(MapObjectAttrId mapObjectAttrId) const {
 	PROFILE_ME;
 
 	const auto it = m_attributes.find(mapObjectAttrId);
@@ -65,7 +68,7 @@ boost::uint64_t MapObject::getAttribute(MapObjectAttrId mapObjectAttrId) const {
 	}
 	return it->second->get_value();
 }
-void MapObject::setAttribute(MapObjectAttrId mapObjectAttrId, boost::uint64_t value){
+void MapObject::setAttribute(MapObjectAttrId mapObjectAttrId, boost::int64_t value){
 	PROFILE_ME;
 
 	auto it = m_attributes.find(mapObjectAttrId);

@@ -31,10 +31,11 @@ public:
 	AccountUuid getOwnerUuid() const;
 	boost::uint64_t getCreatedTime() const;
 
+	bool hasBeenDeleted() const;
 	void deleteFromGame();
 
-	boost::uint64_t getAttribute(MapObjectAttrId mapObjectAttrId) const;
-	void setAttribute(MapObjectAttrId mapObjectAttrId, boost::uint64_t value);
+	boost::int64_t getAttribute(MapObjectAttrId mapObjectAttrId) const;
+	void setAttribute(MapObjectAttrId mapObjectAttrId, boost::int64_t value);
 };
 
 }

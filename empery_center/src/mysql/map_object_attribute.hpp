@@ -11,7 +11,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS	\
 	FIELD_UUID				(mapObjectUuid)	\
 	FIELD_INTEGER_UNSIGNED	(mapObjectAttrId)	\
-	FIELD_BIGINT_UNSIGNED	(value)
+	FIELD_BIGINT			(value)
 #include <poseidon/mysql/object_generator.hpp>
 
 }
