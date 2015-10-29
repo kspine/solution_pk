@@ -16,7 +16,9 @@ public:
 	{
 	}
 	constexpr Rectangle(boost::int64_t l, boost::int64_t b, boost::uint64_t w, boost::uint64_t h) noexcept
-		: Rectangle(Coord(l, b), Coord(boost::int64_t(boost::uint64_t(l) + w), boost::int64_t(boost::uint64_t(b) + h)))
+		: Rectangle(Coord(l, b),
+			Coord(static_cast<boost::int64_t>(static_cast<boost::uint64_t>(l) + w),
+			      static_cast<boost::int64_t>(static_cast<boost::uint64_t>(b) + h)))
 	{
 	}
 
