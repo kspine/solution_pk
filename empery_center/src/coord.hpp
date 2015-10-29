@@ -5,20 +5,43 @@
 
 namespace EmperyCenter {
 
-struct Coord {
-	boost::int64_t x;
-	boost::int64_t y;
+class Coord {
+private:
+	boost::int64_t m_x;
+	boost::int64_t m_y;
 
-	constexpr Coord(boost::int64_t x_, boost::int64_t y_) noexcept
-		: x(x_), y(y_)
+public:
+	constexpr Coord(boost::int64_t x, boost::int64_t y) noexcept
+		: m_x(x), m_y(y)
 	{
 	}
 
-	bool operator<(const Coord &rhs) const noexcept {
-		if(x != rhs.x){
-			return x < rhs.x;
-		}
-		return y < rhs.y;
+public:
+	constexpr boost::int64_t x() const noexcept {
+		return m_x;
+	}
+	constexpr boost::int64_t y() const noexcept {
+		return m_x;
+	}
+
+	constexpr bool operator==(const Coord &rhs) const noexcept {
+		return (m_x == rhs.m_x) && (m_y == rhs.m_y);
+	}
+	constexpr bool operator!=(const Coord &rhs) const noexcept {
+		return !(*this == rhs);
+	}
+
+	constexpr bool operator<(const Coord &rhs) const noexcept {
+		return (m_x != rhs.m_x) ? (m_x < rhs.m_x) : (m_y < rhs.m_y);
+	}
+	constexpr bool operator>(const Coord &rhs) const noexcept {
+		return rhs < *this;
+	}
+	constexpr bool operator<=(const Coord &rhs) const noexcept {
+		return !(rhs < *this);
+	}
+	constexpr bool operator>=(const Coord &rhs) const noexcept {
+		return !(*this < rhs);
 	}
 };
 

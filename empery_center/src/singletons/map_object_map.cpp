@@ -2,6 +2,7 @@
 #include "map_object_map.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include "../player_session.hpp"
 #include "../map_object.hpp"
 #include "../map_object_attr_ids.hpp"
 #include "../mysql/map_object.hpp"
@@ -123,8 +124,8 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &mapObject, const C
 	} else {
 		mapObjectMap->setKey<0, 1>(it, coord);
 	}
-	it->mapObject->setAttribute(MapObjectAttrIds::ID_COORD_X, coord.x);
-	it->mapObject->setAttribute(MapObjectAttrIds::ID_COORD_Y, coord.y);
+	it->mapObject->setAttribute(MapObjectAttrIds::ID_COORD_X, coord.x());
+	it->mapObject->setAttribute(MapObjectAttrIds::ID_COORD_Y, coord.y());
 }
 void MapObjectMap::remove(const MapObjectUuid &mapObjectUuid) noexcept {
 	PROFILE_ME;
@@ -167,11 +168,11 @@ void MapObjectMap::getByRectangle(std::vector<std::pair<Coord, boost::shared_ptr
 				x = INT64_MAX;
 				break;
 			}
-			if(it->coord.x != x){
-				x = it->coord.x;
+			if(it->coord.x() != x){
+				x = it->coord.x();
 				break;
 			}
-			if(it->coord.y >= rectangle.top()){
+			if(it->coord.y() >= rectangle.top()){
 				++x;
 				break;
 			}
