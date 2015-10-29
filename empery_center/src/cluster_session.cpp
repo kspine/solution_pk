@@ -125,8 +125,8 @@ void ClusterSession::onSyncDataMessage(boost::uint16_t messageId, Poseidon::Stre
 				elem.promise->setSuccess();
 			}
 		}
-	} else if(messageId == Msg::G_PackedClientNotification::ID){
-		Msg::G_PackedClientNotification packed(std::move(payload));
+	} else if(messageId == Msg::G_PackedAccountNotification::ID){
+		Msg::G_PackedAccountNotification packed(std::move(payload));
 		LOG_EMPERY_CENTER_DEBUG("Forwarding message: accountUuid = ", packed.accountUuid,
 			", messageId = ", packed.messageId, ", payloadSize = ", packed.payload.size());
 		const auto accountUuid = AccountUuid(packed.accountUuid);

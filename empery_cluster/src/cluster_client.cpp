@@ -218,4 +218,10 @@ Result ClusterClient::sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuf
 	return ret;
 }
 
+bool ClusterClient::sendNotification(const EmperyCenter::AccountUuid &accountUuid, boost::uint16_t messageId, Poseidon::StreamBuffer body){
+	PROFILE_ME;
+
+	return Poseidon::Cbpp::Client::send(Msg::G_PackedAccountNotification(accountUuid.str(), messageId, body.dump()));
+}
+
 }

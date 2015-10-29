@@ -8,6 +8,7 @@
 #include <map>
 #include <utility>
 #include "log.hpp"
+#include "../../empery_center/src/id_types.hpp"
 
 namespace EmperyCluster {
 
@@ -75,6 +76,15 @@ public:
 		LOG_EMPERY_CLUSTER_DEBUG("Received response from center: remote = ", getRemoteInfo(),
 			", errorCode = ", static_cast<int>(ret.first), ", errorMessage = ", ret.second);
 		return ret;
+	}
+
+	bool sendNotification(const EmperyCenter::AccountUuid &accountUuid, boost::uint16_t messageId, Poseidon::StreamBuffer body);
+
+	template<typename MsgT>
+	bool sendNotification(const EmperyCenter::AccountUuid &accountUuid, const MsgT &msg){
+		LOG_EMPERY_CLUSTER_DEBUG("Sending notification to center: remote = ", getRemoteInfo(),
+			", accountUuid = ", accountUuid, ", msg = ", msg);
+		return sendNotification(accountUuid, MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 };
 

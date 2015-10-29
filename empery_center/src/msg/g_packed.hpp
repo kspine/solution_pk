@@ -26,10 +26,9 @@ namespace Msg {
 #include <poseidon/cbpp/message_generator.hpp>
 
 // 集群到中心单向。只转发，不需要响应。
-#define MESSAGE_NAME	G_PackedClientNotification
+#define MESSAGE_NAME	G_PackedAccountNotification
 #define MESSAGE_ID		97
 #define MESSAGE_FIELDS	\
-	FIELD_VUINT			(serial)	\
 	FIELD_STRING		(accountUuid)	\
 	FIELD_VUINT			(messageId)	\
 	FIELD_STRING		(payload)
