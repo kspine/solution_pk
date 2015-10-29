@@ -4,6 +4,8 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
+#include "singletons/player_session_map.hpp"
+#include "player_session.hpp"
 
 namespace EmperyCenter {
 
@@ -121,6 +123,22 @@ void ClusterSession::onSyncDataMessage(boost::uint16_t messageId, Poseidon::Stre
 			}
 			if(elem.promise){
 				elem.promise->setSuccess();
+			}
+		}
+	} else if(messageId == Msg::G_PackedClientNotification::ID){
+		Msg::G_PackedClientNotification packed(std::move(payload));
+		LOG_EMPERY_CENTER_DEBUG("Forwarding message: accountUuid = ", packed.accountUuid,
+			", messageId = ", packed.messageId, ", payloadSize = ", packed.payload.size());
+		const auto accountUuid = AccountUuid(packed.accountUuid);
+		const auto session = PlayerSessionMap::get(accountUuid);
+		if(!session){
+			LOG_EMPERY_CENTER_DEBUG("Player is not online: accountUuid = ", accountUuid);
+		} else {
+			try {
+				session->send(packed.messageId, Poseidon::StreamBuffer(packed.payload));
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->forceShutdown();
 			}
 		}
 	} else {
