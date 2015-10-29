@@ -85,6 +85,11 @@ namespace {
 	}
 }
 
+void MapObjectMap::setPlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view){
+	PROFILE_ME;
+
+}
+
 boost::shared_ptr<MapObject> MapObjectMap::get(const MapObjectUuid &mapObjectUuid){
 	PROFILE_ME;
 

@@ -48,6 +48,10 @@ public:
 	constexpr Coord topLeft() const noexcept {
 		return Coord(left(), top());
 	}
+
+	constexpr bool hitTest(const Coord &coord) const noexcept {
+		return (left() <= coord.x()) && (coord.x() < right()) && (bottom() <= coord.y()) && (coord.y() < top());
+	}
 };
 
 }
