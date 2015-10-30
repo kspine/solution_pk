@@ -22,24 +22,6 @@ MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 MapObject::~MapObject(){
 }
 
-MapObjectUuid MapObject::getMapObjectUuid() const {
-	return MapObjectUuid(m_obj->unlockedGet_mapObjectUuid());
-}
-MapObjectTypeId MapObject::getMapObjectTypeId() const {
-	return MapObjectTypeId(m_obj->get_mapObjectTypeId());
-}
-AccountUuid MapObject::getOwnerUuid() const {
-	return AccountUuid(m_obj->unlockedGet_ownerUuid());
-}
-boost::uint64_t MapObject::getCreatedTime() const {
-	return m_obj->get_createdTime();
-}
-
-bool MapObject::hasBeenDeleted() const {
-	PROFILE_ME;
-
-	return m_obj->get_deleted();
-}
 void MapObject::deleteFromGame(){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Deleting map object from game: mapObjectUuid = ", getMapObjectUuid());
@@ -57,6 +39,22 @@ void MapObject::deleteFromGame(){
 	    <<"    ON `Center_MapObject`.`mapObjectUuid` = `Center_MapObjectAttribute`.`mapObjectUuid` "
 	    <<"  WHERE `Center_MapObject`.`mapObjectUuid` = '" <<m_obj->unlockedGet_mapObjectUuid() <<"' ";
 	Poseidon::MySqlDaemon::enqueueForBatchLoading({ }, nullptr, m_obj->getTableName(), oss.str());
+}
+
+MapObjectUuid MapObject::getMapObjectUuid() const {
+	return MapObjectUuid(m_obj->unlockedGet_mapObjectUuid());
+}
+MapObjectTypeId MapObject::getMapObjectTypeId() const {
+	return MapObjectTypeId(m_obj->get_mapObjectTypeId());
+}
+AccountUuid MapObject::getOwnerUuid() const {
+	return AccountUuid(m_obj->unlockedGet_ownerUuid());
+}
+boost::uint64_t MapObject::getCreatedTime() const {
+	return m_obj->get_createdTime();
+}
+bool MapObject::hasBeenDeleted() const {
+	return m_obj->get_deleted();
 }
 
 void MapObject::getAttributes(boost::container::flat_map<MapObjectAttrId, boost::int64_t> &ret) const {

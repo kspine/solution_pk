@@ -173,12 +173,8 @@ namespace {
 
 		const auto sectorCoord = sectorCoordFromMapCoord(coord);
 		const auto range = playerViewMap->equalRange<1>(sectorCoord);
-		if(range.first == range.second){
-			LOG_EMPERY_CENTER_DEBUG("No player in sector: sectorCoord = ", sectorCoord);
-			return;
-		}
 		auto it = range.first;
-		do {
+		while(it != range.second){
 			const auto session = it->session.lock();
 			if(!session){
 				it = playerViewMap->erase<1>(it);
@@ -186,7 +182,7 @@ namespace {
 			}
 			synchronizeMapObject(mapObject, session);
 			++it;
-		} while(it != range.second);
+		}
 	}
 }
 

@@ -14,7 +14,11 @@ namespace MySql {
 	class Center_MapObjectAttribute;
 }
 
+class MapObjectMap;
+
 class MapObject : NONCOPYABLE {
+	friend MapObjectMap;
+
 private:
 	boost::shared_ptr<MySql::Center_MapObject> m_obj;
 	boost::container::flat_map<MapObjectAttrId, boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
@@ -25,14 +29,15 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	~MapObject();
 
+protected:
+	void deleteFromGame();
+
 public:
 	MapObjectUuid getMapObjectUuid() const;
 	MapObjectTypeId getMapObjectTypeId() const;
 	AccountUuid getOwnerUuid() const;
 	boost::uint64_t getCreatedTime() const;
-
 	bool hasBeenDeleted() const;
-	void deleteFromGame();
 
 	void getAttributes(boost::container::flat_map<MapObjectAttrId, boost::int64_t> &ret) const;
 	boost::int64_t getAttribute(MapObjectAttrId mapObjectAttrId) const;
