@@ -162,7 +162,7 @@ namespace {
 			session->forceShutdown();
 		}
 	}
-	void synchronizeMapObjectInView(const boost::shared_ptr<MapObject> &mapObject, const Coord &coord) noexcept {
+	void synchronizeMapObject(const boost::shared_ptr<MapObject> &mapObject, const Coord &coord) noexcept {
 		PROFILE_ME;
 
 		const auto playerViewMap = g_playerViewMap.lock();
@@ -257,7 +257,7 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &mapObject, const C
 		sectorIt->mapObjects.insert(mapObject);
 	}
 
-	synchronizeMapObjectInView(mapObject, coord);
+	synchronizeMapObject(mapObject, coord);
 }
 void MapObjectMap::remove(const MapObjectUuid &mapObjectUuid) noexcept {
 	PROFILE_ME;
@@ -295,7 +295,7 @@ void MapObjectMap::remove(const MapObjectUuid &mapObjectUuid) noexcept {
 		oldSectorIt->mapObjects.erase(mapObject);
 	}
 
-	synchronizeMapObjectInView(mapObject, coord);
+	synchronizeMapObject(mapObject, coord);
 }
 
 void MapObjectMap::getByRectangle(std::vector<std::pair<Coord, boost::shared_ptr<MapObject>>> &ret, const Rectangle &rectangle){
@@ -349,12 +349,13 @@ void MapObjectMap::setPlayerView(const boost::shared_ptr<PlayerSession> &session
 		return;
 	}
 
-	const auto sectorFirst = sectorCoordFromMapCoord(Coord(view.left(), view.bottom()));
-	const auto sectorLast  = sectorCoordFromMapCoord(Coord(view.right() - 1, view.top() - 1));
-	LOG_EMPERY_CENTER_DEBUG("Set player view: view = ", view, ", sectorFirst = ", sectorFirst, ", sectorLast = ", sectorLast);
+	const auto sectorBottomLeft = sectorCoordFromMapCoord(Coord(view.left(), view.bottom()));
+	const auto sectorUpperRight = sectorCoordFromMapCoord(Coord(view.right() - 1, view.top() - 1));
+	LOG_EMPERY_CENTER_DEBUG("Set player view: view = ", view,
+		", sectorBottomLeft = ", sectorBottomLeft, ", sectorUpperRight = ", sectorUpperRight);
 	try {
-		for(boost::int64_t x = sectorFirst.x(); x <= sectorFirst.x(); ++x){
-			for(boost::int64_t y = sectorLast.y(); y <= sectorLast.y(); ++y){
+		for(boost::int64_t x = sectorBottomLeft.x(); x <= sectorBottomLeft.x(); ++x){
+			for(boost::int64_t y = sectorUpperRight.y(); y <= sectorUpperRight.y(); ++y){
 				playerViewMap->insert(PlayerViewElement(session, Coord(x, y)));
 			}
 		}
@@ -364,9 +365,30 @@ void MapObjectMap::setPlayerView(const boost::shared_ptr<PlayerSession> &session
 		throw;
 	}
 
+	synchronizePlayerView(session, view);
+}
+
+void MapObjectMap::synchronizePlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept {
+	PROFILE_ME;
+
+	const auto mapSectorMap = g_mapSectorMap.lock();
+	if(!mapSectorMap){
+		LOG_EMPERY_CENTER_DEBUG("Map sector map is not initialized.");
+		return;
+	}
+	const auto playerViewMap = g_playerViewMap.lock();
+	if(!playerViewMap){
+		LOG_EMPERY_CENTER_DEBUG("Player view map is not initialized.");
+		return;
+	}
+
+	const auto sectorBottomLeft = sectorCoordFromMapCoord(Coord(view.left(), view.bottom()));
+	const auto sectorUpperRight = sectorCoordFromMapCoord(Coord(view.right() - 1, view.top() - 1));
+	LOG_EMPERY_CENTER_DEBUG("Synchronize player view: view = ", view,
+		", sectorBottomLeft = ", sectorBottomLeft, ", sectorUpperRight = ", sectorUpperRight);
 	try {
-		for(boost::int64_t x = sectorFirst.x(); x <= sectorFirst.x(); ++x){
-			for(boost::int64_t y = sectorLast.y(); y <= sectorLast.y(); ++y){
+		for(boost::int64_t x = sectorBottomLeft.x(); x <= sectorBottomLeft.x(); ++x){
+			for(boost::int64_t y = sectorUpperRight.y(); y <= sectorUpperRight.y(); ++y){
 				const auto sectorIt = mapSectorMap->find<0>(Coord(x, y));
 				if(sectorIt == mapSectorMap->end<0>()){
 					continue;

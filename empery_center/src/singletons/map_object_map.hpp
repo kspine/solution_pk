@@ -20,6 +20,7 @@ struct MapObjectMap {
 	static void getByRectangle(std::vector<std::pair<Coord, boost::shared_ptr<MapObject>>> &ret, const Rectangle &rectangle);
 
 	static void setPlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view);
+	static void synchronizePlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept;
 
 private:
 	MapObjectMap();

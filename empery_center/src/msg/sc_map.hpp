@@ -30,8 +30,9 @@ namespace Msg {
 	FIELD_STRING		(ownerUuid)	\
 	FIELD_ARRAY			(buffSet,	\
 		FIELD_VUINT			(buffId)	\
-		FIELD_STRING		(buffOwner)	\
-		FIELD_VUINT			(buffValue)	\
+		FIELD_STRING		(buffOwnerUuid)	\
+		FIELD_VINT			(buffValue)	\
+		FIELD_VUINT			(expiryDuration)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

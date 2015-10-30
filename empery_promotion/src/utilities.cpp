@@ -43,11 +43,12 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * promotionData->immediateDiscount);
 	boost::uint64_t balanceToConsume = 0;
 	if(cardUnitPrice != 0){
-		const auto cardsToBuy = checkedAdd(
-			static_cast<boost::uint64_t>(std::ceil(static_cast<double>(promotionData->immediatePrice) / cardUnitPrice)),
-			additionalCards);
+		const auto minCardsToBuy = static_cast<boost::uint64_t>(
+			std::ceil(static_cast<double>(promotionData->immediatePrice) / cardUnitPrice));
+		const auto cardsToBuy = checkedAdd(minCardsToBuy, additionalCards);
 		balanceToConsume = checkedMul(cardUnitPrice, cardsToBuy);
-		LOG_EMPERY_PROMOTION_INFO("Items: cardsToBuy = ", cardsToBuy, ", balanceToConsume = ", balanceToConsume);
+		LOG_EMPERY_PROMOTION_INFO("Acceleration cards: minCardsToBuy = ", minCardsToBuy, ", additionalCards = ", additionalCards,
+			", cardsToBuy = ", cardsToBuy, ", balanceToConsume = ", balanceToConsume);
 
 		auto reason = Events::ItemChanged::R_UPGRADE_ACCOUNT;
 		if(isCreatingAccount){
