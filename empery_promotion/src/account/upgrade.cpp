@@ -13,6 +13,7 @@ ACCOUNT_SERVLET("upgrade", /* session */, params){
 	const auto newLevel = boost::lexical_cast<boost::uint64_t>(params.at("newLevel"));
 	const auto &dealPassword = params.at("dealPassword");
 	const auto &remarks = params.get("remarks");
+	const auto &additionalCardsStr = params.get("additionalCards");
 
 	Poseidon::JsonObject ret;
 
@@ -53,7 +54,12 @@ ACCOUNT_SERVLET("upgrade", /* session */, params){
 		return ret;
 	}
 
-	const auto result = tryUpgradeAccount(info.accountId, payerInfo.accountId, false, promotionData, remarks);
+	boost::uint64_t additionalCards = 0;
+	if(!additionalCardsStr.empty()){
+		additionalCards = boost::lexical_cast<boost::uint64_t>(additionalCardsStr);
+	}
+
+	const auto result = tryUpgradeAccount(info.accountId, payerInfo.accountId, false, promotionData, remarks, additionalCards);
 	ret[sslit("balanceToConsume")] = result.second;
 	if(!result.first){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;

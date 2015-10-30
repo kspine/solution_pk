@@ -34,6 +34,7 @@ public:
 	bool hasBeenDeleted() const;
 	void deleteFromGame();
 
+	void getAttributes(boost::container::flat_map<MapObjectAttrId, boost::int64_t> &ret) const;
 	boost::int64_t getAttribute(MapObjectAttrId mapObjectAttrId) const;
 	void setAttribute(MapObjectAttrId mapObjectAttrId, boost::int64_t value);
 };

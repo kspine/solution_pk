@@ -30,6 +30,7 @@ ACCOUNT_SERVLET("create", session, params){
 	const auto &bankSwiftCode = params.get("bankSwiftCode");
 	const auto &remarks = params.get("remarks");
 	const auto &ip = params.get("ip");
+	const auto &additionalCardsStr = params.get("additionalCards");
 
 	Poseidon::JsonObject ret;
 
@@ -120,8 +121,13 @@ ACCOUNT_SERVLET("create", session, params){
 	}
 	ItemMap::commitTransaction(transaction.data(), transaction.size());
 
+	boost::uint64_t additionalCards = 0;
+	if(!additionalCardsStr.empty()){
+		additionalCards = boost::lexical_cast<boost::uint64_t>(additionalCardsStr);
+	}
+
 	if(promotionData){
-		const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks);
+		const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks, additionalCards);
 		ret[sslit("balanceToConsume")] = result.second;
 		if(!result.first){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;

@@ -59,6 +59,14 @@ void MapObject::deleteFromGame(){
 	Poseidon::MySqlDaemon::enqueueForBatchLoading({ }, nullptr, m_obj->getTableName(), oss.str());
 }
 
+void MapObject::getAttributes(boost::container::flat_map<MapObjectAttrId, boost::int64_t> &ret) const {
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_attributes.size());
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		ret[it->first] = it->second->get_value();
+	}
+}
 boost::int64_t MapObject::getAttribute(MapObjectAttrId mapObjectAttrId) const {
 	PROFILE_ME;
 

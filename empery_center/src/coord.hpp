@@ -2,6 +2,7 @@
 #define EMPERY_CENTER_COORD_HPP_
 
 #include <boost/cstdint.hpp>
+#include <iosfwd>
 
 namespace EmperyCenter {
 
@@ -21,7 +22,7 @@ public:
 		return m_x;
 	}
 	constexpr boost::int64_t y() const noexcept {
-		return m_x;
+		return m_y;
 	}
 
 	constexpr bool operator==(const Coord &rhs) const noexcept {
@@ -44,6 +45,10 @@ public:
 		return !(*this < rhs);
 	}
 };
+
+inline std::ostream &operator<<(std::ostream &os, const Coord &rhs){
+	return os <<'(' <<rhs.x() <<',' <<rhs.y() <<')';
+}
 
 }
 

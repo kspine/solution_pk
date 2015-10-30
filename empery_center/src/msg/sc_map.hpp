@@ -19,7 +19,7 @@ namespace Msg {
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME	SC_MapCellInfo
-#define MESSAGE_ID		301
+#define MESSAGE_ID		398
 #define MESSAGE_FIELDS	\
 	FIELD_VINT			(x)	\
 	FIELD_VINT			(y)	\
@@ -36,17 +36,23 @@ namespace Msg {
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME	SC_MapObjectInfo
-#define MESSAGE_ID		302
+#define MESSAGE_ID		397
 #define MESSAGE_FIELDS	\
 	FIELD_STRING		(objectUuid)	\
 	FIELD_VUINT			(objectTypeId)	\
 	FIELD_STRING		(ownerUuid)	\
-	FIELD_VINT			(x)	\
-	FIELD_VINT			(y)	\
 	FIELD_ARRAY			(attributes,	\
 		FIELD_VUINT			(slot)	\
 		FIELD_STRING		(value)	\
 	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME	SC_MapObjectRemoved
+#define MESSAGE_ID		396
+#define MESSAGE_FIELDS	\
+	FIELD_STRING		(objectUuid)	\
+	FIELD_VUINT			(reason)	\
+	FIELD_STRING		(param)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

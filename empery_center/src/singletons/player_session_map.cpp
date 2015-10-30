@@ -45,7 +45,14 @@ boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const AccountUuid &accoun
 	if(it == g_sessionMap->end<0>()){
 		return { };
 	}
-	return it->session.lock();
+	auto session = it->session.lock();
+	if(!session){
+		return { };
+	}
+	if(session->hasBeenShutdownWrite()){
+		return { };
+	}
+	return session;
 }
 
 AccountUuid PlayerSessionMap::getAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession){

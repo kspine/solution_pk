@@ -26,7 +26,7 @@ namespace {
 }
 
 std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountId payerId, bool isCreatingAccount,
-	const boost::shared_ptr<const Data::Promotion> &promotionData, const std::string &remarks)
+	const boost::shared_ptr<const Data::Promotion> &promotionData, const std::string &remarks, boost::uint64_t additionalCards)
 {
 	PROFILE_ME;
 	LOG_EMPERY_PROMOTION_INFO("Upgrading account: accountId = ", accountId, ", level = ", promotionData->level);
@@ -43,7 +43,9 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * promotionData->immediateDiscount);
 	boost::uint64_t balanceToConsume = 0;
 	if(cardUnitPrice != 0){
-		const boost::uint64_t cardsToBuy = std::ceil(static_cast<double>(promotionData->immediatePrice) / cardUnitPrice);
+		const auto cardsToBuy = checkedAdd(
+			static_cast<boost::uint64_t>(std::ceil(static_cast<double>(promotionData->immediatePrice) / cardUnitPrice)),
+			additionalCards);
 		balanceToConsume = checkedMul(cardUnitPrice, cardsToBuy);
 		LOG_EMPERY_PROMOTION_INFO("Items: cardsToBuy = ", cardsToBuy, ", balanceToConsume = ", balanceToConsume);
 
