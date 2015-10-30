@@ -54,6 +54,7 @@ ACCOUNT_SERVLET("getIncomeBalanceHistory", /* session */, params){
 		oss <<"AND `accountId` = " <<accountId <<" ";
 	}
 	if(briefMode.empty()){
+		oss <<"ORDER BY `timestamp` DESC, `autoId` DESC ";
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){

@@ -87,7 +87,7 @@ ACCOUNT_SERVLET("getBothBalanceHistory", /* session */, params){
 	std::ostringstream oss;
 	oss <<"(" <<ossIn.str() <<") UNION ALL (" <<ossOut.str() <<") ";
 	if(briefMode.empty()){
-		oss <<"ORDER BY `timestamp` DESC ";
+		oss <<"ORDER BY `timestamp` DESC, `autoId` DESC ";
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){

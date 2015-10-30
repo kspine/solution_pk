@@ -34,12 +34,12 @@ namespace Msg {
 #define MESSAGE_NAME	CS_MapSetObjectPath
 #define MESSAGE_ID		303
 #define MESSAGE_FIELDS	\
-	FIELD_VINT			(mapX)	\
-	FIELD_VINT			(mapY)	\
-	FIELD_STRING		(objectUuid)	\
+	FIELD_STRING		(mapObjectUuid)	\
+	FIELD_VINT			(x)	\
+	FIELD_VINT			(y)	\
 	FIELD_ARRAY			(waypoints,	\
-		FIELD_VINT		(dx)	\
-		FIELD_VINT		(dy)	\
+		FIELD_VINT			(dx)	\
+		FIELD_VINT			(dy)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

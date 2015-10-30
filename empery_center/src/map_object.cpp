@@ -1,8 +1,9 @@
 #include "precompiled.hpp"
 #include "map_object.hpp"
+#include <poseidon/singletons/mysql_daemon.hpp>
 #include "mysql/map_object.hpp"
 #include "mysql/map_object_attribute.hpp"
-#include <poseidon/singletons/mysql_daemon.hpp>
+#include "map_object_attr_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -86,6 +87,10 @@ void MapObject::setAttribute(MapObjectAttrId mapObjectAttrId, boost::int64_t val
 	} else {
 		it->second->set_value(value);
 	}
+}
+
+Coord MapObject::getCoord() const {
+	return Coord(getAttribute(MapObjectAttrIds::ID_COORD_X), getAttribute(MapObjectAttrIds::ID_COORD_Y));
 }
 
 }

@@ -49,8 +49,8 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 	if(!loginName.empty()){
 		oss <<"AND `accountId` = " <<accountId <<" ";
 	}
-	oss <<"ORDER BY `state` ASC, `serial` ASC ";
 	if(briefMode.empty()){
+		oss <<"ORDER BY `state` ASC, `serial` ASC ";
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){
