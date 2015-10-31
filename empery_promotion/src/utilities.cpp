@@ -148,9 +148,10 @@ namespace {
 		g_extraTaxRatioArray = std::move(ratioArray);
 	}
 
-	void reallyAccumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount){
+	void reallyAccumulateBalanceBonus(AccountId accountId, AccountId virtualFirstReferrerId, AccountId payerId, boost::uint64_t amount){
 		PROFILE_ME;
-		LOG_EMPERY_PROMOTION_INFO("Balance bonus: accountId = ", accountId, ", payerId = ", payerId, ", amount = ", amount);
+		LOG_EMPERY_PROMOTION_INFO("Balance bonus: accountId = ", accountId,
+			", virtualFirstReferrerId = ", virtualFirstReferrerId, ", payerId = ", payerId, ", amount = ", amount);
 
 	 	std::vector<ItemTransactionElement> transaction;
 	 	transaction.reserve(64);
@@ -158,17 +159,6 @@ namespace {
 		const auto level = AccountMap::castAttribute<boost::uint64_t>(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 		const auto promotionData = Data::Promotion::get(level);
 		const auto firstPromotionData = Data::Promotion::getFirst();
-
-		AccountId virtualFirstReferrerId;
-		const auto localNow = Poseidon::getLocalTime();
-		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
-		if(localNow < firstBalancingTime){
-			LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
-			virtualFirstReferrerId = accountId;
-		} else {
-			const auto info = AccountMap::require(accountId);
-			virtualFirstReferrerId = info.referrerId;
-		}
 
 		std::deque<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
 		for(auto currentId = virtualFirstReferrerId; currentId; currentId = AccountMap::require(currentId).referrerId){
@@ -286,6 +276,14 @@ void commitFirstBalanceBonus(){
 		}
 	}
 
+	std::set<std::string> fakeOutcome;
+	{
+		auto fakeOutcomeVec = getConfigV<std::string>("fake_outcome");
+		for(auto it = fakeOutcomeVec.begin(); it != fakeOutcomeVec.end(); ++it){
+			fakeOutcome.insert(std::move(*it));
+		}
+	}
+
 	const auto firstLevelData = Data::Promotion::getFirst();
 	if(!firstLevelData){
 		LOG_EMPERY_PROMOTION_FATAL("No first level?");
@@ -342,7 +340,12 @@ void commitFirstBalanceBonus(){
 				if(oldLevel < newLevel){
 					AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, boost::lexical_cast<std::string>(newLevel));
 				}
-				reallyAccumulateBalanceBonus(info.accountId, info.accountId, obj->get_outcomeBalance());
+				if(fakeOutcome.find(info.loginName) != fakeOutcome.end()){
+					LOG_EMPERY_PROMOTION_DEBUG("> Fake outcome user: loginName = ", info.loginName);
+					continue;
+				}
+				// 首次结算从自己开始，以后从推荐人开始。
+				reallyAccumulateBalanceBonus(info.accountId, info.accountId, info.accountId, obj->get_outcomeBalance());
 			} catch(std::exception &e){
 				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 			}
@@ -360,7 +363,8 @@ void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint6
 		return;
 	}
 
-	reallyAccumulateBalanceBonus(accountId, payerId, amount);
+	const auto info = AccountMap::require(accountId);
+	reallyAccumulateBalanceBonus(accountId, info.referrerId, payerId, amount);
 }
 
 std::string generateBillSerial(const std::string &prefix){
