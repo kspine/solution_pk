@@ -46,7 +46,7 @@ namespace {
 		if(it != statusMap->end()){
 			firstBalancingTime = it->second->get_value();
 		}
-		if(firstBalancingTime > localNow){
+		if(localNow < firstBalancingTime){
 			timer = Poseidon::TimerDaemon::registerTimer(firstBalancingTime - localNow + 10000, 0, // 推迟十秒钟。
 				boost::bind(&GlobalStatus::checkDailyReset));
 			handles.push(std::move(timer));
