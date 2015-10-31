@@ -276,7 +276,7 @@ void commitFirstBalanceBonus(){
 		}
 	}
 
-	std::set<std::string> fakeOutcome;
+	std::set<std::string, StringCaseComparator> fakeOutcome;
 	{
 		auto fakeOutcomeVec = getConfigV<std::string>("fake_outcome");
 		for(auto it = fakeOutcomeVec.begin(); it != fakeOutcomeVec.end(); ++it){
