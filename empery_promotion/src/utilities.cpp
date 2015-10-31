@@ -148,20 +148,20 @@ namespace {
 		g_extraTaxRatioArray = std::move(ratioArray);
 	}
 
-	void reallyAccumulateBalanceBonus(AccountId accountId, AccountId virtualFirstReferrerId, AccountId payerId, boost::uint64_t amount){
+	void reallyAccumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount,
+		AccountId virtualReferrerId, boost::uint64_t upgradeToLevel)
+	{
 		PROFILE_ME;
-		LOG_EMPERY_PROMOTION_INFO("Balance bonus: accountId = ", accountId,
-			", virtualFirstReferrerId = ", virtualFirstReferrerId, ", payerId = ", payerId, ", amount = ", amount);
+		LOG_EMPERY_PROMOTION_INFO("Balance bonus: accountId = ", accountId, ", payerId = ", payerId, ", amount = ", amount,
+			", virtualReferrerId = ", virtualReferrerId, ", upgradeToLevel = ", upgradeToLevel);
 
 	 	std::vector<ItemTransactionElement> transaction;
 	 	transaction.reserve(64);
 
-		const auto level = AccountMap::castAttribute<boost::uint64_t>(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-		const auto promotionData = Data::Promotion::get(level);
 		const auto firstPromotionData = Data::Promotion::getFirst();
 
 		std::deque<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
-		for(auto currentId = virtualFirstReferrerId; currentId; currentId = AccountMap::require(currentId).referrerId){
+		for(auto currentId = virtualReferrerId; currentId; currentId = AccountMap::require(currentId).referrerId){
 			const auto referrerLevel = AccountMap::castAttribute<boost::uint64_t>(currentId, AccountMap::ATTR_ACCOUNT_LEVEL);
 			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: currentId = ", currentId, ", referrerLevel = ", referrerLevel);
 			auto referrerPromotionData = Data::Promotion::get(referrerLevel);
@@ -194,7 +194,7 @@ namespace {
 			dividendAccumulated = myMaxDividend;
 
 			transaction.emplace_back(referrerId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, myDividend,
-				Events::ItemChanged::R_BALANCE_BONUS, accountId.get(), payerId.get(), level, std::string());
+				Events::ItemChanged::R_BALANCE_BONUS, accountId.get(), payerId.get(), upgradeToLevel, std::string());
 
 			unsigned generation;
 
@@ -212,7 +212,7 @@ namespace {
 					const auto extra = static_cast<boost::uint64_t>(std::round(dividendTotal * g_extraTaxRatioArray.at(generation)));
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
-						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), level, std::string());
+						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), upgradeToLevel, std::string());
 					++generation;
 				}
 			}
@@ -337,15 +337,16 @@ void commitFirstBalanceBonus(){
 					", outcomeBalance = ", obj->get_outcomeBalance(), ", reason = ", obj->get_reason());
 				const auto oldLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 				const auto newLevel = obj->get_param3();
+				if(fakeOutcome.find(info.loginName) != fakeOutcome.end()){
+					LOG_EMPERY_PROMOTION_DEBUG("> Fake outcome user: loginName = ", info.loginName);
+				} else {
+					reallyAccumulateBalanceBonus(info.accountId, info.accountId, obj->get_outcomeBalance(),
+						// 首次结算从自己开始，以后从推荐人开始。
+						info.accountId, newLevel);
+				}
 				if(oldLevel < newLevel){
 					AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, boost::lexical_cast<std::string>(newLevel));
 				}
-				if(fakeOutcome.find(info.loginName) != fakeOutcome.end()){
-					LOG_EMPERY_PROMOTION_DEBUG("> Fake outcome user: loginName = ", info.loginName);
-					continue;
-				}
-				// 首次结算从自己开始，以后从推荐人开始。
-				reallyAccumulateBalanceBonus(info.accountId, info.accountId, info.accountId, obj->get_outcomeBalance());
 			} catch(std::exception &e){
 				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 			}
@@ -364,7 +365,9 @@ void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint6
 	}
 
 	const auto info = AccountMap::require(accountId);
-	reallyAccumulateBalanceBonus(accountId, info.referrerId, payerId, amount);
+	const auto newLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+	reallyAccumulateBalanceBonus(accountId, payerId, amount,
+		info.referrerId, newLevel);
 }
 
 std::string generateBillSerial(const std::string &prefix){
