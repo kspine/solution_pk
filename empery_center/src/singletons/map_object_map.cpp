@@ -55,11 +55,15 @@ namespace {
 	boost::weak_ptr<MapSectorMapDelegator> g_mapSectorMap;
 
 	struct PlayerViewElement {
+		Rectangle view;
+
 		boost::weak_ptr<PlayerSession> session;
 		Coord sectorCoord;
 
-		PlayerViewElement(boost::weak_ptr<PlayerSession> session_, const Coord &sectorCoord_)
-			: session(std::move(session_)), sectorCoord(sectorCoord_)
+		PlayerViewElement(const Rectangle &view_,
+			boost::weak_ptr<PlayerSession> session_, const Coord &sectorCoord_)
+			: view(view_)
+			, session(std::move(session_)), sectorCoord(sectorCoord_)
 		{
 		}
 	};
@@ -132,7 +136,7 @@ namespace {
 		handles.push(playerViewMap);
 	}
 
-	void synchronizeMapObject(const boost::shared_ptr<MapObject> &mapObject, const boost::shared_ptr<PlayerSession> &session) noexcept {
+	void sendMapObjectToPlayer(const boost::shared_ptr<MapObject> &mapObject, const boost::shared_ptr<PlayerSession> &session) noexcept {
 		PROFILE_ME;
 
 		try {
@@ -173,15 +177,17 @@ namespace {
 
 		const auto sectorCoord = sectorCoordFromMapCoord(coord);
 		const auto range = playerViewMap->equalRange<1>(sectorCoord);
-		auto it = range.first;
-		while(it != range.second){
-			const auto session = it->session.lock();
+		auto viewIt = range.first;
+		while(viewIt != range.second){
+			const auto session = viewIt->session.lock();
 			if(!session){
-				it = playerViewMap->erase<1>(it);
+				viewIt = playerViewMap->erase<1>(viewIt);
 				continue;
 			}
-			synchronizeMapObject(mapObject, session);
-			++it;
+			if(viewIt->view.hitTest(coord)){
+				sendMapObjectToPlayer(mapObject, session);
+			}
+			++viewIt;
 		}
 	}
 }
@@ -352,7 +358,7 @@ void MapObjectMap::setPlayerView(const boost::shared_ptr<PlayerSession> &session
 	try {
 		for(boost::int64_t x = sectorBottomLeft.x(); x <= sectorBottomLeft.x(); ++x){
 			for(boost::int64_t y = sectorUpperRight.y(); y <= sectorUpperRight.y(); ++y){
-				playerViewMap->insert(PlayerViewElement(session, Coord(x, y)));
+				playerViewMap->insert(PlayerViewElement(view, session, Coord(x, y)));
 			}
 		}
 	} catch(std::exception &e){
@@ -367,6 +373,11 @@ void MapObjectMap::setPlayerView(const boost::shared_ptr<PlayerSession> &session
 void MapObjectMap::synchronizePlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept {
 	PROFILE_ME;
 
+	const auto mapObjectMap = g_mapObjectMap.lock();
+	if(!mapObjectMap){
+		LOG_EMPERY_CENTER_DEBUG("Map object map is not initialized.");
+		return;
+	}
 	const auto mapSectorMap = g_mapSectorMap.lock();
 	if(!mapSectorMap){
 		LOG_EMPERY_CENTER_DEBUG("Map sector map is not initialized.");
@@ -390,15 +401,22 @@ void MapObjectMap::synchronizePlayerView(const boost::shared_ptr<PlayerSession> 
 					continue;
 				}
 
-				auto it = sectorIt->mapObjects.begin();
-				while(it != sectorIt->mapObjects.end()){
-					const auto mapObject = it->lock();
+				auto objIt = sectorIt->mapObjects.begin();
+				while(objIt != sectorIt->mapObjects.end()){
+					const auto mapObject = objIt->lock();
 					if(!mapObject){
-						it = sectorIt->mapObjects.erase(it);
+						objIt = sectorIt->mapObjects.erase(objIt);
 						continue;
 					}
-					synchronizeMapObject(mapObject, session);
-					++it;
+					const auto it = mapObjectMap->find<0>(mapObject->getMapObjectUuid());
+					if(it == mapObjectMap->end<0>()){
+						objIt = sectorIt->mapObjects.erase(objIt);
+						continue;
+					}
+					if(view.hitTest(it->coord)){
+						sendMapObjectToPlayer(mapObject, session);
+					}
+					++objIt;
 				}
 			}
 		}
