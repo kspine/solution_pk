@@ -8,8 +8,7 @@
 #include "item_transaction_element.hpp"
 #include "item_ids.hpp"
 #include "checked_arithmetic.hpp"
-#include "mysql/bill.hpp"
-#include "bill_states.hpp"
+#include "mysql/outcome_balance_history.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/string.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
@@ -271,15 +270,15 @@ void commitFirstBalanceBonus(){
 		}
 	}
 
-	std::map<AccountId, std::deque<boost::uint64_t>> rechargeHistory;
+	std::map<AccountId, std::deque<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>>> rechargeHistory;
 	{
-		std::vector<boost::shared_ptr<MySql::Promotion_Bill>> tempBillObjs;
-		std::ostringstream oss;
-		oss <<"SELECT * FROM `Promotion_Bill` WHERE `state` = " <<(unsigned)BillStates::ST_SETTLED <<" ORDER BY `serial` DESC";
-		MySql::Promotion_Bill::batchLoad(tempBillObjs, oss.str());
-		for(auto it = tempBillObjs.begin(); it != tempBillObjs.end(); ++it){
-			const auto &obj = *it;
-			rechargeHistory[AccountId(obj->get_accountId())].push_back(obj->get_amount());
+		std::vector<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>> tempObjs;
+		MySql::Promotion_OutcomeBalanceHistory::batchLoad(tempObjs,
+			"SELECT * FROM `Promotion_OutcomeBalanceHistory` ORDER BY `timestamp` ASC, `autoId` ASC");
+		for(auto it = tempObjs.begin(); it != tempObjs.end(); ++it){
+			auto &obj = *it;
+			const auto accountId = AccountId(obj->get_accountId());
+			rechargeHistory[accountId].emplace_back(std::move(obj));
 		}
 	}
 
@@ -325,11 +324,21 @@ void commitFirstBalanceBonus(){
 			continue;
 		}
 		while(!queueIt->second.empty()){
-			const auto amount = queueIt->second.front();
+			const auto obj = std::move(queueIt->second.front());
 			queueIt->second.pop_front();
 			try {
-				LOG_EMPERY_PROMOTION_DEBUG("> Accumulating: accountId = ", info.accountId, ", amount = ", amount);
-				reallyAccumulateBalanceBonus(info.accountId, info.accountId, amount);
+				LOG_EMPERY_PROMOTION_DEBUG("> Accumulating: accountId = ", info.accountId,
+					", outcomeBalance = ", obj->get_outcomeBalance(), ", reason = ", obj->get_reason());
+				if((obj->get_reason() == Events::ItemChanged::R_UPGRADE_ACCOUNT) ||
+					(obj->get_reason() == Events::ItemChanged::R_CREATE_ACCOUNT))
+				{
+					const auto oldLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+					const auto newLevel = obj->get_param3();
+					if(oldLevel < newLevel){
+						AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, boost::lexical_cast<std::string>(newLevel));
+					}
+				}
+				reallyAccumulateBalanceBonus(info.accountId, info.accountId, obj->get_outcomeBalance());
 			} catch(std::exception &e){
 				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 			}
