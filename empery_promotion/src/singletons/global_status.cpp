@@ -39,8 +39,13 @@ namespace {
 			boost::bind(&GlobalStatus::checkDailyReset));
 		handles.push(std::move(timer));
 
-		const auto firstBalancingTime = Poseidon::scanTime(getConfig<std::string>("first_balancing_time").c_str());
 		const auto localNow = Poseidon::getLocalTime();
+		auto firstBalancingTime = Poseidon::scanTime(
+		                          getConfig<std::string>("first_balancing_time").c_str());
+		const auto it = statusMap->find(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+		if(it != statusMap->end()){
+			firstBalancingTime = it->second->get_value();
+		}
 		if(firstBalancingTime < localNow){
 			timer = Poseidon::TimerDaemon::registerTimer(firstBalancingTime - localNow + 10000, 0, // 推迟十秒钟。
 				boost::bind(&GlobalStatus::checkDailyReset));

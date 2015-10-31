@@ -3,6 +3,7 @@
 #include <poseidon/string.hpp>
 #include "../singletons/account_map.hpp"
 #include "../singletons/item_map.hpp"
+#include "../singletons/global_status.hpp"
 #include "../item_transaction_element.hpp"
 #include "../msg/err_account.hpp"
 #include "../data/promotion.hpp"
@@ -73,6 +74,13 @@ ACCOUNT_SERVLET("create", session, params){
 			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
 			ret[sslit("errorMessage")] = "Account level is not found";
 			return ret;
+		}
+	} else {
+		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+		if(localNow < firstBalancingTime){
+			LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
+		} else {
+			promotionData = Data::Promotion::getFirst();
 		}
 	}
 
