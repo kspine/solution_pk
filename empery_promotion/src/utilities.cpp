@@ -159,8 +159,19 @@ namespace {
 		const auto level = AccountMap::castAttribute<boost::uint64_t>(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 		const auto promotionData = Data::Promotion::get(level);
 
+		AccountId virtualFirstReferrerId;
+		const auto localNow = Poseidon::getLocalTime();
+		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+		if(localNow < firstBalancingTime){
+			LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
+			virtualFirstReferrerId = accountId;
+		} else {
+			const auto info = AccountMap::require(accountId);
+			virtualFirstReferrerId = info.referrerId;
+		}
+
 		std::deque<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
-		for(auto currentId = accountId; currentId; currentId = AccountMap::require(currentId).referrerId){
+		for(auto currentId = virtualFirstReferrerId; currentId; currentId = AccountMap::require(currentId).referrerId){
 			const auto referrerLevel = AccountMap::castAttribute<boost::uint64_t>(currentId, AccountMap::ATTR_ACCOUNT_LEVEL);
 			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: currentId = ", currentId, ", referrerLevel = ", referrerLevel);
 			auto referrerPromotionData = Data::Promotion::get(referrerLevel);
