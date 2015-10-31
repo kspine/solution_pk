@@ -283,6 +283,12 @@ void commitFirstBalanceBonus(){
 		}
 	}
 
+	const auto firstLevelData = Data::Promotion::getFirst();
+	if(!firstLevelData){
+		LOG_EMPERY_PROMOTION_FATAL("No first level?");
+		std::abort();
+	}
+
 	std::vector<AccountMap::AccountInfo> tempInfos;
 	tempInfos.reserve(256);
 
@@ -306,6 +312,8 @@ void commitFirstBalanceBonus(){
 			const auto it = toutAccounts.find(info.loginName);
 			if(it != toutAccounts.end()){
 				newLevel = boost::lexical_cast<std::string>(it->second->level);
+			} else {
+				newLevel = boost::lexical_cast<std::string>(firstLevelData->level);
 			}
 			AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(newLevel));
 		} catch(std::exception &e){
