@@ -157,6 +157,7 @@ namespace {
 
 		const auto level = AccountMap::castAttribute<boost::uint64_t>(accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 		const auto promotionData = Data::Promotion::get(level);
+		const auto firstPromotionData = Data::Promotion::getFirst();
 
 		AccountId virtualFirstReferrerId;
 		const auto localNow = Poseidon::getLocalTime();
@@ -211,6 +212,9 @@ namespace {
 				generation = 0;
 				for(auto it = referrers.begin(); (generation < g_extraTaxRatioArray.size()) && (it != referrers.end()); ++it){
 					if(!(it->second)){
+						continue;
+					}
+					if(firstPromotionData && (it->second->level <= firstPromotionData->level)){
 						continue;
 					}
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level);
