@@ -67,21 +67,11 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
-	boost::shared_ptr<const Data::Promotion> promotionData;
-	if(level != 0){
-		promotionData = Data::Promotion::get(level);
-		if(!promotionData){
-			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
-			ret[sslit("errorMessage")] = "Account level is not found";
-			return ret;
-		}
-	} else {
-		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
-		if(localNow < firstBalancingTime){
-			LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
-		} else {
-			promotionData = Data::Promotion::getFirst();
-		}
+	const auto promotionData = Data::Promotion::get(level);
+	if(!promotionData){
+		ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
+		ret[sslit("errorMessage")] = "Account level is not found";
+		return ret;
 	}
 
 	auto tempInfo = AccountMap::getByLoginName(loginName);
