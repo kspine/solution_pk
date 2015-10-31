@@ -330,17 +330,17 @@ void commitFirstBalanceBonus(){
 		while(!queueIt->second.empty()){
 			const auto obj = std::move(queueIt->second.front());
 			queueIt->second.pop_front();
+
+			if((obj->get_reason() != Events::ItemChanged::R_UPGRADE_ACCOUNT) && (obj->get_reason() != Events::ItemChanged::R_CREATE_ACCOUNT)){
+				continue;
+			}
 			try {
 				LOG_EMPERY_PROMOTION_DEBUG("> Accumulating: accountId = ", info.accountId,
 					", outcomeBalance = ", obj->get_outcomeBalance(), ", reason = ", obj->get_reason());
-				if((obj->get_reason() == Events::ItemChanged::R_UPGRADE_ACCOUNT) ||
-					(obj->get_reason() == Events::ItemChanged::R_CREATE_ACCOUNT))
-				{
-					const auto oldLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-					const auto newLevel = obj->get_param3();
-					if(oldLevel < newLevel){
-						AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, boost::lexical_cast<std::string>(newLevel));
-					}
+				const auto oldLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+				const auto newLevel = obj->get_param3();
+				if(oldLevel < newLevel){
+					AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, boost::lexical_cast<std::string>(newLevel));
 				}
 				reallyAccumulateBalanceBonus(info.accountId, info.accountId, obj->get_outcomeBalance());
 			} catch(std::exception &e){
