@@ -42,6 +42,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 			std::ostringstream oss;
 			switch(event->reason){
 			case Events::ItemChanged::R_ADMIN_OPERATION:
+				PUT_STRING(remarks)
 				break;
 			case Events::ItemChanged::R_TRANSFER:
 				PUT_ACCOUNT(param1)
