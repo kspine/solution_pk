@@ -145,6 +145,9 @@ void GlobalStatus::checkDailyReset(){
 		serverDailyResetTimeObj->set_value(localNow);
 	}
 
+	const auto lastResetTime = serverDailyResetTimeObj->get_value();
+	serverDailyResetTimeObj->set_value(localNow);
+
 	const auto firstBalancingTime = firstBalancingTimeObj->get_value();
 	if(firstBalancingTime < localNow){
 		if(firstBalancingDoneObj->get_value() == false){
@@ -156,8 +159,6 @@ void GlobalStatus::checkDailyReset(){
 		}
 
 		// 首次结算之前不涨价。
-		const auto lastResetTime = serverDailyResetTimeObj->get_value();
-		serverDailyResetTimeObj->set_value(localNow);
 		const auto thisDay = localNow / 86400000;
 		const auto lastDay = lastResetTime / 86400000;
 		if(lastDay < thisDay){
