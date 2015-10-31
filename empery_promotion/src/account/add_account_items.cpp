@@ -9,7 +9,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("addItems", /* session */, params){
+ACCOUNT_SERVLET("addAccountItems", /* session */, params){
 	const auto &loginName = params.at("loginName");
 	const auto itemId = boost::lexical_cast<ItemId>(params.at("itemId"));
 	const auto countToAdd = boost::lexical_cast<boost::uint64_t>(params.at("countToAdd"));

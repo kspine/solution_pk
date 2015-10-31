@@ -51,8 +51,8 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/is_subordinate_of.cpp	\
 	src/account/buy_more_cards.cpp	\
 	src/account/query_account_performance.cpp	\
-	src/account/add_items.cpp	\
-	src/account/remove_items.cpp	\
+	src/account/add_account_items.cpp	\
+	src/account/remove_account_items.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\
