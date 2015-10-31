@@ -214,9 +214,6 @@ namespace {
 					if(!(it->second)){
 						continue;
 					}
-					if(firstPromotionData && (it->second->level <= firstPromotionData->level)){
-						continue;
-					}
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level);
 					if(!(it->second->taxExtra)){
 						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
@@ -238,6 +235,9 @@ namespace {
 			generation = 0;
 			for(auto it = referrers.begin(); (generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
 				if(!(it->second)){
+					continue;
+				}
+				if(firstPromotionData && (it->second->level <= firstPromotionData->level)){
 					continue;
 				}
 				const auto tax = static_cast<boost::uint64_t>(std::round(myDividend * g_incomeTaxRatioArray.at(generation)));
