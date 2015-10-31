@@ -2,6 +2,7 @@
 #include "cluster_session.hpp"
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
+#include <poseidon/async_job.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
 #include "singletons/player_session_map.hpp"
@@ -59,21 +60,28 @@ void ClusterSession::onClose(int errCode) noexcept {
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_INFO("Cluster session closed: errCode = ", errCode);
 
-	for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
-		const auto &promise = it->second.promise;
-		if(!promise){
-			continue;
-		}
-		try {
-			DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
-		} catch(Poseidon::Exception &e){
-			LOG_EMPERY_CENTER_WARNING("Poseidon::Exception thrown: what = ", e.what());
-			promise->setException(boost::copy_exception(e));
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			promise->setException(boost::copy_exception(e));
-		}
+	try {
+		Poseidon::enqueueAsyncJob(std::bind([](std::multimap<boost::uint64_t, RequestElement> requests){
+			for(auto it = requests.begin(); it != requests.end(); ++it){
+				const auto &promise = it->second.promise;
+				if(!promise){
+					continue;
+				}
+				try {
+					DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
+				} catch(Poseidon::Exception &e){
+					LOG_EMPERY_CENTER_WARNING("Poseidon::Exception thrown: what = ", e.what());
+					promise->setException(boost::copy_exception(e));
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					promise->setException(boost::copy_exception(e));
+				}
+			}
+		}, std::move(m_requests)));
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
+	m_requests.clear();
 
 	Poseidon::Cbpp::Session::onClose(errCode);
 }
