@@ -10,6 +10,8 @@
 #include "../mysql/account.hpp"
 #include "../mysql/account_attribute.hpp"
 #include "../events/account.hpp"
+#include "../data/promotion.hpp"
+#include "../singletons/global_status.hpp"
 
 namespace EmperyPromotion {
 
@@ -108,7 +110,9 @@ namespace {
 		g_attributeMap = attributeMap;
 		handles.push(attributeMap);
 
-		LOG_EMPERY_PROMOTION_INFO("Updating subordinate info cache...");
+		const auto localNow = Poseidon::getLocalTime();
+		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+		LOG_EMPERY_PROMOTION_INFO("Updating subordinate info cache: firstBalancingTime = ", firstBalancingTime);
 		boost::container::flat_map<AccountId, SubordinateInfoCacheElement> tempMap;
 		tempMap.reserve(accountMap->size());
 		for(auto it = accountMap->begin(); it != accountMap->end(); ++it){
@@ -120,7 +124,14 @@ namespace {
 					level = boost::lexical_cast<boost::uint64_t>(levelStr);
 				}
 			}
-
+			if((level == 0) && (localNow >= firstBalancingTime)){
+				const auto promotionData = Data::Promotion::getFirst();
+				if(!promotionData){
+					LOG_EMPERY_PROMOTION_FATAL("No first promotion level?");
+					std::abort();
+				}
+				level = promotionData->level;
+			}
 			auto &elem = tempMap[it->accountId];
 			if(elem.maxSubordLevel < level){
 				elem.maxSubordLevel = level;
