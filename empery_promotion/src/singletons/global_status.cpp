@@ -17,7 +17,7 @@ namespace {
 
 	boost::shared_ptr<StatusMap> g_statusMap;
 
-	MODULE_RAII_PRIORITY(handles, 5000){
+	MODULE_RAII_PRIORITY(handles, 2000){
 		const auto conn = Poseidon::MySqlDaemon::createConnection();
 
 		const auto statusMap = boost::make_shared<StatusMap>();
