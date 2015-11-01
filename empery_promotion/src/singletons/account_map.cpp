@@ -527,10 +527,9 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 
 	if(slot == ATTR_ACCOUNT_LEVEL){
 		auto currentIt = accountIt;
-		do {
+		while(currentIt != g_accountMap->end<0>()){
 			try {
-				const auto oldMaxSubordLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_ACCOUNT_LEVEL);
-				auto newMaxSubordLevel = oldMaxSubordLevel;
+				auto newMaxSubordLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_ACCOUNT_LEVEL);
 				const auto range = g_accountMap->equalRange<4>(currentIt->accountId);
 				for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
 					const auto maxSubOrdLevel = castAttribute<boost::uint64_t>(subordIt->accountId, ATTR_MAX_SUBORD_LEVEL);
@@ -538,7 +537,8 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 						newMaxSubordLevel = maxSubOrdLevel;
 					}
 				}
-				if(oldMaxSubordLevel == newMaxSubordLevel){
+				const auto oldMaxSubordLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_MAX_SUBORD_LEVEL);
+				if(newMaxSubordLevel <= oldMaxSubordLevel){
 					break;
 				}
 				LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: accountId = ", currentIt->accountId,
@@ -548,7 +548,7 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 			}
 			currentIt = g_accountMap->find<0>(currentIt->referrerId);
-		} while(currentIt != g_accountMap->end<0>());
+		}
 	}
 }
 
