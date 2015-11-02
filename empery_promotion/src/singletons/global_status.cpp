@@ -153,14 +153,19 @@ void GlobalStatus::checkDailyReset(){
 		if(firstBalancingDoneObj->get_value() == false){
 			firstBalancingDoneObj->set_value(true);
 
-			LOG_EMPERY_PROMOTION_WARNING("Commit first balance bonus!");
-			commitFirstBalanceBonus();
-			LOG_EMPERY_PROMOTION_WARNING("Done committing first balance bonus.");
+			try {
+				LOG_EMPERY_PROMOTION_WARNING("Commit first balance bonus!");
+				commitFirstBalanceBonus();
+				LOG_EMPERY_PROMOTION_WARNING("Done committing first balance bonus.");
+			} catch(std::exception &e){
+				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
+			}
 		}
 
 		// 首次结算之前不涨价。
-		const auto thisDay = localNow / 86400000;
-		const auto lastDay = lastResetTime / 86400000;
+		const auto dailyResetAtOClock = getConfig<unsigned>("daily_reset_at_o_clock", 16);
+		const auto thisDay = (localNow - dailyResetAtOClock * 3600000) / 86400000;
+		const auto lastDay = (lastResetTime - dailyResetAtOClock * 3600000) / 86400000;
 		if(lastDay < thisDay){
 			const auto deltaDays = thisDay - lastDay;
 			LOG_EMPERY_PROMOTION_INFO("Daily reset: deltaDays = ", deltaDays);
