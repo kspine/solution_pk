@@ -328,7 +328,10 @@ void commitFirstBalanceBonus(){
 				const auto obj = std::move(queueIt->second.front());
 				queueIt->second.pop_front();
 
-				if((obj->get_reason() != Events::ItemChanged::R_UPGRADE_ACCOUNT) && (obj->get_reason() != Events::ItemChanged::R_CREATE_ACCOUNT)){
+				if((obj->get_reason() != Events::ItemChanged::R_UPGRADE_ACCOUNT) &&
+					(obj->get_reason() != Events::ItemChanged::R_CREATE_ACCOUNT) &&
+					(obj->get_reason() != Events::ItemChanged::R_BUY_MORE_CARDS))
+				{
 					continue;
 				}
 				try {
