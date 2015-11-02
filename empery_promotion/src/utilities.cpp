@@ -328,26 +328,32 @@ void commitFirstBalanceBonus(){
 				const auto obj = std::move(queueIt->second.front());
 				queueIt->second.pop_front();
 
-				if((obj->get_reason() != Events::ItemChanged::R_UPGRADE_ACCOUNT) &&
-					(obj->get_reason() != Events::ItemChanged::R_CREATE_ACCOUNT) &&
-					(obj->get_reason() != Events::ItemChanged::R_BUY_MORE_CARDS))
-				{
+				boost::uint64_t newLevel;
+				if(obj->get_reason() == Events::ItemChanged::R_UPGRADE_ACCOUNT){
+					newLevel = obj->get_param3();
+				} else if(obj->get_reason() == Events::ItemChanged::R_CREATE_ACCOUNT){
+					newLevel = obj->get_param3();
+				} else if(obj->get_reason() == Events::ItemChanged::R_BUY_MORE_CARDS){
+					newLevel = 0;
+				} else {
 					continue;
 				}
 				try {
 					LOG_EMPERY_PROMOTION_DEBUG("> Accumulating: accountId = ", info.accountId,
 						", outcomeBalance = ", obj->get_outcomeBalance(), ", reason = ", obj->get_reason());
-					const auto oldLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-					const auto level = obj->get_param3();
+					boost::uint64_t oldLevel = 0;
+					if(newLevel != 0){
+						oldLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
+					}
 					if(fakeOutcome.find(info.loginName) != fakeOutcome.end()){
 						LOG_EMPERY_PROMOTION_DEBUG("> Fake outcome user: loginName = ", info.loginName);
 					} else {
 						reallyAccumulateBalanceBonus(info.accountId, info.accountId, obj->get_outcomeBalance(),
 							// 首次结算从自己开始，以后从推荐人开始。
-							info.accountId, level);
+							info.accountId, newLevel);
 					}
-					if(oldLevel < level){
-						AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, boost::lexical_cast<std::string>(level));
+					if(oldLevel < newLevel){
+						AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, boost::lexical_cast<std::string>(newLevel));
 					}
 					checkAutoUpgradeable(info.referrerId);
 				} catch(std::exception &e){
