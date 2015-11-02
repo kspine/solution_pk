@@ -9,8 +9,8 @@ namespace Msg {
 	using namespace Poseidon::Cbpp::StatusCodes;
 
 	enum {
-		KERR_MAP_SERVER_CONFLICT   = 72301,
-		KERR_VIEW_RANGE_TOO_LARGE  = 72302,
+		KERR_MAP_SERVER_CONFLICT            = 72301,
+		KERR_VIEW_RANGE_TOO_LARGE           = 72302,
 	};
 }
 

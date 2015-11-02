@@ -91,8 +91,6 @@ namespace {
 			obj->enableAutoSaving();
 			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
 			if(obj->get_deleted()){
-				LOG_EMPERY_CENTER_WARNING(
-					"The following map object has been marked as deleted, consider deleting it from database: mapObjectUuid = ", mapObjectUuid);
 				continue;
 			}
 			auto &pair = tempMap[mapObjectUuid];
@@ -109,8 +107,6 @@ namespace {
 			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
 			const auto it = tempMap.find(mapObjectUuid);
 			if(it == tempMap.end()){
-				LOG_EMPERY_CENTER_WARNING(
-					"A dangling map object attribute has been found, consider deleting it from database: mapObjectUuid = ", mapObjectUuid);
 				continue;
 			}
 			it->second.second.emplace_back(std::move(obj));

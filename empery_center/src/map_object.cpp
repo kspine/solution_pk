@@ -1,6 +1,5 @@
 #include "precompiled.hpp"
 #include "map_object.hpp"
-#include <poseidon/singletons/mysql_daemon.hpp>
 #include "mysql/map_object.hpp"
 #include "mysql/map_object_attribute.hpp"
 #include "map_object_attr_ids.hpp"
@@ -28,18 +27,6 @@ void MapObject::deleteFromGame(){
 	LOG_EMPERY_CENTER_DEBUG("Deleting map object from game: mapObjectUuid = ", getMapObjectUuid());
 
 	m_obj->set_deleted(true);
-
-	m_obj->disableAutoSaving();
-	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		it->second->disableAutoSaving();
-	}
-
-	std::ostringstream oss;
-	oss <<"DELETE `Center_MapObject`, `Center_MapObjectAttribute` "
-	    <<"  FROM `Center_MapObject` LEFT JOIN `Center_MapObjectAttribute` "
-	    <<"    ON `Center_MapObject`.`mapObjectUuid` = `Center_MapObjectAttribute`.`mapObjectUuid` "
-	    <<"  WHERE `Center_MapObject`.`mapObjectUuid` = '" <<m_obj->unlockedGet_mapObjectUuid() <<"' ";
-	Poseidon::MySqlDaemon::enqueueForBatchLoading({ }, nullptr, m_obj->getTableName(), oss.str());
 }
 
 MapObjectUuid MapObject::getMapObjectUuid() const {

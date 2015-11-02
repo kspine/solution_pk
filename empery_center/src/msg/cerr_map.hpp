@@ -9,11 +9,11 @@ namespace Msg {
 	using namespace Poseidon::Cbpp::StatusCodes;
 
 	enum {
-		CERR_BROKEN_PATH            = 71301,
-		CERR_OBJECT_COORD_MISMATCH  = 71302,
-		CERR_NO_SUCH_OBJECT         = 71303,
-		CERR_NOT_YOUR_OBJECT        = 71304,
-		CERR_NOT_MOVABLE_OBJECT     = 71305,
+		CERR_BROKEN_PATH                    = 71301,
+		CERR_OBJECT_COORD_MISMATCH          = 71302,
+		CERR_NO_SUCH_OBJECT                 = 71303,
+		CERR_NOT_YOUR_OBJECT                = 71304,
+		CERR_NOT_MOVABLE_OBJECT             = 71305,
 	};
 }
 

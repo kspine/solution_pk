@@ -50,7 +50,7 @@ ACCOUNT_SERVLET("getWithdrawalRequests", /* session */, params){
 		oss <<"AND `accountId` = " <<accountId <<" ";
 	}
 	if(briefMode.empty()){
-		oss <<"ORDER BY `state` ASC, `serial` ASC ";
+		oss <<"ORDER BY `state` ASC, `createdTime` DESC ";
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){

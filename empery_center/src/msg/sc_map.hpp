@@ -26,7 +26,7 @@ namespace Msg {
 	FIELD_VUINT			(terrainId)	\
 	FIELD_VUINT			(overlayId)	\
 	FIELD_VUINT			(resourceId)	\
-	FIELD_VUINT			(resourceAmount)	\
+	FIELD_VUINT			(resourceCount)	\
 	FIELD_STRING		(ownerUuid)	\
 	FIELD_ARRAY			(buffSet,	\
 		FIELD_VUINT			(buffId)	\
