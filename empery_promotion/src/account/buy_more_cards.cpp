@@ -65,7 +65,7 @@ ACCOUNT_SERVLET("buyMoreCards", /* session */, params){
 		ret[sslit("errorMessage")] = "No enough account balance";
 		return ret;
 	}
-	accumulateBalanceBonus(info.accountId, info.accountId, balanceToConsume);
+	accumulateBalanceBonus(info.accountId, info.accountId, balanceToConsume, 0);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

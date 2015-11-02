@@ -142,7 +142,7 @@ ACCOUNT_SERVLET("create", session, params){
 			ret[sslit("errorMessage")] = "No enough account balance";
 			return ret;
 		}
-		accumulateBalanceBonus(newAccountId, payerInfo.accountId, result.second);
+		accumulateBalanceBonus(newAccountId, payerInfo.accountId, result.second, promotionData->level);
 	} else {
 		ret[sslit("balanceToConsume")] = 0;
 	}

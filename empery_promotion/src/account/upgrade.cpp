@@ -66,7 +66,7 @@ ACCOUNT_SERVLET("upgrade", /* session */, params){
 		ret[sslit("errorMessage")] = "No enough account balance";
 		return ret;
 	}
-	accumulateBalanceBonus(info.accountId, info.accountId, result.second);
+	accumulateBalanceBonus(info.accountId, info.accountId, result.second, promotionData->level);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

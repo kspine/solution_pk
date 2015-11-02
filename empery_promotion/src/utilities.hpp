@@ -18,7 +18,7 @@ extern std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, A
 	const boost::shared_ptr<const Data::Promotion> &promotionData, const std::string &remarks, boost::uint64_t additionalCards);
 
 extern void commitFirstBalanceBonus();
-extern void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount);
+extern void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount, boost::uint64_t upgradeToLevel);
 
 extern std::string generateBillSerial(const std::string &prefix);
 

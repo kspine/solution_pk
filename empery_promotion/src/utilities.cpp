@@ -364,7 +364,7 @@ void commitFirstBalanceBonus(){
 		}
 	}
 }
-void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount){
+void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount, boost::uint64_t upgradeToLevel){
 	PROFILE_ME;
 
 	const auto localNow = Poseidon::getLocalTime();
@@ -375,9 +375,8 @@ void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint6
 	}
 
 	const auto info = AccountMap::require(accountId);
-	const auto level = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
 	reallyAccumulateBalanceBonus(accountId, payerId, amount,
-		info.referrerId, level);
+		info.referrerId, upgradeToLevel);
 }
 
 std::string generateBillSerial(const std::string &prefix){
