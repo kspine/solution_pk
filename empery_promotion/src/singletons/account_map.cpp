@@ -147,8 +147,12 @@ namespace {
 				LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", it->first);
 				continue;
 			}
-			accountIt->obj->set_maxLevel(it->second.maxLevel);
-			accountIt->obj->set_subordinateCount(it->second.subordinateCount);
+			if(accountIt->obj->get_maxLevel() != it->second.maxLevel){
+				accountIt->obj->set_maxLevel(it->second.maxLevel);
+			}
+			if(accountIt->obj->get_subordinateCount() != it->second.subordinateCount){
+				accountIt->obj->set_subordinateCount(it->second.subordinateCount);
+			}
 		}
 	}
 
