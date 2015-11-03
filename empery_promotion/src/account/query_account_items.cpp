@@ -29,7 +29,7 @@ ACCOUNT_SERVLET("queryAccountItems", /* session */, params){
 
 	ret[sslit("nick")] = std::move(info.nick);
 	ret[sslit("phoneNumber")] = std::move(info.phoneNumber);
-	ret[sslit("level")] = info.level;
+	ret[sslit("level")] = boost::lexical_cast<std::string>(info.level);
 	ret[sslit("items")] = std::move(items);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

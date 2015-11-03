@@ -33,7 +33,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
 
 	ret[sslit("phoneNumber")] = std::move(info.phoneNumber);
 	ret[sslit("nick")] = std::move(info.nick);
-	ret[sslit("level")] = info.level;
+	ret[sslit("level")] = boost::lexical_cast<std::string>(info.level);
 	ret[sslit("referrerLoginName")] = std::move(referrerLoginName);
 	ret[sslit("referrerNick")] = std::move(referrerNick);
 	ret[sslit("flags")] = info.flags;
