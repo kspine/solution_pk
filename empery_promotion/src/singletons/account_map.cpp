@@ -389,33 +389,27 @@ void AccountMap::setLevel(AccountId accountId, boost::uint64_t level){
 
 	it->obj->set_level(level);
 
-	auto currentIt = it;
-	do {
-		try {
-			boost::uint64_t newMaxLevel = 0;
-			const auto range = g_accountMap->equalRange<4>(currentIt->accountId);
-			for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
-				const auto maxLevel = subordIt->obj->get_maxLevel();
-				if(newMaxLevel < maxLevel){
-					newMaxLevel = maxLevel;
-				}
+	for(auto currentIt = it; currentIt != g_accountMap->end<0>(); currentIt = g_accountMap->find<0>(currentIt->referrerId)){
+		boost::uint64_t newMaxLevel = 0;
+		const auto range = g_accountMap->equalRange<4>(currentIt->accountId);
+		for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
+			const auto maxLevel = subordIt->obj->get_maxLevel();
+			if(newMaxLevel < maxLevel){
+				newMaxLevel = maxLevel;
 			}
-			const auto selfLevel = currentIt->obj->get_level();
-			if(newMaxLevel < selfLevel){
-				newMaxLevel = selfLevel; // 现在是算自己的。
-			}
-			const auto oldMaxLevel = currentIt->obj->get_maxLevel();
-			if(newMaxLevel == oldMaxLevel){
-				break;
-			}
-			LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: accountId = ", currentIt->accountId,
-				", oldMaxLevel = ", oldMaxLevel, ", newMaxLevel = ", newMaxLevel);
-			currentIt->obj->set_maxLevel(newMaxLevel);
-		} catch(std::exception &e){
-			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 		}
-		currentIt = g_accountMap->find<0>(currentIt->referrerId);
-	} while(currentIt != g_accountMap->end<0>());
+		const auto selfLevel = currentIt->obj->get_level();
+		if(newMaxLevel < selfLevel){
+			newMaxLevel = selfLevel; // 现在是算自己的。
+		}
+		const auto oldMaxLevel = currentIt->obj->get_maxLevel();
+		if(newMaxLevel == oldMaxLevel){
+			break;
+		}
+		LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: accountId = ", currentIt->accountId,
+			", oldMaxLevel = ", oldMaxLevel, ", newMaxLevel = ", newMaxLevel);
+		currentIt->obj->set_maxLevel(newMaxLevel);
+	}
 }
 void AccountMap::setFlags(AccountId accountId, boost::uint64_t flags){
 	PROFILE_ME;
