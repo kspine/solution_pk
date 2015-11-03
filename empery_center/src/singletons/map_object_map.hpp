@@ -17,6 +17,8 @@ struct MapObjectMap {
 	static void update(const boost::shared_ptr<MapObject> &mapObject, const Coord &coord);
 	static void remove(const MapObjectUuid &mapObjectUuid) noexcept;
 
+	static void getByOwner(std::vector<boost::shared_ptr<MapObject>> &ret, const AccountUuid &ownerUuid);
+
 	static void getByRectangle(std::vector<std::pair<Coord, boost::shared_ptr<MapObject>>> &ret, const Rectangle &rectangle);
 
 	static void setPlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view);

@@ -9,6 +9,9 @@
 #include "../mysql/map_object.hpp"
 #include "../mysql/map_object_attribute.hpp"
 #include "../msg/sc_map.hpp"
+#include "../castle.hpp"
+#include "../mysql/castle_building_base.hpp"
+#include "../mysql/castle_resource.hpp"
 
 namespace EmperyCenter {
 
@@ -18,10 +21,11 @@ namespace {
 
 		MapObjectUuid mapObjectUuid;
 		Coord coord;
+		AccountUuid ownerUuid;
 
 		MapObjectElement(boost::shared_ptr<MapObject> mapObject_, const Coord &coord_)
 			: mapObject(std::move(mapObject_))
-			, mapObjectUuid(mapObject->getMapObjectUuid()), coord(coord_)
+			, mapObjectUuid(mapObject->getMapObjectUuid()), coord(coord_), ownerUuid(mapObject->getOwnerUuid())
 		{
 		}
 	};
@@ -29,6 +33,7 @@ namespace {
 	MULTI_INDEX_MAP(MapObjectMapDelegator, MapObjectElement,
 		UNIQUE_MEMBER_INDEX(mapObjectUuid)
 		MULTI_MEMBER_INDEX(coord)
+		MULTI_MEMBER_INDEX(ownerUuid)
 	)
 
 	boost::weak_ptr<MapObjectMapDelegator> g_mapObjectMap;
@@ -81,7 +86,7 @@ namespace {
 		std::map<Poseidon::Uuid, std::pair<
 			boost::shared_ptr<MySql::Center_MapObject>,
 			std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>>
-			>> tempMap;
+			>> tempMapObjectMap;
 
 		LOG_EMPERY_CENTER_INFO("Loading map objects...");
 		conn->executeSql("SELECT * FROM `Center_MapObject`");
@@ -93,10 +98,10 @@ namespace {
 			if(obj->get_deleted()){
 				continue;
 			}
-			auto &pair = tempMap[mapObjectUuid];
+			auto &pair = tempMapObjectMap[mapObjectUuid];
 			pair.first = std::move(obj);
 		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", tempMap.size(), " map object(s).");
+		LOG_EMPERY_CENTER_INFO("Loaded ", tempMapObjectMap.size(), " map object(s).");
 
 		LOG_EMPERY_CENTER_INFO("Loading map object attributes...");
 		conn->executeSql("SELECT * FROM `Center_MapObjectAttribute`");
@@ -105,17 +110,64 @@ namespace {
 			obj->syncFetch(conn);
 			obj->enableAutoSaving();
 			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
-			const auto it = tempMap.find(mapObjectUuid);
-			if(it == tempMap.end()){
+			const auto it = tempMapObjectMap.find(mapObjectUuid);
+			if(it == tempMapObjectMap.end()){
 				continue;
 			}
 			it->second.second.emplace_back(std::move(obj));
 		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", tempMap.size(), " map object attribute(s).");
+		LOG_EMPERY_CENTER_INFO("Done loading map object attributes.");
+
+		std::map<Poseidon::Uuid, std::pair<
+			std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>>,
+			std::vector<boost::shared_ptr<MySql::Center_CastleResource>>
+			>> tempCastleMap;
+
+		LOG_EMPERY_CENTER_INFO("Loading castle building bases...");
+		conn->executeSql("SELECT * FROM `Center_CastleBuildingBase`");
+		while(conn->fetchRow()){
+			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>();
+			obj->syncFetch(conn);
+			obj->enableAutoSaving();
+			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
+			const auto it = tempMapObjectMap.find(mapObjectUuid);
+			if(it == tempMapObjectMap.end()){
+				continue;
+			}
+			auto &pair = tempCastleMap[mapObjectUuid];
+			pair.first.emplace_back(std::move(obj));
+		}
+		LOG_EMPERY_CENTER_INFO("Loaded ", tempCastleMap.size(), " castle(s).");
+
+		LOG_EMPERY_CENTER_INFO("Loading castle resource...");
+		conn->executeSql("SELECT * FROM `Center_CastleResource`");
+		while(conn->fetchRow()){
+			auto obj = boost::make_shared<MySql::Center_CastleResource>();
+			obj->syncFetch(conn);
+			obj->enableAutoSaving();
+			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
+			const auto it = tempCastleMap.find(mapObjectUuid);
+			if(it == tempCastleMap.end()){
+				continue;
+			}
+			it->second.second.emplace_back(std::move(obj));
+		}
+		LOG_EMPERY_CENTER_INFO("Done loading castle resources.");
 
 		const auto mapObjectMap = boost::make_shared<MapObjectMapDelegator>();
-		for(auto it = tempMap.begin(); it != tempMap.end(); ++it){
-			auto mapObject = boost::make_shared<MapObject>(std::move(it->second.first), it->second.second);
+		for(auto it = tempMapObjectMap.begin(); it != tempMapObjectMap.end(); ++it){
+			boost::shared_ptr<MapObject> mapObject;
+			{
+				const auto castleIt = tempCastleMap.find(it->first);
+				if(castleIt != tempCastleMap.end()){
+					mapObject = boost::make_shared<Castle>(std::move(it->second.first), it->second.second,
+						castleIt->second.first, castleIt->second.second);
+					goto _created;
+				}
+				// TODO 增加其它地图对象类型。
+				mapObject = boost::make_shared<MapObject>(std::move(it->second.first), it->second.second);
+			}
+		_created:
 			auto coord = Coord(mapObject->getAttribute(MapObjectAttrIds::ID_COORD_X),
 				mapObject->getAttribute(MapObjectAttrIds::ID_COORD_Y));
 			mapObjectMap->insert(MapObjectElement(std::move(mapObject), coord));
@@ -294,6 +346,22 @@ void MapObjectMap::remove(const MapObjectUuid &mapObjectUuid) noexcept {
 	}
 
 	synchronizeMapObject(mapObject, coord);
+}
+
+void MapObjectMap::getByOwner(std::vector<boost::shared_ptr<MapObject>> &ret, const AccountUuid &ownerUuid){
+	PROFILE_ME;
+
+	const auto mapObjectMap = g_mapObjectMap.lock();
+	if(!mapObjectMap){
+		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		return;
+	}
+
+	const auto range = mapObjectMap->equalRange<2>(ownerUuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->mapObject);
+	}
 }
 
 void MapObjectMap::getByRectangle(std::vector<std::pair<Coord, boost::shared_ptr<MapObject>>> &ret, const Rectangle &rectangle){

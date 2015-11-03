@@ -29,14 +29,15 @@ namespace {
 	}
 }
 
-Castle::Castle(boost::shared_ptr<MapObject> mapObject)
-	: m_mapObject(std::move(mapObject))
+Castle::Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid)
+	: MapObject(mapObjectTypeId, ownerUuid)
 {
 }
-Castle::Castle(boost::shared_ptr<MapObject> mapObject,
+Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
+	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources)
-	: Castle(std::move(mapObject))
+	: MapObject(std::move(obj), attributes)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
 		const auto &obj = *it;
@@ -48,10 +49,6 @@ Castle::Castle(boost::shared_ptr<MapObject> mapObject,
 	}
 }
 Castle::~Castle(){
-}
-
-MapObjectUuid Castle::getMapObjectUuid() const {
-	return m_mapObject->getMapObjectUuid();
 }
 
 Castle::BuildingInfo Castle::getBuilding(unsigned baseIndex) const {
@@ -85,7 +82,7 @@ void Castle::updateBuilding(Castle::BuildingInfo info){
 		const auto it = m_buildings.find(info.baseIndex);
 		if(it == m_buildings.end()){
 			obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-				m_mapObject->getMapObjectUuid().get(), info.baseIndex, 0, 0, 0, 0, 0);
+				getMapObjectUuid().get(), info.baseIndex, 0, 0, 0, 0, 0);
 			obj->asyncSave(true);
 			m_buildings.emplace(info.baseIndex, obj);
 		} else {
@@ -99,11 +96,11 @@ void Castle::updateBuilding(Castle::BuildingInfo info){
 	obj->set_missionTimeBegin(info.missionTimeBegin);
 	obj->set_missionTimeEnd  (info.missionTimeEnd);
 
-	const auto session = PlayerSessionMap::get(m_mapObject->getOwnerUuid());
+	const auto session = PlayerSessionMap::get(getOwnerUuid());
 	if(session){
 		try {
 			Msg::SC_CastleBuildingBase msg;
-			msg.mapObjectUuid        = m_mapObject->getMapObjectUuid().str();
+			msg.mapObjectUuid        = getMapObjectUuid().str();
 			msg.baseIndex            = obj->get_baseIndex();
 			msg.buildingId           = obj->get_buildingId();
 			msg.buildingLevel        = obj->get_buildingLevel();
@@ -171,7 +168,7 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 					const auto it = m_resources.find(resourceId);
 					if(it == m_resources.end()){
 						obj = boost::make_shared<MySql::Center_CastleResource>(
-							m_mapObject->getMapObjectUuid().get(), resourceId.get(), 0);
+							getMapObjectUuid().get(), resourceId.get(), 0);
 						obj->asyncSave(true);
 						m_resources.emplace(resourceId, obj);
 					} else {
@@ -219,12 +216,12 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 		it->first->set_count(it->second);
 	}
 
-	const auto session = PlayerSessionMap::get(m_mapObject->getOwnerUuid());
+	const auto session = PlayerSessionMap::get(getOwnerUuid());
 	if(session){
 		try {
 			for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
 				Msg::SC_CastleResource msg;
-				msg.mapObjectUuid    = m_mapObject->getMapObjectUuid().str();
+				msg.mapObjectUuid    = getMapObjectUuid().str();
 				msg.resourceId       = it->first->get_resourceId();
 				msg.count            = it->first->get_count();
 				session->send(msg);
@@ -242,7 +239,7 @@ void Castle::commitResourceTransaction(const Castle::ResourceTransactionElement 
 
 	const auto insuffResourceId = commitResourceTransactionNoThrow(elements, count);
 	if(insuffResourceId != ResourceId()){
-		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: mapObjectUuid = ", m_mapObject->getMapObjectUuid(),
+		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: mapObjectUuid = ", getMapObjectUuid(),
 			", insuffResourceId = ", insuffResourceId);
 		DEBUG_THROW(Exception, sslit("Insufficient resources in castle"));
 	}

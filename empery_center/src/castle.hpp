@@ -1,11 +1,11 @@
 #ifndef EMPERY_CENTER_CASTLE_HPP_
 #define EMPERY_CENTER_CASTLE_HPP_
 
+#include "map_object.hpp"
 #include <poseidon/cxx_util.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/container/flat_map.hpp>
 #include <vector>
-#include "id_types.hpp"
 
 namespace EmperyCenter {
 
@@ -14,9 +14,7 @@ namespace MySql {
 	class Center_CastleResource;
 }
 
-class MapObject;
-
-class Castle : NONCOPYABLE {
+class Castle : public MapObject {
 public:
 	enum Mission {
 		MIS_NONE            = 0,
@@ -58,21 +56,18 @@ public:
 	};
 
 private:
-	const boost::shared_ptr<MapObject> m_mapObject;
-
 	boost::container::flat_map<unsigned, boost::shared_ptr<MySql::Center_CastleBuildingBase>> m_buildings;
 	boost::container::flat_map<ResourceId, boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
 
 public:
-	explicit Castle(boost::shared_ptr<MapObject> mapObject);
-	Castle(boost::shared_ptr<MapObject> mapObject,
+	Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid);
+	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
+		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources);
 	~Castle();
 
 public:
-	MapObjectUuid getMapObjectUuid() const;
-
 	BuildingInfo getBuilding(unsigned baseIndex) const;
 	void getAllBuildings(std::vector<BuildingInfo> &ret) const;
 	void updateBuilding(BuildingInfo info);
