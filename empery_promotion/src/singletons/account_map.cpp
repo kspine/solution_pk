@@ -529,7 +529,7 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 		auto currentIt = accountIt;
 		while(currentIt != g_accountMap->end<0>()){
 			try {
-				auto newMaxSubordLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_ACCOUNT_LEVEL);
+				boost::uint64_t newMaxSubordLevel = 0;
 				const auto range = g_accountMap->equalRange<4>(currentIt->accountId);
 				for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
 					const auto maxSubOrdLevel = castAttribute<boost::uint64_t>(subordIt->accountId, ATTR_MAX_SUBORD_LEVEL);
@@ -537,8 +537,12 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 						newMaxSubordLevel = maxSubOrdLevel;
 					}
 				}
+				const auto selfLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_ACCOUNT_LEVEL);
+				if(newMaxSubordLevel < selfLevel){
+					newMaxSubordLevel = selfLevel; // 现在是算自己的。
+				}
 				const auto oldMaxSubordLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_MAX_SUBORD_LEVEL);
-				if(newMaxSubordLevel <= oldMaxSubordLevel){
+				if(newMaxSubordLevel == oldMaxSubordLevel){
 					break;
 				}
 				LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: accountId = ", currentIt->accountId,
