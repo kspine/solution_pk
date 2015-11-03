@@ -25,7 +25,7 @@ ACCOUNT_SERVLET("createBill", /* session */, params){
 	auto serialPrefix = getConfig<std::string>("bill_serial_prefix", "BI");
 
 	auto serial = generateBillSerial(serialPrefix);
-	const auto createdTime = Poseidon::getLocalTime();
+	const auto createdTime = Poseidon::getUtcTime();
 	const auto obj = boost::make_shared<MySql::Promotion_Bill>(
 		serial, createdTime, amount, info.accountId.get(), BillStates::ST_NEW, std::string(), remarks);
 	obj->asyncSave(true);

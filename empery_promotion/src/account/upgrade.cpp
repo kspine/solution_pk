@@ -28,7 +28,7 @@ ACCOUNT_SERVLET("upgrade", /* session */, params){
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 	if((payerInfo.bannedUntil != 0) && (localNow < payerInfo.bannedUntil)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Payer is banned";

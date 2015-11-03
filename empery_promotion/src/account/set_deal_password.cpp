@@ -22,7 +22,7 @@ ACCOUNT_SERVLET("setDealPassword", /* session */, params){
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	if((info.bannedUntil != 0) && (Poseidon::getLocalTime() < info.bannedUntil)){
+	if((info.bannedUntil != 0) && (Poseidon::getUtcTime() < info.bannedUntil)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Referrer is banned";
 		return ret;

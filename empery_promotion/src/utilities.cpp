@@ -358,7 +358,7 @@ void commitFirstBalanceBonus(){
 void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount, boost::uint64_t upgradeToLevel){
 	PROFILE_ME;
 
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 	const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
 	if(localNow < firstBalancingTime){
 		LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
@@ -378,7 +378,7 @@ std::string generateBillSerial(const std::string &prefix){
 	std::string serial;
 	serial.reserve(255);
 	serial.append(prefix);
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 	const auto dt = Poseidon::breakDownTime(localNow);
 	char temp[256];
 	unsigned len = (unsigned)std::sprintf(temp, "%04u%02u%02u%02u", dt.yr, dt.mon, dt.day, dt.hr);

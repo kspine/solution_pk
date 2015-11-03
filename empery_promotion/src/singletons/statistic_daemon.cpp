@@ -29,7 +29,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 			}
 			LOG_EMPERY_PROMOTION_INFO("Writing account balance records...");
 
-			const auto localNow = Poseidon::getLocalTime();
+			const auto localNow = Poseidon::getUtcTime();
 
 			AccountMap::AccountInfo info;
 

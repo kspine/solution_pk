@@ -23,7 +23,7 @@ ACCOUNT_SERVLET("checkLogin", session, params){
 		ret[sslit("errorMessage")] = "Password is incorrect";
 		return ret;
 	}
-	if((info.bannedUntil != 0) && (Poseidon::getLocalTime() < info.bannedUntil)){
+	if((info.bannedUntil != 0) && (Poseidon::getUtcTime() < info.bannedUntil)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Account is banned";
 		return ret;

@@ -28,7 +28,7 @@ ACCOUNT_SERVLET("transfer", /* session */, params){
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	if((srcInfo.bannedUntil != 0) && (Poseidon::getLocalTime() < srcInfo.bannedUntil)){
+	if((srcInfo.bannedUntil != 0) && (Poseidon::getUtcTime() < srcInfo.bannedUntil)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Account is banned";
 		return ret;
@@ -40,7 +40,7 @@ ACCOUNT_SERVLET("transfer", /* session */, params){
 		ret[sslit("errorMessage")] = "Destination account is not found";
 		return ret;
 	}
-	if((dstInfo.bannedUntil != 0) && (Poseidon::getLocalTime() < dstInfo.bannedUntil)){
+	if((dstInfo.bannedUntil != 0) && (Poseidon::getUtcTime() < dstInfo.bannedUntil)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_TRANSFER_DEST_BANNED;
 		ret[sslit("errorMessage")] = "Destination account is banned";
 		return ret;

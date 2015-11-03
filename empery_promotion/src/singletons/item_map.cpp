@@ -142,7 +142,7 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 		DEBUG_THROW(Exception, sslit("Item map is not loaded."));
 	}
 
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 
 	const auto withdrawn = boost::make_shared<bool>(true);
 	TempResultMap tempResults;

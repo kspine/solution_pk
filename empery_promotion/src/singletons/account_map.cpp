@@ -110,7 +110,7 @@ namespace {
 		g_attributeMap = attributeMap;
 		handles.push(attributeMap);
 
-		const auto localNow = Poseidon::getLocalTime();
+		const auto localNow = Poseidon::getUtcTime();
 		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
 		LOG_EMPERY_PROMOTION_INFO("Updating subordinate info cache: firstBalancingTime = ", firstBalancingTime);
 		boost::container::flat_map<AccountId, SubordinateInfoCacheElement> tempMap;
@@ -482,7 +482,7 @@ AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std
 	} while(g_accountMap->find<0>(accountId) != g_accountMap->end<0>());
 
 	Poseidon::addFlags(flags, AccountMap::FL_VALID);
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 	auto obj = boost::make_shared<MySql::Promotion_Account>(accountId.get(), std::move(loginName),
 		std::move(phoneNumber), std::move(nick), getPasswordHash(password), getPasswordHash(dealPassword),
 		referrerId.get(), 0, 0, 0, flags, 0, localNow, std::move(createdIp));

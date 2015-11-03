@@ -39,7 +39,7 @@ namespace {
 			boost::bind(&GlobalStatus::checkDailyReset));
 		handles.push(std::move(timer));
 
-		const auto localNow = Poseidon::getLocalTime();
+		const auto localNow = Poseidon::getUtcTime();
 		auto firstBalancingTime = Poseidon::scanTime(
 		                          getConfig<std::string>("first_balancing_time").c_str());
 		const auto it = statusMap->find(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
@@ -107,7 +107,7 @@ void GlobalStatus::checkDailyReset(){
 		return it->second;
 	};
 
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 
 	const auto serverCreatedTimeObj      = getObj(SLOT_SERVER_CREATED_TIME);
 	const auto firstBalancingTimeObj     = getObj(SLOT_FIRST_BALANCING_TIME);

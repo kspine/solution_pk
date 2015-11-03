@@ -30,7 +30,7 @@ ACCOUNT_SERVLET("withdraw", /* session */, params){
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	if((info.bannedUntil != 0) && (Poseidon::getLocalTime() < info.bannedUntil)){
+	if((info.bannedUntil != 0) && (Poseidon::getUtcTime() < info.bannedUntil)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Account is banned";
 		return ret;
@@ -40,7 +40,7 @@ ACCOUNT_SERVLET("withdraw", /* session */, params){
 	const double withdrawalFeeRatio = getConfig<double>("withdrawal_fee_ratio", 0.05);
 
 	const auto serial = generateBillSerial(wdSlipSerialPrefix);
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 
 	auto amount = deltaBalance;
 	auto fee = static_cast<boost::uint64_t>(std::ceil(deltaBalance * withdrawalFeeRatio));
