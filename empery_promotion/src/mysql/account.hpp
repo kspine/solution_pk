@@ -16,6 +16,9 @@ namespace MySql {
 	FIELD_STRING			(passwordHash)	\
 	FIELD_STRING			(dealPasswordHash)	\
 	FIELD_BIGINT_UNSIGNED	(referrerId)	\
+	FIELD_BIGINT_UNSIGNED	(level)	\
+	FIELD_BIGINT_UNSIGNED	(maxLevel)	\
+	FIELD_BIGINT_UNSIGNED	(subordinateCount)	\
 	FIELD_BIGINT_UNSIGNED	(flags)	\
 	FIELD_DATETIME			(bannedUntil)	\
 	FIELD_DATETIME			(createdTime)	\

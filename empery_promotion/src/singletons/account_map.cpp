@@ -72,8 +72,8 @@ namespace {
 	boost::shared_ptr<AccountAttributeMapDelegator> g_attributeMap;
 
 	struct SubordinateInfoCacheElement {
-		boost::uint64_t subordCount;
-		boost::uint64_t maxSubordLevel;
+		boost::uint64_t maxLevel;
+		boost::uint64_t subordinateCount;
 	};
 
 	MODULE_RAII_PRIORITY(handles, 5000){
@@ -116,14 +116,7 @@ namespace {
 		boost::container::flat_map<AccountId, SubordinateInfoCacheElement> tempMap;
 		tempMap.reserve(accountMap->size());
 		for(auto it = accountMap->begin(); it != accountMap->end(); ++it){
-			boost::uint64_t level = 0;
-			auto attrIt = attributeMap->find<1>(std::make_pair(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL));
-			if(attrIt != attributeMap->end<1>()){
-				const auto &levelStr = attrIt->obj->unlockedGet_value();
-				if(!levelStr.empty()){
-					level = boost::lexical_cast<boost::uint64_t>(levelStr);
-				}
-			}
+			auto level = it->obj->get_level();
 			if((level == 0) && (localNow >= firstBalancingTime)){
 				const auto promotionData = Data::Promotion::getFirst();
 				if(!promotionData){
@@ -133,37 +126,29 @@ namespace {
 				level = promotionData->level;
 			}
 			auto &elem = tempMap[it->accountId];
-			if(elem.maxSubordLevel < level){
-				elem.maxSubordLevel = level;
+			if(elem.maxLevel < level){
+				elem.maxLevel = level;
 			}
 
 			auto referrerIt = accountMap->find<0>(it->referrerId);
 			while(referrerIt != accountMap->end<0>()){
 				const auto currentReferrerId = referrerIt->accountId;
 				auto &elem = tempMap[currentReferrerId];
-				++elem.subordCount;
-				if(elem.maxSubordLevel < level){
-					elem.maxSubordLevel = level;
+				if(elem.maxLevel < level){
+					elem.maxLevel = level;
 				}
+				++elem.subordinateCount;
 				referrerIt = accountMap->find<0>(referrerIt->referrerId);
 			}
 		}
 		for(auto it = tempMap.begin(); it != tempMap.end(); ++it){
-			const auto reallySetAttribute = [&](unsigned slot, std::string str){
-				auto attrIt = attributeMap->find<1>(std::make_pair(it->first, slot));
-				if(attrIt == attributeMap->end<1>()){
-					attrIt = attributeMap->insert<1>(attrIt, AccountAttributeElement(
-						boost::make_shared<MySql::Promotion_AccountAttribute>(it->first.get(), slot, std::move(str))));
-					attrIt->obj->asyncSave(true);
-				} else {
-					if(attrIt->obj->unlockedGet_value() != str){
-						attrIt->obj->set_value(std::move(str));
-					}
-				}
-			};
-
-			reallySetAttribute(AccountMap::ATTR_SUBORD_COUNT,     boost::lexical_cast<std::string>(it->second.subordCount));
-			reallySetAttribute(AccountMap::ATTR_MAX_SUBORD_LEVEL, boost::lexical_cast<std::string>(it->second.maxSubordLevel));
+			const auto accountIt = accountMap->find<0>(it->first);
+			if(accountIt == accountMap->end<0>()){
+				LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", it->first);
+				continue;
+			}
+			accountIt->obj->set_maxLevel(it->second.maxLevel);
+			accountIt->obj->set_subordinateCount(it->second.subordinateCount);
 		}
 	}
 
@@ -177,6 +162,9 @@ namespace {
 		info.passwordHash     = obj->unlockedGet_passwordHash();
 		info.dealPasswordHash = obj->unlockedGet_dealPasswordHash();
 		info.referrerId       = AccountId(obj->get_referrerId());
+		info.level            = obj->get_level();
+		info.maxLevel         = obj->get_maxLevel();
+		info.subordinateCount = obj->get_subordinateCount();
 		info.flags            = obj->get_flags();
 		info.bannedUntil      = obj->get_bannedUntil();
 		info.createdTime      = obj->get_createdTime();
@@ -386,6 +374,49 @@ void AccountMap::setDealPassword(AccountId accountId, const std::string &dealPas
 
 	it->obj->set_dealPasswordHash(getPasswordHash(dealPassword));
 }
+void AccountMap::setLevel(AccountId accountId, boost::uint64_t level){
+	PROFILE_ME;
+
+	const auto it = g_accountMap->find<0>(accountId);
+	if(it == g_accountMap->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+		DEBUG_THROW(Exception, sslit("Account not found"));
+	}
+	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+		DEBUG_THROW(Exception, sslit("Account deleted"));
+	}
+
+	it->obj->set_level(level);
+
+	auto currentIt = it;
+	do {
+		try {
+			boost::uint64_t newMaxLevel = 0;
+			const auto range = g_accountMap->equalRange<4>(currentIt->accountId);
+			for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
+				const auto maxLevel = subordIt->obj->get_maxLevel();
+				if(newMaxLevel < maxLevel){
+					newMaxLevel = maxLevel;
+				}
+			}
+			const auto selfLevel = currentIt->obj->get_level();
+			if(newMaxLevel < selfLevel){
+				newMaxLevel = selfLevel; // 现在是算自己的。
+			}
+			const auto oldMaxLevel = currentIt->obj->get_maxLevel();
+			if(newMaxLevel == oldMaxLevel){
+				break;
+			}
+			LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: accountId = ", currentIt->accountId,
+				", oldMaxLevel = ", oldMaxLevel, ", newMaxLevel = ", newMaxLevel);
+			currentIt->obj->set_maxLevel(newMaxLevel);
+		} catch(std::exception &e){
+			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
+		}
+		currentIt = g_accountMap->find<0>(currentIt->referrerId);
+	} while(currentIt != g_accountMap->end<0>());
+}
 void AccountMap::setFlags(AccountId accountId, boost::uint64_t flags){
 	PROFILE_ME;
 
@@ -456,22 +487,17 @@ AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std
 	const auto localNow = Poseidon::getLocalTime();
 	auto obj = boost::make_shared<MySql::Promotion_Account>(accountId.get(), std::move(loginName),
 		std::move(phoneNumber), std::move(nick), getPasswordHash(password), getPasswordHash(dealPassword),
-		referrerId.get(), flags, 0, localNow, std::move(createdIp));
+		referrerId.get(), 0, 0, 0, flags, 0, localNow, std::move(createdIp));
 	obj->asyncSave(true);
 	it = g_accountMap->insert<1>(it, AccountElement(std::move(obj)));
 
 	auto referrerIt = g_accountMap->find<0>(referrerId);
 	while(referrerIt != g_accountMap->end<0>()){
-		const auto currentReferrerId = referrerIt->accountId;
-		try {
-			const auto oldCount = castAttribute<boost::uint64_t>(currentReferrerId, ATTR_SUBORD_COUNT);
-			boost::uint64_t newCount = oldCount + 1;
-			LOG_EMPERY_PROMOTION_DEBUG("Updating subordinate count: currentReferrerId = ", currentReferrerId,
-				", oldCount = ", oldCount, ", newCount = ", newCount);
-			setAttribute(currentReferrerId, ATTR_SUBORD_COUNT, boost::lexical_cast<std::string>(newCount));
-		} catch(std::exception &e){
-			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
-		}
+		const auto oldCount = referrerIt->obj->get_subordinateCount();
+		const auto newCount = oldCount + 1;
+		LOG_EMPERY_PROMOTION_DEBUG("Updating subordinate count: referrerId = ", referrerIt->accountId,
+			", oldCount = ", oldCount, ", newCount = ", newCount);
+		referrerIt->obj->set_subordinateCount(newCount);
 		referrerIt = g_accountMap->find<0>(referrerIt->referrerId);
 	}
 
@@ -523,36 +549,6 @@ void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string va
 		it->obj->asyncSave(true);
 	} else {
 		it->obj->set_value(std::move(value));
-	}
-
-	if(slot == ATTR_ACCOUNT_LEVEL){
-		auto currentIt = accountIt;
-		while(currentIt != g_accountMap->end<0>()){
-			try {
-				boost::uint64_t newMaxSubordLevel = 0;
-				const auto range = g_accountMap->equalRange<4>(currentIt->accountId);
-				for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
-					const auto maxSubOrdLevel = castAttribute<boost::uint64_t>(subordIt->accountId, ATTR_MAX_SUBORD_LEVEL);
-					if(newMaxSubordLevel < maxSubOrdLevel){
-						newMaxSubordLevel = maxSubOrdLevel;
-					}
-				}
-				const auto selfLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_ACCOUNT_LEVEL);
-				if(newMaxSubordLevel < selfLevel){
-					newMaxSubordLevel = selfLevel; // 现在是算自己的。
-				}
-				const auto oldMaxSubordLevel = castAttribute<boost::uint64_t>(currentIt->accountId, ATTR_MAX_SUBORD_LEVEL);
-				if(newMaxSubordLevel == oldMaxSubordLevel){
-					break;
-				}
-				LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: accountId = ", currentIt->accountId,
-					", oldMaxSubordLevel = ", oldMaxSubordLevel, ", newMaxSubordLevel = ", newMaxSubordLevel);
-				setAttribute(currentIt->accountId, ATTR_MAX_SUBORD_LEVEL, boost::lexical_cast<std::string>(newMaxSubordLevel));
-			} catch(std::exception &e){
-				LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
-			}
-			currentIt = g_accountMap->find<0>(currentIt->referrerId);
-		}
 	}
 }
 

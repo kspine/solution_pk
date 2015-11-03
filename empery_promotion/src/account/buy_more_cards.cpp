@@ -41,9 +41,8 @@ ACCOUNT_SERVLET("buyMoreCards", /* session */, params){
 	}
 
 	double discount = 1.0;
-	const auto level = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-	if(level != 0){
-		const auto promotionData = Data::Promotion::get(level);
+	if(info.level != 0){
+		const auto promotionData = Data::Promotion::get(info.level);
 		if(promotionData){
 			discount = promotionData->immediateDiscount;
 		}

@@ -110,7 +110,7 @@ ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
 		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_REMARKS, std::move(remarks));
 	}
 	if(!level.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL, std::move(level));
+		AccountMap::setLevel(info.accountId, boost::lexical_cast<boost::uint64_t>(level));
 	}
 	if(!maxVisibleSubordDepth.empty()){
 		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH, std::move(maxVisibleSubordDepth));

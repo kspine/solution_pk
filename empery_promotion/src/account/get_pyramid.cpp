@@ -17,10 +17,6 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 		return ret;
 	}
 
-	const auto level          = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-	const auto subordCount    = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_SUBORD_COUNT);
-	const auto maxSubordLevel = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_MAX_SUBORD_LEVEL);
-
 	const auto pyramidDepthLimit = getConfig<unsigned>("pyramid_depth_limit", 32);
 
 	Poseidon::JsonArray members;
@@ -45,20 +41,17 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 			std::vector<AccountMap::AccountInfo> memberInfos;
 			AccountMap::getByReferrerId(memberInfos, currentAccountId);
 			for(auto it = memberInfos.begin(); it != memberInfos.end(); ++it){
-				const auto level          = AccountMap::castAttribute<boost::uint64_t>(it->accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-				const auto subordCount    = AccountMap::castAttribute<boost::uint64_t>(it->accountId, AccountMap::ATTR_SUBORD_COUNT);
-				const auto maxSubordLevel = AccountMap::castAttribute<boost::uint64_t>(it->accountId, AccountMap::ATTR_MAX_SUBORD_LEVEL);
 				LOG_EMPERY_PROMOTION_DEBUG("> Depth ", depth, ", accountId = ", it->accountId,
-					", level = ", level, ", subordCount = ", subordCount, ", maxSubordLevel = ", maxSubordLevel);
+					", level = ", it->level, ", maxLevel = ", it->maxLevel, ", subordinateCount = ", it->subordinateCount);
 
 				currentArrayDest->emplace_back(Poseidon::JsonObject());
 				auto &member = currentArrayDest->back().get<Poseidon::JsonObject>();
 
 				member[sslit("loginName")]      = std::move(it->loginName);
 				member[sslit("nick")]           = std::move(it->nick);
-				member[sslit("level")]          = boost::lexical_cast<std::string>(level);
-				member[sslit("subordCount")]    = subordCount;
-				member[sslit("maxSubordLevel")] = maxSubordLevel;
+				member[sslit("level")]          = boost::lexical_cast<std::string>(it->level);
+				member[sslit("maxSubordLevel")] = it->maxLevel;
+				member[sslit("subordCount")]    = it->subordinateCount;
 				member[sslit("members")]        = Poseidon::JsonArray();
 
 				nextLevel.emplace_back(it->accountId, &member[sslit("members")].get<Poseidon::JsonArray>());
@@ -71,9 +64,9 @@ ACCOUNT_SERVLET("getPyramid", /* session */, params){
 
 	ret[sslit("loginName")]      = std::move(info.loginName);
 	ret[sslit("nick")]           = std::move(info.nick);
-	ret[sslit("level")]          = boost::lexical_cast<std::string>(level);
-	ret[sslit("subordCount")]    = subordCount;
-	ret[sslit("maxSubordLevel")] = maxSubordLevel;
+	ret[sslit("level")]          = boost::lexical_cast<std::string>(info.level);
+	ret[sslit("maxSubordLevel")] = info.maxLevel;
+	ret[sslit("subordCount")]    = info.subordinateCount;
 	ret[sslit("members")]        = std::move(members);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

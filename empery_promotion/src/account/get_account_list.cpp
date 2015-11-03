@@ -82,13 +82,11 @@ ACCOUNT_SERVLET("getAccountList", /* session */, params){
 				items[SharedNts(str, len)] = it->second;
 			}
 
-			const auto level = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-
 			Poseidon::JsonObject elem;
 			elem[sslit("accountId")] = info.accountId.get();
 			elem[sslit("loginName")] = std::move(info.loginName);
 			elem[sslit("nick")] = std::move(info.nick);
-			elem[sslit("level")] = boost::lexical_cast<std::string>(level);
+			elem[sslit("level")] = boost::lexical_cast<std::string>(info.level);
 			elem[sslit("referrerId")] = referrerInfo.accountId.get();
 			elem[sslit("referrerLoginName")] = std::move(referrerInfo.loginName);
 			elem[sslit("createdTime")] = info.createdTime;

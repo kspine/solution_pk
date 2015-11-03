@@ -27,11 +27,9 @@ ACCOUNT_SERVLET("queryAccountItems", /* session */, params){
 		items[SharedNts(str, len)] = it->second;
 	}
 
-	const auto level = AccountMap::castAttribute<boost::uint64_t>(info.accountId, AccountMap::ATTR_ACCOUNT_LEVEL);
-
 	ret[sslit("nick")] = std::move(info.nick);
 	ret[sslit("phoneNumber")] = std::move(info.phoneNumber);
-	ret[sslit("level")] = boost::lexical_cast<std::string>(level);
+	ret[sslit("level")] = info.level;
 	ret[sslit("items")] = std::move(items);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

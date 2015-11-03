@@ -27,10 +27,6 @@ struct AccountMap {
 		ATTR_BANK_SWIFT_CODE            = 7,
 		ATTR_REMARKS                    = 8,
 		ATTR_MAX_VISIBLE_SUBORD_DEPTH   = 9,
-
-		ATTR_ACCOUNT_LEVEL              = 100,
-		ATTR_SUBORD_COUNT               = 101,
-		ATTR_MAX_SUBORD_LEVEL           = 102,
 	};
 
 	struct AccountInfo {
@@ -41,6 +37,9 @@ struct AccountMap {
 		std::string passwordHash;
 		std::string dealPasswordHash;
 		AccountId referrerId;
+		boost::uint64_t level;
+		boost::uint64_t maxLevel;
+		boost::uint64_t subordinateCount;
 		boost::uint64_t flags;
 		boost::uint64_t bannedUntil;
 		boost::uint64_t createdTime;
@@ -66,6 +65,7 @@ struct AccountMap {
 	static void setNick(AccountId accountId, std::string nick);
 	static void setPassword(AccountId accountId, const std::string &password);
 	static void setDealPassword(AccountId accountId, const std::string &dealPassword);
+	static void setLevel(AccountId accountId, boost::uint64_t level);
 	static void setFlags(AccountId accountId, boost::uint64_t flags);
 	static void setBannedUntil(AccountId accountId, boost::uint64_t bannedUntil);
 
