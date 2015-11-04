@@ -1,12 +1,12 @@
-#ifndef EMPERY_CENTER_DATA_HTTP_SESSION_HPP_
-#define EMPERY_CENTER_DATA_HTTP_SESSION_HPP_
+#ifndef EMPERY_CENTER_DATA_SESSION_HPP_
+#define EMPERY_CENTER_DATA_SESSION_HPP_
 
 #include <poseidon/http/session.hpp>
 #include <poseidon/fwd.hpp>
 
 namespace EmperyCenter {
 
-class DataHttpSession : public Poseidon::Http::Session {
+class DataSession : public Poseidon::Http::Session {
 public:
 	struct SerializedData {
 		std::string utf8String;
@@ -21,8 +21,8 @@ private:
 	const std::string m_prefix;
 
 public:
-	DataHttpSession(Poseidon::UniqueFile socket, std::string prefix);
-	~DataHttpSession();
+	DataSession(Poseidon::UniqueFile socket, std::string prefix);
+	~DataSession();
 
 protected:
 	void onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer entity) override;

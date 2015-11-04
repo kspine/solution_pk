@@ -83,7 +83,7 @@ void PlayerSessionMap::add(const AccountUuid &accountUuid, const boost::shared_p
 		DEBUG_THROW(Exception, sslit("Duplicate session"));
 	}
 
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 
 	for(;;){
 		const auto result = g_sessionMap->insert(SessionElement(accountUuid, session));
@@ -135,7 +135,7 @@ void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weakSession)
 	const auto onlineDuration = Poseidon::getFastMonoClock() - it->onlineSince;
 	g_sessionMap->erase<1>(it);
 
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 
 	try {
 		LOG_EMPERY_CENTER_INFO("Player goes offline: accountUuid = ", accountUuid, ", onlineDuration = ", onlineDuration);

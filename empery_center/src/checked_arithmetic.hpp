@@ -85,10 +85,10 @@ T checkedMul(T lhs, T rhs){
 	return ret;
 }
 
-extern template boost::uint8_t  checkedMul<boost::uint8_t >(boost::uint8_t  lhs, boost::uint8_t  rhs);
-extern template boost::uint16_t checkedMul<boost::uint16_t>(boost::uint16_t lhs, boost::uint16_t rhs);
-extern template boost::uint32_t checkedMul<boost::uint32_t>(boost::uint32_t lhs, boost::uint32_t rhs);
-extern template boost::uint64_t checkedMul<boost::uint64_t>(boost::uint64_t lhs, boost::uint64_t rhs);
+template boost::uint8_t  checkedMul<boost::uint8_t >(boost::uint8_t  lhs, boost::uint8_t  rhs);
+template boost::uint16_t checkedMul<boost::uint16_t>(boost::uint16_t lhs, boost::uint16_t rhs);
+template boost::uint32_t checkedMul<boost::uint32_t>(boost::uint32_t lhs, boost::uint32_t rhs);
+template boost::uint64_t checkedMul<boost::uint64_t>(boost::uint64_t lhs, boost::uint64_t rhs);
 
 template<typename T>
 T saturatedMul(T lhs, T rhs){
@@ -104,10 +104,10 @@ T saturatedMul(T lhs, T rhs){
 	return ret;
 }
 
-extern template boost::uint8_t  saturatedMul<boost::uint8_t >(boost::uint8_t  lhs, boost::uint8_t  rhs);
-extern template boost::uint16_t saturatedMul<boost::uint16_t>(boost::uint16_t lhs, boost::uint16_t rhs);
-extern template boost::uint32_t saturatedMul<boost::uint32_t>(boost::uint32_t lhs, boost::uint32_t rhs);
-extern template boost::uint64_t saturatedMul<boost::uint64_t>(boost::uint64_t lhs, boost::uint64_t rhs);
+template boost::uint8_t  saturatedMul<boost::uint8_t >(boost::uint8_t  lhs, boost::uint8_t  rhs);
+template boost::uint16_t saturatedMul<boost::uint16_t>(boost::uint16_t lhs, boost::uint16_t rhs);
+template boost::uint32_t saturatedMul<boost::uint32_t>(boost::uint32_t lhs, boost::uint32_t rhs);
+template boost::uint64_t saturatedMul<boost::uint64_t>(boost::uint64_t lhs, boost::uint64_t rhs);
 
 }
 

@@ -11,21 +11,21 @@
 
 namespace EmperyCenter {
 
-using SerializedData = DataHttpSession::SerializedData;
+using SerializedData = DataSession::SerializedData;
 
 namespace {
 	std::map<std::string, boost::weak_ptr<const SerializedData>> g_servletMap;
 }
 
-DataHttpSession::DataHttpSession(Poseidon::UniqueFile socket, std::string prefix)
+DataSession::DataSession(Poseidon::UniqueFile socket, std::string prefix)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_prefix(std::move(prefix))
 {
 }
-DataHttpSession::~DataHttpSession(){
+DataSession::~DataSession(){
 }
 
-boost::shared_ptr<const SerializedData> DataHttpSession::createServlet(const std::string &name, const Poseidon::JsonArray &data){
+boost::shared_ptr<const SerializedData> DataSession::createServlet(const std::string &name, const Poseidon::JsonArray &data){
 	PROFILE_ME;
 
 	auto utf8String = data.dump();
@@ -40,7 +40,7 @@ boost::shared_ptr<const SerializedData> DataHttpSession::createServlet(const std
 	servlet->md5Entry = Poseidon::JsonElement(name).dump() + ':' + Poseidon::JsonElement(std::move(md5AsHex)).dump();
 	return std::move(servlet);
 }
-boost::shared_ptr<const SerializedData> DataHttpSession::getServlet(const std::string &uri){
+boost::shared_ptr<const SerializedData> DataSession::getServlet(const std::string &uri){
 	PROFILE_ME;
 
 	const auto it = g_servletMap.find(uri);
@@ -55,7 +55,7 @@ boost::shared_ptr<const SerializedData> DataHttpSession::getServlet(const std::s
 	return servlet;
 }
 
-void DataHttpSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer /* entity */){
+void DataSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted data HTTP request from ", getRemoteInfo());

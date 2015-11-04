@@ -18,9 +18,10 @@ class Castle : public MapObject {
 public:
 	enum Mission {
 		MIS_NONE            = 0,
-		MIS_CONSTRUCTING    = 1,
-		MIS_UPGRADING       = 2,
-		MIS_DESTRUCTING     = 3,
+		MIS_CONSTRUCT       = 1,
+		MIS_UPGRADE         = 2,
+		MIS_DESTRUCT        = 3,
+		MIS_PRODUCE         = 4,
 	};
 
 	struct BuildingInfo {
@@ -28,6 +29,8 @@ public:
 		BuildingId buildingId;
 		unsigned buildingLevel;
 		Mission mission;
+		boost::uint64_t missionParam1;
+		boost::uint64_t missionParam2;
 		boost::uint64_t missionTimeBegin;
 		boost::uint64_t missionTimeEnd;
 	};
@@ -68,9 +71,15 @@ public:
 	~Castle();
 
 public:
+	void pumpStatus();
+
 	BuildingInfo getBuilding(unsigned baseIndex) const;
 	void getAllBuildings(std::vector<BuildingInfo> &ret) const;
-	void updateBuilding(BuildingInfo info);
+	// 如果指定地基上有任务会抛出异常。
+	void createMission(unsigned baseIndex, Mission mission, BuildingId buildingId,
+		boost::uint64_t missionParam1, boost::uint64_t missionParam2, boost::uint64_t duration);
+	void cancelMission(unsigned baseIndex);
+	void completeMission(unsigned baseIndex);
 
 	ResourceInfo getResource(ResourceId resourceId) const;
 	void getAllResources(std::vector<ResourceInfo> &ret) const;

@@ -53,7 +53,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	if(Poseidon::hasNoneFlagsOf(loginInfo.flags, AccountMap::FL_VALID)){
 		return { Msg::CERR_NO_SUCH_ACCOUNT, std::move(req.loginName) };
 	}
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 	if(localNow >= loginInfo.loginTokenExpiryTime){
 		return { Msg::CERR_TOKEN_EXPIRED, std::move(req.loginName) };
 	}

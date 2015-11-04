@@ -15,6 +15,8 @@ namespace Msg {
 	FIELD_VUINT			(buildingId)	\
 	FIELD_VUINT			(buildingLevel)	\
 	FIELD_VUINT			(mission)	\
+	FIELD_VUINT			(missionParam1)	\
+	FIELD_VUINT			(missionParam2)	\
 	FIELD_VUINT			(missionTimeBegin)	\
 	FIELD_VUINT			(missionTimeRemaining)
 #include <poseidon/cbpp/message_generator.hpp>

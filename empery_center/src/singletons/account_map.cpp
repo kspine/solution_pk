@@ -248,7 +248,7 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::stri
 
 	const auto accountUuid = AccountUuid(Poseidon::Uuid::random());
 	Poseidon::addFlags(flags, AccountMap::FL_VALID);
-	const auto localNow = Poseidon::getLocalTime();
+	const auto localNow = Poseidon::getUtcTime();
 	auto obj = boost::make_shared<MySql::Center_Account>(
 		accountUuid.get(), platformId.get(), std::move(loginName), std::move(nick), flags, std::string(), 0, 0, localNow);
 	obj->asyncSave(true);

@@ -9,6 +9,7 @@
 #include <poseidon/cbpp/exception.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/job_base.hpp>
+#include <sstream>
 #include "../singletons/account_map.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
@@ -79,5 +80,19 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 
 #define PLAYER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
 #define PLAYER_THROW(code_)             PLAYER_THROW_MSG(code_, sslit(""))
+
+namespace EmperyCenter {
+
+template<typename T>
+inline std::string castToStr(const T &rhs){
+	std::ostringstream oss;
+	oss <<rhs;
+	return oss.str();
+}
+inline std::string castToStr(const std::string &rhs){
+	return rhs;
+}
+
+}
 
 #endif

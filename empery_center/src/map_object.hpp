@@ -28,7 +28,7 @@ public:
 	MapObject(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid);
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
-	~MapObject();
+	virtual ~MapObject();
 
 protected:
 	void deleteFromGame();
