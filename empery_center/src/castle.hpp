@@ -5,6 +5,7 @@
 #include <poseidon/cxx_util.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/container/flat_map.hpp>
+#include <boost/function.hpp>
 #include <vector>
 
 namespace EmperyCenter {
@@ -21,7 +22,7 @@ public:
 		MIS_CONSTRUCT       = 1,
 		MIS_UPGRADE         = 2,
 		MIS_DESTRUCT        = 3,
-		MIS_PRODUCE         = 4,
+//		MIS_PRODUCE         = 4,
 	};
 
 	struct BuildingInfo {
@@ -70,21 +71,26 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources);
 	~Castle();
 
+private:
+	void checkMission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utcNow);
+
 public:
 	void pumpStatus();
 
 	BuildingInfo getBuilding(unsigned baseIndex) const;
+	BuildingInfo getBuildingById(BuildingId buildingId) const;
 	void getAllBuildings(std::vector<BuildingInfo> &ret) const;
 	// 如果指定地基上有任务会抛出异常。
-	void createMission(unsigned baseIndex, Mission mission, BuildingId buildingId,
-		boost::uint64_t missionParam1, boost::uint64_t missionParam2, boost::uint64_t duration);
+	void createMission(unsigned baseIndex, Mission mission, BuildingId buildingId = BuildingId());
 	void cancelMission(unsigned baseIndex);
-	void completeMission(unsigned baseIndex);
+	void speedUpMission(unsigned baseIndex, boost::uint64_t deltaDuration);
 
 	ResourceInfo getResource(ResourceId resourceId) const;
 	void getAllResources(std::vector<ResourceInfo> &ret) const;
-	ResourceId commitResourceTransactionNoThrow(const ResourceTransactionElement *elements, std::size_t count);
-	void commitResourceTransaction(const ResourceTransactionElement *elements, std::size_t count);
+	ResourceId commitResourceTransactionNoThrow(const ResourceTransactionElement *elements, std::size_t count,
+		const boost::function<void ()> &callback = boost::function<void ()>());
+	void commitResourceTransaction(const ResourceTransactionElement *elements, std::size_t count,
+		const boost::function<void ()> &callback = boost::function<void ()>());
 };
 
 }

@@ -39,105 +39,85 @@ namespace Data {
 		BuildingId buildingId;
 		unsigned buildLimit;
 		Type type;
-		bool destructible;
 	};
 
-	class CastleUpgradingPrimary {
+	class CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradingPrimary> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradingPrimary> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeAbstract> get(CastleBuilding::Type type, unsigned level);
+		static boost::shared_ptr<const CastleUpgradeAbstract> require(CastleBuilding::Type type, unsigned level);
 
 	public:
 		unsigned level;
 		boost::uint64_t upgradeDuration;
 		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
+		boost::uint64_t destructDuration;
 
+	protected:
+		CastleUpgradeAbstract() = default;
+	};
+
+	class CastleUpgradePrimary : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradePrimary> get(unsigned level);
+		static boost::shared_ptr<const CastleUpgradePrimary> require(unsigned level);
+
+	public:
 		boost::uint64_t maxTerritories;
 	};
 
-	class CastleUpgradingBarracks {
+	class CastleUpgradeBarracks : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradingBarracks> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradingBarracks> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeBarracks> get(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeBarracks> require(unsigned level);
 
 	public:
-		unsigned level;
-		boost::uint64_t upgradeDuration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
-		boost::container::flat_map<BuildingId, unsigned> prerequisite;
-
 		//
 	};
 
-	class CastleUpgradingAcademy {
+	class CastleUpgradeAcademy : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradingAcademy> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradingAcademy> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeAcademy> get(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeAcademy> require(unsigned level);
 
 	public:
-		unsigned level;
-		boost::uint64_t upgradeDuration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
-		boost::container::flat_map<BuildingId, unsigned> prerequisite;
-
 		unsigned techLevel;
 	};
 
-	class CastleUpgradingCivilian {
+	class CastleUpgradeCivilian : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradingCivilian> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradingCivilian> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeCivilian> get(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeCivilian> require(unsigned level);
 
 	public:
-		unsigned level;
-		boost::uint64_t upgradeDuration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
-		boost::container::flat_map<BuildingId, unsigned> prerequisite;
-
 		boost::uint64_t maxPopulation;
 	};
 
-	class CastleUpgradingWarehouse {
+	class CastleUpgradeWarehouse : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradingWarehouse> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradingWarehouse> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeWarehouse> get(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeWarehouse> require(unsigned level);
 
 	public:
-		unsigned level;
-		boost::uint64_t upgradeDuration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
-		boost::container::flat_map<BuildingId, unsigned> prerequisite;
-
 		boost::container::flat_map<ResourceId, boost::uint64_t> maxResourceAmount;
 	};
 
-	class CastleUpgradingCitadelWall {
+	class CastleUpgradeCitadelWall : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradingCitadelWall> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradingCitadelWall> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeCitadelWall> get(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeCitadelWall> require(unsigned level);
 
 	public:
-		unsigned level;
-		boost::uint64_t upgradeDuration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
-		boost::container::flat_map<BuildingId, unsigned> prerequisite;
-
 		boost::uint64_t strength;
 		boost::uint64_t armor;
 	};
 
-	class CastleUpgradingDefenseTower {
+	class CastleUpgradeDefenseTower : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradingDefenseTower> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradingDefenseTower> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeDefenseTower> get(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeDefenseTower> require(unsigned level);
 
 	public:
-		unsigned level;
-		boost::uint64_t upgradeDuration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
-		boost::container::flat_map<BuildingId, unsigned> prerequisite;
-
 		boost::uint64_t firepower;
 	};
 }

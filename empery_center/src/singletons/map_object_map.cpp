@@ -164,7 +164,7 @@ namespace {
 						castleIt->second.first, castleIt->second.second);
 					goto _created;
 				}
-				// TODO 增加其它地图对象类型。
+				// XXX 增加其它地图对象类型。
 				mapObject = boost::make_shared<MapObject>(std::move(it->second.first), it->second.second);
 			}
 		_created:

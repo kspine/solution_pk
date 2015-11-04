@@ -43,8 +43,8 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		}	\
 	}	\
 	::std::pair<long, ::std::string> EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<PlayerSession> & (sessionArg_) __attribute__((__unused__)),	\
-		MsgType_ (reqArg_) __attribute__((__unused__))	\
+		const ::boost::shared_ptr<PlayerSession> & sessionArg_ __attribute__((__unused__)),	\
+		MsgType_ reqArg_	\
 		)	\
 
 #define PLAYER_SERVLET(MsgType_, accountUuidArg_, sessionArg_, reqArg_)	\
@@ -73,9 +73,9 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		}	\
 	}	\
 	::std::pair<long, ::std::string> EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
-		const ::EmperyCenter::AccountUuid & (accountUuidArg_) __attribute__((__unused__)),	\
-		const ::boost::shared_ptr<PlayerSession> & (sessionArg_) __attribute__((__unused__)),	\
-		MsgType_ (reqArg_) __attribute__((__unused__))	\
+		const ::EmperyCenter::AccountUuid & accountUuidArg_ __attribute__((__unused__)),	\
+		const ::boost::shared_ptr<PlayerSession> & sessionArg_ __attribute__((__unused__)),	\
+		MsgType_ reqArg_	\
 		)	\
 
 #define PLAYER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
@@ -84,12 +84,12 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 namespace EmperyCenter {
 
 template<typename T>
-inline std::string castToStr(const T &rhs){
+inline std::string strCast(const T &rhs){
 	std::ostringstream oss;
 	oss <<rhs;
 	return oss.str();
 }
-inline std::string castToStr(const std::string &rhs){
+inline std::string strCast(const std::string &rhs){
 	return rhs;
 }
 

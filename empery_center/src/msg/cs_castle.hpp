@@ -49,6 +49,13 @@ namespace Msg {
 	FIELD_VUINT			(baseIndex)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME	CS_CastleQueryIndividualBaseInfo
+#define MESSAGE_ID		406
+#define MESSAGE_FIELDS	\
+	FIELD_STRING		(mapObjectUuid)	\
+	FIELD_VUINT			(baseIndex)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

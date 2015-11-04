@@ -20,6 +20,7 @@ namespace Msg {
 		CERR_CASTLE_UPGRADE_MAX             = 71409,
 		CERR_NO_BUILDING_THERE              = 71410,
 		CERR_BUILDING_NOT_DESTRUCTIBLE      = 71411,
+		CERR_PREREQUISITE_NOT_MET           = 71412,
 	};
 }
 

@@ -10,6 +10,8 @@
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, accountUuid, session, req){
+	(void)req;
+
 	ClusterSessionMap::SessionContainer clusters;
 	ClusterSessionMap::getAll(clusters);
 	const auto mapSize = ClusterSessionMap::requireMapSize();

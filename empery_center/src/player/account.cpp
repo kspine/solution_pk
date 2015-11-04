@@ -35,7 +35,7 @@ namespace {
 			}
 		}
 		if(wantsItems){
-			// TODO
+			// TODO 添加公开资源。
 		}
 		session->send(msg);
 	}

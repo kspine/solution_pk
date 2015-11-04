@@ -42,8 +42,8 @@ ADMIN_SERVLET(请求 URI, 会话形参名, GET 参数){
 		}	\
 	}	\
 	::Poseidon::JsonObject EmperyCenter::Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<AdminHttpSession> & (sessionArg_) __attribute__((__unused__)),	\
-		::Poseidon::OptionalMap  (paramsArg_) __attribute__((__unused__)))	\
+		const ::boost::shared_ptr<AdminHttpSession> & sessionArg_ __attribute__((__unused__)),	\
+		::Poseidon::OptionalMap paramsArg_	\
 
 #define ADMIN_THROW(code_)              DEBUG_THROW(::Poseidon::Http::Exception, (code_))
 

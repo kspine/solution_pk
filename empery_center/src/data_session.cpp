@@ -38,6 +38,10 @@ boost::shared_ptr<const SerializedData> DataSession::createServlet(const std::st
 	auto servlet = boost::make_shared<SerializedData>();
 	servlet->utf8String = std::move(utf8String);
 	servlet->md5Entry = Poseidon::JsonElement(name).dump() + ':' + Poseidon::JsonElement(std::move(md5AsHex)).dump();
+	if(!g_servletMap.insert(std::make_pair(name, servlet)).second){
+		LOG_EMPERY_CENTER_ERROR("Duplicate data HTTP servlet: name = ", name);
+		DEBUG_THROW(Exception, sslit("Duplicate data HTTP servlet"));
+	}
 	return std::move(servlet);
 }
 boost::shared_ptr<const SerializedData> DataSession::getServlet(const std::string &uri){

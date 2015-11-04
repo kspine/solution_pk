@@ -39,8 +39,8 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		}	\
 	}	\
 	ClusterSession::Result EmperyCenter::Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<ClusterSession> & (sessionArg_) __attribute__((__unused__)),	\
-		MsgType_ (reqArg_) __attribute__((__unused__))	\
+		const ::boost::shared_ptr<ClusterSession> & sessionArg_ __attribute__((__unused__)),	\
+		MsgType_ reqArg_	\
 		)	\
 
 #define CLUSTER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)

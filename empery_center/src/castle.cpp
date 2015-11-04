@@ -7,6 +7,7 @@
 #include "singletons/player_session_map.hpp"
 #include "checked_arithmetic.hpp"
 #include "player_session.hpp"
+#include "data/castle.hpp"
 
 namespace EmperyCenter {
 
@@ -77,20 +78,50 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 Castle::~Castle(){
 }
 
+void Castle::checkMission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utcNow){
+	PROFILE_ME;
+
+	const auto mission = Mission(obj->get_mission());
+	if(mission == MIS_NONE){
+		return;
+	}
+	const auto missionTimeEnd = obj->get_missionTimeEnd();
+	if(utcNow < missionTimeEnd){
+		return;
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Mission complete: mapObjectUuid = ", getMapObjectUuid(), ", baseIndex = ", obj->get_baseIndex(),
+		", mission = ", (unsigned)mission, ", buildingId = ", obj->get_buildingId());
+	switch(mission){
+	case MIS_CONSTRUCT:
+		obj->set_buildingLevel(1);
+		break;
+
+	case MIS_UPGRADE:
+		{
+			const unsigned level = obj->get_buildingLevel();
+			obj->set_buildingLevel(level + 1);
+		}
+		break;
+
+	case MIS_DESTRUCT:
+		obj->set_buildingId(0);
+		obj->set_buildingLevel(0);
+		break;
+
+	default:
+		LOG_EMPERY_CENTER_ERROR("Unknown mission: mapObjectUuid = ", getMapObjectUuid(), ", baseIndex = ", obj->get_baseIndex(),
+			", mission = ", (unsigned)mission);
+		DEBUG_THROW(Exception, sslit("Unknown mission"));
+	}
+}
+
 void Castle::pumpStatus(){
 	PROFILE_ME;
 
 	const auto utcNow = Poseidon::getUtcTime();
-
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		const auto &obj = it->second;
-		if(obj->get_mission() == MIS_NONE){
-			continue;
-		}
-		if(utcNow < it->second->get_missionTimeEnd()){
-			continue;
-		}
-		completeMission(it->first);
+		checkMission(it->second, utcNow);
 	}
 }
 
@@ -107,6 +138,20 @@ Castle::BuildingInfo Castle::getBuilding(unsigned baseIndex) const {
 	fillBuildingInfo(info, it->second);
 	return info;
 }
+Castle::BuildingInfo Castle::getBuildingById(BuildingId buildingId) const {
+	PROFILE_ME;
+
+	BuildingInfo info = { };
+	info.buildingId = buildingId;
+
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		if(BuildingId(it->second->get_buildingId()) == buildingId){
+			fillBuildingInfo(info, it->second);
+			break;
+		}
+	}
+	return info;
+}
 void Castle::getAllBuildings(std::vector<Castle::BuildingInfo> &ret) const {
 	PROFILE_ME;
 
@@ -118,9 +163,7 @@ void Castle::getAllBuildings(std::vector<Castle::BuildingInfo> &ret) const {
 	}
 }
 
-void Castle::createMission(unsigned baseIndex, Castle::Mission mission, BuildingId buildingId,
-	boost::uint64_t missionParam1, boost::uint64_t missionParam2, boost::uint64_t duration)
-{
+void Castle::createMission(unsigned baseIndex, Castle::Mission mission, BuildingId buildingId){
 	PROFILE_ME;
 
 	auto it = m_buildings.find(baseIndex);
@@ -131,27 +174,40 @@ void Castle::createMission(unsigned baseIndex, Castle::Mission mission, Building
 		it = m_buildings.emplace(baseIndex, obj).first;
 	}
 	const auto &obj = it->second;
+	const auto oldMission = Mission(obj->get_mission());
+	if(oldMission != MIS_NONE){
+		LOG_EMPERY_CENTER_DEBUG("Mission conflict on building base: mapObjectUuid = ", getMapObjectUuid(), ", baseIndex = ", baseIndex);
+		DEBUG_THROW(Exception, sslit("Mission conflict on building base"));
+	}
 
-	const auto utcNow = Poseidon::getUtcTime();
-	const auto missionTimeEnd = checkedAdd(utcNow, duration);
-
-(void)missionParam1, (void)missionParam2;
+	boost::uint64_t duration;
 	switch(mission){
 	case MIS_CONSTRUCT:
-		// TODO 扣资源。
+		{
+			const auto buildingData = Data::CastleBuilding::require(buildingId);
+			const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, 1);
+			duration = upgradeData->upgradeDuration;
+		}
 		obj->set_buildingId(buildingId.get());
 		obj->set_buildingLevel(0);
 		break;
 
 	case MIS_UPGRADE:
-		// TODO 扣资源。
+		{
+			const unsigned level = obj->get_buildingLevel();
+			const auto buildingData = Data::CastleBuilding::require(BuildingId(obj->get_buildingId()));
+			const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, level + 1);
+			duration = upgradeData->upgradeDuration;
+		}
 		break;
 
 	case MIS_DESTRUCT:
-		// TODO 扣资源。
-		break;
-
-	case MIS_PRODUCE:
+		{
+			const unsigned level = obj->get_buildingLevel();
+			const auto buildingData = Data::CastleBuilding::require(BuildingId(obj->get_buildingId()));
+			const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, level);
+			duration = upgradeData->destructDuration;
+		}
 		break;
 
 	default:
@@ -160,11 +216,13 @@ void Castle::createMission(unsigned baseIndex, Castle::Mission mission, Building
 		DEBUG_THROW(Exception, sslit("Unknown mission"));
 	}
 
-	obj->set_mission(MIS_NONE);
-	obj->set_missionParam1(missionParam1);
-	obj->set_missionParam2(missionParam2);
+	const auto utcNow = Poseidon::getUtcTime();
+
+	obj->set_mission(mission);
 	obj->set_missionTimeBegin(utcNow);
-	obj->set_missionTimeEnd(missionTimeEnd);
+	obj->set_missionTimeEnd(saturatedAdd(utcNow, duration));
+
+	checkMission(obj, utcNow);
 }
 void Castle::cancelMission(unsigned baseIndex){
 	PROFILE_ME;
@@ -175,40 +233,21 @@ void Castle::cancelMission(unsigned baseIndex){
 		return;
 	}
 	const auto &obj = it->second;
-	const auto mission = Mission(obj->get_mission());
-	if(mission == MIS_NONE){
+	const auto oldMission = Mission(obj->get_mission());
+	if(oldMission == MIS_NONE){
 		LOG_EMPERY_CENTER_DEBUG("No mission on building base: mapObjectUuid = ", getMapObjectUuid(), ", baseIndex = ", baseIndex);
 		return;
 	}
-	const auto missionParam1 = obj->get_missionParam1();
-	const auto missionParam2 = obj->get_missionParam2();
 
-(void)missionParam1, (void)missionParam2;
-	switch(mission){
-	case MIS_CONSTRUCT:
-		break;
-
-	case MIS_UPGRADE:
-		break;
-
-	case MIS_DESTRUCT:
-		break;
-
-	case MIS_PRODUCE:
-		break;
-
-	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown mission: mapObjectUuid = ", getMapObjectUuid(), ", baseIndex = ", baseIndex,
-			", mission = ", (unsigned)mission);
-	}
+	const auto utcNow = Poseidon::getUtcTime();
 
 	obj->set_mission(MIS_NONE);
-	obj->set_missionParam1(0);
-	obj->set_missionParam2(0);
-	obj->set_missionTimeBegin(0);
-	obj->set_missionTimeEnd(0);
+	obj->set_missionTimeBegin(utcNow);
+	obj->set_missionTimeEnd(utcNow);
+
+	checkMission(obj, utcNow);
 }
-void Castle::completeMission(unsigned baseIndex){
+void Castle::speedUpMission(unsigned baseIndex, boost::uint64_t deltaDuration){
 	PROFILE_ME;
 
 	const auto it = m_buildings.find(baseIndex);
@@ -217,42 +256,17 @@ void Castle::completeMission(unsigned baseIndex){
 		DEBUG_THROW(Exception, sslit("Building base not found"));
 	}
 	const auto &obj = it->second;
-	const auto mission = Mission(obj->get_mission());
-	if(mission == MIS_NONE){
+	const auto oldMission = Mission(obj->get_mission());
+	if(oldMission == MIS_NONE){
 		LOG_EMPERY_CENTER_DEBUG("No mission on building base: mapObjectUuid = ", getMapObjectUuid(), ", baseIndex = ", baseIndex);
-		DEBUG_THROW(Exception, sslit("Building base not found"));
-	}
-	const auto missionParam1 = obj->get_missionParam1();
-	const auto missionParam2 = obj->get_missionParam2();
-
-(void)missionParam1, (void)missionParam2;
-	switch(mission){
-	case MIS_CONSTRUCT:
-		break;
-
-	case MIS_UPGRADE:
-		obj->set_buildingLevel(obj->get_buildingLevel() + 1);
-		break;
-
-	case MIS_DESTRUCT:
-		obj->set_buildingId(0);
-		obj->set_buildingLevel(0);
-		break;
-
-	case MIS_PRODUCE:
-		break;
-
-	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown mission: mapObjectUuid = ", getMapObjectUuid(), ", baseIndex = ", baseIndex,
-			", mission = ", (unsigned)mission);
-		DEBUG_THROW(Exception, sslit("Unknown mission"));
+		DEBUG_THROW(Exception, sslit("No mission on building base"));
 	}
 
-	obj->set_mission(MIS_NONE);
-	obj->set_missionParam1(0);
-	obj->set_missionParam2(0);
-	obj->set_missionTimeBegin(0);
-	obj->set_missionTimeEnd(0);
+	const auto utcNow = Poseidon::getUtcTime();
+
+	obj->set_missionTimeEnd(saturatedSub(obj->get_missionTimeEnd(), deltaDuration));
+
+	checkMission(obj, utcNow);
 }
 
 Castle::ResourceInfo Castle::getResource(ResourceId resourceId) const {
@@ -278,7 +292,9 @@ void Castle::getAllResources(std::vector<Castle::ResourceInfo> &ret) const {
 		ret.emplace_back(std::move(info));
 	}
 }
-ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransactionElement *elements, std::size_t count){
+ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransactionElement *elements, std::size_t count,
+	const boost::function<void ()> &callback)
+{
 	PROFILE_ME;
 
 	if(count == 0){
@@ -352,6 +368,10 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 		}
 	}
 
+	if(callback){
+		callback();
+	}
+
 	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
 		it->first->set_count(it->second);
 	}
@@ -374,10 +394,12 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 
 	return ResourceId();
 }
-void Castle::commitResourceTransaction(const Castle::ResourceTransactionElement *elements, std::size_t count){
+void Castle::commitResourceTransaction(const Castle::ResourceTransactionElement *elements, std::size_t count,
+	const boost::function<void ()> &callback)
+{
 	PROFILE_ME;
 
-	const auto insuffResourceId = commitResourceTransactionNoThrow(elements, count);
+	const auto insuffResourceId = commitResourceTransactionNoThrow(elements, count, callback);
 	if(insuffResourceId != ResourceId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: mapObjectUuid = ", getMapObjectUuid(),
 			", insuffResourceId = ", insuffResourceId);
