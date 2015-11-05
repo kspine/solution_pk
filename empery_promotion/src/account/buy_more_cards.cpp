@@ -58,6 +58,8 @@ ACCOUNT_SERVLET("buyMoreCards", /* session */, params){
 		Events::ItemChanged::R_BUY_MORE_CARDS, info.accountId.get(), cardUnitPrice, 0, remarks);
 	transaction.emplace_back(info.accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, balanceToConsume,
 		Events::ItemChanged::R_BUY_MORE_CARDS, info.accountId.get(), cardUnitPrice, 0, remarks);
+	transaction.emplace_back(info.accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL, balanceToConsume,
+		Events::ItemChanged::R_BUY_MORE_CARDS, info.accountId.get(), cardUnitPrice, 0, remarks);
 	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
 	if(insufficientItemId){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;

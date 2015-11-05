@@ -35,12 +35,14 @@ ACCOUNT_SERVLET("getEconomySummary", /* session */, /* params */){
 		return 0;
 	};
 
+	ret[sslit("accCardUnitPrice")]           = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
+
 	ret[sslit("balanceRechargedHistorical")] = getTotalItemCount(ItemIds::ID_BALANCE_RECHARGED_HISTORICAL);
 	ret[sslit("balanceWithdrawnHistorical")] = getTotalItemCount(ItemIds::ID_BALANCE_WITHDRAWN_HISTORICAL);
 	ret[sslit("withdrawnBalance")]           = getTotalItemCount(ItemIds::ID_WITHDRAWN_BALANCE);
 
-	ret[sslit("accCardUnitPrice")]           = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
 	ret[sslit("accelerationCards")]          = getTotalItemCount(ItemIds::ID_ACCELERATION_CARDS);
+	ret[sslit("balanceBuyCardsHistorical")]  = getTotalItemCount(ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL);
 
 	ret[sslit("goldCoins")]                  = getTotalItemCount(ItemIds::ID_GOLD_COINS);
 
