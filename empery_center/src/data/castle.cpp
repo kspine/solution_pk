@@ -69,7 +69,7 @@ namespace {
 				}
 			}
 		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", level = ", elem.level, ", str = ", str);
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", buildingLevel = ", elem.buildingLevel, ", str = ", str);
 			throw;
 		}
 
@@ -80,14 +80,14 @@ namespace {
 			elem.prerequisite.reserve(root.size());
 			for(auto it = root.begin(); it != root.end(); ++it){
 				const auto buildingId = boost::lexical_cast<BuildingId>(it->first);
-				const auto level = static_cast<unsigned>(it->second.get<double>());
-				if(!elem.prerequisite.emplace(buildingId, level).second){
+				const auto buildingLevel = static_cast<unsigned>(it->second.get<double>());
+				if(!elem.prerequisite.emplace(buildingId, buildingLevel).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate prerequisite: buildingId = ", buildingId);
 					DEBUG_THROW(Exception, sslit("Duplicate prerequisite"));
 				}
 			}
 		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", level = ", elem.level, ", str = ", str);
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", buildingLevel = ", elem.buildingLevel, ", str = ", str);
 			throw;
 		}
 
@@ -165,11 +165,11 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleUpgradePrimary elem = { };
 
-		csv.get(elem.level, "castel_level");
+		csv.get(elem.buildingLevel, "castel_level");
 		readUpgradeElement(elem, csv);
 
-		if(!upgradePrimaryMap->emplace(elem.level, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade primary: level = ", elem.level);
+		if(!upgradePrimaryMap->emplace(elem.buildingLevel, std::move(elem)).second){
+			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade primary: buildingLevel = ", elem.buildingLevel);
 			DEBUG_THROW(Exception, sslit("Duplicate upgrade primary"));
 		}
 	}
@@ -184,13 +184,13 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleUpgradeBarracks elem = { };
 
-		csv.get(elem.level, "camp_level");
+		csv.get(elem.buildingLevel, "camp_level");
 		readUpgradeElement(elem, csv);
 
 		//
 
-		if(!upgradeBarracksMap->emplace(elem.level, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade barracks: level = ", elem.level);
+		if(!upgradeBarracksMap->emplace(elem.buildingLevel, std::move(elem)).second){
+			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade barracks: buildingLevel = ", elem.buildingLevel);
 			DEBUG_THROW(Exception, sslit("Duplicate upgrade barracks"));
 		}
 	}
@@ -205,13 +205,13 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleUpgradeAcademy elem = { };
 
-		csv.get(elem.level, "college_level");
+		csv.get(elem.buildingLevel, "college_level");
 		readUpgradeElement(elem, csv);
 
 		csv.get(elem.techLevel, "tech_level");
 
-		if(!upgradeAcademyMap->emplace(elem.level, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade academy: level = ", elem.level);
+		if(!upgradeAcademyMap->emplace(elem.buildingLevel, std::move(elem)).second){
+			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade academy: buildingLevel = ", elem.buildingLevel);
 			DEBUG_THROW(Exception, sslit("Duplicate upgrade academy"));
 		}
 	}
@@ -226,13 +226,13 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleUpgradeCivilian elem = { };
 
-		csv.get(elem.level, "house_level");
+		csv.get(elem.buildingLevel, "house_level");
 		readUpgradeElement(elem, csv);
 
 		csv.get(elem.maxPopulation, "population_max");
 
-		if(!upgradeCivilianMap->emplace(elem.level, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade civilian: level = ", elem.level);
+		if(!upgradeCivilianMap->emplace(elem.buildingLevel, std::move(elem)).second){
+			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade civilian: buildingLevel = ", elem.buildingLevel);
 			DEBUG_THROW(Exception, sslit("Duplicate upgrade civilian"));
 		}
 	}
@@ -247,7 +247,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleUpgradeWarehouse elem = { };
 
-		csv.get(elem.level, "storage_level");
+		csv.get(elem.buildingLevel, "storage_level");
 		readUpgradeElement(elem, csv);
 
 		std::string str;
@@ -265,12 +265,12 @@ MODULE_RAII_PRIORITY(handles, 1000){
 				}
 			}
 		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", level = ", elem.level, ", str = ", str);
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", buildingLevel = ", elem.buildingLevel, ", str = ", str);
 			throw;
 		}
 
-		if(!upgradeWarehouseMap->emplace(elem.level, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade warehouse: level = ", elem.level);
+		if(!upgradeWarehouseMap->emplace(elem.buildingLevel, std::move(elem)).second){
+			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade warehouse: buildingLevel = ", elem.buildingLevel);
 			DEBUG_THROW(Exception, sslit("Duplicate upgrade warehouse"));
 		}
 	}
@@ -285,14 +285,14 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleUpgradeCitadelWall elem = { };
 
-		csv.get(elem.level, "wall_level");
+		csv.get(elem.buildingLevel, "wall_level");
 		readUpgradeElement(elem, csv);
 
 		csv.get(elem.strength, "troops");
 		csv.get(elem.armor, "defence");
 
-		if(!upgradeCitadelWallMap->emplace(elem.level, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade citadel wall: level = ", elem.level);
+		if(!upgradeCitadelWallMap->emplace(elem.buildingLevel, std::move(elem)).second){
+			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade citadel wall: buildingLevel = ", elem.buildingLevel);
 			DEBUG_THROW(Exception, sslit("Duplicate upgrade citadel wall"));
 		}
 	}
@@ -307,13 +307,13 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleUpgradeDefenseTower elem = { };
 
-		csv.get(elem.level, "tower_level");
+		csv.get(elem.buildingLevel, "tower_level");
 		readUpgradeElement(elem, csv);
 
 		csv.get(elem.firepower, "atk");
 
-		if(!upgradeDefenseTowerMap->emplace(elem.level, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade defense tower: level = ", elem.level);
+		if(!upgradeDefenseTowerMap->emplace(elem.buildingLevel, std::move(elem)).second){
+			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade defense tower: buildingLevel = ", elem.buildingLevel);
 			DEBUG_THROW(Exception, sslit("Duplicate upgrade defense tower"));
 		}
 	}
@@ -375,42 +375,42 @@ namespace Data {
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::get(CastleBuilding::Type type, unsigned level){
+	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::get(CastleBuilding::Type type, unsigned buildingLevel){
 		PROFILE_ME;
 
 		switch(type){
 		case CastleBuilding::T_PRIMARY:
-			return CastleUpgradePrimary::get(level);
+			return CastleUpgradePrimary::get(buildingLevel);
 		case CastleBuilding::T_BARRACKS:
-			return CastleUpgradeBarracks::get(level);
+			return CastleUpgradeBarracks::get(buildingLevel);
 		case CastleBuilding::T_ACADEMY:
-			return CastleUpgradeAcademy::get(level);
+			return CastleUpgradeAcademy::get(buildingLevel);
 		case CastleBuilding::T_CIVILIAN:
-			return CastleUpgradeCivilian::get(level);
+			return CastleUpgradeCivilian::get(buildingLevel);
 //		case CastleBuilding::T_WATCHTOWER:
-//			return CastleUpgradeWatchtower::get(level);
+//			return CastleUpgradeWatchtower::get(buildingLevel);
 		case CastleBuilding::T_WAREHOUSE:
-			return CastleUpgradeWarehouse::get(level);
+			return CastleUpgradeWarehouse::get(buildingLevel);
 		case CastleBuilding::T_CITADEL_WALL:
-			return CastleUpgradeCitadelWall::get(level);
+			return CastleUpgradeCitadelWall::get(buildingLevel);
 		case CastleBuilding::T_DEFENSE_TOWER:
-			return CastleUpgradeDefenseTower::get(level);
+			return CastleUpgradeDefenseTower::get(buildingLevel);
 		default:
 			LOG_EMPERY_CENTER_WARNING("Unknown building type: type = ", static_cast<unsigned>(type));
 			return { };
 		}
 	}
-	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::require(CastleBuilding::Type type, unsigned level){
+	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::require(CastleBuilding::Type type, unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(type, level);
+		auto ret = get(type, buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeAbstract not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradePrimary> CastleUpgradePrimary::get(unsigned level){
+	boost::shared_ptr<const CastleUpgradePrimary> CastleUpgradePrimary::get(unsigned buildingLevel){
 		PROFILE_ME;
 
 		const auto upgradePrimaryMap = g_upgradePrimaryMap.lock();
@@ -419,24 +419,24 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = upgradePrimaryMap->find(level);
+		const auto it = upgradePrimaryMap->find(buildingLevel);
 		if(it == upgradePrimaryMap->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradePrimary not found: level = ", level);
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradePrimary not found: buildingLevel = ", buildingLevel);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradePrimary>(upgradePrimaryMap, &(it->second));
 	}
-	boost::shared_ptr<const CastleUpgradePrimary> CastleUpgradePrimary::require(unsigned level){
+	boost::shared_ptr<const CastleUpgradePrimary> CastleUpgradePrimary::require(unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(level);
+		auto ret = get(buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradePrimary not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeBarracks> CastleUpgradeBarracks::get(unsigned level){
+	boost::shared_ptr<const CastleUpgradeBarracks> CastleUpgradeBarracks::get(unsigned buildingLevel){
 		PROFILE_ME;
 
 		const auto upgradeBarracksMap = g_upgradeBarracksMap.lock();
@@ -445,24 +445,24 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = upgradeBarracksMap->find(level);
+		const auto it = upgradeBarracksMap->find(buildingLevel);
 		if(it == upgradeBarracksMap->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeBarracks not found: level = ", level);
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeBarracks not found: buildingLevel = ", buildingLevel);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeBarracks>(upgradeBarracksMap, &(it->second));
 	}
-	boost::shared_ptr<const CastleUpgradeBarracks> CastleUpgradeBarracks::require(unsigned level){
+	boost::shared_ptr<const CastleUpgradeBarracks> CastleUpgradeBarracks::require(unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(level);
+		auto ret = get(buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeBarracks not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeAcademy> CastleUpgradeAcademy::get(unsigned level){
+	boost::shared_ptr<const CastleUpgradeAcademy> CastleUpgradeAcademy::get(unsigned buildingLevel){
 		PROFILE_ME;
 
 		const auto upgradeAcademyMap = g_upgradeAcademyMap.lock();
@@ -471,24 +471,24 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = upgradeAcademyMap->find(level);
+		const auto it = upgradeAcademyMap->find(buildingLevel);
 		if(it == upgradeAcademyMap->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeAcademy not found: level = ", level);
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeAcademy not found: buildingLevel = ", buildingLevel);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeAcademy>(upgradeAcademyMap, &(it->second));
 	}
-	boost::shared_ptr<const CastleUpgradeAcademy> CastleUpgradeAcademy::require(unsigned level){
+	boost::shared_ptr<const CastleUpgradeAcademy> CastleUpgradeAcademy::require(unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(level);
+		auto ret = get(buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeAcademy not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeCivilian> CastleUpgradeCivilian::get(unsigned level){
+	boost::shared_ptr<const CastleUpgradeCivilian> CastleUpgradeCivilian::get(unsigned buildingLevel){
 		PROFILE_ME;
 
 		const auto upgradeCivilianMap = g_upgradeCivilianMap.lock();
@@ -497,24 +497,24 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = upgradeCivilianMap->find(level);
+		const auto it = upgradeCivilianMap->find(buildingLevel);
 		if(it == upgradeCivilianMap->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeCivilian not found: level = ", level);
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeCivilian not found: buildingLevel = ", buildingLevel);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeCivilian>(upgradeCivilianMap, &(it->second));
 	}
-	boost::shared_ptr<const CastleUpgradeCivilian> CastleUpgradeCivilian::require(unsigned level){
+	boost::shared_ptr<const CastleUpgradeCivilian> CastleUpgradeCivilian::require(unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(level);
+		auto ret = get(buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeCivilian not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeWarehouse> CastleUpgradeWarehouse::get(unsigned level){
+	boost::shared_ptr<const CastleUpgradeWarehouse> CastleUpgradeWarehouse::get(unsigned buildingLevel){
 		PROFILE_ME;
 
 		const auto upgradeWarehouseMap = g_upgradeWarehouseMap.lock();
@@ -523,24 +523,24 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = upgradeWarehouseMap->find(level);
+		const auto it = upgradeWarehouseMap->find(buildingLevel);
 		if(it == upgradeWarehouseMap->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeWarehouse not found: level = ", level);
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeWarehouse not found: buildingLevel = ", buildingLevel);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeWarehouse>(upgradeWarehouseMap, &(it->second));
 	}
-	boost::shared_ptr<const CastleUpgradeWarehouse> CastleUpgradeWarehouse::require(unsigned level){
+	boost::shared_ptr<const CastleUpgradeWarehouse> CastleUpgradeWarehouse::require(unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(level);
+		auto ret = get(buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeWarehouse not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeCitadelWall> CastleUpgradeCitadelWall::get(unsigned level){
+	boost::shared_ptr<const CastleUpgradeCitadelWall> CastleUpgradeCitadelWall::get(unsigned buildingLevel){
 		PROFILE_ME;
 
 		const auto upgradeCitadelWallMap = g_upgradeCitadelWallMap.lock();
@@ -549,24 +549,24 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = upgradeCitadelWallMap->find(level);
+		const auto it = upgradeCitadelWallMap->find(buildingLevel);
 		if(it == upgradeCitadelWallMap->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeCitadelWall not found: level = ", level);
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeCitadelWall not found: buildingLevel = ", buildingLevel);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeCitadelWall>(upgradeCitadelWallMap, &(it->second));
 	}
-	boost::shared_ptr<const CastleUpgradeCitadelWall> CastleUpgradeCitadelWall::require(unsigned level){
+	boost::shared_ptr<const CastleUpgradeCitadelWall> CastleUpgradeCitadelWall::require(unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(level);
+		auto ret = get(buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeCitadelWall not found"));
 		}
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeDefenseTower> CastleUpgradeDefenseTower::get(unsigned level){
+	boost::shared_ptr<const CastleUpgradeDefenseTower> CastleUpgradeDefenseTower::get(unsigned buildingLevel){
 		PROFILE_ME;
 
 		const auto upgradeDefenseTowerMap = g_upgradeDefenseTowerMap.lock();
@@ -575,17 +575,17 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = upgradeDefenseTowerMap->find(level);
+		const auto it = upgradeDefenseTowerMap->find(buildingLevel);
 		if(it == upgradeDefenseTowerMap->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeDefenseTower not found: level = ", level);
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeDefenseTower not found: buildingLevel = ", buildingLevel);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeDefenseTower>(upgradeDefenseTowerMap, &(it->second));
 	}
-	boost::shared_ptr<const CastleUpgradeDefenseTower> CastleUpgradeDefenseTower::require(unsigned level){
+	boost::shared_ptr<const CastleUpgradeDefenseTower> CastleUpgradeDefenseTower::require(unsigned buildingLevel){
 		PROFILE_ME;
 
-		auto ret = get(level);
+		auto ret = get(buildingLevel);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeDefenseTower not found"));
 		}

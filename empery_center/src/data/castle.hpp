@@ -43,11 +43,11 @@ namespace Data {
 
 	class CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeAbstract> get(CastleBuilding::Type type, unsigned level);
-		static boost::shared_ptr<const CastleUpgradeAbstract> require(CastleBuilding::Type type, unsigned level);
+		static boost::shared_ptr<const CastleUpgradeAbstract> get(CastleBuilding::Type type, unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradeAbstract> require(CastleBuilding::Type type, unsigned buildingLevel);
 
 	public:
-		unsigned level;
+		unsigned buildingLevel;
 		boost::uint64_t upgradeDuration;
 		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
@@ -59,8 +59,8 @@ namespace Data {
 
 	class CastleUpgradePrimary : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradePrimary> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradePrimary> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradePrimary> get(unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradePrimary> require(unsigned buildingLevel);
 
 	public:
 		boost::uint64_t maxTerritories;
@@ -68,8 +68,8 @@ namespace Data {
 
 	class CastleUpgradeBarracks : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeBarracks> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradeBarracks> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeBarracks> get(unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradeBarracks> require(unsigned buildingLevel);
 
 	public:
 		//
@@ -77,8 +77,8 @@ namespace Data {
 
 	class CastleUpgradeAcademy : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeAcademy> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradeAcademy> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeAcademy> get(unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradeAcademy> require(unsigned buildingLevel);
 
 	public:
 		unsigned techLevel;
@@ -86,8 +86,8 @@ namespace Data {
 
 	class CastleUpgradeCivilian : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeCivilian> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradeCivilian> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeCivilian> get(unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradeCivilian> require(unsigned buildingLevel);
 
 	public:
 		boost::uint64_t maxPopulation;
@@ -95,8 +95,8 @@ namespace Data {
 
 	class CastleUpgradeWarehouse : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeWarehouse> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradeWarehouse> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeWarehouse> get(unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradeWarehouse> require(unsigned buildingLevel);
 
 	public:
 		boost::container::flat_map<ResourceId, boost::uint64_t> maxResourceAmount;
@@ -104,8 +104,8 @@ namespace Data {
 
 	class CastleUpgradeCitadelWall : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeCitadelWall> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradeCitadelWall> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeCitadelWall> get(unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradeCitadelWall> require(unsigned buildingLevel);
 
 	public:
 		boost::uint64_t strength;
@@ -114,8 +114,8 @@ namespace Data {
 
 	class CastleUpgradeDefenseTower : public CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeDefenseTower> get(unsigned level);
-		static boost::shared_ptr<const CastleUpgradeDefenseTower> require(unsigned level);
+		static boost::shared_ptr<const CastleUpgradeDefenseTower> get(unsigned buildingLevel);
+		static boost::shared_ptr<const CastleUpgradeDefenseTower> require(unsigned buildingLevel);
 
 	public:
 		boost::uint64_t firepower;
