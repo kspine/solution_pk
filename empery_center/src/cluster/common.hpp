@@ -47,4 +47,10 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 #define CLUSTER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
 #define CLUSTER_THROW(code_)             CLUSTER_THROW_MSG(code_, sslit(""))
 
+namespace EmperyCenter {
+
+using Response = CbppResponse;
+
+}
+
 #endif

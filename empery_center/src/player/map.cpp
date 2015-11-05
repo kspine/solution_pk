@@ -28,19 +28,19 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, accountUuid, session, req){
 	msg.mapHeight = mapSize.second;
 	session->send(msg);
 
-	return CbppResponse();
+	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetView, accountUuid, session, req){
 	MapObjectMap::setPlayerView(session, Rectangle(req.x, req.y, req.width, req.height));
 
-	return CbppResponse();
+	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_MapRefreshView, accountUuid, session, req){
 	MapObjectMap::synchronizePlayerView(session, Rectangle(req.x, req.y, req.width, req.height));
 
-	return CbppResponse();
+	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetObjectPath, accountUuid, session, req){
@@ -58,7 +58,7 @@ PLAYER_SERVLET(Msg::CS_MapSetObjectPath, accountUuid, session, req){
 	}
 	// TODO 判断能不能走。
 
-	return CbppResponse();
+	return Response();
 }
 
 }

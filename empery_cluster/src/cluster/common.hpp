@@ -49,7 +49,7 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 
 namespace EmperyCluster {
 
-using EmperyCenter::CbppResponse;
+using Response = EmperyCenter::CbppResponse;
 
 }
 
