@@ -13,6 +13,7 @@ namespace EmperyCenter {
 namespace MySql {
 	class Center_CastleBuildingBase;
 	class Center_CastleResource;
+	class Center_CastleTech;
 }
 
 class Castle : public MapObject {
@@ -26,9 +27,19 @@ public:
 	};
 
 	struct BuildingInfo {
-		unsigned baseIndex;
+		BuildingBaseId buildingBaseId;
 		BuildingId buildingId;
 		unsigned buildingLevel;
+		Mission mission;
+		boost::uint64_t missionParam1;
+		boost::uint64_t missionParam2;
+		boost::uint64_t missionTimeBegin;
+		boost::uint64_t missionTimeEnd;
+	};
+
+	struct TechInfo {
+		TechId techId;
+		unsigned techLevel;
 		Mission mission;
 		boost::uint64_t missionParam1;
 		boost::uint64_t missionParam2;
@@ -60,30 +71,45 @@ public:
 	};
 
 private:
-	boost::container::flat_map<unsigned, boost::shared_ptr<MySql::Center_CastleBuildingBase>> m_buildings;
-	boost::container::flat_map<ResourceId, boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
+	boost::container::flat_map<BuildingBaseId,
+		boost::shared_ptr<MySql::Center_CastleBuildingBase>> m_buildings;
+	boost::container::flat_map<TechId,
+		boost::shared_ptr<MySql::Center_CastleTech>> m_techs;
+	boost::container::flat_map<ResourceId,
+		boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
 
 public:
 	Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid);
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
+		const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources);
 	~Castle();
 
 private:
-	void checkMission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utcNow);
+	void checkBuildingMission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utcNow);
+	void checkTechMission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utcNow);
 
 public:
-	void pumpStatus();
+	void pumpStatus(bool forceSynchronizationWithClient = false);
+	void pumpBuildingStatus(BuildingBaseId buildingBaseId, bool forceSynchronizationWithClient = false);
+	void pumpTechStatus(TechId techId, bool forceSynchronizationWithClient = false);
 
-	BuildingInfo getBuilding(unsigned baseIndex) const;
+	BuildingInfo getBuilding(BuildingBaseId buildingBaseId) const;
 	BuildingInfo getBuildingById(BuildingId buildingId) const;
 	void getAllBuildings(std::vector<BuildingInfo> &ret) const;
 	// 如果指定地基上有任务会抛出异常。
-	void createMission(unsigned baseIndex, Mission mission, BuildingId buildingId = BuildingId());
-	void cancelMission(unsigned baseIndex);
-	void speedUpMission(unsigned baseIndex, boost::uint64_t deltaDuration);
+	void createBuildingMission(BuildingBaseId buildingBaseId, Mission mission, BuildingId buildingId = BuildingId());
+	void cancelBuildingMission(BuildingBaseId buildingBaseId);
+	void speedUpBuildingMission(BuildingBaseId buildingBaseId, boost::uint64_t deltaDuration);
+
+	TechInfo getTech(TechId techId) const;
+	void getAllTechs(std::vector<TechInfo> &ret) const;
+	// 同上。
+	void createTechMission(TechId techId, Mission mission);
+	void cancelTechMission(TechId techId);
+	void speedUpTechMission(TechId techId, boost::uint64_t deltaDuration);
 
 	ResourceInfo getResource(ResourceId resourceId) const;
 	void getAllResources(std::vector<ResourceInfo> &ret) const;

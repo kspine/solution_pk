@@ -46,27 +46,27 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 
 	const auto oldAccountUuid = PlayerSessionMap::getAccountUuid(session);
 	if(oldAccountUuid){
-		return { Msg::CERR_MULTIPLE_LOGIN, oldAccountUuid.str() };
+		return CbppResponse(Msg::CERR_MULTIPLE_LOGIN) <<oldAccountUuid;
 	}
 
 	const auto loginInfo = AccountMap::getLoginInfo(PlatformId(req.platformId), req.loginName);
 	if(Poseidon::hasNoneFlagsOf(loginInfo.flags, AccountMap::FL_VALID)){
-		return { Msg::CERR_NO_SUCH_ACCOUNT, std::move(req.loginName) };
+		return CbppResponse(Msg::CERR_NO_SUCH_ACCOUNT) <<req.loginName;
 	}
 	const auto localNow = Poseidon::getUtcTime();
 	if(localNow >= loginInfo.loginTokenExpiryTime){
-		return { Msg::CERR_TOKEN_EXPIRED, std::move(req.loginName) };
+		return CbppResponse(Msg::CERR_TOKEN_EXPIRED) <<req.loginName;
 	}
 	if(req.loginToken.empty()){
 		LOG_EMPERY_CENTER_DEBUG("Empty token");
-		return { Msg::CERR_INVALID_TOKEN, std::move(req.loginName) };
+		return CbppResponse(Msg::CERR_INVALID_TOKEN) <<req.loginName;
 	}
 	if(req.loginToken != loginInfo.loginToken){
 		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", loginInfo.loginToken, ", got ", req.loginToken);
-		return { Msg::CERR_INVALID_TOKEN, std::move(req.loginName) };
+		return CbppResponse(Msg::CERR_INVALID_TOKEN) <<req.loginName;
 	}
 	if(localNow < loginInfo.bannedUntil){
-		return { Msg::CERR_ACCOUNT_BANNED, std::move(req.loginName) };
+		return CbppResponse(Msg::CERR_ACCOUNT_BANNED) <<req.loginName;
 	}
 
 	const auto accountUuid = loginInfo.accountUuid;
@@ -74,28 +74,28 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	PlayerSessionMap::add(accountUuid, session);
 	session->send(Msg::SC_AccountLoginSuccess(accountUuid.str()));
 	sendAccountInfoToClient(accountUuid, session, true, true, true, true);
-	return { };
+	return CbppResponse();
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetAttribute, accountUuid, session, req){
 	if(req.slot >= AccountMap::ATTR_CUSTOM_END){
-		return { Msg::CERR_ATTR_NOT_SETTABLE, boost::lexical_cast<std::string>(req.slot) };
+		return CbppResponse(Msg::CERR_ATTR_NOT_SETTABLE) <<req.slot;
 	}
 	if(req.value.size() > AccountMap::MAX_ATTRIBUTE_LEN){
-		return { Msg::CERR_ATTR_TOO_LONG, boost::lexical_cast<std::string>(AccountMap::MAX_ATTRIBUTE_LEN) };
+		return CbppResponse(Msg::CERR_ATTR_TOO_LONG) <<AccountMap::MAX_ATTRIBUTE_LEN;
 	}
 
 	AccountMap::setAttribute(accountUuid, req.slot, std::move(req.value));
-	return { };
+	return CbppResponse();
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetNick, accountUuid, session, req){
 	if(req.nick.size() > AccountMap::MAX_NICK_LEN){
-		return { Msg::CERR_NICK_TOO_LONG, boost::lexical_cast<std::string>(AccountMap::MAX_NICK_LEN) };
+		return CbppResponse(Msg::CERR_NICK_TOO_LONG) <<AccountMap::MAX_NICK_LEN;
 	}
 
 	AccountMap::setNick(accountUuid, std::move(req.nick));
-	return { };
+	return CbppResponse();
 }
 
 PLAYER_SERVLET(Msg::CS_AccountFindByNick, accountUuid, session, req){
@@ -106,7 +106,7 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, accountUuid, session, req){
 
 		sendAccountInfoToClient(otherUuid, session, true, true, otherUuid == accountUuid, true);
 	}
-	return { };
+	return CbppResponse();
 }
 
 PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, accountUuid, session, req){
@@ -133,7 +133,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, accountUuid, session, req){
 		account.errorCode = Msg::ST_OK;
 	}
 	session->send(msg);
-	return { };
+	return CbppResponse();
 }
 
 }

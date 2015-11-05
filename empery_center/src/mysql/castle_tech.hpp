@@ -1,5 +1,5 @@
-#ifndef EMPERY_CENTER_MYSQL_CASTLE_BUILDING_BASE_HPP_
-#define EMPERY_CENTER_MYSQL_CASTLE_BUILDING_BASE_HPP_
+#ifndef EMPERY_CENTER_MYSQL_CASTLE_TECH_HPP_
+#define EMPERY_CENTER_MYSQL_CASTLE_TECH_HPP_
 
 #include <poseidon/mysql/object_base.hpp>
 
@@ -7,12 +7,11 @@ namespace EmperyCenter {
 
 namespace MySql {
 
-#define MYSQL_OBJECT_NAME	Center_CastleBuildingBase
+#define MYSQL_OBJECT_NAME	Center_CastleTech
 #define MYSQL_OBJECT_FIELDS	\
 	FIELD_UUID				(mapObjectUuid)	\
-	FIELD_INTEGER_UNSIGNED	(buildingBaseId)	\
-	FIELD_INTEGER_UNSIGNED	(buildingId)	\
-	FIELD_BIGINT_UNSIGNED	(buildingLevel)	\
+	FIELD_INTEGER_UNSIGNED	(techId)	\
+	FIELD_BIGINT_UNSIGNED	(techLevel)	\
 	FIELD_INTEGER_UNSIGNED	(mission)	\
 	FIELD_BIGINT_UNSIGNED	(missionParam1)	\
 	FIELD_BIGINT_UNSIGNED	(missionParam2)	\

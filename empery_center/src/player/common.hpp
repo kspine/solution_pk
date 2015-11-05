@@ -15,6 +15,7 @@
 #include "../player_session.hpp"
 #include "../msg/cerr_account.hpp"
 #include "../log.hpp"
+#include "../cbpp_response.hpp"
 
 /*
 PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
@@ -59,7 +60,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 					PROFILE_ME;	\
 					const auto accountUuid_ = ::EmperyCenter::PlayerSessionMap::getAccountUuid(session_);	\
 					if(!accountUuid_){	\
-						DEBUG_THROW(::Poseidon::Cbpp::Exception, ::EmperyCenter::Msg::CERR_NOT_LOGGED_IN, sslit(""));	\
+						return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::CERR_NOT_LOGGED_IN);	\
 					}	\
 					MsgType_ msg_(payload_);	\
 					LOG_EMPERY_CENTER_DEBUG("Received request from account ", accountUuid_, " on ",	\
@@ -80,19 +81,5 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 
 #define PLAYER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
 #define PLAYER_THROW(code_)             PLAYER_THROW_MSG(code_, sslit(""))
-
-namespace EmperyCenter {
-
-template<typename T>
-inline std::string strCast(const T &rhs){
-	std::ostringstream oss;
-	oss <<rhs;
-	return oss.str();
-}
-inline std::string strCast(const std::string &rhs){
-	return rhs;
-}
-
-}
 
 #endif

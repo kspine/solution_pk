@@ -11,6 +11,7 @@
 #include <poseidon/job_base.hpp>
 #include "../cluster_session.hpp"
 #include "../log.hpp"
+#include "../cbpp_response.hpp"
 
 /*
 CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){

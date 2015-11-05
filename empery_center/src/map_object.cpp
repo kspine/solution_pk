@@ -16,7 +16,7 @@ MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 {
 	m_obj = std::move(obj);
 	for(auto it = attributes.begin(); it != attributes.end(); ++it){
-		m_attributes.emplace(MapObjectAttrId((*it)->get_mapObjectAttrId()), *it);
+		m_attributes.emplace(AttributeId((*it)->get_mapObjectAttrId()), *it);
 	}
 }
 MapObject::~MapObject(){
@@ -45,7 +45,7 @@ bool MapObject::hasBeenDeleted() const {
 	return m_obj->get_deleted();
 }
 
-void MapObject::getAttributes(boost::container::flat_map<MapObjectAttrId, boost::int64_t> &ret) const {
+void MapObject::getAttributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_attributes.size());
@@ -53,7 +53,7 @@ void MapObject::getAttributes(boost::container::flat_map<MapObjectAttrId, boost:
 		ret[it->first] = it->second->get_value();
 	}
 }
-boost::int64_t MapObject::getAttribute(MapObjectAttrId mapObjectAttrId) const {
+boost::int64_t MapObject::getAttribute(AttributeId mapObjectAttrId) const {
 	PROFILE_ME;
 
 	const auto it = m_attributes.find(mapObjectAttrId);
@@ -62,7 +62,7 @@ boost::int64_t MapObject::getAttribute(MapObjectAttrId mapObjectAttrId) const {
 	}
 	return it->second->get_value();
 }
-void MapObject::setAttribute(MapObjectAttrId mapObjectAttrId, boost::int64_t value){
+void MapObject::setAttribute(AttributeId mapObjectAttrId, boost::int64_t value){
 	PROFILE_ME;
 
 	auto it = m_attributes.find(mapObjectAttrId);
@@ -77,7 +77,7 @@ void MapObject::setAttribute(MapObjectAttrId mapObjectAttrId, boost::int64_t val
 }
 
 Coord MapObject::getCoord() const {
-	return Coord(getAttribute(MapObjectAttrIds::ID_COORD_X), getAttribute(MapObjectAttrIds::ID_COORD_Y));
+	return Coord(getAttribute(AttributeIds::ID_COORD_X), getAttribute(AttributeIds::ID_COORD_Y));
 }
 
 }

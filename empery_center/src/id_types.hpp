@@ -188,8 +188,10 @@ namespace IdTypes {
 	using OverlayId         = GenericId<boost::uint32_t, 120002>;
 	using ResourceId        = GenericId<boost::uint32_t, 120003>;
 	using MapObjectTypeId   = GenericId<boost::uint32_t, 120004>;
-	using MapObjectAttrId   = GenericId<boost::uint32_t, 120005>;
-	using BuildingId        = GenericId<boost::uint32_t, 120006>;
+	using AttributeId       = GenericId<boost::uint32_t, 120005>;
+	using BuildingBaseId    = GenericId<boost::uint32_t, 120006>;
+	using BuildingId        = GenericId<boost::uint32_t, 120007>;
+	using TechId            = GenericId<boost::uint32_t, 120008>;
 
 	using AccountUuid       = GenericUuid<               210001>;
 	using MapObjectUuid     = GenericUuid<               210002>;

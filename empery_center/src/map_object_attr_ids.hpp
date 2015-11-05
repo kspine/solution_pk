@@ -4,9 +4,9 @@
 #include "id_types.hpp"
 
 namespace EmperyCenter {
-	namespace MapObjectAttrIds {
+	namespace AttributeIds {
 
-#define DEF_(name_, number_)	constexpr MapObjectAttrId name_(number_)
+#define DEF_(name_, number_)	constexpr AttributeId name_(number_)
 
 		DEF_(ID_COORD_X,                    1);
 		DEF_(ID_COORD_Y,                    2);

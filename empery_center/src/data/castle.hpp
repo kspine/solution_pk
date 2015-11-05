@@ -10,11 +10,11 @@ namespace EmperyCenter {
 namespace Data {
 	class CastleBuildingBase {
 	public:
-		static boost::shared_ptr<const CastleBuildingBase> get(unsigned baseIndex);
-		static boost::shared_ptr<const CastleBuildingBase> require(unsigned baseIndex);
+		static boost::shared_ptr<const CastleBuildingBase> get(BuildingBaseId buildingBaseId);
+		static boost::shared_ptr<const CastleBuildingBase> require(BuildingBaseId buildingBaseId);
 
 	public:
-		unsigned baseIndex;
+		BuildingBaseId buildingBaseId;
 		boost::container::flat_set<BuildingId> buildingsAllowed;
 	};
 
@@ -119,6 +119,20 @@ namespace Data {
 
 	public:
 		boost::uint64_t firepower;
+	};
+
+	class CastleTech {
+	public:
+		static boost::shared_ptr<const CastleTech> get(TechId techId, unsigned techLevel);
+		static boost::shared_ptr<const CastleTech> require(TechId techId, unsigned techLevel);
+
+	public:
+		std::pair<TechId, unsigned> techIdLevel;
+		boost::uint64_t upgradeDuration;
+		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
+		boost::container::flat_map<BuildingId, unsigned> prerequisite;
+		boost::container::flat_map<BuildingId, unsigned> displayPrerequisite;
+		boost::container::flat_map<AttributeId, double> attributes;
 	};
 }
 

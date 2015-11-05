@@ -11,6 +11,7 @@
 #include "../msg/sc_map.hpp"
 #include "../castle.hpp"
 #include "../mysql/castle_building_base.hpp"
+#include "../mysql/castle_tech.hpp"
 #include "../mysql/castle_resource.hpp"
 
 namespace EmperyCenter {
@@ -83,10 +84,11 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 5300){
 		const auto conn = Poseidon::MySqlDaemon::createConnection();
 
-		std::map<Poseidon::Uuid, std::pair<
-			boost::shared_ptr<MySql::Center_MapObject>,
-			std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>>
-			>> tempMapObjectMap;
+		struct TempMapObjectElement {
+			boost::shared_ptr<MySql::Center_MapObject> obj;
+			std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attributes;
+		};
+		std::map<Poseidon::Uuid, TempMapObjectElement> tempMapObjectMap;
 
 		LOG_EMPERY_CENTER_INFO("Loading map objects...");
 		conn->executeSql("SELECT * FROM `Center_MapObject`");
@@ -98,8 +100,7 @@ namespace {
 			if(obj->get_deleted()){
 				continue;
 			}
-			auto &pair = tempMapObjectMap[mapObjectUuid];
-			pair.first = std::move(obj);
+			tempMapObjectMap[mapObjectUuid].obj = std::move(obj);
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", tempMapObjectMap.size(), " map object(s).");
 
@@ -114,14 +115,16 @@ namespace {
 			if(it == tempMapObjectMap.end()){
 				continue;
 			}
-			it->second.second.emplace_back(std::move(obj));
+			it->second.attributes.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading map object attributes.");
 
-		std::map<Poseidon::Uuid, std::pair<
-			std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>>,
-			std::vector<boost::shared_ptr<MySql::Center_CastleResource>>
-			>> tempCastleMap;
+		struct TempCastleElement {
+			std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> buildings;
+			std::vector<boost::shared_ptr<MySql::Center_CastleTech>> techs;
+			std::vector<boost::shared_ptr<MySql::Center_CastleResource>> resources;
+		};
+		std::map<Poseidon::Uuid, TempCastleElement> tempCastleMap;
 
 		LOG_EMPERY_CENTER_INFO("Loading castle building bases...");
 		conn->executeSql("SELECT * FROM `Center_CastleBuildingBase`");
@@ -134,10 +137,24 @@ namespace {
 			if(it == tempMapObjectMap.end()){
 				continue;
 			}
-			auto &pair = tempCastleMap[mapObjectUuid];
-			pair.first.emplace_back(std::move(obj));
+			tempCastleMap[mapObjectUuid].buildings.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", tempCastleMap.size(), " castle(s).");
+
+		LOG_EMPERY_CENTER_INFO("Loading castle tech...");
+		conn->executeSql("SELECT * FROM `Center_CastleTech`");
+		while(conn->fetchRow()){
+			auto obj = boost::make_shared<MySql::Center_CastleTech>();
+			obj->syncFetch(conn);
+			obj->enableAutoSaving();
+			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
+			const auto it = tempCastleMap.find(mapObjectUuid);
+			if(it == tempCastleMap.end()){
+				continue;
+			}
+			it->second.techs.emplace_back(std::move(obj));
+		}
+		LOG_EMPERY_CENTER_INFO("Done loading castle techs.");
 
 		LOG_EMPERY_CENTER_INFO("Loading castle resource...");
 		conn->executeSql("SELECT * FROM `Center_CastleResource`");
@@ -150,7 +167,7 @@ namespace {
 			if(it == tempCastleMap.end()){
 				continue;
 			}
-			it->second.second.emplace_back(std::move(obj));
+			it->second.resources.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading castle resources.");
 
@@ -160,16 +177,16 @@ namespace {
 			{
 				const auto castleIt = tempCastleMap.find(it->first);
 				if(castleIt != tempCastleMap.end()){
-					mapObject = boost::make_shared<Castle>(std::move(it->second.first), it->second.second,
-						castleIt->second.first, castleIt->second.second);
+					mapObject = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
+						castleIt->second.buildings, castleIt->second.techs, castleIt->second.resources);
 					goto _created;
 				}
 				// XXX 增加其它地图对象类型。
-				mapObject = boost::make_shared<MapObject>(std::move(it->second.first), it->second.second);
+				mapObject = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
 			}
 		_created:
-			auto coord = Coord(mapObject->getAttribute(MapObjectAttrIds::ID_COORD_X),
-				mapObject->getAttribute(MapObjectAttrIds::ID_COORD_Y));
+			auto coord = Coord(mapObject->getAttribute(AttributeIds::ID_COORD_X),
+				mapObject->getAttribute(AttributeIds::ID_COORD_Y));
 			mapObjectMap->insert(MapObjectElement(std::move(mapObject), coord));
 		}
 		g_mapObjectMap = mapObjectMap;
@@ -193,7 +210,7 @@ namespace {
 				msg.objectUuid = mapObject->getMapObjectUuid().str();
 				session->send(msg);
 			} else {
-				boost::container::flat_map<MapObjectAttrId, boost::int64_t> attributes;
+				boost::container::flat_map<AttributeId, boost::int64_t> attributes;
 				mapObject->getAttributes(attributes);
 
 				Msg::SC_MapObjectInfo msg;
@@ -293,8 +310,8 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &mapObject, const C
 		oldSectorIt = mapSectorMap->find<0>(sectorCoordFromMapCoord(it->coord));
 		mapObjectMap->setKey<0, 1>(it, coord);
 	}
-	it->mapObject->setAttribute(MapObjectAttrIds::ID_COORD_X, coord.x());
-	it->mapObject->setAttribute(MapObjectAttrIds::ID_COORD_Y, coord.y());
+	it->mapObject->setAttribute(AttributeIds::ID_COORD_X, coord.x());
+	it->mapObject->setAttribute(AttributeIds::ID_COORD_Y, coord.y());
 
 	if(oldSectorIt != sectorIt){
 		if(oldSectorIt != mapSectorMap->end<0>()){
