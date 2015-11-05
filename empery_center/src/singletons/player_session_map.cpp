@@ -101,7 +101,7 @@ void PlayerSessionMap::add(const AccountUuid &accountUuid, const boost::shared_p
 				throw;
 			}
 
-			const auto remoteIp = session->getRemoteInfo().ip;
+			const auto remoteIp = std::string(session->getRemoteInfo().ip.get());
 			LOG_EMPERY_CENTER_INFO("Player goes online: accountUuid = ", accountUuid, ", remoteIp = ", remoteIp);
 			Poseidon::asyncRaiseEvent(boost::make_shared<Events::AccountLoggedIn>(accountUuid, remoteIp));
 			break;

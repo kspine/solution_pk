@@ -52,7 +52,10 @@ public:
 		boost::uint64_t count;
 	};
 
-	struct ResourceTransactionElement {
+	class ResourceTransactionElement {
+		friend Castle;
+
+	public:
 		enum Operation {
 			OP_NONE             = 0,
 			OP_ADD              = 1,
@@ -60,12 +63,21 @@ public:
 			OP_REMOVE_SATURATED = 3,
 		};
 
-		Operation operation;
-		ResourceId resourceId;
-		boost::uint64_t deltaCount;
+	private:
+		Operation m_operation;
+		ResourceId m_resourceId;
+		boost::uint64_t m_deltaCount;
 
-		ResourceTransactionElement(Operation operation_, ResourceId resourceId_, boost::uint64_t deltaCount_)
-			: operation(operation_), resourceId(resourceId_), deltaCount(deltaCount_)
+		ReasonId m_reason;
+		boost::uint64_t m_param1;
+		boost::uint64_t m_param2;
+		boost::uint64_t m_param3;
+
+	public:
+		ResourceTransactionElement(Operation operation, ResourceId resourceId, boost::uint64_t deltaCount,
+			ReasonId reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3)
+			: m_operation(operation), m_resourceId(resourceId), m_deltaCount(deltaCount)
+			, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3)
 		{
 		}
 	};

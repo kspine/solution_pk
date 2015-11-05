@@ -9,6 +9,7 @@
 #include "checked_arithmetic.hpp"
 #include "player_session.hpp"
 #include "data/castle.hpp"
+#include "events/resource.hpp"
 
 namespace EmperyCenter {
 
@@ -540,17 +541,24 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 		return ResourceId();
 	}
 
+	const auto withdrawn = boost::make_shared<bool>(true);
+
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>,
 		boost::uint64_t /* newCount */> tempResultMap;
 
 	for(std::size_t i = 0; i < count; ++i){
-		const auto operation  = elements[i].operation;
-		const auto resourceId = elements[i].resourceId;
-		const auto deltaCount = elements[i].deltaCount;
+		const auto operation  = elements[i].m_operation;
+		const auto resourceId = elements[i].m_resourceId;
+		const auto deltaCount = elements[i].m_deltaCount;
 
 		if(deltaCount == 0){
 			continue;
 		}
+
+		const auto reason = elements[i].m_reason;
+		const auto param1 = elements[i].m_param1;
+		const auto param2 = elements[i].m_param2;
+		const auto param3 = elements[i].m_param3;
 
 		switch(operation){
 		case ResourceTransactionElement::OP_NONE:
@@ -574,7 +582,19 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 				if(tempIt == tempResultMap.end()){
 					tempIt = tempResultMap.emplace_hint(tempIt, obj, obj->get_count());
 				}
-				tempIt->second = checkedAdd(tempIt->second, deltaCount);
+				const auto oldCount = tempIt->second;
+				tempIt->second = checkedAdd(oldCount, deltaCount);
+				const auto newCount = tempIt->second;
+
+				const auto &mapObjectUuid = getMapObjectUuid();
+				const auto &ownerUuid = getOwnerUuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: mapObjectUuid = ", mapObjectUuid, ", ownerUuid = ", ownerUuid,
+					", resourceId = ", resourceId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
+					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				Poseidon::asyncRaiseEvent(
+					boost::make_shared<Events::ResourceChanged>(mapObjectUuid, ownerUuid,
+						resourceId, oldCount, newCount, reason, param1, param2, param3),
+					withdrawn);
 			}
 			break;
 
@@ -594,6 +614,7 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 				if(tempIt == tempResultMap.end()){
 					tempIt = tempResultMap.emplace_hint(tempIt, obj, obj->get_count());
 				}
+				const auto oldCount = tempIt->second;
 				if(tempIt->second >= deltaCount){
 					tempIt->second -= deltaCount;
 				} else {
@@ -604,6 +625,17 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 					}
 					tempIt->second = 0;
 				}
+				const auto newCount = tempIt->second;
+
+				const auto &mapObjectUuid = getMapObjectUuid();
+				const auto &ownerUuid = getOwnerUuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: mapObjectUuid = ", mapObjectUuid, ", ownerUuid = ", ownerUuid,
+					", resourceId = ", resourceId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
+					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				Poseidon::asyncRaiseEvent(
+					boost::make_shared<Events::ResourceChanged>(mapObjectUuid, ownerUuid,
+						resourceId, oldCount, newCount, reason, param1, param2, param3),
+					withdrawn);
 			}
 			break;
 
@@ -620,6 +652,7 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
 		it->first->set_count(it->second);
 	}
+	*withdrawn = false;
 
 	const auto session = PlayerSessionMap::get(getOwnerUuid());
 	if(session){

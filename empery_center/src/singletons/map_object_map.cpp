@@ -148,11 +148,7 @@ namespace {
 			obj->syncFetch(conn);
 			obj->enableAutoSaving();
 			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
-			const auto it = tempCastleMap.find(mapObjectUuid);
-			if(it == tempCastleMap.end()){
-				continue;
-			}
-			it->second.techs.emplace_back(std::move(obj));
+			tempCastleMap[mapObjectUuid].techs.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading castle techs.");
 
@@ -163,11 +159,7 @@ namespace {
 			obj->syncFetch(conn);
 			obj->enableAutoSaving();
 			const auto mapObjectUuid = obj->unlockedGet_mapObjectUuid();
-			const auto it = tempCastleMap.find(mapObjectUuid);
-			if(it == tempCastleMap.end()){
-				continue;
-			}
-			it->second.resources.emplace_back(std::move(obj));
+			tempCastleMap[mapObjectUuid].resources.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading castle resources.");
 

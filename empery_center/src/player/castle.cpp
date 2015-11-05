@@ -6,6 +6,7 @@
 #include "../castle.hpp"
 #include "../checked_arithmetic.hpp"
 #include "../data/castle.hpp"
+#include "../reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -53,7 +54,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, accountUuid, session, req){
 		return CbppResponse(Msg::CERR_BUILDING_NOT_ALLOWED) <<req.buildingId;
 	}
 
-	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, 1); // 建造建筑就是升到 1 级。
+	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, 1);
 	for(auto it = upgradeData->prerequisite.begin(); it != upgradeData->prerequisite.end(); ++it){
 		const auto otherInfo = castle->getBuildingById(it->first);
 		if(otherInfo.buildingLevel < it->second){
@@ -64,7 +65,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, accountUuid, session, req){
 	}
 	std::vector<Castle::ResourceTransactionElement> transaction;
 	for(auto it = upgradeData->upgradeCost.begin(); it != upgradeData->upgradeCost.end(); ++it){
-		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second);
+		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+			ReasonIds::ID_UPGRADE_BUILDING, buildingData->buildingId.get(), upgradeData->buildingLevel, 0);
 	}
 	const auto insuffResourceId = castle->commitResourceTransactionNoThrow(transaction.data(), transaction.size(),
 		[&]{ castle->createBuildingMission(buildingBaseId, Castle::MIS_CONSTRUCT, buildingData->buildingId); });
@@ -85,7 +87,19 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, accountUuid, session, req){
 		return CbppResponse(Msg::CERR_NO_BUILDING_MISSION) <<req.buildingBaseId;
 	}
 
-	castle->cancelBuildingMission(buildingBaseId);
+	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
+	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, info.buildingLevel);
+	std::vector<Castle::ResourceTransactionElement> transaction;
+	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
+		const auto refundRatio = getConfig<double>("castle_cancellation_refund_ratio", 0.5);
+		for(auto it = upgradeData->upgradeCost.begin(); it != upgradeData->upgradeCost.end(); ++it){
+			transaction.emplace_back(Castle::ResourceTransactionElement::OP_ADD,
+				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refundRatio)),
+				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.buildingId.get(), info.buildingLevel, 0);
+		}
+	}
+	castle->commitResourceTransaction(transaction.data(), transaction.size(),
+		[&]{ castle->cancelBuildingMission(buildingBaseId); });
 
 	return CbppResponse();
 }
@@ -118,7 +132,8 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, accountUuid, session, req){
 	}
 	std::vector<Castle::ResourceTransactionElement> transaction;
 	for(auto it = upgradeData->upgradeCost.begin(); it != upgradeData->upgradeCost.end(); ++it){
-		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second);
+		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+			ReasonIds::ID_UPGRADE_BUILDING, buildingData->buildingId.get(), upgradeData->buildingLevel, 0);
 	}
 	const auto insuffResourceId = castle->commitResourceTransactionNoThrow(transaction.data(), transaction.size(),
 		[&]{ castle->createBuildingMission(buildingBaseId, Castle::MIS_UPGRADE, { }); });
@@ -147,16 +162,8 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, accountUuid, session, req){
 	if(upgradeData->destructDuration == 0){
 		return CbppResponse(Msg::CERR_BUILDING_NOT_DESTRUCTIBLE) <<info.buildingId;
 	}
-	std::vector<Castle::ResourceTransactionElement> transaction;
-	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refundRatio = getConfig<double>("castle_cancellation_refund_ratio", 0.5);
-		for(auto it = upgradeData->upgradeCost.begin(); it != upgradeData->upgradeCost.end(); ++it){
-			transaction.emplace_back(Castle::ResourceTransactionElement::OP_ADD, it->first,
-				static_cast<boost::uint64_t>(std::floor(it->second * refundRatio)));
-		}
-	}
-	castle->commitResourceTransaction(transaction.data(), transaction.size(),
-		[&]{ castle->cancelBuildingMission(buildingBaseId); });
+
+	castle->createBuildingMission(buildingBaseId, Castle::MIS_DESTRUCT, BuildingId());
 
 	return CbppResponse();
 }
@@ -221,7 +228,8 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, accountUuid, session, req){
 	}
 	std::vector<Castle::ResourceTransactionElement> transaction;
 	for(auto it = techData->upgradeCost.begin(); it != techData->upgradeCost.end(); ++it){
-		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second);
+		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+			ReasonIds::ID_UPGRADE_TECH, techData->techIdLevel.first.get(), techData->techIdLevel.second, 0);
 	}
 	const auto insuffResourceId = castle->commitResourceTransactionNoThrow(transaction.data(), transaction.size(),
 		[&]{ castle->createTechMission(techId, Castle::MIS_UPGRADE); });
@@ -242,7 +250,18 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, accountUuid, session, req){
 		return CbppResponse(Msg::CERR_NO_TECH_MISSION) <<req.techId;
 	}
 
-	castle->cancelTechMission(techId);
+	const auto techData = Data::CastleTech::require(info.techId, info.techLevel + 1);
+	std::vector<Castle::ResourceTransactionElement> transaction;
+	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
+		const auto refundRatio = getConfig<double>("castle_cancellation_refund_ratio", 0.5);
+		for(auto it = techData->upgradeCost.begin(); it != techData->upgradeCost.end(); ++it){
+			transaction.emplace_back(Castle::ResourceTransactionElement::OP_ADD,
+				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refundRatio)),
+				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.techId.get(), info.techLevel, 0);
+		}
+	}
+	castle->commitResourceTransaction(transaction.data(), transaction.size(),
+		[&]{ castle->cancelTechMission(techId); });
 
 	return CbppResponse();
 }
