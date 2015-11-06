@@ -49,7 +49,7 @@ namespace {
 				PROFILE_ME;
 
 				Poseidon::Cbpp::ControlMessage req(std::move(payload));
-				LOG_EMPERY_CENTER_DEBUG("Received control message from ", session->getRemoteInfo(),
+				LOG_EMPERY_CENTER_TRACE("Received control message from ", session->getRemoteInfo(),
 					", controlCode = ", req.controlCode, ", vintParam = ", req.vintParam, ", stringParam = ", req.stringParam);
 
 				switch(req.controlCode){
@@ -60,6 +60,7 @@ namespace {
 					break;
 
 				case Poseidon::Cbpp::CTL_SHUTDOWN:
+					LOG_EMPERY_CENTER_DEBUG("Received shutdown request from ", session->getRemoteInfo(), ": reason = ", req.stringParam);
 					session->shutdown(Poseidon::Cbpp::ST_SHUTDOWN_REQUEST, req.stringParam.c_str());
 					break;
 
