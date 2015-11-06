@@ -42,38 +42,6 @@ namespace {
 	};
 
 	std::map<unsigned, boost::weak_ptr<const ServletCallback>> g_servletMap;
-
-	MODULE_RAII(handles){
-		auto servlet = boost::make_shared<const ServletCallback>(
-			[](const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer payload) -> std::pair<long, std::string> {
-				PROFILE_ME;
-
-				Poseidon::Cbpp::ControlMessage req(std::move(payload));
-				LOG_EMPERY_CENTER_TRACE("Received control message from ", session->getRemoteInfo(),
-					", controlCode = ", req.controlCode, ", vintParam = ", req.vintParam, ", stringParam = ", req.stringParam);
-
-				switch(req.controlCode){
-				case Poseidon::Cbpp::CTL_PING:
-					LOG_EMPERY_CENTER_TRACE("Received ping from ", session->getRemoteInfo());
-					session->send(Poseidon::Cbpp::ControlMessage(
-						Poseidon::Cbpp::ControlMessage::ID, Poseidon::Cbpp::ST_PONG, std::move(req.stringParam)));
-					break;
-
-				case Poseidon::Cbpp::CTL_SHUTDOWN:
-					LOG_EMPERY_CENTER_DEBUG("Received shutdown request from ", session->getRemoteInfo(), ": reason = ", req.stringParam);
-					session->shutdown(Poseidon::Cbpp::ST_SHUTDOWN_REQUEST, req.stringParam.c_str());
-					break;
-
-				default:
-					LOG_EMPERY_CENTER_WARNING("Unknown control code: ", req.controlCode);
-					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_UNKNOWN_CTL_CODE, SharedNts(req.stringParam));
-				}
-
-				return { };
-			});
-		g_servletMap[Poseidon::Cbpp::ControlMessage::ID] = servlet;
-		handles.push(servlet);
-	}
 }
 
 class PlayerSession::WebSocketImpl : public Poseidon::WebSocket::Session {
@@ -112,12 +80,27 @@ protected:
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 			}
 
-			const auto servlet = PlayerSession::getServlet(messageId);
-			if(!servlet){
-				LOG_EMPERY_CENTER_WARNING("No servlet found: messageId = ", messageId);
-				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
+			if(messageId == Poseidon::Cbpp::ControlMessage::ID){
+				Poseidon::Cbpp::ControlMessage req(std::move(payload));
+				LOG_EMPERY_CENTER_TRACE("Received control message from ", parent->getRemoteInfo(),
+					", controlCode = ", req.controlCode, ", vintParam = ", req.vintParam, ", stringParam = ", req.stringParam);
+
+				if(req.controlCode == Poseidon::Cbpp::CTL_PING){
+					LOG_EMPERY_CENTER_TRACE("Received ping from ", parent->getRemoteInfo());
+					result.first = Poseidon::Cbpp::ST_PONG;
+					result.second = std::move(req.stringParam);
+				} else {
+					LOG_EMPERY_CENTER_WARNING("Unknown control code: ", req.controlCode);
+					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_UNKNOWN_CTL_CODE, SharedNts(req.stringParam));
+				}
+			} else {
+				const auto servlet = PlayerSession::getServlet(messageId);
+				if(!servlet){
+					LOG_EMPERY_CENTER_WARNING("No servlet found: messageId = ", messageId);
+					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
+				}
+				result = (*servlet)(parent, std::move(payload));
 			}
-			result = (*servlet)(parent, std::move(payload));
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"Poseidon::Cbpp::Exception thrown: messageId = ", messageId, ", what = ", e.what());
@@ -129,7 +112,9 @@ protected:
 			result.first = Msg::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		LOG_EMPERY_CENTER_DEBUG("Sending response: code = ", result.first, ", message = ", result.second);
+		if(messageId != Poseidon::Cbpp::ControlMessage::ID){
+			LOG_EMPERY_CENTER_DEBUG("Sending response: code = ", result.first, ", message = ", result.second);
+		}
 		if(result.first < 0){
 			parent->shutdown(result.first, result.second.c_str());
 		} else {
