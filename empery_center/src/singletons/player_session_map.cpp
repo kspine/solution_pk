@@ -13,20 +13,26 @@ namespace EmperyCenter {
 namespace {
 	struct SessionElement {
 		AccountUuid accountUuid;
-		boost::weak_ptr<PlayerSession> session;
+		boost::weak_ptr<PlayerSession> weakSession;
 
 		boost::uint64_t onlineSince;
 
-		SessionElement(const AccountUuid &accountUuid_, boost::weak_ptr<PlayerSession> session_)
-			: accountUuid(accountUuid_), session(std::move(session_))
+		SessionElement(const AccountUuid &accountUuid_, boost::weak_ptr<PlayerSession> weakSession_)
+			: accountUuid(accountUuid_), weakSession(std::move(weakSession_))
 			, onlineSince(Poseidon::getFastMonoClock())
 		{
+		}
+		~SessionElement(){
+			const auto session = weakSession.lock();
+			if(session){
+				session->shutdown(Msg::KILL_SHUTDOWN, "The server is being shut down.");
+			}
 		}
 	};
 
 	MULTI_INDEX_MAP(PlayerSessionMapDelegator, SessionElement,
 		UNIQUE_MEMBER_INDEX(accountUuid)
-		UNIQUE_MEMBER_INDEX(session)
+		UNIQUE_MEMBER_INDEX(weakSession)
 	)
 
 	boost::shared_ptr<PlayerSessionMapDelegator> g_sessionMap;
@@ -45,7 +51,7 @@ boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const AccountUuid &accoun
 	if(it == g_sessionMap->end<0>()){
 		return { };
 	}
-	auto session = it->session.lock();
+	auto session = it->weakSession.lock();
 	if(!session){
 		return { };
 	}
@@ -106,7 +112,7 @@ void PlayerSessionMap::add(const AccountUuid &accountUuid, const boost::shared_p
 			Poseidon::asyncRaiseEvent(boost::make_shared<Events::AccountLoggedIn>(accountUuid, remoteIp));
 			break;
 		}
-		const auto otherSession = result.first->session.lock();
+		const auto otherSession = result.first->weakSession.lock();
 		if(otherSession == session){
 			// 会话已存在。
 			break;
@@ -156,7 +162,7 @@ void PlayerSessionMap::getAll(boost::container::flat_map<AccountUuid, boost::sha
 
 	ret.reserve(ret.size() + g_sessionMap->size());
 	for(auto it = g_sessionMap->begin(); it != g_sessionMap->end(); ++it){
-		auto session = it->session.lock();
+		auto session = it->weakSession.lock();
 		if(!session){
 			continue;
 		}

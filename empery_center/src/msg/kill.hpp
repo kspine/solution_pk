@@ -9,8 +9,9 @@ namespace Msg {
 	using namespace Poseidon::Cbpp::StatusCodes;
 
 	enum {
-		KILL_SESSION_GHOSTED        = -5001,
-		KILL_OPERATOR_COMMAND       = -5002,
+		KILL_SESSION_GHOSTED                = -5001,
+		KILL_OPERATOR_COMMAND               = -5002,
+		KILL_SHUTDOWN                       = -5003,
 	};
 }
 
