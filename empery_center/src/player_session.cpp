@@ -59,18 +59,10 @@ protected:
 			}
 
 			if(messageId == Poseidon::Cbpp::ControlMessage::ID){
-				Poseidon::Cbpp::ControlMessage req(std::move(payload));
-				LOG_EMPERY_CENTER_TRACE("Received control message from ", parent->getRemoteInfo(),
-					", controlCode = ", req.controlCode, ", vintParam = ", req.vintParam, ", stringParam = ", req.stringParam);
-
-				if(req.controlCode == Poseidon::Cbpp::CTL_PING){
-					LOG_EMPERY_CENTER_TRACE("Received ping from ", parent->getRemoteInfo());
-					result.first = Poseidon::Cbpp::ST_PONG;
-					result.second = std::move(req.stringParam);
-				} else {
-					LOG_EMPERY_CENTER_WARNING("Unknown control code: ", req.controlCode);
-					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_UNKNOWN_CTL_CODE, SharedNts(req.stringParam));
-				}
+				const auto req = Poseidon::Cbpp::ControlMessage(std::move(payload));
+				LOG_EMPERY_CENTER_TRACE("Received ping from ", parent->getRemoteInfo(), ": req = ", req);
+				result.first = Poseidon::Cbpp::ST_PONG;
+				result.second = std::move(req.stringParam);
 			} else {
 				const auto servlet = PlayerSession::getServlet(messageId);
 				if(!servlet){
