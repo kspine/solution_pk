@@ -47,7 +47,7 @@ public:
 
 	template<class MessageT>
 	bool send(const MessageT &msg){
-		LOG_EMPERY_CENTER_TRACE("Sending response to ", getRemoteInfo(), ": ", msg);
+		LOG_EMPERY_CENTER_DEBUG("Sending data to ", getRemoteInfo(), ": ", msg);
 		return send(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
 	bool sendControl(boost::uint16_t messageId, int statusCode, std::string reason){
