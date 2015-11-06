@@ -1,6 +1,6 @@
 #include "precompiled.hpp"
 #include "player_session.hpp"
-#include <poseidon/job_base.hpp>
+#include <poseidon/async_job.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/cbpp/control_codes.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
@@ -19,28 +19,6 @@ namespace EmperyCenter {
 using ServletCallback = PlayerSession::ServletCallback;
 
 namespace {
-	class OnCloseJob : public Poseidon::JobBase {
-	private:
-		const boost::weak_ptr<PlayerSession> m_session;
-		const int m_errCode;
-
-	public:
-		OnCloseJob(boost::weak_ptr<PlayerSession> session, int errCode)
-			: m_session(std::move(session)), m_errCode(errCode)
-		{
-		}
-
-	protected:
-		boost::weak_ptr<const void> getCategory() const override {
-			return m_session;
-		}
-		void perform() override {
-			PROFILE_ME;
-
-			PlayerSessionMap::remove(m_session); // noexcept
-		}
-	};
-
 	std::map<unsigned, boost::weak_ptr<const ServletCallback>> g_servletMap;
 }
 
@@ -163,7 +141,8 @@ void PlayerSession::onClose(int errCode) noexcept {
 	LOG_EMPERY_CENTER_DEBUG("Socket close: errCode = ", errCode, ", description = ", Poseidon::getErrorDesc(errCode));
 
 	try {
-		Poseidon::enqueueJob(boost::make_shared<OnCloseJob>(virtualWeakFromThis<PlayerSession>(), errCode));
+		Poseidon::enqueueAsyncJob(virtualWeakFromThis<PlayerSession>(),
+			boost::bind(&PlayerSessionMap::remove, virtualWeakFromThis<PlayerSession>()));
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
