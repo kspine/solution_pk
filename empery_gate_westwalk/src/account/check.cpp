@@ -5,7 +5,7 @@
 
 namespace EmperyGateWestwalk {
 
-ACCOUNT_SERVLET("check", /* session */, params){
+ACCOUNT_SERVLET("check", session, params){
 	const auto &accountName = params.at("accountName");
 
 	Poseidon::JsonObject ret;

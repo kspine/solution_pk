@@ -7,7 +7,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("upgrade", /* session */, params){
+ACCOUNT_SERVLET("upgrade", session, params){
 	const auto &payerLoginName = params.at("payerLoginName");
 	const auto &loginName = params.at("loginName");
 	const auto newLevel = boost::lexical_cast<boost::uint64_t>(params.at("newLevel"));

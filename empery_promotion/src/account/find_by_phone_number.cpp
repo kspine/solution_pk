@@ -5,7 +5,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("findByPhoneNumber", /* session */, params){
+ACCOUNT_SERVLET("findByPhoneNumber", session, params){
 	const auto phoneNumber = params.at("phoneNumber");
 
 	Poseidon::JsonObject ret;

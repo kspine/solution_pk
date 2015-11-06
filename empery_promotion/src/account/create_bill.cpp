@@ -9,7 +9,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("createBill", /* session */, params){
+ACCOUNT_SERVLET("createBill", session, params){
 	const auto &loginName = params.at("loginName");
 	const auto amount = boost::lexical_cast<boost::uint64_t>(params.at("amount"));
 	const auto &remarks = params.get("remarks");

@@ -9,7 +9,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("deactivate", /* session */, params){
+ACCOUNT_SERVLET("deactivate", session, params){
 	const auto &loginName = params.at("loginName");
 	const auto &remarks = params.get("remarks");
 

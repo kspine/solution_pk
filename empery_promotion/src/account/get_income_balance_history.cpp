@@ -7,7 +7,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("getIncomeBalanceHistory", /* session */, params){
+ACCOUNT_SERVLET("getIncomeBalanceHistory", session, params){
 	const auto &fetchAllData = params.get("fetchAllData");
 	const auto &loginName = params.get("loginName");
 	const auto &begin = params.get("begin");

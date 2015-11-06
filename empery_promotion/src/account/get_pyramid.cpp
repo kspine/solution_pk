@@ -5,7 +5,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("getPyramid", /* session */, params){
+ACCOUNT_SERVLET("getPyramid", session, params){
 	const auto &loginName = params.at("loginName");
 	const auto &maxDepthStr = params.get("maxDepth");
 

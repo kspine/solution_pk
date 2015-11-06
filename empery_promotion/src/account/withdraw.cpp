@@ -12,7 +12,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("withdraw", /* session */, params){
+ACCOUNT_SERVLET("withdraw", session, params){
 	const auto &loginName = params.at("loginName");
 	const auto deltaBalance = boost::lexical_cast<boost::uint64_t>(params.at("deltaBalance"));
 	const auto &dealPassword = params.at("dealPassword");

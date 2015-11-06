@@ -5,7 +5,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("setPassword", /* session */, params){
+ACCOUNT_SERVLET("setPassword", session, params){
 	const auto &loginName = params.at("loginName");
 	const auto &password = params.at("password");
 	auto newPassword = params.at("newPassword");

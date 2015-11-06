@@ -19,7 +19,7 @@ namespace MySql {
 	}
 }
 
-ACCOUNT_SERVLET("getEconomySummary", /* session */, /* params */){
+ACCOUNT_SERVLET("getEconomySummary", session, /* params */){
 	Poseidon::JsonObject ret;
 
 	std::vector<boost::shared_ptr<MySql::EconomySummary>> objs;

@@ -29,7 +29,7 @@ ACCOUNT_SERVLET("create", session, params){
 		", remoteInfo = ", session->getRemoteInfo(), ", remarks = ", remarks);
 	Poseidon::EventDispatcher::syncRaise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platformId, accountName, token, localNow + tokenExpiryDuration));
+			platformId, accountName, token, localNow + tokenExpiryDuration, session->getRemoteInfo().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";

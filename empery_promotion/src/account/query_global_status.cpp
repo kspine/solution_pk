@@ -5,7 +5,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("queryGlobalStatus", /* session */, /* params */){
+ACCOUNT_SERVLET("queryGlobalStatus", session, /* params */){
 	Poseidon::JsonObject ret;
 
 	ret[sslit("createdTime")]        = GlobalStatus::get(GlobalStatus::SLOT_SERVER_CREATED_TIME);

@@ -7,7 +7,7 @@
 
 namespace EmperyGateWestwalk {
 
-ACCOUNT_SERVLET("login", /* session */, params){
+ACCOUNT_SERVLET("login", session, params){
 	const auto &accountName = params.at("accountName");
 	const auto &password    = params.at("password");
 	const auto &token       = params.at("token");
@@ -57,7 +57,7 @@ ACCOUNT_SERVLET("login", /* session */, params){
 	AccountMap::setToken(accountName, token, localNow + tokenExpiryDuration);
 	Poseidon::EventDispatcher::syncRaise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platformId, accountName, token, localNow + tokenExpiryDuration));
+			platformId, accountName, token, localNow + tokenExpiryDuration, session->getRemoteInfo().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";

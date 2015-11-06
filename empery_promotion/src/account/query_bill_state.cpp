@@ -6,7 +6,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("queryBillState", /* session */, params){
+ACCOUNT_SERVLET("queryBillState", session, params){
 	const auto &serial = params.at("ordId");
 
 	Poseidon::JsonObject ret;

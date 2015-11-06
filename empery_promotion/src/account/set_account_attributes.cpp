@@ -6,7 +6,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("setAccountAttributes", /* session */, params){
+ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	const auto &loginName      = params.at("loginName");
 	auto newLoginName          = params.get("newLoginName");
 	auto phoneNumber           = params.get("phoneNumber");

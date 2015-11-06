@@ -14,7 +14,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("buyMoreCards", /* session */, params){
+ACCOUNT_SERVLET("buyMoreCards", session, params){
 	const auto &loginName = params.at("loginName");
 	const auto cardsToBuy = boost::lexical_cast<boost::uint64_t>(params.at("cardsToBuy"));
 	const auto &dealPassword = params.at("dealPassword");

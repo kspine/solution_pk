@@ -114,8 +114,9 @@ namespace {
 			[](const boost::shared_ptr<Events::AccountSetToken> &event){
 				PROFILE_ME;
 				LOG_EMPERY_CENTER_INFO("Set token: platformId = ", event->platformId, ", loginName = ", event->loginName,
-					", loginToken = ", event->loginToken, ", expiryTime = ", event->expiryTime);
-				const auto accountUuid = AccountMap::create(event->platformId, event->loginName, event->loginName, 0).first;
+					", loginToken = ", event->loginToken, ", expiryTime = ", event->expiryTime, ", remoteIp = ", event->remoteIp);
+				const auto accountUuid = AccountMap::create(event->platformId, event->loginName,
+					event->loginName, 0, event->remoteIp).first;
 				AccountMap::setLoginToken(accountUuid, event->loginToken, event->expiryTime);
 			});
 		LOG_EMPERY_CENTER_DEBUG("Created AccountSetToken listener");
@@ -238,7 +239,9 @@ AccountMap::LoginInfo AccountMap::getLoginInfo(PlatformId platformId, const std:
 	return info;
 }
 
-std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::string loginName, std::string nick, boost::uint64_t flags){
+std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::string loginName,
+	std::string nick, boost::uint64_t flags, std::string remoteIp)
+{
 	PROFILE_ME;
 
 	auto it = g_accountMap.find<2>(LoginKey(platformId, loginName));
@@ -246,13 +249,21 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::stri
 		return std::make_pair(it->accountUuid, false);
 	}
 
+	const auto withdrawn = boost::make_shared<bool>(true);
+
 	const auto accountUuid = AccountUuid(Poseidon::Uuid::random());
 	Poseidon::addFlags(flags, AccountMap::FL_VALID);
 	const auto localNow = Poseidon::getUtcTime();
+
+	LOG_EMPERY_CENTER_INFO("Create account: platformId = ", platformId, ", loginName = ", loginName, ", nick = ", nick);
+	Poseidon::asyncRaiseEvent(boost::make_shared<Events::AccountCreated>(accountUuid, std::move(remoteIp)), withdrawn);
+
 	auto obj = boost::make_shared<MySql::Center_Account>(
 		accountUuid.get(), platformId.get(), std::move(loginName), std::move(nick), flags, std::string(), 0, 0, localNow);
 	obj->asyncSave(true);
 	it = g_accountMap.insert<2>(it, AccountElement(std::move(obj)));
+
+	*withdrawn = false;
 	return std::make_pair(accountUuid, true);
 }
 

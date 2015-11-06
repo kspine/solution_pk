@@ -42,9 +42,12 @@ namespace Events {
 		std::string loginName;
 		std::string loginToken;
 		boost::uint64_t expiryTime;
+		std::string remoteIp;
 
-		AccountSetToken(PlatformId platformId_, std::string loginName_, std::string loginToken_, boost::uint64_t expiryTime_)
-			: platformId(platformId_), loginName(std::move(loginName_)), loginToken(std::move(loginToken_)), expiryTime(expiryTime_)
+		AccountSetToken(PlatformId platformId_, std::string loginName_,
+			std::string loginToken_, boost::uint64_t expiryTime_, std::string remoteIp_)
+			: platformId(platformId_), loginName(std::move(loginName_))
+			, loginToken(std::move(loginToken_)), expiryTime(expiryTime_), remoteIp(std::move(remoteIp_))
 		{
 		}
 	};

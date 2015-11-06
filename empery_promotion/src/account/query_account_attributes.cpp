@@ -5,7 +5,7 @@
 
 namespace EmperyPromotion {
 
-ACCOUNT_SERVLET("queryAccountAttributes", /* session */, params){
+ACCOUNT_SERVLET("queryAccountAttributes", session, params){
 	const auto &loginName = params.at("loginName");
 
 	Poseidon::JsonObject ret;

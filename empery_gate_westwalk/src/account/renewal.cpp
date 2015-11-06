@@ -7,7 +7,7 @@
 
 namespace EmperyGateWestwalk {
 
-ACCOUNT_SERVLET("renewal", /* session */, params){
+ACCOUNT_SERVLET("renewal", session, params){
 	const auto &accountName = params.at("accountName");
 	const auto &oldToken    = params.at("oldToken");
 	const auto &token       = params.at("token");
@@ -49,7 +49,7 @@ ACCOUNT_SERVLET("renewal", /* session */, params){
 	AccountMap::setToken(accountName, token, localNow + tokenExpiryDuration);
 	Poseidon::EventDispatcher::syncRaise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platformId, accountName, token, localNow + tokenExpiryDuration));
+			platformId, accountName, token, localNow + tokenExpiryDuration, session->getRemoteInfo().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";
