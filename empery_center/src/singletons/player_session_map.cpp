@@ -31,10 +31,31 @@ namespace {
 
 	boost::shared_ptr<PlayerSessionMapDelegator> g_sessionMap;
 
+	class SessionMapGuard {
+	private:
+		boost::shared_ptr<PlayerSessionMapDelegator> m_sessionMap;
+
+	public:
+		explicit SessionMapGuard(boost::shared_ptr<PlayerSessionMapDelegator> sessionMap)
+			: m_sessionMap(std::move(sessionMap))
+		{
+		}
+		~SessionMapGuard(){
+			for(auto it = m_sessionMap->begin(); it != m_sessionMap->end(); ++it){
+				const auto session = it->weakSession.lock();
+				if(!session){
+					continue;
+				}
+				session->shutdown(Msg::KILL_SHUTDOWN, "The server is being shut down.");
+			}
+		}
+	};
+
 	MODULE_RAII_PRIORITY(handles, 8000){
 		const auto sessionMap = boost::make_shared<PlayerSessionMapDelegator>();
 		g_sessionMap = sessionMap;
 		handles.push(sessionMap);
+		handles.push(boost::make_shared<SessionMapGuard>(sessionMap));
 	}
 }
 
