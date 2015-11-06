@@ -214,6 +214,9 @@ void Castle::checkTechMission(const boost::shared_ptr<MySql::Center_CastleTech> 
 		DEBUG_THROW(Exception, sslit("Unknown tech mission"));
 	}
 
+	obj->set_mission(MIS_NONE);
+	obj->set_missionTimeEnd(utcNow + 1);
+
 	synchronizeTechWithClient(this, obj);
 }
 
