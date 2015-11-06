@@ -89,6 +89,23 @@ namespace {
 			}
 		}
 	}
+	void synchronizeResourceWithClient(const Castle *castle, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
+		PROFILE_ME;
+
+		const auto session = PlayerSessionMap::get(castle->getOwnerUuid());
+		if(session){
+			try {
+				Msg::SC_CastleResource msg;
+				msg.mapObjectUuid = castle->getMapObjectUuid().str();
+				msg.resourceId    = obj->get_resourceId();
+				msg.count         = obj->get_count();
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->forceShutdown();
+			}
+		}
+	}
 }
 
 Castle::Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid)
@@ -214,6 +231,12 @@ void Castle::pumpStatus(bool forceSynchronizationWithClient){
 		checkTechMission(it->second, utcNow);
 		if(forceSynchronizationWithClient){
 			synchronizeTechWithClient(this, it->second);
+		}
+	}
+	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
+		// 城内产出。
+		if(forceSynchronizationWithClient){
+			synchronizeResourceWithClient(this, it->second);
 		}
 	}
 }
@@ -657,20 +680,8 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 	}
 	*withdrawn = false;
 
-	const auto session = PlayerSessionMap::get(getOwnerUuid());
-	if(session){
-		try {
-			for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
-				Msg::SC_CastleResource msg;
-				msg.mapObjectUuid    = getMapObjectUuid().str();
-				msg.resourceId       = it->first->get_resourceId();
-				msg.count            = it->first->get_count();
-				session->send(msg);
-			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->forceShutdown();
-		}
+	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
+		synchronizeResourceWithClient(this, it->first);
 	}
 
 	return ResourceId();
