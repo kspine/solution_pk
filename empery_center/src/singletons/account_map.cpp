@@ -11,6 +11,9 @@
 #include "../player_session.hpp"
 #include "../events/account.hpp"
 
+#include "../castle.hpp" // FIXME remove this
+#include "map_object_map.hpp" // FIXME remove this
+
 namespace EmperyCenter {
 
 namespace {
@@ -262,6 +265,20 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::stri
 		accountUuid.get(), platformId.get(), std::move(loginName), std::move(nick), flags, std::string(), 0, 0, localNow);
 	obj->asyncSave(true);
 	it = g_accountMap.insert<2>(it, AccountElement(std::move(obj)));
+
+// FIXME remove this
+auto castle = boost::make_shared<Castle>(MapObjectTypeId(), accountUuid);
+
+castle->createBuildingMission(BuildingBaseId(16), Castle::MIS_CONSTRUCT, BuildingId(1901001));
+
+std::vector<Castle::ResourceTransactionElement> rsrc;
+rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101001), 10000000, ReasonId(), 0, 0, 0);
+rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101002), 10000000, ReasonId(), 0, 0, 0);
+rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101003), 10000000, ReasonId(), 0, 0, 0);
+castle->commitResourceTransaction(rsrc.data(), rsrc.size());
+
+const auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 200) - 100, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
+MapObjectMap::update(castle, coord);
 
 	*withdrawn = false;
 	return std::make_pair(accountUuid, true);

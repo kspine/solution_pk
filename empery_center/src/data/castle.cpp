@@ -98,7 +98,7 @@ namespace {
 		}
 
 		csv.get(minutes, "demolition");
-		elem.destructDuration = checkedMul<boost::uint64_t>(minutes, 1000);//XXX
+		elem.destructDuration = checkedMul<boost::uint64_t>(minutes, 10000);//XXX
 	}
 }
 

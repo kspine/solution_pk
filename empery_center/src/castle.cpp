@@ -566,10 +566,6 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 {
 	PROFILE_ME;
 
-	if(count == 0){
-		return ResourceId();
-	}
-
 	const auto withdrawn = boost::make_shared<bool>(true);
 
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>,

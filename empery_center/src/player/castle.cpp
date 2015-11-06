@@ -94,7 +94,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, accountUuid, session, req){
 	}
 
 	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
-	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, info.buildingLevel);
+	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, info.buildingLevel + 1);
 	std::vector<Castle::ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
 		const auto refundRatio = getConfig<double>("castle_cancellation_refund_ratio", 0.5);
