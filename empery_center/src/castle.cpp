@@ -155,6 +155,9 @@ void Castle::checkBuildingMission(const boost::shared_ptr<MySql::Center_CastleBu
 		DEBUG_THROW(Exception, sslit("Unknown building mission"));
 	}
 
+	obj->set_mission(MIS_NONE);
+	obj->set_missionTimeEnd(utcNow + 1);
+
 	synchronizeBuildingBaseWithClient(this, obj);
 }
 void Castle::checkTechMission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utcNow){

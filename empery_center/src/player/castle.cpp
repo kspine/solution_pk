@@ -37,21 +37,27 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, accountUuid, session, req){
 	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
 	castle->pumpBuildingStatus(buildingBaseId);
 
-	const auto info = castle->getBuilding(buildingBaseId);
-	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_ANOTHER_BUILDING_THERE) <<req.buildingBaseId;
+	const auto buildingId = BuildingId(req.buildingId);
+	const auto testInfo = castle->getBuildingById(buildingId);
+	if(testInfo.buildingLevel != 0){
+		return Response(Msg::CERR_BUILDING_EXISTS) <<buildingId;
 	}
 
-	const auto buildingData = Data::CastleBuilding::get(BuildingId(req.buildingId));
+	const auto info = castle->getBuilding(buildingBaseId);
+	if(info.mission != Castle::MIS_NONE){
+		return Response(Msg::CERR_ANOTHER_BUILDING_THERE) <<buildingBaseId;
+	}
+
+	const auto buildingData = Data::CastleBuilding::get(buildingId);
 	if(!buildingData){
-		return Response(Msg::CERR_NO_SUCH_BUILDING) <<req.buildingId;
+		return Response(Msg::CERR_NO_SUCH_BUILDING) <<buildingId;
 	}
 	const auto buildingBaseData = Data::CastleBuildingBase::get(buildingBaseId);
 	if(!buildingBaseData){
-		return Response(Msg::CERR_NO_SUCH_CASTLE_BASE) <<req.buildingBaseId;
+		return Response(Msg::CERR_NO_SUCH_CASTLE_BASE) <<buildingBaseId;
 	}
 	if(buildingBaseData->buildingsAllowed.find(buildingData->buildingId) == buildingBaseData->buildingsAllowed.end()){
-		return Response(Msg::CERR_BUILDING_NOT_ALLOWED) <<req.buildingId;
+		return Response(Msg::CERR_BUILDING_NOT_ALLOWED) <<buildingId;
 	}
 
 	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, 1);
@@ -84,7 +90,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, accountUuid, session, req){
 
 	const auto info = castle->getBuilding(buildingBaseId);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_BUILDING_MISSION) <<req.buildingBaseId;
+		return Response(Msg::CERR_NO_BUILDING_MISSION) <<buildingBaseId;
 	}
 
 	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
@@ -111,10 +117,10 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, accountUuid, session, req){
 
 	const auto info = castle->getBuilding(buildingBaseId);
 	if(info.buildingId == BuildingId()){
-		return Response(Msg::CERR_NO_BUILDING_THERE) <<req.buildingBaseId;
+		return Response(Msg::CERR_NO_BUILDING_THERE) <<buildingBaseId;
 	}
 	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<req.buildingBaseId;
+		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<buildingBaseId;
 	}
 
 	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
@@ -151,10 +157,10 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, accountUuid, session, req){
 
 	const auto info = castle->getBuilding(buildingBaseId);
 	if(info.buildingId == BuildingId()){
-		return Response(Msg::CERR_NO_BUILDING_THERE) <<req.buildingBaseId;
+		return Response(Msg::CERR_NO_BUILDING_THERE) <<buildingBaseId;
 	}
 	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<req.buildingBaseId;
+		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<buildingBaseId;
 	}
 
 	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
@@ -175,7 +181,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, accountUuid, session, 
 
 	const auto info = castle->getBuilding(buildingBaseId);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_BUILDING_MISSION) <<req.buildingBaseId;
+		return Response(Msg::CERR_NO_BUILDING_MISSION) <<buildingBaseId;
 	}
 
 	// TODO 计算消耗。
@@ -199,15 +205,15 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, accountUuid, session, req){
 
 	const auto info = castle->getTech(techId);
 	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_TECH_MISSION_CONFLICT) <<req.techId;
+		return Response(Msg::CERR_TECH_MISSION_CONFLICT) <<techId;
 	}
 
 	const auto techData = Data::CastleTech::get(TechId(req.techId), info.techLevel + 1);
 	if(!techData){
 		if(info.techLevel == 0){
-			return Response(Msg::CERR_NO_SUCH_TECH) <<req.techId;
+			return Response(Msg::CERR_NO_SUCH_TECH) <<techId;
 		}
-		return Response(Msg::CERR_TECH_UPGRADE_MAX) <<req.techId;
+		return Response(Msg::CERR_TECH_UPGRADE_MAX) <<techId;
 	}
 
 	for(auto it = techData->prerequisite.begin(); it != techData->prerequisite.end(); ++it){
@@ -247,7 +253,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, accountUuid, session, req){
 
 	const auto info = castle->getTech(techId);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_TECH_MISSION) <<req.techId;
+		return Response(Msg::CERR_NO_TECH_MISSION) <<techId;
 	}
 
 	const auto techData = Data::CastleTech::require(info.techId, info.techLevel + 1);
@@ -273,7 +279,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, accountUuid, session, req)
 
 	const auto info = castle->getTech(techId);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_TECH_MISSION) <<req.techId;
+		return Response(Msg::CERR_NO_TECH_MISSION) <<techId;
 	}
 
 	// TODO 计算消耗。
