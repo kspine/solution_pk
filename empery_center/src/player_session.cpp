@@ -113,7 +113,7 @@ protected:
 			result.second = e.what();
 		}
 		if(messageId != Poseidon::Cbpp::ControlMessage::ID){
-			LOG_EMPERY_CENTER_DEBUG("Sending response: code = ", result.first, ", message = ", result.second);
+			LOG_EMPERY_CENTER_DEBUG("Sending response: messageId = ", messageId, ", code = ", result.first, ", message = ", result.second);
 		}
 		if(result.first < 0){
 			parent->shutdown(result.first, result.second.c_str());
