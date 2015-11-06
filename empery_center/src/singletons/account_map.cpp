@@ -13,6 +13,7 @@
 
 #include "../castle.hpp" // FIXME remove this
 #include "map_object_map.hpp" // FIXME remove this
+#include "../map_object_type_ids.hpp" // FIXME remove this
 
 namespace EmperyCenter {
 
@@ -267,7 +268,7 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::stri
 	it = g_accountMap.insert<2>(it, AccountElement(std::move(obj)));
 
 // FIXME remove this
-auto castle = boost::make_shared<Castle>(MapObjectTypeId(), accountUuid);
+auto castle = boost::make_shared<Castle>(MapObjectTypeIds::ID_CASTLE, accountUuid);
 
 castle->createBuildingMission(BuildingBaseId(16), Castle::MIS_CONSTRUCT, BuildingId(1901001));
 
@@ -279,6 +280,8 @@ castle->commitResourceTransaction(rsrc.data(), rsrc.size());
 
 const auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 200) - 100, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
 MapObjectMap::update(castle, coord);
+
+setAttribute(accountUuid, 399, castle->getMapObjectUuid().str());
 
 	*withdrawn = false;
 	return std::make_pair(accountUuid, true);

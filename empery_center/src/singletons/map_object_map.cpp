@@ -5,7 +5,8 @@
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include "../player_session.hpp"
 #include "../map_object.hpp"
-#include "../map_object_attr_ids.hpp"
+#include "../attribute_ids.hpp"
+#include "../map_object_type_ids.hpp"
 #include "../mysql/map_object.hpp"
 #include "../mysql/map_object_attribute.hpp"
 #include "../msg/sc_map.hpp"
@@ -165,21 +166,18 @@ namespace {
 
 		const auto mapObjectMap = boost::make_shared<MapObjectMapDelegator>();
 		for(auto it = tempMapObjectMap.begin(); it != tempMapObjectMap.end(); ++it){
-			boost::shared_ptr<MapObject> mapObject;
-			{
-				const auto castleIt = tempCastleMap.find(it->first);
-				if(castleIt != tempCastleMap.end()){
-					mapObject = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
-						castleIt->second.buildings, castleIt->second.techs, castleIt->second.resources);
-					goto _created;
+			const auto mapObject = [&]() -> boost::shared_ptr<MapObject> {
+				const auto mapObjectTypeId = MapObjectTypeId(it->second.obj->get_mapObjectTypeId());
+				if(mapObjectTypeId == MapObjectTypeIds::ID_CASTLE){
+					const auto &castleElem = tempCastleMap.at(it->first);
+					return boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
+						castleElem.buildings, castleElem.techs, castleElem.resources);
 				}
-				// XXX 增加其它地图对象类型。
-				mapObject = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
-			}
-		_created:
-			auto coord = Coord(mapObject->getAttribute(AttributeIds::ID_COORD_X),
-				mapObject->getAttribute(AttributeIds::ID_COORD_Y));
-			mapObjectMap->insert(MapObjectElement(std::move(mapObject), coord));
+				return boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
+			}();
+			const auto coordX = mapObject->getAttribute(AttributeIds::ID_COORD_X);
+			const auto coordY = mapObject->getAttribute(AttributeIds::ID_COORD_Y);
+			mapObjectMap->insert(MapObjectElement(std::move(mapObject), Coord(coordX, coordY)));
 		}
 		g_mapObjectMap = mapObjectMap;
 		handles.push(mapObjectMap);

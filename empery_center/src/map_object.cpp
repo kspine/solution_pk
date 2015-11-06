@@ -2,7 +2,7 @@
 #include "map_object.hpp"
 #include "mysql/map_object.hpp"
 #include "mysql/map_object_attribute.hpp"
-#include "map_object_attr_ids.hpp"
+#include "attribute_ids.hpp"
 
 namespace EmperyCenter {
 
