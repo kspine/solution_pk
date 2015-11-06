@@ -22,12 +22,6 @@ namespace {
 			, onlineSince(Poseidon::getFastMonoClock())
 		{
 		}
-		~SessionElement(){
-			const auto session = weakSession.lock();
-			if(session){
-				session->shutdown(Msg::KILL_SHUTDOWN, "The server is being shut down.");
-			}
-		}
 	};
 
 	MULTI_INDEX_MAP(PlayerSessionMapDelegator, SessionElement,
