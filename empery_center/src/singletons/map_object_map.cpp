@@ -169,9 +169,12 @@ namespace {
 			const auto mapObject = [&]() -> boost::shared_ptr<MapObject> {
 				const auto mapObjectTypeId = MapObjectTypeId(it->second.obj->get_mapObjectTypeId());
 				if(mapObjectTypeId == MapObjectTypeIds::ID_CASTLE){
-					const auto &castleElem = tempCastleMap.at(it->first);
+					const auto castleIt = tempCastleMap.find(it->first);
+					if(castleIt == tempCastleMap.end()){
+						return boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes);
+					}
 					return boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
-						castleElem.buildings, castleElem.techs, castleElem.resources);
+						castleIt->second.buildings, castleIt->second.techs, castleIt->second.resources);
 				}
 				return boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
 			}();

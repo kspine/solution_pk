@@ -113,11 +113,16 @@ Castle::Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid)
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
+	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
+	: MapObject(std::move(obj), attributes)
+{
+}
+Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources)
-	: MapObject(std::move(obj), attributes)
+	: Castle(obj, attributes)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
 		const auto &obj = *it;
