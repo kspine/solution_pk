@@ -571,7 +571,7 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 {
 	PROFILE_ME;
 
-	const auto withdrawn = boost::make_shared<bool>(true);
+	boost::shared_ptr<bool> withdrawn;
 
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>,
 		boost::uint64_t /* newCount */> tempResultMap;
@@ -621,6 +621,9 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: mapObjectUuid = ", mapObjectUuid, ", ownerUuid = ", ownerUuid,
 					", resourceId = ", resourceId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				if(!withdrawn){
+					withdrawn = boost::make_shared<bool>(true);
+				}
 				Poseidon::asyncRaiseEvent(
 					boost::make_shared<Events::ResourceChanged>(mapObjectUuid, ownerUuid,
 						resourceId, oldCount, newCount, reason, param1, param2, param3),
@@ -662,6 +665,9 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: mapObjectUuid = ", mapObjectUuid, ", ownerUuid = ", ownerUuid,
 					", resourceId = ", resourceId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				if(!withdrawn){
+					withdrawn = boost::make_shared<bool>(true);
+				}
 				Poseidon::asyncRaiseEvent(
 					boost::make_shared<Events::ResourceChanged>(mapObjectUuid, ownerUuid,
 						resourceId, oldCount, newCount, reason, param1, param2, param3),
@@ -682,7 +688,9 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
 		it->first->set_count(it->second);
 	}
-	*withdrawn = false;
+	if(withdrawn){
+		*withdrawn = false;
+	}
 
 	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
 		synchronizeResourceWithClient(this, it->first);
