@@ -64,60 +64,52 @@ ClusterClient::~ClusterClient(){
 		", mapX = ", m_mapX, ", mapY = ", m_mapY);
 }
 
-void ClusterClient::onConnect(){
-	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_INFO("Cluster client connected");
-
-	Poseidon::enqueueAsyncJob(std::bind([](const boost::weak_ptr<ClusterClient> &weak){
-		const auto client = weak.lock();
-		if(!client){
-			return;
-		}
-		try {
-			const auto result = client->sendAndWait(Msg::KS_MapRegisterCluster(client->m_mapX, client->m_mapY));
-			if(result.first != 0){
-				LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
-				DEBUG_THROW(Exception, SharedNts(result.second));
-			}
-			LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: mapX = ", client->m_mapX, ", mapY = ", client->m_mapY);
-		} catch(std::exception &e){
-			LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
-			client->forceShutdown();
-		}
-	}, virtualWeakFromThis<ClusterClient>()));
-
-	Poseidon::Cbpp::Client::onConnect();
-}
 void ClusterClient::onClose(int errCode) noexcept {
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_INFO("Cluster client closed: errCode = ", errCode);
 
 	try {
-		Poseidon::enqueueAsyncJob(std::bind([](std::multimap<boost::uint64_t, RequestElement> requests){
-			for(auto it = requests.begin(); it != requests.end(); ++it){
+		Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<ClusterClient> &){
+			for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
 				const auto &promise = it->second.promise;
-				if(!promise){
+				if(!promise || promise->isSatisfied()){
 					continue;
 				}
 				try {
-					DEBUG_THROW(Exception, sslit("Lost connection to center server"));
-				} catch(Poseidon::Exception &e){
-					LOG_EMPERY_CLUSTER_WARNING("Poseidon::Exception thrown: what = ", e.what());
-					promise->setException(boost::copy_exception(e));
+					try {
+						DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
+					} catch(Poseidon::Exception &e){
+						promise->setException(boost::copy_exception(e));
+					} catch(std::exception &e){
+						promise->setException(boost::copy_exception(e));
+					}
 				} catch(std::exception &e){
-					LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
-					promise->setException(boost::copy_exception(e));
+					LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
 				}
 			}
-		}, std::move(m_requests)));
+			m_requests.clear();
+		}, virtualSharedFromThis<ClusterClient>()));
 	} catch(std::exception &e){
 		LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
 	}
-	m_requests.clear();
 
 	Poseidon::Cbpp::Client::onClose(errCode);
 }
 
+void ClusterClient::onSyncConnect(){
+	PROFILE_ME;
+
+	Poseidon::Cbpp::Client::onSyncConnect();
+
+	Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<ClusterClient> &){
+		const auto result = sendAndWait(Msg::KS_MapRegisterCluster(m_mapX, m_mapY));
+		if(result.first != 0){
+			LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
+			DEBUG_THROW(Exception, SharedNts(result.second));
+		}
+		LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: mapX = ", m_mapX, ", mapY = ", m_mapY);
+	}, virtualSharedFromThis<ClusterClient>()));
+}
 void ClusterClient::onSyncDataMessageHeader(boost::uint16_t messageId, boost::uint64_t payloadSize){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Message header: messageId = ", messageId, ", payloadSize = ", payloadSize);

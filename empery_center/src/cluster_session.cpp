@@ -61,27 +61,29 @@ void ClusterSession::onClose(int errCode) noexcept {
 	LOG_EMPERY_CENTER_INFO("Cluster session closed: errCode = ", errCode);
 
 	try {
-		Poseidon::enqueueAsyncJob(std::bind([](std::multimap<boost::uint64_t, RequestElement> requests){
-			for(auto it = requests.begin(); it != requests.end(); ++it){
+		Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<ClusterSession> &){
+			for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
 				const auto &promise = it->second.promise;
-				if(!promise){
+				if(!promise || promise->isSatisfied()){
 					continue;
 				}
 				try {
-					DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
-				} catch(Poseidon::Exception &e){
-					LOG_EMPERY_CENTER_WARNING("Poseidon::Exception thrown: what = ", e.what());
-					promise->setException(boost::copy_exception(e));
+					try {
+						DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
+					} catch(Poseidon::Exception &e){
+						promise->setException(boost::copy_exception(e));
+					} catch(std::exception &e){
+						promise->setException(boost::copy_exception(e));
+					}
 				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					promise->setException(boost::copy_exception(e));
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 				}
 			}
-		}, std::move(m_requests)));
+			m_requests.clear();
+		}, virtualSharedFromThis<ClusterSession>()));
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
-	m_requests.clear();
 
 	Poseidon::Cbpp::Session::onClose(errCode);
 }

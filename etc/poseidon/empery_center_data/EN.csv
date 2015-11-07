@@ -46,3 +46,81 @@ key,value
 11020040,Ironwood
 11030010,Gold
 11030020,Spring
+14010010,resource
+14010020,enemy
+14010030,ally
+14010040,other
+19010010,Lord mansion
+19020010,The stable
+19020020,barracks
+19020030,Archer
+19020040,instrument
+19030010,college
+19040010,houses
+19050010,The watchtower
+19060010,warehouse
+19070010,The wall
+19080010,The towers
+19090010,Corps assembled
+19100010,Trading market
+19110010,Building activities
+19120010,Blow to the pub
+19010011,At the heart of the city buildings
+19020011,Trained cavalry camp
+19020021,Infantry training camp
+19020031,The camp training archers
+19020041,The camp of construction equipment
+19030011,Study of science and technology building
+19040011,The output structure of the population
+19050011,Investigation of the situation of the enemy and the investigation of the building
+19060011,The main building storage resources
+19070011,Downtown main defense building
+19080011,Central city defense against buildings
+19090011,Forces to camp and assembled
+19100011,All goods trade structure
+19110011,The structures of all kinds of activities
+19120011,A rally in the blow to their favorite
+13010010,Grain production
+13010020,Logging production
+13010030,Stone production
+13010040,Iron ore
+13010050,The horse
+13010060,Bare copper
+13010070,Iron wood
+13020010,"Each other, deepen"
+13020020,Critical strike chance
+13020030,Critical strike damage
+13020040,The disabled rate
+13020050,Reconnaissance time
+13020060,Dodge chance
+13020070,"Each other, less"
+13030010,The population limit
+13030020,Production speed
+13030030,Construction speed
+13040010,The wall durable
+13040020,The wall defense
+13040030,The towers attack
+13040040,The towers durable
+13040050,The arrow tower defense
+13010011,Increasing food production percentage increased
+13010021,Increase the wood production percentage increased
+13010031,Increase of stone material production percentage increased
+13010041,Increase the output of iron ore percentage increased
+13010051,Increase the yield percentage of the horse
+13010061,Increase the output of red copper percentage increased
+13010071,Increase the production of iron wood percentage increased
+13020011,Refrain from damage to strengthen our forces on enemy forces
+13020021,Critical strike chance to strengthen our forces on enemy forces
+13020031,Our forces strengthen critical strike damage on enemy forces
+13020041,Disabled chance to strengthen our forces on enemy forces
+13020051,Our forces for reconnaissance enemy forces a shorter time
+13020061,Dodge chance to strengthen our forces on enemy forces
+13020071,The enemy troops to our forces to control damage reduced
+13030011,The upper limit of the total population increase
+13030021,Production speed increase of the total population
+13030031,Construction speed increase of the total population
+13040011,The wall of total yugoslav capital value promotion
+13040021,The wall of total defense value promotion
+13040031,The towers always attack value improvement
+13040041,The towers of blood volume value promotion
+13040051,The towers of total defense value promotion

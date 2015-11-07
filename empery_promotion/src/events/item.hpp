@@ -22,6 +22,8 @@ namespace Events {
 			R_BALANCE_BONUS_EXTRA   = 201010, // 升级账号       付款人账号      升级到等级
 			R_DEACTIVATE_ACCOUNT    = 201011, // 删除账号       0               0
 			R_BUY_MORE_CARDS        = 201012, // 自己账号       付款时卡单价    0
+			R_GOLD_SCRAMBLE         = 201013, // 起始时间       奖池内金币      奖池内余额
+			R_GOLD_SCRAMBLE_REWARD  = 201014, // 起始时间       奖池内金币      奖池内余额
 		};
 
 		AccountId accountId;

@@ -27,7 +27,7 @@ namespace Msg {
 		CERR_NO_SUCH_BUILDING               = 71416,
 		CERR_NO_SUCH_TECH                   = 71417,
 		CERR_DISPLAY_PREREQUISITE_NOT_MET   = 71418,
-		CERR_BUILDING_EXISTS                = 71419,
+		CERR_BUILD_LIMIT_EXCEEDED           = 71419,
 	};
 }
 

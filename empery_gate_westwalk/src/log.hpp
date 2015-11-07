@@ -5,7 +5,7 @@
 
 namespace EmperyGateWestwalk {
 
-const unsigned long long LOG_CATEGORY = 0x00010200;
+const unsigned long long LOG_CATEGORY = 0x00017000;
 
 }
 

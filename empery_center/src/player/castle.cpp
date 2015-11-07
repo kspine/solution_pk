@@ -37,21 +37,21 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, accountUuid, session, req){
 	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
 	castle->pumpBuildingStatus(buildingBaseId);
 
-	const auto buildingId = BuildingId(req.buildingId);
-	const auto testInfo = castle->getBuildingById(buildingId);
-	if(testInfo.buildingLevel != 0){
-		return Response(Msg::CERR_BUILDING_EXISTS) <<buildingId;
-	}
-
 	const auto info = castle->getBuilding(buildingBaseId);
 	if(info.mission != Castle::MIS_NONE){
 		return Response(Msg::CERR_ANOTHER_BUILDING_THERE) <<buildingBaseId;
 	}
 
+	const auto buildingId = BuildingId(req.buildingId);
 	const auto buildingData = Data::CastleBuilding::get(buildingId);
 	if(!buildingData){
 		return Response(Msg::CERR_NO_SUCH_BUILDING) <<buildingId;
 	}
+	const auto count = castle->countBuildingsById(buildingId);
+	if(count >= buildingData->buildLimit){
+		return Response(Msg::CERR_BUILD_LIMIT_EXCEEDED) <<buildingId;
+	}
+
 	const auto buildingBaseData = Data::CastleBuildingBase::get(buildingBaseId);
 	if(!buildingBaseData){
 		return Response(Msg::CERR_NO_SUCH_CASTLE_BASE) <<buildingBaseId;
@@ -62,10 +62,17 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, accountUuid, session, req){
 
 	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, 1);
 	for(auto it = upgradeData->prerequisite.begin(); it != upgradeData->prerequisite.end(); ++it){
-		const auto otherInfo = castle->getBuildingById(it->first);
-		if(otherInfo.buildingLevel < it->second){
+		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
+		castle->getBuildingsById(prerequisiteBuildings, it->first);
+		unsigned maxLevel = 0;
+		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
+			if(maxLevel < prereqIt->buildingLevel){
+				maxLevel = prereqIt->buildingLevel;
+			}
+		}
+		if(maxLevel < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: buildingId = ", it->first,
-				", levelRequired = ", it->second, ", buildingLevel = ", otherInfo.buildingLevel);
+				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
@@ -129,10 +136,17 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, accountUuid, session, req){
 		return Response(Msg::CERR_BUILDING_UPGRADE_MAX) <<info.buildingId;
 	}
 	for(auto it = upgradeData->prerequisite.begin(); it != upgradeData->prerequisite.end(); ++it){
-		const auto otherInfo = castle->getBuildingById(it->first);
-		if(otherInfo.buildingLevel < it->second){
+		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
+		castle->getBuildingsById(prerequisiteBuildings, it->first);
+		unsigned maxLevel = 0;
+		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
+			if(maxLevel < prereqIt->buildingLevel){
+				maxLevel = prereqIt->buildingLevel;
+			}
+		}
+		if(maxLevel < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: buildingId = ", it->first,
-				", levelRequired = ", it->second, ", buildingLevel = ", otherInfo.buildingLevel);
+				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
@@ -217,18 +231,32 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, accountUuid, session, req){
 	}
 
 	for(auto it = techData->prerequisite.begin(); it != techData->prerequisite.end(); ++it){
-		const auto otherInfo = castle->getBuildingById(it->first);
-		if(otherInfo.buildingLevel < it->second){
+		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
+		castle->getBuildingsById(prerequisiteBuildings, it->first);
+		unsigned maxLevel = 0;
+		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
+			if(maxLevel < prereqIt->buildingLevel){
+				maxLevel = prereqIt->buildingLevel;
+			}
+		}
+		if(maxLevel < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: techId = ", it->first,
-				", levelRequired = ", it->second, ", buildingLevel = ", otherInfo.buildingLevel);
+				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
 	for(auto it = techData->displayPrerequisite.begin(); it != techData->displayPrerequisite.end(); ++it){
-		const auto otherInfo = castle->getBuildingById(it->first);
-		if(otherInfo.buildingLevel < it->second){
+		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
+		castle->getBuildingsById(prerequisiteBuildings, it->first);
+		unsigned maxLevel = 0;
+		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
+			if(maxLevel < prereqIt->buildingLevel){
+				maxLevel = prereqIt->buildingLevel;
+			}
+		}
+		if(maxLevel < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Display prerequisite not met: techId = ", it->first,
-				", levelRequired = ", it->second, ", buildingLevel = ", otherInfo.buildingLevel);
+				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
 			return Response(Msg::CERR_DISPLAY_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}

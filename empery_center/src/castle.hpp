@@ -111,8 +111,9 @@ public:
 	void pumpTechStatus(TechId techId, bool forceSynchronizationWithClient = false);
 
 	BuildingInfo getBuilding(BuildingBaseId buildingBaseId) const;
-	BuildingInfo getBuildingById(BuildingId buildingId) const;
 	void getAllBuildings(std::vector<BuildingInfo> &ret) const;
+	std::size_t countBuildingsById(BuildingId buildingId) const;
+	void getBuildingsById(std::vector<BuildingInfo> &ret, BuildingId buildingId) const;
 	// 如果指定地基上有任务会抛出异常。
 	void createBuildingMission(BuildingBaseId buildingBaseId, Mission mission, BuildingId buildingId = BuildingId());
 	void cancelBuildingMission(BuildingBaseId buildingBaseId);

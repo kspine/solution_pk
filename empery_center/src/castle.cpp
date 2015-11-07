@@ -14,6 +14,42 @@
 namespace EmperyCenter {
 
 namespace {
+	void createInitBuildings(const MapObjectUuid &mapObjectUuid,
+		boost::container::flat_map<BuildingBaseId, boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings)
+	{
+		PROFILE_ME;
+
+		std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> initBuildings;
+		Data::CastleBuildingBase::getInit(initBuildings);
+		for(auto it = initBuildings.begin(); it != initBuildings.end(); ++it){
+			const auto &buildingData = *it;
+			const auto &buildingsAllowed = buildingData->buildingsAllowed;
+			if(buildingsAllowed.empty()){
+				continue;
+			}
+			const auto buildingBaseId = buildingData->buildingBaseId;
+			const auto initLevel = buildingData->initLevel;
+			const auto buildingIt = buildings.find(buildingBaseId);
+			if(buildingIt == buildings.end()){
+				const auto buildingId = *(buildingsAllowed.begin());
+				LOG_EMPERY_CENTER_DEBUG("> Creating init building: mapObjectUuid = ", mapObjectUuid,
+					", buildingBaseId = ", buildingBaseId, ", buildingId = ", buildingId, ", initLevel = ", initLevel);
+				auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
+					mapObjectUuid.get(), buildingBaseId.get(), buildingId.get(), initLevel, Castle::MIS_NONE, 0, 0, 0, 0);
+				obj->asyncSave(true);
+				buildings.emplace(buildingBaseId, std::move(obj));
+			} else {
+				const auto &obj = buildingIt->second;
+				const unsigned oldLevel = obj->get_buildingLevel();
+				if(oldLevel < initLevel){
+					LOG_EMPERY_CENTER_DEBUG("> Upgrading init building: mapObjectUuid = ", mapObjectUuid,
+						", buildingBaseId = ", buildingBaseId, ", oldLevel = ", oldLevel, ", initLevel = ", initLevel);
+					obj->set_buildingLevel(initLevel);
+				}
+			}
+		}
+	}
+
 	void fillBuildingInfo(Castle::BuildingInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
 		PROFILE_ME;
 
@@ -44,14 +80,16 @@ namespace {
 		info.count            = obj->get_count();
 	}
 
-	void synchronizeBuildingBaseWithClient(const Castle *castle, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
+	void synchronizeBuildingBaseWithClient(const AccountUuid &ownerUuid, const MapObjectUuid &mapObjectUuid,
+		const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj)
+	{
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(castle->getOwnerUuid());
+		const auto session = PlayerSessionMap::get(ownerUuid);
 		if(session){
 			try {
 				Msg::SC_CastleBuildingBase msg;
-				msg.mapObjectUuid        = castle->getMapObjectUuid().str();
+				msg.mapObjectUuid        = mapObjectUuid.str();
 				msg.buildingBaseId       = obj->get_buildingBaseId();
 				msg.buildingId           = obj->get_buildingId();
 				msg.buildingLevel        = obj->get_buildingLevel();
@@ -67,14 +105,16 @@ namespace {
 			}
 		}
 	}
-	void synchronizeTechWithClient(const Castle *castle, const boost::shared_ptr<MySql::Center_CastleTech> &obj){
+	void synchronizeTechWithClient(const AccountUuid &ownerUuid, const MapObjectUuid &mapObjectUuid,
+		const boost::shared_ptr<MySql::Center_CastleTech> &obj)
+	{
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(castle->getOwnerUuid());
+		const auto session = PlayerSessionMap::get(ownerUuid);
 		if(session){
 			try {
 				Msg::SC_CastleTech msg;
-				msg.mapObjectUuid        = castle->getMapObjectUuid().str();
+				msg.mapObjectUuid        = mapObjectUuid.str();
 				msg.techId               = obj->get_techId();
 				msg.techLevel            = obj->get_techLevel();
 				msg.mission              = obj->get_mission();
@@ -89,14 +129,16 @@ namespace {
 			}
 		}
 	}
-	void synchronizeResourceWithClient(const Castle *castle, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
+	void synchronizeResourceWithClient(const AccountUuid &ownerUuid, const MapObjectUuid &mapObjectUuid,
+		const boost::shared_ptr<MySql::Center_CastleResource> &obj)
+	{
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(castle->getOwnerUuid());
+		const auto session = PlayerSessionMap::get(ownerUuid);
 		if(session){
 			try {
 				Msg::SC_CastleResource msg;
-				msg.mapObjectUuid = castle->getMapObjectUuid().str();
+				msg.mapObjectUuid = mapObjectUuid.str();
 				msg.resourceId    = obj->get_resourceId();
 				msg.count         = obj->get_count();
 				session->send(msg);
@@ -111,18 +153,20 @@ namespace {
 Castle::Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid)
 	: MapObject(mapObjectTypeId, ownerUuid)
 {
+	createInitBuildings(getMapObjectUuid(), m_buildings);
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
 	: MapObject(std::move(obj), attributes)
 {
+	createInitBuildings(getMapObjectUuid(), m_buildings);
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources)
-	: Castle(obj, attributes)
+	: MapObject(std::move(obj), attributes)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
 		const auto &obj = *it;
@@ -136,6 +180,8 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const auto &obj = *it;
 		m_resources.emplace(ResourceId(obj->get_resourceId()), obj);
 	}
+
+	createInitBuildings(getMapObjectUuid(), m_buildings);
 }
 Castle::~Castle(){
 }
@@ -180,7 +226,7 @@ void Castle::checkBuildingMission(const boost::shared_ptr<MySql::Center_CastleBu
 	obj->set_mission(MIS_NONE);
 	obj->set_missionTimeEnd(utcNow + 1);
 
-	synchronizeBuildingBaseWithClient(this, obj);
+	synchronizeBuildingBaseWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 void Castle::checkTechMission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utcNow){
 	PROFILE_ME;
@@ -222,7 +268,7 @@ void Castle::checkTechMission(const boost::shared_ptr<MySql::Center_CastleTech> 
 	obj->set_mission(MIS_NONE);
 	obj->set_missionTimeEnd(utcNow + 1);
 
-	synchronizeTechWithClient(this, obj);
+	synchronizeTechWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 
 void Castle::pumpStatus(bool forceSynchronizationWithClient){
@@ -232,19 +278,19 @@ void Castle::pumpStatus(bool forceSynchronizationWithClient){
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		checkBuildingMission(it->second, utcNow);
 		if(forceSynchronizationWithClient){
-			synchronizeBuildingBaseWithClient(this, it->second);
+			synchronizeBuildingBaseWithClient(getOwnerUuid(), getMapObjectUuid(), it->second);
 		}
 	}
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 		checkTechMission(it->second, utcNow);
 		if(forceSynchronizationWithClient){
-			synchronizeTechWithClient(this, it->second);
+			synchronizeTechWithClient(getOwnerUuid(), getMapObjectUuid(), it->second);
 		}
 	}
 	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
 		// 城内产出。
 		if(forceSynchronizationWithClient){
-			synchronizeResourceWithClient(this, it->second);
+			synchronizeResourceWithClient(getOwnerUuid(), getMapObjectUuid(), it->second);
 		}
 	}
 }
@@ -259,7 +305,7 @@ void Castle::pumpBuildingStatus(BuildingBaseId buildingBaseId, bool forceSynchro
 	const auto utcNow = Poseidon::getUtcTime();
 	checkBuildingMission(it->second, utcNow);
 	if(forceSynchronizationWithClient){
-		synchronizeBuildingBaseWithClient(this, it->second);
+		synchronizeBuildingBaseWithClient(getOwnerUuid(), getMapObjectUuid(), it->second);
 	}
 }
 void Castle::pumpTechStatus(TechId techId, bool forceSynchronizationWithClient){
@@ -273,7 +319,7 @@ void Castle::pumpTechStatus(TechId techId, bool forceSynchronizationWithClient){
 	const auto utcNow = Poseidon::getUtcTime();
 	checkTechMission(it->second, utcNow);
 	if(forceSynchronizationWithClient){
-		synchronizeTechWithClient(this, it->second);
+		synchronizeTechWithClient(getOwnerUuid(), getMapObjectUuid(), it->second);
 	}
 }
 
@@ -290,25 +336,35 @@ Castle::BuildingInfo Castle::getBuilding(BuildingBaseId buildingBaseId) const {
 	fillBuildingInfo(info, it->second);
 	return info;
 }
-Castle::BuildingInfo Castle::getBuildingById(BuildingId buildingId) const {
-	PROFILE_ME;
-
-	BuildingInfo info = { };
-	info.buildingId = buildingId;
-
-	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(BuildingId(it->second->get_buildingId()) == buildingId){
-			fillBuildingInfo(info, it->second);
-			break;
-		}
-	}
-	return info;
-}
 void Castle::getAllBuildings(std::vector<Castle::BuildingInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_buildings.size());
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		BuildingInfo info;
+		fillBuildingInfo(info, it->second);
+		ret.emplace_back(std::move(info));
+	}
+}
+std::size_t Castle::countBuildingsById(BuildingId buildingId) const {
+	PROFILE_ME;
+
+	std::size_t count = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		if(BuildingId(it->second->get_buildingId()) != buildingId){
+			continue;
+		}
+		++count;
+	}
+	return count;
+}
+void Castle::getBuildingsById(std::vector<Castle::BuildingInfo> &ret, BuildingId buildingId) const {
+	PROFILE_ME;
+
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		if(BuildingId(it->second->get_buildingId()) != buildingId){
+			continue;
+		}
 		BuildingInfo info;
 		fillBuildingInfo(info, it->second);
 		ret.emplace_back(std::move(info));
@@ -375,7 +431,7 @@ void Castle::createBuildingMission(BuildingBaseId buildingBaseId, Castle::Missio
 	obj->set_missionTimeEnd(saturatedAdd(utcNow, duration));
 
 	checkBuildingMission(obj, utcNow);
-	synchronizeBuildingBaseWithClient(this, obj);
+	synchronizeBuildingBaseWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 void Castle::cancelBuildingMission(BuildingBaseId buildingBaseId){
 	PROFILE_ME;
@@ -399,7 +455,7 @@ void Castle::cancelBuildingMission(BuildingBaseId buildingBaseId){
 	obj->set_missionTimeEnd(utcNow);
 
 	checkBuildingMission(obj, utcNow);
-	synchronizeBuildingBaseWithClient(this, obj);
+	synchronizeBuildingBaseWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 void Castle::speedUpBuildingMission(BuildingBaseId buildingBaseId, boost::uint64_t deltaDuration){
 	PROFILE_ME;
@@ -421,7 +477,7 @@ void Castle::speedUpBuildingMission(BuildingBaseId buildingBaseId, boost::uint64
 	obj->set_missionTimeEnd(saturatedSub(obj->get_missionTimeEnd(), deltaDuration));
 
 	checkBuildingMission(obj, utcNow);
-	synchronizeBuildingBaseWithClient(this, obj);
+	synchronizeBuildingBaseWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 
 Castle::TechInfo Castle::getTech(TechId techId) const {
@@ -494,7 +550,7 @@ void Castle::createTechMission(TechId techId, Castle::Mission mission){
 	obj->set_missionTimeEnd(saturatedAdd(utcNow, duration));
 
 	checkTechMission(obj, utcNow);
-	synchronizeTechWithClient(this, obj);
+	synchronizeTechWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 void Castle::cancelTechMission(TechId techId){
 	PROFILE_ME;
@@ -518,7 +574,7 @@ void Castle::cancelTechMission(TechId techId){
 	obj->set_missionTimeEnd(utcNow);
 
 	checkTechMission(obj, utcNow);
-	synchronizeTechWithClient(this, obj);
+	synchronizeTechWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 void Castle::speedUpTechMission(TechId techId, boost::uint64_t deltaDuration){
 	PROFILE_ME;
@@ -540,7 +596,7 @@ void Castle::speedUpTechMission(TechId techId, boost::uint64_t deltaDuration){
 	obj->set_missionTimeEnd(saturatedSub(obj->get_missionTimeEnd(), deltaDuration));
 
 	checkTechMission(obj, utcNow);
-	synchronizeTechWithClient(this, obj);
+	synchronizeTechWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
 }
 
 Castle::ResourceInfo Castle::getResource(ResourceId resourceId) const {
@@ -693,7 +749,7 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 	}
 
 	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
-		synchronizeResourceWithClient(this, it->first);
+		synchronizeResourceWithClient(getOwnerUuid(), getMapObjectUuid(), it->first);
 	}
 
 	return ResourceId();

@@ -10,6 +10,7 @@ namespace EmperyCenter {
 namespace {
 	MULTI_INDEX_MAP(CastleBuildingBaseMap, Data::CastleBuildingBase,
 		UNIQUE_MEMBER_INDEX(buildingBaseId)
+		MULTI_MEMBER_INDEX(initLevel)
 	)
 	boost::weak_ptr<const CastleBuildingBaseMap> g_buildingBaseMap;
 	const char BUILDING_BASE_FILE[] = "castle_block";
@@ -134,13 +135,15 @@ MODULE_RAII_PRIORITY(handles, 1000){
 			throw;
 		}
 
+		csv.get(elem.initLevel, "initial_level");
+
 		if(!buildingBaseMap->insert(std::move(elem)).second){
 			LOG_EMPERY_CENTER_ERROR("Duplicate building base: buildingBaseId = ", elem.buildingBaseId);
 			DEBUG_THROW(Exception, sslit("Duplicate building base"));
 		}
 	}
 	g_buildingBaseMap = buildingBaseMap;
-	handles.push(DataSession::createServlet(BUILDING_BASE_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(BUILDING_BASE_FILE, serializeCsv(csv, "index")));
 	handles.push(buildingBaseMap);
 
 	const auto buildingMap = boost::make_shared<CastleBuildingMap>();
@@ -150,9 +153,9 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleBuilding elem = { };
 
-		unsigned temp;
 		csv.get(elem.buildingId, "id");
 		csv.get(elem.buildLimit, "num");
+		unsigned temp;
 		csv.get(temp, "type");
 		elem.type = static_cast<Data::CastleBuilding::Type>(temp);
 
@@ -162,7 +165,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_buildingMap = buildingMap;
-	handles.push(DataSession::createServlet(BUILDING_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(BUILDING_FILE, serializeCsv(csv, "id")));
 	handles.push(buildingMap);
 
 	const auto upgradePrimaryMap = boost::make_shared<CastleUpgradePrimaryMap>();
@@ -181,7 +184,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_upgradePrimaryMap = upgradePrimaryMap;
-	handles.push(DataSession::createServlet(UPGRADE_PRIMARY_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(UPGRADE_PRIMARY_FILE, serializeCsv(csv, "castel_level")));
 	handles.push(upgradePrimaryMap);
 
 	const auto upgradeBarracksMap = boost::make_shared<CastleUpgradeBarracksMap>();
@@ -202,7 +205,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_upgradeBarracksMap = upgradeBarracksMap;
-	handles.push(DataSession::createServlet(UPGRADE_BARRACKS_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(UPGRADE_BARRACKS_FILE, serializeCsv(csv, "camp_level")));
 	handles.push(upgradeBarracksMap);
 
 	const auto upgradeAcademyMap = boost::make_shared<CastleUpgradeAcademyMap>();
@@ -223,7 +226,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_upgradeAcademyMap = upgradeAcademyMap;
-	handles.push(DataSession::createServlet(UPGRADE_ACADEMY_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(UPGRADE_ACADEMY_FILE, serializeCsv(csv, "college_level")));
 	handles.push(upgradeAcademyMap);
 
 	const auto upgradeCivilianMap = boost::make_shared<CastleUpgradeCivilianMap>();
@@ -244,7 +247,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_upgradeCivilianMap = upgradeCivilianMap;
-	handles.push(DataSession::createServlet(UPGRADE_CIVILIAN_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(UPGRADE_CIVILIAN_FILE, serializeCsv(csv, "house_level")));
 	handles.push(upgradeCivilianMap);
 
 	const auto upgradeWarehouseMap = boost::make_shared<CastleUpgradeWarehouseMap>();
@@ -282,7 +285,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_upgradeWarehouseMap = upgradeWarehouseMap;
-	handles.push(DataSession::createServlet(UPGRADE_WAREHOUSE_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(UPGRADE_WAREHOUSE_FILE, serializeCsv(csv, "storage_level")));
 	handles.push(upgradeWarehouseMap);
 
 	const auto upgradeCitadelWallMap = boost::make_shared<CastleUpgradeCitadelWallMap>();
@@ -304,7 +307,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_upgradeCitadelWallMap = upgradeCitadelWallMap;
-	handles.push(DataSession::createServlet(UPGRADE_CITADEL_WALL_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(UPGRADE_CITADEL_WALL_FILE, serializeCsv(csv, "wall_level")));
 	handles.push(upgradeCitadelWallMap);
 
 	const auto upgradeDefenseTowerMap = boost::make_shared<CastleUpgradeDefenseTowerMap>();
@@ -325,7 +328,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_upgradeDefenseTowerMap = upgradeDefenseTowerMap;
-	handles.push(DataSession::createServlet(UPGRADE_DEFENSE_TOWER_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(UPGRADE_DEFENSE_TOWER_FILE, serializeCsv(csv, "tower_level")));
 	handles.push(upgradeDefenseTowerMap);
 
 	const auto techMap = boost::make_shared<CastleTechMap>();
@@ -335,14 +338,22 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetchRow()){
 		Data::CastleTech elem = { };
 
-		csv.get(elem.techIdLevel.first, "tech_id");
-		csv.get(elem.techIdLevel.second, "level");
+		std::string str;
+		csv.get(str, "tech_id_level");
+		try {
+			std::istringstream iss(str);
+			const auto root = Poseidon::JsonParser::parseArray(iss);
+			elem.techIdLevel.first = TechId(root.at(0).get<double>());
+			elem.techIdLevel.second = root.at(1).get<double>();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", str = ", str);
+			throw;
+		}
 
 		boost::uint64_t minutes;
 		csv.get(minutes, "levelup_time");
 		elem.upgradeDuration = checkedMul<boost::uint64_t>(minutes, 1000);//XXX
 
-		std::string str;
 		csv.get(str, "need_resource", "{}");
 		try {
 			std::istringstream iss(str);
@@ -425,7 +436,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 		}
 	}
 	g_techMap = techMap;
-	handles.push(DataSession::createServlet(TECH_FILE, serializeCsv(csv)));
+	handles.push(DataSession::createServlet(TECH_FILE, serializeCsv(csv, "tech_id_level")));
 	handles.push(techMap);
 }
 
@@ -454,6 +465,22 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("CastleBuildingBase not found"));
 		}
 		return ret;
+	}
+
+	void CastleBuildingBase::getInit(std::vector<boost::shared_ptr<const CastleBuildingBase>> &ret){
+		PROFILE_ME;
+
+		const auto buildingBaseMap = g_buildingBaseMap.lock();
+		if(!buildingBaseMap){
+			LOG_EMPERY_CENTER_WARNING("CastleBuildingBaseMap has not been loaded.");
+			return;
+		}
+
+		const auto range = std::make_pair(buildingBaseMap->upperBound<1>(0), buildingBaseMap->end<1>());
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			ret.emplace_back(boost::shared_ptr<const CastleBuildingBase>(buildingBaseMap, &*it));
+		}
 	}
 
 	boost::shared_ptr<const CastleBuilding> CastleBuilding::get(BuildingId buildingId){

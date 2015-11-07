@@ -13,9 +13,13 @@ namespace Data {
 		static boost::shared_ptr<const CastleBuildingBase> get(BuildingBaseId buildingBaseId);
 		static boost::shared_ptr<const CastleBuildingBase> require(BuildingBaseId buildingBaseId);
 
+		// 返回所有 initLevel > 0 的建筑。
+		static void getInit(std::vector<boost::shared_ptr<const CastleBuildingBase>> &ret);
+
 	public:
 		BuildingBaseId buildingBaseId;
 		boost::container::flat_set<BuildingId> buildingsAllowed;
+		unsigned initLevel;
 	};
 
 	class CastleBuilding {

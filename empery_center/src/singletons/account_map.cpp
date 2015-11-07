@@ -270,9 +270,6 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::stri
 // FIXME remove this
 auto castle = boost::make_shared<Castle>(MapObjectTypeIds::ID_CASTLE, accountUuid);
 
-castle->createBuildingMission(BuildingBaseId(15), Castle::MIS_CONSTRUCT, BuildingId(1907001));
-castle->createBuildingMission(BuildingBaseId(16), Castle::MIS_CONSTRUCT, BuildingId(1901001));
-
 std::vector<Castle::ResourceTransactionElement> rsrc;
 rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101001), 1000000000, ReasonId(), 0, 0, 0);
 rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101002), 1000000000, ReasonId(), 0, 0, 0);

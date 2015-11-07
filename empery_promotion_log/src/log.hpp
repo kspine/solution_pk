@@ -5,7 +5,7 @@
 
 namespace EmperyPromotionLog {
 
-const unsigned long long LOG_CATEGORY = 0x00030200;
+const unsigned long long LOG_CATEGORY = 0x00035200;
 
 }
 
