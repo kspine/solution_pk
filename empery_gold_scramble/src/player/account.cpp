@@ -86,7 +86,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 		if(!st){
 			return Response(Msg::ERR_INVALID_SESSION_ID) <<req.sessionId;
 		}
-		loginName = root.at(sslit("rs")).get<std::string>();
+		loginName = root.at(sslit("rs")).get<Poseidon::JsonObject>().at(sslit("loginName")).get<std::string>();
 	}
 
 	std::string nick;
