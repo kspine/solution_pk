@@ -126,6 +126,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	session->send(Msg::SC_AccountLoginSuccess(std::move(loginName), std::move(nick)));
 	session->send(Msg::SC_AccountAccountBalance(goldCoins, accountBalance));
 	sendAuctionStatusToClient(session);
+	sendLastLogToClient(session);
 
 	return Response();
 }

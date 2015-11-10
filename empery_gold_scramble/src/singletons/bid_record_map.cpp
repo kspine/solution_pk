@@ -74,26 +74,20 @@ std::size_t BidRecordMap::getSize(){
 void BidRecordMap::getAll(std::vector<BidRecordMap::Record> &ret, std::size_t limit){
 	PROFILE_ME;
 
-	const auto gameAutoId = GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID);
-
 	auto begin = g_queue.begin<0>();
 	if(g_queue.size() > limit){
 		std::advance(begin, static_cast<std::ptrdiff_t>(g_queue.size() - limit));
 	}
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, g_queue.end<0>())));
 	for(auto it = begin; it != g_queue.end<0>(); ++it){
-		const auto &obj = it->obj;
-		if(obj->get_gameAutoId() != gameAutoId){
-			continue;
-		}
-		Record record;
-		record.recordAutoId   = obj->get_recordAutoId();
-		record.gameAutoId     = obj->get_gameAutoId();
-		record.timestamp      = obj->get_timestamp();
-		record.loginName      = obj->unlockedGet_loginName();
-		record.nick           = obj->unlockedGet_nick();
-		record.goldCoins      = obj->get_goldCoins();
-		record.accountBalance = obj->get_accountBalance();
+		BidRecordMap::Record record;
+		record.recordAutoId   = it->obj->get_recordAutoId();
+		record.gameAutoId     = it->obj->get_gameAutoId();
+		record.timestamp      = it->obj->get_timestamp();
+		record.loginName      = it->obj->unlockedGet_loginName();
+		record.nick           = it->obj->unlockedGet_nick();
+		record.goldCoins      = it->obj->get_goldCoins();
+		record.accountBalance = it->obj->get_accountBalance();
 		ret.emplace_back(std::move(record));
 	}
 }

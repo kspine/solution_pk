@@ -52,7 +52,7 @@ namespace Msg {
 	FIELD_VUINT			(accountBalanceWon)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME	SC_AccountGameEnds
+#define MESSAGE_NAME	SC_AccountLastLog
 #define MESSAGE_ID		295
 #define MESSAGE_FIELDS	\
 	FIELD_VUINT			(gameBeginTime)	\

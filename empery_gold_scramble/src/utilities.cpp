@@ -84,6 +84,8 @@ namespace {
 
 	boost::weak_ptr<Poseidon::TimerItem> g_timer;
 
+	Msg::SC_AccountLastLog g_lastLogMsg;
+
 	void commitGameReward(const std::string &loginName, boost::uint64_t goldCoins, boost::uint64_t accountBalance,
 		boost::uint64_t gameBeginTime, boost::uint64_t goldCoinsInPot, boost::uint64_t accountBalanceInPot)
 	{
@@ -252,7 +254,7 @@ namespace {
 		if(!sessions.empty()){
 			const auto visibleWinnerCount = getConfig<std::size_t>("visible_winner_count", 100);
 
-			Msg::SC_AccountGameEnds msg;
+			Msg::SC_AccountLastLog msg;
 			msg.gameBeginTime       = gameBeginTime;
 			msg.goldCoinsInPot      = goldCoinsInPot;
 			msg.accountBalanceInPot = accountBalanceInPot;
@@ -271,6 +273,7 @@ namespace {
 			}
 
 			broadcastMessage(sessions, msg);
+			g_lastLogMsg = std::move(msg);
 		}
 	}
 
@@ -285,6 +288,11 @@ void sendAuctionStatusToClient(const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
 	session->send(makeAuctionStatusMessage());
+}
+void sendLastLogToClient(const boost::shared_ptr<PlayerSession> &session){
+	PROFILE_ME;
+
+	session->send(g_lastLogMsg);
 }
 void invalidateAuctionStatus(){
 	PROFILE_ME;
@@ -302,12 +310,9 @@ void invalidateAuctionStatus(){
 
 		SessionMap sessions;
 		PlayerSessionMap::getAll(sessions);
-		if(sessions.empty()){
-			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("No player is online.");
-			return;
+		if(!sessions.empty()){
+			broadcastMessage(sessions, makeAuctionStatusMessage());
 		}
-
-		broadcastMessage(sessions, makeAuctionStatusMessage());
 
 		GlobalStatus::exchange(GlobalStatus::SLOT_STATUS_INVALIDATED, false);
 	});
