@@ -160,7 +160,7 @@ namespace {
 				} catch(std::exception &e){
 					LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
 				}
-				while(--it != records.rend()){
+				while(++it != records.rend()){
 					LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> Winner: loginName = ", it->loginName);
 					try {
 						Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, std::move(it->loginName),

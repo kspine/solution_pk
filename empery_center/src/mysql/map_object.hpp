@@ -12,6 +12,7 @@ namespace MySql {
 	FIELD_UUID				(mapObjectUuid)	\
 	FIELD_INTEGER_UNSIGNED	(mapObjectTypeId)	\
 	FIELD_UUID				(ownerUuid)	\
+	FIELD_STRING			(name)	\
 	FIELD_DATETIME			(createdTime)	\
 	FIELD_TINYINT_UNSIGNED	(deleted)
 #include <poseidon/mysql/object_generator.hpp>

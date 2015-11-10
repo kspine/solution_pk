@@ -210,6 +210,7 @@ namespace {
 				msg.objectUuid   = mapObject->getMapObjectUuid().str();
 				msg.objectTypeId = mapObject->getMapObjectTypeId().get();
 				msg.ownerUuid    = mapObject->getOwnerUuid().str();
+				msg.name         = mapObject->getName();
 				msg.attributes.reserve(attributes.size());
 				for(auto it = attributes.begin(); it != attributes.end(); ++it){
 					msg.attributes.emplace_back();

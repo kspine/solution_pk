@@ -268,7 +268,7 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platformId, std::stri
 	it = g_accountMap.insert<2>(it, AccountElement(std::move(obj)));
 
 // FIXME remove this
-auto castle = boost::make_shared<Castle>(MapObjectTypeIds::ID_CASTLE, accountUuid);
+auto castle = boost::make_shared<Castle>(MapObjectTypeIds::ID_CASTLE, accountUuid, "aaa");
 
 std::vector<Castle::ResourceTransactionElement> rsrc;
 rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101001), 1000000000, ReasonId(), 0, 0, 0);

@@ -150,8 +150,8 @@ namespace {
 	}
 }
 
-Castle::Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid)
-	: MapObject(mapObjectTypeId, ownerUuid)
+Castle::Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid, std::string name)
+	: MapObject(mapObjectTypeId, ownerUuid, std::move(name))
 {
 	createInitBuildings(getMapObjectUuid(), m_buildings);
 }

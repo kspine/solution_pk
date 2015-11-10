@@ -42,6 +42,7 @@ namespace Msg {
 	FIELD_STRING		(objectUuid)	\
 	FIELD_VUINT			(objectTypeId)	\
 	FIELD_STRING		(ownerUuid)	\
+	FIELD_STRING		(name)	\
 	FIELD_ARRAY			(attributes,	\
 		FIELD_VUINT			(slot)	\
 		FIELD_STRING		(value)	\

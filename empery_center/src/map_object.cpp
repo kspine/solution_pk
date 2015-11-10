@@ -6,9 +6,9 @@
 
 namespace EmperyCenter {
 
-MapObject::MapObject(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid){
+MapObject::MapObject(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid, std::string name){
 	m_obj = boost::make_shared<MySql::Center_MapObject>(
-		Poseidon::Uuid::random(), mapObjectTypeId.get(), ownerUuid.get(), Poseidon::getUtcTime(), false);
+		Poseidon::Uuid::random(), mapObjectTypeId.get(), ownerUuid.get(), std::move(name), Poseidon::getUtcTime(), false);
 	m_obj->asyncSave(true);
 }
 MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
@@ -37,6 +37,12 @@ MapObjectTypeId MapObject::getMapObjectTypeId() const {
 }
 AccountUuid MapObject::getOwnerUuid() const {
 	return AccountUuid(m_obj->unlockedGet_ownerUuid());
+}
+const std::string &MapObject::getName() const {
+	return m_obj->unlockedGet_name();
+}
+void MapObject::setName(std::string name){
+	m_obj->set_name(std::move(name));
 }
 boost::uint64_t MapObject::getCreatedTime() const {
 	return m_obj->get_createdTime();
