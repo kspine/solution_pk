@@ -187,6 +187,7 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatc
 
 			return std::move(upgradedSession);
 		}
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 	}
 
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);

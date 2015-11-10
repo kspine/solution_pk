@@ -151,20 +151,19 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatc
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_IMPLEMENTED);
 	}
 	auto uri = Poseidon::Http::urlDecode(requestHeaders.uri);
-	if(uri != m_path){
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
-	}
+	if(uri == m_path){
+		if(::strcasecmp(requestHeaders.headers.get("Upgrade").c_str(), "websocket") == 0){
+			auto upgradedSession = boost::make_shared<WebSocketImpl>(virtualSharedFromThis<PlayerSession>());
 
-	if(::strcasecmp(requestHeaders.headers.get("Upgrade").c_str(), "websocket") == 0){
-		auto upgradedSession = boost::make_shared<WebSocketImpl>(virtualSharedFromThis<PlayerSession>());
+			auto responseHeaders = Poseidon::WebSocket::makeHandshakeResponse(requestHeaders);
+			if(responseHeaders.statusCode != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
+				DEBUG_THROW(Poseidon::Http::Exception, responseHeaders.statusCode);
+			}
+			Poseidon::Http::Session::send(std::move(responseHeaders), { });
 
-		auto responseHeaders = Poseidon::WebSocket::makeHandshakeResponse(requestHeaders);
-		if(responseHeaders.statusCode != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
-			DEBUG_THROW(Poseidon::Http::Exception, responseHeaders.statusCode);
+			return std::move(upgradedSession);
 		}
-		Poseidon::Http::Session::send(std::move(responseHeaders), { });
-
-		return std::move(upgradedSession);
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 	}
 
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
