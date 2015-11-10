@@ -11,12 +11,13 @@ namespace EmperyGoldScramble {
 namespace {
 	struct SessionElement {
 		std::string loginName;
+		std::string nick;
 		boost::weak_ptr<PlayerSession> weakSession;
 
 		boost::uint64_t onlineSince;
 
-		SessionElement(const std::string &loginName_, boost::weak_ptr<PlayerSession> weakSession_)
-			: loginName(std::move(loginName_)), weakSession(std::move(weakSession_))
+		SessionElement(const std::string &loginName_, const std::string &nick_, boost::weak_ptr<PlayerSession> weakSession_)
+			: loginName(std::move(loginName_)), nick(std::move(nick_)), weakSession(std::move(weakSession_))
 			, onlineSince(Poseidon::getFastMonoClock())
 		{
 		}
@@ -24,6 +25,7 @@ namespace {
 
 	MULTI_INDEX_MAP(PlayerSessionMapDelegator, SessionElement,
 		UNIQUE_MEMBER_INDEX(loginName)
+		MULTI_MEMBER_INDEX(nick)
 		UNIQUE_MEMBER_INDEX(weakSession)
 	)
 
@@ -56,8 +58,8 @@ boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const std::string &loginN
 std::string PlayerSessionMap::getLoginName(const boost::weak_ptr<PlayerSession> &weakSession){
 	PROFILE_ME;
 
-	const auto it = g_sessionMap->find<1>(weakSession);
-	if(it == g_sessionMap->end<1>()){
+	const auto it = g_sessionMap->find<2>(weakSession);
+	if(it == g_sessionMap->end<2>()){
 		return { };
 	}
 	return it->loginName;
@@ -72,17 +74,36 @@ std::string PlayerSessionMap::requireLoginName(const boost::weak_ptr<PlayerSessi
 	return ret;
 }
 
-void PlayerSessionMap::add(const std::string &loginName, const boost::shared_ptr<PlayerSession> &session){
+std::string PlayerSessionMap::getNick(const boost::weak_ptr<PlayerSession> &weakSession){
 	PROFILE_ME;
 
-	const auto it = g_sessionMap->find<1>(session);
-	if(it != g_sessionMap->end<1>()){
+	const auto it = g_sessionMap->find<2>(weakSession);
+	if(it == g_sessionMap->end<2>()){
+		return { };
+	}
+	return it->nick;
+}
+std::string PlayerSessionMap::requireNick(const boost::weak_ptr<PlayerSession> &weakSession){
+	PROFILE_ME;
+
+	auto ret = getNick(weakSession);
+	if(ret.empty()){
+		DEBUG_THROW(Exception, sslit("Session not found"));
+	}
+	return ret;
+}
+
+void PlayerSessionMap::add(const std::string &loginName, const std::string &nick, const boost::shared_ptr<PlayerSession> &session){
+	PROFILE_ME;
+
+	const auto it = g_sessionMap->find<2>(session);
+	if(it != g_sessionMap->end<2>()){
 		LOG_EMPERY_GOLD_SCRAMBLE_WARNING("Session added by another account: loginName = ", it->loginName);
 		DEBUG_THROW(Exception, sslit("Duplicate session"));
 	}
 
 	for(;;){
-		const auto result = g_sessionMap->insert(SessionElement(loginName, session));
+		const auto result = g_sessionMap->insert(SessionElement(loginName, nick, session));
 		if(result.second){
 			const auto remoteIp = std::string(session->getRemoteInfo().ip.get());
 			LOG_EMPERY_GOLD_SCRAMBLE_INFO("Player goes online: loginName = ", loginName, ", remoteIp = ", remoteIp);
@@ -103,8 +124,8 @@ void PlayerSessionMap::add(const std::string &loginName, const boost::shared_ptr
 void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept {
 	PROFILE_ME;
 
-	const auto it = g_sessionMap->find<1>(weakSession);
-	if(it == g_sessionMap->end<1>()){
+	const auto it = g_sessionMap->find<2>(weakSession);
+	if(it == g_sessionMap->end<2>()){
 		return;
 	}
 
@@ -113,7 +134,7 @@ void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weakSession)
 		session->shutdown(Msg::KILL_OPERATOR_COMMAND, { });
 	}
 
-	g_sessionMap->erase<1>(it);
+	g_sessionMap->erase<2>(it);
 }
 
 void PlayerSessionMap::getAll(boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>> &ret){

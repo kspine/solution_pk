@@ -147,7 +147,7 @@ void SmsHttpClient::timerProc() noexcept {
 		headers.getParams.set(sslit("msg"),         std::move(text));
 		headers.getParams.set(sslit("needstatus"),  "false");
 		headers.getParams.set(sslit("product"),     std::move(product));
-		headers.headers.set("Host", g_httpHost);
+		headers.headers.set(sslit("Host"), g_httpHost);
 
 		const auto connector = boost::make_shared<HttpConnector>(g_httpAddr, g_httpUseSsl, shared_from_this());
 		if(!connector->send(std::move(headers))){

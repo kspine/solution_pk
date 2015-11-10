@@ -12,6 +12,8 @@ namespace Msg {
 		ERR_INVALID_SESSION_ID              = 82201,
 		ERR_NO_ENOUGH_GOLD_COINS            = 82202,
 		ERR_NO_ENOUGH_ACCOUNT_BALANCE       = 82203,
+		ERR_MULTIPLE_LOGIN                  = 82204,
+		ERR_NO_GAME_IN_PROGRESS             = 82205,
 	};
 }
 

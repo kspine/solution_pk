@@ -16,7 +16,10 @@ struct PlayerSessionMap {
 	static std::string getLoginName(const boost::weak_ptr<PlayerSession> &weakSession);
 	static std::string requireLoginName(const boost::weak_ptr<PlayerSession> &weakSession);
 
-	static void add(const std::string &loginName, const boost::shared_ptr<PlayerSession> &session);
+	static std::string getNick(const boost::weak_ptr<PlayerSession> &weakSession);
+	static std::string requireNick(const boost::weak_ptr<PlayerSession> &weakSession);
+
+	static void add(const std::string &loginName, const std::string &nick, const boost::shared_ptr<PlayerSession> &session);
 	static void remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept;
 
 	static void getAll(boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>> &ret);

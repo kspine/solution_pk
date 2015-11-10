@@ -74,7 +74,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 				PUT_NUMBER(param2)
 				PUT_STRING(remarks)
 				break;
-			case Events::ItemChanged::R_GOLD_SCRAMBLE:
+			case Events::ItemChanged::R_GOLD_SCRAMBLE_BID:
 			case Events::ItemChanged::R_GOLD_SCRAMBLE_REWARD:
 				PUT_NUMBER(param1)
 				PUT_NUMBER(param2)

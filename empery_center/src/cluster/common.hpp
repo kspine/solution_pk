@@ -20,26 +20,24 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 */
 
 #define CLUSTER_SERVLET(MsgType_, sessionArg_, reqArg_)	\
-	namespace EmperyCenter {	\
-		namespace {	\
-			namespace Impl_ {	\
-				ClusterSession::Result TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
-					const ::boost::shared_ptr<ClusterSession> &, MsgType_);	\
-				ClusterSession::Result TOKEN_CAT3(ClusterServlet, __LINE__, Entry_) (	\
-					const ::boost::shared_ptr<ClusterSession> &session_, ::Poseidon::StreamBuffer payload_)	\
-				{	\
-					PROFILE_ME;	\
-					MsgType_ msg_(::std::move(payload_));	\
-					LOG_EMPERY_CENTER_DEBUG("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
-					return TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (session_, ::std::move(msg_));	\
-				}	\
+	namespace {	\
+		namespace Impl_ {	\
+			ClusterSession::Result TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
+				const ::boost::shared_ptr<ClusterSession> &, MsgType_);	\
+			ClusterSession::Result TOKEN_CAT3(ClusterServlet, __LINE__, Entry_) (	\
+				const ::boost::shared_ptr<ClusterSession> &session_, ::Poseidon::StreamBuffer payload_)	\
+			{	\
+				PROFILE_ME;	\
+				MsgType_ msg_(::std::move(payload_));	\
+				LOG_EMPERY_CENTER_DEBUG("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
+				return TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (session_, ::std::move(msg_));	\
 			}	\
 		}	\
-		MODULE_RAII(handles_){	\
-			handles_.push(ClusterSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
-		}	\
 	}	\
-	ClusterSession::Result EmperyCenter::Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
+	MODULE_RAII(handles_){	\
+		handles_.push(ClusterSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
+	}	\
+	ClusterSession::Result Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<ClusterSession> & sessionArg_ __attribute__((__unused__)),	\
 		MsgType_ reqArg_	\
 		)	\

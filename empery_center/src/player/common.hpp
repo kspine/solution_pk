@@ -24,56 +24,52 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 */
 
 #define PLAYER_SERVLET_RAW(MsgType_, sessionArg_, reqArg_)	\
-	namespace EmperyCenter {	\
-		namespace {	\
-			namespace Impl_ {	\
-				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
-					const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
-				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_) (	\
-					const ::boost::shared_ptr<PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
-				{	\
-					PROFILE_ME;	\
-					MsgType_ msg_(::std::move(payload_));	\
-					LOG_EMPERY_CENTER_DEBUG("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
-					return TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
-				}	\
+	namespace {	\
+		namespace Impl_ {	\
+			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
+				const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
+			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_) (	\
+				const ::boost::shared_ptr<PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
+			{	\
+				PROFILE_ME;	\
+				MsgType_ msg_(::std::move(payload_));	\
+				LOG_EMPERY_CENTER_DEBUG("Received request from ", session_->getRemoteInfo(), ": ", msg_);	\
+				return TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
 			}	\
 		}	\
-		MODULE_RAII(handles_){	\
-			handles_.push(PlayerSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_)));	\
-		}	\
 	}	\
-	::std::pair<long, ::std::string> EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
+	MODULE_RAII(handles_){	\
+		handles_.push(PlayerSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_)));	\
+	}	\
+	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<PlayerSession> & sessionArg_ __attribute__((__unused__)),	\
 		MsgType_ reqArg_	\
 		)	\
 
 #define PLAYER_SERVLET(MsgType_, accountUuidArg_, sessionArg_, reqArg_)	\
-	namespace EmperyCenter {	\
-		namespace {	\
-			namespace Impl_ {	\
-				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
-					const ::EmperyCenter::AccountUuid &, const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
-				::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Entry_) (	\
-					const ::boost::shared_ptr<PlayerSession> &session_, const ::Poseidon::StreamBuffer &payload_)	\
-				{	\
-					PROFILE_ME;	\
-					const auto accountUuid_ = ::EmperyCenter::PlayerSessionMap::getAccountUuid(session_);	\
-					if(!accountUuid_){	\
-						return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::CERR_NOT_LOGGED_IN);	\
-					}	\
-					MsgType_ msg_(payload_);	\
-					LOG_EMPERY_CENTER_DEBUG("Received request from account ", accountUuid_, " on ",	\
-						session_->getRemoteInfo(), ": ", msg_);	\
-					return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (accountUuid_, session_, ::std::move(msg_));	\
+	namespace {	\
+		namespace Impl_ {	\
+			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
+				const ::EmperyCenter::AccountUuid &, const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
+			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Entry_) (	\
+				const ::boost::shared_ptr<PlayerSession> &session_, const ::Poseidon::StreamBuffer &payload_)	\
+			{	\
+				PROFILE_ME;	\
+				const auto accountUuid_ = ::EmperyCenter::PlayerSessionMap::getAccountUuid(session_);	\
+				if(!accountUuid_){	\
+					return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::CERR_NOT_LOGGED_IN);	\
 				}	\
+				MsgType_ msg_(payload_);	\
+				LOG_EMPERY_CENTER_DEBUG("Received request from account ", accountUuid_, " on ",	\
+					session_->getRemoteInfo(), ": ", msg_);	\
+				return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (accountUuid_, session_, ::std::move(msg_));	\
 			}	\
 		}	\
-		MODULE_RAII(handles_){	\
-			handles_.push(PlayerSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Entry_)));	\
-		}	\
 	}	\
-	::std::pair<long, ::std::string> EmperyCenter::Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
+	MODULE_RAII(handles_){	\
+		handles_.push(PlayerSession::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Entry_)));	\
+	}	\
+	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
 		const ::EmperyCenter::AccountUuid & accountUuidArg_ __attribute__((__unused__)),	\
 		const ::boost::shared_ptr<PlayerSession> & sessionArg_ __attribute__((__unused__)),	\
 		MsgType_ reqArg_	\

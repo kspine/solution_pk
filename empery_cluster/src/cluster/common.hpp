@@ -20,26 +20,24 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 */
 
 #define CLUSTER_SERVLET(MsgType_, clientArg_, reqArg_)	\
-	namespace EmperyCluster {	\
-		namespace {	\
-			namespace Impl_ {	\
-				ClusterClient::Result TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
-					const ::boost::shared_ptr<ClusterClient> &, MsgType_);	\
-				ClusterClient::Result TOKEN_CAT3(ClusterServlet, __LINE__, Entry_) (	\
-					const ::boost::shared_ptr<ClusterClient> &client_, ::Poseidon::StreamBuffer payload_)	\
-				{	\
-					PROFILE_ME;	\
-					MsgType_ msg_(::std::move(payload_));	\
-					LOG_EMPERY_CLUSTER_DEBUG("Received request from ", client_->getRemoteInfo(), ": ", msg_);	\
-					return TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (client_, ::std::move(msg_));	\
-				}	\
+	namespace {	\
+		namespace Impl_ {	\
+			ClusterClient::Result TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
+				const ::boost::shared_ptr<ClusterClient> &, MsgType_);	\
+			ClusterClient::Result TOKEN_CAT3(ClusterServlet, __LINE__, Entry_) (	\
+				const ::boost::shared_ptr<ClusterClient> &client_, ::Poseidon::StreamBuffer payload_)	\
+			{	\
+				PROFILE_ME;	\
+				MsgType_ msg_(::std::move(payload_));	\
+				LOG_EMPERY_CLUSTER_DEBUG("Received request from ", client_->getRemoteInfo(), ": ", msg_);	\
+				return TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (client_, ::std::move(msg_));	\
 			}	\
 		}	\
-		MODULE_RAII(handles_){	\
-			handles_.push(ClusterClient::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
-		}	\
 	}	\
-	ClusterClient::Result EmperyCluster::Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
+	MODULE_RAII(handles_){	\
+		handles_.push(ClusterClient::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
+	}	\
+	ClusterClient::Result Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<ClusterClient> & (clientArg_),	\
 		MsgType_ (reqArg_)	\
 		)	\
@@ -49,7 +47,7 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 
 namespace EmperyCluster {
 
-using Response = EmperyCenter::CbppResponse;
+using Response = ::EmperyCenter::CbppResponse;
 
 }
 
