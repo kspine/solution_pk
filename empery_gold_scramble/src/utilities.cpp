@@ -39,7 +39,7 @@ namespace {
 		Msg::SC_AccountAuctionStatus msg;
 		msg.serverTime          = utcNow;
 		msg.beginTime           = beginTime;
-		msg.endDuration         = saturatedSub(endTime, utcNow);
+		msg.endDuration         = (utcNow < beginTime) ? 0 : saturatedSub(endTime, utcNow);
 		msg.goldCoinsInPot      = goldCoinsInPot;
 		msg.accountBalanceInPot = accountBalanceInPot;
 		msg.numberOfWinners     = getNumberOfWinners();
@@ -64,7 +64,7 @@ namespace {
 		boost::uint64_t gameBeginTime, boost::uint64_t goldCoinsInPot, boost::uint64_t accountBalanceInPot)
 	{
 		PROFILE_ME;
-		LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Commit game reward: loginName = ", loginName,
+		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Commit game reward: loginName = ", loginName,
 			", goldCoins = ", goldCoins, ", accountBalance = ", accountBalance, ", gameBeginTime = ", gameBeginTime,
 			", goldCoinsInPot = ", goldCoinsInPot, ", accountBalanceInPot = ", accountBalanceInPot);
 
@@ -82,17 +82,17 @@ namespace {
 		params.set(sslit("goldCoinsInPot"), boost::lexical_cast<std::string>(goldCoinsInPot));
 		params.set(sslit("accountBalanceInPot"), boost::lexical_cast<std::string>(accountBalanceInPot));
 
-		unsigned retry = 3;
+		unsigned retryCount = 3;
 	_retry:
 		auto response = HttpClientDaemon::get(promotionServerHost, promotionServerPort, promotionServerUseSsl, promotionServerAuth,
  			promotionServerPath + "notifyGoldScrambleReward", std::move(params));
 		if(response.statusCode != Poseidon::Http::ST_OK){
 			LOG_EMPERY_GOLD_SCRAMBLE_WARNING("Promotion server returned an HTTP error: statusCode = ", response.statusCode);
-			if(retry == 0){
+			if(retryCount == 0){
 				LOG_EMPERY_GOLD_SCRAMBLE_ERROR("Error committing reward!");
 				DEBUG_THROW(Exception, sslit("Error committing reward"));
 			}
-			--retry;
+			--retryCount;
 			goto _retry;
 		}
 
@@ -155,7 +155,8 @@ namespace {
 				LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> First winner: loginName = ", it->loginName);
 				try {
 					Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, std::move(it->loginName),
-						goldCoinsInPot - goldCoinsPerPerson * numberOfWinners, accountBalanceInPot - accountBalancePerPerson * numberOfWinners,
+						goldCoinsInPot - goldCoinsPerPerson * (numberOfWinners - 1),
+						accountBalanceInPot - accountBalancePerPerson * (numberOfWinners - 1),
 						gameBeginTime, goldCoinsInPot, accountBalanceInPot));
 				} catch(std::exception &e){
 					LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());

@@ -14,6 +14,7 @@ namespace Msg {
 		ERR_NO_ENOUGH_ACCOUNT_BALANCE       = 82203,
 		ERR_MULTIPLE_LOGIN                  = 82204,
 		ERR_NO_GAME_IN_PROGRESS             = 82205,
+		ERR_DUPLICATE_BID                   = 82206,
 	};
 }
 

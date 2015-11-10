@@ -136,6 +136,13 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingGoldCoins, loginName, session, /* req */){
 	if(utcNow < gameBeginTime){
 		return Response(Msg::ERR_NO_GAME_IN_PROGRESS) <<gameBeginTime;
 	}
+
+	std::vector<BidRecordMap::Record> lastPlayer;
+	BidRecordMap::getAll(lastPlayer, 1);
+	if(!lastPlayer.empty() && (lastPlayer.back().loginName == loginName)){
+		return Response(Msg::ERR_DUPLICATE_BID);
+	}
+
 	auto nick = PlayerSessionMap::getNick(session);
 
 	const auto goldCoinsCost   = getConfig<boost::uint64_t>("bid_gold_coins_cost",   2);
@@ -183,6 +190,13 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingAccountBalance, loginName, session, /* req
 	if(utcNow < gameBeginTime){
 		return Response(Msg::ERR_NO_GAME_IN_PROGRESS) <<gameBeginTime;
 	}
+
+	std::vector<BidRecordMap::Record> lastPlayer;
+	BidRecordMap::getAll(lastPlayer, 1);
+	if(!lastPlayer.empty() && (lastPlayer.back().loginName == loginName)){
+		return Response(Msg::ERR_DUPLICATE_BID);
+	}
+
 	auto nick = PlayerSessionMap::getNick(session);
 
 	const auto accountBalanceCost   = getConfig<boost::uint64_t>("bid_account_balance_cost",   200);
