@@ -43,6 +43,24 @@ namespace {
 		getConfig(g_promotionServerAuth,   "promotion_http_server_auth_user_pass");
 		getConfig(g_promotionServerPath,   "promotion_http_server_path");
 	}
+
+	void bumpEndTime(boost::uint64_t utcNow){
+		PROFILE_ME;
+
+		const auto gameEndTime = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
+		if(saturatedSub(gameEndTime, utcNow) <= 30000){
+			const auto goldCoinsInPot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
+			const auto accountBalanceInPot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
+			const auto sum = saturatedAdd(goldCoinsInPot, accountBalanceInPot / 100);
+			if(sum > 10000){
+				GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_END_TIME, 1000);
+			} else if(sum > 5000){
+				GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_END_TIME, 2000);
+			} else {
+				GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_END_TIME, 10000);
+			}
+		}
+	}
 }
 
 PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
@@ -148,8 +166,9 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingGoldCoins, loginName, session, /* req */){
 	}
 
 	GlobalStatus::fetchAdd(GlobalStatus::SLOT_GOLD_COINS_IN_POT, goldCoinsReward);
+	bumpEndTime(utcNow);
 	BidRecordMap::append(loginName, std::move(nick), goldCoinsReward, 0);
-	updateAuctionStatus();
+	invalidateAuctionStatus();
 
 	const auto goldCoins = static_cast<boost::uint64_t>(root.at(sslit("goldCoins")).get<double>());
 	const auto accountBalance = static_cast<boost::uint64_t>(root.at(sslit("accountBalance")).get<double>());
@@ -194,8 +213,9 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingAccountBalance, loginName, session, /* req
 	}
 
 	GlobalStatus::fetchAdd(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT, accountBalanceReward);
+	bumpEndTime(utcNow);
 	BidRecordMap::append(loginName, std::move(nick), accountBalanceReward, 0);
-	updateAuctionStatus();
+	invalidateAuctionStatus();
 
 	const auto goldCoins = static_cast<boost::uint64_t>(root.at(sslit("goldCoins")).get<double>());
 	const auto accountBalance = static_cast<boost::uint64_t>(root.at(sslit("accountBalance")).get<double>());

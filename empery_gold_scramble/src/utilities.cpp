@@ -176,6 +176,7 @@ namespace {
 		}
 		BidRecordMap::clear();
 		GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_AUTO_ID, 1);
+		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Done calculating game result.");
 
 		const auto gameStartOClock     = getConfig<unsigned>       ("game_start_o_clock",    2);
 		const auto gameEndOClock       = getConfig<unsigned>       ("game_end_o_clock",      12);
@@ -218,7 +219,7 @@ namespace {
 			Poseidon::TimerDaemon::setTime(timer, nextGameEndTime - utcNow);
 		}
 
-		updateAuctionStatus();
+		invalidateAuctionStatus();
 	}
 
 	MODULE_RAII(handles){
@@ -233,23 +234,8 @@ void sendAuctionStatusToClient(const boost::shared_ptr<PlayerSession> &session){
 
 	session->send(makeAuctionStatusMessage());
 }
-void updateAuctionStatus(){
+void invalidateAuctionStatus(){
 	PROFILE_ME;
-
-	const auto utcNow = Poseidon::getUtcTime();
-	const auto gameEndTime = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
-	if(saturatedSub(gameEndTime, utcNow) <= 30000){
-		const auto goldCoinsInPot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
-		const auto accountBalanceInPot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
-		const auto sum = saturatedAdd(goldCoinsInPot, accountBalanceInPot / 100);
-		if(sum > 10000){
-			GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_END_TIME, 1000);
-		} else if(sum > 5000){
-			GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_END_TIME, 2000);
-		} else {
-			GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_END_TIME, 10000);
-		}
-	}
 
 	GlobalStatus::exchange(GlobalStatus::SLOT_STATUS_INVALIDATED, true);
 
