@@ -301,7 +301,7 @@ void sendAuctionStatusToClient(const boost::shared_ptr<PlayerSession> &session){
 void sendLastLogToClient(const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
-	if(g_lastLogMsg.gameBeginTime != 0){
+	if(g_lastLogMsg.numberOfWinners != 0){
 		session->send(g_lastLogMsg);
 	}
 }
