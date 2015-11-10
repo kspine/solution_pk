@@ -76,11 +76,13 @@ void BidRecordMap::getAll(std::vector<BidRecordMap::Record> &ret, std::size_t li
 
 	const auto gameAutoId = GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID);
 
-	const auto count = std::min(g_queue.size(), limit);
-	ret.reserve(ret.size() + count);
-	auto it = g_queue.end<0>();
-	for(std::size_t i = 0; i < count; ++i){
-		const auto &obj = (--it)->obj;
+	auto begin = g_queue.begin<0>();
+	if(g_queue.size() > limit){
+		std::advance(begin, static_cast<std::ptrdiff_t>(g_queue.size() - limit));
+	}
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, g_queue.end<0>())));
+	for(auto it = begin; it != g_queue.end<0>(); ++it){
+		const auto &obj = it->obj;
 		if(obj->get_gameAutoId() != gameAutoId){
 			continue;
 		}

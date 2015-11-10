@@ -19,7 +19,11 @@ namespace {
 
 		const auto playerCount = BidRecordMap::getSize();
 		const auto percentWinners = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
-		return std::ceil(percentWinners / 100.0 * playerCount - 0.001);
+		auto count = static_cast<boost::uint64_t>(std::ceil(percentWinners / 100.0 * playerCount - 0.001));
+		if(count > playerCount){
+			count = playerCount;
+		}
+		return count;
 	}
 	Msg::SC_AccountAuctionStatus makeAuctionStatusMessage(){
 		PROFILE_ME;
@@ -56,6 +60,26 @@ namespace {
 			record.accountBalance = it->accountBalance;
 		}
 		return msg;
+	}
+
+	using SessionMap = boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>>;
+
+	template<typename MsgT>
+	void broadcastMessage(const SessionMap &sessions, const MsgT &msg){
+		PROFILE_ME;
+		LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Broadcast message: ", msg);
+
+		const auto msgId = static_cast<unsigned>(msg.ID);
+		const auto msgPayload = Poseidon::StreamBuffer(msg);
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = it->second;
+			try {
+				session->send(msgId, msgPayload);
+			} catch(std::exception &e){
+				LOG_EMPERY_GOLD_SCRAMBLE_WARNING("std::exception thrown: what = ", e.what());
+				session->forceShutdown();
+			}
+		}
 	}
 
 	boost::weak_ptr<Poseidon::TimerItem> g_timer;
@@ -140,42 +164,45 @@ namespace {
 			return;
 		}
 
+		SessionMap sessions;
+		PlayerSessionMap::getAll(sessions);
+
 		const auto goldCoinsInPot = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
 		const auto accountBalanceInPot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
 
-		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Calculating game result!");
-		try {
-			const auto numberOfWinners = getNumberOfWinners();
-			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> numberOfWinners = ", numberOfWinners);
-			if(numberOfWinners > 0){
-				std::vector<BidRecordMap::Record> records;
-				BidRecordMap::getAll(records, numberOfWinners);
+		std::vector<BidRecordMap::Record> records;
+		BidRecordMap::getAll(records, getNumberOfWinners());
+		const auto numberOfWinners = records.size();
+		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Calculating game result: numberOfWinners = ", numberOfWinners);
+		if(numberOfWinners > 0){
+			try {
 				const auto goldCoinsPerPerson = static_cast<boost::uint64_t>(goldCoinsInPot / numberOfWinners);
 				const auto accountBalancePerPerson = static_cast<boost::uint64_t>(accountBalanceInPot / 100 / numberOfWinners) * 100;
 
-				auto it = records.rbegin();
+				auto it = records.begin();
+				while(it != records.end() - 1){
+					LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> Winner: loginName = ", it->loginName);
+					try {
+						Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, it->loginName,
+							goldCoinsPerPerson, accountBalancePerPerson,
+							gameBeginTime, goldCoinsInPot, accountBalanceInPot));
+					} catch(std::exception &e){
+						LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
+					}
+					++it;
+				}
 				LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> First winner: loginName = ", it->loginName);
 				try {
-					Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, std::move(it->loginName),
+					Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, it->loginName,
 						goldCoinsInPot - goldCoinsPerPerson * (numberOfWinners - 1),
 						accountBalanceInPot - accountBalancePerPerson * (numberOfWinners - 1),
 						gameBeginTime, goldCoinsInPot, accountBalanceInPot));
 				} catch(std::exception &e){
 					LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
 				}
-				while(++it != records.rend()){
-					LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> Winner: loginName = ", it->loginName);
-					try {
-						Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, std::move(it->loginName),
-							goldCoinsPerPerson, accountBalancePerPerson,
-							gameBeginTime, goldCoinsInPot, accountBalanceInPot));
-					} catch(std::exception &e){
-						LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
-					}
-				}
+			} catch(std::exception &e){
+				LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
 		}
 		BidRecordMap::clear();
 		GlobalStatus::fetchAdd(GlobalStatus::SLOT_GAME_AUTO_ID, 1);
@@ -221,6 +248,30 @@ namespace {
 		if(timer){
 			Poseidon::TimerDaemon::setTime(timer, nextGameBeginTime - utcNow);
 		}
+
+		if(!sessions.empty()){
+			const auto visibleWinnerCount = getConfig<std::size_t>("visible_winner_count", 100);
+
+			Msg::SC_AccountGameEnds msg;
+			msg.gameBeginTime       = gameBeginTime;
+			msg.goldCoinsInPot      = goldCoinsInPot;
+			msg.accountBalanceInPot = accountBalanceInPot;
+			msg.numberOfWinners     = numberOfWinners;
+
+			auto rend = records.rend();
+			if(records.size() > visibleWinnerCount){
+				rend -= static_cast<std::ptrdiff_t>(records.size() - visibleWinnerCount);
+			}
+			msg.players.reserve(static_cast<std::size_t>(rend - records.rbegin()));
+			for(auto it = records.rbegin(); it != rend; ++it){
+				msg.players.emplace_back();
+				auto &player = msg.players.back();
+				player.loginName = it->loginName;
+				player.nick = it->nick;
+			}
+
+			broadcastMessage(sessions, msg);
+		}
 	}
 
 	MODULE_RAII(handles){
@@ -249,25 +300,14 @@ void invalidateAuctionStatus(){
 		}
 		LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Notifying auction status to all clients...");
 
-		boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>> sessions;
+		SessionMap sessions;
 		PlayerSessionMap::getAll(sessions);
 		if(sessions.empty()){
 			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("No player is online.");
 			return;
 		}
 
-		const auto msg = makeAuctionStatusMessage();
-		const auto msgId = static_cast<unsigned>(msg.ID);
-		const auto msgPayload = Poseidon::StreamBuffer(msg);
-		for(auto it = sessions.begin(); it != sessions.end(); ++it){
-			const auto &session = it->second;
-			try {
-				session->send(msgId, msgPayload);
-			} catch(std::exception &e){
-				LOG_EMPERY_GOLD_SCRAMBLE_WARNING("std::exception thrown: what = ", e.what());
-				session->forceShutdown();
-			}
-		}
+		broadcastMessage(sessions, makeAuctionStatusMessage());
 
 		GlobalStatus::exchange(GlobalStatus::SLOT_STATUS_INVALIDATED, false);
 	});

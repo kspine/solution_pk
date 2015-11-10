@@ -52,6 +52,19 @@ namespace Msg {
 	FIELD_VUINT			(accountBalanceWon)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME	SC_AccountGameEnds
+#define MESSAGE_ID		295
+#define MESSAGE_FIELDS	\
+	FIELD_VUINT			(gameBeginTime)	\
+	FIELD_VUINT			(goldCoinsInPot)	\
+	FIELD_VUINT			(accountBalanceInPot)	\
+	FIELD_VUINT			(numberOfWinners)	\
+	FIELD_ARRAY			(players,	\
+		FIELD_STRING		(loginName)	\
+		FIELD_STRING		(nick)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
