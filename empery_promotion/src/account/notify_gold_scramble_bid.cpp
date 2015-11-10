@@ -35,7 +35,7 @@ ACCOUNT_SERVLET("notifyGoldScrambleBid", session, params){
 		transaction.emplace_back(info.accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_GOLD_COINS, goldCoins,
 			Events::ItemChanged::R_GOLD_SCRAMBLE_BID, gameBeginTime, goldCoinsInPot, accountBalanceInPot, std::string());
 	}
-	if(goldCoins != 0){
+	if(accountBalance != 0){
 		transaction.emplace_back(info.accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, accountBalance,
 			Events::ItemChanged::R_GOLD_SCRAMBLE_BID, gameBeginTime, goldCoinsInPot, accountBalanceInPot, std::string());
 	}
