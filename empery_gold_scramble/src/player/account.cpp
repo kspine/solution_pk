@@ -167,7 +167,7 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingGoldCoins, loginName, session, /* req */){
 
 	GlobalStatus::fetchAdd(GlobalStatus::SLOT_GOLD_COINS_IN_POT, goldCoinsReward);
 	bumpEndTime(utcNow);
-	BidRecordMap::append(loginName, std::move(nick), goldCoinsReward, 0);
+	BidRecordMap::append(loginName, std::move(nick), goldCoinsCost, 0);
 	invalidateAuctionStatus();
 
 	const auto goldCoins = static_cast<boost::uint64_t>(root.at(sslit("goldCoins")).get<double>());
@@ -214,7 +214,7 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingAccountBalance, loginName, session, /* req
 
 	GlobalStatus::fetchAdd(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT, accountBalanceReward);
 	bumpEndTime(utcNow);
-	BidRecordMap::append(loginName, std::move(nick), accountBalanceReward, 0);
+	BidRecordMap::append(loginName, std::move(nick), 0, accountBalanceCost);
 	invalidateAuctionStatus();
 
 	const auto goldCoins = static_cast<boost::uint64_t>(root.at(sslit("goldCoins")).get<double>());
