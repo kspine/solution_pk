@@ -167,6 +167,11 @@ namespace {
 
 		GlobalStatus::exchange(GlobalStatus::SLOT_PERCENT_WINNERS, percentWinners);
 
+		const auto timer = g_timer.lock();
+		if(timer){
+			Poseidon::TimerDaemon::setTime(timer, nextGameBeginTime - utcNow);
+		}
+
 		updateAuctionStatus();
 	}
 
