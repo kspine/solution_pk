@@ -3,6 +3,7 @@
 #include <poseidon/async_job.hpp>
 #include <poseidon/json.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
+#include "mysql/game_history.hpp"
 #include "singletons/global_status.hpp"
 #include "singletons/player_session_map.hpp"
 #include "singletons/bid_record_map.hpp"
@@ -86,11 +87,12 @@ namespace {
 
 	Msg::SC_AccountLastLog g_lastLogMsg;
 
-	void commitGameReward(const std::string &loginName, boost::uint64_t goldCoins, boost::uint64_t accountBalance,
+	void commitGameReward(const std::string &loginName, const std::string &nick, boost::uint64_t gameAutoId,
+		boost::uint64_t goldCoins, boost::uint64_t accountBalance,
 		boost::uint64_t gameBeginTime, boost::uint64_t goldCoinsInPot, boost::uint64_t accountBalanceInPot)
 	{
 		PROFILE_ME;
-		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Commit game reward: loginName = ", loginName,
+		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Commit game reward: loginName = ", loginName, ", gameAutoId = ", gameAutoId,
 			", goldCoins = ", goldCoins, ", accountBalance = ", accountBalance, ", gameBeginTime = ", gameBeginTime,
 			", goldCoinsInPot = ", goldCoinsInPot, ", accountBalanceInPot = ", accountBalanceInPot);
 
@@ -99,6 +101,10 @@ namespace {
 		auto promotionServerUseSsl = getConfig<bool>       ("promotion_http_server_use_ssl",        0);
 		auto promotionServerAuth   = getConfig<std::string>("promotion_http_server_auth_user_pass", "");
 		auto promotionServerPath   = getConfig<std::string>("promotion_http_server_path",           "/empery_promotion/account/");
+
+		const auto historyObj = boost::make_shared<MySql::GoldScramble_GameHistory>(
+			GlobalStatus::fetchAdd(GlobalStatus::SLOT_RECORD_AUTO_ID, 1), gameAutoId,
+			Poseidon::getUtcTime(), loginName, nick, goldCoins, accountBalance);
 
 		Poseidon::OptionalMap params;
 		params.set(sslit("loginName"), std::move(loginName));
@@ -121,6 +127,8 @@ namespace {
 			--retryCount;
 			goto _retry;
 		}
+
+		historyObj->asyncSave(true);
 
 		const auto session = PlayerSessionMap::get(loginName);
 		if(session){
@@ -177,6 +185,7 @@ namespace {
 		const auto numberOfWinners = records.size();
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Calculating game result: numberOfWinners = ", numberOfWinners);
 		if(numberOfWinners > 0){
+			const auto gameAutoId = GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID);
 			try {
 				const auto goldCoinsPerPerson = static_cast<boost::uint64_t>(goldCoinsInPot / numberOfWinners);
 				const auto accountBalancePerPerson = static_cast<boost::uint64_t>(accountBalanceInPot / 100 / numberOfWinners) * 100;
@@ -185,7 +194,7 @@ namespace {
 				while(it != records.end() - 1){
 					LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> Winner: loginName = ", it->loginName);
 					try {
-						Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, it->loginName,
+						Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, it->loginName, it->nick, gameAutoId,
 							goldCoinsPerPerson, accountBalancePerPerson,
 							gameBeginTime, goldCoinsInPot, accountBalanceInPot));
 					} catch(std::exception &e){
@@ -195,7 +204,7 @@ namespace {
 				}
 				LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> First winner: loginName = ", it->loginName);
 				try {
-					Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, it->loginName,
+					Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, it->loginName, it->nick, gameAutoId,
 						goldCoinsInPot - goldCoinsPerPerson * (numberOfWinners - 1),
 						accountBalanceInPot - accountBalancePerPerson * (numberOfWinners - 1),
 						gameBeginTime, goldCoinsInPot, accountBalanceInPot));

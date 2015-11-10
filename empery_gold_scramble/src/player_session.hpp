@@ -5,6 +5,7 @@
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/cstdint.hpp>
+#include <poseidon/fwd.hpp>
 #include <poseidon/cxx_util.hpp>
 #include <poseidon/ip_port.hpp>
 #include <poseidon/stream_buffer.hpp>
@@ -19,10 +20,15 @@ class PlayerSession : public Poseidon::Http::Session {
 public:
 	using ServletCallback = boost::function<
 		std::pair<long, std::string> (const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer req)>;
+	using HttpServletCallback = boost::function<
+		Poseidon::JsonObject (const boost::shared_ptr<PlayerSession> &session, const Poseidon::OptionalMap &params)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> createServlet(boost::uint16_t messageId, ServletCallback callback);
 	static boost::shared_ptr<const ServletCallback> getServlet(boost::uint16_t messageId);
+
+	static boost::shared_ptr<const HttpServletCallback> createHttpServlet(const std::string &uri, HttpServletCallback callback);
+	static boost::shared_ptr<const HttpServletCallback> getHttpServlet(const std::string &uri);
 
 private:
 	class WebSocketImpl;

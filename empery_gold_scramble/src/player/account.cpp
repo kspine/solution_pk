@@ -71,7 +71,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 
 	std::string loginName;
 	{
-/*		Poseidon::OptionalMap params;
+		Poseidon::OptionalMap params;
 		params.set(sslit("sessionId"), req.sessionId);
 		auto response = HttpClientDaemon::get(g_phpServerHost, g_phpServerPort, g_phpServerUseSsl, g_phpServerAuth,
 			g_phpServerPath + "getLoginNameFromSessionId", std::move(params));
@@ -87,7 +87,6 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 			return Response(Msg::ERR_INVALID_SESSION_ID) <<req.sessionId;
 		}
 		loginName = root.at(sslit("rs")).get<std::string>();
-*/		loginName = req.sessionId;
 	}
 
 	std::string nick;

@@ -1,6 +1,7 @@
 #include "precompiled.hpp"
 #include "player_session.hpp"
 #include <poseidon/async_job.hpp>
+#include <poseidon/json.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/cbpp/control_codes.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
@@ -16,10 +17,12 @@
 
 namespace EmperyGoldScramble {
 
-using ServletCallback = PlayerSession::ServletCallback;
+using ServletCallback     = PlayerSession::ServletCallback;
+using HttpServletCallback = PlayerSession::HttpServletCallback;
 
 namespace {
-	std::map<unsigned, boost::weak_ptr<const ServletCallback>> g_servletMap;
+	std::map<unsigned, boost::weak_ptr<const ServletCallback>>        g_servletMap;
+	std::map<std::string, boost::weak_ptr<const HttpServletCallback>> g_httpServletMap;
 }
 
 class PlayerSession::WebSocketImpl : public Poseidon::WebSocket::Session {
@@ -121,6 +124,26 @@ boost::shared_ptr<const ServletCallback> PlayerSession::getServlet(boost::uint16
 	return servlet;
 }
 
+boost::shared_ptr<const HttpServletCallback> PlayerSession::createHttpServlet(const std::string &uri, HttpServletCallback callback){
+	PROFILE_ME;
+
+	auto servlet = boost::make_shared<HttpServletCallback>(std::move(callback));
+	if(!g_httpServletMap.insert(std::make_pair(uri, servlet)).second){
+		LOG_EMPERY_GOLD_SCRAMBLE_ERROR("Duplicate player HTTP servlet: uri = ", uri);
+		DEBUG_THROW(Exception, sslit("Duplicate player HTTP servlet"));
+	}
+	return std::move(servlet);
+}
+boost::shared_ptr<const HttpServletCallback> PlayerSession::getHttpServlet(const std::string &uri){
+	PROFILE_ME;
+
+	const auto it = g_httpServletMap.find(uri);
+	if(it == g_httpServletMap.end()){
+		return { };
+	}
+	return it->second.lock();
+}
+
 PlayerSession::PlayerSession(Poseidon::UniqueFile socket, std::string path)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_path(std::move(path))
@@ -152,29 +175,62 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatc
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_IMPLEMENTED);
 	}
 	auto uri = Poseidon::Http::urlDecode(requestHeaders.uri);
-	if(uri != m_path){
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
-	}
+	if(uri == m_path){
+		if(::strcasecmp(requestHeaders.headers.get("Upgrade").c_str(), "websocket") == 0){
+			auto upgradedSession = boost::make_shared<WebSocketImpl>(virtualSharedFromThis<PlayerSession>());
 
-	if(::strcasecmp(requestHeaders.headers.get("Upgrade").c_str(), "websocket") == 0){
-		auto upgradedSession = boost::make_shared<WebSocketImpl>(virtualSharedFromThis<PlayerSession>());
+			auto responseHeaders = Poseidon::WebSocket::makeHandshakeResponse(requestHeaders);
+			if(responseHeaders.statusCode != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
+				DEBUG_THROW(Poseidon::Http::Exception, responseHeaders.statusCode);
+			}
+			Poseidon::Http::Session::send(std::move(responseHeaders), { });
 
-		auto responseHeaders = Poseidon::WebSocket::makeHandshakeResponse(requestHeaders);
-		if(responseHeaders.statusCode != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
-			DEBUG_THROW(Poseidon::Http::Exception, responseHeaders.statusCode);
+			return std::move(upgradedSession);
 		}
-		Poseidon::Http::Session::send(std::move(responseHeaders), { });
-
-		return std::move(upgradedSession);
 	}
 
 	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
 }
 
-void PlayerSession::onSyncRequest(Poseidon::Http::RequestHeaders /* requestHeaders */, Poseidon::StreamBuffer /* entity */){
+void PlayerSession::onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
+	LOG_EMPERY_GOLD_SCRAMBLE(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+		"Accepted account HTTP request from ", getRemoteInfo());
 
-	DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
+	auto uri = Poseidon::Http::urlDecode(requestHeaders.uri);
+	if((uri.size() < m_path.size() + 1) || (uri.compare(0, m_path.size(), m_path) != 0) || (uri.at(m_path.size()) != '/')){
+		LOG_EMPERY_GOLD_SCRAMBLE_WARNING("Inacceptable account HTTP request: uri = ", uri, ", path = ", m_path);
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
+	}
+	uri.erase(0, m_path.size() + 1);
+
+	if(requestHeaders.verb != Poseidon::Http::V_GET){
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_METHOD_NOT_ALLOWED);
+	}
+
+	const auto servlet = getHttpServlet(uri);
+	if(!servlet){
+		LOG_EMPERY_GOLD_SCRAMBLE_WARNING("No servlet available: uri = ", uri);
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
+	}
+
+	Poseidon::JsonObject result;
+	try {
+		result = (*servlet)(virtualSharedFromThis<PlayerSession>(), std::move(requestHeaders.getParams));
+	} catch(Poseidon::Http::Exception &){
+		throw;
+	} catch(std::logic_error &e){
+		LOG_EMPERY_GOLD_SCRAMBLE_WARNING("std::logic_error thrown: what = ", e.what());
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_BAD_REQUEST);
+	} catch(std::exception &e){
+		LOG_EMPERY_GOLD_SCRAMBLE_WARNING("std::exception thrown: what = ", e.what());
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
+	}
+	LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Account response: uri = ", uri, ", result = ", result.dump());
+	Poseidon::OptionalMap headers;
+	headers.set(sslit("Access-Control-Allow-Origin"), "*");
+	headers.set(sslit("Content-Type"), "application/json; charset=utf-8");
+	Poseidon::Http::Session::send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
 }
 
 bool PlayerSession::send(boost::uint16_t messageId, Poseidon::StreamBuffer payload){
