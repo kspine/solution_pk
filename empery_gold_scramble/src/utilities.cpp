@@ -14,6 +14,50 @@
 namespace EmperyGoldScramble {
 
 namespace {
+	boost::uint64_t getNumberOfWinners(){
+		PROFILE_ME;
+
+		const auto playerCount = BidRecordMap::getSize();
+		const auto percentWinners = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
+		return std::ceil(percentWinners / 100.0 * playerCount - 0.001);
+	}
+	Msg::SC_AccountAuctionStatus makeAuctionStatusMessage(){
+		PROFILE_ME;
+
+		const auto beginTime           = GlobalStatus::get(GlobalStatus::SLOT_GAME_BEGIN_TIME);
+		const auto endTime             = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
+		const auto goldCoinsInPot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
+		const auto accountBalanceInPot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
+		const auto percentWinners      = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
+
+		const auto utcNow = Poseidon::getUtcTime();
+
+		const auto visibleBidRecordCount = getConfig<std::size_t>("visible_bid_record_count", 100);
+		std::vector<BidRecordMap::Record> records;
+		BidRecordMap::getAll(records, visibleBidRecordCount);
+
+		Msg::SC_AccountAuctionStatus msg;
+		msg.serverTime          = utcNow;
+		msg.beginTime           = beginTime;
+		msg.endDuration         = saturatedSub(endTime, utcNow);
+		msg.goldCoinsInPot      = goldCoinsInPot;
+		msg.accountBalanceInPot = accountBalanceInPot;
+		msg.numberOfWinners     = getNumberOfWinners();
+		msg.percentWinners      = percentWinners;
+		msg.records.reserve(records.size());
+		for(auto it = records.rbegin(); it != records.rend(); ++it){
+			msg.records.emplace_back();
+			auto &record = msg.records.back();
+			record.recordAutoId   = it->recordAutoId;
+			record.timestamp      = it->timestamp;
+			record.loginName      = std::move(it->loginName);
+			record.nick           = std::move(it->nick);
+			record.goldCoins      = it->goldCoins;
+			record.accountBalance = it->accountBalance;
+		}
+		return msg;
+	}
+
 	boost::weak_ptr<Poseidon::TimerItem> g_timer;
 
 	void commitGameReward(const std::string &loginName, boost::uint64_t goldCoins, boost::uint64_t accountBalance,
@@ -99,17 +143,25 @@ namespace {
 
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Calculating game result!");
 		try {
-			const auto playerCount = BidRecordMap::getSize();
-			const auto percentWinners = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
-			const auto numberOfWinners = static_cast<boost::uint64_t>(percentWinners / 100.0 * playerCount);
-			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> playerCount = ", playerCount,
-				", percentWinners = ", percentWinners, ", numberOfWinners = ", numberOfWinners);
+			const auto numberOfWinners = getNumberOfWinners();
+			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> numberOfWinners = ", numberOfWinners);
 			if(numberOfWinners > 0){
 				std::vector<BidRecordMap::Record> records;
 				BidRecordMap::getAll(records, numberOfWinners);
 				const auto goldCoinsPerPerson = static_cast<boost::uint64_t>(goldCoinsInPot / numberOfWinners);
 				const auto accountBalancePerPerson = static_cast<boost::uint64_t>(accountBalanceInPot / 100 / numberOfWinners) * 100;
-				for(auto it = records.begin(); it != records.end() - 1; ++it){
+
+				auto it = records.rbegin();
+				LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> First winner: loginName = ", it->loginName);
+				try {
+					Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, std::move(it->loginName),
+						goldCoinsInPot - goldCoinsPerPerson * numberOfWinners, accountBalanceInPot - accountBalancePerPerson * numberOfWinners,
+						gameBeginTime, goldCoinsInPot, accountBalanceInPot));
+				} catch(std::exception &e){
+					LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
+				}
+				while(--it != records.rend()){
+					LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("> Winner: loginName = ", it->loginName);
 					try {
 						Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, std::move(it->loginName),
 							goldCoinsPerPerson, accountBalancePerPerson,
@@ -117,13 +169,6 @@ namespace {
 					} catch(std::exception &e){
 						LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
 					}
-				}
-				try {
-					Poseidon::enqueueAsyncJob(std::bind(&commitGameReward, std::move(records.back().loginName),
-						goldCoinsInPot - goldCoinsPerPerson * numberOfWinners, accountBalanceInPot - accountBalancePerPerson * numberOfWinners,
-						gameBeginTime, goldCoinsInPot, accountBalanceInPot));
-				} catch(std::exception &e){
-					LOG_EMPERY_GOLD_SCRAMBLE_ERROR("std::exception thrown: what = ", e.what());
 				}
 			}
 		} catch(std::exception &e){
@@ -182,6 +227,11 @@ namespace {
 	}
 }
 
+void sendAuctionStatusToClient(const boost::shared_ptr<PlayerSession> &session){
+	PROFILE_ME;
+
+	session->send(makeAuctionStatusMessage());
+}
 void updateAuctionStatus(){
 	PROFILE_ME;
 
@@ -218,38 +268,7 @@ void updateAuctionStatus(){
 			return;
 		}
 
-		const auto beginTime           = GlobalStatus::get(GlobalStatus::SLOT_GAME_BEGIN_TIME);
-		const auto endTime             = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
-		const auto goldCoinsInPot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
-		const auto accountBalanceInPot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
-		const auto percentWinners      = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
-
-		const auto utcNow = Poseidon::getUtcTime();
-		const auto playerCount = BidRecordMap::getSize();
-
-		const auto visibleBidRecordCount = getConfig<std::size_t>("visible_bid_record_count", 100);
-		std::vector<BidRecordMap::Record> records;
-		BidRecordMap::getAll(records, visibleBidRecordCount);
-
-		Msg::SC_AccountAuctionStatus msg;
-		msg.serverTime          = utcNow;
-		msg.beginTime           = beginTime;
-		msg.endDuration         = saturatedSub(endTime, utcNow);
-		msg.goldCoinsInPot      = goldCoinsInPot;
-		msg.accountBalanceInPot = accountBalanceInPot;
-		msg.numberOfWinners     = static_cast<boost::uint64_t>(percentWinners / 100.0 * playerCount);
-		msg.percentWinners      = percentWinners;
-		msg.records.reserve(records.size());
-		for(auto it = records.rbegin(); it != records.rend(); ++it){
-			msg.records.emplace_back();
-			auto &record = msg.records.back();
-			record.recordAutoId   = it->recordAutoId;
-			record.timestamp      = it->timestamp;
-			record.loginName      = std::move(it->loginName);
-			record.nick           = std::move(it->nick);
-			record.goldCoins      = it->goldCoins;
-			record.accountBalance = it->accountBalance;
-		}
+		const auto msg = makeAuctionStatusMessage();
 		const auto msgId = static_cast<unsigned>(msg.ID);
 		const auto msgPayload = Poseidon::StreamBuffer(msg);
 		for(auto it = sessions.begin(); it != sessions.end(); ++it){

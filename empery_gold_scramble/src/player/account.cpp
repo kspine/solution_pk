@@ -107,42 +107,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 
 	session->send(Msg::SC_AccountLoginSuccess(std::move(loginName), std::move(nick)));
 	session->send(Msg::SC_AccountAccountBalance(goldCoins, accountBalance));
-
-	{
-		const auto beginTime           = GlobalStatus::get(GlobalStatus::SLOT_GAME_BEGIN_TIME);
-		const auto endTime             = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
-		const auto goldCoinsInPot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
-		const auto accountBalanceInPot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
-		const auto percentWinners      = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
-
-		const auto utcNow = Poseidon::getUtcTime();
-		const auto playerCount = BidRecordMap::getSize();
-
-		const auto visibleBidRecordCount = getConfig<std::size_t>("visible_bid_record_count", 100);
-		std::vector<BidRecordMap::Record> records;
-		BidRecordMap::getAll(records, visibleBidRecordCount);
-
-		Msg::SC_AccountAuctionStatus msg;
-		msg.serverTime          = utcNow;
-		msg.beginTime           = beginTime;
-		msg.endDuration         = saturatedSub(endTime, utcNow);
-		msg.goldCoinsInPot      = goldCoinsInPot;
-		msg.accountBalanceInPot = accountBalanceInPot;
-		msg.numberOfWinners     = static_cast<boost::uint64_t>(percentWinners / 100.0 * playerCount);
-		msg.percentWinners      = percentWinners;
-		msg.records.reserve(records.size());
-		for(auto it = records.rbegin(); it != records.rend(); ++it){
-			msg.records.emplace_back();
-			auto &record = msg.records.back();
-			record.recordAutoId   = it->recordAutoId;
-			record.timestamp      = it->timestamp;
-			record.loginName      = std::move(it->loginName);
-			record.nick           = std::move(it->nick);
-			record.goldCoins      = it->goldCoins;
-			record.accountBalance = it->accountBalance;
-		}
-		session->send(msg);
-	}
+	sendAuctionStatusToClient(session);
 
 	return Response();
 }
