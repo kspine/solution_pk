@@ -116,6 +116,8 @@ namespace {
 		PROFILE_ME;
 		LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Checking game end...");
 
+		invalidateAuctionStatus();
+
 		const auto utcNow = Poseidon::getUtcTime();
 
 		const auto gameBeginTime = GlobalStatus::get(GlobalStatus::SLOT_GAME_BEGIN_TIME);
@@ -217,14 +219,12 @@ namespace {
 
 		const auto timer = g_timer.lock();
 		if(timer){
-			Poseidon::TimerDaemon::setTime(timer, nextGameEndTime - utcNow);
+			Poseidon::TimerDaemon::setTime(timer, nextGameBeginTime - utcNow);
 		}
-
-		invalidateAuctionStatus();
 	}
 
 	MODULE_RAII(handles){
-		auto timer = Poseidon::TimerDaemon::registerTimer(0, 1000, std::bind(&checkGameEnd));
+		auto timer = Poseidon::TimerDaemon::registerTimer(0, 5000, std::bind(&checkGameEnd));
 		g_timer = timer;
 		handles.push(std::move(timer));
 	}
