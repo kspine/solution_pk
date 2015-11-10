@@ -57,7 +57,7 @@ namespace {
 		info.buildingId       = BuildingId(obj->get_buildingId());
 		info.buildingLevel    = obj->get_buildingLevel();
 		info.mission          = Castle::Mission(obj->get_mission());
-		info.missionParam1    = obj->get_missionParam1();
+		info.missionDuration    = obj->get_missionDuration();
 		info.missionParam2    = obj->get_missionParam2();
 		info.missionTimeBegin = obj->get_missionTimeBegin();
 		info.missionTimeEnd   = obj->get_missionTimeEnd();
@@ -68,7 +68,7 @@ namespace {
 		info.techId           = TechId(obj->get_techId());
 		info.techLevel        = obj->get_techLevel();
 		info.mission          = Castle::Mission(obj->get_mission());
-		info.missionParam1    = obj->get_missionParam1();
+		info.missionDuration    = obj->get_missionDuration();
 		info.missionParam2    = obj->get_missionParam2();
 		info.missionTimeBegin = obj->get_missionTimeBegin();
 		info.missionTimeEnd   = obj->get_missionTimeEnd();
@@ -94,7 +94,7 @@ namespace {
 				msg.buildingId           = obj->get_buildingId();
 				msg.buildingLevel        = obj->get_buildingLevel();
 				msg.mission              = obj->get_mission();
-				msg.missionParam1        = obj->get_missionParam1();
+				msg.missionDuration        = obj->get_missionDuration();
 				msg.missionParam2        = obj->get_missionParam2();
 				msg.missionTimeBegin     = obj->get_missionTimeBegin();
 				msg.missionTimeRemaining = saturatedSub(obj->get_missionTimeEnd(), Poseidon::getUtcTime());
@@ -118,7 +118,7 @@ namespace {
 				msg.techId               = obj->get_techId();
 				msg.techLevel            = obj->get_techLevel();
 				msg.mission              = obj->get_mission();
-				msg.missionParam1        = obj->get_missionParam1();
+				msg.missionDuration        = obj->get_missionDuration();
 				msg.missionParam2        = obj->get_missionParam2();
 				msg.missionTimeBegin     = obj->get_missionTimeBegin();
 				msg.missionTimeRemaining = saturatedSub(obj->get_missionTimeEnd(), Poseidon::getUtcTime());
@@ -224,6 +224,8 @@ void Castle::checkBuildingMission(const boost::shared_ptr<MySql::Center_CastleBu
 	}
 
 	obj->set_mission(MIS_NONE);
+	obj->set_missionDuration(0);
+	obj->set_missionParam2(0);
 	obj->set_missionTimeEnd(utcNow + 1);
 
 	synchronizeBuildingBaseWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
@@ -266,6 +268,8 @@ void Castle::checkTechMission(const boost::shared_ptr<MySql::Center_CastleTech> 
 	}
 
 	obj->set_mission(MIS_NONE);
+	obj->set_missionDuration(0);
+	obj->set_missionParam2(0);
 	obj->set_missionTimeEnd(utcNow + 1);
 
 	synchronizeTechWithClient(getOwnerUuid(), getMapObjectUuid(), obj);
@@ -427,6 +431,8 @@ void Castle::createBuildingMission(BuildingBaseId buildingBaseId, Castle::Missio
 	const auto utcNow = Poseidon::getUtcTime();
 
 	obj->set_mission(mission);
+	obj->set_missionDuration(duration);
+	// obj->set_missionParam2(0);
 	obj->set_missionTimeBegin(utcNow);
 	obj->set_missionTimeEnd(saturatedAdd(utcNow, duration));
 
@@ -451,6 +457,8 @@ void Castle::cancelBuildingMission(BuildingBaseId buildingBaseId){
 	const auto utcNow = Poseidon::getUtcTime();
 
 	obj->set_mission(MIS_NONE);
+	obj->set_missionDuration(0);
+	obj->set_missionParam2(0);
 	obj->set_missionTimeBegin(utcNow);
 	obj->set_missionTimeEnd(utcNow);
 
@@ -546,6 +554,8 @@ void Castle::createTechMission(TechId techId, Castle::Mission mission){
 	const auto utcNow = Poseidon::getUtcTime();
 
 	obj->set_mission(mission);
+	obj->set_missionDuration(duration);
+	// obj->set_missionParam2(0);
 	obj->set_missionTimeBegin(utcNow);
 	obj->set_missionTimeEnd(saturatedAdd(utcNow, duration));
 
@@ -570,6 +580,8 @@ void Castle::cancelTechMission(TechId techId){
 	const auto utcNow = Poseidon::getUtcTime();
 
 	obj->set_mission(MIS_NONE);
+	obj->set_missionDuration(0);
+	obj->set_missionParam2(0);
 	obj->set_missionTimeBegin(utcNow);
 	obj->set_missionTimeEnd(utcNow);
 

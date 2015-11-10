@@ -31,7 +31,7 @@ public:
 		BuildingId buildingId;
 		unsigned buildingLevel;
 		Mission mission;
-		boost::uint64_t missionParam1;
+		boost::uint64_t missionDuration;
 		boost::uint64_t missionParam2;
 		boost::uint64_t missionTimeBegin;
 		boost::uint64_t missionTimeEnd;
@@ -41,7 +41,7 @@ public:
 		TechId techId;
 		unsigned techLevel;
 		Mission mission;
-		boost::uint64_t missionParam1;
+		boost::uint64_t missionDuration;
 		boost::uint64_t missionParam2;
 		boost::uint64_t missionTimeBegin;
 		boost::uint64_t missionTimeEnd;

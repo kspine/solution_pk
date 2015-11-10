@@ -13,7 +13,7 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED	(techId)	\
 	FIELD_BIGINT_UNSIGNED	(techLevel)	\
 	FIELD_INTEGER_UNSIGNED	(mission)	\
-	FIELD_BIGINT_UNSIGNED	(missionParam1)	\
+	FIELD_BIGINT_UNSIGNED	(missionDuration)	\
 	FIELD_BIGINT_UNSIGNED	(missionParam2)	\
 	FIELD_DATETIME			(missionTimeBegin)	\
 	FIELD_DATETIME			(missionTimeEnd)

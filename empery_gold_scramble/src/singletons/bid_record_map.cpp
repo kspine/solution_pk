@@ -1,13 +1,30 @@
 #include "../precompiled.hpp"
 #include "bid_record_map.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/multi_index_map.hpp>
 #include "global_status.hpp"
 #include "../mysql/bid_history.hpp"
 
 namespace EmperyGoldScramble {
 
 namespace {
-	using RecordQueue = std::deque<boost::shared_ptr<MySql::GoldScramble_BidHistory>>;
+	struct RecordElement {
+		boost::shared_ptr<MySql::GoldScramble_BidHistory> obj;
+
+		boost::uint64_t recordAutoId;
+		std::string loginName;
+
+		explicit RecordElement(boost::shared_ptr<MySql::GoldScramble_BidHistory> obj_)
+			: obj(std::move(obj_))
+			, recordAutoId(obj->get_recordAutoId()), loginName(obj->unlockedGet_loginName())
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(RecordQueue, RecordElement,
+		UNIQUE_MEMBER_INDEX(recordAutoId)
+		UNIQUE_MEMBER_INDEX(loginName)
+	)
 
 	RecordQueue g_queue;
 
@@ -23,7 +40,12 @@ namespace {
 			auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>();
 			obj->syncFetch(conn);
 			obj->enableAutoSaving();
-			queue.emplace_back(std::move(obj));
+			const auto it = queue.find<1>(obj->unlockedGet_loginName());
+			if(it == queue.end<1>()){
+				queue.insert(RecordElement(std::move(obj)));
+			} else {
+				queue.replace<1>(it, RecordElement(std::move(obj)));
+			}
 		}
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Loaded ", queue.size(), " record(s).");
 		g_queue.swap(queue);
@@ -33,9 +55,16 @@ namespace {
 void BidRecordMap::append(std::string loginName, std::string nick, boost::uint64_t goldCoins, boost::uint64_t accountBalance){
 	PROFILE_ME;
 
-	g_queue.emplace_back(boost::make_shared<MySql::GoldScramble_BidHistory>(
+	auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>(
 		GlobalStatus::fetchAdd(GlobalStatus::SLOT_RECORD_AUTO_ID, 1), GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID),
-		Poseidon::getUtcTime(), std::move(loginName), std::move(nick), goldCoins, accountBalance));
+		Poseidon::getUtcTime(), std::move(loginName), std::move(nick), goldCoins, accountBalance);
+	obj->asyncSave(true);
+	const auto it = g_queue.find<1>(obj->unlockedGet_loginName());
+	if(it == g_queue.end<1>()){
+		g_queue.insert(RecordElement(std::move(obj)));
+	} else {
+		g_queue.replace<1>(it, RecordElement(std::move(obj)));
+	}
 }
 std::size_t BidRecordMap::getSize(){
 	PROFILE_ME;
@@ -49,8 +78,9 @@ void BidRecordMap::getAll(std::vector<BidRecordMap::Record> &ret, std::size_t li
 
 	const auto count = std::min(g_queue.size(), limit);
 	ret.reserve(ret.size() + count);
-	for(auto it = g_queue.end() - static_cast<std::ptrdiff_t>(count); it != g_queue.end(); ++it){
-		const auto &obj = *it;
+	auto it = g_queue.end<0>();
+	for(std::size_t i = 0; i < count; ++i){
+		const auto &obj = (--it)->obj;
 		if(obj->get_gameAutoId() != gameAutoId){
 			continue;
 		}

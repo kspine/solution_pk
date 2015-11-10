@@ -35,9 +35,11 @@ namespace {
 void GameRecordMap::append(std::string loginName, std::string nick, boost::uint64_t goldCoins, boost::uint64_t accountBalance){
 	PROFILE_ME;
 
-	g_queue.emplace_back(boost::make_shared<MySql::GoldScramble_GameHistory>(
+	auto obj = boost::make_shared<MySql::GoldScramble_GameHistory>(
 		GlobalStatus::fetchAdd(GlobalStatus::SLOT_RECORD_AUTO_ID, 1),
-		Poseidon::getUtcTime(), std::move(loginName), std::move(nick), goldCoins, accountBalance));
+		Poseidon::getUtcTime(), std::move(loginName), std::move(nick), goldCoins, accountBalance);
+	obj->asyncSave(true);
+	g_queue.emplace_back(std::move(obj));
 	if(g_queue.size() >= g_maxCount){
 		g_queue.pop_front();
 	}
