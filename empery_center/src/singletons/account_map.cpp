@@ -276,6 +276,18 @@ rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101002
 rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101003), 1000000000, ReasonId(), 0, 0, 0);
 castle->commitResourceTransaction(rsrc.data(), rsrc.size());
 
+castle->createBuildingMission(BuildingBaseId(2),  Castle::MIS_CONSTRUCT, BuildingId(1902001));
+castle->createBuildingMission(BuildingBaseId(3),  Castle::MIS_CONSTRUCT, BuildingId(1902002));
+castle->createBuildingMission(BuildingBaseId(4),  Castle::MIS_CONSTRUCT, BuildingId(1902003));
+castle->createBuildingMission(BuildingBaseId(5),  Castle::MIS_CONSTRUCT, BuildingId(1902004));
+castle->createBuildingMission(BuildingBaseId(6),  Castle::MIS_CONSTRUCT, BuildingId(1911001));
+castle->createBuildingMission(BuildingBaseId(7),  Castle::MIS_CONSTRUCT, BuildingId(1910001));
+castle->createBuildingMission(BuildingBaseId(8),  Castle::MIS_CONSTRUCT, BuildingId(1912001));
+castle->createBuildingMission(BuildingBaseId(11), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+castle->createBuildingMission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+castle->createBuildingMission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+castle->createBuildingMission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+
 const auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 200) - 100, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
 MapObjectMap::update(castle, coord);
 
