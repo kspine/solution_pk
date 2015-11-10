@@ -201,11 +201,12 @@ namespace {
 		} else {
 			nextGameBeginTime = utcNow + nextGameDelay;
 		}
+		const auto nextGameEndTime = nextGameBeginTime + minimumGameDuration;
 
 		const auto percentWinners = Poseidon::rand32(percentWinnersLow, percentWinnersHigh);
 
 		GlobalStatus::exchange(GlobalStatus::SLOT_GAME_BEGIN_TIME, nextGameBeginTime);
-		GlobalStatus::exchange(GlobalStatus::SLOT_GAME_END_TIME,   nextGameBeginTime + minimumGameDuration);
+		GlobalStatus::exchange(GlobalStatus::SLOT_GAME_END_TIME,   nextGameEndTime);
 
 		GlobalStatus::exchange(GlobalStatus::SLOT_GOLD_COINS_IN_POT,      initGoldCoinsInPot);
 		GlobalStatus::exchange(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT, initAccountBalanceInPot);
@@ -214,7 +215,7 @@ namespace {
 
 		const auto timer = g_timer.lock();
 		if(timer){
-			Poseidon::TimerDaemon::setTime(timer, nextGameBeginTime - utcNow);
+			Poseidon::TimerDaemon::setTime(timer, nextGameEndTime - utcNow);
 		}
 
 		updateAuctionStatus();
