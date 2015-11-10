@@ -7,7 +7,7 @@
 namespace EmperyCenter {
 
 namespace Events {
-	struct ItemChanged : public Poseidon::EventBase<330201> {
+	struct ItemChanged : public Poseidon::EventBase<340201> {
 		AccountUuid accountUuid;
 		ItemId itemId;
 		boost::uint64_t oldCount;

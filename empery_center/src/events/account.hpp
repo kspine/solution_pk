@@ -7,7 +7,7 @@
 namespace EmperyCenter {
 
 namespace Events {
-	struct AccountCreated : public Poseidon::EventBase<330101> {
+	struct AccountCreated : public Poseidon::EventBase<340101> {
 		AccountUuid accountUuid;
 		std::string remoteIp;
 
@@ -17,7 +17,7 @@ namespace Events {
 		}
 	};
 
-	struct AccountLoggedIn : public Poseidon::EventBase<330102> {
+	struct AccountLoggedIn : public Poseidon::EventBase<340102> {
 		AccountUuid accountUuid;
 		std::string remoteIp;
 
@@ -27,7 +27,7 @@ namespace Events {
 		}
 	};
 
-	struct AccountLoggedOut : public Poseidon::EventBase<330103> {
+	struct AccountLoggedOut : public Poseidon::EventBase<340103> {
 		AccountUuid accountUuid;
 		boost::uint64_t onlineDuration;
 
@@ -37,7 +37,7 @@ namespace Events {
 		}
 	};
 
-	struct AccountSetToken : public Poseidon::EventBase<330104> {
+	struct AccountSetToken : public Poseidon::EventBase<340104> {
 		PlatformId platformId;
 		std::string loginName;
 		std::string loginToken;

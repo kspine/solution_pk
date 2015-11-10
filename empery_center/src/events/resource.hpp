@@ -7,7 +7,7 @@
 namespace EmperyCenter {
 
 namespace Events {
-	struct ResourceChanged : public Poseidon::EventBase<330301> {
+	struct ResourceChanged : public Poseidon::EventBase<340301> {
 		MapObjectUuid mapObjectUuid;
 		AccountUuid ownerUuid;
 		ResourceId resourceId;
