@@ -301,9 +301,7 @@ void sendAuctionStatusToClient(const boost::shared_ptr<PlayerSession> &session){
 void sendLastLogToClient(const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
-	if(g_lastLogMsg.numberOfWinners != 0){
-		session->send(g_lastLogMsg);
-	}
+	session->send(g_lastLogMsg);
 }
 void invalidateAuctionStatus(){
 	PROFILE_ME;
