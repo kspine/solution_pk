@@ -61,7 +61,7 @@ void ClusterSession::onClose(int errCode) noexcept {
 	LOG_EMPERY_CENTER_INFO("Cluster session closed: errCode = ", errCode);
 
 	try {
-		Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<ClusterSession> &){
+		Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<void> &){
 			for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
 				const auto &promise = it->second.promise;
 				if(!promise || promise->isSatisfied()){
@@ -80,7 +80,7 @@ void ClusterSession::onClose(int errCode) noexcept {
 				}
 			}
 			m_requests.clear();
-		}, virtualSharedFromThis<ClusterSession>()));
+		}, shared_from_this()));
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}

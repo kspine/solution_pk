@@ -69,7 +69,7 @@ void ClusterClient::onClose(int errCode) noexcept {
 	LOG_EMPERY_CLUSTER_INFO("Cluster client closed: errCode = ", errCode);
 
 	try {
-		Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<ClusterClient> &){
+		Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<void> &){
 			for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
 				const auto &promise = it->second.promise;
 				if(!promise || promise->isSatisfied()){
@@ -88,7 +88,7 @@ void ClusterClient::onClose(int errCode) noexcept {
 				}
 			}
 			m_requests.clear();
-		}, virtualSharedFromThis<ClusterClient>()));
+		}, shared_from_this()));
 	} catch(std::exception &e){
 		LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
 	}
@@ -101,14 +101,14 @@ void ClusterClient::onSyncConnect(){
 
 	Poseidon::Cbpp::Client::onSyncConnect();
 
-	Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<ClusterClient> &){
+	Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<void> &){
 		const auto result = sendAndWait(Msg::KS_MapRegisterCluster(m_mapX, m_mapY));
 		if(result.first != 0){
 			LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
 			DEBUG_THROW(Exception, SharedNts(result.second));
 		}
 		LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: mapX = ", m_mapX, ", mapY = ", m_mapY);
-	}, virtualSharedFromThis<ClusterClient>()));
+	}, shared_from_this()));
 }
 void ClusterClient::onSyncDataMessageHeader(boost::uint16_t messageId, boost::uint64_t payloadSize){
 	PROFILE_ME;
