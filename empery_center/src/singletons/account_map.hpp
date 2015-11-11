@@ -83,6 +83,10 @@ struct AccountMap {
 		return boost::lexical_cast<T>(str);
 	}
 
+	static void sendAttributesToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session,
+		bool wantsNick, bool wantsAttributes, bool wantsPrivateAttributes, bool wantsItems);
+	static void combinedSendAttributesToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session);
+
 private:
 	AccountMap();
 };

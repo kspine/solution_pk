@@ -7,40 +7,6 @@
 
 namespace EmperyCenter {
 
-namespace {
-	void sendAccountInfoToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wantsNick, bool wantsAttributes, bool wantsPrivateAttributes, bool wantsItems)
-	{
-		PROFILE_ME;
-
-		Msg::SC_AccountAttributes msg;
-		msg.accountUuid = accountUuid.str();
-		if(wantsNick){
-			auto info = AccountMap::require(accountUuid);
-			msg.nick = std::move(info.nick);
-		}
-		if(wantsAttributes){
-			unsigned slotEnd = AccountMap::ATTR_PUBLIC_END;
-			if(wantsPrivateAttributes){
-				slotEnd = AccountMap::ATTR_END;
-			}
-			boost::container::flat_map<unsigned, std::string> attributes;
-			AccountMap::getAttributes(attributes, accountUuid, 0, slotEnd);
-			msg.attributes.reserve(attributes.size());
-			for(auto it = attributes.begin(); it != attributes.end(); ++it){
-				msg.attributes.emplace_back();
-				auto &attribute = msg.attributes.back();
-				attribute.slot = it->first;
-				attribute.value = std::move(it->second);
-			}
-		}
-		if(wantsItems){
-			// TODO 添加公开资源。
-		}
-		session->send(msg);
-	}
-}
-
 PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	LOG_EMPERY_CENTER_INFO("Account login: platformId = ", req.platformId, ", loginName = ", req.loginName);
 
@@ -73,7 +39,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 
 	PlayerSessionMap::add(accountUuid, session);
 	session->send(Msg::SC_AccountLoginSuccess(accountUuid.str()));
-	sendAccountInfoToClient(accountUuid, session, true, true, true, true);
+	AccountMap::sendAttributesToClient(accountUuid, session, true, true, true, true);
 	return Response();
 }
 
@@ -104,7 +70,7 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, accountUuid, session, req){
 	for(auto it = infos.begin(); it != infos.end(); ++it){
 		const auto otherUuid = AccountUuid(it->accountUuid);
 
-		sendAccountInfoToClient(otherUuid, session, true, true, otherUuid == accountUuid, true);
+		AccountMap::sendAttributesToClient(otherUuid, session, true, true, otherUuid == accountUuid, true);
 	}
 	return Response();
 }
@@ -128,7 +94,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, accountUuid, session, req){
 		if(!AccountMap::has(otherUuid)){
 			continue;
 		}
-		sendAccountInfoToClient(otherUuid, session,
+		AccountMap::sendAttributesToClient(otherUuid, session,
 			it->detailFlags & FL_NICK, it->detailFlags & FL_ATTRIBUTES, otherUuid == accountUuid, it->detailFlags & FL_ITEMS);
 		account.errorCode = Msg::ST_OK;
 	}

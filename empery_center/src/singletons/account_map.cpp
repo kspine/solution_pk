@@ -82,6 +82,24 @@ namespace {
 
 	AccountAttributeMapDelegator g_attributeMap;
 
+	struct InfoTimestampElement {
+		boost::uint64_t expiryTime;
+		std::pair<AccountUuid, boost::weak_ptr<PlayerSession>> accountUuidSession;
+
+		InfoTimestampElement(boost::uint64_t expiryTime_,
+			const AccountUuid &accountUuid_, const boost::shared_ptr<PlayerSession> &session_)
+			: expiryTime(expiryTime_), accountUuidSession(accountUuid_, session_)
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(InfoTimestampMap, InfoTimestampElement,
+		MULTI_MEMBER_INDEX(expiryTime)
+		UNIQUE_MEMBER_INDEX(accountUuidSession)
+	)
+
+	boost::shared_ptr<InfoTimestampMap> g_infoTimestampMap;
+
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::createConnection();
 
@@ -113,6 +131,10 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", attributeMap.size(), " account attribute(s).");
 		g_attributeMap.swap(attributeMap);
+
+		const auto infoTimestampMap = boost::make_shared<InfoTimestampMap>();
+		g_infoTimestampMap = infoTimestampMap;
+		handles.push(infoTimestampMap);
 
 		auto listener = Poseidon::EventDispatcher::registerListener<Events::AccountSetToken>(
 			[](const boost::shared_ptr<Events::AccountSetToken> &event){
@@ -429,6 +451,53 @@ void AccountMap::setAttribute(const AccountUuid &accountUuid, unsigned slot, std
 			session->forceShutdown();
 		}
 	}
+}
+
+void AccountMap::sendAttributesToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session,
+	bool wantsNick, bool wantsAttributes, bool wantsPrivateAttributes, bool wantsItems)
+{
+	PROFILE_ME;
+
+	Msg::SC_AccountAttributes msg;
+	msg.accountUuid = accountUuid.str();
+	if(wantsNick){
+		auto info = AccountMap::require(accountUuid);
+		msg.nick = std::move(info.nick);
+	}
+	if(wantsAttributes){
+		unsigned slotEnd = AccountMap::ATTR_PUBLIC_END;
+		if(wantsPrivateAttributes){
+			slotEnd = AccountMap::ATTR_END;
+		}
+		boost::container::flat_map<unsigned, std::string> attributes;
+		AccountMap::getAttributes(attributes, accountUuid, 0, slotEnd);
+		msg.attributes.reserve(attributes.size());
+		for(auto it = attributes.begin(); it != attributes.end(); ++it){
+			msg.attributes.emplace_back();
+			auto &attribute = msg.attributes.back();
+			attribute.slot = it->first;
+			attribute.value = std::move(it->second);
+		}
+	}
+	if(wantsItems){
+		// TODO 添加公开资源。
+	}
+	session->send(msg);
+}
+void AccountMap::combinedSendAttributesToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session){
+	PROFILE_ME;
+
+	const auto now = Poseidon::getFastMonoClock();
+	const auto cacheTimeout = getConfig<boost::uint64_t>("account_info_cache_timeout", 0);
+
+	g_infoTimestampMap->erase<0>(g_infoTimestampMap->begin<0>(), g_infoTimestampMap->upperBound<0>(now));
+
+	if(g_infoTimestampMap->find<1>(std::make_pair(accountUuid, session)) != g_infoTimestampMap->end<1>()){
+		LOG_EMPERY_CENTER_DEBUG("Cache hit: accountUuid = ", accountUuid);
+		return;
+	}
+	sendAttributesToClient(accountUuid, session, true, true, false, true);
+	g_infoTimestampMap->insert(InfoTimestampElement(now + cacheTimeout, accountUuid, session));
 }
 
 }
