@@ -7,11 +7,11 @@ namespace EmperyCenterLog {
 
 namespace MySql {
 
-#define MYSQL_OBJECT_NAME	CenterLog_AccountCreated
-#define MYSQL_OBJECT_FIELDS	\
-	FIELD_DATETIME			(timestamp)	\
-	FIELD_UUID				(accountUuid)	\
-	FIELD_STRING			(remoteIp)
+#define MYSQL_OBJECT_NAME   CenterLog_AccountCreated
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_DATETIME          (timestamp)	\
+	FIELD_UUID              (accountUuid)	\
+	FIELD_STRING            (remoteIp)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

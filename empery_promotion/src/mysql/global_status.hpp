@@ -7,10 +7,10 @@ namespace EmperyPromotion {
 
 namespace MySql {
 
-#define MYSQL_OBJECT_NAME	Promotion_GlobalStatus
-#define MYSQL_OBJECT_FIELDS	\
-	FIELD_INTEGER_UNSIGNED	(slot)	\
-	FIELD_BIGINT_UNSIGNED	(value)
+#define MYSQL_OBJECT_NAME   Promotion_GlobalStatus
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_INTEGER_UNSIGNED  (slot)	\
+	FIELD_BIGINT_UNSIGNED   (value)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

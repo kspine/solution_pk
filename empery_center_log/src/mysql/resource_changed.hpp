@@ -7,18 +7,18 @@ namespace EmperyCenterLog {
 
 namespace MySql {
 
-#define MYSQL_OBJECT_NAME	CenterLog_ResourceChanged
-#define MYSQL_OBJECT_FIELDS	\
-	FIELD_DATETIME			(timestamp)	\
-	FIELD_UUID				(mapObjectUuid)	\
-	FIELD_UUID				(ownerUuid)	\
-	FIELD_INTEGER_UNSIGNED	(resourceId)	\
-	FIELD_BIGINT_UNSIGNED	(oldCount)	\
-	FIELD_BIGINT_UNSIGNED	(newCount)	\
-	FIELD_INTEGER_UNSIGNED	(reason)	\
-	FIELD_BIGINT_UNSIGNED	(param1)	\
-	FIELD_BIGINT_UNSIGNED	(param2)	\
-	FIELD_BIGINT_UNSIGNED	(param3)
+#define MYSQL_OBJECT_NAME   CenterLog_ResourceChanged
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_DATETIME          (timestamp)	\
+	FIELD_UUID              (mapObjectUuid)	\
+	FIELD_UUID              (ownerUuid)	\
+	FIELD_INTEGER_UNSIGNED  (resourceId)	\
+	FIELD_BIGINT_UNSIGNED   (oldCount)	\
+	FIELD_BIGINT_UNSIGNED   (newCount)	\
+	FIELD_INTEGER_UNSIGNED  (reason)	\
+	FIELD_BIGINT_UNSIGNED   (param1)	\
+	FIELD_BIGINT_UNSIGNED   (param2)	\
+	FIELD_BIGINT_UNSIGNED   (param3)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

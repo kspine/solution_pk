@@ -7,11 +7,11 @@ namespace EmperyPromotionLog {
 
 namespace MySql {
 
-#define MYSQL_OBJECT_NAME	PromotionLog_AccountLoggedIn
-#define MYSQL_OBJECT_FIELDS	\
-	FIELD_DATETIME			(timestamp)	\
-	FIELD_BIGINT_UNSIGNED	(accountId)	\
-	FIELD_STRING			(remoteIp)
+#define MYSQL_OBJECT_NAME   PromotionLog_AccountLoggedIn
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_DATETIME          (timestamp)	\
+	FIELD_BIGINT_UNSIGNED   (accountId)	\
+	FIELD_STRING            (remoteIp)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

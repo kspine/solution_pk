@@ -7,17 +7,17 @@ namespace EmperyPromotionLog {
 
 namespace MySql {
 
-#define MYSQL_OBJECT_NAME	PromotionLog_ItemChanged
-#define MYSQL_OBJECT_FIELDS	\
-	FIELD_DATETIME			(timestamp)	\
-	FIELD_BIGINT_UNSIGNED	(accountId)	\
-	FIELD_BIGINT_UNSIGNED	(itemId)	\
-	FIELD_BIGINT_UNSIGNED	(oldCount)	\
-	FIELD_BIGINT_UNSIGNED	(newCount)	\
-	FIELD_INTEGER_UNSIGNED	(reason)	\
-	FIELD_BIGINT_UNSIGNED	(param1)	\
-	FIELD_BIGINT_UNSIGNED	(param2)	\
-	FIELD_BIGINT_UNSIGNED	(param3)
+#define MYSQL_OBJECT_NAME   PromotionLog_ItemChanged
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_DATETIME          (timestamp)	\
+	FIELD_BIGINT_UNSIGNED   (accountId)	\
+	FIELD_BIGINT_UNSIGNED   (itemId)	\
+	FIELD_BIGINT_UNSIGNED   (oldCount)	\
+	FIELD_BIGINT_UNSIGNED   (newCount)	\
+	FIELD_INTEGER_UNSIGNED  (reason)	\
+	FIELD_BIGINT_UNSIGNED   (param1)	\
+	FIELD_BIGINT_UNSIGNED   (param2)	\
+	FIELD_BIGINT_UNSIGNED   (param3)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

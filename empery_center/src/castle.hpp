@@ -101,10 +101,6 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources);
 	~Castle();
 
-private:
-	void checkBuildingMission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utcNow);
-	void checkTechMission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utcNow);
-
 public:
 	void pumpStatus(bool forceSynchronizationWithClient = false);
 	void pumpBuildingStatus(BuildingBaseId buildingBaseId, bool forceSynchronizationWithClient = false);
