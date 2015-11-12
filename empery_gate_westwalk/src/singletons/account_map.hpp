@@ -56,7 +56,7 @@ struct AccountMap {
 	static void create(std::string accountName, std::string token, std::string remoteIp, std::string remarks, boost::uint64_t flags);
 
 private:
-	AccountMap();
+	AccountMap() = delete;
 };
 
 }

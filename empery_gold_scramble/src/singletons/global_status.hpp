@@ -25,7 +25,7 @@ struct GlobalStatus {
 	static boost::uint64_t fetchSub(unsigned slot, boost::uint64_t deltaValue);
 
 private:
-	GlobalStatus();
+	GlobalStatus() = delete;
 };
 
 }

@@ -87,7 +87,7 @@ struct AccountMap {
 	}
 
 private:
-	AccountMap();
+	AccountMap() = delete;
 };
 
 }

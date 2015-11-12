@@ -22,7 +22,7 @@ struct ClusterSessionMap {
 	static std::pair<boost::uint64_t, boost::uint64_t> requireMapSize();
 
 private:
-	ClusterSessionMap();
+	ClusterSessionMap() = delete;
 };
 
 }

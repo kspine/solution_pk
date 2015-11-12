@@ -88,7 +88,7 @@ struct AccountMap {
 	static void combinedSendAttributesToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session);
 
 private:
-	AccountMap();
+	AccountMap() = delete;
 };
 
 }

@@ -20,7 +20,7 @@ struct ItemMap {
 	static ItemId commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count);
 
 private:
-	ItemMap();
+	ItemMap() = delete;
 };
 
 }

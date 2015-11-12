@@ -285,21 +285,19 @@ void Castle::pumpStatus(bool forceSynchronizationWithClient){
 	const auto utcNow = Poseidon::getUtcTime();
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		checkBuildingMission(getMapObjectUuid(), getOwnerUuid(), it->second, utcNow);
-
-		if(forceSynchronizationWithClient){
-			synchronizeBuildingBaseWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
-		}
 	}
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 		checkTechMission(getMapObjectUuid(), getOwnerUuid(), it->second, utcNow);
+	}
 
-		if(forceSynchronizationWithClient){
+	if(forceSynchronizationWithClient){
+		for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+			synchronizeBuildingBaseWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
+		}
+		for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 			synchronizeTechWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
 		}
-	}
-	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
-		// 城内产出。
-		if(forceSynchronizationWithClient){
+		for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
 			synchronizeResourceWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
 		}
 	}

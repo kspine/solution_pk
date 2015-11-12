@@ -24,7 +24,7 @@ struct GlobalStatus {
 	static void checkDailyReset();
 
 private:
-	GlobalStatus();
+	GlobalStatus() = delete;
 };
 
 }

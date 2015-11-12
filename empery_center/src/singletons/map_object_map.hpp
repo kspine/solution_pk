@@ -25,7 +25,7 @@ struct MapObjectMap {
 	static void synchronizePlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept;
 
 private:
-	MapObjectMap();
+	MapObjectMap() = delete;
 };
 
 }

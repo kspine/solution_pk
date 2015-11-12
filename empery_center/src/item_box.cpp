@@ -34,18 +34,6 @@ namespace {
 			}
 		}
 	}
-
-	void checkItemAutoIncrement(const AccountUuid &accountUuid,
-		const boost::shared_ptr<MySql::Center_Item> &obj, boost::uint64_t utcNow)
-	{
-		PROFILE_ME;
-
-		const auto itemId = ItemId(obj->get_itemId());
-		LOG_EMPERY_CENTER_DEBUG("Checking item auto increment: accountUuid = ", accountUuid, ", itemId = ", itemId);
-
-		// TODO
-		LOG_EMPERY_CENTER_FATAL("Checking item auto increment: accountUuid = ", accountUuid, ", itemId = ", itemId);
-	}
 }
 
 ItemBox::ItemBox(const AccountUuid &accountUuid)
@@ -66,12 +54,14 @@ ItemBox::~ItemBox(){
 
 void ItemBox::pumpStatus(bool forceSynchronizationWithClient){
 	PROFILE_ME;
-
+/*
 	const auto utcNow = Poseidon::getUtcTime();
 	for(auto it = m_items.begin(); it != m_items.end(); ++it){
 		checkItemAutoIncrement(getAccountUuid(), it->second, utcNow);
-
-		if(forceSynchronizationWithClient){
+	}
+*/
+	if(forceSynchronizationWithClient){
+		for(auto it = m_items.begin(); it != m_items.end(); ++it){
 			synchronizeItemWithClient(getAccountUuid(), it->second);
 		}
 	}

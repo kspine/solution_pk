@@ -23,7 +23,7 @@ struct BidRecordMap {
 	static void clear() noexcept;
 
 private:
-	BidRecordMap();
+	BidRecordMap() = delete;
 };
 
 }

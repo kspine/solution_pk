@@ -25,7 +25,7 @@ struct PlayerSessionMap {
 	static void getAll(boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>> &ret);
 
 private:
-	PlayerSessionMap();
+	PlayerSessionMap() = delete;
 };
 
 }

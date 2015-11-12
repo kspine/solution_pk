@@ -22,7 +22,7 @@ struct HttpClientDaemon {
 		std::string path, Poseidon::OptionalMap params, Poseidon::StreamBuffer entity, std::string mimeType);
 
 private:
-	HttpClientDaemon();
+	HttpClientDaemon() = delete;
 };
 
 }
