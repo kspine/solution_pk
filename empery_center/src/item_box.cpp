@@ -40,7 +40,11 @@ namespace {
 	{
 		PROFILE_ME;
 
-		
+		const auto itemId = ItemId(obj->get_itemId());
+		LOG_EMPERY_CENTER_DEBUG("Checking item auto increment: accountUuid = ", accountUuid, ", itemId = ", itemId);
+
+		// TODO
+		LOG_EMPERY_CENTER_FATAL("Checking item auto increment: accountUuid = ", accountUuid, ", itemId = ", itemId);
 	}
 }
 
