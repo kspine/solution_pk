@@ -55,6 +55,7 @@ namespace Data {
 		boost::uint64_t upgradeDuration;
 		boost::container::flat_map<ResourceId, boost::uint64_t> upgradeCost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
+		boost::uint64_t prosperityPoints;
 		boost::uint64_t destructDuration;
 
 	protected:

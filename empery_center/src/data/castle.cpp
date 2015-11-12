@@ -98,6 +98,7 @@ namespace {
 			throw;
 		}
 
+		csv.get(elem.prosperityPoints, "prosperity");
 		csv.get(minutes, "demolition");
 		elem.destructDuration = checkedMul<boost::uint64_t>(minutes, 10000);//XXX
 	}
