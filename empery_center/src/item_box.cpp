@@ -21,21 +21,11 @@ namespace {
 		info.count  = obj->get_count();
 	}
 
-	void synchronize_item_with_client(const AccountUuid &account_uuid, const boost::shared_ptr<MySql::Center_Item> &obj){
+	void fill_item_message(Msg::SC_ItemChanged &msg, const boost::shared_ptr<MySql::Center_Item> &obj){
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(account_uuid);
-		if(session){
-			try {
-				Msg::SC_ItemChanged msg;
-				msg.item_id = obj->get_item_id();
-				msg.count  = obj->get_count();
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->force_shutdown();
-			}
-		}
+		msg.item_id = obj->get_item_id();
+		msg.count   = obj->get_count();
 	}
 }
 
@@ -156,8 +146,18 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 		[&]{ for(auto &p: new_timestamps){ p.first->set_updated_time(p.second); } });
 
 	if(force_synchronization_with_client){
-		for(auto it = m_items.begin(); it != m_items.end(); ++it){
-			synchronize_item_with_client(get_account_uuid(), it->second);
+		const auto session = PlayerSessionMap::get(get_account_uuid());
+		if(session){
+			try {
+				for(auto it = m_items.begin(); it != m_items.end(); ++it){
+					Msg::SC_ItemChanged msg;
+					fill_item_message(msg, it->second);
+					session->send(msg);
+				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->force_shutdown();
+			}
 		}
 	}
 }
@@ -307,8 +307,18 @@ ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *element
 		*withdrawn = false;
 	}
 
-	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
-		synchronize_item_with_client(get_account_uuid(), it->first);
+	const auto session = PlayerSessionMap::get(get_account_uuid());
+	if(session){
+		try {
+			for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
+				Msg::SC_ItemChanged msg;
+				fill_item_message(msg, it->first);
+				session->send(msg);
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->force_shutdown();
+		}
 	}
 
 	return ItemId();
