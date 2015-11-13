@@ -89,11 +89,11 @@ std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountI
 	auto info = AccountMap::require(accountId);
 
 	const double originalUnitPrice = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
-	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * promotionData->immediateDiscount);
+	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * promotionData->immediateDiscount - 0.001);
 	boost::uint64_t balanceToConsume = 0;
 	if(cardUnitPrice != 0){
 		const auto minCardsToBuy = static_cast<boost::uint64_t>(
-			std::ceil(static_cast<double>(promotionData->immediatePrice) / cardUnitPrice));
+			std::ceil(static_cast<double>(promotionData->immediatePrice) / cardUnitPrice - 0.001));
 		const auto cardsToBuy = checkedAdd(minCardsToBuy, additionalCards);
 		balanceToConsume = checkedMul(cardUnitPrice, cardsToBuy);
 		LOG_EMPERY_PROMOTION_INFO("Acceleration cards: minCardsToBuy = ", minCardsToBuy, ", additionalCards = ", additionalCards,

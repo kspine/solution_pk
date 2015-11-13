@@ -49,7 +49,7 @@ ACCOUNT_SERVLET("buyMoreCards", session, params){
 	}
 
 	const double originalUnitPrice = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
-	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * discount);
+	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * discount - 0.001);
 	const auto balanceToConsume = checkedMul(cardUnitPrice, cardsToBuy);
 	ret[sslit("balanceToConsume")] = balanceToConsume;
 

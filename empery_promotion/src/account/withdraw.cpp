@@ -43,7 +43,7 @@ ACCOUNT_SERVLET("withdraw", session, params){
 	const auto localNow = Poseidon::getUtcTime();
 
 	auto amount = deltaBalance;
-	auto fee = static_cast<boost::uint64_t>(std::ceil(deltaBalance * withdrawalFeeRatio));
+	auto fee = static_cast<boost::uint64_t>(std::ceil(deltaBalance * withdrawalFeeRatio - 0.001));
 	if(fee > amount){
 		fee = amount;
 	}

@@ -29,7 +29,7 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 				const ::boost::shared_ptr<AccountHttpSession> &session_, ::Poseidon::OptionalMap params_)	\
 			{	\
 				PROFILE_ME;	\
-				LOG_EMPERY_PROMOTION_DEBUG("Account servlet response: uri = ", uri_, ", params = { ",	\
+				LOG_EMPERY_PROMOTION_DEBUG("Account servlet request: uri = ", uri_, ", params = { ",	\
 					[&]{	\
 						::std::ostringstream oss_;	\
 						for(auto it_ = params_.begin(); it_ != params_.end(); ++it_)	\
