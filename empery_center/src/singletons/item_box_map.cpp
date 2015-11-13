@@ -20,6 +20,7 @@ namespace {
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
 		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
 		mutable boost::shared_ptr<ItemBox> itemBox;
+		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
 
 		ItemBoxElement(const AccountUuid &accountUuid_, boost::uint64_t unloadTime_)
 			: accountUuid(accountUuid_), unloadTime(unloadTime_)
@@ -34,9 +35,9 @@ namespace {
 
 	boost::weak_ptr<ItemBoxMapDelegator> g_itemBoxMap;
 
-	void gcTimerProc(boost::uint64_t now, boost::uint64_t period){
+	void gcTimerProc(boost::uint64_t now){
 		PROFILE_ME;
-		LOG_EMPERY_CENTER_DEBUG("Item box gc timer: now = ", now, ", period = ", period);
+		LOG_EMPERY_CENTER_DEBUG("Item box gc timer: now = ", now);
 
 		const auto itemBoxMap = g_itemBoxMap.lock();
 		if(!itemBoxMap){
@@ -69,7 +70,7 @@ namespace {
 
 		const auto gcInterval = getConfig<boost::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::registerTimer(0, gcInterval,
-			std::bind(&gcTimerProc, std::placeholders::_2, std::placeholders::_3));
+			std::bind(&gcTimerProc, std::placeholders::_2));
 		handles.push(timer);
 	}
 }
@@ -125,9 +126,22 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(const AccountUuid &accountUuid){
 		}
 		auto itemBox = boost::make_shared<ItemBox>(accountUuid, objs);
 
+		const auto itemBoxRefreshInterval = getConfig<boost::uint64_t>("item_box_refresh_interval", 60000);
+		auto timer = Poseidon::TimerDaemon::registerTimer(0, itemBoxRefreshInterval,
+			std::bind([](const boost::weak_ptr<ItemBox> &weak){
+				PROFILE_ME;
+				const auto itemBox = weak.lock();
+				if(!itemBox){
+					return;
+				}
+				itemBox->pumpStatus();
+			}, boost::weak_ptr<ItemBox>(itemBox))
+		);
+
 		it->promise = { };
 		it->sink    = { };
 		it->itemBox = std::move(itemBox);
+		it->timer   = std::move(timer);
 	}
 	return it->itemBox;
 }

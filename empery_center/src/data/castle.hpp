@@ -1,5 +1,5 @@
-#ifndef EMPERY_CENTER_DATA_SNG_LEVEL_HPP_
-#define EMPERY_CENTER_DATA_SNG_LEVEL_HPP_
+#ifndef EMPERY_CENTER_DATA_CASTLE_HPP_
+#define EMPERY_CENTER_DATA_CASTLE_HPP_
 
 #include "common.hpp"
 #include <boost/container/flat_set.hpp>

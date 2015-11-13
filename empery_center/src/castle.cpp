@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "castle.hpp"
+#include "resource_transaction_element.hpp"
 #include "map_object.hpp"
 #include "mysql/castle_building_base.hpp"
 #include "mysql/castle_tech.hpp"

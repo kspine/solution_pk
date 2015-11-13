@@ -102,343 +102,343 @@ namespace {
 		csv.get(minutes, "demolition");
 		elem.destructDuration = checkedMul<boost::uint64_t>(minutes, 10000);//XXX
 	}
-}
 
-MODULE_RAII_PRIORITY(handles, 1000){
-	const auto dataDirectory = getConfig<std::string>("data_directory", "empery_center_data");
+	MODULE_RAII_PRIORITY(handles, 1000){
+		const auto dataDirectory = getConfig<std::string>("data_directory", "empery_center_data");
 
-	Poseidon::CsvParser csv;
+		Poseidon::CsvParser csv;
 
-	const auto buildingBaseMap = boost::make_shared<CastleBuildingBaseMap>();
-	auto path = dataDirectory + "/" + BUILDING_BASE_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle building bases: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleBuildingBase elem = { };
+		const auto buildingBaseMap = boost::make_shared<CastleBuildingBaseMap>();
+		auto path = dataDirectory + "/" + BUILDING_BASE_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle building bases: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleBuildingBase elem = { };
 
-		csv.get(elem.buildingBaseId, "index");
+			csv.get(elem.buildingBaseId, "index");
 
-		std::string str;
-		csv.get(str, "building_id", "[]");
-		try {
-			std::istringstream iss(str);
-			const auto root = Poseidon::JsonParser::parseArray(iss);
-			elem.buildingsAllowed.reserve(root.size());
-			for(auto it = root.begin(); it != root.end(); ++it){
-				const auto buildingId = BuildingId(it->get<double>());
-				if(!elem.buildingsAllowed.emplace(buildingId).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate building allowed: buildingId = ", buildingId);
-					DEBUG_THROW(Exception, sslit("Duplicate building allowed"));
+			std::string str;
+			csv.get(str, "building_id", "[]");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parseArray(iss);
+				elem.buildingsAllowed.reserve(root.size());
+				for(auto it = root.begin(); it != root.end(); ++it){
+					const auto buildingId = BuildingId(it->get<double>());
+					if(!elem.buildingsAllowed.emplace(buildingId).second){
+						LOG_EMPERY_CENTER_ERROR("Duplicate building allowed: buildingId = ", buildingId);
+						DEBUG_THROW(Exception, sslit("Duplicate building allowed"));
+					}
 				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", buildingBaseId = ", elem.buildingBaseId, ", str = ", str);
+				throw;
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", buildingBaseId = ", elem.buildingBaseId, ", str = ", str);
-			throw;
+
+			csv.get(elem.initLevel, "initial_level");
+
+			if(!buildingBaseMap->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate building base: buildingBaseId = ", elem.buildingBaseId);
+				DEBUG_THROW(Exception, sslit("Duplicate building base"));
+			}
 		}
+		g_buildingBaseMap = buildingBaseMap;
+		handles.push(DataSession::createServlet(BUILDING_BASE_FILE, serializeCsv(csv, "index")));
+		handles.push(buildingBaseMap);
 
-		csv.get(elem.initLevel, "initial_level");
+		const auto buildingMap = boost::make_shared<CastleBuildingMap>();
+		path = dataDirectory + "/" + BUILDING_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle buildings: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleBuilding elem = { };
 
-		if(!buildingBaseMap->insert(std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate building base: buildingBaseId = ", elem.buildingBaseId);
-			DEBUG_THROW(Exception, sslit("Duplicate building base"));
+			csv.get(elem.buildingId, "id");
+			csv.get(elem.buildLimit, "num");
+			unsigned temp;
+			csv.get(temp, "type");
+			elem.type = static_cast<Data::CastleBuilding::Type>(temp);
+
+			if(!buildingMap->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate building: buildingId = ", elem.buildingId);
+				DEBUG_THROW(Exception, sslit("Duplicate building"));
+			}
 		}
-	}
-	g_buildingBaseMap = buildingBaseMap;
-	handles.push(DataSession::createServlet(BUILDING_BASE_FILE, serializeCsv(csv, "index")));
-	handles.push(buildingBaseMap);
+		g_buildingMap = buildingMap;
+		handles.push(DataSession::createServlet(BUILDING_FILE, serializeCsv(csv, "id")));
+		handles.push(buildingMap);
 
-	const auto buildingMap = boost::make_shared<CastleBuildingMap>();
-	path = dataDirectory + "/" + BUILDING_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle buildings: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleBuilding elem = { };
+		const auto upgradePrimaryMap = boost::make_shared<CastleUpgradePrimaryMap>();
+		path = dataDirectory + "/" + UPGRADE_PRIMARY_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle upgrade primary: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleUpgradePrimary elem = { };
 
-		csv.get(elem.buildingId, "id");
-		csv.get(elem.buildLimit, "num");
-		unsigned temp;
-		csv.get(temp, "type");
-		elem.type = static_cast<Data::CastleBuilding::Type>(temp);
+			csv.get(elem.buildingLevel, "castel_level");
+			readUpgradeElement(elem, csv);
 
-		if(!buildingMap->insert(std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate building: buildingId = ", elem.buildingId);
-			DEBUG_THROW(Exception, sslit("Duplicate building"));
+			if(!upgradePrimaryMap->emplace(elem.buildingLevel, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade primary: buildingLevel = ", elem.buildingLevel);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade primary"));
+			}
 		}
-	}
-	g_buildingMap = buildingMap;
-	handles.push(DataSession::createServlet(BUILDING_FILE, serializeCsv(csv, "id")));
-	handles.push(buildingMap);
+		g_upgradePrimaryMap = upgradePrimaryMap;
+		handles.push(DataSession::createServlet(UPGRADE_PRIMARY_FILE, serializeCsv(csv, "castel_level")));
+		handles.push(upgradePrimaryMap);
 
-	const auto upgradePrimaryMap = boost::make_shared<CastleUpgradePrimaryMap>();
-	path = dataDirectory + "/" + UPGRADE_PRIMARY_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle upgrade primary: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleUpgradePrimary elem = { };
+		const auto upgradeBarracksMap = boost::make_shared<CastleUpgradeBarracksMap>();
+		path = dataDirectory + "/" + UPGRADE_BARRACKS_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle upgrade barracks: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleUpgradeBarracks elem = { };
 
-		csv.get(elem.buildingLevel, "castel_level");
-		readUpgradeElement(elem, csv);
+			csv.get(elem.buildingLevel, "camp_level");
+			readUpgradeElement(elem, csv);
 
-		if(!upgradePrimaryMap->emplace(elem.buildingLevel, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade primary: buildingLevel = ", elem.buildingLevel);
-			DEBUG_THROW(Exception, sslit("Duplicate upgrade primary"));
+			//
+
+			if(!upgradeBarracksMap->emplace(elem.buildingLevel, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade barracks: buildingLevel = ", elem.buildingLevel);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade barracks"));
+			}
 		}
-	}
-	g_upgradePrimaryMap = upgradePrimaryMap;
-	handles.push(DataSession::createServlet(UPGRADE_PRIMARY_FILE, serializeCsv(csv, "castel_level")));
-	handles.push(upgradePrimaryMap);
+		g_upgradeBarracksMap = upgradeBarracksMap;
+		handles.push(DataSession::createServlet(UPGRADE_BARRACKS_FILE, serializeCsv(csv, "camp_level")));
+		handles.push(upgradeBarracksMap);
 
-	const auto upgradeBarracksMap = boost::make_shared<CastleUpgradeBarracksMap>();
-	path = dataDirectory + "/" + UPGRADE_BARRACKS_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle upgrade barracks: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleUpgradeBarracks elem = { };
+		const auto upgradeAcademyMap = boost::make_shared<CastleUpgradeAcademyMap>();
+		path = dataDirectory + "/" + UPGRADE_ACADEMY_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle upgrade academy: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleUpgradeAcademy elem = { };
 
-		csv.get(elem.buildingLevel, "camp_level");
-		readUpgradeElement(elem, csv);
+			csv.get(elem.buildingLevel, "college_level");
+			readUpgradeElement(elem, csv);
 
-		//
+			csv.get(elem.techLevel, "tech_level");
 
-		if(!upgradeBarracksMap->emplace(elem.buildingLevel, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade barracks: buildingLevel = ", elem.buildingLevel);
-			DEBUG_THROW(Exception, sslit("Duplicate upgrade barracks"));
+			if(!upgradeAcademyMap->emplace(elem.buildingLevel, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade academy: buildingLevel = ", elem.buildingLevel);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade academy"));
+			}
 		}
-	}
-	g_upgradeBarracksMap = upgradeBarracksMap;
-	handles.push(DataSession::createServlet(UPGRADE_BARRACKS_FILE, serializeCsv(csv, "camp_level")));
-	handles.push(upgradeBarracksMap);
+		g_upgradeAcademyMap = upgradeAcademyMap;
+		handles.push(DataSession::createServlet(UPGRADE_ACADEMY_FILE, serializeCsv(csv, "college_level")));
+		handles.push(upgradeAcademyMap);
 
-	const auto upgradeAcademyMap = boost::make_shared<CastleUpgradeAcademyMap>();
-	path = dataDirectory + "/" + UPGRADE_ACADEMY_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle upgrade academy: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleUpgradeAcademy elem = { };
+		const auto upgradeCivilianMap = boost::make_shared<CastleUpgradeCivilianMap>();
+		path = dataDirectory + "/" + UPGRADE_CIVILIAN_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle upgrade civilian: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleUpgradeCivilian elem = { };
 
-		csv.get(elem.buildingLevel, "college_level");
-		readUpgradeElement(elem, csv);
+			csv.get(elem.buildingLevel, "house_level");
+			readUpgradeElement(elem, csv);
 
-		csv.get(elem.techLevel, "tech_level");
+			csv.get(elem.maxPopulation, "population_max");
 
-		if(!upgradeAcademyMap->emplace(elem.buildingLevel, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade academy: buildingLevel = ", elem.buildingLevel);
-			DEBUG_THROW(Exception, sslit("Duplicate upgrade academy"));
+			if(!upgradeCivilianMap->emplace(elem.buildingLevel, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade civilian: buildingLevel = ", elem.buildingLevel);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade civilian"));
+			}
 		}
-	}
-	g_upgradeAcademyMap = upgradeAcademyMap;
-	handles.push(DataSession::createServlet(UPGRADE_ACADEMY_FILE, serializeCsv(csv, "college_level")));
-	handles.push(upgradeAcademyMap);
+		g_upgradeCivilianMap = upgradeCivilianMap;
+		handles.push(DataSession::createServlet(UPGRADE_CIVILIAN_FILE, serializeCsv(csv, "house_level")));
+		handles.push(upgradeCivilianMap);
 
-	const auto upgradeCivilianMap = boost::make_shared<CastleUpgradeCivilianMap>();
-	path = dataDirectory + "/" + UPGRADE_CIVILIAN_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle upgrade civilian: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleUpgradeCivilian elem = { };
+		const auto upgradeWarehouseMap = boost::make_shared<CastleUpgradeWarehouseMap>();
+		path = dataDirectory + "/" + UPGRADE_WAREHOUSE_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle upgrade warehouse: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleUpgradeWarehouse elem = { };
 
-		csv.get(elem.buildingLevel, "house_level");
-		readUpgradeElement(elem, csv);
+			csv.get(elem.buildingLevel, "storage_level");
+			readUpgradeElement(elem, csv);
 
-		csv.get(elem.maxPopulation, "population_max");
-
-		if(!upgradeCivilianMap->emplace(elem.buildingLevel, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade civilian: buildingLevel = ", elem.buildingLevel);
-			DEBUG_THROW(Exception, sslit("Duplicate upgrade civilian"));
-		}
-	}
-	g_upgradeCivilianMap = upgradeCivilianMap;
-	handles.push(DataSession::createServlet(UPGRADE_CIVILIAN_FILE, serializeCsv(csv, "house_level")));
-	handles.push(upgradeCivilianMap);
-
-	const auto upgradeWarehouseMap = boost::make_shared<CastleUpgradeWarehouseMap>();
-	path = dataDirectory + "/" + UPGRADE_WAREHOUSE_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle upgrade warehouse: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleUpgradeWarehouse elem = { };
-
-		csv.get(elem.buildingLevel, "storage_level");
-		readUpgradeElement(elem, csv);
-
-		std::string str;
-		csv.get(str, "resource_max", "{}");
-		try {
-			std::istringstream iss(str);
-			const auto root = Poseidon::JsonParser::parseObject(iss);
-			elem.maxResourceAmount.reserve(root.size());
-			for(auto it = root.begin(); it != root.end(); ++it){
-				const auto resourceId = boost::lexical_cast<ResourceId>(it->first);
-				const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
-				if(!elem.maxResourceAmount.emplace(resourceId, count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate resource amount: resourceId = ", resourceId);
-					DEBUG_THROW(Exception, sslit("Duplicate resource amount"));
+			std::string str;
+			csv.get(str, "resource_max", "{}");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parseObject(iss);
+				elem.maxResourceAmount.reserve(root.size());
+				for(auto it = root.begin(); it != root.end(); ++it){
+					const auto resourceId = boost::lexical_cast<ResourceId>(it->first);
+					const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
+					if(!elem.maxResourceAmount.emplace(resourceId, count).second){
+						LOG_EMPERY_CENTER_ERROR("Duplicate resource amount: resourceId = ", resourceId);
+						DEBUG_THROW(Exception, sslit("Duplicate resource amount"));
+					}
 				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", buildingLevel = ", elem.buildingLevel, ", str = ", str);
+				throw;
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", buildingLevel = ", elem.buildingLevel, ", str = ", str);
-			throw;
+
+			if(!upgradeWarehouseMap->emplace(elem.buildingLevel, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade warehouse: buildingLevel = ", elem.buildingLevel);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade warehouse"));
+			}
 		}
+		g_upgradeWarehouseMap = upgradeWarehouseMap;
+		handles.push(DataSession::createServlet(UPGRADE_WAREHOUSE_FILE, serializeCsv(csv, "storage_level")));
+		handles.push(upgradeWarehouseMap);
 
-		if(!upgradeWarehouseMap->emplace(elem.buildingLevel, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade warehouse: buildingLevel = ", elem.buildingLevel);
-			DEBUG_THROW(Exception, sslit("Duplicate upgrade warehouse"));
+		const auto upgradeCitadelWallMap = boost::make_shared<CastleUpgradeCitadelWallMap>();
+		path = dataDirectory + "/" + UPGRADE_CITADEL_WALL_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle upgrade citadel wall: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleUpgradeCitadelWall elem = { };
+
+			csv.get(elem.buildingLevel, "wall_level");
+			readUpgradeElement(elem, csv);
+
+			csv.get(elem.strength, "troops");
+			csv.get(elem.armor, "defence");
+
+			if(!upgradeCitadelWallMap->emplace(elem.buildingLevel, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade citadel wall: buildingLevel = ", elem.buildingLevel);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade citadel wall"));
+			}
 		}
-	}
-	g_upgradeWarehouseMap = upgradeWarehouseMap;
-	handles.push(DataSession::createServlet(UPGRADE_WAREHOUSE_FILE, serializeCsv(csv, "storage_level")));
-	handles.push(upgradeWarehouseMap);
+		g_upgradeCitadelWallMap = upgradeCitadelWallMap;
+		handles.push(DataSession::createServlet(UPGRADE_CITADEL_WALL_FILE, serializeCsv(csv, "wall_level")));
+		handles.push(upgradeCitadelWallMap);
 
-	const auto upgradeCitadelWallMap = boost::make_shared<CastleUpgradeCitadelWallMap>();
-	path = dataDirectory + "/" + UPGRADE_CITADEL_WALL_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle upgrade citadel wall: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleUpgradeCitadelWall elem = { };
+		const auto upgradeDefenseTowerMap = boost::make_shared<CastleUpgradeDefenseTowerMap>();
+		path = dataDirectory + "/" + UPGRADE_DEFENSE_TOWER_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle upgrade defense tower: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleUpgradeDefenseTower elem = { };
 
-		csv.get(elem.buildingLevel, "wall_level");
-		readUpgradeElement(elem, csv);
+			csv.get(elem.buildingLevel, "tower_level");
+			readUpgradeElement(elem, csv);
 
-		csv.get(elem.strength, "troops");
-		csv.get(elem.armor, "defence");
+			csv.get(elem.firepower, "atk");
 
-		if(!upgradeCitadelWallMap->emplace(elem.buildingLevel, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade citadel wall: buildingLevel = ", elem.buildingLevel);
-			DEBUG_THROW(Exception, sslit("Duplicate upgrade citadel wall"));
+			if(!upgradeDefenseTowerMap->emplace(elem.buildingLevel, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade defense tower: buildingLevel = ", elem.buildingLevel);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade defense tower"));
+			}
 		}
-	}
-	g_upgradeCitadelWallMap = upgradeCitadelWallMap;
-	handles.push(DataSession::createServlet(UPGRADE_CITADEL_WALL_FILE, serializeCsv(csv, "wall_level")));
-	handles.push(upgradeCitadelWallMap);
+		g_upgradeDefenseTowerMap = upgradeDefenseTowerMap;
+		handles.push(DataSession::createServlet(UPGRADE_DEFENSE_TOWER_FILE, serializeCsv(csv, "tower_level")));
+		handles.push(upgradeDefenseTowerMap);
 
-	const auto upgradeDefenseTowerMap = boost::make_shared<CastleUpgradeDefenseTowerMap>();
-	path = dataDirectory + "/" + UPGRADE_DEFENSE_TOWER_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle upgrade defense tower: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleUpgradeDefenseTower elem = { };
+		const auto techMap = boost::make_shared<CastleTechMap>();
+		path = dataDirectory + "/" + TECH_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading castle tech: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetchRow()){
+			Data::CastleTech elem = { };
 
-		csv.get(elem.buildingLevel, "tower_level");
-		readUpgradeElement(elem, csv);
+			std::string str;
+			csv.get(str, "tech_id_level");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parseArray(iss);
+				elem.techIdLevel.first = TechId(root.at(0).get<double>());
+				elem.techIdLevel.second = root.at(1).get<double>();
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", str = ", str);
+				throw;
+			}
 
-		csv.get(elem.firepower, "atk");
+			boost::uint64_t minutes;
+			csv.get(minutes, "levelup_time");
+			elem.upgradeDuration = checkedMul<boost::uint64_t>(minutes, 1000);//XXX
 
-		if(!upgradeDefenseTowerMap->emplace(elem.buildingLevel, std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate upgrade defense tower: buildingLevel = ", elem.buildingLevel);
-			DEBUG_THROW(Exception, sslit("Duplicate upgrade defense tower"));
-		}
-	}
-	g_upgradeDefenseTowerMap = upgradeDefenseTowerMap;
-	handles.push(DataSession::createServlet(UPGRADE_DEFENSE_TOWER_FILE, serializeCsv(csv, "tower_level")));
-	handles.push(upgradeDefenseTowerMap);
-
-	const auto techMap = boost::make_shared<CastleTechMap>();
-	path = dataDirectory + "/" + TECH_FILE + ".csv";
-	LOG_EMPERY_CENTER_INFO("Loading castle tech: path = ", path);
-	csv.load(path.c_str());
-	while(csv.fetchRow()){
-		Data::CastleTech elem = { };
-
-		std::string str;
-		csv.get(str, "tech_id_level");
-		try {
-			std::istringstream iss(str);
-			const auto root = Poseidon::JsonParser::parseArray(iss);
-			elem.techIdLevel.first = TechId(root.at(0).get<double>());
-			elem.techIdLevel.second = root.at(1).get<double>();
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", str = ", str);
-			throw;
-		}
-
-		boost::uint64_t minutes;
-		csv.get(minutes, "levelup_time");
-		elem.upgradeDuration = checkedMul<boost::uint64_t>(minutes, 1000);//XXX
-
-		csv.get(str, "need_resource", "{}");
-		try {
-			std::istringstream iss(str);
-			const auto root = Poseidon::JsonParser::parseObject(iss);
-			elem.upgradeCost.reserve(root.size());
-			for(auto it = root.begin(); it != root.end(); ++it){
-				const auto resourceId = boost::lexical_cast<ResourceId>(it->first);
-				const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
-				if(!elem.upgradeCost.emplace(resourceId, count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate upgrade cost: resourceId = ", resourceId);
-					DEBUG_THROW(Exception, sslit("Duplicate upgrade cost"));
+			csv.get(str, "need_resource", "{}");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parseObject(iss);
+				elem.upgradeCost.reserve(root.size());
+				for(auto it = root.begin(); it != root.end(); ++it){
+					const auto resourceId = boost::lexical_cast<ResourceId>(it->first);
+					const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
+					if(!elem.upgradeCost.emplace(resourceId, count).second){
+						LOG_EMPERY_CENTER_ERROR("Duplicate upgrade cost: resourceId = ", resourceId);
+						DEBUG_THROW(Exception, sslit("Duplicate upgrade cost"));
+					}
 				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
+					", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
+				throw;
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
-				", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
-			throw;
-		}
 
-		csv.get(str, "need", "{}");
-		try {
-			std::istringstream iss(str);
-			const auto root = Poseidon::JsonParser::parseObject(iss);
-			elem.prerequisite.reserve(root.size());
-			for(auto it = root.begin(); it != root.end(); ++it){
-				const auto buildingId = boost::lexical_cast<BuildingId>(it->first);
-				const auto buildingLevel = static_cast<unsigned>(it->second.get<double>());
-				if(!elem.prerequisite.emplace(buildingId, buildingLevel).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate prerequisite: buildingId = ", buildingId);
-					DEBUG_THROW(Exception, sslit("Duplicate prerequisite"));
+			csv.get(str, "need", "{}");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parseObject(iss);
+				elem.prerequisite.reserve(root.size());
+				for(auto it = root.begin(); it != root.end(); ++it){
+					const auto buildingId = boost::lexical_cast<BuildingId>(it->first);
+					const auto buildingLevel = static_cast<unsigned>(it->second.get<double>());
+					if(!elem.prerequisite.emplace(buildingId, buildingLevel).second){
+						LOG_EMPERY_CENTER_ERROR("Duplicate prerequisite: buildingId = ", buildingId);
+						DEBUG_THROW(Exception, sslit("Duplicate prerequisite"));
+					}
 				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
+					", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
+				throw;
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
-				", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
-			throw;
-		}
 
-		csv.get(str, "level_open", "{}");
-		try {
-			std::istringstream iss(str);
-			const auto root = Poseidon::JsonParser::parseObject(iss);
-			elem.displayPrerequisite.reserve(root.size());
-			for(auto it = root.begin(); it != root.end(); ++it){
-				const auto buildingId = boost::lexical_cast<BuildingId>(it->first);
-				const auto buildingLevel = static_cast<unsigned>(it->second.get<double>());
-				if(!elem.displayPrerequisite.emplace(buildingId, buildingLevel).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate display prerequisite: buildingId = ", buildingId);
-					DEBUG_THROW(Exception, sslit("Duplicate display prerequisite"));
+			csv.get(str, "level_open", "{}");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parseObject(iss);
+				elem.displayPrerequisite.reserve(root.size());
+				for(auto it = root.begin(); it != root.end(); ++it){
+					const auto buildingId = boost::lexical_cast<BuildingId>(it->first);
+					const auto buildingLevel = static_cast<unsigned>(it->second.get<double>());
+					if(!elem.displayPrerequisite.emplace(buildingId, buildingLevel).second){
+						LOG_EMPERY_CENTER_ERROR("Duplicate display prerequisite: buildingId = ", buildingId);
+						DEBUG_THROW(Exception, sslit("Duplicate display prerequisite"));
+					}
 				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
+					", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
+				throw;
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
-				", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
-			throw;
-		}
 
-		csv.get(str, "tech_effect", "{}");
-		try {
-			std::istringstream iss(str);
-			const auto root = Poseidon::JsonParser::parseObject(iss);
-			elem.attributes.reserve(root.size());
-			for(auto it = root.begin(); it != root.end(); ++it){
-				const auto attributeId = boost::lexical_cast<AttributeId>(it->first);
-				const auto value = it->second.get<double>();
-				if(!elem.attributes.emplace(attributeId, value).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate attribute: attributeId = ", attributeId);
-					DEBUG_THROW(Exception, sslit("Duplicate attribute"));
+			csv.get(str, "tech_effect", "{}");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parseObject(iss);
+				elem.attributes.reserve(root.size());
+				for(auto it = root.begin(); it != root.end(); ++it){
+					const auto attributeId = boost::lexical_cast<AttributeId>(it->first);
+					const auto value = it->second.get<double>();
+					if(!elem.attributes.emplace(attributeId, value).second){
+						LOG_EMPERY_CENTER_ERROR("Duplicate attribute: attributeId = ", attributeId);
+						DEBUG_THROW(Exception, sslit("Duplicate attribute"));
+					}
 				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
+					", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
+				throw;
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(),
-				", techId = ", elem.techIdLevel.first, ", level = ", elem.techIdLevel.second, ", str = ", str);
-			throw;
-		}
 
-		if(!techMap->insert(std::move(elem)).second){
-			LOG_EMPERY_CENTER_ERROR("Duplicate tech: techId = ", elem.techIdLevel.first, ", techLevel = ", elem.techIdLevel.second);
-			DEBUG_THROW(Exception, sslit("Duplicate tech"));
+			if(!techMap->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate tech: techId = ", elem.techIdLevel.first, ", techLevel = ", elem.techIdLevel.second);
+				DEBUG_THROW(Exception, sslit("Duplicate tech"));
+			}
 		}
+		g_techMap = techMap;
+		handles.push(DataSession::createServlet(TECH_FILE, serializeCsv(csv, "tech_id_level")));
+		handles.push(techMap);
 	}
-	g_techMap = techMap;
-	handles.push(DataSession::createServlet(TECH_FILE, serializeCsv(csv, "tech_id_level")));
-	handles.push(techMap);
 }
 
 namespace Data {
@@ -480,7 +480,7 @@ namespace Data {
 		const auto range = std::make_pair(buildingBaseMap->upperBound<1>(0), buildingBaseMap->end<1>());
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 		for(auto it = range.first; it != range.second; ++it){
-			ret.emplace_back(boost::shared_ptr<const CastleBuildingBase>(buildingBaseMap, &*it));
+			ret.emplace_back(buildingBaseMap, &*it);
 		}
 	}
 
