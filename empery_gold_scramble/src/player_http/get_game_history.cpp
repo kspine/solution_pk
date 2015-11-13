@@ -10,78 +10,78 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME	GameAutoIds
 #define MYSQL_OBJECT_FIELDS	\
-	FIELD_BIGINT_UNSIGNED	(gameAutoId)
+	FIELD_BIGINT_UNSIGNED	(game_auto_id)
 #include <poseidon/mysql/object_generator.hpp>
 
 	}
 }
 
 PLAYER_HTTP_SERVLET("getGameHistory", session, params){
-	const auto &gameAutoIdStr = params.get("gameAutoId");
-	const auto &timeBegin = params.get("timeBegin");
-	const auto &timeEnd = params.get("timeEnd");
-	const auto &loginName = params.get("loginName");
+	const auto &game_auto_id_str = params.get("gameAutoId");
+	const auto &time_begin = params.get("timeBegin");
+	const auto &time_end = params.get("timeEnd");
+	const auto &login_name = params.get("loginName");
 	const auto &nick = params.get("nick");
-	const auto &idsOnly = params.get("idsOnly");
+	const auto &ids_only = params.get("idsOnly");
 
 	Poseidon::JsonObject ret;
 
 	std::ostringstream oss;
 	oss <<"SELECT ";
-	if(idsOnly.empty()){
+	if(ids_only.empty()){
 		oss <<"* ";
 	} else {
-		oss <<"DISTINCT(`gameAutoId`) ";
+		oss <<"DISTINCT(`game_auto_id`) ";
 	}
 	oss <<"FROM `GoldScramble_GameHistory` WHERE 1=1 ";
-	if(!gameAutoIdStr.empty()){
-		auto gameAutoId = boost::lexical_cast<boost::uint64_t>(gameAutoIdStr);
-		oss <<"AND `gameAutoId` = " <<gameAutoId <<" ";
+	if(!game_auto_id_str.empty()){
+		auto game_auto_id = boost::lexical_cast<boost::uint64_t>(game_auto_id_str);
+		oss <<"AND `game_auto_id` = " <<game_auto_id <<" ";
 	}
-	if(!timeBegin.empty()){
+	if(!time_begin.empty()){
 		char str[256];
-		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeBegin), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_begin), false);
 		oss <<"AND '" <<str <<"' <= `timestamp` ";
-		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeEnd), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_end), false);
 		oss <<"AND `timestamp` < '" <<str <<"' ";
 	}
-	if(!loginName.empty()){
-		oss <<"AND `loginName` = '" <<Poseidon::MySql::StringEscaper(loginName) <<"' ";
+	if(!login_name.empty()){
+		oss <<"AND `login_name` = '" <<Poseidon::MySql::StringEscaper(login_name) <<"' ";
 	}
 	if(!nick.empty()){
 		oss <<"AND `nick` = '" <<Poseidon::MySql::StringEscaper(nick) <<"' ";
 	}
-	oss <<"ORDER BY `recordAutoId` DESC";
-	if(idsOnly.empty()){
+	oss <<"ORDER BY `record_auto_id` DESC";
+	if(ids_only.empty()){
 		std::vector<boost::shared_ptr<MySql::GoldScramble_GameHistory>> objs;
-		MySql::GoldScramble_GameHistory::batchLoad(objs, oss.str());
+		MySql::GoldScramble_GameHistory::batch_load(objs, oss.str());
 
 		Poseidon::JsonArray history;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
 
 			Poseidon::JsonObject elem;
-			elem[sslit("recordAutoId")]      = obj->get_recordAutoId();
-			elem[sslit("gameAutoId")]        = obj->get_gameAutoId();
+			elem[sslit("recordAutoId")]      = obj->get_record_auto_id();
+			elem[sslit("gameAutoId")]        = obj->get_game_auto_id();
 			elem[sslit("timestamp")]         = obj->get_timestamp();
-			elem[sslit("loginName")]         = obj->unlockedGet_loginName();
-			elem[sslit("nick")]              = obj->unlockedGet_nick();
-			elem[sslit("goldCoinsWon")]      = obj->get_goldCoinsWon();
-			elem[sslit("accountBalanceWon")] = obj->get_accountBalanceWon();
+			elem[sslit("loginName")]         = obj->unlocked_get_login_name();
+			elem[sslit("nick")]              = obj->unlocked_get_nick();
+			elem[sslit("goldCoinsWon")]      = obj->get_gold_coins_won();
+			elem[sslit("accountBalanceWon")] = obj->get_account_balance_won();
 			history.emplace_back(std::move(elem));
 		}
 		ret[sslit("history")] = std::move(history);
 	} else {
 		std::vector<boost::shared_ptr<MySql::GameAutoIds>> objs;
-		MySql::GameAutoIds::batchLoad(objs, oss.str());
+		MySql::GameAutoIds::batch_load(objs, oss.str());
 
-		Poseidon::JsonArray gameAutoIds;
+		Poseidon::JsonArray game_auto_ids;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
 
-			gameAutoIds.emplace_back(Poseidon::JsonElement(obj->get_gameAutoId()));
+			game_auto_ids.emplace_back(Poseidon::JsonElement(obj->get_game_auto_id()));
 		}
-		ret[sslit("gameAutoIds")] = std::move(gameAutoIds);
+		ret[sslit("gameAutoIds")] = std::move(game_auto_ids);
 	}
 
 	ret[sslit("errorCode")] = 0;

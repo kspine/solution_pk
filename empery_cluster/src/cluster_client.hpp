@@ -20,8 +20,8 @@ public:
 		Result (const boost::shared_ptr<ClusterClient> &client, Poseidon::StreamBuffer req)>;
 
 public:
-	static boost::shared_ptr<const ServletCallback> createServlet(boost::uint16_t messageId, ServletCallback callback);
-	static boost::shared_ptr<const ServletCallback> getServlet(boost::uint16_t messageId);
+	static boost::shared_ptr<const ServletCallback> create_servlet(boost::uint16_t message_id, ServletCallback callback);
+	static boost::shared_ptr<const ServletCallback> get_servlet(boost::uint16_t message_id);
 
 private:
 	struct RequestElement {
@@ -35,56 +35,56 @@ private:
 	};
 
 private:
-	unsigned m_messageId;
+	unsigned m_message_id;
 	Poseidon::StreamBuffer m_payload;
 
-	const boost::int64_t m_mapX;
-	const boost::int64_t m_mapY;
+	const boost::int64_t m_map_x;
+	const boost::int64_t m_map_y;
 
 	boost::uint64_t m_serial;
 	std::multimap<boost::uint64_t, RequestElement> m_requests;
 
 public:
-	ClusterClient(const Poseidon::IpPort &addr, bool useSsl, boost::uint64_t keepAliveInterval,
-		boost::int64_t mapX, boost::int64_t mapY);
+	ClusterClient(const Poseidon::IpPort &addr, bool use_ssl, boost::uint64_t keep_alive_interval,
+		boost::int64_t map_x, boost::int64_t map_y);
 	~ClusterClient();
 
 protected:
-	void onClose(int errCode) noexcept override;
+	void on_close(int err_code) noexcept override;
 
-	void onSyncConnect() override;
-	void onSyncDataMessageHeader(boost::uint16_t messageId, boost::uint64_t payloadSize) override;
-	void onSyncDataMessagePayload(boost::uint64_t payloadOffset, Poseidon::StreamBuffer payload) override;
-	void onSyncDataMessageEnd(boost::uint64_t payloadSize) override;
+	void on_sync_connect() override;
+	void on_sync_data_message_header(boost::uint16_t message_id, boost::uint64_t payload_size) override;
+	void on_sync_data_message_payload(boost::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
+	void on_sync_data_message_end(boost::uint64_t payload_size) override;
 
 public:
-	bool send(boost::uint16_t messageId, Poseidon::StreamBuffer body);
-	void shutdown(Poseidon::Cbpp::StatusCode errorCode, std::string errorMessage);
+	bool send(boost::uint16_t message_id, Poseidon::StreamBuffer body);
+	void shutdown(Poseidon::Cbpp::StatusCode error_code, std::string error_message);
 
 	// 警告：不能在 servlet 中调用，否则会造成死锁。
-	Result sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuffer body);
+	Result send_and_wait(boost::uint16_t message_id, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
-		LOG_EMPERY_CLUSTER_DEBUG("Sending request to center: remote = ", getRemoteInfo(), ", msg = ", msg);
+		LOG_EMPERY_CLUSTER_DEBUG("Sending request to center: remote = ", get_remote_info(), ", msg = ", msg);
 		return send(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 	template<typename MsgT>
-	Result sendAndWait(const MsgT &msg){
-		LOG_EMPERY_CLUSTER_DEBUG("Sending request to center: remote = ", getRemoteInfo(), ", msg = ", msg);
-		auto ret = sendAndWait(MsgT::ID, Poseidon::StreamBuffer(msg));
-		LOG_EMPERY_CLUSTER_DEBUG("Received response from center: remote = ", getRemoteInfo(),
-			", errorCode = ", static_cast<int>(ret.first), ", errorMessage = ", ret.second);
+	Result send_and_wait(const MsgT &msg){
+		LOG_EMPERY_CLUSTER_DEBUG("Sending request to center: remote = ", get_remote_info(), ", msg = ", msg);
+		auto ret = send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
+		LOG_EMPERY_CLUSTER_DEBUG("Received response from center: remote = ", get_remote_info(),
+			", error_code = ", static_cast<int>(ret.first), ", error_message = ", ret.second);
 		return ret;
 	}
 
-	bool sendNotification(const EmperyCenter::AccountUuid &accountUuid, boost::uint16_t messageId, Poseidon::StreamBuffer body);
+	bool send_notification(const EmperyCenter::AccountUuid &account_uuid, boost::uint16_t message_id, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
-	bool sendNotification(const EmperyCenter::AccountUuid &accountUuid, const MsgT &msg){
-		LOG_EMPERY_CLUSTER_DEBUG("Sending notification to center: remote = ", getRemoteInfo(),
-			", accountUuid = ", accountUuid, ", msg = ", msg);
-		return sendNotification(accountUuid, MsgT::ID, Poseidon::StreamBuffer(msg));
+	bool send_notification(const EmperyCenter::AccountUuid &account_uuid, const MsgT &msg){
+		LOG_EMPERY_CLUSTER_DEBUG("Sending notification to center: remote = ", get_remote_info(),
+			", account_uuid = ", account_uuid, ", msg = ", msg);
+		return send_notification(account_uuid, MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 };
 

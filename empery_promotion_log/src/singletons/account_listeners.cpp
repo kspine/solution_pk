@@ -10,20 +10,20 @@ namespace {
 	using namespace EmperyPromotion;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		auto listener = Poseidon::EventDispatcher::registerListener<Events::AccountCreated>(
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountCreated>(
 			[](const boost::shared_ptr<Events::AccountCreated> &event){
-				const auto obj = boost::make_shared<MySql::PromotionLog_AccountCreated>(Poseidon::getLocalTime(),
-					event->accountId.get(), event->remoteIp);
-				obj->asyncSave(true);
+				const auto obj = boost::make_shared<MySql::PromotionLog_AccountCreated>(Poseidon::get_local_time(),
+					event->account_id.get(), event->remote_ip);
+				obj->async_save(true);
 			});
 		LOG_EMPERY_PROMOTION_LOG_DEBUG("Created AccountCreated listener");
 		handles.push(std::move(listener));
 
-		listener = Poseidon::EventDispatcher::registerListener<Events::AccountLoggedIn>(
+		listener = Poseidon::EventDispatcher::register_listener<Events::AccountLoggedIn>(
 			[](const boost::shared_ptr<Events::AccountLoggedIn> &event){
-				const auto obj = boost::make_shared<MySql::PromotionLog_AccountLoggedIn>(Poseidon::getLocalTime(),
-					event->accountId.get(), event->remoteIp);
-				obj->asyncSave(true);
+				const auto obj = boost::make_shared<MySql::PromotionLog_AccountLoggedIn>(Poseidon::get_local_time(),
+					event->account_id.get(), event->remote_ip);
+				obj->async_save(true);
 			});
 		LOG_EMPERY_PROMOTION_LOG_DEBUG("Created AccountLoggedIn listener");
 		handles.push(std::move(listener));

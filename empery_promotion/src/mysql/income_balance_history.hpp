@@ -9,10 +9,10 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Promotion_IncomeBalanceHistory
 #define MYSQL_OBJECT_FIELDS \
-	FIELD_BIGINT_UNSIGNED   (accountId)	\
+	FIELD_BIGINT_UNSIGNED   (account_id)	\
 	FIELD_DATETIME          (timestamp)	\
-	FIELD_INTEGER_UNSIGNED  (autoId)	\
-	FIELD_BIGINT_UNSIGNED   (incomeBalance)	\
+	FIELD_INTEGER_UNSIGNED  (auto_id)	\
+	FIELD_BIGINT_UNSIGNED   (income_balance)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
 	FIELD_BIGINT_UNSIGNED   (param1)	\
 	FIELD_BIGINT_UNSIGNED   (param2)	\

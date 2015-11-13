@@ -10,57 +10,57 @@ namespace Msg {
 #define MESSAGE_NAME    SC_AccountLoginSuccess
 #define MESSAGE_ID      299
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (loginName)	\
+	FIELD_STRING        (login_name)	\
 	FIELD_STRING        (nick)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AccountAccountBalance
 #define MESSAGE_ID      298
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (goldCoins)	\
-	FIELD_VUINT         (accountBalance)
+	FIELD_VUINT         (gold_coins)	\
+	FIELD_VUINT         (account_balance)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AccountAuctionStatus
 #define MESSAGE_ID      297
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (serverTime)	\
-	FIELD_VUINT         (beginTime)	\
-	FIELD_VUINT         (endDuration)	\
-	FIELD_VUINT         (goldCoinsInPot)	\
-	FIELD_VUINT         (accountBalanceInPot)	\
-	FIELD_VUINT         (numberOfWinners)	\
-	FIELD_VUINT         (percentWinners)	\
+	FIELD_VUINT         (server_time)	\
+	FIELD_VUINT         (begin_time)	\
+	FIELD_VUINT         (end_duration)	\
+	FIELD_VUINT         (gold_coins_in_pot)	\
+	FIELD_VUINT         (account_balance_in_pot)	\
+	FIELD_VUINT         (number_of_winners)	\
+	FIELD_VUINT         (percent_winners)	\
 	FIELD_ARRAY         (records,	\
-		FIELD_VUINT         (recordAutoId)	\
+		FIELD_VUINT         (record_auto_id)	\
 		FIELD_VUINT         (timestamp)	\
-		FIELD_STRING        (loginName)	\
+		FIELD_STRING        (login_name)	\
 		FIELD_STRING        (nick)	\
-		FIELD_VUINT         (goldCoins)	\
-		FIELD_VUINT         (accountBalance)	\
+		FIELD_VUINT         (gold_coins)	\
+		FIELD_VUINT         (account_balance)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AccountGameHistory
 #define MESSAGE_ID      296
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (recordAutoId)	\
+	FIELD_VUINT         (record_auto_id)	\
 	FIELD_VUINT         (timestamp)	\
-	FIELD_STRING        (loginName)	\
+	FIELD_STRING        (login_name)	\
 	FIELD_STRING        (nick)	\
-	FIELD_VUINT         (goldCoinsWon)	\
-	FIELD_VUINT         (accountBalanceWon)
+	FIELD_VUINT         (gold_coins_won)	\
+	FIELD_VUINT         (account_balance_won)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AccountLastLog
 #define MESSAGE_ID      295
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (gameBeginTime)	\
-	FIELD_VUINT         (goldCoinsInPot)	\
-	FIELD_VUINT         (accountBalanceInPot)	\
-	FIELD_VUINT         (numberOfWinners)	\
+	FIELD_VUINT         (game_begin_time)	\
+	FIELD_VUINT         (gold_coins_in_pot)	\
+	FIELD_VUINT         (account_balance_in_pot)	\
+	FIELD_VUINT         (number_of_winners)	\
 	FIELD_ARRAY         (players,	\
-		FIELD_STRING        (loginName)	\
+		FIELD_STRING        (login_name)	\
 		FIELD_STRING        (nick)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>

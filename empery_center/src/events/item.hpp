@@ -8,21 +8,21 @@ namespace EmperyCenter {
 
 namespace Events {
 	struct ItemChanged : public Poseidon::EventBase<340201> {
-		AccountUuid accountUuid;
-		ItemId itemId;
-		boost::uint64_t oldCount;
-		boost::uint64_t newCount;
+		AccountUuid account_uuid;
+		ItemId item_id;
+		boost::uint64_t old_count;
+		boost::uint64_t new_count;
 
 		ReasonId reason;
 		boost::uint64_t param1;
 		boost::uint64_t param2;
 		boost::uint64_t param3;
 
-		ItemChanged(const AccountUuid &accountUuid_,
-			ItemId itemId_, boost::uint64_t oldCount_, boost::uint64_t newCount_,
+		ItemChanged(const AccountUuid &account_uuid_,
+			ItemId item_id_, boost::uint64_t old_count_, boost::uint64_t new_count_,
 			ReasonId reason_, boost::uint64_t param1_, boost::uint64_t param2_, boost::uint64_t param3_)
-			: accountUuid(accountUuid_)
-			, itemId(itemId_), oldCount(oldCount_), newCount(newCount_)
+			: account_uuid(account_uuid_)
+			, item_id(item_id_), old_count(old_count_), new_count(new_count_)
 			, reason(reason_), param1(param1_), param2(param2_), param3(param3_)
 		{
 		}

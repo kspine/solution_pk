@@ -6,10 +6,10 @@
 namespace EmperyGateWestwalk {
 
 ACCOUNT_SERVLET("check", session, params){
-	const auto &accountName = params.at("accountName");
+	const auto &account_name = params.at("accountName");
 
 	Poseidon::JsonObject ret;
-	if(AccountMap::has(accountName)){
+	if(AccountMap::has(account_name)){
 		ret[sslit("errCode")] = (int)Msg::ERR_DUPLICATE_ACCOUNT;
 		ret[sslit("msg")] = "Another account with the same name already exists";
 		return ret;

@@ -14,33 +14,33 @@ using Result          = ClusterSession::Result;
 using ServletCallback = ClusterSession::ServletCallback;
 
 namespace {
-	std::map<unsigned, boost::weak_ptr<const ServletCallback> > g_servletMap;
+	std::map<unsigned, boost::weak_ptr<const ServletCallback> > g_servlet_map;
 }
 
-boost::shared_ptr<const ServletCallback> ClusterSession::createServlet(boost::uint16_t messageId, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> ClusterSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
 	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
-	const auto result = g_servletMap.insert(std::make_pair(messageId, servlet));
+	const auto result = g_servlet_map.insert(std::make_pair(message_id, servlet));
 	if(!result.second){
 		if(!result.first->second.expired()){
-			LOG_EMPERY_CENTER_ERROR("Duplicate cluster servlet: messageId = ", messageId);
+			LOG_EMPERY_CENTER_ERROR("Duplicate cluster servlet: message_id = ", message_id);
 			DEBUG_THROW(Exception, sslit("Duplicate cluster servlet"));
 		}
 		result.first->second = servlet;
 	}
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> ClusterSession::getServlet(boost::uint16_t messageId){
+boost::shared_ptr<const ServletCallback> ClusterSession::get_servlet(boost::uint16_t message_id){
 	PROFILE_ME;
 
-	const auto it = g_servletMap.find(messageId);
-	if(it == g_servletMap.end()){
+	const auto it = g_servlet_map.find(message_id);
+	if(it == g_servlet_map.end()){
 		return { };
 	}
 	auto servlet = it->second.lock();
 	if(!servlet){
-		g_servletMap.erase(it);
+		g_servlet_map.erase(it);
 		return { };
 	}
 	return servlet;
@@ -56,24 +56,24 @@ ClusterSession::~ClusterSession(){
 	LOG_EMPERY_CENTER_INFO("ClusterSession destructor: this = ", (void *)this);
 }
 
-void ClusterSession::onClose(int errCode) noexcept {
+void ClusterSession::on_close(int err_code) noexcept {
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_INFO("Cluster session closed: errCode = ", errCode);
+	LOG_EMPERY_CENTER_INFO("Cluster session closed: err_code = ", err_code);
 
 	try {
-		Poseidon::enqueueAsyncJob(std::bind([&](const boost::shared_ptr<void> &){
+		Poseidon::enqueue_async_job(std::bind([&](const boost::shared_ptr<void> &){
 			for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
 				const auto &promise = it->second.promise;
-				if(!promise || promise->isSatisfied()){
+				if(!promise || promise->is_satisfied()){
 					continue;
 				}
 				try {
 					try {
 						DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
 					} catch(Poseidon::Exception &e){
-						promise->setException(boost::copy_exception(e));
+						promise->set_exception(boost::copy_exception(e));
 					} catch(std::exception &e){
-						promise->setException(boost::copy_exception(e));
+						promise->set_exception(boost::copy_exception(e));
 					}
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
@@ -85,42 +85,42 @@ void ClusterSession::onClose(int errCode) noexcept {
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
 
-	Poseidon::Cbpp::Session::onClose(errCode);
+	Poseidon::Cbpp::Session::on_close(err_code);
 }
 
-void ClusterSession::onSyncDataMessage(boost::uint16_t messageId, Poseidon::StreamBuffer payload){
+void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_DEBUG("Received data message from cluster server: remote = ", getRemoteInfo(),
-		", messageId = ", messageId, ", size = ", payload.size());
+	LOG_EMPERY_CENTER_DEBUG("Received data message from cluster server: remote = ", get_remote_info(),
+		", message_id = ", message_id, ", size = ", payload.size());
 
-	if(messageId == Msg::G_PackedRequest::ID){
+	if(message_id == Msg::G_PackedRequest::ID){
 		Msg::G_PackedRequest packed(std::move(payload));
 		Result result;
 		try {
-			const auto servlet = getServlet(packed.messageId);
+			const auto servlet = get_servlet(packed.message_id);
 			if(!servlet){
-				LOG_EMPERY_CENTER_WARNING("No servlet found: messageId = ", packed.messageId);
+				LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", packed.message_id);
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
 			}
-			result = (*servlet)(virtualSharedFromThis<ClusterSession>(), Poseidon::StreamBuffer(packed.payload));
+			result = (*servlet)(virtual_shared_from_this<ClusterSession>(), Poseidon::StreamBuffer(packed.payload));
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"Poseidon::Cbpp::Exception thrown: messageId = ", messageId, ", what = ", e.what());
-			result.first = e.statusCode();
+				"Poseidon::Cbpp::Exception thrown: message_id = ", message_id, ", what = ", e.what());
+			result.first = e.status_code();
 			result.second = e.what();
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"std::exception thrown: messageId = ", messageId, ", what = ", e.what());
+				"std::exception thrown: message_id = ", message_id, ", what = ", e.what());
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
 		LOG_EMPERY_CENTER_DEBUG("Sending response to cluster server: code = ", result.first, ", message = ", result.second);
 		Poseidon::Cbpp::Session::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
 		if(result.first < 0){
-			shutdownRead();
-			shutdownWrite();
+			shutdown_read();
+			shutdown_write();
 		}
-	} else if(messageId == Msg::G_PackedResponse::ID){
+	} else if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(std::move(payload));
 		LOG_EMPERY_CENTER_DEBUG("Received response from cluster server: code = ", packed.code, ", message = ", packed.message);
 		const auto it = m_requests.find(packed.serial);
@@ -132,46 +132,46 @@ void ClusterSession::onSyncDataMessage(boost::uint16_t messageId, Poseidon::Stre
 				*elem.result = std::make_pair(packed.code, std::move(packed.message));
 			}
 			if(elem.promise){
-				elem.promise->setSuccess();
+				elem.promise->set_success();
 			}
 		}
-	} else if(messageId == Msg::G_PackedAccountNotification::ID){
+	} else if(message_id == Msg::G_PackedAccountNotification::ID){
 		Msg::G_PackedAccountNotification packed(std::move(payload));
-		LOG_EMPERY_CENTER_DEBUG("Forwarding message: accountUuid = ", packed.accountUuid,
-			", messageId = ", packed.messageId, ", payloadSize = ", packed.payload.size());
-		const auto accountUuid = AccountUuid(packed.accountUuid);
-		const auto session = PlayerSessionMap::get(accountUuid);
+		LOG_EMPERY_CENTER_DEBUG("Forwarding message: account_uuid = ", packed.account_uuid,
+			", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
+		const auto account_uuid = AccountUuid(packed.account_uuid);
+		const auto session = PlayerSessionMap::get(account_uuid);
 		if(!session){
-			LOG_EMPERY_CENTER_DEBUG("Player is not online: accountUuid = ", accountUuid);
+			LOG_EMPERY_CENTER_DEBUG("Player is not online: account_uuid = ", account_uuid);
 		} else {
 			try {
-				session->send(packed.messageId, Poseidon::StreamBuffer(packed.payload));
+				session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->forceShutdown();
+				session->force_shutdown();
 			}
 		}
 	} else {
-		LOG_EMPERY_CENTER_WARNING("Unknown message from cluster server: remote = ", getRemoteInfo(), ", messageId = ", messageId);
+		LOG_EMPERY_CENTER_WARNING("Unknown message from cluster server: remote = ", get_remote_info(), ", message_id = ", message_id);
 		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 	}
 }
 
-bool ClusterSession::send(boost::uint16_t messageId, Poseidon::StreamBuffer body){
+bool ClusterSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
 	const auto serial = ++m_serial;
-	return Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, messageId, body.dump()));
+	return Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()));
 }
-void ClusterSession::shutdown(Poseidon::Cbpp::StatusCode errorCode, std::string errorMessage){
+void ClusterSession::shutdown(Poseidon::Cbpp::StatusCode error_code, std::string error_message){
 	PROFILE_ME;
 
-	Poseidon::Cbpp::Session::sendError(Poseidon::Cbpp::ControlMessage::ID, errorCode, std::move(errorMessage));
-	shutdownRead();
-	shutdownWrite();
+	Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, error_code, std::move(error_message));
+	shutdown_read();
+	shutdown_write();
 }
 
-Result ClusterSession::sendAndWait(boost::uint16_t messageId, Poseidon::StreamBuffer body){
+Result ClusterSession::send_and_wait(boost::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
 	Result ret;
@@ -180,11 +180,11 @@ Result ClusterSession::sendAndWait(boost::uint16_t messageId, Poseidon::StreamBu
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
 	m_requests.insert(std::make_pair(serial, RequestElement(&ret, promise)));
 	try {
-		if(!Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, messageId, body.dump()))){
+		if(!Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()))){
 			DEBUG_THROW(Exception, sslit("Could not send data to cluster server"));
 		}
 		Poseidon::JobDispatcher::yield(promise);
-		promise->checkAndRethrow();
+		promise->check_and_rethrow();
 	} catch(...){
 		m_requests.erase(serial);
 		throw;

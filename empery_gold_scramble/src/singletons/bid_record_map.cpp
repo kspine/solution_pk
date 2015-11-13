@@ -11,36 +11,36 @@ namespace {
 	struct RecordElement {
 		boost::shared_ptr<MySql::GoldScramble_BidHistory> obj;
 
-		boost::uint64_t recordAutoId;
-		std::string loginName;
+		boost::uint64_t record_auto_id;
+		std::string login_name;
 
 		explicit RecordElement(boost::shared_ptr<MySql::GoldScramble_BidHistory> obj_)
 			: obj(std::move(obj_))
-			, recordAutoId(obj->get_recordAutoId()), loginName(obj->unlockedGet_loginName())
+			, record_auto_id(obj->get_record_auto_id()), login_name(obj->unlocked_get_login_name())
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(RecordQueue, RecordElement,
-		UNIQUE_MEMBER_INDEX(recordAutoId)
-		UNIQUE_MEMBER_INDEX(loginName)
+		UNIQUE_MEMBER_INDEX(record_auto_id)
+		UNIQUE_MEMBER_INDEX(login_name)
 	)
 
 	RecordQueue g_queue;
 
 	MODULE_RAII_PRIORITY(/* handles */, 3000){
-		const auto conn = Poseidon::MySqlDaemon::createConnection();
+		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
 		RecordQueue queue;
-		const auto gameAutoId = GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID);
-		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Loading bid records: gameAutoId = ", gameAutoId);
+		const auto game_auto_id = GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID);
+		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Loading bid records: game_auto_id = ", game_auto_id);
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `GoldScramble_BidHistory` WHERE `gameAutoId` = " <<gameAutoId <<" ORDER BY `recordAutoId` ASC";
-		while(conn->fetchRow()){
+		oss <<"SELECT * FROM `GoldScramble_BidHistory` WHERE `game_auto_id` = " <<game_auto_id <<" ORDER BY `record_auto_id` ASC";
+		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>();
-			obj->syncFetch(conn);
-			obj->enableAutoSaving();
-			const auto it = queue.find<1>(obj->unlockedGet_loginName());
+			obj->sync_fetch(conn);
+			obj->enable_auto_saving();
+			const auto it = queue.find<1>(obj->unlocked_get_login_name());
 			if(it == queue.end<1>()){
 				queue.insert(RecordElement(std::move(obj)));
 			} else {
@@ -52,26 +52,26 @@ namespace {
 	}
 }
 
-void BidRecordMap::append(std::string loginName, std::string nick, boost::uint64_t goldCoins, boost::uint64_t accountBalance){
+void BidRecordMap::append(std::string login_name, std::string nick, boost::uint64_t gold_coins, boost::uint64_t account_balance){
 	PROFILE_ME;
 
 	auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>(
-		GlobalStatus::fetchAdd(GlobalStatus::SLOT_RECORD_AUTO_ID, 1), GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID),
-		Poseidon::getUtcTime(), std::move(loginName), std::move(nick), goldCoins, accountBalance);
-	obj->asyncSave(true);
-	const auto it = g_queue.find<1>(obj->unlockedGet_loginName());
+		GlobalStatus::fetch_add(GlobalStatus::SLOT_RECORD_AUTO_ID, 1), GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID),
+		Poseidon::get_utc_time(), std::move(login_name), std::move(nick), gold_coins, account_balance);
+	obj->async_save(true);
+	const auto it = g_queue.find<1>(obj->unlocked_get_login_name());
 	if(it == g_queue.end<1>()){
 		g_queue.insert(RecordElement(std::move(obj)));
 	} else {
 		g_queue.replace<1>(it, RecordElement(std::move(obj)));
 	}
 }
-std::size_t BidRecordMap::getSize(){
+std::size_t BidRecordMap::get_size(){
 	PROFILE_ME;
 
 	return g_queue.size();
 }
-void BidRecordMap::getAll(std::vector<BidRecordMap::Record> &ret, std::size_t limit){
+void BidRecordMap::get_all(std::vector<BidRecordMap::Record> &ret, std::size_t limit){
 	PROFILE_ME;
 
 	auto begin = g_queue.begin<0>();
@@ -81,13 +81,13 @@ void BidRecordMap::getAll(std::vector<BidRecordMap::Record> &ret, std::size_t li
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, g_queue.end<0>())));
 	for(auto it = begin; it != g_queue.end<0>(); ++it){
 		BidRecordMap::Record record;
-		record.recordAutoId   = it->obj->get_recordAutoId();
-		record.gameAutoId     = it->obj->get_gameAutoId();
+		record.record_auto_id   = it->obj->get_record_auto_id();
+		record.game_auto_id     = it->obj->get_game_auto_id();
 		record.timestamp      = it->obj->get_timestamp();
-		record.loginName      = it->obj->unlockedGet_loginName();
-		record.nick           = it->obj->unlockedGet_nick();
-		record.goldCoins      = it->obj->get_goldCoins();
-		record.accountBalance = it->obj->get_accountBalance();
+		record.login_name      = it->obj->unlocked_get_login_name();
+		record.nick           = it->obj->unlocked_get_nick();
+		record.gold_coins      = it->obj->get_gold_coins();
+		record.account_balance = it->obj->get_account_balance();
 		ret.emplace_back(std::move(record));
 	}
 }

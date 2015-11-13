@@ -11,9 +11,9 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME	BothBalanceHistoryResult
 #define MYSQL_OBJECT_FIELDS	\
-	FIELD_BIGINT_UNSIGNED	(accountId)	\
+	FIELD_BIGINT_UNSIGNED	(account_id)	\
 	FIELD_DATETIME			(timestamp)	\
-	FIELD_BIGINT			(deltaBalance)	\
+	FIELD_BIGINT			(delta_balance)	\
 	FIELD_INTEGER_UNSIGNED	(reason)	\
 	FIELD_BIGINT_UNSIGNED	(param1)	\
 	FIELD_BIGINT_UNSIGNED	(param2)	\
@@ -31,100 +31,100 @@ namespace MySql {
 }
 
 ACCOUNT_SERVLET("getBothBalanceHistory", session, params){
-	const auto &fetchAllData = params.get("fetchAllData");
-	const auto &loginName = params.get("loginName");
+	const auto &fetch_all_data = params.get("fetchAllData");
+	const auto &login_name = params.get("loginName");
 	const auto &begin = params.get("begin");
 	const auto &count = params.get("count");
 	const auto &reason = params.get("reason");
-	const auto &timeBegin = params.get("timeBegin");
-	const auto &timeEnd = params.get("timeEnd");
-	const auto &briefMode = params.get("briefMode");
+	const auto &time_begin = params.get("timeBegin");
+	const auto &time_end = params.get("timeEnd");
+	const auto &brief_mode = params.get("briefMode");
 
 	Poseidon::JsonObject ret;
 
-	AccountId accountId;
-	if(fetchAllData.empty() || !loginName.empty()){
-		auto info = AccountMap::getByLoginName(loginName);
-		if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	AccountId account_id;
+	if(fetch_all_data.empty() || !login_name.empty()){
+		auto info = AccountMap::get_by_login_name(login_name);
+		if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 			ret[sslit("errorMessage")] = "Account is not found";
 			return ret;
 		}
-		accountId = info.accountId;
+		account_id = info.account_id;
 	}
 
 	std::vector<boost::shared_ptr<MySql::BothBalanceHistoryResult>> objs;
-	std::ostringstream ossIn, ossOut;
-	ossIn  <<"SELECT ";
-	ossOut <<"SELECT ";
-	if(briefMode.empty()){
-		ossIn  <<"*,   CAST(`incomeBalance`  AS SIGNED) AS `deltaBalance` ";
-		ossOut <<"*, - CAST(`outcomeBalance` AS SIGNED) AS `deltaBalance` ";
+	std::ostringstream oss_in, oss_out;
+	oss_in  <<"SELECT ";
+	oss_out <<"SELECT ";
+	if(brief_mode.empty()){
+		oss_in  <<"*,   CAST(`income_balance`  AS SIGNED) AS `delta_balance` ";
+		oss_out <<"*, - CAST(`outcome_balance` AS SIGNED) AS `delta_balance` ";
 	} else {
-		ossIn  <<"SUM(  CAST(`incomeBalance`  AS SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
-		ossOut <<"SUM(- CAST(`outcomeBalance` AS SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
+		oss_in  <<"SUM(  CAST(`income_balance`  AS SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
+		oss_out <<"SUM(- CAST(`outcome_balance` AS SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
 	}
-	ossIn  <<"FROM `Promotion_IncomeBalanceHistory`  WHERE 1=1 ";
-	ossOut <<"FROM `Promotion_OutcomeBalanceHistory` WHERE 1=1 ";
-	if(!timeBegin.empty()){
+	oss_in  <<"FROM `Promotion_IncomeBalanceHistory`  WHERE 1=1 ";
+	oss_out <<"FROM `Promotion_OutcomeBalanceHistory` WHERE 1=1 ";
+	if(!time_begin.empty()){
 		char str[256];
-		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeBegin), false);
-		ossIn  <<"AND '" <<str <<"' <= `timestamp` ";
-		ossOut <<"AND '" <<str <<"' <= `timestamp` ";
-		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeEnd), false);
-		ossIn  <<"AND `timestamp` < '" <<str <<"' ";
-		ossOut <<"AND `timestamp` < '" <<str <<"' ";
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_begin), false);
+		oss_in  <<"AND '" <<str <<"' <= `timestamp` ";
+		oss_out <<"AND '" <<str <<"' <= `timestamp` ";
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_end), false);
+		oss_in  <<"AND `timestamp` < '" <<str <<"' ";
+		oss_out <<"AND `timestamp` < '" <<str <<"' ";
 	}
 	if(!reason.empty()){
-		auto enumReason = boost::lexical_cast<boost::uint32_t>(reason);
-		ossIn  <<"AND `reason` = " <<enumReason <<" ";
-		ossOut <<"AND `reason` = " <<enumReason <<" ";
+		auto enum_reason = boost::lexical_cast<boost::uint32_t>(reason);
+		oss_in  <<"AND `reason` = " <<enum_reason <<" ";
+		oss_out <<"AND `reason` = " <<enum_reason <<" ";
 	}
-	if(!loginName.empty()){
-		ossIn  <<"AND `accountId` = " <<accountId <<" ";
-		ossOut <<"AND `accountId` = " <<accountId <<" ";
+	if(!login_name.empty()){
+		oss_in  <<"AND `account_id` = " <<account_id <<" ";
+		oss_out <<"AND `account_id` = " <<account_id <<" ";
 	}
 	std::ostringstream oss;
-	oss <<"(" <<ossIn.str() <<") UNION ALL (" <<ossOut.str() <<") ";
-	if(briefMode.empty()){
-		oss <<"ORDER BY `timestamp` DESC, `autoId` DESC ";
+	oss <<"(" <<oss_in.str() <<") UNION ALL (" <<oss_out.str() <<") ";
+	if(brief_mode.empty()){
+		oss <<"ORDER BY `timestamp` DESC, `auto_id` DESC ";
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){
-				auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
-				oss <<numBegin <<", ";
+				auto num_begin = boost::lexical_cast<boost::uint64_t>(begin);
+				oss <<num_begin <<", ";
 			}
-			auto numCount = boost::lexical_cast<boost::uint64_t>(count);
-			oss <<numCount;
+			auto num_count = boost::lexical_cast<boost::uint64_t>(count);
+			oss <<num_count;
 		}
-		MySql::BothBalanceHistoryResult::batchLoad(objs, oss.str());
+		MySql::BothBalanceHistoryResult::batch_load(objs, oss.str());
 
 		Poseidon::JsonArray history;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
 
-			auto info = AccountMap::get(AccountId(obj->get_accountId()));
-			if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
-				LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", info.accountId);
+			auto info = AccountMap::get(AccountId(obj->get_account_id()));
+			if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
+				LOG_EMPERY_PROMOTION_WARNING("No such account: account_id = ", info.account_id);
 				continue;
 			}
 
 			Poseidon::JsonObject elem;
 			elem[sslit("timestamp")] = obj->get_timestamp();
-			elem[sslit("deltaBalance")] = obj->get_deltaBalance();
+			elem[sslit("deltaBalance")] = obj->get_delta_balance();
 			elem[sslit("reason")] = obj->get_reason();
 			elem[sslit("param1")] = obj->get_param1();
 			elem[sslit("param2")] = obj->get_param2();
 			elem[sslit("param3")] = obj->get_param3();
-			elem[sslit("remarks")] = obj->unlockedGet_remarks();
-			elem[sslit("loginName")] = std::move(info.loginName);
+			elem[sslit("remarks")] = obj->unlocked_get_remarks();
+			elem[sslit("loginName")] = std::move(info.login_name);
 			elem[sslit("nick")] = std::move(info.nick);
 			history.emplace_back(std::move(elem));
 		}
 		ret[sslit("history")] = std::move(history);
 	} else {
 		std::vector<boost::shared_ptr<MySql::BothSumRows>> results;
-		MySql::BothSumRows::batchLoad(results, oss.str());
+		MySql::BothSumRows::batch_load(results, oss.str());
 		boost::int64_t sum = 0;
 		boost::uint64_t rows = 0;
 		for(auto it = results.begin(); it != results.end(); ++it){

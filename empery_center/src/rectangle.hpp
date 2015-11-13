@@ -36,26 +36,26 @@ public:
 		return m_tr.y();
 	}
 
-	constexpr Coord bottomLeft() const noexcept {
+	constexpr Coord bottom_left() const noexcept {
 		return Coord(left(), bottom());
 	}
-	constexpr Coord bottomRight() const noexcept {
+	constexpr Coord bottom_right() const noexcept {
 		return Coord(right(), bottom());
 	}
-	constexpr Coord topRight() const noexcept {
+	constexpr Coord top_right() const noexcept {
 		return Coord(right(), top());
 	}
-	constexpr Coord topLeft() const noexcept {
+	constexpr Coord top_left() const noexcept {
 		return Coord(left(), top());
 	}
 
-	constexpr bool hitTest(const Coord &coord) const noexcept {
+	constexpr bool hit_test(const Coord &coord) const noexcept {
 		return (left() <= coord.x()) && (coord.x() < right()) && (bottom() <= coord.y()) && (coord.y() < top());
 	}
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Rectangle &rhs){
-	return os <<'[' <<rhs.bottomLeft() <<',' <<rhs.topRight() <<']';
+	return os <<'[' <<rhs.bottom_left() <<',' <<rhs.top_right() <<']';
 }
 
 }

@@ -35,57 +35,57 @@ struct AccountMap {
 	};
 
 	struct AccountInfo {
-		AccountUuid accountUuid;
-		std::string loginName;
+		AccountUuid account_uuid;
+		std::string login_name;
 		std::string nick;
 		boost::uint64_t flags;
-		boost::uint64_t createdTime;
+		boost::uint64_t created_time;
 	};
 
-	static bool has(const AccountUuid &accountUuid);
-	static AccountInfo get(const AccountUuid &accountUuid);
-	static AccountInfo require(const AccountUuid &accountUuid);
-	static void getByNick(std::vector<AccountInfo> &ret, const std::string &nick);
+	static bool has(const AccountUuid &account_uuid);
+	static AccountInfo get(const AccountUuid &account_uuid);
+	static AccountInfo require(const AccountUuid &account_uuid);
+	static void get_by_nick(std::vector<AccountInfo> &ret, const std::string &nick);
 
 	struct LoginInfo {
-		PlatformId platformId;
-		std::string loginName;
-		AccountUuid accountUuid;
+		PlatformId platform_id;
+		std::string login_name;
+		AccountUuid account_uuid;
 		boost::uint64_t flags;
-		std::string loginToken;
-		boost::uint64_t loginTokenExpiryTime;
-		boost::uint64_t bannedUntil;
+		std::string login_token;
+		boost::uint64_t login_token_expiry_time;
+		boost::uint64_t banned_until;
 	};
 
-	static LoginInfo getLoginInfo(const AccountUuid &accountUuid);
-	static LoginInfo getLoginInfo(PlatformId platformId, const std::string &loginName);
+	static LoginInfo get_login_info(const AccountUuid &account_uuid);
+	static LoginInfo get_login_info(PlatformId platform_id, const std::string &login_name);
 
-	static std::pair<AccountUuid, bool> create(PlatformId platformId, std::string loginName,
-		std::string nick, boost::uint64_t flags, std::string remoteIp);
+	static std::pair<AccountUuid, bool> create(PlatformId platform_id, std::string login_name,
+		std::string nick, boost::uint64_t flags, std::string remote_ip);
 
-	static void setNick(const AccountUuid &accountUuid, std::string nick);
-	static void setLoginToken(const AccountUuid &accountUuid, std::string loginToken, boost::uint64_t expiryTime);
-	static void setBannedUntil(const AccountUuid &accountUuid, boost::uint64_t until);
-	static void setFlags(const AccountUuid &accountUuid, boost::uint64_t flags);
+	static void set_nick(const AccountUuid &account_uuid, std::string nick);
+	static void set_login_token(const AccountUuid &account_uuid, std::string login_token, boost::uint64_t expiry_time);
+	static void set_banned_until(const AccountUuid &account_uuid, boost::uint64_t until);
+	static void set_flags(const AccountUuid &account_uuid, boost::uint64_t flags);
 
-	static const std::string &getAttribute(const AccountUuid &accountUuid, unsigned slot);
-	static void getAttributes(boost::container::flat_map<unsigned, std::string> &ret,
-		const AccountUuid &accountUuid, unsigned beginSlot, unsigned endSlot);
-	static void touchAttribute(const AccountUuid &accountUuid, unsigned slot);
-	static void setAttribute(const AccountUuid &accountUuid, unsigned slot, std::string value);
+	static const std::string &get_attribute(const AccountUuid &account_uuid, unsigned slot);
+	static void get_attributes(boost::container::flat_map<unsigned, std::string> &ret,
+		const AccountUuid &account_uuid, unsigned begin_slot, unsigned end_slot);
+	static void touch_attribute(const AccountUuid &account_uuid, unsigned slot);
+	static void set_attribute(const AccountUuid &account_uuid, unsigned slot, std::string value);
 
 	template<typename T, typename DefaultT = T>
-	static T castAttribute(const AccountUuid &accountUuid, unsigned slot, const DefaultT def = DefaultT()){
-		const auto &str = getAttribute(accountUuid, slot);
+	static T cast_attribute(const AccountUuid &account_uuid, unsigned slot, const DefaultT def = DefaultT()){
+		const auto &str = get_attribute(account_uuid, slot);
 		if(str.empty()){
 			return T(def);
 		}
 		return boost::lexical_cast<T>(str);
 	}
 
-	static void sendAttributesToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wantsNick, bool wantsAttributes, bool wantsPrivateAttributes, bool wantsItems);
-	static void combinedSendAttributesToClient(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session);
+	static void send_attributes_to_client(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session,
+		bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items);
+	static void combined_send_attributes_to_client(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session);
 
 private:
 	AccountMap() = delete;

@@ -8,9 +8,9 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_ItemGetAllItems, accountUuid, session, /* req */){
-	const auto itemBox = ItemBoxMap::require(accountUuid);
-	itemBox->pumpStatus(true);
+PLAYER_SERVLET(Msg::CS_ItemGetAllItems, account_uuid, session, /* req */){
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	item_box->pump_status(true);
 
 	return Response();
 }

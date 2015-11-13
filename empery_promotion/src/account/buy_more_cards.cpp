@@ -15,26 +15,26 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("buyMoreCards", session, params){
-	const auto &loginName = params.at("loginName");
-	const auto cardsToBuy = boost::lexical_cast<boost::uint64_t>(params.at("cardsToBuy"));
-	const auto &dealPassword = params.at("dealPassword");
+	const auto &login_name = params.at("loginName");
+	const auto cards_to_buy = boost::lexical_cast<boost::uint64_t>(params.at("cardsToBuy"));
+	const auto &deal_password = params.at("dealPassword");
 	const auto &remarks = params.get("remarks");
 
 	Poseidon::JsonObject ret;
 
-	auto info = AccountMap::getByLoginName(loginName);
-	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	auto info = AccountMap::get_by_login_name(login_name);
+	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_PAYER;
 		ret[sslit("errorMessage")] = "Payer is not found";
 		return ret;
 	}
-	if(AccountMap::getPasswordHash(dealPassword) != info.dealPasswordHash){
+	if(AccountMap::get_password_hash(deal_password) != info.deal_password_hash){
 		ret[sslit("errorCode")] = (int)Msg::ERR_INVALID_DEAL_PASSWORD;
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	const auto localNow = Poseidon::getUtcTime();
-	if((info.bannedUntil != 0) && (localNow < info.bannedUntil)){
+	const auto local_now = Poseidon::get_utc_time();
+	if((info.banned_until != 0) && (local_now < info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Payer is banned";
 		return ret;
@@ -42,31 +42,31 @@ ACCOUNT_SERVLET("buyMoreCards", session, params){
 
 	double discount = 1.0;
 	if(info.level != 0){
-		const auto promotionData = Data::Promotion::get(info.level);
-		if(promotionData){
-			discount = promotionData->immediateDiscount;
+		const auto promotion_data = Data::Promotion::get(info.level);
+		if(promotion_data){
+			discount = promotion_data->immediate_discount;
 		}
 	}
 
-	const double originalUnitPrice = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
-	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * discount - 0.001);
-	const auto balanceToConsume = checkedMul(cardUnitPrice, cardsToBuy);
-	ret[sslit("balanceToConsume")] = balanceToConsume;
+	const double original_unit_price = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
+	const boost::uint64_t card_unit_price = std::ceil(original_unit_price * discount - 0.001);
+	const auto balance_to_consume = checked_mul(card_unit_price, cards_to_buy);
+	ret[sslit("balanceToConsume")] = balance_to_consume;
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(info.accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARDS, cardsToBuy,
-		Events::ItemChanged::R_BUY_MORE_CARDS, info.accountId.get(), cardUnitPrice, 0, remarks);
-	transaction.emplace_back(info.accountId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, balanceToConsume,
-		Events::ItemChanged::R_BUY_MORE_CARDS, info.accountId.get(), cardUnitPrice, 0, remarks);
-	transaction.emplace_back(info.accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL, balanceToConsume,
-		Events::ItemChanged::R_BUY_MORE_CARDS, info.accountId.get(), cardUnitPrice, 0, remarks);
-	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
-	if(insufficientItemId){
+	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARDS, cards_to_buy,
+		Events::ItemChanged::R_BUY_MORE_CARDS, info.account_id.get(), card_unit_price, 0, remarks);
+	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, balance_to_consume,
+		Events::ItemChanged::R_BUY_MORE_CARDS, info.account_id.get(), card_unit_price, 0, remarks);
+	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL, balance_to_consume,
+		Events::ItemChanged::R_BUY_MORE_CARDS, info.account_id.get(), card_unit_price, 0, remarks);
+	const auto insufficient_item_id = ItemMap::commit_transaction_nothrow(transaction.data(), transaction.size());
+	if(insufficient_item_id){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
 		ret[sslit("errorMessage")] = "No enough account balance";
 		return ret;
 	}
-	accumulateBalanceBonus(info.accountId, info.accountId, balanceToConsume, 0);
+	accumulate_balance_bonus(info.account_id, info.account_id, balance_to_consume, 0);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

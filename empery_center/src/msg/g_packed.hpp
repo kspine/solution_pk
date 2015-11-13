@@ -12,7 +12,7 @@ namespace Msg {
 #define MESSAGE_ID      99
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (serial)	\
-	FIELD_VUINT         (messageId)	\
+	FIELD_VUINT         (message_id)	\
 	FIELD_STRING        (payload)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -29,8 +29,8 @@ namespace Msg {
 #define MESSAGE_NAME    G_PackedAccountNotification
 #define MESSAGE_ID      97
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (accountUuid)	\
-	FIELD_VUINT         (messageId)	\
+	FIELD_STRING        (account_uuid)	\
+	FIELD_VUINT         (message_id)	\
 	FIELD_STRING        (payload)
 #include <poseidon/cbpp/message_generator.hpp>
 

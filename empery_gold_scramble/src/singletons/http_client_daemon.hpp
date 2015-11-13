@@ -11,15 +11,15 @@ namespace EmperyGoldScramble {
 
 struct HttpClientDaemon {
 	struct Response {
-		Poseidon::Http::StatusCode statusCode;
-		std::string contentType;
+		Poseidon::Http::StatusCode status_code;
+		std::string content_type;
 		Poseidon::StreamBuffer entity;
 	};
 
-	static Response get(const std::string &host, unsigned port, bool useSsl, const std::string &auth,
+	static Response get(const std::string &host, unsigned port, bool use_ssl, const std::string &auth,
 		std::string path, Poseidon::OptionalMap params);
-	static Response post(const std::string &host, unsigned port, bool useSsl, const std::string &auth,
-		std::string path, Poseidon::OptionalMap params, Poseidon::StreamBuffer entity, std::string mimeType);
+	static Response post(const std::string &host, unsigned port, bool use_ssl, const std::string &auth,
+		std::string path, Poseidon::OptionalMap params, Poseidon::StreamBuffer entity, std::string mime_type);
 
 private:
 	HttpClientDaemon() = delete;

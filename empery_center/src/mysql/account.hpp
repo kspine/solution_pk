@@ -9,15 +9,15 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Center_Account
 #define MYSQL_OBJECT_FIELDS \
-	FIELD_UUID              (accountUuid)	\
-	FIELD_INTEGER_UNSIGNED  (platformId)	\
-	FIELD_STRING            (loginName)	\
+	FIELD_UUID              (account_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (platform_id)	\
+	FIELD_STRING            (login_name)	\
 	FIELD_STRING            (nick)	\
 	FIELD_BIGINT_UNSIGNED   (flags)	\
-	FIELD_STRING            (loginToken)	\
-	FIELD_DATETIME          (loginTokenExpiryTime)	\
-	FIELD_DATETIME          (bannedUntil)	\
-	FIELD_DATETIME          (createdTime)
+	FIELD_STRING            (login_token)	\
+	FIELD_DATETIME          (login_token_expiry_time)	\
+	FIELD_DATETIME          (banned_until)	\
+	FIELD_DATETIME          (created_time)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

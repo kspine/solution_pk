@@ -14,191 +14,192 @@
 namespace EmperyCenter {
 
 namespace {
-	void fillItemInfo(ItemBox::ItemInfo &info, const boost::shared_ptr<MySql::Center_Item> &obj){
+	void fill_item_info(ItemBox::ItemInfo &info, const boost::shared_ptr<MySql::Center_Item> &obj){
 		PROFILE_ME;
 
-		info.itemId = ItemId(obj->get_itemId());
+		info.item_id = ItemId(obj->get_item_id());
 		info.count  = obj->get_count();
 	}
 
-	void synchronizeItemWithClient(const AccountUuid &accountUuid, const boost::shared_ptr<MySql::Center_Item> &obj){
+	void synchronize_item_with_client(const AccountUuid &account_uuid, const boost::shared_ptr<MySql::Center_Item> &obj){
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(accountUuid);
+		const auto session = PlayerSessionMap::get(account_uuid);
 		if(session){
 			try {
 				Msg::SC_ItemChanged msg;
-				msg.itemId = obj->get_itemId();
+				msg.item_id = obj->get_item_id();
 				msg.count  = obj->get_count();
 				session->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->forceShutdown();
+				session->force_shutdown();
 			}
 		}
 	}
 }
 
-ItemBox::ItemBox(const AccountUuid &accountUuid)
-	: m_accountUuid(accountUuid)
+ItemBox::ItemBox(const AccountUuid &account_uuid)
+	: m_account_uuid(account_uuid)
 {
 }
-ItemBox::ItemBox(const AccountUuid &accountUuid,
+ItemBox::ItemBox(const AccountUuid &account_uuid,
 	const std::vector<boost::shared_ptr<MySql::Center_Item>> &items)
-	: ItemBox(accountUuid)
+	: ItemBox(account_uuid)
 {
 	for(auto it = items.begin(); it != items.end(); ++it){
 		const auto &obj = *it;
-		m_items.emplace(ItemId(obj->get_itemId()), obj);
+		m_items.emplace(ItemId(obj->get_item_id()), obj);
 	}
 }
 ItemBox::~ItemBox(){
 }
 
-void ItemBox::pumpStatus(bool forceSynchronizationWithClient){
+void ItemBox::pump_status(bool force_synchronization_with_client){
 	PROFILE_ME;
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 
-	LOG_EMPERY_CENTER_DEBUG("Checking for init items: accountUuid = ", getAccountUuid());
+	LOG_EMPERY_CENTER_DEBUG("Checking for init items: account_uuid = ", get_account_uuid());
 	std::vector<ItemTransactionElement> transaction;
-	std::vector<boost::shared_ptr<const Data::Item>> itemsToCheck;
-	Data::Item::getInit(itemsToCheck);
-	for(auto dit = itemsToCheck.begin(); dit != itemsToCheck.end(); ++dit){
-		const auto &itemData = *dit;
-		const auto it = m_items.find(itemData->itemId);
+	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
+	Data::Item::get_init(items_to_check);
+	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
+		const auto &item_data = *dit;
+		const auto it = m_items.find(item_data->item_id);
 		if(it == m_items.end()){
-			LOG_EMPERY_CENTER_DEBUG("> Adding items: itemId = ", itemData->itemId, ", initCount = ", itemData->initCount);
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, itemData->itemId, itemData->initCount,
-				ReasonIds::ID_INIT_ITEMS, itemData->initCount, 0, 0);
+			LOG_EMPERY_CENTER_DEBUG("> Adding items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, item_data->init_count,
+				ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
 		}
 	}
-	commitTransaction(transaction.data(), transaction.size());
+	commit_transaction(transaction.data(), transaction.size());
 
-	LOG_EMPERY_CENTER_DEBUG("Checking for auto increment items: accountUuid = ", getAccountUuid());
+	LOG_EMPERY_CENTER_DEBUG("Checking for auto increment items: account_uuid = ", get_account_uuid());
 	transaction.clear();
-	itemsToCheck.clear();
-	Data::Item::getAutoInc(itemsToCheck);
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t> newTimestamps;
-	for(auto dit = itemsToCheck.begin(); dit != itemsToCheck.end(); ++dit){
-		const auto &itemData = *dit;
-		auto it = m_items.find(itemData->itemId);
+	items_to_check.clear();
+	Data::Item::get_auto_inc(items_to_check);
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t> new_timestamps;
+	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
+		const auto &item_data = *dit;
+		auto it = m_items.find(item_data->item_id);
 		if(it == m_items.end()){
-			auto obj = boost::make_shared<MySql::Center_Item>(getAccountUuid().get(), itemData->itemId.get(), 0, 0);
-			obj->asyncSave(true);
-			it = m_items.emplace(itemData->itemId, std::move(obj)).first;
+			auto obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_data->item_id.get(), 0, 0);
+			obj->async_save(true);
+			it = m_items.emplace(item_data->item_id, std::move(obj)).first;
 		}
 		const auto &obj = it->second;
 
-		boost::uint64_t autoIncPeriod, autoIncOffset;
-		switch(itemData->autoIncType){
+		boost::uint64_t auto_inc_period, auto_inc_offset;
+		switch(item_data->auto_inc_type){
 		case Data::Item::AIT_HOURLY:
-			autoIncPeriod = 3600 * 1000;
-			autoIncOffset = itemData->autoIncOffset;
+			auto_inc_period = 3600 * 1000;
+			auto_inc_offset = item_data->auto_inc_offset;
 			break;
 		case Data::Item::AIT_DAILY:
-			autoIncPeriod = 24 * 3600 * 1000;
-			autoIncOffset = itemData->autoIncOffset;
+			auto_inc_period = 24 * 3600 * 1000;
+			auto_inc_offset = item_data->auto_inc_offset;
 			break;
 		case Data::Item::AIT_WEEKLY:
-			autoIncPeriod = 7 * 24 * 3600 * 1000;
-			autoIncOffset = itemData->autoIncOffset + 3 * 24 * 3600 * 1000; // 注意 1970-01-01 是星期四。
+			auto_inc_period = 7 * 24 * 3600 * 1000;
+			auto_inc_offset = item_data->auto_inc_offset + 3 * 24 * 3600 * 1000; // 注意 1970-01-01 是星期四。
 			break;
 		case Data::Item::AIT_PERIODIC:
-			autoIncPeriod = itemData->autoIncOffset;
-			autoIncOffset = utcNow + 1; // 当前时间永远是区间中的最后一秒。
+			auto_inc_period = item_data->auto_inc_offset;
+			auto_inc_offset = utc_now + 1; // 当前时间永远是区间中的最后一秒。
 			break;
 		default:
-			autoIncPeriod = 0;
-			autoIncOffset = 0;
+			auto_inc_period = 0;
+			auto_inc_offset = 0;
 			break;
 		}
-		if(autoIncPeriod == 0){
-			LOG_EMPERY_CENTER_WARNING("Item auto increment period is zero? itemId = ", itemData->itemId);
+		if(auto_inc_period == 0){
+			LOG_EMPERY_CENTER_WARNING("Item auto increment period is zero? item_id = ", item_data->item_id);
 			continue;
 		}
-		autoIncOffset %= autoIncPeriod;
+		auto_inc_offset %= auto_inc_period;
 
-		const auto oldCount = obj->get_count();
-		const auto oldUpdatedTime = obj->get_updatedTime();
+		const auto old_count = obj->get_count();
+		const auto old_updated_time = obj->get_updated_time();
 
-		const auto prevInterval = saturatedSub(oldUpdatedTime, autoIncOffset) / autoIncPeriod;
-		const auto curInterval = saturatedSub(utcNow, autoIncOffset) / autoIncPeriod;
-		LOG_EMPERY_CENTER_DEBUG("> Checking items: itemId = ", itemData->itemId, ", prevInterval = ", prevInterval, ", curInterval = ", curInterval);
-		if(curInterval <= prevInterval){
+		const auto prev_interval = saturated_sub(old_updated_time, auto_inc_offset) / auto_inc_period;
+		const auto cur_interval = saturated_sub(utc_now, auto_inc_offset) / auto_inc_period;
+		LOG_EMPERY_CENTER_DEBUG("> Checking items: item_id = ", item_data->item_id,
+			", prev_interval = ", prev_interval, ", cur_interval = ", cur_interval);
+		if(cur_interval <= prev_interval){
 			continue;
 		}
-		const auto intervalCount = curInterval - prevInterval;
+		const auto interval_count = cur_interval - prev_interval;
 
-		if(itemData->autoIncStep >= 0){
-			if(oldCount < itemData->autoIncBound){
-				const auto countToAdd = saturatedMul(static_cast<boost::uint64_t>(itemData->autoIncStep), intervalCount);
-				const auto newCount = std::min(saturatedAdd(oldCount, countToAdd), itemData->autoIncBound);
-				LOG_EMPERY_CENTER_DEBUG("> Adding items: itemId = ", itemData->itemId, ", oldCount = ", oldCount, ", newCount = ", newCount);
-				transaction.emplace_back(ItemTransactionElement::OP_ADD, itemData->itemId, newCount - oldCount,
-					ReasonIds::ID_AUTO_INCREMENT, itemData->autoIncType, itemData->autoIncOffset, 0);
+		if(item_data->auto_inc_step >= 0){
+			if(old_count < item_data->auto_inc_bound){
+				const auto count_to_add = saturated_mul(static_cast<boost::uint64_t>(item_data->auto_inc_step), interval_count);
+				const auto new_count = std::min(saturated_add(old_count, count_to_add), item_data->auto_inc_bound);
+				LOG_EMPERY_CENTER_DEBUG("> Adding items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, new_count - old_count,
+					ReasonIds::ID_AUTO_INCREMENT, item_data->auto_inc_type, item_data->auto_inc_offset, 0);
 			}
 		} else {
-			if(oldCount > itemData->autoIncBound){
-				LOG_EMPERY_CENTER_DEBUG("> Removing items: itemId = ", itemData->itemId, ", initCount = ", itemData->initCount);
-				const auto countToRemove = saturatedMul(static_cast<boost::uint64_t>(-itemData->autoIncStep), intervalCount);
-				const auto newCount = std::max(saturatedSub(oldCount, countToRemove), itemData->autoIncBound);
-				LOG_EMPERY_CENTER_DEBUG("> Removing items: itemId = ", itemData->itemId, ", oldCount = ", oldCount, ", newCount = ", newCount);
-				transaction.emplace_back(ItemTransactionElement::OP_REMOVE, itemData->itemId, oldCount - newCount,
-					ReasonIds::ID_AUTO_INCREMENT, itemData->autoIncType, itemData->autoIncOffset, 0);
+			if(old_count > item_data->auto_inc_bound){
+				LOG_EMPERY_CENTER_DEBUG("> Removing items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
+				const auto count_to_remove = saturated_mul(static_cast<boost::uint64_t>(-(item_data->auto_inc_step)), interval_count);
+				const auto new_count = std::max(saturated_sub(old_count, count_to_remove), item_data->auto_inc_bound);
+				LOG_EMPERY_CENTER_DEBUG("> Removing items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
+				transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_data->item_id, old_count - new_count,
+					ReasonIds::ID_AUTO_INCREMENT, item_data->auto_inc_type, item_data->auto_inc_offset, 0);
 			}
 		}
-		const auto newUpdatedTime = saturatedAdd(oldUpdatedTime, saturatedMul(autoIncPeriod, intervalCount));
-		newTimestamps.emplace(obj, newUpdatedTime);
+		const auto new_updated_time = saturated_add(old_updated_time, saturated_mul(auto_inc_period, interval_count));
+		new_timestamps.emplace(obj, new_updated_time);
 	}
-	commitTransaction(transaction.data(), transaction.size(),
-		[&]{ for(auto &p: newTimestamps){ p.first->set_updatedTime(p.second); } });
+	commit_transaction(transaction.data(), transaction.size(),
+		[&]{ for(auto &p: new_timestamps){ p.first->set_updated_time(p.second); } });
 
-	if(forceSynchronizationWithClient){
+	if(force_synchronization_with_client){
 		for(auto it = m_items.begin(); it != m_items.end(); ++it){
-			synchronizeItemWithClient(getAccountUuid(), it->second);
+			synchronize_item_with_client(get_account_uuid(), it->second);
 		}
 	}
 }
 
-ItemBox::ItemInfo ItemBox::get(ItemId itemId) const {
+ItemBox::ItemInfo ItemBox::get(ItemId item_id) const {
 	PROFILE_ME;
 
 	ItemInfo info = { };
-	info.itemId = itemId;
+	info.item_id = item_id;
 
-	const auto it = m_items.find(itemId);
+	const auto it = m_items.find(item_id);
 	if(it == m_items.end()){
 		return info;
 	}
-	fillItemInfo(info, it->second);
+	fill_item_info(info, it->second);
 	return info;
 }
-void ItemBox::getAll(std::vector<ItemBox::ItemInfo> &ret) const {
+void ItemBox::get_all(std::vector<ItemBox::ItemInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_items.size());
 	for(auto it = m_items.begin(); it != m_items.end(); ++it){
 		ItemInfo info;
-		fillItemInfo(info, it->second);
+		fill_item_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
 
-ItemId ItemBox::commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count,
+ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *elements, std::size_t count,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
 	boost::shared_ptr<bool> withdrawn;
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t /* newCount */> tempResultMap;
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t /* new_count */> temp_result_map;
 
 	for(std::size_t i = 0; i < count; ++i){
 		const auto operation  = elements[i].m_operation;
-		const auto itemId = elements[i].m_itemId;
-		const auto deltaCount = elements[i].m_deltaCount;
+		const auto item_id = elements[i].m_item_id;
+		const auto delta_count = elements[i].m_delta_count;
 
-		if(deltaCount == 0){
+		if(delta_count == 0){
 			continue;
 		}
 
@@ -215,33 +216,33 @@ ItemId ItemBox::commitTransactionNoThrow(const ItemTransactionElement *elements,
 			{
 				boost::shared_ptr<MySql::Center_Item> obj;
 				{
-					const auto it = m_items.find(itemId);
+					const auto it = m_items.find(item_id);
 					if(it == m_items.end()){
-						obj = boost::make_shared<MySql::Center_Item>(getAccountUuid().get(), itemId.get(), 0, 0);
-						obj->asyncSave(true);
-						m_items.emplace(itemId, obj);
+						obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_id.get(), 0, 0);
+						obj->async_save(true);
+						m_items.emplace(item_id, obj);
 					} else {
 						obj = it->second;
 					}
 				}
-				auto tempIt = tempResultMap.find(obj);
-				if(tempIt == tempResultMap.end()){
-					tempIt = tempResultMap.emplace_hint(tempIt, obj, obj->get_count());
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
 				}
-				const auto oldCount = tempIt->second;
-				tempIt->second = checkedAdd(oldCount, deltaCount);
-				const auto newCount = tempIt->second;
+				const auto old_count = temp_it->second;
+				temp_it->second = checked_add(old_count, delta_count);
+				const auto new_count = temp_it->second;
 
-				const auto &accountUuid = getAccountUuid();
-				LOG_EMPERY_CENTER_DEBUG("@ Item transaction: add: accountUuid = ", accountUuid,
-					", itemId = ", itemId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
+				const auto &account_uuid = get_account_uuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Item transaction: add: account_uuid = ", account_uuid,
+					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
 					withdrawn = boost::make_shared<bool>(true);
 				}
-				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ItemChanged>(accountUuid,
-						itemId, oldCount, newCount, reason, param1, param2, param3),
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ItemChanged>(account_uuid,
+						item_id, old_count, new_count, reason, param1, param2, param3),
 					withdrawn);
 			}
 			break;
@@ -249,42 +250,42 @@ ItemId ItemBox::commitTransactionNoThrow(const ItemTransactionElement *elements,
 		case ItemTransactionElement::OP_REMOVE:
 		case ItemTransactionElement::OP_REMOVE_SATURATED:
 			{
-				const auto it = m_items.find(itemId);
+				const auto it = m_items.find(item_id);
 				if(it == m_items.end()){
 					if(operation != ItemTransactionElement::OP_REMOVE_SATURATED){
-						LOG_EMPERY_CENTER_DEBUG("Item not found: itemId = ", itemId);
-						return itemId;
+						LOG_EMPERY_CENTER_DEBUG("Item not found: item_id = ", item_id);
+						return item_id;
 					}
 					break;
 				}
 				const auto &obj = it->second;
-				auto tempIt = tempResultMap.find(obj);
-				if(tempIt == tempResultMap.end()){
-					tempIt = tempResultMap.emplace_hint(tempIt, obj, obj->get_count());
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
 				}
-				const auto oldCount = tempIt->second;
-				if(tempIt->second >= deltaCount){
-					tempIt->second -= deltaCount;
+				const auto old_count = temp_it->second;
+				if(temp_it->second >= delta_count){
+					temp_it->second -= delta_count;
 				} else {
 					if(operation != ItemTransactionElement::OP_REMOVE_SATURATED){
-						LOG_EMPERY_CENTER_DEBUG("No enough items: itemId = ", itemId,
-							", tempCount = ", tempIt->second, ", deltaCount = ", deltaCount);
-						return itemId;
+						LOG_EMPERY_CENTER_DEBUG("No enough items: item_id = ", item_id,
+							", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
+						return item_id;
 					}
-					tempIt->second = 0;
+					temp_it->second = 0;
 				}
-				const auto newCount = tempIt->second;
+				const auto new_count = temp_it->second;
 
-				const auto &accountUuid = getAccountUuid();
-				LOG_EMPERY_CENTER_DEBUG("@ Item transaction: remove: accountUuid = ", accountUuid,
-					", itemId = ", itemId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
+				const auto &account_uuid = get_account_uuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Item transaction: remove: account_uuid = ", account_uuid,
+					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
 					withdrawn = boost::make_shared<bool>(true);
 				}
-				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ItemChanged>(accountUuid,
-						itemId, oldCount, newCount, reason, param1, param2, param3),
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ItemChanged>(account_uuid,
+						item_id, old_count, new_count, reason, param1, param2, param3),
 					withdrawn);
 			}
 			break;
@@ -299,27 +300,27 @@ ItemId ItemBox::commitTransactionNoThrow(const ItemTransactionElement *elements,
 		callback();
 	}
 
-	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
+	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 		it->first->set_count(it->second);
 	}
 	if(withdrawn){
 		*withdrawn = false;
 	}
 
-	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
-		synchronizeItemWithClient(getAccountUuid(), it->first);
+	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
+		synchronize_item_with_client(get_account_uuid(), it->first);
 	}
 
 	return ItemId();
 }
-void ItemBox::commitTransaction(const ItemTransactionElement *elements, std::size_t count,
+void ItemBox::commit_transaction(const ItemTransactionElement *elements, std::size_t count,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
-	const auto insuffId = commitTransactionNoThrow(elements, count, callback);
-	if(insuffId != ItemId()){
-		LOG_EMPERY_CENTER_DEBUG("Insufficient items in item box: accountUuid = ", getAccountUuid(), ", insuffId = ", insuffId);
+	const auto insuff_id = commit_transaction_nothrow(elements, count, callback);
+	if(insuff_id != ItemId()){
+		LOG_EMPERY_CENTER_DEBUG("Insufficient items in item box: account_uuid = ", get_account_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient items in item box"));
 	}
 }

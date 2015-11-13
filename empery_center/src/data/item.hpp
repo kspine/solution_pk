@@ -21,39 +21,39 @@ namespace Data {
 		};
 
 	public:
-		static boost::shared_ptr<const Item> get(ItemId itemId);
-		static boost::shared_ptr<const Item> require(ItemId itemId);
+		static boost::shared_ptr<const Item> get(ItemId item_id);
+		static boost::shared_ptr<const Item> require(ItemId item_id);
 
-		static void getInit(std::vector<boost::shared_ptr<const Item>> &ret);
-		static void getAutoInc(std::vector<boost::shared_ptr<const Item>> &ret);
+		static void get_init(std::vector<boost::shared_ptr<const Item>> &ret);
+		static void get_auto_inc(std::vector<boost::shared_ptr<const Item>> &ret);
 
 	public:
-		ItemId itemId;
+		ItemId item_id;
 		unsigned quality;
 		std::pair<unsigned, unsigned> type;
 		boost::uint64_t value;
 
-		boost::uint64_t initCount;
+		boost::uint64_t init_count;
 
-		AutoIncType autoIncType;
-		boost::uint64_t autoIncOffset;
-		boost::int64_t autoIncStep;
-		boost::uint64_t autoIncBound;
+		AutoIncType auto_inc_type;
+		boost::uint64_t auto_inc_offset;
+		boost::int64_t auto_inc_step;
+		boost::uint64_t auto_inc_bound;
 	};
 
 	class Trade {
 	public:
-		static boost::shared_ptr<const Trade> get(TradeId tradeId);
-		static boost::shared_ptr<const Trade> require(TradeId tradeId);
+		static boost::shared_ptr<const Trade> get(TradeId trade_id);
+		static boost::shared_ptr<const Trade> require(TradeId trade_id);
 
 		static void unpack(std::vector<ItemTransactionElement> &transaction,
-			const boost::shared_ptr<const Trade> &tradeData, boost::uint64_t repeatTimes,
+			const boost::shared_ptr<const Trade> &trade_data, boost::uint64_t repeat_times,
 			ReasonId reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3);
 
 	public:
-		TradeId tradeId;
-		boost::container::flat_map<ItemId, boost::uint64_t> itemsConsumed;
-		boost::container::flat_map<ItemId, boost::uint64_t> itemsProduced;
+		TradeId trade_id;
+		boost::container::flat_map<ItemId, boost::uint64_t> items_consumed;
+		boost::container::flat_map<ItemId, boost::uint64_t> items_produced;
 	};
 }
 

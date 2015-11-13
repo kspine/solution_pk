@@ -26,10 +26,10 @@ namespace Events {
 			R_GOLD_SCRAMBLE_REWARD  = 201014, // 起始时间       奖池内金币      奖池内余额
 		};
 
-		AccountId accountId;
-		ItemId itemId;
-		boost::uint64_t oldCount;
-		boost::uint64_t newCount;
+		AccountId account_id;
+		ItemId item_id;
+		boost::uint64_t old_count;
+		boost::uint64_t new_count;
 
 		Reason reason;
 		boost::uint64_t param1;
@@ -37,9 +37,9 @@ namespace Events {
 		boost::uint64_t param3;
 		std::string remarks;
 
-		ItemChanged(AccountId accountId_, ItemId itemId_, boost::uint64_t oldCount_, boost::uint64_t newCount_,
+		ItemChanged(AccountId account_id_, ItemId item_id_, boost::uint64_t old_count_, boost::uint64_t new_count_,
 			Reason reason_, boost::uint64_t param1_, boost::uint64_t param2_, boost::uint64_t param3_, std::string remarks_)
-			: accountId(accountId_), itemId(itemId_), oldCount(oldCount_), newCount(newCount_)
+			: account_id(account_id_), item_id(item_id_), old_count(old_count_), new_count(new_count_)
 			, reason(reason_), param1(param1_), param2(param2_), param3(param3_), remarks(std::move(remarks_))
 		{
 		}

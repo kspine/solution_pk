@@ -20,7 +20,7 @@ ADMIN_SERVLET(请求 URI, 会话形参名, GET 参数){
 	// 处理逻辑
 }
 */
-#define ADMIN_SERVLET(uri_, sessionArg_, paramsArg_)	\
+#define ADMIN_SERVLET(uri_, session_arg_, params_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
 			::Poseidon::JsonObject TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
@@ -34,10 +34,10 @@ ADMIN_SERVLET(请求 URI, 会话形参名, GET 参数){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(AdminHttpSession::createServlet(uri_, & Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Entry_)));	\
+		handles_.push(AdminHttpSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Entry_)));	\
 	}	\
 	::Poseidon::JsonObject Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<AdminHttpSession> &sessionArg_, ::Poseidon::OptionalMap paramsArg_)	\
+		const ::boost::shared_ptr<AdminHttpSession> &session_arg_, ::Poseidon::OptionalMap params_arg_)	\
 
 #define ADMIN_THROW(code_)				DEBUG_THROW(::Poseidon::Http::Exception, code_)
 

@@ -10,20 +10,20 @@ namespace Msg {
 #define MESSAGE_NAME    SC_AccountLoginSuccess
 #define MESSAGE_ID      299
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (accountUuid)
+	FIELD_STRING        (account_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AccountAttributes
 #define MESSAGE_ID      298
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (accountUuid)	\
+	FIELD_STRING        (account_uuid)	\
 	FIELD_STRING        (nick)	\
 	FIELD_ARRAY         (attributes,	\
 		FIELD_VUINT         (slot)	\
 		FIELD_STRING        (value)	\
 	)	\
-	FIELD_ARRAY         (publicItems,	\
-		FIELD_VUINT         (itemId)	\
+	FIELD_ARRAY         (public_items,	\
+		FIELD_VUINT         (item_id)	\
 		FIELD_VUINT         (count)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -32,8 +32,8 @@ namespace Msg {
 #define MESSAGE_ID      297
 #define MESSAGE_FIELDS  \
 	FIELD_ARRAY         (accounts,	\
-		FIELD_STRING        (accountUuid)	\
-		FIELD_VUINT         (errorCode)	\
+		FIELD_STRING        (account_uuid)	\
+		FIELD_VUINT         (error_code)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

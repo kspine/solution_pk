@@ -19,7 +19,7 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 }
 */
 
-#define CLUSTER_SERVLET(MsgType_, clientArg_, reqArg_)	\
+#define CLUSTER_SERVLET(MsgType_, client_arg_, req_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
 			ClusterClient::Result TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
@@ -29,17 +29,17 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 			{	\
 				PROFILE_ME;	\
 				MsgType_ msg_(::std::move(payload_));	\
-				LOG_EMPERY_CLUSTER_DEBUG("Received request from ", client_->getRemoteInfo(), ": ", msg_);	\
+				LOG_EMPERY_CLUSTER_DEBUG("Received request from ", client_->get_remote_info(), ": ", msg_);	\
 				return TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (client_, ::std::move(msg_));	\
 			}	\
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(ClusterClient::createServlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
+		handles_.push(ClusterClient::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
 	}	\
 	ClusterClient::Result Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<ClusterClient> & (clientArg_),	\
-		MsgType_ (reqArg_)	\
+		const ::boost::shared_ptr<ClusterClient> & (client_arg_),	\
+		MsgType_ (req_arg_)	\
 		)	\
 
 #define CLUSTER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)

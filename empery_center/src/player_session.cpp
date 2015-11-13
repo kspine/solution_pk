@@ -19,7 +19,7 @@ namespace EmperyCenter {
 using ServletCallback = PlayerSession::ServletCallback;
 
 namespace {
-	std::map<unsigned, boost::weak_ptr<const ServletCallback>> g_servletMap;
+	std::map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
 class PlayerSession::WebSocketImpl : public Poseidon::WebSocket::Session {
@@ -30,16 +30,16 @@ public:
 	}
 
 protected:
-	void onSyncDataMessage(Poseidon::WebSocket::OpCode opcode, Poseidon::StreamBuffer payload) override {
+	void on_sync_data_message(Poseidon::WebSocket::OpCode opcode, Poseidon::StreamBuffer payload) override {
 		PROFILE_ME;
 
-		const auto parent = boost::dynamic_pointer_cast<PlayerSession>(getParent());
+		const auto parent = boost::dynamic_pointer_cast<PlayerSession>(get_parent());
 		if(!parent){
-			forceShutdown();
+			force_shutdown();
 			return;
 		}
 
-		unsigned messageId = UINT_MAX;
+		unsigned message_id = UINT_MAX;
 		std::pair<long, std::string> result;
 		try {
 			if(opcode != Poseidon::WebSocket::OP_DATA_BIN){
@@ -47,74 +47,74 @@ protected:
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
 			auto read = Poseidon::StreamBuffer::ReadIterator(payload);
-			boost::uint64_t messageId64;
-			if(!Poseidon::vuint50FromBinary(messageId64, read, payload.size())){
+			boost::uint64_t message_id64;
+			if(!Poseidon::vuint50_from_binary(message_id64, read, payload.size())){
 				LOG_EMPERY_CENTER_WARNING("Packet too small");
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
-			messageId = messageId64 & 0xFFFF;
-			if(messageId != messageId64){
-				LOG_EMPERY_CENTER_WARNING("Message id too large: messageId64 = ", messageId64);
+			message_id = message_id64 & 0xFFFF;
+			if(message_id != message_id64){
+				LOG_EMPERY_CENTER_WARNING("Message id too large: message_id64 = ", message_id64);
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 			}
 
-			if(messageId == Poseidon::Cbpp::ControlMessage::ID){
+			if(message_id == Poseidon::Cbpp::ControlMessage::ID){
 				const auto req = Poseidon::Cbpp::ControlMessage(std::move(payload));
-				LOG_EMPERY_CENTER_TRACE("Received ping from ", parent->getRemoteInfo(), ": req = ", req);
+				LOG_EMPERY_CENTER_TRACE("Received ping from ", parent->get_remote_info(), ": req = ", req);
 				result.first = Poseidon::Cbpp::ST_PONG;
-				result.second = std::move(req.stringParam);
+				result.second = std::move(req.string_param);
 			} else {
-				const auto servlet = PlayerSession::getServlet(messageId);
+				const auto servlet = PlayerSession::get_servlet(message_id);
 				if(!servlet){
-					LOG_EMPERY_CENTER_WARNING("No servlet found: messageId = ", messageId);
+					LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", message_id);
 					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 				}
 				result = (*servlet)(parent, std::move(payload));
 			}
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"Poseidon::Cbpp::Exception thrown: messageId = ", messageId, ", what = ", e.what());
-			result.first = e.statusCode();
+				"Poseidon::Cbpp::Exception thrown: message_id = ", message_id, ", what = ", e.what());
+			result.first = e.status_code();
 			result.second = e.what();
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"std::exception thrown: messageId = ", messageId, ", what = ", e.what());
+				"std::exception thrown: message_id = ", message_id, ", what = ", e.what());
 			result.first = Msg::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		if(messageId != Poseidon::Cbpp::ControlMessage::ID){
-			LOG_EMPERY_CENTER_DEBUG("Sending response: messageId = ", messageId, ", code = ", result.first, ", message = ", result.second);
+		if(message_id != Poseidon::Cbpp::ControlMessage::ID){
+			LOG_EMPERY_CENTER_DEBUG("Sending response: message_id = ", message_id, ", code = ", result.first, ", message = ", result.second);
 		}
 		if(result.first < 0){
 			parent->shutdown(result.first, result.second.c_str());
 		} else {
-			parent->sendControl(messageId, result.first, std::move(result.second));
+			parent->send_control(message_id, result.first, std::move(result.second));
 		}
 	}
 };
 
-boost::shared_ptr<const ServletCallback> PlayerSession::createServlet(boost::uint16_t messageId, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
 	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
-	auto &weakServlet = g_servletMap[messageId];
-	if(!weakServlet.expired()){
-		LOG_EMPERY_CENTER_ERROR("Duplicate player servlet: messageId = ", messageId);
+	auto &weak_servlet = g_servlet_map[message_id];
+	if(!weak_servlet.expired()){
+		LOG_EMPERY_CENTER_ERROR("Duplicate player servlet: message_id = ", message_id);
 		DEBUG_THROW(Exception, sslit("Duplicate player servlet"));
 	}
-	weakServlet = servlet;
+	weak_servlet = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> PlayerSession::getServlet(boost::uint16_t messageId){
+boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(boost::uint16_t message_id){
 	PROFILE_ME;
 
-	const auto it = g_servletMap.find(messageId);
-	if(it == g_servletMap.end()){
+	const auto it = g_servlet_map.find(message_id);
+	if(it == g_servlet_map.end()){
 		return { };
 	}
 	auto servlet = it->second.lock();
 	if(!servlet){
-		g_servletMap.erase(it);
+		g_servlet_map.erase(it);
 		return { };
 	}
 	return servlet;
@@ -128,57 +128,57 @@ PlayerSession::PlayerSession(Poseidon::UniqueFile socket, std::string path)
 PlayerSession::~PlayerSession(){
 }
 
-void PlayerSession::onClose(int errCode) noexcept {
+void PlayerSession::on_close(int err_code) noexcept {
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_DEBUG("Socket close: errCode = ", errCode, ", description = ", Poseidon::getErrorDesc(errCode));
+	LOG_EMPERY_CENTER_DEBUG("Socket close: err_code = ", err_code, ", description = ", Poseidon::get_error_desc(err_code));
 
 	try {
-		Poseidon::enqueueAsyncJob(virtualWeakFromThis<PlayerSession>(),
-			boost::bind(&PlayerSessionMap::remove, virtualWeakFromThis<PlayerSession>()));
+		Poseidon::enqueue_async_job(virtual_weak_from_this<PlayerSession>(),
+			boost::bind(&PlayerSessionMap::remove, virtual_weak_from_this<PlayerSession>()));
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
 
-	Poseidon::Http::Session::onClose(errCode);
+	Poseidon::Http::Session::on_close(err_code);
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatchRequest(
-	Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity)
+boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatch_request(
+	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
 {
 	PROFILE_ME;
 
-	if(requestHeaders.verb != Poseidon::Http::V_GET){
+	if(request_headers.verb != Poseidon::Http::V_GET){
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_IMPLEMENTED);
 	}
-	auto uri = Poseidon::Http::urlDecode(requestHeaders.uri);
+	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if(uri == m_path){
-		if(::strcasecmp(requestHeaders.headers.get("Upgrade").c_str(), "websocket") == 0){
-			auto upgradedSession = boost::make_shared<WebSocketImpl>(virtualSharedFromThis<PlayerSession>());
+		if(::strcasecmp(request_headers.headers.get("Upgrade").c_str(), "websocket") == 0){
+			auto upgraded_session = boost::make_shared<WebSocketImpl>(virtual_shared_from_this<PlayerSession>());
 
-			auto responseHeaders = Poseidon::WebSocket::makeHandshakeResponse(requestHeaders);
-			if(responseHeaders.statusCode != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
-				DEBUG_THROW(Poseidon::Http::Exception, responseHeaders.statusCode);
+			auto response_headers = Poseidon::WebSocket::make_handshake_response(request_headers);
+			if(response_headers.status_code != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
+				DEBUG_THROW(Poseidon::Http::Exception, response_headers.status_code);
 			}
-			Poseidon::Http::Session::send(std::move(responseHeaders), { });
+			Poseidon::Http::Session::send(std::move(response_headers), { });
 
-			return std::move(upgradedSession);
+			return std::move(upgraded_session);
 		}
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 	}
 
-	return Poseidon::Http::Session::predispatchRequest(requestHeaders, entity);
+	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
 }
 
-void PlayerSession::onSyncRequest(Poseidon::Http::RequestHeaders /* requestHeaders */, Poseidon::StreamBuffer /* entity */){
+void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders /* request_headers */, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 
 	DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 }
 
-bool PlayerSession::send(boost::uint16_t messageId, Poseidon::StreamBuffer payload){
+bool PlayerSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
-	const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(getUpgradedSession());
+	const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(get_upgraded_session());
 	if(!impl){
 		LOG_EMPERY_CENTER_WARNING("WebSocket session comes out of thin air?");
 		DEBUG_THROW(Exception, sslit("WebSocket session comes out of thin air"));
@@ -186,7 +186,7 @@ bool PlayerSession::send(boost::uint16_t messageId, Poseidon::StreamBuffer paylo
 
 	Poseidon::StreamBuffer whole;
 	auto wit = Poseidon::StreamBuffer::WriteIterator(whole);
-	Poseidon::vuint50ToBinary(messageId, wit);
+	Poseidon::vuint50_to_binary(message_id, wit);
 	whole.splice(payload);
 	return impl->send(std::move(whole), true);
 }
@@ -198,17 +198,17 @@ void PlayerSession::shutdown(int reason, const char *message) noexcept {
 		message = "";
 	}
 	try {
-		sendControl(Poseidon::Cbpp::ControlMessage::ID, reason, message);
+		send_control(Poseidon::Cbpp::ControlMessage::ID, reason, message);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
-	const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(getUpgradedSession());
+	const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(get_upgraded_session());
 	if(impl){
 		impl->shutdown(Poseidon::WebSocket::ST_NORMAL_CLOSURE);
 	}
 
-	Poseidon::Http::Session::shutdownRead();
-	Poseidon::Http::Session::shutdownWrite();
+	Poseidon::Http::Session::shutdown_read();
+	Poseidon::Http::Session::shutdown_write();
 }
 
 }

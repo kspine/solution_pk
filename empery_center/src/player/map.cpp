@@ -9,52 +9,52 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, accountUuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, req){
 	(void)req;
 
 	ClusterSessionMap::SessionContainer clusters;
-	ClusterSessionMap::getAll(clusters);
-	const auto mapSize = ClusterSessionMap::requireMapSize();
+	ClusterSessionMap::get_all(clusters);
+	const auto map_size = ClusterSessionMap::require_map_size();
 
 	Msg::SC_MapWorldMapList msg;
 	msg.maps.reserve(clusters.size());
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
 		msg.maps.emplace_back();
 		auto &map = msg.maps.back();
-		map.mapX = it->first.first;
-		map.mapX = it->first.second;
+		map.map_x = it->first.first;
+		map.map_x = it->first.second;
 	}
-	msg.mapWidth = mapSize.first;
-	msg.mapHeight = mapSize.second;
+	msg.map_width = map_size.first;
+	msg.map_height = map_size.second;
 	session->send(msg);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapSetView, accountUuid, session, req){
-	MapObjectMap::setPlayerView(session, Rectangle(req.x, req.y, req.width, req.height));
+PLAYER_SERVLET(Msg::CS_MapSetView, account_uuid, session, req){
+	MapObjectMap::set_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapRefreshView, accountUuid, session, req){
-	MapObjectMap::synchronizePlayerView(session, Rectangle(req.x, req.y, req.width, req.height));
+PLAYER_SERVLET(Msg::CS_MapRefreshView, account_uuid, session, req){
+	MapObjectMap::synchronize_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapSetObjectPath, accountUuid, session, req){
-	const auto mapObjectUuid = MapObjectUuid(req.mapObjectUuid);
-	const auto mapObject = MapObjectMap::get(mapObjectUuid);
-	if(!mapObject){
-		return { Msg::CERR_NO_SUCH_OBJECT, mapObjectUuid.str() };
+PLAYER_SERVLET(Msg::CS_MapSetObjectPath, account_uuid, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = MapObjectMap::get(map_object_uuid);
+	if(!map_object){
+		return { Msg::CERR_NO_SUCH_OBJECT, map_object_uuid.str() };
 	}
-	if(mapObject->getOwnerUuid() != accountUuid){
-		return { Msg::CERR_NOT_YOUR_OBJECT, mapObject->getOwnerUuid().str() };
+	if(map_object->get_owner_uuid() != account_uuid){
+		return { Msg::CERR_NOT_YOUR_OBJECT, map_object->get_owner_uuid().str() };
 	}
-	const auto fromCoord = mapObject->getCoord();
-	if((fromCoord.x() != req.x) || (fromCoord.y() != req.y)){
-		return { Msg::CERR_OBJECT_COORD_MISMATCH, boost::lexical_cast<std::string>(fromCoord) };
+	const auto from_coord = map_object->get_coord();
+	if((from_coord.x() != req.x) || (from_coord.y() != req.y)){
+		return { Msg::CERR_OBJECT_COORD_MISMATCH, boost::lexical_cast<std::string>(from_coord) };
 	}
 	// TODO 判断能不能走。
 

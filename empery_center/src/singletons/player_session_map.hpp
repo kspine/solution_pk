@@ -13,16 +13,16 @@ namespace EmperyCenter {
 class PlayerSession;
 
 struct PlayerSessionMap {
-	static boost::shared_ptr<PlayerSession> get(const AccountUuid &accountUuid);
+	static boost::shared_ptr<PlayerSession> get(const AccountUuid &account_uuid);
 
-	static AccountUuid getAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession);
-	static AccountUuid requireAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession);
+	static AccountUuid get_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session);
+	static AccountUuid require_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session);
 
-	static void add(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session);
-	static void remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept;
-	static void threadSafeRemove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept;
+	static void add(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session);
+	static void remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept;
+	static void thread_safe_remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept;
 
-	static void getAll(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret);
+	static void get_all(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret);
 
 private:
 	PlayerSessionMap() = delete;

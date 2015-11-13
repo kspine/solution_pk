@@ -14,92 +14,92 @@ namespace EmperyCenter {
 
 namespace {
 	struct ItemBoxElement {
-		AccountUuid accountUuid;
-		boost::uint64_t unloadTime;
+		AccountUuid account_uuid;
+		boost::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
 		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
-		mutable boost::shared_ptr<ItemBox> itemBox;
+		mutable boost::shared_ptr<ItemBox> item_box;
 		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
 
-		ItemBoxElement(const AccountUuid &accountUuid_, boost::uint64_t unloadTime_)
-			: accountUuid(accountUuid_), unloadTime(unloadTime_)
+		ItemBoxElement(const AccountUuid &account_uuid_, boost::uint64_t unload_time_)
+			: account_uuid(account_uuid_), unload_time(unload_time_)
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(ItemBoxMapDelegator, ItemBoxElement,
-		UNIQUE_MEMBER_INDEX(accountUuid)
-		MULTI_MEMBER_INDEX(unloadTime)
+		UNIQUE_MEMBER_INDEX(account_uuid)
+		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<ItemBoxMapDelegator> g_itemBoxMap;
+	boost::weak_ptr<ItemBoxMapDelegator> g_item_box_map;
 
-	void gcTimerProc(boost::uint64_t now){
+	void gc_timer_proc(boost::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_DEBUG("Item box gc timer: now = ", now);
 
-		const auto itemBoxMap = g_itemBoxMap.lock();
-		if(!itemBoxMap){
+		const auto item_box_map = g_item_box_map.lock();
+		if(!item_box_map){
 			return;
 		}
 
 		for(;;){
-			const auto it = itemBoxMap->begin<1>();
-			if(it == itemBoxMap->end<1>()){
+			const auto it = item_box_map->begin<1>();
+			if(it == item_box_map->end<1>()){
 				break;
 			}
-			if(now < it->unloadTime){
+			if(now < it->unload_time){
 				break;
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() <= 1) && it->itemBox && it->itemBox.unique()){
-				LOG_EMPERY_CENTER_INFO("Reclaiming item box: accountUuid = ", it->accountUuid);
-				itemBoxMap->erase<1>(it);
+			if((it->promise.use_count() <= 1) && it->item_box && it->item_box.unique()){
+				LOG_EMPERY_CENTER_INFO("Reclaiming item box: account_uuid = ", it->account_uuid);
+				item_box_map->erase<1>(it);
 			} else {
-				itemBoxMap->setKey<1, 1>(it, now + 1000);
+				item_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto itemBoxMap = boost::make_shared<ItemBoxMapDelegator>();
-		g_itemBoxMap = itemBoxMap;
-		handles.push(itemBoxMap);
+		const auto item_box_map = boost::make_shared<ItemBoxMapDelegator>();
+		g_item_box_map = item_box_map;
+		handles.push(item_box_map);
 
-		const auto gcInterval = getConfig<boost::uint64_t>("object_gc_interval", 300000);
-		auto timer = Poseidon::TimerDaemon::registerTimer(0, gcInterval,
-			std::bind(&gcTimerProc, std::placeholders::_2));
+		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
+			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 	}
 }
 
-boost::shared_ptr<ItemBox> ItemBoxMap::get(const AccountUuid &accountUuid){
+boost::shared_ptr<ItemBox> ItemBoxMap::get(const AccountUuid &account_uuid){
 	PROFILE_ME;
 
-	const auto itemBoxMap = g_itemBoxMap.lock();
-	if(!itemBoxMap){
+	const auto item_box_map = g_item_box_map.lock();
+	if(!item_box_map){
 		LOG_EMPERY_CENTER_WARNING("ItemBoxMap is not loaded.");
 		DEBUG_THROW(Exception, sslit("ItemBoxMap is not loaded"));
 	}
 
-	auto it = itemBoxMap->find<0>(accountUuid);
-	if(it == itemBoxMap->end<0>()){
-		it = itemBoxMap->insert<0>(it, ItemBoxElement(accountUuid, 0));
+	auto it = item_box_map->find<0>(account_uuid);
+	if(it == item_box_map->end<0>()){
+		it = item_box_map->insert<0>(it, ItemBoxElement(account_uuid, 0));
 	}
-	if(!it->itemBox){
-		LOG_EMPERY_CENTER_INFO("Loading item box: accountUuid = ", accountUuid);
+	if(!it->item_box){
+		LOG_EMPERY_CENTER_INFO("Loading item box: account_uuid = ", account_uuid);
 
-		const auto now = Poseidon::getFastMonoClock();
-		const auto gcInterval = getConfig<boost::uint64_t>("object_gc_interval", 300000);
-		itemBoxMap->setKey<0, 1>(it, saturatedAdd(now, gcInterval));
+		const auto now = Poseidon::get_fast_mono_clock();
+		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		item_box_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
 
 		if(!it->promise){
 			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
 			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_Item` WHERE `accountUuid` = '" <<accountUuid <<"'";
-			auto promise = Poseidon::MySqlDaemon::enqueueForBatchLoading(sink,
+			oss <<"SELECT * FROM `Center_Item` WHERE `account_uuid` = '" <<account_uuid <<"'";
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
 				&MySql::Center_Item::create, "Center_Item", oss.str());
 			it->promise = std::move(promise);
 			it->sink    = std::move(sink);
@@ -109,10 +109,10 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(const AccountUuid &accountUuid){
 		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
 		const auto promise = it->promise;
 		Poseidon::JobDispatcher::yield(promise);
-		promise->checkAndRethrow();
+		promise->check_and_rethrow();
 
 		assert(it->sink);
-		LOG_EMPERY_CENTER_DEBUG("Asynchronous MySQL query has completed: accountUuid = ", accountUuid, ", rows = ", it->sink->size());
+		LOG_EMPERY_CENTER_DEBUG("Asynchronous MySQL query has completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
 
 		std::vector<boost::shared_ptr<MySql::Center_Item>> objs;
 		objs.reserve(it->sink->size());
@@ -124,33 +124,33 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(const AccountUuid &accountUuid){
 			}
 			objs.emplace_back(std::move(obj));
 		}
-		auto itemBox = boost::make_shared<ItemBox>(accountUuid, objs);
+		auto item_box = boost::make_shared<ItemBox>(account_uuid, objs);
 
-		const auto itemBoxRefreshInterval = getConfig<boost::uint64_t>("item_box_refresh_interval", 60000);
-		auto timer = Poseidon::TimerDaemon::registerTimer(0, itemBoxRefreshInterval,
+		const auto item_box_refresh_interval = get_config<boost::uint64_t>("item_box_refresh_interval", 60000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, item_box_refresh_interval,
 			std::bind([](const boost::weak_ptr<ItemBox> &weak){
 				PROFILE_ME;
-				const auto itemBox = weak.lock();
-				if(!itemBox){
+				const auto item_box = weak.lock();
+				if(!item_box){
 					return;
 				}
-				itemBox->pumpStatus();
-			}, boost::weak_ptr<ItemBox>(itemBox))
+				item_box->pump_status();
+			}, boost::weak_ptr<ItemBox>(item_box))
 		);
 
 		it->promise = { };
 		it->sink    = { };
-		it->itemBox = std::move(itemBox);
+		it->item_box = std::move(item_box);
 		it->timer   = std::move(timer);
 	}
-	return it->itemBox;
+	return it->item_box;
 }
-boost::shared_ptr<ItemBox> ItemBoxMap::require(const AccountUuid &accountUuid){
+boost::shared_ptr<ItemBox> ItemBoxMap::require(const AccountUuid &account_uuid){
 	PROFILE_ME;
 
-	auto ret = get(accountUuid);
+	auto ret = get(account_uuid);
 	if(!ret){
-		LOG_EMPERY_CENTER_WARNING("ItemBox not found: accountUuid = ", accountUuid);
+		LOG_EMPERY_CENTER_WARNING("ItemBox not found: account_uuid = ", account_uuid);
 		DEBUG_THROW(Exception, sslit("ItemBox not found"));
 	}
 	return ret;

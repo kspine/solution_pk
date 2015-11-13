@@ -9,10 +9,10 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Center_Item
 #define MYSQL_OBJECT_FIELDS \
-	FIELD_UUID              (accountUuid)	\
-	FIELD_INTEGER_UNSIGNED  (itemId)	\
+	FIELD_UUID              (account_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (item_id)	\
 	FIELD_BIGINT_UNSIGNED   (count)	\
-	FIELD_DATETIME          (updatedTime)
+	FIELD_DATETIME          (updated_time)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

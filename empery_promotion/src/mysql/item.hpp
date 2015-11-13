@@ -9,10 +9,10 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Promotion_Item
 #define MYSQL_OBJECT_FIELDS \
-	FIELD_BIGINT_UNSIGNED   (accountId)	\
-	FIELD_INTEGER_UNSIGNED  (itemId)	\
+	FIELD_BIGINT_UNSIGNED   (account_id)	\
+	FIELD_INTEGER_UNSIGNED  (item_id)	\
 	FIELD_BIGINT_UNSIGNED   (count)	\
-	FIELD_DATETIME          (updatedTime)	\
+	FIELD_DATETIME          (updated_time)	\
 	FIELD_BIGINT_UNSIGNED   (flags)
 #include <poseidon/mysql/object_generator.hpp>
 

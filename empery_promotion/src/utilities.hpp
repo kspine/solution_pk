@@ -13,14 +13,14 @@ namespace Data {
 	class Promotion;
 }
 
-// <succeeded, balanceToConsume>
-extern std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountId payerId, bool isCreatingAccount,
-	const boost::shared_ptr<const Data::Promotion> &promotionData, const std::string &remarks, boost::uint64_t additionalCards);
+// <succeeded, balance_to_consume>
+extern std::pair<bool, boost::uint64_t> try_upgrade_account(AccountId account_id, AccountId payer_id, bool is_creating_account,
+	const boost::shared_ptr<const Data::Promotion> &promotion_data, const std::string &remarks, boost::uint64_t additional_cards);
 
-extern void commitFirstBalanceBonus();
-extern void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount, boost::uint64_t upgradeToLevel);
+extern void commit_first_balance_bonus();
+extern void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, boost::uint64_t amount, boost::uint64_t upgrade_to_level);
 
-extern std::string generateBillSerial(const std::string &prefix);
+extern std::string generate_bill_serial(const std::string &prefix);
 
 }
 

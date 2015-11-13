@@ -10,47 +10,47 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("deactivate", session, params){
-	const auto &loginName = params.at("loginName");
+	const auto &login_name = params.at("loginName");
 	const auto &remarks = params.get("remarks");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::getByLoginName(loginName);
-	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	auto info = AccountMap::get_by_login_name(login_name);
+	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
 	}
 
-	if(Poseidon::hasAnyFlagsOf(info.flags, AccountMap::FL_DEACTIVATED)){
+	if(Poseidon::has_any_flags_of(info.flags, AccountMap::FL_DEACTIVATED)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_DEACTIVATED;
 		ret[sslit("errorMessage")] = "Account has already been deactivated";
 		return ret;
 	}
 
-	const auto initGoldCoinArray = Poseidon::explode<boost::uint64_t>(',',
-	                               getConfig<std::string>("init_gold_coins_array", "100,50,50"));
+	const auto init_gold_coin_array = Poseidon::explode<boost::uint64_t>(',',
+	                               get_config<std::string>("init_gold_coins_array", "100,50,50"));
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.reserve(initGoldCoinArray.size());
-	auto removeGoldCoinsFromWhom = info.accountId;
-	for(auto it = initGoldCoinArray.begin(); it != initGoldCoinArray.end(); ++it){
-		transaction.emplace_back(removeGoldCoinsFromWhom, ItemTransactionElement::OP_REMOVE_SATURATED, ItemIds::ID_GOLD_COINS, *it,
-			Events::ItemChanged::R_DEACTIVATE_ACCOUNT, info.accountId.get(), 0, 0, remarks);
+	transaction.reserve(init_gold_coin_array.size());
+	auto remove_gold_coins_from_whom = info.account_id;
+	for(auto it = init_gold_coin_array.begin(); it != init_gold_coin_array.end(); ++it){
+		transaction.emplace_back(remove_gold_coins_from_whom, ItemTransactionElement::OP_REMOVE_SATURATED, ItemIds::ID_GOLD_COINS, *it,
+			Events::ItemChanged::R_DEACTIVATE_ACCOUNT, info.account_id.get(), 0, 0, remarks);
 
-		const auto info = AccountMap::require(removeGoldCoinsFromWhom);
-		removeGoldCoinsFromWhom = info.referrerId;
-		if(!removeGoldCoinsFromWhom){
+		const auto info = AccountMap::require(remove_gold_coins_from_whom);
+		remove_gold_coins_from_whom = info.referrer_id;
+		if(!remove_gold_coins_from_whom){
 			break;
 		}
 	}
-	ItemMap::commitTransaction(transaction.data(), transaction.size());
+	ItemMap::commit_transaction(transaction.data(), transaction.size());
 
-	AccountMap::setPhoneNumber(info.accountId, std::string());
+	AccountMap::set_phone_number(info.account_id, std::string());
 
-	Poseidon::addFlags(info.flags, AccountMap::FL_DEACTIVATED);
-	AccountMap::setFlags(info.accountId, info.flags);
+	Poseidon::add_flags(info.flags, AccountMap::FL_DEACTIVATED);
+	AccountMap::set_flags(info.account_id, info.flags);
 
-	AccountMap::setBannedUntil(info.accountId, (boost::uint64_t)-1);
+	AccountMap::set_banned_until(info.account_id, (boost::uint64_t)-1);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

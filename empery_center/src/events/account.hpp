@@ -8,46 +8,46 @@ namespace EmperyCenter {
 
 namespace Events {
 	struct AccountCreated : public Poseidon::EventBase<340101> {
-		AccountUuid accountUuid;
-		std::string remoteIp;
+		AccountUuid account_uuid;
+		std::string remote_ip;
 
-		AccountCreated(const AccountUuid &accountUuid_, std::string remoteIp_)
-			: accountUuid(accountUuid_), remoteIp(std::move(remoteIp_))
+		AccountCreated(const AccountUuid &account_uuid_, std::string remote_ip_)
+			: account_uuid(account_uuid_), remote_ip(std::move(remote_ip_))
 		{
 		}
 	};
 
 	struct AccountLoggedIn : public Poseidon::EventBase<340102> {
-		AccountUuid accountUuid;
-		std::string remoteIp;
+		AccountUuid account_uuid;
+		std::string remote_ip;
 
-		AccountLoggedIn(const AccountUuid &accountUuid_, std::string remoteIp_)
-			: accountUuid(accountUuid_), remoteIp(std::move(remoteIp_))
+		AccountLoggedIn(const AccountUuid &account_uuid_, std::string remote_ip_)
+			: account_uuid(account_uuid_), remote_ip(std::move(remote_ip_))
 		{
 		}
 	};
 
 	struct AccountLoggedOut : public Poseidon::EventBase<340103> {
-		AccountUuid accountUuid;
-		boost::uint64_t onlineDuration;
+		AccountUuid account_uuid;
+		boost::uint64_t online_duration;
 
-		AccountLoggedOut(const AccountUuid &accountUuid_, boost::uint64_t onlineDuration_)
-			: accountUuid(accountUuid_), onlineDuration(onlineDuration_)
+		AccountLoggedOut(const AccountUuid &account_uuid_, boost::uint64_t online_duration_)
+			: account_uuid(account_uuid_), online_duration(online_duration_)
 		{
 		}
 	};
 
 	struct AccountSetToken : public Poseidon::EventBase<340104> {
-		PlatformId platformId;
-		std::string loginName;
-		std::string loginToken;
-		boost::uint64_t expiryTime;
-		std::string remoteIp;
+		PlatformId platform_id;
+		std::string login_name;
+		std::string login_token;
+		boost::uint64_t expiry_time;
+		std::string remote_ip;
 
-		AccountSetToken(PlatformId platformId_, std::string loginName_,
-			std::string loginToken_, boost::uint64_t expiryTime_, std::string remoteIp_)
-			: platformId(platformId_), loginName(std::move(loginName_))
-			, loginToken(std::move(loginToken_)), expiryTime(expiryTime_), remoteIp(std::move(remoteIp_))
+		AccountSetToken(PlatformId platform_id_, std::string login_name_,
+			std::string login_token_, boost::uint64_t expiry_time_, std::string remote_ip_)
+			: platform_id(platform_id_), login_name(std::move(login_name_))
+			, login_token(std::move(login_token_)), expiry_time(expiry_time_), remote_ip(std::move(remote_ip_))
 		{
 		}
 	};

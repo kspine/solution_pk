@@ -21,8 +21,8 @@ public:
 
 private:
 	Operation m_operation;
-	ResourceId m_resourceId;
-	boost::uint64_t m_deltaCount;
+	ResourceId m_resource_id;
+	boost::uint64_t m_delta_count;
 
 	ReasonId m_reason;
 	boost::uint64_t m_param1;
@@ -30,9 +30,9 @@ private:
 	boost::uint64_t m_param3;
 
 public:
-	ResourceTransactionElement(Operation operation, ResourceId resourceId, boost::uint64_t deltaCount,
+	ResourceTransactionElement(Operation operation, ResourceId resource_id, boost::uint64_t delta_count,
 		ReasonId reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3)
-		: m_operation(operation), m_resourceId(resourceId), m_deltaCount(deltaCount)
+		: m_operation(operation), m_resource_id(resource_id), m_delta_count(delta_count)
 		, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3)
 	{
 	}

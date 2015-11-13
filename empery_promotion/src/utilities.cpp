@@ -23,369 +23,369 @@ namespace {
 		}
 	};
 
-	void checkAutoUpgradeable(AccountId initAccountId){
+	void check_auto_upgradeable(AccountId init_account_id){
 		PROFILE_ME;
 
-		auto nextAccountId = initAccountId;
-		while(nextAccountId){
-			const auto accountId = nextAccountId;
-			const auto info = AccountMap::require(accountId);
-			nextAccountId = info.referrerId;
+		auto next_account_id = init_account_id;
+		while(next_account_id){
+			const auto account_id = next_account_id;
+			const auto info = AccountMap::require(account_id);
+			next_account_id = info.referrer_id;
 
-			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: accountId = ", accountId, ", level = ", info.level);
-			const auto oldPromotionData = Data::Promotion::get(info.level);
-			if(!oldPromotionData){
+			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: account_id = ", account_id, ", level = ", info.level);
+			const auto old_promotion_data = Data::Promotion::get(info.level);
+			if(!old_promotion_data){
 				LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero.");
 				continue;
 			}
 
-			boost::container::flat_map<boost::uint64_t, boost::uint64_t> subordinateLevelCounts;
-			subordinateLevelCounts.reserve(32);
+			boost::container::flat_map<boost::uint64_t, boost::uint64_t> subordinate_level_counts;
+			subordinate_level_counts.reserve(32);
 			{
 				std::vector<AccountMap::AccountInfo> subordinates;
-				AccountMap::getByReferrerId(subordinates, accountId);
+				AccountMap::get_by_referrer_id(subordinates, account_id);
 				for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
-					LOG_EMPERY_PROMOTION_DEBUG("> > Subordinate: accountId = ", it->accountId, ", maxLevel = ", it->maxLevel);
-					++subordinateLevelCounts[it->maxLevel];
+					LOG_EMPERY_PROMOTION_DEBUG("> > Subordinate: account_id = ", it->account_id, ", max_level = ", it->max_level);
+					++subordinate_level_counts[it->max_level];
 				}
 			}
-			auto newPromotionData = oldPromotionData;
+			auto new_promotion_data = old_promotion_data;
 			for(;;){
 				std::size_t count = 0;
-				for(auto it = subordinateLevelCounts.lower_bound(newPromotionData->level); it != subordinateLevelCounts.end(); ++it){
+				for(auto it = subordinate_level_counts.lower_bound(new_promotion_data->level); it != subordinate_level_counts.end(); ++it){
 					count += it->second;
 				}
-				LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", newPromotionData->level,
-					", count = ", count, ", autoUpgradeCount = ", newPromotionData->autoUpgradeCount);
-				if(count < newPromotionData->autoUpgradeCount){
+				LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", new_promotion_data->level,
+					", count = ", count, ", auto_upgrade_count = ", new_promotion_data->auto_upgrade_count);
+				if(count < new_promotion_data->auto_upgrade_count){
 					LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
 					break;
 				}
-				auto promotionData = Data::Promotion::getNext(newPromotionData->level);
-				if(!promotionData || (promotionData == newPromotionData)){
+				auto promotion_data = Data::Promotion::get_next(new_promotion_data->level);
+				if(!promotion_data || (promotion_data == new_promotion_data)){
 					LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
 					break;
 				}
-				newPromotionData = std::move(promotionData);
+				new_promotion_data = std::move(promotion_data);
 			}
-			if(newPromotionData == oldPromotionData){
-				LOG_EMPERY_PROMOTION_DEBUG("Not auto upgradeable: accountId = ", accountId);
+			if(new_promotion_data == old_promotion_data){
+				LOG_EMPERY_PROMOTION_DEBUG("Not auto upgradeable: account_id = ", account_id);
 			} else {
-				LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: accountId = ", accountId, ", level = ", newPromotionData->level);
-				AccountMap::setLevel(accountId, newPromotionData->level);
+				LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: account_id = ", account_id, ", level = ", new_promotion_data->level);
+				AccountMap::set_level(account_id, new_promotion_data->level);
 			}
 		}
 	}
 }
 
-std::pair<bool, boost::uint64_t> tryUpgradeAccount(AccountId accountId, AccountId payerId, bool isCreatingAccount,
-	const boost::shared_ptr<const Data::Promotion> &promotionData, const std::string &remarks, boost::uint64_t additionalCards)
+std::pair<bool, boost::uint64_t> try_upgrade_account(AccountId account_id, AccountId payer_id, bool is_creating_account,
+	const boost::shared_ptr<const Data::Promotion> &promotion_data, const std::string &remarks, boost::uint64_t additional_cards)
 {
 	PROFILE_ME;
-	LOG_EMPERY_PROMOTION_INFO("Upgrading account: accountId = ", accountId, ", level = ", promotionData->level);
+	LOG_EMPERY_PROMOTION_INFO("Upgrading account: account_id = ", account_id, ", level = ", promotion_data->level);
 
-	const auto level = promotionData->level;
+	const auto level = promotion_data->level;
 
-	auto info = AccountMap::require(accountId);
+	auto info = AccountMap::require(account_id);
 
-	const double originalUnitPrice = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
-	const boost::uint64_t cardUnitPrice = std::ceil(originalUnitPrice * promotionData->immediateDiscount - 0.001);
-	boost::uint64_t balanceToConsume = 0;
-	if(cardUnitPrice != 0){
-		const auto minCardsToBuy = static_cast<boost::uint64_t>(
-			std::ceil(static_cast<double>(promotionData->immediatePrice) / cardUnitPrice - 0.001));
-		const auto cardsToBuy = checkedAdd(minCardsToBuy, additionalCards);
-		balanceToConsume = checkedMul(cardUnitPrice, cardsToBuy);
-		LOG_EMPERY_PROMOTION_INFO("Acceleration cards: minCardsToBuy = ", minCardsToBuy, ", additionalCards = ", additionalCards,
-			", cardsToBuy = ", cardsToBuy, ", balanceToConsume = ", balanceToConsume);
+	const double original_unit_price = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
+	const boost::uint64_t card_unit_price = std::ceil(original_unit_price * promotion_data->immediate_discount - 0.001);
+	boost::uint64_t balance_to_consume = 0;
+	if(card_unit_price != 0){
+		const auto min_cards_to_buy = static_cast<boost::uint64_t>(
+			std::ceil(static_cast<double>(promotion_data->immediate_price) / card_unit_price - 0.001));
+		const auto cards_to_buy = checked_add(min_cards_to_buy, additional_cards);
+		balance_to_consume = checked_mul(card_unit_price, cards_to_buy);
+		LOG_EMPERY_PROMOTION_INFO("Acceleration cards: min_cards_to_buy = ", min_cards_to_buy, ", additional_cards = ", additional_cards,
+			", cards_to_buy = ", cards_to_buy, ", balance_to_consume = ", balance_to_consume);
 
 		auto reason = Events::ItemChanged::R_UPGRADE_ACCOUNT;
-		if(isCreatingAccount){
+		if(is_creating_account){
 			reason = Events::ItemChanged::R_CREATE_ACCOUNT;
 		}
 
 		std::vector<ItemTransactionElement> transaction;
-		transaction.emplace_back(accountId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARDS, cardsToBuy,
-			reason, accountId.get(), payerId.get(), level, remarks);
-		transaction.emplace_back(payerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, balanceToConsume,
-			reason, accountId.get(), payerId.get(), level, remarks);
-		transaction.emplace_back(payerId, ItemTransactionElement::OP_ADD, ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL, balanceToConsume,
-			reason, accountId.get(), payerId.get(), level, remarks);
-		const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
-		if(insufficientItemId){
-			return std::make_pair(false, balanceToConsume);
+		transaction.emplace_back(account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARDS, cards_to_buy,
+			reason, account_id.get(), payer_id.get(), level, remarks);
+		transaction.emplace_back(payer_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, balance_to_consume,
+			reason, account_id.get(), payer_id.get(), level, remarks);
+		transaction.emplace_back(payer_id, ItemTransactionElement::OP_ADD, ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL, balance_to_consume,
+			reason, account_id.get(), payer_id.get(), level, remarks);
+		const auto insufficient_item_id = ItemMap::commit_transaction_nothrow(transaction.data(), transaction.size());
+		if(insufficient_item_id){
+			return std::make_pair(false, balance_to_consume);
 		}
 	}
 
 	if(info.level < level){
-		AccountMap::setLevel(accountId, level);
+		AccountMap::set_level(account_id, level);
 	}
-	checkAutoUpgradeable(info.referrerId);
+	check_auto_upgradeable(info.referrer_id);
 
-	return std::make_pair(true, balanceToConsume);
+	return std::make_pair(true, balance_to_consume);
 }
 
 namespace {
-	double g_bonusRatio;
-	std::vector<double> g_incomeTaxRatioArray, g_extraTaxRatioArray;
+	double g_bonus_ratio;
+	std::vector<double> g_income_tax_ratio_array, g_extra_tax_ratio_array;
 
 	MODULE_RAII_PRIORITY(/* handles */, 1000){
-		auto val = getConfig<double>("balance_bonus_ratio", 0.70);
+		auto val = get_config<double>("balance_bonus_ratio", 0.70);
 		LOG_EMPERY_PROMOTION_DEBUG("> Balance bonus ratio: ", val);
-		g_bonusRatio = val;
+		g_bonus_ratio = val;
 
-		auto str = getConfig<std::string>("balance_income_tax_ratio_array", "0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01");
-		auto ratioArray = Poseidon::explode<double>(',', str);
-		LOG_EMPERY_PROMOTION_DEBUG("> Balance income tax ratio array: ", Poseidon::implode(',', ratioArray));
-		g_incomeTaxRatioArray = std::move(ratioArray);
+		auto str = get_config<std::string>("balance_income_tax_ratio_array", "0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01");
+		auto ratio_array = Poseidon::explode<double>(',', str);
+		LOG_EMPERY_PROMOTION_DEBUG("> Balance income tax ratio array: ", Poseidon::implode(',', ratio_array));
+		g_income_tax_ratio_array = std::move(ratio_array);
 
-		str = getConfig<std::string>("balance_extra_tax_ratio_array", "0.02,0.02,0.01");
-		ratioArray = Poseidon::explode<double>(',', str);
-		LOG_EMPERY_PROMOTION_DEBUG("> Balance extra tax ratio array: ", Poseidon::implode(',', ratioArray));
-		g_extraTaxRatioArray = std::move(ratioArray);
+		str = get_config<std::string>("balance_extra_tax_ratio_array", "0.02,0.02,0.01");
+		ratio_array = Poseidon::explode<double>(',', str);
+		LOG_EMPERY_PROMOTION_DEBUG("> Balance extra tax ratio array: ", Poseidon::implode(',', ratio_array));
+		g_extra_tax_ratio_array = std::move(ratio_array);
 	}
 
-	void reallyAccumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount,
-		AccountId virtualReferrerId, boost::uint64_t upgradeToLevel)
+	void really_accumulate_balance_bonus(AccountId account_id, AccountId payer_id, boost::uint64_t amount,
+		AccountId virtual_referrer_id, boost::uint64_t upgrade_to_level)
 	{
 		PROFILE_ME;
-		LOG_EMPERY_PROMOTION_INFO("Balance bonus: accountId = ", accountId, ", payerId = ", payerId, ", amount = ", amount,
-			", virtualReferrerId = ", virtualReferrerId, ", upgradeToLevel = ", upgradeToLevel);
+		LOG_EMPERY_PROMOTION_INFO("Balance bonus: account_id = ", account_id, ", payer_id = ", payer_id, ", amount = ", amount,
+			", virtual_referrer_id = ", virtual_referrer_id, ", upgrade_to_level = ", upgrade_to_level);
 
 		std::vector<ItemTransactionElement> transaction;
 		transaction.reserve(64);
 
-		const auto firstPromotionData = Data::Promotion::getFirst();
+		const auto first_promotion_data = Data::Promotion::get_first();
 
 		std::deque<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
-		for(auto currentId = virtualReferrerId; currentId; currentId = AccountMap::require(currentId).referrerId){
-			auto referrerInfo = AccountMap::require(currentId);
-			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: currentId = ", currentId, ", level = ", referrerInfo.level);
-			referrers.emplace_back(currentId, Data::Promotion::get(referrerInfo.level));
+		for(auto current_id = virtual_referrer_id; current_id; current_id = AccountMap::require(current_id).referrer_id){
+			auto referrer_info = AccountMap::require(current_id);
+			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: current_id = ", current_id, ", level = ", referrer_info.level);
+			referrers.emplace_back(current_id, Data::Promotion::get(referrer_info.level));
 		}
 
-		const auto dividendTotal = static_cast<boost::uint64_t>(amount * g_bonusRatio);
-		const auto incomeTaxRatioTotal = std::accumulate(g_incomeTaxRatioArray.begin(), g_incomeTaxRatioArray.end(), 0.0);
+		const auto dividend_total = static_cast<boost::uint64_t>(amount * g_bonus_ratio);
+		const auto income_tax_ratio_total = std::accumulate(g_income_tax_ratio_array.begin(), g_income_tax_ratio_array.end(), 0.0);
 
-		boost::uint64_t dividendAccumulated = 0;
+		boost::uint64_t dividend_accumulated = 0;
 		while(!referrers.empty()){
-			const auto referrerId = referrers.front().first;
-			const auto referrerPromotionData = std::move(referrers.front().second);
+			const auto referrer_id = referrers.front().first;
+			const auto referrer_promotion_data = std::move(referrers.front().second);
 			referrers.pop_front();
 
-			if(!referrerPromotionData){
-				LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero: referrerId = ", referrerId);
+			if(!referrer_promotion_data){
+				LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero: referrer_id = ", referrer_id);
 				continue;
 			}
-			const auto myMaxDividend = dividendTotal * referrerPromotionData->taxRatio;
-			LOG_EMPERY_PROMOTION_DEBUG("> Current referrer: referrerId = ", referrerId,
-				", level = ", referrerPromotionData->level, ", taxRatio = ", referrerPromotionData->taxRatio,
-				", dividendAccumulated = ", dividendAccumulated, ", myMaxDividend = ", myMaxDividend);
+			const auto my_max_dividend = dividend_total * referrer_promotion_data->tax_ratio;
+			LOG_EMPERY_PROMOTION_DEBUG("> Current referrer: referrer_id = ", referrer_id,
+				", level = ", referrer_promotion_data->level, ", tax_ratio = ", referrer_promotion_data->tax_ratio,
+				", dividend_accumulated = ", dividend_accumulated, ", my_max_dividend = ", my_max_dividend);
 
 			// 级差制。
-			if(dividendAccumulated >= myMaxDividend){
+			if(dividend_accumulated >= my_max_dividend){
 				continue;
 			}
-			const auto myDividend = myMaxDividend - dividendAccumulated;
-			dividendAccumulated = myMaxDividend;
+			const auto my_dividend = my_max_dividend - dividend_accumulated;
+			dividend_accumulated = my_max_dividend;
 
-			transaction.emplace_back(referrerId, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, myDividend,
-				Events::ItemChanged::R_BALANCE_BONUS, accountId.get(), payerId.get(), upgradeToLevel, std::string());
+			transaction.emplace_back(referrer_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, my_dividend,
+				Events::ItemChanged::R_BALANCE_BONUS, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
 
 			unsigned generation;
 
-			if(referrerPromotionData && referrerPromotionData->taxExtra){
+			if(referrer_promotion_data && referrer_promotion_data->tax_extra){
 				generation = 0;
-				for(auto it = referrers.begin(); (generation < g_extraTaxRatioArray.size()) && (it != referrers.end()); ++it){
+				for(auto it = referrers.begin(); (generation < g_extra_tax_ratio_array.size()) && (it != referrers.end()); ++it){
 					if(!(it->second)){
 						continue;
 					}
-					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level);
-					if(!(it->second->taxExtra)){
+					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level);
+					if(!(it->second->tax_extra)){
 						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
 						continue;
 					}
-					const auto extra = static_cast<boost::uint64_t>(std::round(dividendTotal * g_extraTaxRatioArray.at(generation)));
-					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
+					const auto extra = static_cast<boost::uint64_t>(std::round(dividend_total * g_extra_tax_ratio_array.at(generation)));
+					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
-						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, accountId.get(), payerId.get(), upgradeToLevel, std::string());
+						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
 					++generation;
 				}
 			}
 
 			// 扣除个税即使没有上家（视为被系统回收）。
-			const auto taxTotal = static_cast<boost::uint64_t>(std::round(myDividend * incomeTaxRatioTotal));
-			transaction.emplace_back(referrerId, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, taxTotal,
-				Events::ItemChanged::R_INCOME_TAX, myDividend, referrerId.get(), 0, std::string());
+			const auto tax_total = static_cast<boost::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
+			transaction.emplace_back(referrer_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax_total,
+				Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
 
 			generation = 0;
-			for(auto it = referrers.begin(); (generation < g_incomeTaxRatioArray.size()) && (it != referrers.end()); ++it){
+			for(auto it = referrers.begin(); (generation < g_income_tax_ratio_array.size()) && (it != referrers.end()); ++it){
 				if(!(it->second)){
 					continue;
 				}
-				if(firstPromotionData && (it->second->level <= firstPromotionData->level)){
+				if(first_promotion_data && (it->second->level <= first_promotion_data->level)){
 					continue;
 				}
-				const auto tax = static_cast<boost::uint64_t>(std::round(myDividend * g_incomeTaxRatioArray.at(generation)));
-				LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrerId = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
+				const auto tax = static_cast<boost::uint64_t>(std::round(my_dividend * g_income_tax_ratio_array.at(generation)));
+				LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
 				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
-					Events::ItemChanged::R_INCOME_TAX, myDividend, referrerId.get(), 0, std::string());
+					Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
 				++generation;
 			}
 		}
 
-		ItemMap::commitTransaction(transaction.data(), transaction.size());
+		ItemMap::commit_transaction(transaction.data(), transaction.size());
 		LOG_EMPERY_PROMOTION_INFO("Done!");
 	}
 }
 
-void commitFirstBalanceBonus(){
+void commit_first_balance_bonus(){
 	PROFILE_ME;
 	LOG_EMPERY_PROMOTION_INFO("Committing first balancing...");
 
-	std::map<std::string, boost::shared_ptr<const Data::Promotion>, StringCaseComparator> toutAccounts;
+	std::map<std::string, boost::shared_ptr<const Data::Promotion>, StringCaseComparator> tout_accounts;
 	{
-		auto vec = getConfigV<std::string>("tout_account");
+		auto vec = get_config_v<std::string>("tout_account");
 		for(auto it = vec.begin(); it != vec.end(); ++it){
 			auto parts = Poseidon::explode<std::string>(',', *it, 2);
-			auto loginName = std::move(parts.at(0));
+			auto login_name = std::move(parts.at(0));
 			auto level = boost::lexical_cast<boost::uint64_t>(parts.at(1));
-			auto promotionData = Data::Promotion::get(level);
-			if(!promotionData){
+			auto promotion_data = Data::Promotion::get(level);
+			if(!promotion_data){
 				LOG_EMPERY_PROMOTION_ERROR("Level not found: level = ", level);
 				continue;
 			}
-			LOG_EMPERY_PROMOTION_DEBUG("> Tout account: loginName = ", loginName, ", level = ", promotionData->level);
-			toutAccounts[std::move(loginName)] = std::move(promotionData);
+			LOG_EMPERY_PROMOTION_DEBUG("> Tout account: login_name = ", login_name, ", level = ", promotion_data->level);
+			tout_accounts[std::move(login_name)] = std::move(promotion_data);
 		}
 	}
 
-	std::map<AccountId, std::deque<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>>> rechargeHistory;
+	std::map<AccountId, std::deque<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>>> recharge_history;
 	{
-		std::vector<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>> tempObjs;
-		MySql::Promotion_OutcomeBalanceHistory::batchLoad(tempObjs,
-			"SELECT * FROM `Promotion_OutcomeBalanceHistory` ORDER BY `timestamp` ASC, `autoId` ASC");
-		for(auto it = tempObjs.begin(); it != tempObjs.end(); ++it){
+		std::vector<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>> temp_objs;
+		MySql::Promotion_OutcomeBalanceHistory::batch_load(temp_objs,
+			"SELECT * FROM `Promotion_OutcomeBalanceHistory` ORDER BY `timestamp` ASC, `auto_id` ASC");
+		for(auto it = temp_objs.begin(); it != temp_objs.end(); ++it){
 			auto &obj = *it;
-			const auto accountId = AccountId(obj->get_accountId());
-			rechargeHistory[accountId].emplace_back(std::move(obj));
+			const auto account_id = AccountId(obj->get_account_id());
+			recharge_history[account_id].emplace_back(std::move(obj));
 		}
 	}
 
-	std::set<std::string, StringCaseComparator> fakeOutcome;
+	std::set<std::string, StringCaseComparator> fake_outcome;
 	{
-		auto fakeOutcomeVec = getConfigV<std::string>("fake_outcome");
-		for(auto it = fakeOutcomeVec.begin(); it != fakeOutcomeVec.end(); ++it){
-			fakeOutcome.insert(std::move(*it));
+		auto fake_outcome_vec = get_config_v<std::string>("fake_outcome");
+		for(auto it = fake_outcome_vec.begin(); it != fake_outcome_vec.end(); ++it){
+			fake_outcome.insert(std::move(*it));
 		}
 	}
 
-	const auto firstLevelData = Data::Promotion::getFirst();
-	if(!firstLevelData){
+	const auto first_level_data = Data::Promotion::get_first();
+	if(!first_level_data){
 		LOG_EMPERY_PROMOTION_FATAL("No first level?");
 		std::abort();
 	}
 
-	std::vector<AccountMap::AccountInfo> tempInfos;
-	tempInfos.reserve(256);
+	std::vector<AccountMap::AccountInfo> temp_infos;
+	temp_infos.reserve(256);
 
 	std::deque<AccountMap::AccountInfo> queue;
-	AccountMap::getByReferrerId(tempInfos, AccountId(0));
-	std::copy(std::make_move_iterator(tempInfos.begin()), std::make_move_iterator(tempInfos.end()), std::back_inserter(queue));
+	AccountMap::get_by_referrer_id(temp_infos, AccountId(0));
+	std::copy(std::make_move_iterator(temp_infos.begin()), std::make_move_iterator(temp_infos.end()), std::back_inserter(queue));
 	while(!queue.empty()){
 		const auto info = std::move(queue.front());
 		queue.pop_front();
-		LOG_EMPERY_PROMOTION_TRACE("> Processing: accountId = ", info.accountId, ", referrerId = ", info.referrerId);
+		LOG_EMPERY_PROMOTION_TRACE("> Processing: account_id = ", info.account_id, ", referrer_id = ", info.referrer_id);
 		try {
-			tempInfos.clear();
-			AccountMap::getByReferrerId(tempInfos, info.accountId);
-			std::copy(std::make_move_iterator(tempInfos.begin()), std::make_move_iterator(tempInfos.end()), std::back_inserter(queue));
+			temp_infos.clear();
+			AccountMap::get_by_referrer_id(temp_infos, info.account_id);
+			std::copy(std::make_move_iterator(temp_infos.begin()), std::make_move_iterator(temp_infos.end()), std::back_inserter(queue));
 		} catch(std::exception &e){
 			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 		}
 
 		try {
-			boost::uint64_t newLevel;
-			const auto it = toutAccounts.find(info.loginName);
-			if(it != toutAccounts.end()){
-				newLevel = it->second->level;
+			boost::uint64_t new_level;
+			const auto it = tout_accounts.find(info.login_name);
+			if(it != tout_accounts.end()){
+				new_level = it->second->level;
 			} else {
-				newLevel = firstLevelData->level;
+				new_level = first_level_data->level;
 			}
-			AccountMap::setLevel(info.accountId, newLevel);
-			checkAutoUpgradeable(info.referrerId);
+			AccountMap::set_level(info.account_id, new_level);
+			check_auto_upgradeable(info.referrer_id);
 		} catch(std::exception &e){
 			LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 		}
 
-		const auto queueIt = rechargeHistory.find(info.accountId);
-		if(queueIt != rechargeHistory.end()){
-			while(!queueIt->second.empty()){
-				const auto obj = std::move(queueIt->second.front());
-				queueIt->second.pop_front();
+		const auto queue_it = recharge_history.find(info.account_id);
+		if(queue_it != recharge_history.end()){
+			while(!queue_it->second.empty()){
+				const auto obj = std::move(queue_it->second.front());
+				queue_it->second.pop_front();
 
-				boost::uint64_t newLevel;
+				boost::uint64_t new_level;
 				if(obj->get_reason() == Events::ItemChanged::R_UPGRADE_ACCOUNT){
-					newLevel = obj->get_param3();
+					new_level = obj->get_param3();
 				} else if(obj->get_reason() == Events::ItemChanged::R_CREATE_ACCOUNT){
-					newLevel = obj->get_param3();
+					new_level = obj->get_param3();
 				} else if(obj->get_reason() == Events::ItemChanged::R_BUY_MORE_CARDS){
-					newLevel = 0;
+					new_level = 0;
 				} else {
 					continue;
 				}
 				try {
-					LOG_EMPERY_PROMOTION_DEBUG("> Accumulating: accountId = ", info.accountId,
-						", outcomeBalance = ", obj->get_outcomeBalance(), ", reason = ", obj->get_reason());
-					const auto oldLevel = info.level;
-					if(fakeOutcome.find(info.loginName) != fakeOutcome.end()){
-						LOG_EMPERY_PROMOTION_DEBUG("> Fake outcome user: loginName = ", info.loginName);
+					LOG_EMPERY_PROMOTION_DEBUG("> Accumulating: account_id = ", info.account_id,
+						", outcome_balance = ", obj->get_outcome_balance(), ", reason = ", obj->get_reason());
+					const auto old_level = info.level;
+					if(fake_outcome.find(info.login_name) != fake_outcome.end()){
+						LOG_EMPERY_PROMOTION_DEBUG("> Fake outcome user: login_name = ", info.login_name);
 					} else {
-						reallyAccumulateBalanceBonus(info.accountId, info.accountId, obj->get_outcomeBalance(),
+						really_accumulate_balance_bonus(info.account_id, info.account_id, obj->get_outcome_balance(),
 							// 首次结算从自己开始，以后从推荐人开始。
-							info.accountId, newLevel);
+							info.account_id, new_level);
 					}
-					if(oldLevel < newLevel){
-						AccountMap::setLevel(info.accountId, newLevel);
+					if(old_level < new_level){
+						AccountMap::set_level(info.account_id, new_level);
 					}
-					checkAutoUpgradeable(info.referrerId);
+					check_auto_upgradeable(info.referrer_id);
 				} catch(std::exception &e){
 					LOG_EMPERY_PROMOTION_ERROR("std::exception thrown: what = ", e.what());
 				}
 			}
-			rechargeHistory.erase(queueIt);
+			recharge_history.erase(queue_it);
 		}
 	}
 }
-void accumulateBalanceBonus(AccountId accountId, AccountId payerId, boost::uint64_t amount, boost::uint64_t upgradeToLevel){
+void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, boost::uint64_t amount, boost::uint64_t upgrade_to_level){
 	PROFILE_ME;
 
-	const auto localNow = Poseidon::getUtcTime();
-	const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
-	if(localNow < firstBalancingTime){
+	const auto local_now = Poseidon::get_utc_time();
+	const auto first_balancing_time = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+	if(local_now < first_balancing_time){
 		LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
 		return;
 	}
 
-	const auto info = AccountMap::require(accountId);
-	reallyAccumulateBalanceBonus(accountId, payerId, amount,
-		info.referrerId, upgradeToLevel);
+	const auto info = AccountMap::require(account_id);
+	really_accumulate_balance_bonus(account_id, payer_id, amount,
+		info.referrer_id, upgrade_to_level);
 }
 
-std::string generateBillSerial(const std::string &prefix){
+std::string generate_bill_serial(const std::string &prefix){
 	PROFILE_ME;
 
-	const auto autoInc = GlobalStatus::fetchAdd(GlobalStatus::SLOT_BILL_AUTO_INC, 1);
+	const auto auto_inc = GlobalStatus::fetch_add(GlobalStatus::SLOT_BILL_AUTO_INC, 1);
 
 	std::string serial;
 	serial.reserve(255);
 	serial.append(prefix);
-	const auto localNow = Poseidon::getUtcTime();
-	const auto dt = Poseidon::breakDownTime(localNow);
+	const auto local_now = Poseidon::get_utc_time();
+	const auto dt = Poseidon::break_down_time(local_now);
 	char temp[256];
 	unsigned len = (unsigned)std::sprintf(temp, "%04u%02u%02u%02u", dt.yr, dt.mon, dt.day, dt.hr);
 	serial.append(temp, len);
-	len = (unsigned)std::sprintf(temp, "%09u", (unsigned)autoInc);
+	len = (unsigned)std::sprintf(temp, "%09u", (unsigned)auto_inc);
 	serial.append(temp + len - 6, 6);
 	return serial;
 }

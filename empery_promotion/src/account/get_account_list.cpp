@@ -9,88 +9,88 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("getAccountList", session, params){
-	const auto &fetchAllData = params.get("fetchAllData");
-	const auto &loginName = params.get("loginName");
+	const auto &fetch_all_data = params.get("fetchAllData");
+	const auto &login_name = params.get("loginName");
 	const auto &begin = params.get("begin");
 	const auto &count = params.get("count");
-	const auto &timeBegin = params.get("timeBegin");
-	const auto &timeEnd = params.get("timeEnd");
-	const auto &briefMode = params.get("briefMode");
+	const auto &time_begin = params.get("timeBegin");
+	const auto &time_end = params.get("timeEnd");
+	const auto &brief_mode = params.get("briefMode");
 
 	Poseidon::JsonObject ret;
 
-	AccountId accountId;
-	if(fetchAllData.empty() || !loginName.empty()){
-		auto info = AccountMap::getByLoginName(loginName);
-		if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	AccountId account_id;
+	if(fetch_all_data.empty() || !login_name.empty()){
+		auto info = AccountMap::get_by_login_name(login_name);
+		if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 			ret[sslit("errorMessage")] = "Account is not found";
 			return ret;
 		}
-		accountId = info.accountId;
+		account_id = info.account_id;
 	}
 
 	std::vector<boost::shared_ptr<MySql::Promotion_Account>> objs;
 	std::ostringstream oss;
 	oss <<"SELECT ";
-	if(briefMode.empty()){
+	if(brief_mode.empty()){
 		oss <<"* ";
 	} else {
 		oss <<"0 AS `sum`, COUNT(*) AS `rows` ";
 	}
 	oss <<"FROM `Promotion_Account` WHERE 1=1 ";
-	if(!timeBegin.empty()){
+	if(!time_begin.empty()){
 		char str[256];
-		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeBegin), false);
-		oss <<"AND '" <<str <<"' <= `createdTime` ";
-		Poseidon::formatTime(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(timeEnd), false);
-		oss <<"AND `createdTime` < '" <<str <<"' ";
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_begin), false);
+		oss <<"AND '" <<str <<"' <= `created_time` ";
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_end), false);
+		oss <<"AND `created_time` < '" <<str <<"' ";
 	}
-	if(!loginName.empty()){
-		oss <<"AND `accountId` = " <<accountId <<" ";
+	if(!login_name.empty()){
+		oss <<"AND `account_id` = " <<account_id <<" ";
 	}
-	oss <<"ORDER BY `createdTime` DESC ";
-	if(briefMode.empty()){
+	oss <<"ORDER BY `created_time` DESC ";
+	if(brief_mode.empty()){
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){
-				auto numBegin = boost::lexical_cast<boost::uint64_t>(begin);
-				oss <<numBegin <<", ";
+				auto num_begin = boost::lexical_cast<boost::uint64_t>(begin);
+				oss <<num_begin <<", ";
 			}
-			auto numCount = boost::lexical_cast<boost::uint64_t>(count);
-			oss <<numCount;
+			auto num_count = boost::lexical_cast<boost::uint64_t>(count);
+			oss <<num_count;
 		}
-		MySql::Promotion_Account::batchLoad(objs, oss.str());
+		MySql::Promotion_Account::batch_load(objs, oss.str());
 
 		Poseidon::JsonArray accounts;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
 
-			auto info = AccountMap::get(AccountId(obj->get_accountId()));
-			if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
-				LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", info.accountId);
+			auto info = AccountMap::get(AccountId(obj->get_account_id()));
+			if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
+				LOG_EMPERY_PROMOTION_WARNING("No such account: account_id = ", info.account_id);
 				continue;
 			}
-			auto referrerInfo = AccountMap::get(info.referrerId);
+			auto referrer_info = AccountMap::get(info.referrer_id);
 
 			Poseidon::JsonObject items;
-			boost::container::flat_map<ItemId, boost::uint64_t> itemMap;
-			ItemMap::getAllByAccountId(itemMap, info.accountId);
-			for(auto it = itemMap.begin(); it != itemMap.end(); ++it){
+			boost::container::flat_map<ItemId, boost::uint64_t> item_map;
+			ItemMap::get_all_by_account_id(item_map, info.account_id);
+			for(auto it = item_map.begin(); it != item_map.end(); ++it){
 				char str[256];
 				unsigned len = (unsigned)std::sprintf(str, "%llu", (unsigned long long)it->first.get());
 				items[SharedNts(str, len)] = it->second;
 			}
 
 			Poseidon::JsonObject elem;
-			elem[sslit("accountId")] = info.accountId.get();
-			elem[sslit("loginName")] = std::move(info.loginName);
+			elem[sslit("accountId")] = info.account_id.get();
+			elem[sslit("loginName")] = std::move(info.login_name);
 			elem[sslit("nick")] = std::move(info.nick);
 			elem[sslit("level")] = boost::lexical_cast<std::string>(info.level);
-			elem[sslit("referrerId")] = referrerInfo.accountId.get();
-			elem[sslit("referrerLoginName")] = std::move(referrerInfo.loginName);
-			elem[sslit("createdTime")] = info.createdTime;
-			elem[sslit("createdIp")] = std::move(info.createdIp);
+			elem[sslit("referrerId")] = referrer_info.account_id.get();
+			elem[sslit("referrerLoginName")] = std::move(referrer_info.login_name);
+			elem[sslit("createdTime")] = info.created_time;
+			elem[sslit("createdIp")] = std::move(info.created_ip);
 			elem[sslit("items")] = std::move(items);
 
 			accounts.emplace_back(std::move(elem));
@@ -98,7 +98,7 @@ ACCOUNT_SERVLET("getAccountList", session, params){
 		ret[sslit("accounts")] = std::move(accounts);
 	} else {
 		const auto obj = boost::make_shared<MySql::Promotion_SumRows>();
-		obj->syncLoad(oss.str());
+		obj->sync_load(oss.str());
 		// ret[sslit("sum")] = obj->get_sum();
 		ret[sslit("rows")] = obj->get_rows();
 	}

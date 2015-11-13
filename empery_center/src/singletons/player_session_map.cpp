@@ -12,37 +12,37 @@ namespace EmperyCenter {
 
 namespace {
 	struct SessionElement {
-		AccountUuid accountUuid;
-		boost::weak_ptr<PlayerSession> weakSession;
+		AccountUuid account_uuid;
+		boost::weak_ptr<PlayerSession> weak_session;
 
-		boost::uint64_t onlineSince;
+		boost::uint64_t online_since;
 
-		SessionElement(const AccountUuid &accountUuid_, boost::weak_ptr<PlayerSession> weakSession_)
-			: accountUuid(accountUuid_), weakSession(std::move(weakSession_))
-			, onlineSince(Poseidon::getFastMonoClock())
+		SessionElement(const AccountUuid &account_uuid_, boost::weak_ptr<PlayerSession> weak_session_)
+			: account_uuid(account_uuid_), weak_session(std::move(weak_session_))
+			, online_since(Poseidon::get_fast_mono_clock())
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(PlayerSessionMapDelegator, SessionElement,
-		UNIQUE_MEMBER_INDEX(accountUuid)
-		UNIQUE_MEMBER_INDEX(weakSession)
+		UNIQUE_MEMBER_INDEX(account_uuid)
+		UNIQUE_MEMBER_INDEX(weak_session)
 	)
 
-	boost::shared_ptr<PlayerSessionMapDelegator> g_sessionMap;
+	boost::shared_ptr<PlayerSessionMapDelegator> g_session_map;
 
 	class SessionMapGuard {
 	private:
-		boost::shared_ptr<PlayerSessionMapDelegator> m_sessionMap;
+		boost::shared_ptr<PlayerSessionMapDelegator> m_session_map;
 
 	public:
-		explicit SessionMapGuard(boost::shared_ptr<PlayerSessionMapDelegator> sessionMap)
-			: m_sessionMap(std::move(sessionMap))
+		explicit SessionMapGuard(boost::shared_ptr<PlayerSessionMapDelegator> session_map)
+			: m_session_map(std::move(session_map))
 		{
 		}
 		~SessionMapGuard(){
-			for(auto it = m_sessionMap->begin(); it != m_sessionMap->end(); ++it){
-				const auto session = it->weakSession.lock();
+			for(auto it = m_session_map->begin(); it != m_session_map->end(); ++it){
+				const auto session = it->weak_session.lock();
 				if(!session){
 					continue;
 				}
@@ -52,136 +52,136 @@ namespace {
 	};
 
 	MODULE_RAII_PRIORITY(handles, 8000){
-		const auto sessionMap = boost::make_shared<PlayerSessionMapDelegator>();
-		g_sessionMap = sessionMap;
-		handles.push(sessionMap);
-		handles.push(boost::make_shared<SessionMapGuard>(sessionMap));
+		const auto session_map = boost::make_shared<PlayerSessionMapDelegator>();
+		g_session_map = session_map;
+		handles.push(session_map);
+		handles.push(boost::make_shared<SessionMapGuard>(session_map));
 	}
 }
 
-boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const AccountUuid &accountUuid){
+boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const AccountUuid &account_uuid){
 	PROFILE_ME;
 
-	const auto it = g_sessionMap->find<0>(accountUuid);
-	if(it == g_sessionMap->end<0>()){
+	const auto it = g_session_map->find<0>(account_uuid);
+	if(it == g_session_map->end<0>()){
 		return { };
 	}
-	auto session = it->weakSession.lock();
+	auto session = it->weak_session.lock();
 	if(!session){
 		return { };
 	}
-	if(session->hasBeenShutdownWrite()){
+	if(session->has_been_shutdown_write()){
 		return { };
 	}
 	return session;
 }
 
-AccountUuid PlayerSessionMap::getAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession){
+AccountUuid PlayerSessionMap::get_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session){
 	PROFILE_ME;
 
-	const auto it = g_sessionMap->find<1>(weakSession);
-	if(it == g_sessionMap->end<1>()){
+	const auto it = g_session_map->find<1>(weak_session);
+	if(it == g_session_map->end<1>()){
 		return { };
 	}
-	return it->accountUuid;
+	return it->account_uuid;
 }
-AccountUuid PlayerSessionMap::requireAccountUuid(const boost::weak_ptr<PlayerSession> &weakSession){
+AccountUuid PlayerSessionMap::require_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session){
 	PROFILE_ME;
 
-	auto ret = getAccountUuid(weakSession);
+	auto ret = get_account_uuid(weak_session);
 	if(!ret){
 		DEBUG_THROW(Exception, sslit("Session not found"));
 	}
 	return ret;
 }
 
-void PlayerSessionMap::add(const AccountUuid &accountUuid, const boost::shared_ptr<PlayerSession> &session){
+void PlayerSessionMap::add(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
-	const auto it = g_sessionMap->find<1>(session);
-	if(it != g_sessionMap->end<1>()){
-		LOG_EMPERY_CENTER_WARNING("Session added by another account: accountUuid = ", it->accountUuid);
+	const auto it = g_session_map->find<1>(session);
+	if(it != g_session_map->end<1>()){
+		LOG_EMPERY_CENTER_WARNING("Session added by another account: account_uuid = ", it->account_uuid);
 		DEBUG_THROW(Exception, sslit("Duplicate session"));
 	}
 
-	const auto localNow = Poseidon::getUtcTime();
+	const auto local_now = Poseidon::get_utc_time();
 
 	for(;;){
-		const auto result = g_sessionMap->insert(SessionElement(accountUuid, session));
+		const auto result = g_session_map->insert(SessionElement(account_uuid, session));
 		if(result.second){
 			// 新会话。
 			try {
-				AccountMap::setAttribute(accountUuid, AccountMap::ATTR_TIME_LAST_LOGGED_IN,
-					boost::lexical_cast<std::string>(localNow));
-				AccountMap::setAttribute(accountUuid, AccountMap::ATTR_TIME_LAST_LOGGED_OUT,
+				AccountMap::set_attribute(account_uuid, AccountMap::ATTR_TIME_LAST_LOGGED_IN,
+					boost::lexical_cast<std::string>(local_now));
+				AccountMap::set_attribute(account_uuid, AccountMap::ATTR_TIME_LAST_LOGGED_OUT,
 					std::string());
 			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: accountUuid = ", accountUuid, ", what = ", e.what());
-				g_sessionMap->erase(result.first);
-				session->forceShutdown();
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: account_uuid = ", account_uuid, ", what = ", e.what());
+				g_session_map->erase(result.first);
+				session->force_shutdown();
 				throw;
 			}
 
-			const auto remoteIp = std::string(session->getRemoteInfo().ip.get());
-			LOG_EMPERY_CENTER_INFO("Player goes online: accountUuid = ", accountUuid, ", remoteIp = ", remoteIp);
-			Poseidon::asyncRaiseEvent(boost::make_shared<Events::AccountLoggedIn>(accountUuid, remoteIp));
+			const auto remote_ip = std::string(session->get_remote_info().ip.get());
+			LOG_EMPERY_CENTER_INFO("Player goes online: account_uuid = ", account_uuid, ", remote_ip = ", remote_ip);
+			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedIn>(account_uuid, remote_ip));
 			break;
 		}
-		const auto otherSession = result.first->weakSession.lock();
-		if(otherSession == session){
+		const auto other_session = result.first->weak_session.lock();
+		if(other_session == session){
 			// 会话已存在。
 			break;
 		}
-		if(otherSession){
-			otherSession->shutdown(Msg::KILL_SESSION_GHOSTED, { });
-			LOG_EMPERY_CENTER_INFO("Session ghosted: accountUuid = ", accountUuid);
+		if(other_session){
+			other_session->shutdown(Msg::KILL_SESSION_GHOSTED, { });
+			LOG_EMPERY_CENTER_INFO("Session ghosted: account_uuid = ", account_uuid);
 		}
-		g_sessionMap->erase(result.first);
+		g_session_map->erase(result.first);
 	}
 }
-void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept {
+void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept {
 	PROFILE_ME;
 
-	const auto it = g_sessionMap->find<1>(weakSession);
-	if(it == g_sessionMap->end<1>()){
+	const auto it = g_session_map->find<1>(weak_session);
+	if(it == g_session_map->end<1>()){
 		return;
 	}
 
-	const auto session = weakSession.lock();
+	const auto session = weak_session.lock();
 	if(session){
 		session->shutdown(Msg::KILL_OPERATOR_COMMAND, { });
 	}
 
-	const auto accountUuid = it->accountUuid;
-	const auto onlineDuration = Poseidon::getFastMonoClock() - it->onlineSince;
-	g_sessionMap->erase<1>(it);
+	const auto account_uuid = it->account_uuid;
+	const auto online_duration = Poseidon::get_fast_mono_clock() - it->online_since;
+	g_session_map->erase<1>(it);
 
-	const auto localNow = Poseidon::getUtcTime();
+	const auto local_now = Poseidon::get_utc_time();
 
 	try {
-		LOG_EMPERY_CENTER_INFO("Player goes offline: accountUuid = ", accountUuid, ", onlineDuration = ", onlineDuration);
-		Poseidon::asyncRaiseEvent(boost::make_shared<Events::AccountLoggedOut>(accountUuid, onlineDuration));
+		LOG_EMPERY_CENTER_INFO("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
+		Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
 
-		AccountMap::setAttribute(accountUuid, AccountMap::ATTR_TIME_LAST_LOGGED_OUT,
-			boost::lexical_cast<std::string>(localNow));
+		AccountMap::set_attribute(account_uuid, AccountMap::ATTR_TIME_LAST_LOGGED_OUT,
+			boost::lexical_cast<std::string>(local_now));
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
 		if(session){
-			session->forceShutdown();
+			session->force_shutdown();
 		}
 	}
 }
 
-void PlayerSessionMap::getAll(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret){
+void PlayerSessionMap::get_all(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret){
 	PROFILE_ME;
 
-	ret.reserve(ret.size() + g_sessionMap->size());
-	for(auto it = g_sessionMap->begin(); it != g_sessionMap->end(); ++it){
-		auto session = it->weakSession.lock();
+	ret.reserve(ret.size() + g_session_map->size());
+	for(auto it = g_session_map->begin(); it != g_session_map->end(); ++it){
+		auto session = it->weak_session.lock();
 		if(!session){
 			continue;
 		}
-		ret.emplace(it->accountUuid, std::move(session));
+		ret.emplace(it->account_uuid, std::move(session));
 	}
 }
 

@@ -20,116 +20,116 @@ namespace {
 	struct AccountElement {
 		boost::shared_ptr<MySql::Westwalk_Account> obj;
 
-		std::string accountName;
+		std::string account_name;
 
 		explicit AccountElement(boost::shared_ptr<MySql::Westwalk_Account> obj_)
 			: obj(std::move(obj_))
-			, accountName(obj->unlockedGet_accountName())
+			, account_name(obj->unlocked_get_account_name())
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(AccountMapDelegator, AccountElement,
-		UNIQUE_MEMBER_INDEX(accountName, StrCaseComparator)
+		UNIQUE_MEMBER_INDEX(account_name, StrCaseComparator)
 	)
 
-	boost::shared_ptr<AccountMapDelegator> g_accountMap;
+	boost::shared_ptr<AccountMapDelegator> g_account_map;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto conn = Poseidon::MySqlDaemon::createConnection();
+		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto accountMap = boost::make_shared<AccountMapDelegator>();
+		const auto account_map = boost::make_shared<AccountMapDelegator>();
 		LOG_EMPERY_GATE_WESTWALK_INFO("Loading accounts...");
-		conn->executeSql("SELECT * FROM `Westwalk_Account`");
-		while(conn->fetchRow()){
+		conn->execute_sql("SELECT * FROM `Westwalk_Account`");
+		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Westwalk_Account>();
-			obj->syncFetch(conn);
-			obj->enableAutoSaving();
-			accountMap->insert(AccountElement(std::move(obj)));
+			obj->sync_fetch(conn);
+			obj->enable_auto_saving();
+			account_map->insert(AccountElement(std::move(obj)));
 		}
-		LOG_EMPERY_GATE_WESTWALK_INFO("Loaded ", accountMap->size(), " account(s).");
-		g_accountMap = accountMap;
-		handles.push(accountMap);
+		LOG_EMPERY_GATE_WESTWALK_INFO("Loaded ", account_map->size(), " account(s).");
+		g_account_map = account_map;
+		handles.push(account_map);
 	}
 
-	void fillAccountInfo(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Westwalk_Account> &obj){
+	void fill_account_info(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Westwalk_Account> &obj){
 		PROFILE_ME;
 
-		info.accountName                  = obj->unlockedGet_accountName();
-		info.createdIp                    = obj->unlockedGet_createdIp();
-		info.createdTime                  = obj->get_createdTime();
-		info.remarks                      = obj->unlockedGet_remarks();
-		info.passwordHash                 = obj->unlockedGet_passwordHash();
-		info.disposablePasswordHash       = obj->unlockedGet_disposablePasswordHash();
-		info.disposablePasswordExpiryTime = obj->get_disposablePasswordExpiryTime();
-		info.passwordRegainCooldownTime   = obj->get_passwordRegainCooldownTime();
-		info.token                        = obj->unlockedGet_token();
-		info.tokenExpiryTime              = obj->get_tokenExpiryTime();
-		info.lastLoginIp                  = obj->unlockedGet_lastLoginIp();
-		info.lastLoginTime                = obj->get_lastLoginTime();
-		info.bannedUntil                  = obj->get_bannedUntil();
-		info.retryCount                   = obj->get_retryCount();
+		info.account_name                  = obj->unlocked_get_account_name();
+		info.created_ip                    = obj->unlocked_get_created_ip();
+		info.created_time                  = obj->get_created_time();
+		info.remarks                      = obj->unlocked_get_remarks();
+		info.password_hash                 = obj->unlocked_get_password_hash();
+		info.disposable_password_hash       = obj->unlocked_get_disposable_password_hash();
+		info.disposable_password_expiry_time = obj->get_disposable_password_expiry_time();
+		info.password_regain_cooldown_time   = obj->get_password_regain_cooldown_time();
+		info.token                        = obj->unlocked_get_token();
+		info.token_expiry_time              = obj->get_token_expiry_time();
+		info.last_login_ip                  = obj->unlocked_get_last_login_ip();
+		info.last_login_time                = obj->get_last_login_time();
+		info.banned_until                  = obj->get_banned_until();
+		info.retry_count                   = obj->get_retry_count();
 		info.flags                        = obj->get_flags();
 	}
 }
 
-bool AccountMap::has(const std::string &accountName){
+bool AccountMap::has(const std::string &account_name){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		return false;
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		return false;
 	}
 	return true;
 }
-AccountMap::AccountInfo AccountMap::get(const std::string &accountName){
+AccountMap::AccountInfo AccountMap::get(const std::string &account_name){
 	PROFILE_ME;
 
 	AccountInfo info = { };
-	info.accountName = accountName;
+	info.account_name = account_name;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		return info;
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		return info;
 	}
-	fillAccountInfo(info, it->obj);
+	fill_account_info(info, it->obj);
 	return info;
 }
-AccountMap::AccountInfo AccountMap::require(const std::string &accountName){
+AccountMap::AccountInfo AccountMap::require(const std::string &account_name){
 	PROFILE_ME;
 
-	auto info = get(accountName);
-	if(Poseidon::hasNoneFlagsOf(info.flags, FL_VALID)){
+	auto info = get(account_name);
+	if(Poseidon::has_none_flags_of(info.flags, FL_VALID)){
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
 	return info;
 }
-void AccountMap::getAll(std::vector<AccountMap::AccountInfo> &ret){
+void AccountMap::get_all(std::vector<AccountMap::AccountInfo> &ret){
 	PROFILE_ME;
 
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(g_accountMap->begin(), g_accountMap->end())));
-	for(auto it = g_accountMap->begin(); it != g_accountMap->end(); ++it){
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(g_account_map->begin(), g_account_map->end())));
+	for(auto it = g_account_map->begin(); it != g_account_map->end(); ++it){
 		AccountInfo info;
-		fillAccountInfo(info, it->obj);
+		fill_account_info(info, it->obj);
 		ret.emplace_back(std::move(info));
 	}
 }
 
-std::string AccountMap::randomPassword(){
+std::string AccountMap::random_password(){
 	PROFILE_ME;
 
-	const auto chars = getConfig<std::string>("random_password_chars", "0123456789");
-	const auto length = getConfig<std::size_t>("random_password_length", 6);
+	const auto chars = get_config<std::string>("random_password_chars", "0123456789");
+	const auto length = get_config<std::size_t>("random_password_length", 6);
 
 	std::string str;
 	str.resize(length);
@@ -138,185 +138,185 @@ std::string AccountMap::randomPassword(){
 	}
 	return str;
 }
-std::string AccountMap::getPasswordHash(const std::string &password){
+std::string AccountMap::get_password_hash(const std::string &password){
 	PROFILE_ME;
 
-	const auto salt = getConfig<std::string>("password_salt");
-	const auto sha256 = Poseidon::sha256Hash(password + salt);
-	return Poseidon::Http::base64Encode(sha256.data(), sha256.size());
+	const auto salt = get_config<std::string>("password_salt");
+	const auto sha256 = Poseidon::sha256_hash(password + salt);
+	return Poseidon::Http::base64_encode(sha256.data(), sha256.size());
 }
 
-void AccountMap::setPassword(const std::string &accountName, const std::string &password){
+void AccountMap::set_password(const std::string &account_name, const std::string &password){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_passwordHash(getPasswordHash(password));
+	it->obj->set_password_hash(get_password_hash(password));
 }
-void AccountMap::setDisposablePassword(const std::string &accountName, const std::string &password, boost::uint64_t expiryTime){
+void AccountMap::set_disposable_password(const std::string &account_name, const std::string &password, boost::uint64_t expiry_time){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_disposablePasswordHash(getPasswordHash(password));
-	it->obj->set_disposablePasswordExpiryTime(expiryTime);
+	it->obj->set_disposable_password_hash(get_password_hash(password));
+	it->obj->set_disposable_password_expiry_time(expiry_time);
 }
-void AccountMap::commitDisposablePassword(const std::string &accountName){
+void AccountMap::commit_disposable_password(const std::string &account_name){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_passwordHash(it->obj->unlockedGet_disposablePasswordHash());
-	it->obj->set_disposablePasswordHash(VAL_INIT);
-	it->obj->set_disposablePasswordExpiryTime(0);
+	it->obj->set_password_hash(it->obj->unlocked_get_disposable_password_hash());
+	it->obj->set_disposable_password_hash(VAL_INIT);
+	it->obj->set_disposable_password_expiry_time(0);
 }
-void AccountMap::setPasswordRegainCooldownTime(const std::string &accountName, boost::uint64_t expiryTime){
+void AccountMap::set_password_regain_cooldown_time(const std::string &account_name, boost::uint64_t expiry_time){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_passwordRegainCooldownTime(expiryTime);
+	it->obj->set_password_regain_cooldown_time(expiry_time);
 }
-void AccountMap::setToken(const std::string &accountName, std::string token, boost::uint64_t expiryTime){
+void AccountMap::set_token(const std::string &account_name, std::string token, boost::uint64_t expiry_time){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
 	it->obj->set_token(std::move(token));
-	it->obj->set_tokenExpiryTime(expiryTime);
+	it->obj->set_token_expiry_time(expiry_time);
 }
-void AccountMap::setLastLogin(const std::string &accountName, std::string lastLoginIp, boost::uint64_t lastLoginTime){
+void AccountMap::set_last_login(const std::string &account_name, std::string last_login_ip, boost::uint64_t last_login_time){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_lastLoginIp(std::move(lastLoginIp));
-	it->obj->set_lastLoginTime(lastLoginTime);
+	it->obj->set_last_login_ip(std::move(last_login_ip));
+	it->obj->set_last_login_time(last_login_time);
 }
-void AccountMap::setBannedUntil(const std::string &accountName, boost::uint64_t bannedUntil){
+void AccountMap::set_banned_until(const std::string &account_name, boost::uint64_t banned_until){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
-	it->obj->set_bannedUntil(bannedUntil);
+	it->obj->set_banned_until(banned_until);
 }
-boost::uint32_t AccountMap::decrementPasswordRetryCount(const std::string &accountName){
+boost::uint32_t AccountMap::decrement_password_retry_count(const std::string &account_name){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
-	auto count = it->obj->get_retryCount();
+	auto count = it->obj->get_retry_count();
 	if(count > 0){
 		--count;
 	}
-	it->obj->set_retryCount(count);
+	it->obj->set_retry_count(count);
 
 	if(count == 0){
 		auto flags = it->obj->get_flags();
-		Poseidon::addFlags(flags, FL_FROZEN);
+		Poseidon::add_flags(flags, FL_FROZEN);
 		it->obj->set_flags(flags);
 	}
 
 	return count;
 }
-boost::uint32_t AccountMap::resetPasswordRetryCount(const std::string &accountName){
+boost::uint32_t AccountMap::reset_password_retry_count(const std::string &account_name){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountName);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: accountName = ", accountName);
+	const auto it = g_account_map->find<0>(account_name);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account not found: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: accountName = ", accountName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Account deleted: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
-	const auto passwordRetryCount = getConfig<boost::uint32_t>("password_retry_count", 10);
-	it->obj->set_retryCount(passwordRetryCount);
-	return passwordRetryCount;
+	const auto password_retry_count = get_config<boost::uint32_t>("password_retry_count", 10);
+	it->obj->set_retry_count(password_retry_count);
+	return password_retry_count;
 }
 
-void AccountMap::create(std::string accountName, std::string token, std::string remoteIp, std::string remarks, boost::uint64_t flags){
+void AccountMap::create(std::string account_name, std::string token, std::string remote_ip, std::string remarks, boost::uint64_t flags){
 	PROFILE_ME;
 
-	auto it = g_accountMap->find<0>(accountName);
-	if(it != g_accountMap->end<0>()){
-		LOG_EMPERY_GATE_WESTWALK_DEBUG("Duplicate account name: accountName = ", accountName);
+	auto it = g_account_map->find<0>(account_name);
+	if(it != g_account_map->end<0>()){
+		LOG_EMPERY_GATE_WESTWALK_DEBUG("Duplicate account name: account_name = ", account_name);
 		DEBUG_THROW(Exception, sslit("Duplicate account name"));
 	}
 
-	const auto tokenExpiryDuration = getConfig<boost::uint64_t>("token_expiry_duration", 604800000);
+	const auto token_expiry_duration = get_config<boost::uint64_t>("token_expiry_duration", 604800000);
 
-	Poseidon::addFlags(flags, AccountMap::FL_VALID);
-	const auto localNow = Poseidon::getLocalTime();
-	const auto passwordRetryCount = getConfig<boost::uint32_t>("password_retry_count", 10);
-	auto obj = boost::make_shared<MySql::Westwalk_Account>(std::move(accountName), std::move(remoteIp), localNow,
-		std::move(remarks), std::string() /* getPasswordHash(randomPassword()) */, std::string(), 0, 0,
-		std::move(token), localNow + tokenExpiryDuration, std::string(), 0, 0, passwordRetryCount, flags);
-	obj->asyncSave(true);
-	it = g_accountMap->insert<0>(it, AccountElement(std::move(obj)));
+	Poseidon::add_flags(flags, AccountMap::FL_VALID);
+	const auto local_now = Poseidon::get_local_time();
+	const auto password_retry_count = get_config<boost::uint32_t>("password_retry_count", 10);
+	auto obj = boost::make_shared<MySql::Westwalk_Account>(std::move(account_name), std::move(remote_ip), local_now,
+		std::move(remarks), std::string() /* get_password_hash(random_password()) */, std::string(), 0, 0,
+		std::move(token), local_now + token_expiry_duration, std::string(), 0, 0, password_retry_count, flags);
+	obj->async_save(true);
+	it = g_account_map->insert<0>(it, AccountElement(std::move(obj)));
 }
 
 }

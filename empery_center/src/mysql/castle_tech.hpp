@@ -9,14 +9,14 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Center_CastleTech
 #define MYSQL_OBJECT_FIELDS \
-	FIELD_UUID              (mapObjectUuid)	\
-	FIELD_INTEGER_UNSIGNED  (techId)	\
-	FIELD_BIGINT_UNSIGNED   (techLevel)	\
+	FIELD_UUID              (map_object_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (tech_id)	\
+	FIELD_BIGINT_UNSIGNED   (tech_level)	\
 	FIELD_INTEGER_UNSIGNED  (mission)	\
-	FIELD_BIGINT_UNSIGNED   (missionDuration)	\
-	FIELD_BIGINT_UNSIGNED   (missionParam2)	\
-	FIELD_DATETIME          (missionTimeBegin)	\
-	FIELD_DATETIME          (missionTimeEnd)
+	FIELD_BIGINT_UNSIGNED   (mission_duration)	\
+	FIELD_BIGINT_UNSIGNED   (mission_param2)	\
+	FIELD_DATETIME          (mission_time_begin)	\
+	FIELD_DATETIME          (mission_time_end)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

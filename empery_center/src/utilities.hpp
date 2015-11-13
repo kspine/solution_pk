@@ -7,7 +7,7 @@
 
 namespace EmperyCenter {
 
-inline bool areCoordsAdjacent(const Coord &lhs, const Coord &rhs){
+inline bool are_coords_adjacent(const Coord &lhs, const Coord &rhs){
 	if(lhs.y() == rhs.y()){
 		return (lhs.x() == rhs.x() - 1) || (lhs.x() == rhs.x() + 1);
 	}
@@ -17,7 +17,7 @@ inline bool areCoordsAdjacent(const Coord &lhs, const Coord &rhs){
 	return false;
 }
 
-extern void getSurroundingCoords(std::vector<Coord> &ret, const Coord &origin, boost::uint64_t radius);
+extern void get_surrounding_coords(std::vector<Coord> &ret, const Coord &origin, boost::uint64_t radius);
 
 }
 

@@ -11,315 +11,315 @@
 namespace EmperyCenter {
 
 namespace {
-	inline boost::shared_ptr<Castle> requireCastle(const AccountUuid &accountUuid, const MapObjectUuid &mapObjectUuid){
+	inline boost::shared_ptr<Castle> require_castle(const AccountUuid &account_uuid, const MapObjectUuid &map_object_uuid){
 		PROFILE_ME;
 
-		const auto castle = boost::dynamic_pointer_cast<Castle>(MapObjectMap::get(mapObjectUuid));
+		const auto castle = boost::dynamic_pointer_cast<Castle>(MapObjectMap::get(map_object_uuid));
 		if(!castle){
-			DEBUG_THROW(Poseidon::Cbpp::Exception, Msg::CERR_NO_SUCH_CASTLE, SharedNts(mapObjectUuid.str()));
+			DEBUG_THROW(Poseidon::Cbpp::Exception, Msg::CERR_NO_SUCH_CASTLE, SharedNts(map_object_uuid.str()));
 		}
-		if(castle->getOwnerUuid() != accountUuid){
-			DEBUG_THROW(Poseidon::Cbpp::Exception, Msg::CERR_NOT_CASTLE_OWNER, SharedNts(castle->getOwnerUuid().str()));
+		if(castle->get_owner_uuid() != account_uuid){
+			DEBUG_THROW(Poseidon::Cbpp::Exception, Msg::CERR_NOT_CASTLE_OWNER, SharedNts(castle->get_owner_uuid().str()));
 		}
 		return castle;
 	}
 }
 
-PLAYER_SERVLET(Msg::CS_CastleQueryInfo, accountUuid, session, req){
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpStatus(true);
+PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account_uuid, session, req){
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_status(true);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, accountUuid, session, req){
-	const auto buildingBaseId = BuildingBaseId(req.buildingBaseId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpBuildingStatus(buildingBaseId);
+PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account_uuid, session, req){
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->getBuilding(buildingBaseId);
+	const auto info = castle->get_building(building_base_id);
 	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_ANOTHER_BUILDING_THERE) <<buildingBaseId;
+		return Response(Msg::CERR_ANOTHER_BUILDING_THERE) <<building_base_id;
 	}
 
-	const auto buildingId = BuildingId(req.buildingId);
-	const auto buildingData = Data::CastleBuilding::get(buildingId);
-	if(!buildingData){
-		return Response(Msg::CERR_NO_SUCH_BUILDING) <<buildingId;
+	const auto building_id = BuildingId(req.building_id);
+	const auto building_data = Data::CastleBuilding::get(building_id);
+	if(!building_data){
+		return Response(Msg::CERR_NO_SUCH_BUILDING) <<building_id;
 	}
-	const auto count = castle->countBuildingsById(buildingId);
-	if(count >= buildingData->buildLimit){
-		return Response(Msg::CERR_BUILD_LIMIT_EXCEEDED) <<buildingId;
-	}
-
-	const auto buildingBaseData = Data::CastleBuildingBase::get(buildingBaseId);
-	if(!buildingBaseData){
-		return Response(Msg::CERR_NO_SUCH_CASTLE_BASE) <<buildingBaseId;
-	}
-	if(buildingBaseData->buildingsAllowed.find(buildingData->buildingId) == buildingBaseData->buildingsAllowed.end()){
-		return Response(Msg::CERR_BUILDING_NOT_ALLOWED) <<buildingId;
+	const auto count = castle->count_buildings_by_id(building_id);
+	if(count >= building_data->build_limit){
+		return Response(Msg::CERR_BUILD_LIMIT_EXCEEDED) <<building_id;
 	}
 
-	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, 1);
-	for(auto it = upgradeData->prerequisite.begin(); it != upgradeData->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
-		castle->getBuildingsById(prerequisiteBuildings, it->first);
-		unsigned maxLevel = 0;
-		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
-			if(maxLevel < prereqIt->buildingLevel){
-				maxLevel = prereqIt->buildingLevel;
+	const auto building_base_data = Data::CastleBuildingBase::get(building_base_id);
+	if(!building_base_data){
+		return Response(Msg::CERR_NO_SUCH_CASTLE_BASE) <<building_base_id;
+	}
+	if(building_base_data->buildings_allowed.find(building_data->building_id) == building_base_data->buildings_allowed.end()){
+		return Response(Msg::CERR_BUILDING_NOT_ALLOWED) <<building_id;
+	}
+
+	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
+	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
+		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		castle->get_buildings_by_id(prerequisite_buildings, it->first);
+		unsigned max_level = 0;
+		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
+			if(max_level < prereq_it->building_level){
+				max_level = prereq_it->building_level;
 			}
 		}
-		if(maxLevel < it->second){
-			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: buildingId = ", it->first,
-				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
 	std::vector<Castle::ResourceTransactionElement> transaction;
-	for(auto it = upgradeData->upgradeCost.begin(); it != upgradeData->upgradeCost.end(); ++it){
+	for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_UPGRADE_BUILDING, buildingData->buildingId.get(), upgradeData->buildingLevel, 0);
+			ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0);
 	}
-	const auto insuffResourceId = castle->commitResourceTransactionNoThrow(transaction.data(), transaction.size(),
-		[&]{ castle->createBuildingMission(buildingBaseId, Castle::MIS_CONSTRUCT, buildingData->buildingId); });
-	if(insuffResourceId){
-		return Response(Msg::CERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuffResourceId;
+	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_CONSTRUCT, building_data->building_id); });
+	if(insuff_resource_id){
+		return Response(Msg::CERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, accountUuid, session, req){
-	const auto buildingBaseId = BuildingBaseId(req.buildingBaseId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpBuildingStatus(buildingBaseId);
+PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account_uuid, session, req){
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->getBuilding(buildingBaseId);
+	const auto info = castle->get_building(building_base_id);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_BUILDING_MISSION) <<buildingBaseId;
+		return Response(Msg::CERR_NO_BUILDING_MISSION) <<building_base_id;
 	}
 
-	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
-	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, info.buildingLevel + 1);
+	const auto building_data = Data::CastleBuilding::require(info.building_id);
+	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level + 1);
 	std::vector<Castle::ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refundRatio = getConfig<double>("castle_cancellation_refund_ratio", 0.5);
-		for(auto it = upgradeData->upgradeCost.begin(); it != upgradeData->upgradeCost.end(); ++it){
+		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
+		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(Castle::ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refundRatio)),
-				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.buildingId.get(), info.buildingLevel, 0);
+				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio)),
+				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.building_id.get(), info.building_level, 0);
 		}
 	}
-	castle->commitResourceTransaction(transaction.data(), transaction.size(),
-		[&]{ castle->cancelBuildingMission(buildingBaseId); });
+	castle->commit_resource_transaction(transaction.data(), transaction.size(),
+		[&]{ castle->cancel_building_mission(building_base_id); });
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, accountUuid, session, req){
-	const auto buildingBaseId = BuildingBaseId(req.buildingBaseId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpBuildingStatus(buildingBaseId);
+PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account_uuid, session, req){
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->getBuilding(buildingBaseId);
-	if(info.buildingId == BuildingId()){
-		return Response(Msg::CERR_NO_BUILDING_THERE) <<buildingBaseId;
+	const auto info = castle->get_building(building_base_id);
+	if(info.building_id == BuildingId()){
+		return Response(Msg::CERR_NO_BUILDING_THERE) <<building_base_id;
 	}
 	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<buildingBaseId;
+		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<building_base_id;
 	}
 
-	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
-	const auto upgradeData = Data::CastleUpgradeAbstract::get(buildingData->type, info.buildingLevel + 1);
-	if(!upgradeData){
-		return Response(Msg::CERR_BUILDING_UPGRADE_MAX) <<info.buildingId;
+	const auto building_data = Data::CastleBuilding::require(info.building_id);
+	const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, info.building_level + 1);
+	if(!upgrade_data){
+		return Response(Msg::CERR_BUILDING_UPGRADE_MAX) <<info.building_id;
 	}
-	for(auto it = upgradeData->prerequisite.begin(); it != upgradeData->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
-		castle->getBuildingsById(prerequisiteBuildings, it->first);
-		unsigned maxLevel = 0;
-		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
-			if(maxLevel < prereqIt->buildingLevel){
-				maxLevel = prereqIt->buildingLevel;
+	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
+		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		castle->get_buildings_by_id(prerequisite_buildings, it->first);
+		unsigned max_level = 0;
+		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
+			if(max_level < prereq_it->building_level){
+				max_level = prereq_it->building_level;
 			}
 		}
-		if(maxLevel < it->second){
-			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: buildingId = ", it->first,
-				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
 	std::vector<Castle::ResourceTransactionElement> transaction;
-	for(auto it = upgradeData->upgradeCost.begin(); it != upgradeData->upgradeCost.end(); ++it){
+	for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_UPGRADE_BUILDING, buildingData->buildingId.get(), upgradeData->buildingLevel, 0);
+			ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0);
 	}
-	const auto insuffResourceId = castle->commitResourceTransactionNoThrow(transaction.data(), transaction.size(),
-		[&]{ castle->createBuildingMission(buildingBaseId, Castle::MIS_UPGRADE, { }); });
-	if(insuffResourceId){
-		return Response(Msg::CERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuffResourceId;
+	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, { }); });
+	if(insuff_resource_id){
+		return Response(Msg::CERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, accountUuid, session, req){
-	const auto buildingBaseId = BuildingBaseId(req.buildingBaseId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpBuildingStatus(buildingBaseId);
+PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account_uuid, session, req){
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->getBuilding(buildingBaseId);
-	if(info.buildingId == BuildingId()){
-		return Response(Msg::CERR_NO_BUILDING_THERE) <<buildingBaseId;
+	const auto info = castle->get_building(building_base_id);
+	if(info.building_id == BuildingId()){
+		return Response(Msg::CERR_NO_BUILDING_THERE) <<building_base_id;
 	}
 	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<buildingBaseId;
+		return Response(Msg::CERR_BUILDING_MISSION_CONFLICT) <<building_base_id;
 	}
 
-	const auto buildingData = Data::CastleBuilding::require(info.buildingId);
-	const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, info.buildingLevel);
-	if(upgradeData->destructDuration == 0){
-		return Response(Msg::CERR_BUILDING_NOT_DESTRUCTIBLE) <<info.buildingId;
+	const auto building_data = Data::CastleBuilding::require(info.building_id);
+	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level);
+	if(upgrade_data->destruct_duration == 0){
+		return Response(Msg::CERR_BUILDING_NOT_DESTRUCTIBLE) <<info.building_id;
 	}
 
-	castle->createBuildingMission(buildingBaseId, Castle::MIS_DESTRUCT, BuildingId());
+	castle->create_building_mission(building_base_id, Castle::MIS_DESTRUCT, BuildingId());
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, accountUuid, session, req){
-	const auto buildingBaseId = BuildingBaseId(req.buildingBaseId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpBuildingStatus(buildingBaseId);
+PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account_uuid, session, req){
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->getBuilding(buildingBaseId);
+	const auto info = castle->get_building(building_base_id);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_BUILDING_MISSION) <<buildingBaseId;
+		return Response(Msg::CERR_NO_BUILDING_MISSION) <<building_base_id;
 	}
 
 	// TODO 计算消耗。
-	castle->speedUpBuildingMission(buildingBaseId, UINT64_MAX);
+	castle->speed_up_building_mission(building_base_id, UINT64_MAX);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleQueryIndividualBuildingInfo, accountUuid, session, req){
-	const auto buildingBaseId = BuildingBaseId(req.buildingBaseId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpBuildingStatus(buildingBaseId, true);
+PLAYER_SERVLET(Msg::CS_CastleQueryIndividualBuildingInfo, account_uuid, session, req){
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_building_status(building_base_id, true);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, accountUuid, session, req){
-	const auto techId = TechId(req.techId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpTechStatus(techId);
+PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account_uuid, session, req){
+	const auto tech_id = TechId(req.tech_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_tech_status(tech_id);
 
-	const auto info = castle->getTech(techId);
+	const auto info = castle->get_tech(tech_id);
 	if(info.mission != Castle::MIS_NONE){
-		return Response(Msg::CERR_TECH_MISSION_CONFLICT) <<techId;
+		return Response(Msg::CERR_TECH_MISSION_CONFLICT) <<tech_id;
 	}
 
-	const auto techData = Data::CastleTech::get(TechId(req.techId), info.techLevel + 1);
-	if(!techData){
-		if(info.techLevel == 0){
-			return Response(Msg::CERR_NO_SUCH_TECH) <<techId;
+	const auto tech_data = Data::CastleTech::get(TechId(req.tech_id), info.tech_level + 1);
+	if(!tech_data){
+		if(info.tech_level == 0){
+			return Response(Msg::CERR_NO_SUCH_TECH) <<tech_id;
 		}
-		return Response(Msg::CERR_TECH_UPGRADE_MAX) <<techId;
+		return Response(Msg::CERR_TECH_UPGRADE_MAX) <<tech_id;
 	}
 
-	for(auto it = techData->prerequisite.begin(); it != techData->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
-		castle->getBuildingsById(prerequisiteBuildings, it->first);
-		unsigned maxLevel = 0;
-		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
-			if(maxLevel < prereqIt->buildingLevel){
-				maxLevel = prereqIt->buildingLevel;
+	for(auto it = tech_data->prerequisite.begin(); it != tech_data->prerequisite.end(); ++it){
+		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		castle->get_buildings_by_id(prerequisite_buildings, it->first);
+		unsigned max_level = 0;
+		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
+			if(max_level < prereq_it->building_level){
+				max_level = prereq_it->building_level;
 			}
 		}
-		if(maxLevel < it->second){
-			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: techId = ", it->first,
-				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: tech_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	for(auto it = techData->displayPrerequisite.begin(); it != techData->displayPrerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisiteBuildings;
-		castle->getBuildingsById(prerequisiteBuildings, it->first);
-		unsigned maxLevel = 0;
-		for(auto prereqIt = prerequisiteBuildings.begin(); prereqIt != prerequisiteBuildings.end(); ++prereqIt){
-			if(maxLevel < prereqIt->buildingLevel){
-				maxLevel = prereqIt->buildingLevel;
+	for(auto it = tech_data->display_prerequisite.begin(); it != tech_data->display_prerequisite.end(); ++it){
+		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		castle->get_buildings_by_id(prerequisite_buildings, it->first);
+		unsigned max_level = 0;
+		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
+			if(max_level < prereq_it->building_level){
+				max_level = prereq_it->building_level;
 			}
 		}
-		if(maxLevel < it->second){
-			LOG_EMPERY_CENTER_DEBUG("Display prerequisite not met: techId = ", it->first,
-				", levelRequired = ", it->second, ", maxLevel = ", maxLevel);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Display prerequisite not met: tech_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
 			return Response(Msg::CERR_DISPLAY_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
 	std::vector<Castle::ResourceTransactionElement> transaction;
-	for(auto it = techData->upgradeCost.begin(); it != techData->upgradeCost.end(); ++it){
+	for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_UPGRADE_TECH, techData->techIdLevel.first.get(), techData->techIdLevel.second, 0);
+			ReasonIds::ID_UPGRADE_TECH, tech_data->tech_id_level.first.get(), tech_data->tech_id_level.second, 0);
 	}
-	const auto insuffResourceId = castle->commitResourceTransactionNoThrow(transaction.data(), transaction.size(),
-		[&]{ castle->createTechMission(techId, Castle::MIS_UPGRADE); });
-	if(insuffResourceId){
-		return Response(Msg::CERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuffResourceId;
+	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{ castle->create_tech_mission(tech_id, Castle::MIS_UPGRADE); });
+	if(insuff_resource_id){
+		return Response(Msg::CERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, accountUuid, session, req){
-	const auto techId = TechId(req.techId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpTechStatus(techId);
+PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account_uuid, session, req){
+	const auto tech_id = TechId(req.tech_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_tech_status(tech_id);
 
-	const auto info = castle->getTech(techId);
+	const auto info = castle->get_tech(tech_id);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_TECH_MISSION) <<techId;
+		return Response(Msg::CERR_NO_TECH_MISSION) <<tech_id;
 	}
 
-	const auto techData = Data::CastleTech::require(info.techId, info.techLevel + 1);
+	const auto tech_data = Data::CastleTech::require(info.tech_id, info.tech_level + 1);
 	std::vector<Castle::ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refundRatio = getConfig<double>("castle_cancellation_refund_ratio", 0.5);
-		for(auto it = techData->upgradeCost.begin(); it != techData->upgradeCost.end(); ++it){
+		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
+		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(Castle::ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refundRatio)),
-				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.techId.get(), info.techLevel, 0);
+				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio)),
+				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.tech_id.get(), info.tech_level, 0);
 		}
 	}
-	castle->commitResourceTransaction(transaction.data(), transaction.size(),
-		[&]{ castle->cancelTechMission(techId); });
+	castle->commit_resource_transaction(transaction.data(), transaction.size(),
+		[&]{ castle->cancel_tech_mission(tech_id); });
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, accountUuid, session, req){
-	const auto techId = TechId(req.techId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpTechStatus(techId);
+PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account_uuid, session, req){
+	const auto tech_id = TechId(req.tech_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_tech_status(tech_id);
 
-	const auto info = castle->getTech(techId);
+	const auto info = castle->get_tech(tech_id);
 	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::CERR_NO_TECH_MISSION) <<techId;
+		return Response(Msg::CERR_NO_TECH_MISSION) <<tech_id;
 	}
 
 	// TODO 计算消耗。
-	castle->speedUpTechMission(techId, UINT64_MAX);
+	castle->speed_up_tech_mission(tech_id, UINT64_MAX);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, accountUuid, session, req){
-	const auto techId = TechId(req.techId);
-	const auto castle = requireCastle(accountUuid, MapObjectUuid(req.mapObjectUuid));
-	castle->pumpTechStatus(techId, true);
+PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, account_uuid, session, req){
+	const auto tech_id = TechId(req.tech_id);
+	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
+	castle->pump_tech_status(tech_id, true);
 
 	return Response();
 }

@@ -25,206 +25,206 @@ namespace {
 	struct AccountElement {
 		boost::shared_ptr<MySql::Promotion_Account> obj;
 
-		AccountId accountId;
-		std::string loginName;
-		std::string phoneNumber;
+		AccountId account_id;
+		std::string login_name;
+		std::string phone_number;
 		std::string nick;
-		AccountId referrerId;
+		AccountId referrer_id;
 
 		explicit AccountElement(boost::shared_ptr<MySql::Promotion_Account> obj_)
 			: obj(std::move(obj_))
-			, accountId(obj->get_accountId()), loginName(obj->unlockedGet_loginName())
-			, phoneNumber(obj->unlockedGet_phoneNumber()), nick(obj->unlockedGet_nick())
-			, referrerId(obj->get_referrerId())
+			, account_id(obj->get_account_id()), login_name(obj->unlocked_get_login_name())
+			, phone_number(obj->unlocked_get_phone_number()), nick(obj->unlocked_get_nick())
+			, referrer_id(obj->get_referrer_id())
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(AccountMapDelegator, AccountElement,
-		UNIQUE_MEMBER_INDEX(accountId)
-		MULTI_MEMBER_INDEX(loginName, StringCaseComparator)
-		MULTI_MEMBER_INDEX(phoneNumber)
+		UNIQUE_MEMBER_INDEX(account_id)
+		MULTI_MEMBER_INDEX(login_name, StringCaseComparator)
+		MULTI_MEMBER_INDEX(phone_number)
 		MULTI_MEMBER_INDEX(nick, StringCaseComparator)
-		MULTI_MEMBER_INDEX(referrerId)
+		MULTI_MEMBER_INDEX(referrer_id)
 	)
 
-	boost::shared_ptr<AccountMapDelegator> g_accountMap;
+	boost::shared_ptr<AccountMapDelegator> g_account_map;
 
 	struct AccountAttributeElement {
 		boost::shared_ptr<MySql::Promotion_AccountAttribute> obj;
 
-		AccountId accountId;
-		std::pair<AccountId, unsigned> accountSlot;
+		AccountId account_id;
+		std::pair<AccountId, unsigned> account_slot;
 
 		explicit AccountAttributeElement(boost::shared_ptr<MySql::Promotion_AccountAttribute> obj_)
 			: obj(std::move(obj_))
-			, accountId(obj->get_accountId())
-			, accountSlot(std::make_pair(accountId, obj->get_slot()))
+			, account_id(obj->get_account_id())
+			, account_slot(std::make_pair(account_id, obj->get_slot()))
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(AccountAttributeMapDelegator, AccountAttributeElement,
-		MULTI_MEMBER_INDEX(accountId)
-		UNIQUE_MEMBER_INDEX(accountSlot)
+		MULTI_MEMBER_INDEX(account_id)
+		UNIQUE_MEMBER_INDEX(account_slot)
 	)
 
-	boost::shared_ptr<AccountAttributeMapDelegator> g_attributeMap;
+	boost::shared_ptr<AccountAttributeMapDelegator> g_attribute_map;
 
 	struct SubordinateInfoCacheElement {
-		boost::uint64_t maxLevel;
-		boost::uint64_t subordinateCount;
+		boost::uint64_t max_level;
+		boost::uint64_t subordinate_count;
 	};
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto conn = Poseidon::MySqlDaemon::createConnection();
+		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto accountMap = boost::make_shared<AccountMapDelegator>();
+		const auto account_map = boost::make_shared<AccountMapDelegator>();
 		LOG_EMPERY_PROMOTION_INFO("Loading accounts...");
-		conn->executeSql("SELECT * FROM `Promotion_Account`");
-		while(conn->fetchRow()){
+		conn->execute_sql("SELECT * FROM `Promotion_Account`");
+		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Promotion_Account>();
-			obj->syncFetch(conn);
-			obj->enableAutoSaving();
-			accountMap->insert(AccountElement(std::move(obj)));
+			obj->sync_fetch(conn);
+			obj->enable_auto_saving();
+			account_map->insert(AccountElement(std::move(obj)));
 		}
-		LOG_EMPERY_PROMOTION_INFO("Loaded ", accountMap->size(), " account(s).");
-		g_accountMap = accountMap;
-		handles.push(accountMap);
+		LOG_EMPERY_PROMOTION_INFO("Loaded ", account_map->size(), " account(s).");
+		g_account_map = account_map;
+		handles.push(account_map);
 
-		const auto attributeMap = boost::make_shared<AccountAttributeMapDelegator>();
+		const auto attribute_map = boost::make_shared<AccountAttributeMapDelegator>();
 		LOG_EMPERY_PROMOTION_INFO("Loading account attributes...");
-		conn->executeSql("SELECT * FROM `Promotion_AccountAttribute`");
-		while(conn->fetchRow()){
+		conn->execute_sql("SELECT * FROM `Promotion_AccountAttribute`");
+		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Promotion_AccountAttribute>();
-			obj->syncFetch(conn);
-			const auto it = g_accountMap->find<0>(AccountId(obj->get_accountId()));
-			if(it == g_accountMap->end<0>()){
-				LOG_EMPERY_PROMOTION_ERROR("No such account: accountId = ", AccountId(obj->get_accountId()));
+			obj->sync_fetch(conn);
+			const auto it = g_account_map->find<0>(AccountId(obj->get_account_id()));
+			if(it == g_account_map->end<0>()){
+				LOG_EMPERY_PROMOTION_ERROR("No such account: account_id = ", AccountId(obj->get_account_id()));
 				continue;
 			}
-			obj->enableAutoSaving();
-			attributeMap->insert(AccountAttributeElement(std::move(obj)));
+			obj->enable_auto_saving();
+			attribute_map->insert(AccountAttributeElement(std::move(obj)));
 		}
-		LOG_EMPERY_PROMOTION_INFO("Loaded ", attributeMap->size(), " account attribute(s).");
-		g_attributeMap = attributeMap;
-		handles.push(attributeMap);
+		LOG_EMPERY_PROMOTION_INFO("Loaded ", attribute_map->size(), " account attribute(s).");
+		g_attribute_map = attribute_map;
+		handles.push(attribute_map);
 
-		const auto localNow = Poseidon::getUtcTime();
-		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
-		LOG_EMPERY_PROMOTION_INFO("Updating subordinate info cache: firstBalancingTime = ", firstBalancingTime);
-		boost::container::flat_map<AccountId, SubordinateInfoCacheElement> tempMap;
-		tempMap.reserve(accountMap->size());
-		for(auto it = accountMap->begin(); it != accountMap->end(); ++it){
+		const auto local_now = Poseidon::get_utc_time();
+		const auto first_balancing_time = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+		LOG_EMPERY_PROMOTION_INFO("Updating subordinate info cache: first_balancing_time = ", first_balancing_time);
+		boost::container::flat_map<AccountId, SubordinateInfoCacheElement> temp_map;
+		temp_map.reserve(account_map->size());
+		for(auto it = account_map->begin(); it != account_map->end(); ++it){
 			auto level = it->obj->get_level();
-			if((level == 0) && (localNow >= firstBalancingTime)){
-				const auto promotionData = Data::Promotion::getFirst();
-				if(!promotionData){
+			if((level == 0) && (local_now >= first_balancing_time)){
+				const auto promotion_data = Data::Promotion::get_first();
+				if(!promotion_data){
 					LOG_EMPERY_PROMOTION_FATAL("No first promotion level?");
 					std::abort();
 				}
-				level = promotionData->level;
+				level = promotion_data->level;
 			}
-			auto &elem = tempMap[it->accountId];
-			if(elem.maxLevel < level){
-				elem.maxLevel = level;
+			auto &elem = temp_map[it->account_id];
+			if(elem.max_level < level){
+				elem.max_level = level;
 			}
 
-			auto referrerIt = accountMap->find<0>(it->referrerId);
-			while(referrerIt != accountMap->end<0>()){
-				const auto currentReferrerId = referrerIt->accountId;
-				auto &elem = tempMap[currentReferrerId];
-				if(elem.maxLevel < level){
-					elem.maxLevel = level;
+			auto referrer_it = account_map->find<0>(it->referrer_id);
+			while(referrer_it != account_map->end<0>()){
+				const auto current_referrer_id = referrer_it->account_id;
+				auto &elem = temp_map[current_referrer_id];
+				if(elem.max_level < level){
+					elem.max_level = level;
 				}
-				++elem.subordinateCount;
-				referrerIt = accountMap->find<0>(referrerIt->referrerId);
+				++elem.subordinate_count;
+				referrer_it = account_map->find<0>(referrer_it->referrer_id);
 			}
 		}
-		for(auto it = tempMap.begin(); it != tempMap.end(); ++it){
-			const auto accountIt = accountMap->find<0>(it->first);
-			if(accountIt == accountMap->end<0>()){
-				LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", it->first);
+		for(auto it = temp_map.begin(); it != temp_map.end(); ++it){
+			const auto account_it = account_map->find<0>(it->first);
+			if(account_it == account_map->end<0>()){
+				LOG_EMPERY_PROMOTION_WARNING("No such account: account_id = ", it->first);
 				continue;
 			}
-			if(accountIt->obj->get_maxLevel() != it->second.maxLevel){
-				accountIt->obj->set_maxLevel(it->second.maxLevel);
+			if(account_it->obj->get_max_level() != it->second.max_level){
+				account_it->obj->set_max_level(it->second.max_level);
 			}
-			if(accountIt->obj->get_subordinateCount() != it->second.subordinateCount){
-				accountIt->obj->set_subordinateCount(it->second.subordinateCount);
+			if(account_it->obj->get_subordinate_count() != it->second.subordinate_count){
+				account_it->obj->set_subordinate_count(it->second.subordinate_count);
 			}
 		}
 	}
 
-	void fillAccountInfo(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Promotion_Account> &obj){
+	void fill_account_info(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Promotion_Account> &obj){
 		PROFILE_ME;
 
-		info.accountId        = AccountId(obj->get_accountId());
-		info.loginName        = obj->unlockedGet_loginName();
-		info.phoneNumber      = obj->unlockedGet_phoneNumber();
-		info.nick             = obj->unlockedGet_nick();
-		info.passwordHash     = obj->unlockedGet_passwordHash();
-		info.dealPasswordHash = obj->unlockedGet_dealPasswordHash();
-		info.referrerId       = AccountId(obj->get_referrerId());
+		info.account_id        = AccountId(obj->get_account_id());
+		info.login_name        = obj->unlocked_get_login_name();
+		info.phone_number      = obj->unlocked_get_phone_number();
+		info.nick             = obj->unlocked_get_nick();
+		info.password_hash     = obj->unlocked_get_password_hash();
+		info.deal_password_hash = obj->unlocked_get_deal_password_hash();
+		info.referrer_id       = AccountId(obj->get_referrer_id());
 		info.level            = obj->get_level();
-		info.maxLevel         = obj->get_maxLevel();
-		info.subordinateCount = obj->get_subordinateCount();
+		info.max_level         = obj->get_max_level();
+		info.subordinate_count = obj->get_subordinate_count();
 		info.flags            = obj->get_flags();
-		info.bannedUntil      = obj->get_bannedUntil();
-		info.createdTime      = obj->get_createdTime();
-		info.createdIp        = obj->get_createdIp();
+		info.banned_until      = obj->get_banned_until();
+		info.created_time      = obj->get_created_time();
+		info.created_ip        = obj->get_created_ip();
 	}
 }
 
-bool AccountMap::has(AccountId accountId){
+bool AccountMap::has(AccountId account_id){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		return false;
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		return false;
 	}
 	return true;
 }
-AccountMap::AccountInfo AccountMap::get(AccountId accountId){
+AccountMap::AccountInfo AccountMap::get(AccountId account_id){
 	PROFILE_ME;
 
 	AccountInfo info = { };
-	info.accountId = accountId;
+	info.account_id = account_id;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		return info;
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		return info;
 	}
-	fillAccountInfo(info, it->obj);
+	fill_account_info(info, it->obj);
 	return info;
 }
-AccountMap::AccountInfo AccountMap::require(AccountId accountId){
+AccountMap::AccountInfo AccountMap::require(AccountId account_id){
 	PROFILE_ME;
 
-	auto info = get(accountId);
-	if(Poseidon::hasNoneFlagsOf(info.flags, FL_VALID)){
+	auto info = get(account_id);
+	if(Poseidon::has_none_flags_of(info.flags, FL_VALID)){
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
 	return info;
 }
 
-boost::uint64_t AccountMap::getCount(){
-	return g_accountMap->size();
+boost::uint64_t AccountMap::get_count(){
+	return g_account_map->size();
 }
-void AccountMap::getAll(std::vector<AccountMap::AccountInfo> &ret, boost::uint64_t begin, boost::uint64_t max){
+void AccountMap::get_all(std::vector<AccountMap::AccountInfo> &ret, boost::uint64_t begin, boost::uint64_t max){
 	PROFILE_ME;
 
-	const auto size = g_accountMap->size();
+	const auto size = g_account_map->size();
 	if(begin >= size){
 		return;
 	}
@@ -233,318 +233,318 @@ void AccountMap::getAll(std::vector<AccountMap::AccountInfo> &ret, boost::uint64
 		count = max;
 	}
 	ret.reserve(ret.size() + count);
-	auto it = g_accountMap->begin();
+	auto it = g_account_map->begin();
 	std::advance(it, static_cast<std::ptrdiff_t>(begin));
 	for(boost::uint64_t i = 0; i < count; ++it, ++i){
 		AccountInfo info;
-		fillAccountInfo(info, it->obj);
+		fill_account_info(info, it->obj);
 		ret.push_back(std::move(info));
 	}
 }
 
-AccountMap::AccountInfo AccountMap::getByLoginName(const std::string &loginName){
+AccountMap::AccountInfo AccountMap::get_by_login_name(const std::string &login_name){
 	PROFILE_ME;
 
 	AccountInfo info = { };
-	info.loginName = loginName;
+	info.login_name = login_name;
 
-	const auto it = g_accountMap->find<1>(loginName);
-	if(it == g_accountMap->end<1>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: loginName = ", loginName);
+	const auto it = g_account_map->find<1>(login_name);
+	if(it == g_account_map->end<1>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: login_name = ", login_name);
 		return info;
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: loginName = ", loginName);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: login_name = ", login_name);
 		return info;
 	}
-	fillAccountInfo(info, it->obj);
+	fill_account_info(info, it->obj);
 	return info;
 }
 
-void AccountMap::getByPhoneNumber(std::vector<AccountMap::AccountInfo> &ret, const std::string &phoneNumber){
+void AccountMap::get_by_phone_number(std::vector<AccountMap::AccountInfo> &ret, const std::string &phone_number){
 	PROFILE_ME;
 
-	const auto range = g_accountMap->equalRange<2>(phoneNumber);
+	const auto range = g_account_map->equal_range<2>(phone_number);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
-		if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-			LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", it->obj->get_accountId());
+		if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+			LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", it->obj->get_account_id());
 			continue;
 		}
 		AccountInfo info;
-		fillAccountInfo(info, it->obj);
+		fill_account_info(info, it->obj);
 		ret.push_back(std::move(info));
 	}
 }
-void AccountMap::getByReferrerId(std::vector<AccountMap::AccountInfo> &ret, AccountId referrerId){
+void AccountMap::get_by_referrer_id(std::vector<AccountMap::AccountInfo> &ret, AccountId referrer_id){
 	PROFILE_ME;
 
-	const auto range = g_accountMap->equalRange<4>(referrerId);
+	const auto range = g_account_map->equal_range<4>(referrer_id);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
-		if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-			LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", it->obj->get_accountId());
+		if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+			LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", it->obj->get_account_id());
 			continue;
 		}
 		AccountInfo info;
-		fillAccountInfo(info, it->obj);
+		fill_account_info(info, it->obj);
 		ret.push_back(std::move(info));
 	}
 }
 
-std::string AccountMap::getPasswordHash(const std::string &password){
+std::string AccountMap::get_password_hash(const std::string &password){
 	PROFILE_ME;
 
-	auto salt = getConfig<std::string>("password_salt");
-	const auto sha256 = Poseidon::sha256Hash(password + std::move(salt));
-	return Poseidon::Http::base64Encode(sha256.data(), sha256.size());
+	auto salt = get_config<std::string>("password_salt");
+	const auto sha256 = Poseidon::sha256_hash(password + std::move(salt));
+	return Poseidon::Http::base64_encode(sha256.data(), sha256.size());
 }
 
-void AccountMap::setLoginName(AccountId accountId, std::string loginName){
+void AccountMap::set_login_name(AccountId account_id, std::string login_name){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	g_accountMap->setKey<0, 1>(it, loginName);
-	it->obj->set_loginName(std::move(loginName));
+	g_account_map->set_key<0, 1>(it, login_name);
+	it->obj->set_login_name(std::move(login_name));
 }
-void AccountMap::setPhoneNumber(AccountId accountId, std::string phoneNumber){
+void AccountMap::set_phone_number(AccountId account_id, std::string phone_number){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	g_accountMap->setKey<0, 2>(it, phoneNumber);
-	it->obj->set_phoneNumber(std::move(phoneNumber));
+	g_account_map->set_key<0, 2>(it, phone_number);
+	it->obj->set_phone_number(std::move(phone_number));
 }
-void AccountMap::setNick(AccountId accountId, std::string nick){
+void AccountMap::set_nick(AccountId account_id, std::string nick){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	g_accountMap->setKey<0, 3>(it, nick);
+	g_account_map->set_key<0, 3>(it, nick);
 	it->obj->set_nick(std::move(nick));
 }
-void AccountMap::setPassword(AccountId accountId, const std::string &password){
+void AccountMap::set_password(AccountId account_id, const std::string &password){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_passwordHash(getPasswordHash(password));
+	it->obj->set_password_hash(get_password_hash(password));
 }
-void AccountMap::setDealPassword(AccountId accountId, const std::string &dealPassword){
+void AccountMap::set_deal_password(AccountId account_id, const std::string &deal_password){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_dealPasswordHash(getPasswordHash(dealPassword));
+	it->obj->set_deal_password_hash(get_password_hash(deal_password));
 }
-void AccountMap::setLevel(AccountId accountId, boost::uint64_t level){
+void AccountMap::set_level(AccountId account_id, boost::uint64_t level){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
 	it->obj->set_level(level);
 
-	for(auto currentIt = it; currentIt != g_accountMap->end<0>(); currentIt = g_accountMap->find<0>(currentIt->referrerId)){
-		boost::uint64_t newMaxLevel = 0;
-		const auto range = g_accountMap->equalRange<4>(currentIt->accountId);
-		for(auto subordIt = range.first; subordIt != range.second; ++subordIt){
-			const auto maxLevel = subordIt->obj->get_maxLevel();
-			if(newMaxLevel < maxLevel){
-				newMaxLevel = maxLevel;
+	for(auto current_it = it; current_it != g_account_map->end<0>(); current_it = g_account_map->find<0>(current_it->referrer_id)){
+		boost::uint64_t new_max_level = 0;
+		const auto range = g_account_map->equal_range<4>(current_it->account_id);
+		for(auto subord_it = range.first; subord_it != range.second; ++subord_it){
+			const auto max_level = subord_it->obj->get_max_level();
+			if(new_max_level < max_level){
+				new_max_level = max_level;
 			}
 		}
-		const auto selfLevel = currentIt->obj->get_level();
-		if(newMaxLevel < selfLevel){
-			newMaxLevel = selfLevel; // 现在是算自己的。
+		const auto self_level = current_it->obj->get_level();
+		if(new_max_level < self_level){
+			new_max_level = self_level; // 现在是算自己的。
 		}
-		const auto oldMaxLevel = currentIt->obj->get_maxLevel();
-		if(newMaxLevel == oldMaxLevel){
+		const auto old_max_level = current_it->obj->get_max_level();
+		if(new_max_level == old_max_level){
 			break;
 		}
-		LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: accountId = ", currentIt->accountId,
-			", oldMaxLevel = ", oldMaxLevel, ", newMaxLevel = ", newMaxLevel);
-		currentIt->obj->set_maxLevel(newMaxLevel);
+		LOG_EMPERY_PROMOTION_DEBUG("Updating max subordinate level: account_id = ", current_it->account_id,
+			", old_max_level = ", old_max_level, ", new_max_level = ", new_max_level);
+		current_it->obj->set_max_level(new_max_level);
 	}
 }
-void AccountMap::setFlags(AccountId accountId, boost::uint64_t flags){
+void AccountMap::set_flags(AccountId account_id, boost::uint64_t flags){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-//	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-//		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+//	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+//		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 //		DEBUG_THROW(Exception, sslit("Account deleted"));
 //	}
 
 	it->obj->set_flags(flags);
 }
-void AccountMap::setBannedUntil(AccountId accountId, boost::uint64_t bannedUntil){
+void AccountMap::set_banned_until(AccountId account_id, boost::uint64_t banned_until){
 	PROFILE_ME;
 
-	const auto it = g_accountMap->find<0>(accountId);
-	if(it == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Account not found: accountId = ", accountId);
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
-	if(Poseidon::hasNoneFlagsOf(it->obj->get_flags(), FL_VALID)){
-		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: accountId = ", accountId);
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	it->obj->set_bannedUntil(bannedUntil);
+	it->obj->set_banned_until(banned_until);
 }
 
-AccountId AccountMap::create(std::string loginName, std::string phoneNumber, std::string nick,
-	const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags, std::string createdIp)
+AccountId AccountMap::create(std::string login_name, std::string phone_number, std::string nick,
+	const std::string &password, const std::string &deal_password, AccountId referrer_id, boost::uint64_t flags, std::string created_ip)
 {
 	PROFILE_ME;
 
-	if(referrerId){
-		auto referrerIt = g_accountMap->find<0>(referrerId);
+	if(referrer_id){
+		auto referrer_it = g_account_map->find<0>(referrer_id);
 		for(;;){
-			if(referrerIt == g_accountMap->end<0>()){
-				LOG_EMPERY_PROMOTION_DEBUG("No such referrer: referrerId = ", referrerId);
+			if(referrer_it == g_account_map->end<0>()){
+				LOG_EMPERY_PROMOTION_DEBUG("No such referrer: referrer_id = ", referrer_id);
 				DEBUG_THROW(Exception, sslit("No such referrer"));
 			}
-			const auto nextReferrerId = referrerIt->referrerId;
-			if(!nextReferrerId){
+			const auto next_referrer_id = referrer_it->referrer_id;
+			if(!next_referrer_id){
 				break;
 			}
-			if(nextReferrerId == referrerId){
-				LOG_EMPERY_PROMOTION_ERROR("Circular referrer loop detected! referrerId = ", referrerId);
+			if(next_referrer_id == referrer_id){
+				LOG_EMPERY_PROMOTION_ERROR("Circular referrer loop detected! referrer_id = ", referrer_id);
 				DEBUG_THROW(Exception, sslit("Circular referrer loop detected"));
 			}
-			referrerIt = g_accountMap->find<0>(nextReferrerId);
+			referrer_it = g_account_map->find<0>(next_referrer_id);
 		}
 	}
 
-	auto it = g_accountMap->find<1>(loginName);
-	if(it != g_accountMap->end<1>()){
-		LOG_EMPERY_PROMOTION_DEBUG("Duplicate loginName: loginName = ", loginName);
-		DEBUG_THROW(Exception, sslit("Duplicate loginName"));
+	auto it = g_account_map->find<1>(login_name);
+	if(it != g_account_map->end<1>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Duplicate login_name: login_name = ", login_name);
+		DEBUG_THROW(Exception, sslit("Duplicate login_name"));
 	}
 
-	auto accountId = g_accountMap->empty() ? AccountId() : g_accountMap->rbegin<0>()->accountId;
+	auto account_id = g_account_map->empty() ? AccountId() : g_account_map->rbegin<0>()->account_id;
 	do {
-		++accountId;
-	} while(g_accountMap->find<0>(accountId) != g_accountMap->end<0>());
+		++account_id;
+	} while(g_account_map->find<0>(account_id) != g_account_map->end<0>());
 
-	Poseidon::addFlags(flags, AccountMap::FL_VALID);
-	const auto localNow = Poseidon::getUtcTime();
-	auto obj = boost::make_shared<MySql::Promotion_Account>(accountId.get(), std::move(loginName),
-		std::move(phoneNumber), std::move(nick), getPasswordHash(password), getPasswordHash(dealPassword),
-		referrerId.get(), 0, 0, 0, flags, 0, localNow, std::move(createdIp));
-	obj->asyncSave(true);
-	it = g_accountMap->insert<1>(it, AccountElement(std::move(obj)));
+	Poseidon::add_flags(flags, AccountMap::FL_VALID);
+	const auto local_now = Poseidon::get_utc_time();
+	auto obj = boost::make_shared<MySql::Promotion_Account>(account_id.get(), std::move(login_name),
+		std::move(phone_number), std::move(nick), get_password_hash(password), get_password_hash(deal_password),
+		referrer_id.get(), 0, 0, 0, flags, 0, local_now, std::move(created_ip));
+	obj->async_save(true);
+	it = g_account_map->insert<1>(it, AccountElement(std::move(obj)));
 
-	auto referrerIt = g_accountMap->find<0>(referrerId);
-	while(referrerIt != g_accountMap->end<0>()){
-		const auto oldCount = referrerIt->obj->get_subordinateCount();
-		const auto newCount = oldCount + 1;
-		LOG_EMPERY_PROMOTION_DEBUG("Updating subordinate count: referrerId = ", referrerIt->accountId,
-			", oldCount = ", oldCount, ", newCount = ", newCount);
-		referrerIt->obj->set_subordinateCount(newCount);
-		referrerIt = g_accountMap->find<0>(referrerIt->referrerId);
+	auto referrer_it = g_account_map->find<0>(referrer_id);
+	while(referrer_it != g_account_map->end<0>()){
+		const auto old_count = referrer_it->obj->get_subordinate_count();
+		const auto new_count = old_count + 1;
+		LOG_EMPERY_PROMOTION_DEBUG("Updating subordinate count: referrer_id = ", referrer_it->account_id,
+			", old_count = ", old_count, ", new_count = ", new_count);
+		referrer_it->obj->set_subordinate_count(new_count);
+		referrer_it = g_account_map->find<0>(referrer_it->referrer_id);
 	}
 
-	return accountId;
+	return account_id;
 }
 
-const std::string &AccountMap::getAttribute(AccountId accountId, unsigned slot){
+const std::string &AccountMap::get_attribute(AccountId account_id, unsigned slot){
 	PROFILE_ME;
 
-	const auto it = g_attributeMap->find<1>(std::make_pair(accountId, slot));
-	if(it == g_attributeMap->end<1>()){
-		LOG_EMPERY_PROMOTION_TRACE("Account attribute not found: accountId = ", accountId, ", slot = ", slot);
+	const auto it = g_attribute_map->find<1>(std::make_pair(account_id, slot));
+	if(it == g_attribute_map->end<1>()){
+		LOG_EMPERY_PROMOTION_TRACE("Account attribute not found: account_id = ", account_id, ", slot = ", slot);
 		return Poseidon::EMPTY_STRING;
 	}
-	return it->obj->unlockedGet_value();
+	return it->obj->unlocked_get_value();
 }
-void AccountMap::getAttributes(std::vector<std::pair<unsigned, std::string>> &ret, AccountId accountId){
+void AccountMap::get_attributes(std::vector<std::pair<unsigned, std::string>> &ret, AccountId account_id){
 	PROFILE_ME;
 
-	const auto range = g_attributeMap->equalRange<0>(accountId);
+	const auto range = g_attribute_map->equal_range<0>(account_id);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
-		ret.push_back(std::make_pair(it->obj->get_slot(), it->obj->unlockedGet_value()));
+		ret.push_back(std::make_pair(it->obj->get_slot(), it->obj->unlocked_get_value()));
 	}
 }
-void AccountMap::touchAttribute(AccountId accountId, unsigned slot){
+void AccountMap::touch_attribute(AccountId account_id, unsigned slot){
 	PROFILE_ME;
 
-	auto it = g_attributeMap->find<1>(std::make_pair(accountId, slot));
-	if(it == g_attributeMap->end<1>()){
-		it = g_attributeMap->insert<1>(it, AccountAttributeElement(
-			boost::make_shared<MySql::Promotion_AccountAttribute>(accountId.get(), slot, std::string())));
-		it->obj->asyncSave(true);
+	auto it = g_attribute_map->find<1>(std::make_pair(account_id, slot));
+	if(it == g_attribute_map->end<1>()){
+		it = g_attribute_map->insert<1>(it, AccountAttributeElement(
+			boost::make_shared<MySql::Promotion_AccountAttribute>(account_id.get(), slot, std::string())));
+		it->obj->async_save(true);
 	}
 }
-void AccountMap::setAttribute(AccountId accountId, unsigned slot, std::string value){
+void AccountMap::set_attribute(AccountId account_id, unsigned slot, std::string value){
 	PROFILE_ME;
 
-	const auto accountIt = g_accountMap->find<0>(accountId);
-	if(accountIt == g_accountMap->end<0>()){
-		LOG_EMPERY_PROMOTION_WARNING("No such account: accountId = ", accountId);
+	const auto account_it = g_account_map->find<0>(account_id);
+	if(account_it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_WARNING("No such account: account_id = ", account_id);
 		DEBUG_THROW(Exception, sslit("No such account"));
 	}
 
-	auto it = g_attributeMap->find<1>(std::make_pair(accountId, slot));
-	if(it == g_attributeMap->end<1>()){
-		it = g_attributeMap->insert<1>(it, AccountAttributeElement(
-			boost::make_shared<MySql::Promotion_AccountAttribute>(accountId.get(), slot, std::move(value))));
-		it->obj->asyncSave(true);
+	auto it = g_attribute_map->find<1>(std::make_pair(account_id, slot));
+	if(it == g_attribute_map->end<1>()){
+		it = g_attribute_map->insert<1>(it, AccountAttributeElement(
+			boost::make_shared<MySql::Promotion_AccountAttribute>(account_id.get(), slot, std::move(value))));
+		it->obj->async_save(true);
 	} else {
 		it->obj->set_value(std::move(value));
 	}

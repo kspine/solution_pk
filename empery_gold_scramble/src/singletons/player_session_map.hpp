@@ -11,18 +11,18 @@ namespace EmperyGoldScramble {
 class PlayerSession;
 
 struct PlayerSessionMap {
-	static boost::shared_ptr<PlayerSession> get(const std::string &loginName);
+	static boost::shared_ptr<PlayerSession> get(const std::string &login_name);
 
-	static std::string getLoginName(const boost::weak_ptr<PlayerSession> &weakSession);
-	static std::string requireLoginName(const boost::weak_ptr<PlayerSession> &weakSession);
+	static std::string get_login_name(const boost::weak_ptr<PlayerSession> &weak_session);
+	static std::string require_login_name(const boost::weak_ptr<PlayerSession> &weak_session);
 
-	static std::string getNick(const boost::weak_ptr<PlayerSession> &weakSession);
-	static std::string requireNick(const boost::weak_ptr<PlayerSession> &weakSession);
+	static std::string get_nick(const boost::weak_ptr<PlayerSession> &weak_session);
+	static std::string require_nick(const boost::weak_ptr<PlayerSession> &weak_session);
 
-	static void add(const std::string &loginName, const std::string &nick, const boost::shared_ptr<PlayerSession> &session);
-	static void remove(const boost::weak_ptr<PlayerSession> &weakSession) noexcept;
+	static void add(const std::string &login_name, const std::string &nick, const boost::shared_ptr<PlayerSession> &session);
+	static void remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept;
 
-	static void getAll(boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>> &ret);
+	static void get_all(boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>> &ret);
 
 private:
 	PlayerSessionMap() = delete;

@@ -13,31 +13,31 @@
 namespace EmperyPromotion {
 
 namespace {
-	volatile boost::uint32_t g_autoId = 0;
+	volatile boost::uint32_t g_auto_id = 0;
 }
 
 MODULE_RAII_PRIORITY(handles, 9000){
-	auto listener = Poseidon::EventDispatcher::registerListener<Events::ItemChanged>(
+	auto listener = Poseidon::EventDispatcher::register_listener<Events::ItemChanged>(
 		[](const boost::shared_ptr<Events::ItemChanged> &event){
 			PROFILE_ME;
 
-			if(event->itemId != ItemIds::ID_ACCOUNT_BALANCE){
+			if(event->item_id != ItemIds::ID_ACCOUNT_BALANCE){
 				return;
 			}
-			if(event->oldCount == event->newCount){
+			if(event->old_count == event->new_count){
 				return;
 			}
 			LOG_EMPERY_PROMOTION_INFO("Writing account balance records...");
 
-			const auto localNow = Poseidon::getUtcTime();
+			const auto local_now = Poseidon::get_utc_time();
 
 			AccountMap::AccountInfo info;
 
 #define PUT_NUMBER(param_)      oss <<event->param_ <<',';
 #define PUT_ACCOUNT(param_)     info = AccountMap::get(AccountId(event->param_));	\
-                                oss <<Poseidon::Http::base64Encode(info.loginName) <<','	\
-                                    <<Poseidon::Http::base64Encode(info.nick) <<',';
-#define PUT_STRING(param_)      oss <<Poseidon::Http::base64Encode(event->param_) <<',';
+                                oss <<Poseidon::Http::base64_encode(info.login_name) <<','	\
+                                    <<Poseidon::Http::base64_encode(info.nick) <<',';
+#define PUT_STRING(param_)      oss <<Poseidon::Http::base64_encode(event->param_) <<',';
 
 			std::ostringstream oss;
 			switch(event->reason){
@@ -85,16 +85,16 @@ MODULE_RAII_PRIORITY(handles, 9000){
 					", param2 = ", event->param2, ", param3 = ", event->param3, ", remarks = ", event->remarks);
 				break;
 			}
-			if(event->oldCount < event->newCount){
+			if(event->old_count < event->new_count){
 				const auto obj = boost::make_shared<MySql::Promotion_IncomeBalanceHistory>(
-					event->accountId.get(), localNow, Poseidon::atomicAdd(g_autoId, 1, Poseidon::ATOMIC_RELAXED),
-					event->newCount - event->oldCount, event->reason, event->param1, event->param2, event->param3, oss.str());
-				obj->asyncSave(true);
-			} else if(event->oldCount > event->newCount){
+					event->account_id.get(), local_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
+					event->new_count - event->old_count, event->reason, event->param1, event->param2, event->param3, oss.str());
+				obj->async_save(true);
+			} else if(event->old_count > event->new_count){
 				const auto obj = boost::make_shared<MySql::Promotion_OutcomeBalanceHistory>(
-					event->accountId.get(), localNow, Poseidon::atomicAdd(g_autoId, 1, Poseidon::ATOMIC_RELAXED),
-					event->oldCount - event->newCount, event->reason, event->param1, event->param2, event->param3, oss.str());
-				obj->asyncSave(true);
+					event->account_id.get(), local_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
+					event->old_count - event->new_count, event->reason, event->param1, event->param2, event->param3, oss.str());
+				obj->async_save(true);
 			}
 		});
 	handles.push(listener);

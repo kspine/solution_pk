@@ -10,10 +10,10 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME   CenterLog_ItemChanged
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_DATETIME          (timestamp)	\
-	FIELD_UUID              (accountUuid)	\
-	FIELD_INTEGER_UNSIGNED  (itemId)	\
-	FIELD_BIGINT_UNSIGNED   (oldCount)	\
-	FIELD_BIGINT_UNSIGNED   (newCount)	\
+	FIELD_UUID              (account_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (item_id)	\
+	FIELD_BIGINT_UNSIGNED   (old_count)	\
+	FIELD_BIGINT_UNSIGNED   (new_count)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
 	FIELD_BIGINT_UNSIGNED   (param1)	\
 	FIELD_BIGINT_UNSIGNED   (param2)	\

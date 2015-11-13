@@ -136,7 +136,7 @@ public:
 	}
 
 	std::string str() const {
-		return m_uuid.toString();
+		return m_uuid.to_string();
 	}
 
 public:
@@ -167,7 +167,7 @@ public:
 template<int MAGIC_T>
 std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &id){
 	char str[37];
-	id.get().toString(reinterpret_cast<char (&)[36]>(str));
+	id.get().to_string(reinterpret_cast<char (&)[36]>(str));
 	str[36] = 0;
 	os <<str;
 	return os;
@@ -176,7 +176,7 @@ template<int MAGIC_T>
 std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &id){
 	char str[37];
 	if(is >>std::setw(sizeof(str)) >>str){
-		id.fromString(reinterpret_cast<const char (&)[36]>(str));
+		id.from_string(reinterpret_cast<const char (&)[36]>(str));
 	}
 	return is;
 }

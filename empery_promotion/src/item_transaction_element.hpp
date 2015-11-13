@@ -22,10 +22,10 @@ public:
 	};
 
 private:
-	AccountId m_accountId;
+	AccountId m_account_id;
 	Operation m_operation;
-	ItemId m_itemId;
-	boost::uint64_t m_deltaCount;
+	ItemId m_item_id;
+	boost::uint64_t m_delta_count;
 
 	Events::ItemChanged::Reason m_reason;
 	boost::uint64_t m_param1;
@@ -35,12 +35,12 @@ private:
 
 public:
 	ItemTransactionElement()
-		: m_accountId(0), m_operation(OP_NONE), m_itemId(0), m_deltaCount(0)
+		: m_account_id(0), m_operation(OP_NONE), m_item_id(0), m_delta_count(0)
 	{
 	}
-	ItemTransactionElement(AccountId accountId, Operation operation, ItemId itemId, boost::uint64_t deltaCount,
+	ItemTransactionElement(AccountId account_id, Operation operation, ItemId item_id, boost::uint64_t delta_count,
 		Events::ItemChanged::Reason reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3, std::string remarks)
-		: m_accountId(accountId), m_operation(operation), m_itemId(itemId), m_deltaCount(deltaCount)
+		: m_account_id(account_id), m_operation(operation), m_item_id(item_id), m_delta_count(delta_count)
 		, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3), m_remarks(std::move(remarks))
 	{
 	}

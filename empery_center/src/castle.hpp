@@ -27,28 +27,28 @@ public:
 	};
 
 	struct BuildingInfo {
-		BuildingBaseId buildingBaseId;
-		BuildingId buildingId;
-		unsigned buildingLevel;
+		BuildingBaseId building_base_id;
+		BuildingId building_id;
+		unsigned building_level;
 		Mission mission;
-		boost::uint64_t missionDuration;
-		boost::uint64_t missionParam2;
-		boost::uint64_t missionTimeBegin;
-		boost::uint64_t missionTimeEnd;
+		boost::uint64_t mission_duration;
+		boost::uint64_t mission_param2;
+		boost::uint64_t mission_time_begin;
+		boost::uint64_t mission_time_end;
 	};
 
 	struct TechInfo {
-		TechId techId;
-		unsigned techLevel;
+		TechId tech_id;
+		unsigned tech_level;
 		Mission mission;
-		boost::uint64_t missionDuration;
-		boost::uint64_t missionParam2;
-		boost::uint64_t missionTimeBegin;
-		boost::uint64_t missionTimeEnd;
+		boost::uint64_t mission_duration;
+		boost::uint64_t mission_param2;
+		boost::uint64_t mission_time_begin;
+		boost::uint64_t mission_time_end;
 	};
 
 	struct ResourceInfo {
-		ResourceId resourceId;
+		ResourceId resource_id;
 		boost::uint64_t count;
 	};
 
@@ -65,8 +65,8 @@ public:
 
 	private:
 		Operation m_operation;
-		ResourceId m_resourceId;
-		boost::uint64_t m_deltaCount;
+		ResourceId m_resource_id;
+		boost::uint64_t m_delta_count;
 
 		ReasonId m_reason;
 		boost::uint64_t m_param1;
@@ -74,9 +74,9 @@ public:
 		boost::uint64_t m_param3;
 
 	public:
-		ResourceTransactionElement(Operation operation, ResourceId resourceId, boost::uint64_t deltaCount,
+		ResourceTransactionElement(Operation operation, ResourceId resource_id, boost::uint64_t delta_count,
 			ReasonId reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3)
-			: m_operation(operation), m_resourceId(resourceId), m_deltaCount(deltaCount)
+			: m_operation(operation), m_resource_id(resource_id), m_delta_count(delta_count)
 			, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3)
 		{
 		}
@@ -91,7 +91,7 @@ private:
 		boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
 
 public:
-	Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid, std::string name);
+	Castle(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name);
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
@@ -102,31 +102,31 @@ public:
 	~Castle();
 
 public:
-	void pumpStatus(bool forceSynchronizationWithClient = false);
-	void pumpBuildingStatus(BuildingBaseId buildingBaseId, bool forceSynchronizationWithClient = false);
-	void pumpTechStatus(TechId techId, bool forceSynchronizationWithClient = false);
+	void pump_status(bool force_synchronization_with_client = false);
+	void pump_building_status(BuildingBaseId building_base_id, bool force_synchronization_with_client = false);
+	void pump_tech_status(TechId tech_id, bool force_synchronization_with_client = false);
 
-	BuildingInfo getBuilding(BuildingBaseId buildingBaseId) const;
-	void getAllBuildings(std::vector<BuildingInfo> &ret) const;
-	std::size_t countBuildingsById(BuildingId buildingId) const;
-	void getBuildingsById(std::vector<BuildingInfo> &ret, BuildingId buildingId) const;
+	BuildingInfo get_building(BuildingBaseId building_base_id) const;
+	void get_all_buildings(std::vector<BuildingInfo> &ret) const;
+	std::size_t count_buildings_by_id(BuildingId building_id) const;
+	void get_buildings_by_id(std::vector<BuildingInfo> &ret, BuildingId building_id) const;
 	// 如果指定地基上有任务会抛出异常。
-	void createBuildingMission(BuildingBaseId buildingBaseId, Mission mission, BuildingId buildingId = BuildingId());
-	void cancelBuildingMission(BuildingBaseId buildingBaseId);
-	void speedUpBuildingMission(BuildingBaseId buildingBaseId, boost::uint64_t deltaDuration);
+	void create_building_mission(BuildingBaseId building_base_id, Mission mission, BuildingId building_id = BuildingId());
+	void cancel_building_mission(BuildingBaseId building_base_id);
+	void speed_up_building_mission(BuildingBaseId building_base_id, boost::uint64_t delta_duration);
 
-	TechInfo getTech(TechId techId) const;
-	void getAllTechs(std::vector<TechInfo> &ret) const;
+	TechInfo get_tech(TechId tech_id) const;
+	void get_all_techs(std::vector<TechInfo> &ret) const;
 	// 同上。
-	void createTechMission(TechId techId, Mission mission);
-	void cancelTechMission(TechId techId);
-	void speedUpTechMission(TechId techId, boost::uint64_t deltaDuration);
+	void create_tech_mission(TechId tech_id, Mission mission);
+	void cancel_tech_mission(TechId tech_id);
+	void speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duration);
 
-	ResourceInfo getResource(ResourceId resourceId) const;
-	void getAllResources(std::vector<ResourceInfo> &ret) const;
-	ResourceId commitResourceTransactionNoThrow(const ResourceTransactionElement *elements, std::size_t count,
+	ResourceInfo get_resource(ResourceId resource_id) const;
+	void get_all_resources(std::vector<ResourceInfo> &ret) const;
+	ResourceId commit_resource_transaction_nothrow(const ResourceTransactionElement *elements, std::size_t count,
 		const boost::function<void ()> &callback = boost::function<void ()>());
-	void commitResourceTransaction(const ResourceTransactionElement *elements, std::size_t count,
+	void commit_resource_transaction(const ResourceTransactionElement *elements, std::size_t count,
 		const boost::function<void ()> &callback = boost::function<void ()>());
 };
 

@@ -14,23 +14,23 @@ public:
 		Poseidon::JsonObject (const boost::shared_ptr<AdminHttpSession> &session, Poseidon::OptionalMap params)>;
 
 public:
-	static boost::shared_ptr<const ServletCallback> createServlet(const std::string &uri, ServletCallback callback);
-	static boost::shared_ptr<const ServletCallback> getServlet(const std::string &uri);
+	static boost::shared_ptr<const ServletCallback> create_servlet(const std::string &uri, ServletCallback callback);
+	static boost::shared_ptr<const ServletCallback> get_servlet(const std::string &uri);
 
 private:
-	const boost::shared_ptr<const Poseidon::Http::AuthInfo> m_authInfo;
+	const boost::shared_ptr<const Poseidon::Http::AuthInfo> m_auth_info;
 	const std::string m_prefix;
 
 public:
 	AdminHttpSession(Poseidon::UniqueFile socket,
-		boost::shared_ptr<const Poseidon::Http::AuthInfo> authInfo, std::string prefix);
+		boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix);
 	~AdminHttpSession();
 
 protected:
-	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatchRequest(
-		Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity) override;
+	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatch_request(
+		Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity) override;
 
-	void onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer entity) override;
+	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 };
 
 }

@@ -6,11 +6,11 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("tryLoginName", session, params){
-	const auto &loginName = params.at("loginName");
+	const auto &login_name = params.at("loginName");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::getByLoginName(loginName);
-	if(Poseidon::hasAnyFlagsOf(info.flags, AccountMap::FL_VALID)){
+	auto info = AccountMap::get_by_login_name(login_name);
+	if(Poseidon::has_any_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_LOGIN_NAME;
 		ret[sslit("errorMessage")] = "Another account with the same login name already exists";
 		return ret;

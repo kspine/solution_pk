@@ -10,75 +10,75 @@ namespace EmperyGoldScramble {
 namespace {
 	using StatusMap = boost::container::flat_map<unsigned, boost::shared_ptr<MySql::GoldScramble_GlobalStatus>>;
 
-	boost::shared_ptr<StatusMap> g_statusMap;
+	boost::shared_ptr<StatusMap> g_status_map;
 
 	MODULE_RAII_PRIORITY(handles, 2000){
-		const auto conn = Poseidon::MySqlDaemon::createConnection();
+		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto statusMap = boost::make_shared<StatusMap>();
-		statusMap->reserve(100);
+		const auto status_map = boost::make_shared<StatusMap>();
+		status_map->reserve(100);
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Loading global status...");
-		conn->executeSql("SELECT * FROM `GoldScramble_GlobalStatus`");
-		while(conn->fetchRow()){
+		conn->execute_sql("SELECT * FROM `GoldScramble_GlobalStatus`");
+		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::GoldScramble_GlobalStatus>();
-			obj->syncFetch(conn);
-			obj->enableAutoSaving();
-			statusMap->emplace(obj->get_slot(), std::move(obj));
+			obj->sync_fetch(conn);
+			obj->enable_auto_saving();
+			status_map->emplace(obj->get_slot(), std::move(obj));
 		}
-		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Loaded ", statusMap->size(), " global status value(s).");
-		g_statusMap = statusMap;
-		handles.push(statusMap);
+		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Loaded ", status_map->size(), " global status value(s).");
+		g_status_map = status_map;
+		handles.push(status_map);
 	}
 }
 
 boost::uint64_t GlobalStatus::get(unsigned slot){
 	PROFILE_ME;
 
-	const auto it = g_statusMap->find(slot);
-	if(it == g_statusMap->end()){
+	const auto it = g_status_map->find(slot);
+	if(it == g_status_map->end()){
 		LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Global status value not found: slot = ", slot);
 		return 0;
 	}
 	return it->second->get_value();
 }
-boost::uint64_t GlobalStatus::exchange(unsigned slot, boost::uint64_t newValue){
+boost::uint64_t GlobalStatus::exchange(unsigned slot, boost::uint64_t new_value){
 	PROFILE_ME;
 
-	auto it = g_statusMap->find(slot);
-	if(it == g_statusMap->end()){
+	auto it = g_status_map->find(slot);
+	if(it == g_status_map->end()){
 		auto obj = boost::make_shared<MySql::GoldScramble_GlobalStatus>(slot, 0);
-		obj->asyncSave(true);
-		it = g_statusMap->emplace_hint(it, slot, std::move(obj));
+		obj->async_save(true);
+		it = g_status_map->emplace_hint(it, slot, std::move(obj));
 	}
-	const auto oldValue = it->second->get_value();
-	it->second->set_value(newValue);
-	return oldValue;
+	const auto old_value = it->second->get_value();
+	it->second->set_value(new_value);
+	return old_value;
 }
-boost::uint64_t GlobalStatus::fetchAdd(unsigned slot, boost::uint64_t deltaValue){
+boost::uint64_t GlobalStatus::fetch_add(unsigned slot, boost::uint64_t delta_value){
 	PROFILE_ME;
 
-	auto it = g_statusMap->find(slot);
-	if(it == g_statusMap->end()){
+	auto it = g_status_map->find(slot);
+	if(it == g_status_map->end()){
 		auto obj = boost::make_shared<MySql::GoldScramble_GlobalStatus>(slot, 0);
-		obj->asyncSave(true);
-		it = g_statusMap->emplace_hint(it, slot, std::move(obj));
+		obj->async_save(true);
+		it = g_status_map->emplace_hint(it, slot, std::move(obj));
 	}
-	const auto oldValue = it->second->get_value();
-	it->second->set_value(checkedAdd(oldValue, deltaValue));
-	return oldValue;
+	const auto old_value = it->second->get_value();
+	it->second->set_value(checked_add(old_value, delta_value));
+	return old_value;
 }
-boost::uint64_t GlobalStatus::fetchSub(unsigned slot, boost::uint64_t deltaValue){
+boost::uint64_t GlobalStatus::fetch_sub(unsigned slot, boost::uint64_t delta_value){
 	PROFILE_ME;
 
-	auto it = g_statusMap->find(slot);
-	if(it == g_statusMap->end()){
+	auto it = g_status_map->find(slot);
+	if(it == g_status_map->end()){
 		auto obj = boost::make_shared<MySql::GoldScramble_GlobalStatus>(slot, 0);
-		obj->asyncSave(true);
-		it = g_statusMap->emplace_hint(it, slot, std::move(obj));
+		obj->async_save(true);
+		it = g_status_map->emplace_hint(it, slot, std::move(obj));
 	}
-	const auto oldValue = it->second->get_value();
-	it->second->set_value(checkedSub(oldValue, deltaValue));
-	return oldValue;
+	const auto old_value = it->second->get_value();
+	it->second->set_value(checked_sub(old_value, delta_value));
+	return old_value;
 }
 
 }

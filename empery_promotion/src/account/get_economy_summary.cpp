@@ -12,7 +12,7 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME	EconomySummary
 #define MYSQL_OBJECT_FIELDS	\
-	FIELD_BIGINT_UNSIGNED	(itemId)	\
+	FIELD_BIGINT_UNSIGNED	(item_id)	\
 	FIELD_BIGINT_UNSIGNED	(count)
 #include <poseidon/mysql/object_generator.hpp>
 
@@ -23,12 +23,12 @@ ACCOUNT_SERVLET("getEconomySummary", session, /* params */){
 	Poseidon::JsonObject ret;
 
 	std::vector<boost::shared_ptr<MySql::EconomySummary>> objs;
-	MySql::EconomySummary::batchLoad(objs, "SELECT `itemId`, SUM(`count`) AS `count` FROM `Promotion_Item` GROUP BY `itemId`");
+	MySql::EconomySummary::batch_load(objs, "SELECT `item_id`, SUM(`count`) AS `count` FROM `Promotion_Item` GROUP BY `item_id`");
 
-	const auto getTotalItemCount = [&](ItemId itemId) -> boost::uint64_t {
+	const auto get_total_item_count = [&](ItemId item_id) -> boost::uint64_t {
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
-			if(obj->get_itemId() == itemId.get()){
+			if(obj->get_item_id() == item_id.get()){
 				return obj->get_count();
 			}
 		}
@@ -37,14 +37,14 @@ ACCOUNT_SERVLET("getEconomySummary", session, /* params */){
 
 	ret[sslit("accCardUnitPrice")]           = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
 
-	ret[sslit("balanceRechargedHistorical")] = getTotalItemCount(ItemIds::ID_BALANCE_RECHARGED_HISTORICAL);
-	ret[sslit("balanceWithdrawnHistorical")] = getTotalItemCount(ItemIds::ID_BALANCE_WITHDRAWN_HISTORICAL);
-	ret[sslit("withdrawnBalance")]           = getTotalItemCount(ItemIds::ID_WITHDRAWN_BALANCE);
+	ret[sslit("balanceRechargedHistorical")] = get_total_item_count(ItemIds::ID_BALANCE_RECHARGED_HISTORICAL);
+	ret[sslit("balanceWithdrawnHistorical")] = get_total_item_count(ItemIds::ID_BALANCE_WITHDRAWN_HISTORICAL);
+	ret[sslit("withdrawnBalance")]           = get_total_item_count(ItemIds::ID_WITHDRAWN_BALANCE);
 
-	ret[sslit("accelerationCards")]          = getTotalItemCount(ItemIds::ID_ACCELERATION_CARDS);
-	ret[sslit("balanceBuyCardsHistorical")]  = getTotalItemCount(ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL);
+	ret[sslit("accelerationCards")]          = get_total_item_count(ItemIds::ID_ACCELERATION_CARDS);
+	ret[sslit("balanceBuyCardsHistorical")]  = get_total_item_count(ItemIds::ID_BALANCE_BUY_CARDS_HISTORICAL);
 
-	ret[sslit("goldCoins")]                  = getTotalItemCount(ItemIds::ID_GOLD_COINS);
+	ret[sslit("goldCoins")]                  = get_total_item_count(ItemIds::ID_GOLD_COINS);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

@@ -14,12 +14,12 @@ class ClusterSession;
 struct ClusterSessionMap {
 	using SessionContainer = boost::container::flat_map<std::pair<boost::int64_t, boost::int64_t>, boost::shared_ptr<ClusterSession>>;
 
-	static boost::shared_ptr<ClusterSession> get(boost::int64_t mapX, boost::int64_t mapY);
-	static void getAll(SessionContainer &ret);
-	static void set(boost::int64_t mapX, boost::int64_t mapY, const boost::shared_ptr<ClusterSession> &session);
+	static boost::shared_ptr<ClusterSession> get(boost::int64_t map_x, boost::int64_t map_y);
+	static void get_all(SessionContainer &ret);
+	static void set(boost::int64_t map_x, boost::int64_t map_y, const boost::shared_ptr<ClusterSession> &session);
 
-	static std::pair<boost::int64_t, boost::int64_t> requireMapCoord(const boost::weak_ptr<ClusterSession> &session);
-	static std::pair<boost::uint64_t, boost::uint64_t> requireMapSize();
+	static std::pair<boost::int64_t, boost::int64_t> require_map_coord(const boost::weak_ptr<ClusterSession> &session);
+	static std::pair<boost::uint64_t, boost::uint64_t> require_map_size();
 
 private:
 	ClusterSessionMap() = delete;

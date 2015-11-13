@@ -15,134 +15,134 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("create", session, params){
-	const auto &payerLoginName = params.at("payerLoginName");
-	const auto &dealPassword = params.get("dealPassword");
-	const auto &loginName = params.at("loginName");
+	const auto &payer_login_name = params.at("payerLoginName");
+	const auto &deal_password = params.get("dealPassword");
+	const auto &login_name = params.at("loginName");
 	const auto &nick = params.at("nick");
 	const auto level = boost::lexical_cast<boost::uint64_t>(params.at("level"));
 	const auto &gender = params.at("gender");
 	const auto &country = params.at("country");
 	const auto &password = params.at("password");
-	const auto &phoneNumber = params.at("phoneNumber");
-	const auto &bankAccountName = params.get("bankAccountName");
-	const auto &bankName = params.get("bankName");
-	const auto &bankAccountNumber = params.get("bankAccountNumber");
-	const auto &referrerLoginName = params.get("referrerLoginName");
-	const auto &bankSwiftCode = params.get("bankSwiftCode");
+	const auto &phone_number = params.at("phoneNumber");
+	const auto &bank_account_name = params.get("bankAccountName");
+	const auto &bank_name = params.get("bankName");
+	const auto &bank_account_number = params.get("bankAccountNumber");
+	const auto &referrer_login_name = params.get("referrerLoginName");
+	const auto &bank_swift_code = params.get("bankSwiftCode");
 	const auto &remarks = params.get("remarks");
 	const auto &ip = params.get("ip");
-	const auto &additionalCardsStr = params.get("additionalCards");
+	const auto &additional_cards_str = params.get("additionalCards");
 
 	Poseidon::JsonObject ret;
 
-	auto payerInfo = AccountMap::getByLoginName(payerLoginName);
-	if(Poseidon::hasNoneFlagsOf(payerInfo.flags, AccountMap::FL_VALID)){
+	auto payer_info = AccountMap::get_by_login_name(payer_login_name);
+	if(Poseidon::has_none_flags_of(payer_info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_PAYER;
 		ret[sslit("errorMessage")] = "Payer is not found";
 		return ret;
 	}
 	if(level != 0){
-		if(AccountMap::getPasswordHash(dealPassword) != payerInfo.dealPasswordHash){
+		if(AccountMap::get_password_hash(deal_password) != payer_info.deal_password_hash){
 			ret[sslit("errorCode")] = (int)Msg::ERR_INVALID_DEAL_PASSWORD;
 			ret[sslit("errorMessage")] = "Deal password is incorrect";
 			return ret;
 		}
 	}
-	const auto localNow = Poseidon::getUtcTime();
-	if((payerInfo.bannedUntil != 0) && (localNow < payerInfo.bannedUntil)){
+	const auto local_now = Poseidon::get_utc_time();
+	if((payer_info.banned_until != 0) && (local_now < payer_info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Payer is banned";
 		return ret;
 	}
 
-	auto referrerInfo = referrerLoginName.empty() ? payerInfo : AccountMap::getByLoginName(referrerLoginName);
-	if(Poseidon::hasNoneFlagsOf(referrerInfo.flags, AccountMap::FL_VALID)){
+	auto referrer_info = referrer_login_name.empty() ? payer_info : AccountMap::get_by_login_name(referrer_login_name);
+	if(Poseidon::has_none_flags_of(referrer_info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_REFERRER;
 		ret[sslit("errorMessage")] = "Referrer is not found";
 		return ret;
 	}
-	if((referrerInfo.bannedUntil != 0) && (localNow < referrerInfo.bannedUntil)){
+	if((referrer_info.banned_until != 0) && (local_now < referrer_info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Referrer is banned";
 		return ret;
 	}
 
-	boost::shared_ptr<const Data::Promotion> promotionData;
+	boost::shared_ptr<const Data::Promotion> promotion_data;
 	if(level != 0){
-		promotionData = Data::Promotion::get(level);
-		if(!promotionData){
+		promotion_data = Data::Promotion::get(level);
+		if(!promotion_data){
 			ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
 			ret[sslit("errorMessage")] = "Account level is not found";
 			return ret;
 		}
 	} else {
-		const auto firstBalancingTime = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
-		if(localNow < firstBalancingTime){
+		const auto first_balancing_time = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
+		if(local_now < first_balancing_time){
 			LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
 		} else {
-			promotionData = Data::Promotion::getFirst();
+			promotion_data = Data::Promotion::get_first();
 		}
 	}
 
-	auto tempInfo = AccountMap::getByLoginName(loginName);
-	if(Poseidon::hasAnyFlagsOf(tempInfo.flags, AccountMap::FL_VALID)){
+	auto temp_info = AccountMap::get_by_login_name(login_name);
+	if(Poseidon::has_any_flags_of(temp_info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_LOGIN_NAME;
 		ret[sslit("errorMessage")] = "Another account with the same login name already exists";
 		return ret;
 	}
 
-	std::vector<AccountMap::AccountInfo> tempInfos;
-	AccountMap::getByPhoneNumber(tempInfos, phoneNumber);
-	if(!tempInfos.empty()){
+	std::vector<AccountMap::AccountInfo> temp_infos;
+	AccountMap::get_by_phone_number(temp_infos, phone_number);
+	if(!temp_infos.empty()){
 		ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_PHONE_NUMBER;
 		ret[sslit("errorMessage")] = "Another account with the same phone number already exists";
 		return ret;
 	}
 
-	const auto newAccountId = AccountMap::create(loginName, phoneNumber, nick, password, password, referrerInfo.accountId, 0, ip);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_GENDER, gender);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_COUNTRY, country);
-//	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_PHONE_NUMBER, phoneNumber);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_BANK_ACCOUNT_NAME, bankAccountName);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_BANK_NAME, bankName);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER, bankAccountNumber);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_BANK_SWIFT_CODE, bankSwiftCode);
-	AccountMap::setAttribute(newAccountId, AccountMap::ATTR_REMARKS, remarks);
+	const auto new_account_id = AccountMap::create(login_name, phone_number, nick, password, password, referrer_info.account_id, 0, ip);
+	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_GENDER, gender);
+	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_COUNTRY, country);
+//	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_PHONE_NUMBER, phone_number);
+	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_BANK_ACCOUNT_NAME, bank_account_name);
+	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_BANK_NAME, bank_name);
+	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_BANK_ACCOUNT_NUMBER, bank_account_number);
+	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_BANK_SWIFT_CODE, bank_swift_code);
+	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_REMARKS, remarks);
 
-	Poseidon::asyncRaiseEvent(
-		boost::make_shared<Events::AccountCreated>(newAccountId, ip));
+	Poseidon::async_raise_event(
+		boost::make_shared<Events::AccountCreated>(new_account_id, ip));
 
-	const auto initGoldCoinArray = Poseidon::explode<boost::uint64_t>(',',
-	                               getConfig<std::string>("init_gold_coins_array", "100,50,50"));
+	const auto init_gold_coin_array = Poseidon::explode<boost::uint64_t>(',',
+	                               get_config<std::string>("init_gold_coins_array", "100,50,50"));
 	std::vector<ItemTransactionElement> transaction;
-	transaction.reserve(initGoldCoinArray.size());
-	auto addGoldCoinsToWhom = newAccountId;
-	for(auto it = initGoldCoinArray.begin(); it != initGoldCoinArray.end(); ++it){
-		transaction.emplace_back(addGoldCoinsToWhom, ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD_COINS, *it,
-			Events::ItemChanged::R_CREATE_ACCOUNT, newAccountId.get(), payerInfo.accountId.get(), level, remarks);
+	transaction.reserve(init_gold_coin_array.size());
+	auto add_gold_coins_to_whom = new_account_id;
+	for(auto it = init_gold_coin_array.begin(); it != init_gold_coin_array.end(); ++it){
+		transaction.emplace_back(add_gold_coins_to_whom, ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD_COINS, *it,
+			Events::ItemChanged::R_CREATE_ACCOUNT, new_account_id.get(), payer_info.account_id.get(), level, remarks);
 
-		const auto info = AccountMap::require(addGoldCoinsToWhom);
-		addGoldCoinsToWhom = info.referrerId;
-		if(!addGoldCoinsToWhom){
+		const auto info = AccountMap::require(add_gold_coins_to_whom);
+		add_gold_coins_to_whom = info.referrer_id;
+		if(!add_gold_coins_to_whom){
 			break;
 		}
 	}
-	ItemMap::commitTransaction(transaction.data(), transaction.size());
+	ItemMap::commit_transaction(transaction.data(), transaction.size());
 
-	boost::uint64_t additionalCards = 0;
-	if(!additionalCardsStr.empty()){
-		additionalCards = boost::lexical_cast<boost::uint64_t>(additionalCardsStr);
+	boost::uint64_t additional_cards = 0;
+	if(!additional_cards_str.empty()){
+		additional_cards = boost::lexical_cast<boost::uint64_t>(additional_cards_str);
 	}
 
-	if(promotionData){
-		const auto result = tryUpgradeAccount(newAccountId, payerInfo.accountId, true, promotionData, remarks, additionalCards);
+	if(promotion_data){
+		const auto result = try_upgrade_account(new_account_id, payer_info.account_id, true, promotion_data, remarks, additional_cards);
 		ret[sslit("balanceToConsume")] = result.second;
 		if(!result.first){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
 			ret[sslit("errorMessage")] = "No enough account balance";
 			return ret;
 		}
-		accumulateBalanceBonus(newAccountId, payerInfo.accountId, result.second, promotionData->level);
+		accumulate_balance_bonus(new_account_id, payer_info.account_id, result.second, promotion_data->level);
 	} else {
 		ret[sslit("balanceToConsume")] = 0;
 	}

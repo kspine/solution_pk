@@ -9,12 +9,12 @@ namespace {
 	using namespace EmperyPromotion;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		auto listener = Poseidon::EventDispatcher::registerListener<Events::ItemChanged>(
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::ItemChanged>(
 			[](const boost::shared_ptr<Events::ItemChanged> &event){
-				const auto obj = boost::make_shared<MySql::PromotionLog_ItemChanged>(Poseidon::getLocalTime(),
-					event->accountId.get(), event->itemId.get(), event->oldCount, event->newCount,
+				const auto obj = boost::make_shared<MySql::PromotionLog_ItemChanged>(Poseidon::get_local_time(),
+					event->account_id.get(), event->item_id.get(), event->old_count, event->new_count,
 					event->reason, event->param1, event->param2, event->param3);
-				obj->asyncSave(true);
+				obj->async_save(true);
 			});
 		LOG_EMPERY_PROMOTION_LOG_DEBUG("Created ItemChanged listener");
 		handles.push(std::move(listener));

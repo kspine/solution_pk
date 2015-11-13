@@ -8,60 +8,60 @@
 namespace EmperyGateWestwalk {
 
 ACCOUNT_SERVLET("login", session, params){
-	const auto &accountName = params.at("accountName");
+	const auto &account_name = params.at("accountName");
 	const auto &password    = params.at("password");
 	const auto &token       = params.at("token");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::get(accountName);
-	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	auto info = AccountMap::get(account_name);
+	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("msg")] = "The specified account is not found";
 		return ret;
 	}
-	const auto passwordHash = AccountMap::getPasswordHash(password);
-	if(Poseidon::hasAnyFlagsOf(info.flags, AccountMap::FL_FROZEN) && (passwordHash != info.disposablePasswordHash)){
+	const auto password_hash = AccountMap::get_password_hash(password);
+	if(Poseidon::has_any_flags_of(info.flags, AccountMap::FL_FROZEN) && (password_hash != info.disposable_password_hash)){
 		ret[sslit("errCode")] = (int)Msg::ERR_ACCOUNT_FROZEN;
 		ret[sslit("msg")] = "The specified account is frozen";
 		return ret;
 	}
-	const auto localNow = Poseidon::getLocalTime();
-	if(passwordHash != info.passwordHash){
-		if(passwordHash != info.disposablePasswordHash){
-			const auto retryCount = AccountMap::decrementPasswordRetryCount(accountName);
+	const auto local_now = Poseidon::get_local_time();
+	if(password_hash != info.password_hash){
+		if(password_hash != info.disposable_password_hash){
+			const auto retry_count = AccountMap::decrement_password_retry_count(account_name);
 
 			ret[sslit("errCode")] = (int)Msg::ERR_PASSWORD_INCORRECT;
 			ret[sslit("msg")] = "Password is incorrect";
-			ret[sslit("retryCount")] = retryCount;
+			ret[sslit("retryCount")] = retry_count;
 			return ret;
 		}
-		if(localNow >= info.disposablePasswordExpiryTime){
+		if(local_now >= info.disposable_password_expiry_time){
 			ret[sslit("errCode")] = (int)Msg::ERR_DISPOSABLE_PASSWD_EXPIRED;
 			ret[sslit("msg")] = "Disposable password has expired";
 			return ret;
 		}
-		AccountMap::commitDisposablePassword(accountName);
+		AccountMap::commit_disposable_password(account_name);
 	}
-	if((info.bannedUntil != 0) && (localNow < info.bannedUntil)){
+	if((info.banned_until != 0) && (local_now < info.banned_until)){
 		ret[sslit("errCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("msg")] = "Account is banned";
 		return ret;
 	}
 
-	AccountMap::resetPasswordRetryCount(accountName);
+	AccountMap::reset_password_retry_count(account_name);
 
-	const auto platformId          = getConfig<EmperyCenter::PlatformId>("platform_id");
-	const auto tokenExpiryDuration = getConfig<boost::uint64_t>("token_expiry_duration", 604800000);
+	const auto platform_id          = get_config<EmperyCenter::PlatformId>("platform_id");
+	const auto token_expiry_duration = get_config<boost::uint64_t>("token_expiry_duration", 604800000);
 
-	LOG_EMPERY_GATE_WESTWALK_INFO("Account login: accountName = ", accountName, ", token = ", token);
-	AccountMap::setToken(accountName, token, localNow + tokenExpiryDuration);
-	Poseidon::EventDispatcher::syncRaise(
+	LOG_EMPERY_GATE_WESTWALK_INFO("Account login: account_name = ", account_name, ", token = ", token);
+	AccountMap::set_token(account_name, token, local_now + token_expiry_duration);
+	Poseidon::EventDispatcher::sync_raise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platformId, accountName, token, localNow + tokenExpiryDuration, session->getRemoteInfo().ip.get()));
+			platform_id, account_name, token, local_now + token_expiry_duration, session->get_remote_info().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";
-	ret[sslit("tokenExpiryDuration")] = tokenExpiryDuration;
+	ret[sslit("tokenExpiryDuration")] = token_expiry_duration;
 	return ret;
 }
 

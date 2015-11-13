@@ -13,145 +13,145 @@ namespace {
 	struct ItemElement {
 		boost::shared_ptr<MySql::Promotion_Item> obj;
 
-		AccountId accountId;
-		ItemId itemId;
-		std::pair<AccountId, ItemId> accountItem;
+		AccountId account_id;
+		ItemId item_id;
+		std::pair<AccountId, ItemId> account_item;
 
 		explicit ItemElement(boost::shared_ptr<MySql::Promotion_Item> obj_)
 			: obj(std::move(obj_))
-			, accountId(obj->get_accountId()), itemId(obj->get_itemId())
-			, accountItem(accountId, itemId)
+			, account_id(obj->get_account_id()), item_id(obj->get_item_id())
+			, account_item(account_id, item_id)
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(ItemMapDelegator, ItemElement,
-		MULTI_MEMBER_INDEX(accountId)
-		MULTI_MEMBER_INDEX(itemId)
-		UNIQUE_MEMBER_INDEX(accountItem)
+		MULTI_MEMBER_INDEX(account_id)
+		MULTI_MEMBER_INDEX(item_id)
+		UNIQUE_MEMBER_INDEX(account_item)
 	)
 
-	boost::weak_ptr<ItemMapDelegator> g_itemMap;
+	boost::weak_ptr<ItemMapDelegator> g_item_map;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto conn = Poseidon::MySqlDaemon::createConnection();
+		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto itemMap = boost::make_shared<ItemMapDelegator>();
+		const auto item_map = boost::make_shared<ItemMapDelegator>();
 		LOG_EMPERY_PROMOTION_INFO("Loading items...");
-		conn->executeSql("SELECT * FROM `Promotion_Item`");
-		while(conn->fetchRow()){
+		conn->execute_sql("SELECT * FROM `Promotion_Item`");
+		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Promotion_Item>();
-			obj->syncFetch(conn);
-			obj->enableAutoSaving();
-			itemMap->insert(ItemElement(std::move(obj)));
+			obj->sync_fetch(conn);
+			obj->enable_auto_saving();
+			item_map->insert(ItemElement(std::move(obj)));
 		}
-		LOG_EMPERY_PROMOTION_INFO("Loaded ", itemMap->size(), " item(s).");
-		g_itemMap = itemMap;
-		handles.push(itemMap);
+		LOG_EMPERY_PROMOTION_INFO("Loaded ", item_map->size(), " item(s).");
+		g_item_map = item_map;
+		handles.push(item_map);
 	}
 }
 
-boost::uint64_t ItemMap::getCount(AccountId accountId, ItemId itemId){
+boost::uint64_t ItemMap::get_count(AccountId account_id, ItemId item_id){
 	PROFILE_ME;
 
-	const auto itemMap = g_itemMap.lock();
-	if(!itemMap){
+	const auto item_map = g_item_map.lock();
+	if(!item_map){
 		LOG_EMPERY_PROMOTION_WARNING("Item map is not loaded.");
 		return 0;
 	}
 
-	const auto it = itemMap->find<2>(std::make_pair(accountId, itemId));
-	if(it == itemMap->end<2>()){
+	const auto it = item_map->find<2>(std::make_pair(account_id, item_id));
+	if(it == item_map->end<2>()){
 		return 0;
 	}
 	return it->obj->get_count();
 }
-void ItemMap::getAllByAccountId(boost::container::flat_map<ItemId, boost::uint64_t> &ret, AccountId accountId){
+void ItemMap::get_all_by_account_id(boost::container::flat_map<ItemId, boost::uint64_t> &ret, AccountId account_id){
 	PROFILE_ME;
 
-	const auto itemMap = g_itemMap.lock();
-	if(!itemMap){
+	const auto item_map = g_item_map.lock();
+	if(!item_map){
 		LOG_EMPERY_PROMOTION_WARNING("Item map is not loaded.");
 		return;
 	}
 
-	const auto range = itemMap->equalRange<0>(accountId);
+	const auto range = item_map->equal_range<0>(account_id);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
-		ret[it->itemId] = it->obj->get_count();
+		ret[it->item_id] = it->obj->get_count();
 	}
 }
-void ItemMap::getAllByItemId(boost::container::flat_map<AccountId, boost::uint64_t> &ret, ItemId itemId){
+void ItemMap::get_all_by_item_id(boost::container::flat_map<AccountId, boost::uint64_t> &ret, ItemId item_id){
 	PROFILE_ME;
 
-	const auto itemMap = g_itemMap.lock();
-	if(!itemMap){
+	const auto item_map = g_item_map.lock();
+	if(!item_map){
 		LOG_EMPERY_PROMOTION_WARNING("Item map is not loaded.");
 		return;
 	}
 
-	const auto range = itemMap->equalRange<1>(itemId);
+	const auto range = item_map->equal_range<1>(item_id);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
-		ret[it->accountId] = it->obj->get_count();
+		ret[it->account_id] = it->obj->get_count();
 	}
 }
 
 namespace {
 	struct TempResultElement {
 		boost::shared_ptr<MySql::Promotion_Item> obj;
-		AccountId accountId;
+		AccountId account_id;
 
-		boost::uint64_t oldCount;
-		mutable boost::uint64_t newCount;
+		boost::uint64_t old_count;
+		mutable boost::uint64_t new_count;
 
 		explicit TempResultElement(boost::shared_ptr<MySql::Promotion_Item> obj_)
 			: obj(std::move(obj_))
-			, accountId(obj->get_accountId())
-			, oldCount(obj->get_count()), newCount(oldCount)
+			, account_id(obj->get_account_id())
+			, old_count(obj->get_count()), new_count(old_count)
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(TempResultMap, TempResultElement,
 		UNIQUE_MEMBER_INDEX(obj)
-		MULTI_MEMBER_INDEX(accountId)
+		MULTI_MEMBER_INDEX(account_id)
 	)
 }
 
-void ItemMap::commitTransaction(const ItemTransactionElement *elements, std::size_t count){
+void ItemMap::commit_transaction(const ItemTransactionElement *elements, std::size_t count){
 	PROFILE_ME;
 
-	const auto insufficientItemId = commitTransactionNoThrow(elements, count);
-	if(insufficientItemId){
-		LOG_EMPERY_PROMOTION_ERROR("Item transaction failure: insufficientItemId = ", insufficientItemId);
+	const auto insufficient_item_id = commit_transaction_nothrow(elements, count);
+	if(insufficient_item_id){
+		LOG_EMPERY_PROMOTION_ERROR("Item transaction failure: insufficient_item_id = ", insufficient_item_id);
 		DEBUG_THROW(Exception, sslit("Item transaction failure"));
 	}
 }
 
-ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count){
+ItemId ItemMap::commit_transaction_nothrow(const ItemTransactionElement *elements, std::size_t count){
 	PROFILE_ME;
 
 	if(count == 0){
 		return ItemId(0);
 	}
 
-	const auto itemMap = g_itemMap.lock();
-	if(!itemMap){
+	const auto item_map = g_item_map.lock();
+	if(!item_map){
 		LOG_EMPERY_PROMOTION_WARNING("Item map is not loaded.");
 		DEBUG_THROW(Exception, sslit("Item map is not loaded."));
 	}
 
-	const auto localNow = Poseidon::getUtcTime();
+	const auto local_now = Poseidon::get_utc_time();
 
 	const auto withdrawn = boost::make_shared<bool>(true);
-	TempResultMap tempResults;
+	TempResultMap temp_results;
 
 	for(std::size_t i = 0; i < count; ++i){
-		const auto accountId  = elements[i].m_accountId;
+		const auto account_id  = elements[i].m_account_id;
 		const auto operation  = elements[i].m_operation;
-		const auto itemId     = elements[i].m_itemId;
-		const auto deltaCount = elements[i].m_deltaCount;
+		const auto item_id     = elements[i].m_item_id;
+		const auto delta_count = elements[i].m_delta_count;
 
 		auto &reason  = elements[i].m_reason;
 		auto &param1  = elements[i].m_param1;
@@ -159,7 +159,7 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 		auto &param3  = elements[i].m_param3;
 		auto &remarks = elements[i].m_remarks;
 
-		if(deltaCount == 0){
+		if(delta_count == 0){
 			continue;
 		}
 
@@ -169,25 +169,25 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 
 		case ItemTransactionElement::OP_ADD:
 			{
-				auto itemIt = itemMap->find<2>(std::make_pair(accountId, itemId));
-				if(itemIt == itemMap->end<2>()){
-					auto obj = boost::make_shared<MySql::Promotion_Item>(accountId.get(), itemId.get(), 0, localNow, 0);
-					obj->asyncSave(true);
-					itemIt = itemMap->insert<2>(itemIt, ItemElement(std::move(obj)));
+				auto item_it = item_map->find<2>(std::make_pair(account_id, item_id));
+				if(item_it == item_map->end<2>()){
+					auto obj = boost::make_shared<MySql::Promotion_Item>(account_id.get(), item_id.get(), 0, local_now, 0);
+					obj->async_save(true);
+					item_it = item_map->insert<2>(item_it, ItemElement(std::move(obj)));
 				}
 
-				auto resultIt = tempResults.find<0>(itemIt->obj);
-				if(resultIt == tempResults.end<0>()){
-					resultIt = tempResults.insert<0>(resultIt, TempResultElement(itemIt->obj));
+				auto result_it = temp_results.find<0>(item_it->obj);
+				if(result_it == temp_results.end<0>()){
+					result_it = temp_results.insert<0>(result_it, TempResultElement(item_it->obj));
 				}
-				const auto oldCount = resultIt->newCount;
-				resultIt->newCount = checkedAdd(oldCount, deltaCount);
+				const auto old_count = result_it->new_count;
+				result_it->new_count = checked_add(old_count, delta_count);
 
-				LOG_EMPERY_PROMOTION_DEBUG("@ Item transaction: add: accountId = ", accountId, ", itemId = ", itemId,
-					", deltaCount = ", deltaCount, ", oldCount = ", resultIt->oldCount, ", newCount = ", resultIt->newCount,
+				LOG_EMPERY_PROMOTION_DEBUG("@ Item transaction: add: account_id = ", account_id, ", item_id = ", item_id,
+					", delta_count = ", delta_count, ", old_count = ", result_it->old_count, ", new_count = ", result_it->new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3, ", remarks = ", remarks);
-				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ItemChanged>(accountId, itemId, oldCount, resultIt->newCount,
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ItemChanged>(account_id, item_id, old_count, result_it->new_count,
 						static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, std::move(remarks)),
 					withdrawn);
 			}
@@ -196,34 +196,34 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 		case ItemTransactionElement::OP_REMOVE:
 		case ItemTransactionElement::OP_REMOVE_SATURATED:
 			{
-				const auto itemIt = itemMap->find<2>(std::make_pair(accountId, itemId));
-				if(itemIt == itemMap->end<2>()){
+				const auto item_it = item_map->find<2>(std::make_pair(account_id, item_id));
+				if(item_it == item_map->end<2>()){
 					if(operation != ItemTransactionElement::OP_REMOVE_SATURATED){
-						LOG_EMPERY_PROMOTION_DEBUG("Item not found: itemId = ", itemId);
-						return itemId;
+						LOG_EMPERY_PROMOTION_DEBUG("Item not found: item_id = ", item_id);
+						return item_id;
 					}
 					break;
 				}
-				auto resultIt = tempResults.find<0>(itemIt->obj);
-				if(resultIt == tempResults.end<0>()){
-					resultIt = tempResults.insert<0>(resultIt, TempResultElement(itemIt->obj));
+				auto result_it = temp_results.find<0>(item_it->obj);
+				if(result_it == temp_results.end<0>()){
+					result_it = temp_results.insert<0>(result_it, TempResultElement(item_it->obj));
 				}
-				const auto oldCount = resultIt->newCount;
-				if(resultIt->newCount >= deltaCount){
-					resultIt->newCount -= deltaCount;
+				const auto old_count = result_it->new_count;
+				if(result_it->new_count >= delta_count){
+					result_it->new_count -= delta_count;
 				} else {
 					if(operation != ItemTransactionElement::OP_REMOVE_SATURATED){
-						LOG_EMPERY_PROMOTION_DEBUG("No enough items: accountId = ", accountId, ", itemId = ", itemId,
-							", oldCount = ", oldCount, ", deltaCount = ", deltaCount);
-						return itemId;
+						LOG_EMPERY_PROMOTION_DEBUG("No enough items: account_id = ", account_id, ", item_id = ", item_id,
+							", old_count = ", old_count, ", delta_count = ", delta_count);
+						return item_id;
 					}
-					resultIt->newCount = 0;
+					result_it->new_count = 0;
 				}
-				LOG_EMPERY_PROMOTION_DEBUG("@ Item transaction: remove: accountId = ", accountId, ", itemId = ", itemId,
-					", deltaCount = ", deltaCount, ", oldCount = ", oldCount, ", newCount = ", resultIt->newCount,
+				LOG_EMPERY_PROMOTION_DEBUG("@ Item transaction: remove: account_id = ", account_id, ", item_id = ", item_id,
+					", delta_count = ", delta_count, ", old_count = ", old_count, ", new_count = ", result_it->new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3, ", remarks = ", remarks);
-				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ItemChanged>(accountId, itemId, oldCount, resultIt->newCount,
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ItemChanged>(account_id, item_id, old_count, result_it->new_count,
 						static_cast<Events::ItemChanged::Reason>(reason), param1, param2, param3, std::move(remarks)),
 					withdrawn);
 			}
@@ -235,8 +235,8 @@ ItemId ItemMap::commitTransactionNoThrow(const ItemTransactionElement *elements,
 		}
 	}
 
-	for(auto it = tempResults.begin<0>(); it != tempResults.end<0>(); ++it){
-		it->obj->set_count(it->newCount); // noexcept
+	for(auto it = temp_results.begin<0>(); it != temp_results.end<0>(); ++it){
+		it->obj->set_count(it->new_count); // noexcept
 	}
 	*withdrawn = false;
 

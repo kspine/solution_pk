@@ -10,9 +10,9 @@ namespace Msg {
 #define MESSAGE_NAME    CS_AccountLogin
 #define MESSAGE_ID      200
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (platformId)	\
-	FIELD_STRING        (loginName)	\
-	FIELD_STRING        (loginToken)
+	FIELD_VUINT         (platform_id)	\
+	FIELD_STRING        (login_name)	\
+	FIELD_STRING        (login_token)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_AccountSetAttribute
@@ -38,8 +38,8 @@ namespace Msg {
 #define MESSAGE_ID      204
 #define MESSAGE_FIELDS  \
 	FIELD_ARRAY         (accounts,	\
-		FIELD_STRING        (accountUuid)	\
-		FIELD_VUINT         (detailFlags)	\
+		FIELD_STRING        (account_uuid)	\
+		FIELD_VUINT         (detail_flags)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

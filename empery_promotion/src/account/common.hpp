@@ -20,7 +20,7 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 	// 处理逻辑
 }
 */
-#define ACCOUNT_SERVLET(uri_, sessionArg_, paramsArg_)	\
+#define ACCOUNT_SERVLET(uri_, session_arg_, params_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
 			::Poseidon::JsonObject TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
@@ -41,11 +41,11 @@ ACCOUNT_SERVLET(请求 URI, 会话形参名, GET 参数){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(AccountHttpSession::createServlet(uri_, & Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Entry_)));	\
+		handles_.push(AccountHttpSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Entry_)));	\
 	}	\
 	::Poseidon::JsonObject Impl_:: TOKEN_CAT3(AccountServlet, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<AccountHttpSession> &sessionArg_ __attribute__((__unused__)),	\
-		::Poseidon::OptionalMap paramsArg_	\
+		const ::boost::shared_ptr<AccountHttpSession> &session_arg_ __attribute__((__unused__)),	\
+		::Poseidon::OptionalMap params_arg_	\
 		)
 
 #define ACCOUNT_THROW(code_)				DEBUG_THROW(::Poseidon::Http::Exception, code_)

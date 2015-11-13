@@ -30,56 +30,56 @@ struct AccountMap {
 	};
 
 	struct AccountInfo {
-		AccountId accountId;
-		std::string loginName;
-		std::string phoneNumber;
+		AccountId account_id;
+		std::string login_name;
+		std::string phone_number;
 		std::string nick;
-		std::string passwordHash;
-		std::string dealPasswordHash;
-		AccountId referrerId;
+		std::string password_hash;
+		std::string deal_password_hash;
+		AccountId referrer_id;
 		boost::uint64_t level;
-		boost::uint64_t maxLevel;
-		boost::uint64_t subordinateCount;
+		boost::uint64_t max_level;
+		boost::uint64_t subordinate_count;
 		boost::uint64_t flags;
-		boost::uint64_t bannedUntil;
-		boost::uint64_t createdTime;
-		std::string createdIp;
+		boost::uint64_t banned_until;
+		boost::uint64_t created_time;
+		std::string created_ip;
 	};
 
-	static bool has(AccountId accountId);
-	static AccountInfo get(AccountId accountId);
-	static AccountInfo require(AccountId accountId);
+	static bool has(AccountId account_id);
+	static AccountInfo get(AccountId account_id);
+	static AccountInfo require(AccountId account_id);
 
-	static boost::uint64_t getCount();
-	static void getAll(std::vector<AccountInfo> &ret, boost::uint64_t begin = 0, boost::uint64_t max = (boost::uint64_t)-1);
+	static boost::uint64_t get_count();
+	static void get_all(std::vector<AccountInfo> &ret, boost::uint64_t begin = 0, boost::uint64_t max = (boost::uint64_t)-1);
 
-	static AccountInfo getByLoginName(const std::string &loginName);
+	static AccountInfo get_by_login_name(const std::string &login_name);
 
-	static void getByPhoneNumber(std::vector<AccountInfo> &ret, const std::string &phoneNumber);
-	static void getByReferrerId(std::vector<AccountInfo> &ret, AccountId referrerId);
+	static void get_by_phone_number(std::vector<AccountInfo> &ret, const std::string &phone_number);
+	static void get_by_referrer_id(std::vector<AccountInfo> &ret, AccountId referrer_id);
 
-	static std::string getPasswordHash(const std::string &password);
+	static std::string get_password_hash(const std::string &password);
 
-	static void setLoginName(AccountId accountId, std::string loginName);
-	static void setPhoneNumber(AccountId accountId, std::string phoneNumber);
-	static void setNick(AccountId accountId, std::string nick);
-	static void setPassword(AccountId accountId, const std::string &password);
-	static void setDealPassword(AccountId accountId, const std::string &dealPassword);
-	static void setLevel(AccountId accountId, boost::uint64_t level);
-	static void setFlags(AccountId accountId, boost::uint64_t flags);
-	static void setBannedUntil(AccountId accountId, boost::uint64_t bannedUntil);
+	static void set_login_name(AccountId account_id, std::string login_name);
+	static void set_phone_number(AccountId account_id, std::string phone_number);
+	static void set_nick(AccountId account_id, std::string nick);
+	static void set_password(AccountId account_id, const std::string &password);
+	static void set_deal_password(AccountId account_id, const std::string &deal_password);
+	static void set_level(AccountId account_id, boost::uint64_t level);
+	static void set_flags(AccountId account_id, boost::uint64_t flags);
+	static void set_banned_until(AccountId account_id, boost::uint64_t banned_until);
 
-	static AccountId create(std::string loginName, std::string phoneNumber, std::string nick,
-		const std::string &password, const std::string &dealPassword, AccountId referrerId, boost::uint64_t flags, std::string createdIp);
+	static AccountId create(std::string login_name, std::string phone_number, std::string nick,
+		const std::string &password, const std::string &deal_password, AccountId referrer_id, boost::uint64_t flags, std::string created_ip);
 
-	static const std::string &getAttribute(AccountId accountId, unsigned slot);
-	static void getAttributes(std::vector<std::pair<unsigned, std::string>> &ret, AccountId accountId);
-	static void touchAttribute(AccountId accountId, unsigned slot);
-	static void setAttribute(AccountId accountId, unsigned slot, std::string value);
+	static const std::string &get_attribute(AccountId account_id, unsigned slot);
+	static void get_attributes(std::vector<std::pair<unsigned, std::string>> &ret, AccountId account_id);
+	static void touch_attribute(AccountId account_id, unsigned slot);
+	static void set_attribute(AccountId account_id, unsigned slot, std::string value);
 
 	template<typename T>
-	static T castAttribute(AccountId accountId, unsigned slot){
-		const auto &str = getAttribute(accountId, slot);
+	static T cast_attribute(AccountId account_id, unsigned slot){
+		const auto &str = get_attribute(account_id, slot);
 		if(str.empty()){
 			return T();
 		}

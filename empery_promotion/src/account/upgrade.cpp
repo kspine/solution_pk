@@ -8,65 +8,65 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("upgrade", session, params){
-	const auto &payerLoginName = params.at("payerLoginName");
-	const auto &loginName = params.at("loginName");
-	const auto newLevel = boost::lexical_cast<boost::uint64_t>(params.at("newLevel"));
-	const auto &dealPassword = params.at("dealPassword");
+	const auto &payer_login_name = params.at("payerLoginName");
+	const auto &login_name = params.at("loginName");
+	const auto new_level = boost::lexical_cast<boost::uint64_t>(params.at("newLevel"));
+	const auto &deal_password = params.at("dealPassword");
 	const auto &remarks = params.get("remarks");
-	const auto &additionalCardsStr = params.get("additionalCards");
+	const auto &additional_cards_str = params.get("additionalCards");
 
 	Poseidon::JsonObject ret;
 
-	auto payerInfo = AccountMap::getByLoginName(payerLoginName);
-	if(Poseidon::hasNoneFlagsOf(payerInfo.flags, AccountMap::FL_VALID)){
+	auto payer_info = AccountMap::get_by_login_name(payer_login_name);
+	if(Poseidon::has_none_flags_of(payer_info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_PAYER;
 		ret[sslit("errorMessage")] = "Payer is not found";
 		return ret;
 	}
-	if(AccountMap::getPasswordHash(dealPassword) != payerInfo.dealPasswordHash){
+	if(AccountMap::get_password_hash(deal_password) != payer_info.deal_password_hash){
 		ret[sslit("errorCode")] = (int)Msg::ERR_INVALID_DEAL_PASSWORD;
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	const auto localNow = Poseidon::getUtcTime();
-	if((payerInfo.bannedUntil != 0) && (localNow < payerInfo.bannedUntil)){
+	const auto local_now = Poseidon::get_utc_time();
+	if((payer_info.banned_until != 0) && (local_now < payer_info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Payer is banned";
 		return ret;
 	}
 
-	auto info = AccountMap::getByLoginName(loginName);
-	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	auto info = AccountMap::get_by_login_name(login_name);
+	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
 	}
-	if((info.bannedUntil != 0) && (localNow < info.bannedUntil)){
+	if((info.banned_until != 0) && (local_now < info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Account is banned";
 		return ret;
 	}
 
-	const auto promotionData = Data::Promotion::get(newLevel);
-	if(!promotionData){
+	const auto promotion_data = Data::Promotion::get(new_level);
+	if(!promotion_data){
 		ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
 		ret[sslit("errorMessage")] = "Account level is not found";
 		return ret;
 	}
 
-	boost::uint64_t additionalCards = 0;
-	if(!additionalCardsStr.empty()){
-		additionalCards = boost::lexical_cast<boost::uint64_t>(additionalCardsStr);
+	boost::uint64_t additional_cards = 0;
+	if(!additional_cards_str.empty()){
+		additional_cards = boost::lexical_cast<boost::uint64_t>(additional_cards_str);
 	}
 
-	const auto result = tryUpgradeAccount(info.accountId, payerInfo.accountId, false, promotionData, remarks, additionalCards);
+	const auto result = try_upgrade_account(info.account_id, payer_info.account_id, false, promotion_data, remarks, additional_cards);
 	ret[sslit("balanceToConsume")] = result.second;
 	if(!result.first){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ACCOUNT_BALANCE;
 		ret[sslit("errorMessage")] = "No enough account balance";
 		return ret;
 	}
-	accumulateBalanceBonus(info.accountId, info.accountId, result.second, promotionData->level);
+	accumulate_balance_bonus(info.account_id, info.account_id, result.second, promotion_data->level);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

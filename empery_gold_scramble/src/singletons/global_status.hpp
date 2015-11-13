@@ -20,9 +20,9 @@ struct GlobalStatus {
 	};
 
 	static boost::uint64_t get(unsigned slot);
-	static boost::uint64_t exchange(unsigned slot, boost::uint64_t newValue);
-	static boost::uint64_t fetchAdd(unsigned slot, boost::uint64_t deltaValue);
-	static boost::uint64_t fetchSub(unsigned slot, boost::uint64_t deltaValue);
+	static boost::uint64_t exchange(unsigned slot, boost::uint64_t new_value);
+	static boost::uint64_t fetch_add(unsigned slot, boost::uint64_t delta_value);
+	static boost::uint64_t fetch_sub(unsigned slot, boost::uint64_t delta_value);
 
 private:
 	GlobalStatus() = delete;

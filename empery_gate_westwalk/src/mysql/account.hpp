@@ -9,20 +9,20 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Westwalk_Account
 #define MYSQL_OBJECT_FIELDS \
-	FIELD_STRING            (accountName)	\
-	FIELD_STRING            (createdIp)	\
-	FIELD_DATETIME          (createdTime)	\
+	FIELD_STRING            (account_name)	\
+	FIELD_STRING            (created_ip)	\
+	FIELD_DATETIME          (created_time)	\
 	FIELD_STRING            (remarks)	\
-	FIELD_STRING            (passwordHash)	\
-	FIELD_STRING            (disposablePasswordHash)	\
-	FIELD_DATETIME          (disposablePasswordExpiryTime)	\
-	FIELD_DATETIME          (passwordRegainCooldownTime)	\
+	FIELD_STRING            (password_hash)	\
+	FIELD_STRING            (disposable_password_hash)	\
+	FIELD_DATETIME          (disposable_password_expiry_time)	\
+	FIELD_DATETIME          (password_regain_cooldown_time)	\
 	FIELD_STRING            (token)	\
-	FIELD_DATETIME          (tokenExpiryTime)	\
-	FIELD_STRING            (lastLoginIp)	\
-	FIELD_DATETIME          (lastLoginTime)	\
-	FIELD_DATETIME          (bannedUntil)	\
-	FIELD_INTEGER_UNSIGNED  (retryCount)	\
+	FIELD_DATETIME          (token_expiry_time)	\
+	FIELD_STRING            (last_login_ip)	\
+	FIELD_DATETIME          (last_login_time)	\
+	FIELD_DATETIME          (banned_until)	\
+	FIELD_INTEGER_UNSIGNED  (retry_count)	\
 	FIELD_BIGINT_UNSIGNED   (flags)
 #include <poseidon/mysql/object_generator.hpp>
 

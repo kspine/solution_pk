@@ -8,28 +8,28 @@
 namespace EmperyGateWestwalk {
 
 ACCOUNT_SERVLET("create", session, params){
-	const auto &accountName = params.at("accountName");
+	const auto &account_name = params.at("accountName");
 	const auto &token       = params.at("token");
 	const auto &remarks     = params.get("remarks");
 
 	Poseidon::JsonObject ret;
-	if(AccountMap::has(accountName)){
+	if(AccountMap::has(account_name)){
 		ret[sslit("errCode")] = (int)Msg::ERR_DUPLICATE_ACCOUNT;
 		ret[sslit("msg")] = "Another account with the same name already exists";
 		return ret;
 	}
 
-	const auto localNow = Poseidon::getLocalTime();
+	const auto local_now = Poseidon::get_local_time();
 
-	const auto platformId          = getConfig<EmperyCenter::PlatformId>("platform_id");
-	const auto tokenExpiryDuration = getConfig<boost::uint64_t>("token_expiry_duration", 604800000);
+	const auto platform_id          = get_config<EmperyCenter::PlatformId>("platform_id");
+	const auto token_expiry_duration = get_config<boost::uint64_t>("token_expiry_duration", 604800000);
 
-	AccountMap::create(accountName, token, session->getRemoteInfo().ip.get(), remarks, 0);
-	LOG_EMPERY_GATE_WESTWALK_INFO("Created account: accountName = ", accountName, ", token = ", token,
-		", remoteInfo = ", session->getRemoteInfo(), ", remarks = ", remarks);
-	Poseidon::EventDispatcher::syncRaise(
+	AccountMap::create(account_name, token, session->get_remote_info().ip.get(), remarks, 0);
+	LOG_EMPERY_GATE_WESTWALK_INFO("Created account: account_name = ", account_name, ", token = ", token,
+		", remote_info = ", session->get_remote_info(), ", remarks = ", remarks);
+	Poseidon::EventDispatcher::sync_raise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platformId, accountName, token, localNow + tokenExpiryDuration, session->getRemoteInfo().ip.get()));
+			platform_id, account_name, token, local_now + token_expiry_duration, session->get_remote_info().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";

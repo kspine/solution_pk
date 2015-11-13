@@ -17,14 +17,14 @@ private:
 
 	boost::shared_ptr<Poseidon::TimerItem> m_timer;
 	boost::weak_ptr<HttpConnector> m_connector;
-	std::size_t m_retryCount;
+	std::size_t m_retry_count;
 
 public:
 	SmsHttpClient(std::string phone, std::string password);
 	~SmsHttpClient();
 
 private:
-	void timerProc() noexcept;
+	void timer_proc() noexcept;
 
 public:
 	void commit();

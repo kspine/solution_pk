@@ -10,7 +10,7 @@ namespace Msg {
 #define MESSAGE_NAME    CS_AccountLogin
 #define MESSAGE_ID      200
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (sessionId)
+	FIELD_STRING        (session_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_AccountBidUsingGoldCoins

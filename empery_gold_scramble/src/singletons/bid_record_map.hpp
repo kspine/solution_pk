@@ -8,18 +8,18 @@ namespace EmperyGoldScramble {
 
 struct BidRecordMap {
 	struct Record {
-		boost::uint64_t recordAutoId;
-		boost::uint64_t gameAutoId;
+		boost::uint64_t record_auto_id;
+		boost::uint64_t game_auto_id;
 		boost::uint64_t timestamp;
-		std::string loginName;
+		std::string login_name;
 		std::string nick;
-		boost::uint64_t goldCoins;
-		boost::uint64_t accountBalance;
+		boost::uint64_t gold_coins;
+		boost::uint64_t account_balance;
 	};
 
-	static void append(std::string loginName, std::string nick, boost::uint64_t goldCoins, boost::uint64_t accountBalance);
-	static std::size_t getSize();
-	static void getAll(std::vector<Record> &ret, std::size_t limit);
+	static void append(std::string login_name, std::string nick, boost::uint64_t gold_coins, boost::uint64_t account_balance);
+	static std::size_t get_size();
+	static void get_all(std::vector<Record> &ret, std::size_t limit);
 	static void clear() noexcept;
 
 private:

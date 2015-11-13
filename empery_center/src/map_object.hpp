@@ -25,28 +25,28 @@ private:
 	boost::container::flat_map<AttributeId, boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 public:
-	MapObject(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid, std::string name);
+	MapObject(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name);
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	virtual ~MapObject();
 
 protected:
-	void deleteFromGame();
+	void delete_from_game();
 
 public:
-	MapObjectUuid getMapObjectUuid() const;
-	MapObjectTypeId getMapObjectTypeId() const;
-	AccountUuid getOwnerUuid() const;
-	const std::string &getName() const;
-	void setName(std::string name);
-	boost::uint64_t getCreatedTime() const;
-	bool hasBeenDeleted() const;
+	MapObjectUuid get_map_object_uuid() const;
+	MapObjectTypeId get_map_object_type_id() const;
+	AccountUuid get_owner_uuid() const;
+	const std::string &get_name() const;
+	void set_name(std::string name);
+	boost::uint64_t get_created_time() const;
+	bool has_been_deleted() const;
 
-	void getAttributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
-	boost::int64_t getAttribute(AttributeId mapObjectAttrId) const;
-	void setAttribute(AttributeId mapObjectAttrId, boost::int64_t value);
+	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
+	boost::int64_t get_attribute(AttributeId map_object_attr_id) const;
+	void set_attribute(AttributeId map_object_attr_id, boost::int64_t value);
 
-	Coord getCoord() const;
+	Coord get_coord() const;
 };
 
 }

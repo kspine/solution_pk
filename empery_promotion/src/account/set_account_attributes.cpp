@@ -7,44 +7,44 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("setAccountAttributes", session, params){
-	const auto &loginName      = params.at("loginName");
-	auto newLoginName          = params.get("newLoginName");
-	auto phoneNumber           = params.get("phoneNumber");
+	const auto &login_name      = params.at("loginName");
+	auto new_login_name          = params.get("newLoginName");
+	auto phone_number           = params.get("phoneNumber");
 	auto nick                  = params.get("nick");
 	auto password              = params.get("password");
-	auto dealPassword          = params.get("dealPassword");
-	auto bannedUntil           = params.get("bannedUntil");
+	auto deal_password          = params.get("dealPassword");
+	auto banned_until           = params.get("bannedUntil");
 	auto gender                = params.get("gender");
 	auto country               = params.get("country");
-	auto bankAccountName       = params.get("bankAccountName");
-	auto bankName              = params.get("bankName");
-	auto bankAccountNumber     = params.get("bankAccountNumber");
-	auto bankSwiftCode         = params.get("bankSwiftCode");
+	auto bank_account_name       = params.get("bankAccountName");
+	auto bank_name              = params.get("bankName");
+	auto bank_account_number     = params.get("bankAccountNumber");
+	auto bank_swift_code         = params.get("bankSwiftCode");
 	auto remarks               = params.get("remarks");
 	auto level                 = params.get("level");
-	auto maxVisibleSubordDepth = params.get("maxVisibleSubordDepth");
+	auto max_visible_subord_depth = params.get("maxVisibleSubordDepth");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::getByLoginName(loginName);
-	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	auto info = AccountMap::get_by_login_name(login_name);
+	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
 	}
 
-	if(!newLoginName.empty()){
-		auto tempInfo = AccountMap::getByLoginName(newLoginName);
-		if(Poseidon::hasAnyFlagsOf(tempInfo.flags, AccountMap::FL_VALID) && (tempInfo.accountId != info.accountId)){
+	if(!new_login_name.empty()){
+		auto temp_info = AccountMap::get_by_login_name(new_login_name);
+		if(Poseidon::has_any_flags_of(temp_info.flags, AccountMap::FL_VALID) && (temp_info.account_id != info.account_id)){
 			ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_LOGIN_NAME;
 			ret[sslit("errorMessage")] = "Another account with the same login name already exists";
 			return ret;
 		}
 	}
 
-	if(!phoneNumber.empty()){
-		std::vector<AccountMap::AccountInfo> tempInfos;
-		AccountMap::getByPhoneNumber(tempInfos, phoneNumber);
-		if(!tempInfos.empty() && (tempInfos.front().accountId != info.accountId)){
+	if(!phone_number.empty()){
+		std::vector<AccountMap::AccountInfo> temp_infos;
+		AccountMap::get_by_phone_number(temp_infos, phone_number);
+		if(!temp_infos.empty() && (temp_infos.front().account_id != info.account_id)){
 			ret[sslit("errorCode")] = (int)Msg::ERR_DUPLICATE_PHONE_NUMBER;
 			ret[sslit("errorMessage")] = "Another account with the same phone number already exists";
 			return ret;
@@ -55,65 +55,65 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		if(num == 0){
 			level = "0";
 		} else {
-			const auto newPromotionData = Data::Promotion::get(num);
-			if(!newPromotionData){
+			const auto new_promotion_data = Data::Promotion::get(num);
+			if(!new_promotion_data){
 				ret[sslit("errorCode")] = (int)Msg::ERR_UNKNOWN_ACCOUNT_LEVEL;
 				ret[sslit("errorMessage")] = "Account level is not found";
 				return ret;
 			}
-			level = boost::lexical_cast<std::string>(newPromotionData->level);
+			level = boost::lexical_cast<std::string>(new_promotion_data->level);
 		}
 	}
-	if(!maxVisibleSubordDepth.empty()){
-		const auto depth = boost::lexical_cast<boost::uint64_t>(maxVisibleSubordDepth);
-		maxVisibleSubordDepth = boost::lexical_cast<std::string>(depth);
+	if(!max_visible_subord_depth.empty()){
+		const auto depth = boost::lexical_cast<boost::uint64_t>(max_visible_subord_depth);
+		max_visible_subord_depth = boost::lexical_cast<std::string>(depth);
 	}
 
-	if(!newLoginName.empty()){
-		AccountMap::setLoginName(info.accountId, std::move(newLoginName));
+	if(!new_login_name.empty()){
+		AccountMap::set_login_name(info.account_id, std::move(new_login_name));
 	}
-	if(!phoneNumber.empty()){
-		AccountMap::setPhoneNumber(info.accountId, std::move(phoneNumber));
+	if(!phone_number.empty()){
+		AccountMap::set_phone_number(info.account_id, std::move(phone_number));
 	}
 	if(!nick.empty()){
-		AccountMap::setNick(info.accountId, std::move(nick));
+		AccountMap::set_nick(info.account_id, std::move(nick));
 	}
 	if(!password.empty()){
-		AccountMap::setPassword(info.accountId, std::move(password));
+		AccountMap::set_password(info.account_id, std::move(password));
 	}
-	if(!dealPassword.empty()){
-		AccountMap::setDealPassword(info.accountId, std::move(dealPassword));
+	if(!deal_password.empty()){
+		AccountMap::set_deal_password(info.account_id, std::move(deal_password));
 	}
-	if(!bannedUntil.empty()){
-		AccountMap::setBannedUntil(info.accountId, boost::lexical_cast<boost::uint64_t>(bannedUntil));
+	if(!banned_until.empty()){
+		AccountMap::set_banned_until(info.account_id, boost::lexical_cast<boost::uint64_t>(banned_until));
 	}
 
 	if(!gender.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_GENDER, std::move(gender));
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_GENDER, std::move(gender));
 	}
 	if(!country.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_COUNTRY, std::move(country));
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_COUNTRY, std::move(country));
 	}
-	if(!bankAccountName.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_BANK_ACCOUNT_NAME, std::move(bankAccountName));
+	if(!bank_account_name.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_BANK_ACCOUNT_NAME, std::move(bank_account_name));
 	}
-	if(!bankName.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_BANK_NAME, std::move(bankName));
+	if(!bank_name.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_BANK_NAME, std::move(bank_name));
 	}
-	if(!bankAccountNumber.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_BANK_ACCOUNT_NUMBER, std::move(bankAccountNumber));
+	if(!bank_account_number.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_BANK_ACCOUNT_NUMBER, std::move(bank_account_number));
 	}
-	if(!bankSwiftCode.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_BANK_SWIFT_CODE, std::move(bankSwiftCode));
+	if(!bank_swift_code.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_BANK_SWIFT_CODE, std::move(bank_swift_code));
 	}
 	if(!remarks.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_REMARKS, std::move(remarks));
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_REMARKS, std::move(remarks));
 	}
 	if(!level.empty()){
-		AccountMap::setLevel(info.accountId, boost::lexical_cast<boost::uint64_t>(level));
+		AccountMap::set_level(info.account_id, boost::lexical_cast<boost::uint64_t>(level));
 	}
-	if(!maxVisibleSubordDepth.empty()){
-		AccountMap::setAttribute(info.accountId, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH, std::move(maxVisibleSubordDepth));
+	if(!max_visible_subord_depth.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH, std::move(max_visible_subord_depth));
 	}
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

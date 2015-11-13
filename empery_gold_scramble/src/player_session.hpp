@@ -24,11 +24,11 @@ public:
 		Poseidon::JsonObject (const boost::shared_ptr<PlayerSession> &session, const Poseidon::OptionalMap &params)>;
 
 public:
-	static boost::shared_ptr<const ServletCallback> createServlet(boost::uint16_t messageId, ServletCallback callback);
-	static boost::shared_ptr<const ServletCallback> getServlet(boost::uint16_t messageId);
+	static boost::shared_ptr<const ServletCallback> create_servlet(boost::uint16_t message_id, ServletCallback callback);
+	static boost::shared_ptr<const ServletCallback> get_servlet(boost::uint16_t message_id);
 
-	static boost::shared_ptr<const HttpServletCallback> createHttpServlet(const std::string &uri, HttpServletCallback callback);
-	static boost::shared_ptr<const HttpServletCallback> getHttpServlet(const std::string &uri);
+	static boost::shared_ptr<const HttpServletCallback> create_http_servlet(const std::string &uri, HttpServletCallback callback);
+	static boost::shared_ptr<const HttpServletCallback> get_http_servlet(const std::string &uri);
 
 private:
 	class WebSocketImpl;
@@ -41,28 +41,28 @@ public:
 	~PlayerSession();
 
 protected:
-	void onClose(int errCode) noexcept override;
+	void on_close(int err_code) noexcept override;
 
-	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatchRequest(
-		Poseidon::Http::RequestHeaders &requestHeaders, Poseidon::StreamBuffer &entity) override;
+	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatch_request(
+		Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity) override;
 
-	void onSyncRequest(Poseidon::Http::RequestHeaders requestHeaders, Poseidon::StreamBuffer entity) override;
+	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 
 public:
-	bool send(boost::uint16_t messageId, Poseidon::StreamBuffer payload);
+	bool send(boost::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<class MessageT>
 	bool send(const MessageT &msg){
 		if(MessageT::ID != 0){
-			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Sending data to ", getRemoteInfo(), ": ", msg);
+			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Sending data to ", get_remote_info(), ": ", msg);
 		}
 		return send(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
-	bool sendControl(boost::uint16_t messageId, int statusCode, std::string reason){
-		return send(Poseidon::Cbpp::ControlMessage(messageId, static_cast<int>(statusCode), std::move(reason)));
+	bool send_control(boost::uint16_t message_id, int status_code, std::string reason){
+		return send(Poseidon::Cbpp::ControlMessage(message_id, static_cast<int>(status_code), std::move(reason)));
 	}
-	bool sendControl(boost::uint16_t messageId, int statusCode){
-		return sendControl(messageId, statusCode, std::string());
+	bool send_control(boost::uint16_t message_id, int status_code){
+		return send_control(message_id, status_code, std::string());
 	}
 
 	void shutdown(int reason, const char *message) noexcept;

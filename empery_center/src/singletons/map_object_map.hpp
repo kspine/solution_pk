@@ -13,16 +13,16 @@ class MapObject;
 class PlayerSession;
 
 struct MapObjectMap {
-	static boost::shared_ptr<MapObject> get(const MapObjectUuid &mapObjectUuid);
-	static void update(const boost::shared_ptr<MapObject> &mapObject, const Coord &coord);
-	static void remove(const MapObjectUuid &mapObjectUuid) noexcept;
+	static boost::shared_ptr<MapObject> get(const MapObjectUuid &map_object_uuid);
+	static void update(const boost::shared_ptr<MapObject> &map_object, const Coord &coord);
+	static void remove(const MapObjectUuid &map_object_uuid) noexcept;
 
-	static void getByOwner(std::vector<boost::shared_ptr<MapObject>> &ret, const AccountUuid &ownerUuid);
+	static void get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, const AccountUuid &owner_uuid);
 
-	static void getByRectangle(std::vector<std::pair<Coord, boost::shared_ptr<MapObject>>> &ret, const Rectangle &rectangle);
+	static void get_by_rectangle(std::vector<std::pair<Coord, boost::shared_ptr<MapObject>>> &ret, const Rectangle &rectangle);
 
-	static void setPlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view);
-	static void synchronizePlayerView(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept;
+	static void set_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view);
+	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept;
 
 private:
 	MapObjectMap() = delete;

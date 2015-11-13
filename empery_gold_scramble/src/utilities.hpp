@@ -7,9 +7,9 @@ namespace EmperyGoldScramble {
 
 class PlayerSession;
 
-extern void sendAuctionStatusToClient(const boost::shared_ptr<PlayerSession> &session);
-extern void sendLastLogToClient(const boost::shared_ptr<PlayerSession> &session);
-extern void invalidateAuctionStatus();
+extern void send_auction_status_to_client(const boost::shared_ptr<PlayerSession> &session);
+extern void send_last_log_to_client(const boost::shared_ptr<PlayerSession> &session);
+extern void invalidate_auction_status();
 
 }
 

@@ -10,8 +10,8 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME   CenterLog_AccountCreated
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_DATETIME          (timestamp)	\
-	FIELD_UUID              (accountUuid)	\
-	FIELD_STRING            (remoteIp)
+	FIELD_UUID              (account_uuid)	\
+	FIELD_STRING            (remote_ip)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

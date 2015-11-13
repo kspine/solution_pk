@@ -11,18 +11,18 @@ namespace Data {
 		static boost::shared_ptr<const Promotion> get(boost::uint64_t level);
 		static boost::shared_ptr<const Promotion> require(boost::uint64_t level);
 
-		static boost::shared_ptr<const Promotion> getFirst();
-		static boost::shared_ptr<const Promotion> getNext(boost::uint64_t level);
+		static boost::shared_ptr<const Promotion> get_first();
+		static boost::shared_ptr<const Promotion> get_next(boost::uint64_t level);
 
 	public:
 		boost::uint64_t level;
-		unsigned displayLevel;
+		unsigned display_level;
 		std::string name;
-		double taxRatio;
-		bool taxExtra;
-		boost::uint64_t immediatePrice;
-		double immediateDiscount;
-		unsigned autoUpgradeCount;
+		double tax_ratio;
+		bool tax_extra;
+		boost::uint64_t immediate_price;
+		double immediate_discount;
+		unsigned auto_upgrade_count;
 	};
 }
 

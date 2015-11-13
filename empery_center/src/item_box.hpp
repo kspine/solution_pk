@@ -20,34 +20,34 @@ class ItemTransactionElement;
 class ItemBox : NONCOPYABLE {
 public:
 	struct ItemInfo {
-		ItemId itemId;
+		ItemId item_id;
 		boost::uint64_t count;
 	};
 
 private:
-	const AccountUuid m_accountUuid;
+	const AccountUuid m_account_uuid;
 
 	boost::container::flat_map<ItemId,
 		boost::shared_ptr<MySql::Center_Item>> m_items;
 
 public:
-	explicit ItemBox(const AccountUuid &accountUuid);
-	ItemBox(const AccountUuid &accountUuid,
+	explicit ItemBox(const AccountUuid &account_uuid);
+	ItemBox(const AccountUuid &account_uuid,
 		const std::vector<boost::shared_ptr<MySql::Center_Item>> &items);
 	~ItemBox();
 
 public:
-	AccountUuid getAccountUuid() const {
-		return m_accountUuid;
+	AccountUuid get_account_uuid() const {
+		return m_account_uuid;
 	}
 
-	void pumpStatus(bool forceSynchronizationWithClient = false);
+	void pump_status(bool force_synchronization_with_client = false);
 
-	ItemInfo get(ItemId itemId) const;
-	void getAll(std::vector<ItemInfo> &ret) const;
-	ItemId commitTransactionNoThrow(const ItemTransactionElement *elements, std::size_t count,
+	ItemInfo get(ItemId item_id) const;
+	void get_all(std::vector<ItemInfo> &ret) const;
+	ItemId commit_transaction_nothrow(const ItemTransactionElement *elements, std::size_t count,
 		const boost::function<void ()> &callback = boost::function<void ()>());
-	void commitTransaction(const ItemTransactionElement *elements, std::size_t count,
+	void commit_transaction(const ItemTransactionElement *elements, std::size_t count,
 		const boost::function<void ()> &callback = boost::function<void ()>());
 };
 

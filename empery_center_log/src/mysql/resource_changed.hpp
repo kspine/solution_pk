@@ -10,11 +10,11 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME   CenterLog_ResourceChanged
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_DATETIME          (timestamp)	\
-	FIELD_UUID              (mapObjectUuid)	\
-	FIELD_UUID              (ownerUuid)	\
-	FIELD_INTEGER_UNSIGNED  (resourceId)	\
-	FIELD_BIGINT_UNSIGNED   (oldCount)	\
-	FIELD_BIGINT_UNSIGNED   (newCount)	\
+	FIELD_UUID              (map_object_uuid)	\
+	FIELD_UUID              (owner_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (resource_id)	\
+	FIELD_BIGINT_UNSIGNED   (old_count)	\
+	FIELD_BIGINT_UNSIGNED   (new_count)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
 	FIELD_BIGINT_UNSIGNED   (param1)	\
 	FIELD_BIGINT_UNSIGNED   (param2)	\

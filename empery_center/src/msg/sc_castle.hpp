@@ -10,36 +10,36 @@ namespace Msg {
 #define MESSAGE_NAME    SC_CastleBuildingBase
 #define MESSAGE_ID      499
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (mapObjectUuid)	\
-	FIELD_VUINT         (buildingBaseId)	\
-	FIELD_VUINT         (buildingId)	\
-	FIELD_VUINT         (buildingLevel)	\
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (building_base_id)	\
+	FIELD_VUINT         (building_id)	\
+	FIELD_VUINT         (building_level)	\
 	FIELD_VUINT         (mission)	\
-	FIELD_VUINT         (missionDuration)	\
-	FIELD_VUINT         (missionParam2)	\
-	FIELD_VUINT         (missionTimeBegin)	\
-	FIELD_VUINT         (missionTimeRemaining)
+	FIELD_VUINT         (mission_duration)	\
+	FIELD_VUINT         (mission_param2)	\
+	FIELD_VUINT         (mission_time_begin)	\
+	FIELD_VUINT         (mission_time_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_CastleResource
 #define MESSAGE_ID      498
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (mapObjectUuid)	\
-	FIELD_VUINT         (resourceId)	\
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (resource_id)	\
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_CastleTech
 #define MESSAGE_ID      497
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (mapObjectUuid)	\
-	FIELD_VUINT         (techId)	\
-	FIELD_VUINT         (techLevel)	\
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (tech_id)	\
+	FIELD_VUINT         (tech_level)	\
 	FIELD_VUINT         (mission)	\
-	FIELD_VUINT         (missionDuration)	\
-	FIELD_VUINT         (missionParam2)	\
-	FIELD_VUINT         (missionTimeBegin)	\
-	FIELD_VUINT         (missionTimeRemaining)
+	FIELD_VUINT         (mission_duration)	\
+	FIELD_VUINT         (mission_param2)	\
+	FIELD_VUINT         (mission_time_begin)	\
+	FIELD_VUINT         (mission_time_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

@@ -34,7 +34,7 @@ namespace Msg {
 #define MESSAGE_NAME    CS_MapSetObjectPath
 #define MESSAGE_ID      303
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (mapObjectUuid)	\
+	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_ARRAY         (waypoints,	\

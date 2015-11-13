@@ -10,15 +10,15 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("removeAccountItems", session, params){
-	const auto &loginName = params.at("loginName");
-	const auto itemId = boost::lexical_cast<ItemId>(params.at("itemId"));
-	const auto countToRemove = boost::lexical_cast<boost::uint64_t>(params.at("countToRemove"));
+	const auto &login_name = params.at("loginName");
+	const auto item_id = boost::lexical_cast<ItemId>(params.at("itemId"));
+	const auto count_to_remove = boost::lexical_cast<boost::uint64_t>(params.at("countToRemove"));
 	const auto &saturated = params.get("saturated");
 	const auto &remarks = params.get("remarks");
 
 	Poseidon::JsonObject ret;
-	auto info = AccountMap::getByLoginName(loginName);
-	if(Poseidon::hasNoneFlagsOf(info.flags, AccountMap::FL_VALID)){
+	auto info = AccountMap::get_by_login_name(login_name);
+	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
@@ -29,10 +29,10 @@ ACCOUNT_SERVLET("removeAccountItems", session, params){
 	if(!saturated.empty()){
 		operation = ItemTransactionElement::OP_REMOVE_SATURATED;
 	}
-	transaction.emplace_back(info.accountId, operation, itemId, countToRemove,
+	transaction.emplace_back(info.account_id, operation, item_id, count_to_remove,
 		Events::ItemChanged::R_ADMIN_OPERATION, 0, 0, 0, remarks);
-	const auto insufficientItemId = ItemMap::commitTransactionNoThrow(transaction.data(), transaction.size());
-	if(insufficientItemId){
+	const auto insufficient_item_id = ItemMap::commit_transaction_nothrow(transaction.data(), transaction.size());
+	if(insufficient_item_id){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ITEMS;
 		ret[sslit("errorMessage")] = "No enough items";
 		return ret;

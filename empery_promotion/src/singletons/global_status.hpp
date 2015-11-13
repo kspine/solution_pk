@@ -18,10 +18,10 @@ struct GlobalStatus {
 	};
 
 	static boost::uint64_t get(unsigned slot);
-	static boost::uint64_t set(unsigned slot, boost::uint64_t newValue);
-	static boost::uint64_t fetchAdd(unsigned slot, boost::uint64_t deltaValue);
+	static boost::uint64_t set(unsigned slot, boost::uint64_t new_value);
+	static boost::uint64_t fetch_add(unsigned slot, boost::uint64_t delta_value);
 
-	static void checkDailyReset();
+	static void check_daily_reset();
 
 private:
 	GlobalStatus() = delete;

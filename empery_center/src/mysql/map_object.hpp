@@ -9,11 +9,11 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Center_MapObject
 #define MYSQL_OBJECT_FIELDS \
-	FIELD_UUID              (mapObjectUuid)	\
-	FIELD_INTEGER_UNSIGNED  (mapObjectTypeId)	\
-	FIELD_UUID              (ownerUuid)	\
+	FIELD_UUID              (map_object_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (map_object_type_id)	\
+	FIELD_UUID              (owner_uuid)	\
 	FIELD_STRING            (name)	\
-	FIELD_DATETIME          (createdTime)	\
+	FIELD_DATETIME          (created_time)	\
 	FIELD_TINYINT_UNSIGNED  (deleted)
 #include <poseidon/mysql/object_generator.hpp>
 

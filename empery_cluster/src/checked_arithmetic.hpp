@@ -5,14 +5,14 @@
 
 namespace EmperyCluster {
 
-using EmperyCenter::checkedAdd;
-using EmperyCenter::saturatedAdd;
+using EmperyCenter::checked_add;
+using EmperyCenter::saturated_add;
 
-using EmperyCenter::checkedSub;
-using EmperyCenter::saturatedSub;
+using EmperyCenter::checked_sub;
+using EmperyCenter::saturated_sub;
 
-using EmperyCenter::checkedMul;
-using EmperyCenter::saturatedMul;
+using EmperyCenter::checked_mul;
+using EmperyCenter::saturated_mul;
 
 }
 

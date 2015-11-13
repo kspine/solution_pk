@@ -15,143 +15,143 @@
 namespace EmperyCenter {
 
 namespace {
-	void createInitBuildings(const MapObjectUuid &mapObjectUuid,
+	void create_init_buildings(const MapObjectUuid &map_object_uuid,
 		boost::container::flat_map<BuildingBaseId, boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings)
 	{
 		PROFILE_ME;
 
-		std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> initBuildings;
-		Data::CastleBuildingBase::getInit(initBuildings);
-		for(auto it = initBuildings.begin(); it != initBuildings.end(); ++it){
-			const auto &buildingData = *it;
-			const auto &buildingsAllowed = buildingData->buildingsAllowed;
-			if(buildingsAllowed.empty()){
+		std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
+		Data::CastleBuildingBase::get_init(init_buildings);
+		for(auto it = init_buildings.begin(); it != init_buildings.end(); ++it){
+			const auto &building_data = *it;
+			const auto &buildings_allowed = building_data->buildings_allowed;
+			if(buildings_allowed.empty()){
 				continue;
 			}
-			const auto buildingBaseId = buildingData->buildingBaseId;
-			const auto initLevel = buildingData->initLevel;
-			const auto buildingIt = buildings.find(buildingBaseId);
-			if(buildingIt == buildings.end()){
-				const auto buildingId = *(buildingsAllowed.begin());
-				LOG_EMPERY_CENTER_DEBUG("> Creating init building: mapObjectUuid = ", mapObjectUuid,
-					", buildingBaseId = ", buildingBaseId, ", buildingId = ", buildingId, ", initLevel = ", initLevel);
+			const auto building_base_id = building_data->building_base_id;
+			const auto init_level = building_data->init_level;
+			const auto building_it = buildings.find(building_base_id);
+			if(building_it == buildings.end()){
+				const auto building_id = *(buildings_allowed.begin());
+				LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", map_object_uuid,
+					", building_base_id = ", building_base_id, ", building_id = ", building_id, ", init_level = ", init_level);
 				auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-					mapObjectUuid.get(), buildingBaseId.get(), buildingId.get(), initLevel, Castle::MIS_NONE, 0, 0, 0, 0);
-				obj->asyncSave(true);
-				buildings.emplace(buildingBaseId, std::move(obj));
+					map_object_uuid.get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0, 0);
+				obj->async_save(true);
+				buildings.emplace(building_base_id, std::move(obj));
 			} else {
-				const auto &obj = buildingIt->second;
-				const unsigned oldLevel = obj->get_buildingLevel();
-				if(oldLevel < initLevel){
-					LOG_EMPERY_CENTER_DEBUG("> Upgrading init building: mapObjectUuid = ", mapObjectUuid,
-						", buildingBaseId = ", buildingBaseId, ", oldLevel = ", oldLevel, ", initLevel = ", initLevel);
-					obj->set_buildingLevel(initLevel);
+				const auto &obj = building_it->second;
+				const unsigned old_level = obj->get_building_level();
+				if(old_level < init_level){
+					LOG_EMPERY_CENTER_DEBUG("> Upgrading init building: map_object_uuid = ", map_object_uuid,
+						", building_base_id = ", building_base_id, ", old_level = ", old_level, ", init_level = ", init_level);
+					obj->set_building_level(init_level);
 				}
 			}
 		}
 	}
 
-	void fillBuildingInfo(Castle::BuildingInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
+	void fill_building_info(Castle::BuildingInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
 		PROFILE_ME;
 
-		info.buildingBaseId   = BuildingBaseId(obj->get_buildingBaseId());
-		info.buildingId       = BuildingId(obj->get_buildingId());
-		info.buildingLevel    = obj->get_buildingLevel();
+		info.building_base_id   = BuildingBaseId(obj->get_building_base_id());
+		info.building_id       = BuildingId(obj->get_building_id());
+		info.building_level    = obj->get_building_level();
 		info.mission          = Castle::Mission(obj->get_mission());
-		info.missionDuration    = obj->get_missionDuration();
-		info.missionParam2    = obj->get_missionParam2();
-		info.missionTimeBegin = obj->get_missionTimeBegin();
-		info.missionTimeEnd   = obj->get_missionTimeEnd();
+		info.mission_duration    = obj->get_mission_duration();
+		info.mission_param2    = obj->get_mission_param2();
+		info.mission_time_begin = obj->get_mission_time_begin();
+		info.mission_time_end   = obj->get_mission_time_end();
 	}
-	void fillTechInfo(Castle::TechInfo &info, const boost::shared_ptr<MySql::Center_CastleTech> &obj){
+	void fill_tech_info(Castle::TechInfo &info, const boost::shared_ptr<MySql::Center_CastleTech> &obj){
 		PROFILE_ME;
 
-		info.techId           = TechId(obj->get_techId());
-		info.techLevel        = obj->get_techLevel();
+		info.tech_id           = TechId(obj->get_tech_id());
+		info.tech_level        = obj->get_tech_level();
 		info.mission          = Castle::Mission(obj->get_mission());
-		info.missionDuration    = obj->get_missionDuration();
-		info.missionParam2    = obj->get_missionParam2();
-		info.missionTimeBegin = obj->get_missionTimeBegin();
-		info.missionTimeEnd   = obj->get_missionTimeEnd();
+		info.mission_duration    = obj->get_mission_duration();
+		info.mission_param2    = obj->get_mission_param2();
+		info.mission_time_begin = obj->get_mission_time_begin();
+		info.mission_time_end   = obj->get_mission_time_end();
 	}
-	void fillResourceInfo(Castle::ResourceInfo &info, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
+	void fill_resource_info(Castle::ResourceInfo &info, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
 		PROFILE_ME;
 
-		info.resourceId       = ResourceId(obj->get_resourceId());
+		info.resource_id       = ResourceId(obj->get_resource_id());
 		info.count            = obj->get_count();
 	}
 
-	void synchronizeBuildingBaseWithClient(const MapObjectUuid &mapObjectUuid, const AccountUuid &ownerUuid,
+	void synchronize_building_base_with_client(const MapObjectUuid &map_object_uuid, const AccountUuid &owner_uuid,
 		const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj)
 	{
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(ownerUuid);
+		const auto session = PlayerSessionMap::get(owner_uuid);
 		if(session){
 			try {
 				Msg::SC_CastleBuildingBase msg;
-				msg.mapObjectUuid        = mapObjectUuid.str();
-				msg.buildingBaseId       = obj->get_buildingBaseId();
-				msg.buildingId           = obj->get_buildingId();
-				msg.buildingLevel        = obj->get_buildingLevel();
+				msg.map_object_uuid        = map_object_uuid.str();
+				msg.building_base_id       = obj->get_building_base_id();
+				msg.building_id           = obj->get_building_id();
+				msg.building_level        = obj->get_building_level();
 				msg.mission              = obj->get_mission();
-				msg.missionDuration      = obj->get_missionDuration();
-				msg.missionParam2        = obj->get_missionParam2();
-				msg.missionTimeBegin     = obj->get_missionTimeBegin();
-				msg.missionTimeRemaining = saturatedSub(obj->get_missionTimeEnd(), Poseidon::getUtcTime());
+				msg.mission_duration      = obj->get_mission_duration();
+				msg.mission_param2        = obj->get_mission_param2();
+				msg.mission_time_begin     = obj->get_mission_time_begin();
+				msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), Poseidon::get_utc_time());
 				session->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->forceShutdown();
+				session->force_shutdown();
 			}
 		}
 	}
-	void synchronizeTechWithClient(const MapObjectUuid &mapObjectUuid, const AccountUuid &ownerUuid,
+	void synchronize_tech_with_client(const MapObjectUuid &map_object_uuid, const AccountUuid &owner_uuid,
 		const boost::shared_ptr<MySql::Center_CastleTech> &obj)
 	{
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(ownerUuid);
+		const auto session = PlayerSessionMap::get(owner_uuid);
 		if(session){
 			try {
 				Msg::SC_CastleTech msg;
-				msg.mapObjectUuid        = mapObjectUuid.str();
-				msg.techId               = obj->get_techId();
-				msg.techLevel            = obj->get_techLevel();
+				msg.map_object_uuid        = map_object_uuid.str();
+				msg.tech_id               = obj->get_tech_id();
+				msg.tech_level            = obj->get_tech_level();
 				msg.mission              = obj->get_mission();
-				msg.missionDuration      = obj->get_missionDuration();
-				msg.missionParam2        = obj->get_missionParam2();
-				msg.missionTimeBegin     = obj->get_missionTimeBegin();
-				msg.missionTimeRemaining = saturatedSub(obj->get_missionTimeEnd(), Poseidon::getUtcTime());
+				msg.mission_duration      = obj->get_mission_duration();
+				msg.mission_param2        = obj->get_mission_param2();
+				msg.mission_time_begin     = obj->get_mission_time_begin();
+				msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), Poseidon::get_utc_time());
 				session->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->forceShutdown();
+				session->force_shutdown();
 			}
 		}
 	}
-	void synchronizeResourceWithClient(const MapObjectUuid &mapObjectUuid, const AccountUuid &ownerUuid,
+	void synchronize_resource_with_client(const MapObjectUuid &map_object_uuid, const AccountUuid &owner_uuid,
 		const boost::shared_ptr<MySql::Center_CastleResource> &obj)
 	{
 		PROFILE_ME;
 
-		const auto session = PlayerSessionMap::get(ownerUuid);
+		const auto session = PlayerSessionMap::get(owner_uuid);
 		if(session){
 			try {
 				Msg::SC_CastleResource msg;
-				msg.mapObjectUuid = mapObjectUuid.str();
-				msg.resourceId    = obj->get_resourceId();
+				msg.map_object_uuid = map_object_uuid.str();
+				msg.resource_id    = obj->get_resource_id();
 				msg.count         = obj->get_count();
 				session->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->forceShutdown();
+				session->force_shutdown();
 			}
 		}
 	}
 
-	void checkBuildingMission(const MapObjectUuid &mapObjectUuid, const AccountUuid &ownerUuid,
-		const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utcNow)
+	void check_building_mission(const MapObjectUuid &map_object_uuid, const AccountUuid &owner_uuid,
+		const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utc_now)
 	{
 		PROFILE_ME;
 
@@ -159,45 +159,45 @@ namespace {
 		if(mission == Castle::MIS_NONE){
 			return;
 		}
-		const auto missionTimeEnd = obj->get_missionTimeEnd();
-		if(utcNow < missionTimeEnd){
+		const auto mission_time_end = obj->get_mission_time_end();
+		if(utc_now < mission_time_end){
 			return;
 		}
 
-		LOG_EMPERY_CENTER_DEBUG("Building mission complete: mapObjectUuid = ", mapObjectUuid,
-			", buildingBaseId = ", obj->get_buildingBaseId(), ", buildingId = ", obj->get_buildingId(), ", mission = ", (unsigned)mission);
+		LOG_EMPERY_CENTER_DEBUG("Building mission complete: map_object_uuid = ", map_object_uuid,
+			", building_base_id = ", obj->get_building_base_id(), ", building_id = ", obj->get_building_id(), ", mission = ", (unsigned)mission);
 		switch(mission){
 		case Castle::MIS_CONSTRUCT:
-			obj->set_buildingLevel(1);
+			obj->set_building_level(1);
 			break;
 
 		case Castle::MIS_UPGRADE:
 			{
-				const unsigned level = obj->get_buildingLevel();
-				obj->set_buildingLevel(level + 1);
+				const unsigned level = obj->get_building_level();
+				obj->set_building_level(level + 1);
 			}
 			break;
 
 		case Castle::MIS_DESTRUCT:
-			obj->set_buildingId(0);
-			obj->set_buildingLevel(0);
+			obj->set_building_id(0);
+			obj->set_building_level(0);
 			break;
 
 		default:
-			LOG_EMPERY_CENTER_ERROR("Unknown building mission: mapObjectUuid = ", mapObjectUuid,
-				", buildingBaseId = ", obj->get_buildingBaseId(), ", mission = ", (unsigned)mission);
+			LOG_EMPERY_CENTER_ERROR("Unknown building mission: map_object_uuid = ", map_object_uuid,
+				", building_base_id = ", obj->get_building_base_id(), ", mission = ", (unsigned)mission);
 			DEBUG_THROW(Exception, sslit("Unknown building mission"));
 		}
 
 		obj->set_mission(Castle::MIS_NONE);
-		obj->set_missionDuration(0);
-		obj->set_missionParam2(0);
-		obj->set_missionTimeEnd(utcNow + 1);
+		obj->set_mission_duration(0);
+		obj->set_mission_param2(0);
+		obj->set_mission_time_end(utc_now + 1);
 
-		synchronizeBuildingBaseWithClient(mapObjectUuid, ownerUuid, obj);
+		synchronize_building_base_with_client(map_object_uuid, owner_uuid, obj);
 	}
-	void checkTechMission(const MapObjectUuid &mapObjectUuid, const AccountUuid &ownerUuid,
-		const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utcNow)
+	void check_tech_mission(const MapObjectUuid &map_object_uuid, const AccountUuid &owner_uuid,
+		const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utc_now)
 	{
 		PROFILE_ME;
 
@@ -205,55 +205,55 @@ namespace {
 		if(mission == Castle::MIS_NONE){
 			return;
 		}
-		const auto missionTimeEnd = obj->get_missionTimeEnd();
-		if(utcNow < missionTimeEnd){
+		const auto mission_time_end = obj->get_mission_time_end();
+		if(utc_now < mission_time_end){
 			return;
 		}
 
-		LOG_EMPERY_CENTER_DEBUG("Tech mission complete: mapObjectUuid = ", mapObjectUuid,
-			", techId = ", obj->get_techId(), ", mission = ", (unsigned)mission);
+		LOG_EMPERY_CENTER_DEBUG("Tech mission complete: map_object_uuid = ", map_object_uuid,
+			", tech_id = ", obj->get_tech_id(), ", mission = ", (unsigned)mission);
 		switch(mission){
 //		case Castle::MIS_CONSTRUCT:
-//			obj->set_techLevel(1);
+//			obj->set_tech_level(1);
 //			break;
 
 		case Castle::MIS_UPGRADE:
 			{
-				const unsigned level = obj->get_techLevel();
-				obj->set_techLevel(level + 1);
+				const unsigned level = obj->get_tech_level();
+				obj->set_tech_level(level + 1);
 			}
 			break;
 
 //		case Castle::MIS_DESTRUCT:
-//			obj->set_techId(0);
-//			obj->set_techLevel(0);
+//			obj->set_tech_id(0);
+//			obj->set_tech_level(0);
 //			break;
 
 		default:
-			LOG_EMPERY_CENTER_ERROR("Unknown tech mission: mapObjectUuid = ", mapObjectUuid,
-				", techId = ", obj->get_techId(), ", mission = ", (unsigned)mission);
+			LOG_EMPERY_CENTER_ERROR("Unknown tech mission: map_object_uuid = ", map_object_uuid,
+				", tech_id = ", obj->get_tech_id(), ", mission = ", (unsigned)mission);
 			DEBUG_THROW(Exception, sslit("Unknown tech mission"));
 		}
 
 		obj->set_mission(Castle::MIS_NONE);
-		obj->set_missionDuration(0);
-		obj->set_missionParam2(0);
-		obj->set_missionTimeEnd(utcNow + 1);
+		obj->set_mission_duration(0);
+		obj->set_mission_param2(0);
+		obj->set_mission_time_end(utc_now + 1);
 
-		synchronizeTechWithClient(mapObjectUuid, ownerUuid, obj);
+		synchronize_tech_with_client(map_object_uuid, owner_uuid, obj);
 	}
 }
 
-Castle::Castle(MapObjectTypeId mapObjectTypeId, const AccountUuid &ownerUuid, std::string name)
-	: MapObject(mapObjectTypeId, ownerUuid, std::move(name))
+Castle::Castle(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name)
+	: MapObject(map_object_type_id, owner_uuid, std::move(name))
 {
-	createInitBuildings(getMapObjectUuid(), m_buildings);
+	create_init_buildings(get_map_object_uuid(), m_buildings);
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
 	: MapObject(std::move(obj), attributes)
 {
-	createInitBuildings(getMapObjectUuid(), m_buildings);
+	create_init_buildings(get_map_object_uuid(), m_buildings);
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
@@ -264,140 +264,140 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
 		const auto &obj = *it;
-		m_buildings.emplace(BuildingBaseId(obj->get_buildingBaseId()), obj);
+		m_buildings.emplace(BuildingBaseId(obj->get_building_base_id()), obj);
 	}
 	for(auto it = techs.begin(); it != techs.end(); ++it){
 		const auto &obj = *it;
-		m_techs.emplace(TechId(obj->get_techId()), obj);
+		m_techs.emplace(TechId(obj->get_tech_id()), obj);
 	}
 	for(auto it = resources.begin(); it != resources.end(); ++it){
 		const auto &obj = *it;
-		m_resources.emplace(ResourceId(obj->get_resourceId()), obj);
+		m_resources.emplace(ResourceId(obj->get_resource_id()), obj);
 	}
 
-	createInitBuildings(getMapObjectUuid(), m_buildings);
+	create_init_buildings(get_map_object_uuid(), m_buildings);
 }
 Castle::~Castle(){
 }
 
-void Castle::pumpStatus(bool forceSynchronizationWithClient){
+void Castle::pump_status(bool force_synchronization_with_client){
 	PROFILE_ME;
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		checkBuildingMission(getMapObjectUuid(), getOwnerUuid(), it->second, utcNow);
+		check_building_mission(get_map_object_uuid(), get_owner_uuid(), it->second, utc_now);
 	}
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
-		checkTechMission(getMapObjectUuid(), getOwnerUuid(), it->second, utcNow);
+		check_tech_mission(get_map_object_uuid(), get_owner_uuid(), it->second, utc_now);
 	}
 
-	if(forceSynchronizationWithClient){
+	if(force_synchronization_with_client){
 		for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-			synchronizeBuildingBaseWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
+			synchronize_building_base_with_client(get_map_object_uuid(), get_owner_uuid(), it->second);
 		}
 		for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
-			synchronizeTechWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
+			synchronize_tech_with_client(get_map_object_uuid(), get_owner_uuid(), it->second);
 		}
 		for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
-			synchronizeResourceWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
+			synchronize_resource_with_client(get_map_object_uuid(), get_owner_uuid(), it->second);
 		}
 	}
 }
-void Castle::pumpBuildingStatus(BuildingBaseId buildingBaseId, bool forceSynchronizationWithClient){
+void Castle::pump_building_status(BuildingBaseId building_base_id, bool force_synchronization_with_client){
 	PROFILE_ME;
 
-	const auto it = m_buildings.find(buildingBaseId);
+	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_DEBUG("Building base not found: mapObjectUuid = ", getMapObjectUuid(), ", buildingBaseId = ", buildingBaseId);
+		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
 		return;
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
-	checkBuildingMission(getMapObjectUuid(), getOwnerUuid(), it->second, utcNow);
+	const auto utc_now = Poseidon::get_utc_time();
+	check_building_mission(get_map_object_uuid(), get_owner_uuid(), it->second, utc_now);
 
-	if(forceSynchronizationWithClient){
-		synchronizeBuildingBaseWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
+	if(force_synchronization_with_client){
+		synchronize_building_base_with_client(get_map_object_uuid(), get_owner_uuid(), it->second);
 	}
 }
-void Castle::pumpTechStatus(TechId techId, bool forceSynchronizationWithClient){
+void Castle::pump_tech_status(TechId tech_id, bool force_synchronization_with_client){
 	PROFILE_ME;
 
-	const auto it = m_techs.find(techId);
+	const auto it = m_techs.find(tech_id);
 	if(it == m_techs.end()){
-		LOG_EMPERY_CENTER_DEBUG("Tech not found: mapObjectUuid = ", getMapObjectUuid(), ", techId = ", techId);
+		LOG_EMPERY_CENTER_DEBUG("Tech not found: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		return;
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
-	checkTechMission(getMapObjectUuid(), getOwnerUuid(), it->second, utcNow);
+	const auto utc_now = Poseidon::get_utc_time();
+	check_tech_mission(get_map_object_uuid(), get_owner_uuid(), it->second, utc_now);
 
-	if(forceSynchronizationWithClient){
-		synchronizeTechWithClient(getMapObjectUuid(), getOwnerUuid(), it->second);
+	if(force_synchronization_with_client){
+		synchronize_tech_with_client(get_map_object_uuid(), get_owner_uuid(), it->second);
 	}
 }
 
-Castle::BuildingInfo Castle::getBuilding(BuildingBaseId buildingBaseId) const {
+Castle::BuildingInfo Castle::get_building(BuildingBaseId building_base_id) const {
 	PROFILE_ME;
 
 	BuildingInfo info = { };
-	info.buildingBaseId = buildingBaseId;
+	info.building_base_id = building_base_id;
 
-	const auto it = m_buildings.find(buildingBaseId);
+	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
 		return info;
 	}
-	fillBuildingInfo(info, it->second);
+	fill_building_info(info, it->second);
 	return info;
 }
-void Castle::getAllBuildings(std::vector<Castle::BuildingInfo> &ret) const {
+void Castle::get_all_buildings(std::vector<Castle::BuildingInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_buildings.size());
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		BuildingInfo info;
-		fillBuildingInfo(info, it->second);
+		fill_building_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
-std::size_t Castle::countBuildingsById(BuildingId buildingId) const {
+std::size_t Castle::count_buildings_by_id(BuildingId building_id) const {
 	PROFILE_ME;
 
 	std::size_t count = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(BuildingId(it->second->get_buildingId()) != buildingId){
+		if(BuildingId(it->second->get_building_id()) != building_id){
 			continue;
 		}
 		++count;
 	}
 	return count;
 }
-void Castle::getBuildingsById(std::vector<Castle::BuildingInfo> &ret, BuildingId buildingId) const {
+void Castle::get_buildings_by_id(std::vector<Castle::BuildingInfo> &ret, BuildingId building_id) const {
 	PROFILE_ME;
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(BuildingId(it->second->get_buildingId()) != buildingId){
+		if(BuildingId(it->second->get_building_id()) != building_id){
 			continue;
 		}
 		BuildingInfo info;
-		fillBuildingInfo(info, it->second);
+		fill_building_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
 
-void Castle::createBuildingMission(BuildingBaseId buildingBaseId, Castle::Mission mission, BuildingId buildingId){
+void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mission mission, BuildingId building_id){
 	PROFILE_ME;
 
-	auto it = m_buildings.find(buildingBaseId);
+	auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-			getMapObjectUuid().get(), buildingBaseId.get(), 0, 0, MIS_NONE, 0, 0, 0, 0);
-		obj->asyncSave(true);
-		it = m_buildings.emplace(buildingBaseId, obj).first;
+			get_map_object_uuid().get(), building_base_id.get(), 0, 0, MIS_NONE, 0, 0, 0, 0);
+		obj->async_save(true);
+		it = m_buildings.emplace(building_base_id, obj).first;
 	}
 	const auto &obj = it->second;
-	const auto oldMission = Mission(obj->get_mission());
-	if(oldMission != MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("Building mission conflict: mapObjectUuid = ", getMapObjectUuid(), ", buildingBaseId = ", buildingBaseId);
+	const auto old_mission = Mission(obj->get_mission());
+	if(old_mission != MIS_NONE){
+		LOG_EMPERY_CENTER_DEBUG("Building mission conflict: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
 		DEBUG_THROW(Exception, sslit("Building mission conflict"));
 	}
 
@@ -405,136 +405,136 @@ void Castle::createBuildingMission(BuildingBaseId buildingBaseId, Castle::Missio
 	switch(mission){
 	case MIS_CONSTRUCT:
 		{
-			const auto buildingData = Data::CastleBuilding::require(buildingId);
-			const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, 1);
-			duration = upgradeData->upgradeDuration;
+			const auto building_data = Data::CastleBuilding::require(building_id);
+			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
+			duration = upgrade_data->upgrade_duration;
 		}
-		obj->set_buildingId(buildingId.get());
-		obj->set_buildingLevel(0);
+		obj->set_building_id(building_id.get());
+		obj->set_building_level(0);
 		break;
 
 	case MIS_UPGRADE:
 		{
-			const unsigned level = obj->get_buildingLevel();
-			const auto buildingData = Data::CastleBuilding::require(BuildingId(obj->get_buildingId()));
-			const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, level + 1);
-			duration = upgradeData->upgradeDuration;
+			const unsigned level = obj->get_building_level();
+			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
+			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level + 1);
+			duration = upgrade_data->upgrade_duration;
 		}
 		break;
 
 	case MIS_DESTRUCT:
 		{
-			const unsigned level = obj->get_buildingLevel();
-			const auto buildingData = Data::CastleBuilding::require(BuildingId(obj->get_buildingId()));
-			const auto upgradeData = Data::CastleUpgradeAbstract::require(buildingData->type, level);
-			duration = upgradeData->destructDuration;
+			const unsigned level = obj->get_building_level();
+			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
+			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level);
+			duration = upgrade_data->destruct_duration;
 		}
 		break;
 
 	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown building mission: mapObjectUuid = ", getMapObjectUuid(), ", buildingBaseId = ", buildingBaseId,
+		LOG_EMPERY_CENTER_ERROR("Unknown building mission: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id,
 			", mission = ", (unsigned)mission);
 		DEBUG_THROW(Exception, sslit("Unknown building mission"));
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	obj->set_mission(mission);
-	obj->set_missionDuration(duration);
-	// obj->set_missionParam2(0);
-	obj->set_missionTimeBegin(utcNow);
-	obj->set_missionTimeEnd(saturatedAdd(utcNow, duration));
+	obj->set_mission_duration(duration);
+	// obj->set_mission_param2(0);
+	obj->set_mission_time_begin(utc_now);
+	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
-	checkBuildingMission(getMapObjectUuid(), getOwnerUuid(), obj, utcNow);
-	synchronizeBuildingBaseWithClient(getMapObjectUuid(), getOwnerUuid(), obj);
+	check_building_mission(get_map_object_uuid(), get_owner_uuid(), obj, utc_now);
+	synchronize_building_base_with_client(get_map_object_uuid(), get_owner_uuid(), obj);
 }
-void Castle::cancelBuildingMission(BuildingBaseId buildingBaseId){
+void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 	PROFILE_ME;
 
-	const auto it = m_buildings.find(buildingBaseId);
+	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_DEBUG("Building base not found: mapObjectUuid = ", getMapObjectUuid(), ", buildingBaseId = ", buildingBaseId);
+		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
 		return;
 	}
 	const auto &obj = it->second;
-	const auto oldMission = Mission(obj->get_mission());
-	if(oldMission == MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("No building mission: mapObjectUuid = ", getMapObjectUuid(), ", buildingBaseId = ", buildingBaseId);
+	const auto old_mission = Mission(obj->get_mission());
+	if(old_mission == MIS_NONE){
+		LOG_EMPERY_CENTER_DEBUG("No building mission: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
 		return;
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	obj->set_mission(MIS_NONE);
-	obj->set_missionDuration(0);
-	obj->set_missionParam2(0);
-	obj->set_missionTimeBegin(utcNow);
-	obj->set_missionTimeEnd(utcNow);
+	obj->set_mission_duration(0);
+	obj->set_mission_param2(0);
+	obj->set_mission_time_begin(utc_now);
+	obj->set_mission_time_end(utc_now);
 
-	checkBuildingMission(getMapObjectUuid(), getOwnerUuid(), obj, utcNow);
-	synchronizeBuildingBaseWithClient(getMapObjectUuid(), getOwnerUuid(), obj);
+	check_building_mission(get_map_object_uuid(), get_owner_uuid(), obj, utc_now);
+	synchronize_building_base_with_client(get_map_object_uuid(), get_owner_uuid(), obj);
 }
-void Castle::speedUpBuildingMission(BuildingBaseId buildingBaseId, boost::uint64_t deltaDuration){
+void Castle::speed_up_building_mission(BuildingBaseId building_base_id, boost::uint64_t delta_duration){
 	PROFILE_ME;
 
-	const auto it = m_buildings.find(buildingBaseId);
+	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_WARNING("Building base not found: mapObjectUuid = ", getMapObjectUuid(), ", buildingBaseId = ", buildingBaseId);
+		LOG_EMPERY_CENTER_WARNING("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
 		DEBUG_THROW(Exception, sslit("Building base not found"));
 	}
 	const auto &obj = it->second;
-	const auto oldMission = Mission(obj->get_mission());
-	if(oldMission == MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("No building mission: mapObjectUuid = ", getMapObjectUuid(), ", buildingBaseId = ", buildingBaseId);
+	const auto old_mission = Mission(obj->get_mission());
+	if(old_mission == MIS_NONE){
+		LOG_EMPERY_CENTER_DEBUG("No building mission: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
 		DEBUG_THROW(Exception, sslit("No building mission"));
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 
-	obj->set_missionTimeEnd(saturatedSub(obj->get_missionTimeEnd(), deltaDuration));
+	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
-	checkBuildingMission(getMapObjectUuid(), getOwnerUuid(), obj, utcNow);
-	synchronizeBuildingBaseWithClient(getMapObjectUuid(), getOwnerUuid(), obj);
+	check_building_mission(get_map_object_uuid(), get_owner_uuid(), obj, utc_now);
+	synchronize_building_base_with_client(get_map_object_uuid(), get_owner_uuid(), obj);
 }
 
-Castle::TechInfo Castle::getTech(TechId techId) const {
+Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;
 
 	TechInfo info = { };
-	info.techId = techId;
+	info.tech_id = tech_id;
 
-	const auto it = m_techs.find(techId);
+	const auto it = m_techs.find(tech_id);
 	if(it == m_techs.end()){
 		return info;
 	}
-	fillTechInfo(info, it->second);
+	fill_tech_info(info, it->second);
 	return info;
 }
-void Castle::getAllTechs(std::vector<Castle::TechInfo> &ret) const {
+void Castle::get_all_techs(std::vector<Castle::TechInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_techs.size());
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 		TechInfo info;
-		fillTechInfo(info, it->second);
+		fill_tech_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
 
-void Castle::createTechMission(TechId techId, Castle::Mission mission){
+void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 	PROFILE_ME;
 
-	auto it = m_techs.find(techId);
+	auto it = m_techs.find(tech_id);
 	if(it == m_techs.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleTech>(
-			getMapObjectUuid().get(), techId.get(), 0, MIS_NONE, 0, 0, 0, 0);
-		obj->asyncSave(true);
-		it = m_techs.emplace(techId, obj).first;
+			get_map_object_uuid().get(), tech_id.get(), 0, MIS_NONE, 0, 0, 0, 0);
+		obj->async_save(true);
+		it = m_techs.emplace(tech_id, obj).first;
 	}
 	const auto &obj = it->second;
-	const auto oldMission = Mission(obj->get_mission());
-	if(oldMission != MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("Tech mission conflict: mapObjectUuid = ", getMapObjectUuid(), ", techId = ", techId);
+	const auto old_mission = Mission(obj->get_mission());
+	if(old_mission != MIS_NONE){
+		LOG_EMPERY_CENTER_DEBUG("Tech mission conflict: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		DEBUG_THROW(Exception, sslit("Tech mission conflict"));
 	}
 
@@ -545,9 +545,9 @@ void Castle::createTechMission(TechId techId, Castle::Mission mission){
 
 	case MIS_UPGRADE:
 		{
-			const unsigned level = obj->get_techLevel();
-			const auto techData = Data::CastleTech::require(TechId(obj->get_techId()), level + 1);
-			duration = techData->upgradeDuration;
+			const unsigned level = obj->get_tech_level();
+			const auto tech_data = Data::CastleTech::require(TechId(obj->get_tech_id()), level + 1);
+			duration = tech_data->upgrade_duration;
 		}
 		break;
 
@@ -555,95 +555,95 @@ void Castle::createTechMission(TechId techId, Castle::Mission mission){
 //		break;
 
 	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown tech mission: mapObjectUuid = ", getMapObjectUuid(), ", techId = ", techId,
+		LOG_EMPERY_CENTER_ERROR("Unknown tech mission: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id,
 			", mission = ", (unsigned)mission);
 		DEBUG_THROW(Exception, sslit("Unknown tech mission"));
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	obj->set_mission(mission);
-	obj->set_missionDuration(duration);
-	// obj->set_missionParam2(0);
-	obj->set_missionTimeBegin(utcNow);
-	obj->set_missionTimeEnd(saturatedAdd(utcNow, duration));
+	obj->set_mission_duration(duration);
+	// obj->set_mission_param2(0);
+	obj->set_mission_time_begin(utc_now);
+	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
-	checkTechMission(getMapObjectUuid(), getOwnerUuid(), obj, utcNow);
-	synchronizeTechWithClient(getMapObjectUuid(), getOwnerUuid(), obj);
+	check_tech_mission(get_map_object_uuid(), get_owner_uuid(), obj, utc_now);
+	synchronize_tech_with_client(get_map_object_uuid(), get_owner_uuid(), obj);
 }
-void Castle::cancelTechMission(TechId techId){
+void Castle::cancel_tech_mission(TechId tech_id){
 	PROFILE_ME;
 
-	const auto it = m_techs.find(techId);
+	const auto it = m_techs.find(tech_id);
 	if(it == m_techs.end()){
-		LOG_EMPERY_CENTER_DEBUG("Tech not found: mapObjectUuid = ", getMapObjectUuid(), ", techId = ", techId);
+		LOG_EMPERY_CENTER_DEBUG("Tech not found: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		return;
 	}
 	const auto &obj = it->second;
-	const auto oldMission = Mission(obj->get_mission());
-	if(oldMission == MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("No tech mission: mapObjectUuid = ", getMapObjectUuid(), ", techId = ", techId);
+	const auto old_mission = Mission(obj->get_mission());
+	if(old_mission == MIS_NONE){
+		LOG_EMPERY_CENTER_DEBUG("No tech mission: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		return;
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	obj->set_mission(MIS_NONE);
-	obj->set_missionDuration(0);
-	obj->set_missionParam2(0);
-	obj->set_missionTimeBegin(utcNow);
-	obj->set_missionTimeEnd(utcNow);
+	obj->set_mission_duration(0);
+	obj->set_mission_param2(0);
+	obj->set_mission_time_begin(utc_now);
+	obj->set_mission_time_end(utc_now);
 
-	checkTechMission(getMapObjectUuid(), getOwnerUuid(), obj, utcNow);
-	synchronizeTechWithClient(getMapObjectUuid(), getOwnerUuid(), obj);
+	check_tech_mission(get_map_object_uuid(), get_owner_uuid(), obj, utc_now);
+	synchronize_tech_with_client(get_map_object_uuid(), get_owner_uuid(), obj);
 }
-void Castle::speedUpTechMission(TechId techId, boost::uint64_t deltaDuration){
+void Castle::speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duration){
 	PROFILE_ME;
 
-	const auto it = m_techs.find(techId);
+	const auto it = m_techs.find(tech_id);
 	if(it == m_techs.end()){
-		LOG_EMPERY_CENTER_WARNING("Tech not found: mapObjectUuid = ", getMapObjectUuid(), ", techId = ", techId);
+		LOG_EMPERY_CENTER_WARNING("Tech not found: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		DEBUG_THROW(Exception, sslit("Tech not found"));
 	}
 	const auto &obj = it->second;
-	const auto oldMission = Mission(obj->get_mission());
-	if(oldMission == MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("No tech mission: mapObjectUuid = ", getMapObjectUuid(), ", techId = ", techId);
+	const auto old_mission = Mission(obj->get_mission());
+	if(old_mission == MIS_NONE){
+		LOG_EMPERY_CENTER_DEBUG("No tech mission: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		DEBUG_THROW(Exception, sslit("No tech mission"));
 	}
 
-	const auto utcNow = Poseidon::getUtcTime();
+	const auto utc_now = Poseidon::get_utc_time();
 
-	obj->set_missionTimeEnd(saturatedSub(obj->get_missionTimeEnd(), deltaDuration));
+	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
-	checkTechMission(getMapObjectUuid(), getOwnerUuid(), obj, utcNow);
-	synchronizeTechWithClient(getMapObjectUuid(), getOwnerUuid(), obj);
+	check_tech_mission(get_map_object_uuid(), get_owner_uuid(), obj, utc_now);
+	synchronize_tech_with_client(get_map_object_uuid(), get_owner_uuid(), obj);
 }
 
-Castle::ResourceInfo Castle::getResource(ResourceId resourceId) const {
+Castle::ResourceInfo Castle::get_resource(ResourceId resource_id) const {
 	PROFILE_ME;
 
 	ResourceInfo info = { };
-	info.resourceId = resourceId;
+	info.resource_id = resource_id;
 
-	const auto it = m_resources.find(resourceId);
+	const auto it = m_resources.find(resource_id);
 	if(it == m_resources.end()){
 		return info;
 	}
-	fillResourceInfo(info, it->second);
+	fill_resource_info(info, it->second);
 	return info;
 }
-void Castle::getAllResources(std::vector<Castle::ResourceInfo> &ret) const {
+void Castle::get_all_resources(std::vector<Castle::ResourceInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_resources.size());
 	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
 		ResourceInfo info;
-		fillResourceInfo(info, it->second);
+		fill_resource_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
-ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransactionElement *elements, std::size_t count,
+ResourceId Castle::commit_resource_transaction_nothrow(const Castle::ResourceTransactionElement *elements, std::size_t count,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
@@ -651,14 +651,14 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 	boost::shared_ptr<bool> withdrawn;
 
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>,
-		boost::uint64_t /* newCount */> tempResultMap;
+		boost::uint64_t /* new_count */> temp_result_map;
 
 	for(std::size_t i = 0; i < count; ++i){
 		const auto operation  = elements[i].m_operation;
-		const auto resourceId = elements[i].m_resourceId;
-		const auto deltaCount = elements[i].m_deltaCount;
+		const auto resource_id = elements[i].m_resource_id;
+		const auto delta_count = elements[i].m_delta_count;
 
-		if(deltaCount == 0){
+		if(delta_count == 0){
 			continue;
 		}
 
@@ -675,35 +675,35 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 			{
 				boost::shared_ptr<MySql::Center_CastleResource> obj;
 				{
-					const auto it = m_resources.find(resourceId);
+					const auto it = m_resources.find(resource_id);
 					if(it == m_resources.end()){
 						obj = boost::make_shared<MySql::Center_CastleResource>(
-							getMapObjectUuid().get(), resourceId.get(), 0);
-						obj->asyncSave(true);
-						m_resources.emplace(resourceId, obj);
+							get_map_object_uuid().get(), resource_id.get(), 0);
+						obj->async_save(true);
+						m_resources.emplace(resource_id, obj);
 					} else {
 						obj = it->second;
 					}
 				}
-				auto tempIt = tempResultMap.find(obj);
-				if(tempIt == tempResultMap.end()){
-					tempIt = tempResultMap.emplace_hint(tempIt, obj, obj->get_count());
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
 				}
-				const auto oldCount = tempIt->second;
-				tempIt->second = checkedAdd(oldCount, deltaCount);
-				const auto newCount = tempIt->second;
+				const auto old_count = temp_it->second;
+				temp_it->second = checked_add(old_count, delta_count);
+				const auto new_count = temp_it->second;
 
-				const auto &mapObjectUuid = getMapObjectUuid();
-				const auto &ownerUuid = getOwnerUuid();
-				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: mapObjectUuid = ", mapObjectUuid, ", ownerUuid = ", ownerUuid,
-					", resourceId = ", resourceId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
+				const auto &map_object_uuid = get_map_object_uuid();
+				const auto &owner_uuid = get_owner_uuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
+					", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
 					withdrawn = boost::make_shared<bool>(true);
 				}
-				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ResourceChanged>(mapObjectUuid, ownerUuid,
-						resourceId, oldCount, newCount, reason, param1, param2, param3),
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
+						resource_id, old_count, new_count, reason, param1, param2, param3),
 					withdrawn);
 			}
 			break;
@@ -711,43 +711,43 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 		case ResourceTransactionElement::OP_REMOVE:
 		case ResourceTransactionElement::OP_REMOVE_SATURATED:
 			{
-				const auto it = m_resources.find(resourceId);
+				const auto it = m_resources.find(resource_id);
 				if(it == m_resources.end()){
 					if(operation != ResourceTransactionElement::OP_REMOVE_SATURATED){
-						LOG_EMPERY_CENTER_DEBUG("Resource not found: resourceId = ", resourceId);
-						return resourceId;
+						LOG_EMPERY_CENTER_DEBUG("Resource not found: resource_id = ", resource_id);
+						return resource_id;
 					}
 					break;
 				}
 				const auto &obj = it->second;
-				auto tempIt = tempResultMap.find(obj);
-				if(tempIt == tempResultMap.end()){
-					tempIt = tempResultMap.emplace_hint(tempIt, obj, obj->get_count());
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
 				}
-				const auto oldCount = tempIt->second;
-				if(tempIt->second >= deltaCount){
-					tempIt->second -= deltaCount;
+				const auto old_count = temp_it->second;
+				if(temp_it->second >= delta_count){
+					temp_it->second -= delta_count;
 				} else {
 					if(operation != ResourceTransactionElement::OP_REMOVE_SATURATED){
-						LOG_EMPERY_CENTER_DEBUG("No enough resources: resourceId = ", resourceId,
-							", tempCount = ", tempIt->second, ", deltaCount = ", deltaCount);
-						return resourceId;
+						LOG_EMPERY_CENTER_DEBUG("No enough resources: resource_id = ", resource_id,
+							", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
+						return resource_id;
 					}
-					tempIt->second = 0;
+					temp_it->second = 0;
 				}
-				const auto newCount = tempIt->second;
+				const auto new_count = temp_it->second;
 
-				const auto &mapObjectUuid = getMapObjectUuid();
-				const auto &ownerUuid = getOwnerUuid();
-				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: mapObjectUuid = ", mapObjectUuid, ", ownerUuid = ", ownerUuid,
-					", resourceId = ", resourceId, ", oldCount = ", oldCount, ", deltaCount = ", deltaCount, ", newCount = ", newCount,
+				const auto &map_object_uuid = get_map_object_uuid();
+				const auto &owner_uuid = get_owner_uuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
+					", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
 					withdrawn = boost::make_shared<bool>(true);
 				}
-				Poseidon::asyncRaiseEvent(
-					boost::make_shared<Events::ResourceChanged>(mapObjectUuid, ownerUuid,
-						resourceId, oldCount, newCount, reason, param1, param2, param3),
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
+						resource_id, old_count, new_count, reason, param1, param2, param3),
 					withdrawn);
 			}
 			break;
@@ -762,27 +762,27 @@ ResourceId Castle::commitResourceTransactionNoThrow(const Castle::ResourceTransa
 		callback();
 	}
 
-	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
+	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 		it->first->set_count(it->second);
 	}
 	if(withdrawn){
 		*withdrawn = false;
 	}
 
-	for(auto it = tempResultMap.begin(); it != tempResultMap.end(); ++it){
-		synchronizeResourceWithClient(getMapObjectUuid(), getOwnerUuid(), it->first);
+	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
+		synchronize_resource_with_client(get_map_object_uuid(), get_owner_uuid(), it->first);
 	}
 
 	return ResourceId();
 }
-void Castle::commitResourceTransaction(const Castle::ResourceTransactionElement *elements, std::size_t count,
+void Castle::commit_resource_transaction(const Castle::ResourceTransactionElement *elements, std::size_t count,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
-	const auto insuffId = commitResourceTransactionNoThrow(elements, count, callback);
-	if(insuffId != ResourceId()){
-		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: mapObjectUuid = ", getMapObjectUuid(), ", insuffId = ", insuffId);
+	const auto insuff_id = commit_resource_transaction_nothrow(elements, count, callback);
+	if(insuff_id != ResourceId()){
+		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: map_object_uuid = ", get_map_object_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient resources in castle"));
 	}
 }
