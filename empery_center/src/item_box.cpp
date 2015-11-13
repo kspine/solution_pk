@@ -114,6 +114,7 @@ void ItemBox::pumpStatus(bool forceSynchronizationWithClient){
 			break;
 		}
 		if(autoIncPeriod == 0){
+			LOG_EMPERY_CENTER_WARNING("Item auto increment period is zero? itemId = ", itemData->itemId);
 			continue;
 		}
 		autoIncOffset %= autoIncPeriod;
@@ -121,13 +122,13 @@ void ItemBox::pumpStatus(bool forceSynchronizationWithClient){
 		const auto oldCount = obj->get_count();
 		const auto oldUpdatedTime = obj->get_updatedTime();
 
-		const auto curInterval = (utcNow - autoIncOffset) / autoIncPeriod;
-		const auto prevInterval = (oldUpdatedTime - autoIncOffset) / autoIncPeriod;
+		const auto prevInterval = saturatedSub(oldUpdatedTime, autoIncOffset) / autoIncPeriod;
+		const auto curInterval = saturatedSub(utcNow, autoIncOffset) / autoIncPeriod;
+		LOG_EMPERY_CENTER_DEBUG("> Checking items: itemId = ", itemData->itemId, ", prevInterval = ", prevInterval, ", curInterval = ", curInterval);
 		if(curInterval <= prevInterval){
 			continue;
 		}
 		const auto intervalCount = curInterval - prevInterval;
-		LOG_EMPERY_CENTER_DEBUG("> Checking items: itemId = ", itemData->itemId, ", intervalCount = ", intervalCount);
 
 		if(itemData->autoIncStep >= 0){
 			if(oldCount < itemData->autoIncBound){
