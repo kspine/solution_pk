@@ -196,6 +196,7 @@ namespace IdTypes {
 	using ItemId            = GenericId<boost::uint32_t, 120009>;
 	using TradeId           = GenericId<boost::uint32_t, 120010>;
 	using RechargeId        = GenericId<boost::uint32_t, 120011>;
+	using ShopId            = GenericId<boost::uint32_t, 120012>;
 
 	using AccountUuid       = GenericUuid<210001>;
 	using MapObjectUuid     = GenericUuid<210002>;

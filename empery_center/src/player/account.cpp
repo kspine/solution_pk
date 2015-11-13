@@ -4,8 +4,7 @@
 #include "../msg/cs_account.hpp"
 #include "../msg/sc_account.hpp"
 #include "../msg/cerr_account.hpp"
-#include "../singletons/item_box_map.hpp"
-#include "../item_box.hpp"
+
 namespace EmperyCenter {
 
 PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
@@ -41,7 +40,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	PlayerSessionMap::add(account_uuid, session);
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
 	AccountMap::send_attributes_to_client(account_uuid, session, true, true, true, false);
-ItemBoxMap::require(account_uuid)->pump_status();
+
 	return Response();
 }
 

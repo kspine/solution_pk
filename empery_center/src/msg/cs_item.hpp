@@ -13,6 +13,20 @@ namespace Msg {
 	//
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ItemTradeFromRecharge
+#define MESSAGE_ID      501
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (recharge_id)	\
+	FIELD_VUINT         (repeat_count)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ItemTradeFromShop
+#define MESSAGE_ID      502
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (shop_id)	\
+	FIELD_VUINT         (repeat_count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

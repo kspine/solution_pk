@@ -41,19 +41,39 @@ namespace Data {
 		boost::uint64_t auto_inc_bound;
 	};
 
-	class Trade {
+	class ItemTrade {
 	public:
-		static boost::shared_ptr<const Trade> get(TradeId trade_id);
-		static boost::shared_ptr<const Trade> require(TradeId trade_id);
+		static boost::shared_ptr<const ItemTrade> get(TradeId trade_id);
+		static boost::shared_ptr<const ItemTrade> require(TradeId trade_id);
 
 		static void unpack(std::vector<ItemTransactionElement> &transaction,
-			const boost::shared_ptr<const Trade> &trade_data, boost::uint64_t repeat_times,
-			ReasonId reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3);
+			const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
+			boost::uint64_t param1);
 
 	public:
 		TradeId trade_id;
 		boost::container::flat_map<ItemId, boost::uint64_t> items_consumed;
 		boost::container::flat_map<ItemId, boost::uint64_t> items_produced;
+	};
+
+	class ItemRecharge {
+	public:
+		static boost::shared_ptr<const ItemRecharge> get(RechargeId recharge_id);
+		static boost::shared_ptr<const ItemRecharge> require(RechargeId recharge_id);
+
+	public:
+		RechargeId recharge_id;
+		TradeId trade_id;
+	};
+
+	class ItemShop {
+	public:
+		static boost::shared_ptr<const ItemShop> get(ShopId shop_id);
+		static boost::shared_ptr<const ItemShop> require(ShopId shop_id);
+
+	public:
+		ShopId shop_id;
+		TradeId trade_id;
 	};
 }
 
