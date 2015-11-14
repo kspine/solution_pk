@@ -1,0 +1,362 @@
+#include "../precompiled.hpp"
+#include "mail_box_map.hpp"
+#include <poseidon/json.hpp>
+#include <poseidon/singletons/timer_daemon.hpp>
+#include <poseidon/multi_index_map.hpp>
+#include <poseidon/job_promise.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
+#include "account_map.hpp"
+#include "../mail_box.hpp"
+#include "../mysql/mail.hpp"
+#include "../checked_arithmetic.hpp"
+
+namespace EmperyCenter {
+
+namespace {
+	struct MailBoxElement {
+		AccountUuid account_uuid;
+		boost::uint64_t unload_time;
+
+		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
+		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
+		mutable boost::shared_ptr<MailBox> mail_box;
+		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
+
+		MailBoxElement(const AccountUuid &account_uuid_, boost::uint64_t unload_time_)
+			: account_uuid(account_uuid_), unload_time(unload_time_)
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(MailBoxMapDelegator, MailBoxElement,
+		UNIQUE_MEMBER_INDEX(account_uuid)
+		MULTI_MEMBER_INDEX(unload_time)
+	)
+
+	boost::weak_ptr<MailBoxMapDelegator> g_mail_box_map;
+
+	struct MailDataElement {
+		std::pair<MailUuid, LanguageId> pkey;
+		boost::uint64_t unload_time;
+
+		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
+		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
+		mutable boost::shared_ptr<MySql::Center_MailData> mail_data_obj;
+		mutable boost::shared_ptr<MailBoxMap::MailData> mail_data;
+
+		MailDataElement(const MailUuid &mail_uuid_, LanguageId language_id_, boost::uint64_t unload_time_)
+			: pkey(mail_uuid_, language_id_), unload_time(unload_time_)
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(MailDataMapDelegator, MailDataElement,
+		UNIQUE_MEMBER_INDEX(pkey)
+		MULTI_MEMBER_INDEX(unload_time)
+	)
+
+	boost::weak_ptr<MailDataMapDelegator> g_mail_data_map;
+
+	void gc_timer_proc(boost::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_DEBUG("Mail box gc timer: now = ", now);
+
+		const auto mail_box_map = g_mail_box_map.lock();
+		if(mail_box_map){
+			for(;;){
+				const auto it = mail_box_map->begin<1>();
+				if(it == mail_box_map->end<1>()){
+					break;
+				}
+				if(now < it->unload_time){
+					break;
+				}
+
+				// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
+				if((it->promise.use_count() <= 1) && it->mail_box && it->mail_box.unique()){
+					LOG_EMPERY_CENTER_INFO("Reclaiming mail box: account_uuid = ", it->account_uuid);
+					mail_box_map->erase<1>(it);
+				} else {
+					mail_box_map->set_key<1, 1>(it, now + 1000);
+				}
+			}
+		}
+
+		const auto mail_data_map = g_mail_data_map.lock();
+		if(mail_data_map){
+			for(;;){
+				const auto it = mail_data_map->begin<1>();
+				if(it == mail_data_map->end<1>()){
+					break;
+				}
+				if(now < it->unload_time){
+					break;
+				}
+
+				// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
+				if((it->promise.use_count() <= 1) && it->mail_data && it->mail_data.unique()){
+					LOG_EMPERY_CENTER_INFO("Reclaiming mail data: mail_uuid = ", it->pkey.first);
+					mail_data_map->erase<1>(it);
+				} else {
+					mail_data_map->set_key<1, 1>(it, now + 1000);
+				}
+			}
+		}
+	}
+
+	MODULE_RAII_PRIORITY(handles, 5000){
+		const auto mail_box_map = boost::make_shared<MailBoxMapDelegator>();
+		g_mail_box_map = mail_box_map;
+		handles.push(mail_box_map);
+
+		const auto mail_data_map = boost::make_shared<MailDataMapDelegator>();
+		g_mail_data_map = mail_data_map;
+		handles.push(mail_data_map);
+
+		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
+			std::bind(&gc_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+	}
+
+	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("15104D25-DC80-0008-F3E5-6B1D016998D5");
+}
+
+boost::shared_ptr<MailBox> MailBoxMap::get(const AccountUuid &account_uuid){
+	PROFILE_ME;
+
+	const auto mail_box_map = g_mail_box_map.lock();
+	if(!mail_box_map){
+		LOG_EMPERY_CENTER_WARNING("MailBoxMap is not loaded.");
+		return { };
+	}
+
+	auto it = mail_box_map->find<0>(account_uuid);
+	if(it == mail_box_map->end<0>()){
+		it = mail_box_map->insert<0>(it, MailBoxElement(account_uuid, 0));
+	}
+	if(!it->mail_box){
+		LOG_EMPERY_CENTER_INFO("Loading mail box: account_uuid = ", account_uuid);
+
+		if(!it->promise){
+			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
+			std::ostringstream oss;
+			const auto utc_now = Poseidon::get_utc_time();
+			oss <<"SELECT * FROM `Center_Mail` WHERE `expiry_time` > " <<utc_now <<" AND `account_uuid` = '" <<account_uuid <<"'";
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
+				&MySql::Center_Mail::create, "Center_Mail", oss.str());
+			it->promise = std::move(promise);
+			it->sink    = std::move(sink);
+		}
+		// 复制一个智能指针，并且导致 use_count() 增加。
+		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
+		const auto promise = it->promise;
+		Poseidon::JobDispatcher::yield(promise);
+		promise->check_and_rethrow();
+
+		if(it->sink){
+			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
+
+			std::vector<boost::shared_ptr<MySql::Center_Mail>> objs;
+			objs.reserve(it->sink->size());
+			for(auto sit = it->sink->begin(); sit != it->sink->end(); ++sit){
+				const auto &base = *sit;
+				auto obj = boost::dynamic_pointer_cast<MySql::Center_Mail>(base);
+				if(!obj){
+					LOG_EMPERY_CENTER_ERROR("Unexpected dynamic MySQL object type: type = ", typeid(*base).name());
+					DEBUG_THROW(Exception, sslit("Unexpected dynamic MySQL object type"));
+				}
+				objs.emplace_back(std::move(obj));
+			}
+			auto mail_box = boost::make_shared<MailBox>(account_uuid, objs);
+
+			const auto mail_box_refresh_interval = get_config<boost::uint64_t>("mail_box_refresh_interval", 60000);
+			auto timer = Poseidon::TimerDaemon::register_timer(0, mail_box_refresh_interval,
+				std::bind([](const boost::weak_ptr<MailBox> &weak){
+					PROFILE_ME;
+					const auto mail_box = weak.lock();
+					if(!mail_box){
+						return;
+					}
+					mail_box->pump_status();
+				}, boost::weak_ptr<MailBox>(mail_box))
+			);
+
+			it->promise  = { };
+			it->sink     = { };
+			it->mail_box = std::move(mail_box);
+			it->timer    = std::move(timer);
+		}
+	}
+
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+	mail_box_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
+
+	return it->mail_box;
+}
+boost::shared_ptr<MailBox> MailBoxMap::require(const AccountUuid &account_uuid){
+	PROFILE_ME;
+
+	auto ret = get(account_uuid);
+	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("MailBox not found: account_uuid = ", account_uuid);
+		DEBUG_THROW(Exception, sslit("MailBox not found"));
+	}
+	return ret;
+}
+
+boost::shared_ptr<MailBox> MailBoxMap::get_global(){
+	PROFILE_ME;
+
+	return get(GLOBAL_MAIL_ACCCOUNT_UUID);
+}
+boost::shared_ptr<MailBox> MailBoxMap::require_global(){
+	PROFILE_ME;
+
+	return require(GLOBAL_MAIL_ACCCOUNT_UUID);
+}
+
+boost::shared_ptr<const MailBoxMap::MailData> MailBoxMap::get_mail_data(const MailUuid &mail_uuid, LanguageId language_id){
+	PROFILE_ME;
+
+	const auto mail_data_map = g_mail_data_map.lock();
+	if(!mail_data_map){
+		LOG_EMPERY_CENTER_WARNING("MailBoxMap is not loaded.");
+		return { };
+	}
+
+	auto it = mail_data_map->find<0>(std::make_pair(mail_uuid, language_id));
+	if(it == mail_data_map->end<0>()){
+		it = mail_data_map->insert<0>(it, MailDataElement(mail_uuid, language_id, 0));
+	}
+	if(!it->mail_data){
+		LOG_EMPERY_CENTER_INFO("Loading mail data: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+
+		if(!it->promise){
+			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_MailData` WHERE `mail_uuid` = '" <<mail_uuid <<"' AND `language_id` = " <<language_id;
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
+				&MySql::Center_MailData::create, "Center_MailData", oss.str());
+			it->promise = std::move(promise);
+			it->sink    = std::move(sink);
+		}
+		// 复制一个智能指针，并且导致 use_count() 增加。
+		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
+		const auto promise = it->promise;
+		Poseidon::JobDispatcher::yield(promise);
+		promise->check_and_rethrow();
+
+		if(it->sink){
+			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed:  mail_uuid = ", mail_uuid, ", language_id = ", language_id,
+				", rows = ", it->sink->size());
+
+			auto obj = boost::shared_ptr<MySql::Center_MailData>();
+			auto data = boost::make_shared<MailData>();
+
+			if(it->sink->empty()){
+				obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(),
+					0, 0, Poseidon::Uuid(), std::string(), std::string(), std::string());
+				// obj->async_save(true);
+				obj->enable_auto_saving();
+			} else {
+				const auto &base = it->sink->front();
+				obj = boost::dynamic_pointer_cast<MySql::Center_MailData>(base);
+				if(!obj){
+					LOG_EMPERY_CENTER_ERROR("Unexpected dynamic MySQL object type: type = ", typeid(*base).name());
+					DEBUG_THROW(Exception, sslit("Unexpected dynamic MySQL object type"));
+				}
+			}
+
+			data->mail_uuid         = mail_uuid;
+			data->language_id       = language_id;
+			data->created_time      = obj->get_created_time();
+			data->type              = obj->get_type();
+			data->from_account_uuid = AccountUuid(obj->unlocked_get_from_account_uuid());
+			data->subject           = obj->unlocked_get_subject();
+			data->body              = obj->unlocked_get_body();
+
+			const auto &attachments = obj->unlocked_get_attachments();
+			if(!attachments.empty()){
+				LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: mail_uuid = ", mail_uuid, ", language_id = ", language_id,
+					", attachments = ", attachments);
+				try {
+					std::istringstream iss(attachments);
+					const auto root = Poseidon::JsonParser::parse_object(iss);
+					data->attachments.reserve(root.size());
+					for(auto it = root.begin(); it != root.end(); ++it){
+						const auto item_id = boost::lexical_cast<ItemId>(it->first);
+						const auto item_count = static_cast<boost::uint64_t>(it->second.get<double>());
+						data->attachments.emplace(item_id, item_count);
+					}
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("Error unpacking mail attachments: what = ", e.what(),
+						", mail_uuid = ", mail_uuid, ", language_id = ", language_id, ", attachments = ", attachments);
+					DEBUG_THROW(Exception, sslit("Error unpacking mail attachments"));
+				}
+			}
+
+			it->promise       = { };
+			it->sink          = { };
+			it->mail_data_obj = std::move(obj);
+			it->mail_data     = std::move(data);
+		}
+	}
+
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+	mail_data_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
+
+	return it->mail_data;
+}
+void MailBoxMap::set_mail_data(const MailData &mail_data){
+	PROFILE_ME;
+
+	const auto mail_data_map = g_mail_data_map.lock();
+	if(!mail_data_map){
+		LOG_EMPERY_CENTER_WARNING("MailDataMap is not loaded.");
+		DEBUG_THROW(Exception, sslit("MailDataMap is not loaded"));
+	}
+
+	auto it = mail_data_map->find<0>(std::make_pair(mail_data.mail_uuid, mail_data.language_id));
+	if(it == mail_data_map->end<0>()){
+		it = mail_data_map->insert<0>(it, MailDataElement(mail_data.mail_uuid, mail_data.language_id, 0));
+	}
+
+	// it->mail_data_obj 可以复用。
+	const auto &obj = it->mail_data_obj;
+	auto data = boost::make_shared<MailData>(mail_data);
+
+	// copy-and-swap
+	auto new_subject     = mail_data.subject;
+	auto new_body        = mail_data.body;
+	auto new_attachments = std::string();
+	if(!mail_data.attachments.empty()){
+		Poseidon::JsonObject root;
+		for(auto it = mail_data.attachments.begin(); it != mail_data.attachments.end(); ++it){
+			char str[256];
+			auto len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->first.get());
+			root[Poseidon::SharedNts(str, len)] = it->second;
+		}
+		new_attachments = root.dump();
+	}
+	// 以下都没有异常抛出。
+	obj->set_created_time      (data->created_time);
+	obj->set_type              (data->type);
+	obj->set_from_account_uuid (data->from_account_uuid.get());
+	obj->set_subject           (std::move(new_subject));
+	obj->set_body              (std::move(new_body));
+	obj->set_attachments       (std::move(new_attachments));
+
+	it->promise   = { };
+	it->sink      = { };
+	it->mail_data = std::move(data);
+
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+	mail_data_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
+}
+
+}

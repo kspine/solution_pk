@@ -13,42 +13,6 @@
 namespace EmperyCenter {
 
 namespace {
-	void create_init_buildings(const MapObjectUuid &map_object_uuid,
-		boost::container::flat_map<BuildingBaseId, boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings)
-	{
-		PROFILE_ME;
-
-		std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
-		Data::CastleBuildingBase::get_init(init_buildings);
-		for(auto it = init_buildings.begin(); it != init_buildings.end(); ++it){
-			const auto &building_data = *it;
-			const auto &buildings_allowed = building_data->buildings_allowed;
-			if(buildings_allowed.empty()){
-				continue;
-			}
-			const auto building_base_id = building_data->building_base_id;
-			const auto init_level = building_data->init_level;
-			const auto building_it = buildings.find(building_base_id);
-			if(building_it == buildings.end()){
-				const auto building_id = *(buildings_allowed.begin());
-				LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", map_object_uuid,
-					", building_base_id = ", building_base_id, ", building_id = ", building_id, ", init_level = ", init_level);
-				auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-					map_object_uuid.get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0, 0);
-				obj->async_save(true);
-				buildings.emplace(building_base_id, std::move(obj));
-			} else {
-				const auto &obj = building_it->second;
-				const unsigned old_level = obj->get_building_level();
-				if(old_level < init_level){
-					LOG_EMPERY_CENTER_DEBUG("> Upgrading init building: map_object_uuid = ", map_object_uuid,
-						", building_base_id = ", building_base_id, ", old_level = ", old_level, ", init_level = ", init_level);
-					obj->set_building_level(init_level);
-				}
-			}
-		}
-	}
-
 	void fill_building_base_info(Castle::BuildingBaseInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
 		PROFILE_ME;
 
@@ -201,13 +165,11 @@ namespace {
 Castle::Castle(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name)
 	: MapObject(map_object_type_id, owner_uuid, std::move(name))
 {
-	create_init_buildings(get_map_object_uuid(), m_buildings);
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
 	: MapObject(std::move(obj), attributes)
 {
-	create_init_buildings(get_map_object_uuid(), m_buildings);
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
@@ -228,8 +190,6 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const auto &obj = *it;
 		m_resources.emplace(ResourceId(obj->get_resource_id()), obj);
 	}
-
-	create_init_buildings(get_map_object_uuid(), m_buildings);
 }
 Castle::~Castle(){
 }
@@ -238,6 +198,37 @@ void Castle::pump_status(bool force_synchronization_with_client){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
+
+	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
+	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
+	Data::CastleBuildingBase::get_init(init_buildings);
+	for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
+		const auto &building_data = *dit;
+		const auto &buildings_allowed = building_data->buildings_allowed;
+		if(buildings_allowed.empty()){
+			continue;
+		}
+		const auto building_base_id = building_data->building_base_id;
+		auto it = m_buildings.find(building_base_id);
+		if(it == m_buildings.end()){
+			const auto building_id = *(buildings_allowed.begin());
+			LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
+				", building_base_id = ", building_base_id, ", building_id = ", building_id);
+			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(get_map_object_uuid().get(), building_base_id.get(),
+				building_id.get(), 0, Castle::MIS_NONE, 0, 0, 0, 0);
+			obj->async_save(true);
+			it = m_buildings.emplace_hint(it, building_base_id, std::move(obj));
+		}
+		const auto &obj = it->second;
+		const unsigned old_level = obj->get_building_level();
+		const auto init_level = building_data->init_level;
+		if(old_level < init_level){
+			LOG_EMPERY_CENTER_DEBUG("> Upgrading init building: map_object_uuid = ", get_map_object_uuid(),
+				", building_base_id = ", building_base_id, ", old_level = ", old_level, ", init_level = ", init_level);
+			obj->set_building_level(init_level);
+		}
+	}
+
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		check_building_mission(it->second, utc_now);
 	}

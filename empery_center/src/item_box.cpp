@@ -6,7 +6,6 @@
 #include "singletons/player_session_map.hpp"
 #include "events/item.hpp"
 #include "player_session.hpp"
-#include "events/item.hpp"
 #include "checked_arithmetic.hpp"
 #include "data/item.hpp"
 #include "reason_ids.hpp"
