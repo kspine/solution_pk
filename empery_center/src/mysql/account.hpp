@@ -20,6 +20,13 @@ namespace MySql {
 	FIELD_DATETIME          (created_time)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   Center_AccountAttribute
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (slot)	\
+	FIELD_STRING            (value)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }

@@ -8,12 +8,9 @@
 #include "../attribute_ids.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../mysql/map_object.hpp"
-#include "../mysql/map_object_attribute.hpp"
+#include "../mysql/castle.hpp"
 #include "../msg/sc_map.hpp"
 #include "../castle.hpp"
-#include "../mysql/castle_building_base.hpp"
-#include "../mysql/castle_tech.hpp"
-#include "../mysql/castle_resource.hpp"
 
 namespace EmperyCenter {
 
@@ -92,15 +89,12 @@ namespace {
 		std::map<Poseidon::Uuid, TempMapObjectElement> temp_map_object_map;
 
 		LOG_EMPERY_CENTER_INFO("Loading map objects...");
-		conn->execute_sql("SELECT * FROM `Center_MapObject`");
+		conn->execute_sql("SELECT * FROM `Center_MapObject` WHERE `deleted` != 0");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapObject>();
 			obj->sync_fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
-			if(obj->get_deleted()){
-				continue;
-			}
 			temp_map_object_map[map_object_uuid].obj = std::move(obj);
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", temp_map_object_map.size(), " map object(s).");

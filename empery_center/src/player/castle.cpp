@@ -37,7 +37,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account_uuid, session, req){
 	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
 	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->get_building(building_base_id);
+	const auto info = castle->get_building_base(building_base_id);
 	if(info.mission != Castle::MIS_NONE){
 		return Response(Msg::CERR_ANOTHER_BUILDING_THERE) <<building_base_id;
 	}
@@ -62,7 +62,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account_uuid, session, req){
 
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
 	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
 		castle->get_buildings_by_id(prerequisite_buildings, it->first);
 		unsigned max_level = 0;
 		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
@@ -95,7 +95,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account_uuid, session, req){
 	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
 	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->get_building(building_base_id);
+	const auto info = castle->get_building_base(building_base_id);
 	if(info.mission == Castle::MIS_NONE){
 		return Response(Msg::CERR_NO_BUILDING_MISSION) <<building_base_id;
 	}
@@ -122,7 +122,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account_uuid, session, req){
 	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
 	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->get_building(building_base_id);
+	const auto info = castle->get_building_base(building_base_id);
 	if(info.building_id == BuildingId()){
 		return Response(Msg::CERR_NO_BUILDING_THERE) <<building_base_id;
 	}
@@ -136,7 +136,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account_uuid, session, req){
 		return Response(Msg::CERR_BUILDING_UPGRADE_MAX) <<info.building_id;
 	}
 	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
 		castle->get_buildings_by_id(prerequisite_buildings, it->first);
 		unsigned max_level = 0;
 		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
@@ -169,7 +169,7 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account_uuid, session, req){
 	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
 	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->get_building(building_base_id);
+	const auto info = castle->get_building_base(building_base_id);
 	if(info.building_id == BuildingId()){
 		return Response(Msg::CERR_NO_BUILDING_THERE) <<building_base_id;
 	}
@@ -193,7 +193,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account_uuid, session,
 	const auto castle = require_castle(account_uuid, MapObjectUuid(req.map_object_uuid));
 	castle->pump_building_status(building_base_id);
 
-	const auto info = castle->get_building(building_base_id);
+	const auto info = castle->get_building_base(building_base_id);
 	if(info.mission == Castle::MIS_NONE){
 		return Response(Msg::CERR_NO_BUILDING_MISSION) <<building_base_id;
 	}
@@ -231,7 +231,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account_uuid, session, req){
 	}
 
 	for(auto it = tech_data->prerequisite.begin(); it != tech_data->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
 		castle->get_buildings_by_id(prerequisite_buildings, it->first);
 		unsigned max_level = 0;
 		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
@@ -246,7 +246,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account_uuid, session, req){
 		}
 	}
 	for(auto it = tech_data->display_prerequisite.begin(); it != tech_data->display_prerequisite.end(); ++it){
-		std::vector<Castle::BuildingInfo> prerequisite_buildings;
+		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
 		castle->get_buildings_by_id(prerequisite_buildings, it->first);
 		unsigned max_level = 0;
 		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){

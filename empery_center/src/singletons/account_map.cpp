@@ -6,7 +6,6 @@
 #include <poseidon/singletons/event_dispatcher.hpp>
 #include "player_session_map.hpp"
 #include "../mysql/account.hpp"
-#include "../mysql/account_attribute.hpp"
 #include "../msg/sc_account.hpp"
 #include "../player_session.hpp"
 #include "../events/account.hpp"

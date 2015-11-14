@@ -183,7 +183,8 @@ std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &id){
 
 namespace IdTypes {
 	using PlatformId        = GenericId<boost::uint32_t, 110001>;
-	using ReasonId          = GenericId<boost::uint32_t, 110002>;
+	using LanguageId        = GenericId<boost::uint32_t, 110002>;
+	using ReasonId          = GenericId<boost::uint32_t, 110003>;
 
 	using TerrainId         = GenericId<boost::uint32_t, 120001>;
 	using OverlayId         = GenericId<boost::uint32_t, 120002>;

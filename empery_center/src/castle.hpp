@@ -26,7 +26,7 @@ public:
 //		MIS_PRODUCE         = 4,
 	};
 
-	struct BuildingInfo {
+	struct BuildingBaseInfo {
 		BuildingBaseId building_base_id;
 		BuildingId building_id;
 		unsigned building_level;
@@ -106,10 +106,10 @@ public:
 	void pump_building_status(BuildingBaseId building_base_id, bool force_synchronization_with_client = false);
 	void pump_tech_status(TechId tech_id, bool force_synchronization_with_client = false);
 
-	BuildingInfo get_building(BuildingBaseId building_base_id) const;
-	void get_all_buildings(std::vector<BuildingInfo> &ret) const;
+	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
+	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;
 	std::size_t count_buildings_by_id(BuildingId building_id) const;
-	void get_buildings_by_id(std::vector<BuildingInfo> &ret, BuildingId building_id) const;
+	void get_buildings_by_id(std::vector<BuildingBaseInfo> &ret, BuildingId building_id) const;
 	// 如果指定地基上有任务会抛出异常。
 	void create_building_mission(BuildingBaseId building_base_id, Mission mission, BuildingId building_id = BuildingId());
 	void cancel_building_mission(BuildingBaseId building_base_id);

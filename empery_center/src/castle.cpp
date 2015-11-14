@@ -2,9 +2,7 @@
 #include "castle.hpp"
 #include "resource_transaction_element.hpp"
 #include "map_object.hpp"
-#include "mysql/castle_building_base.hpp"
-#include "mysql/castle_tech.hpp"
-#include "mysql/castle_resource.hpp"
+#include "mysql/castle.hpp"
 #include "msg/sc_castle.hpp"
 #include "singletons/player_session_map.hpp"
 #include "checked_arithmetic.hpp"
@@ -51,7 +49,7 @@ namespace {
 		}
 	}
 
-	void fill_building_info(Castle::BuildingInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
+	void fill_building_base_info(Castle::BuildingBaseInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
 		PROFILE_ME;
 
 		info.building_base_id   = BuildingBaseId(obj->get_building_base_id());
@@ -326,26 +324,26 @@ void Castle::pump_tech_status(TechId tech_id, bool force_synchronization_with_cl
 	}
 }
 
-Castle::BuildingInfo Castle::get_building(BuildingBaseId building_base_id) const {
+Castle::BuildingBaseInfo Castle::get_building_base(BuildingBaseId building_base_id) const {
 	PROFILE_ME;
 
-	BuildingInfo info = { };
+	BuildingBaseInfo info = { };
 	info.building_base_id = building_base_id;
 
 	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
 		return info;
 	}
-	fill_building_info(info, it->second);
+	fill_building_base_info(info, it->second);
 	return info;
 }
-void Castle::get_all_buildings(std::vector<Castle::BuildingInfo> &ret) const {
+void Castle::get_all_building_bases(std::vector<Castle::BuildingBaseInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_buildings.size());
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		BuildingInfo info;
-		fill_building_info(info, it->second);
+		BuildingBaseInfo info;
+		fill_building_base_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
@@ -361,15 +359,15 @@ std::size_t Castle::count_buildings_by_id(BuildingId building_id) const {
 	}
 	return count;
 }
-void Castle::get_buildings_by_id(std::vector<Castle::BuildingInfo> &ret, BuildingId building_id) const {
+void Castle::get_buildings_by_id(std::vector<Castle::BuildingBaseInfo> &ret, BuildingId building_id) const {
 	PROFILE_ME;
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		if(BuildingId(it->second->get_building_id()) != building_id){
 			continue;
 		}
-		BuildingInfo info;
-		fill_building_info(info, it->second);
+		BuildingBaseInfo info;
+		fill_building_base_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
