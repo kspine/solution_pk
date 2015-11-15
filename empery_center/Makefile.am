@@ -33,6 +33,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
 	src/player/item.cpp	\
+	src/player/mail.cpp	\
 	src/cluster/map.cpp	\
 	src/utilities.cpp	\
 	src/player_session.cpp	\
