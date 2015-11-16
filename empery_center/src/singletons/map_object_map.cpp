@@ -179,6 +179,17 @@ namespace {
 		handles.push(map_object_map);
 
 		const auto map_sector_map = boost::make_shared<MapSectorMapDelegator>();
+		for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
+			auto map_object = it->map_object;
+
+			const auto coord = map_object->get_coord();
+			const auto sector_coord = sector_coord_from_map_coord(coord);
+			auto sector_it = map_sector_map->find<0>(sector_coord);
+			if(sector_it == map_sector_map->end<0>()){
+				sector_it = map_sector_map->insert<0>(sector_it, MapSectorElement(sector_coord));
+			}
+			sector_it->map_objects.insert(std::move(map_object));
+		}
 		g_map_sector_map = map_sector_map;
 		handles.push(map_sector_map);
 
@@ -460,29 +471,31 @@ void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession
 	LOG_EMPERY_CENTER_DEBUG("Synchronize player view: view = ", view,
 		", sector_bottom_left = ", sector_bottom_left, ", sector_upper_right = ", sector_upper_right);
 	try {
-		for(boost::int64_t x = sector_bottom_left.x(); x <= sector_bottom_left.x(); ++x){
-			for(boost::int64_t y = sector_upper_right.y(); y <= sector_upper_right.y(); ++y){
-				const auto sector_it = map_sector_map->find<0>(Coord(x, y));
-				if(sector_it == map_sector_map->end<0>()){
+		for(auto x = sector_bottom_left.x(); x <= sector_upper_right.x(); ++x){
+			for(auto y = sector_bottom_left.y(); y <= sector_upper_right.y(); ++y){
+				LOG_EMPERY_CENTER_DEBUG("Current sector: x = ", x, ", y = ", y);
+				const auto sit = map_sector_map->find<0>(Coord(x, y));
+				if(sit == map_sector_map->end<0>()){
 					continue;
 				}
-
-				auto obj_it = sector_it->map_objects.begin();
-				while(obj_it != sector_it->map_objects.end()){
-					const auto map_object = obj_it->lock();
+				auto &map_objects = sit->map_objects;
+				for(auto next = map_objects.begin(), it = next; (it != map_objects.end()) && (++next, true); it = next){
+					const auto map_object = it->lock();
 					if(!map_object){
-						obj_it = sector_it->map_objects.erase(obj_it);
+						map_objects.erase(it);
 						continue;
 					}
-					const auto it = map_object_map->find<0>(map_object->get_map_object_uuid());
-					if(it == map_object_map->end<0>()){
-						obj_it = sector_it->map_objects.erase(obj_it);
+					const auto map_object_uuid = map_object->get_map_object_uuid();
+					const auto obj_it = map_object_map->find<0>(map_object_uuid);
+					if(obj_it == map_object_map->end<0>()){
+						map_objects.erase(it);
 						continue;
 					}
-					if(view.hit_test(it->coord)){
+					LOG_EMPERY_CENTER_DEBUG("> Map object in sector: map_object_uuid = ", map_object_uuid);
+
+					if(view.hit_test(obj_it->coord)){
 						send_map_object_to_player(map_object, session);
 					}
-					++obj_it;
 				}
 			}
 		}
