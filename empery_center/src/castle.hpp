@@ -7,6 +7,7 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/function.hpp>
 #include <vector>
+#include "transaction_element_fwd.hpp"
 
 namespace EmperyCenter {
 
@@ -15,13 +16,6 @@ namespace MySql {
 	class Center_CastleResource;
 	class Center_CastleTech;
 }
-
-class Castle;
-
-template<typename FriendT, typename SomeIdT>
-class TransactionElement;
-
-using ResourceTransactionElement = TransactionElement<Castle, ResourceId>;
 
 class Castle : public MapObject {
 public:

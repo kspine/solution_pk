@@ -4,15 +4,9 @@
 #include "common.hpp"
 #include <boost/container/flat_map.hpp>
 #include <vector>
+#include "../transaction_element_fwd.hpp"
 
 namespace EmperyCenter {
-
-class ItemBox;
-
-template<typename FriendT, typename SomeIdT>
-class TransactionElement;
-
-using ItemTransactionElement = TransactionElement<ItemBox, ItemId>;
 
 namespace Data {
 	class Item {

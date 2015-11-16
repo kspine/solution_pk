@@ -8,19 +8,13 @@
 #include <poseidon/cxx_util.hpp>
 #include <boost/function.hpp>
 #include "id_types.hpp"
+#include "transaction_element_fwd.hpp"
 
 namespace EmperyCenter {
 
 namespace MySql {
 	class Center_Item;
 }
-
-class ItemBox;
-
-template<typename FriendT, typename SomeIdT>
-class TransactionElement;
-
-using ItemTransactionElement = TransactionElement<ItemBox, ItemId>;
 
 class ItemBox : NONCOPYABLE {
 public:
