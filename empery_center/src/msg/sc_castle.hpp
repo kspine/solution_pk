@@ -16,6 +16,7 @@ namespace Msg {
 	FIELD_VUINT         (building_level)	\
 	FIELD_VUINT         (mission)	\
 	FIELD_VUINT         (mission_duration)	\
+	FIELD_VUINT         (reserved)	\
 	FIELD_VUINT         (mission_time_begin)	\
 	FIELD_VUINT         (mission_time_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -36,6 +37,7 @@ namespace Msg {
 	FIELD_VUINT         (tech_level)	\
 	FIELD_VUINT         (mission)	\
 	FIELD_VUINT         (mission_duration)	\
+	FIELD_VUINT         (reserved)	\
 	FIELD_VUINT         (mission_time_begin)	\
 	FIELD_VUINT         (mission_time_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
