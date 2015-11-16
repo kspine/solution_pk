@@ -112,7 +112,7 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 
 		const auto prev_interval = saturated_sub(old_updated_time, auto_inc_offset) / auto_inc_period;
 		const auto cur_interval = saturated_sub(utc_now, auto_inc_offset) / auto_inc_period;
-		LOG_EMPERY_CENTER_DEBUG("> Checking items: item_id = ", item_data->item_id,
+		LOG_EMPERY_CENTER_DEBUG("> Checking item: item_id = ", item_data->item_id,
 			", prev_interval = ", prev_interval, ", cur_interval = ", cur_interval);
 		if(cur_interval <= prev_interval){
 			continue;
