@@ -44,7 +44,7 @@ namespace Msg {
 	FIELD_STRING        (owner_uuid)	\
 	FIELD_STRING        (name)	\
 	FIELD_ARRAY         (attributes,	\
-		FIELD_VUINT         (slot)	\
+		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>

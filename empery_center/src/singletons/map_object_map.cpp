@@ -219,8 +219,8 @@ namespace {
 				for(auto it = attributes.begin(); it != attributes.end(); ++it){
 					msg.attributes.emplace_back();
 					auto &attribute = msg.attributes.back();
-					attribute.slot  = it->first.get();
-					attribute.value = it->second;
+					attribute.attribute_id = it->first.get();
+					attribute.value        = it->second;
 				}
 				session->send(msg);
 			}
