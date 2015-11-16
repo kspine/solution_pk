@@ -14,7 +14,8 @@ class PlayerSession;
 
 struct MapObjectMap {
 	static boost::shared_ptr<MapObject> get(MapObjectUuid map_object_uuid);
-	static void update(const boost::shared_ptr<MapObject> &map_object, const Coord &coord);
+	static void insert(const boost::shared_ptr<MapObject> &map_object);
+	static void update(const boost::shared_ptr<MapObject> &map_object);
 	static void remove(MapObjectUuid map_object_uuid) noexcept;
 
 	static void get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);

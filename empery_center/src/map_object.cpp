@@ -2,6 +2,7 @@
 #include "map_object.hpp"
 #include "mysql/map_object.hpp"
 #include "attribute_ids.hpp"
+#include "singletons/map_object_map.hpp"
 
 namespace EmperyCenter {
 
@@ -19,13 +20,6 @@ MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 	}
 }
 MapObject::~MapObject(){
-}
-
-void MapObject::delete_from_game(){
-	PROFILE_ME;
-	LOG_EMPERY_CENTER_DEBUG("Deleting map object from game: map_object_uuid = ", get_map_object_uuid());
-
-	m_obj->set_deleted(true);
 }
 
 MapObjectUuid MapObject::get_map_object_uuid() const {
@@ -46,18 +40,16 @@ void MapObject::set_name(std::string name){
 boost::uint64_t MapObject::get_created_time() const {
 	return m_obj->get_created_time();
 }
+
 bool MapObject::has_been_deleted() const {
 	return m_obj->get_deleted();
 }
+void MapObject::delete_from_game() noexcept {
+	m_obj->set_deleted(true);
 
-void MapObject::get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const {
-	PROFILE_ME;
-
-	ret.reserve(ret.size() + m_attributes.size());
-	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		ret[it->first] = it->second->get_value();
-	}
+	MapObjectMap::remove(get_map_object_uuid());
 }
+
 boost::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
 	PROFILE_ME;
 
@@ -67,18 +59,40 @@ boost::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
 	}
 	return it->second->get_value();
 }
-void MapObject::set_attribute(AttributeId map_object_attr_id, boost::int64_t value){
+void MapObject::get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const {
 	PROFILE_ME;
 
-	auto it = m_attributes.find(map_object_attr_id);
-	if(it == m_attributes.end()){
-		auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(
-			m_obj->unlocked_get_map_object_uuid(), map_object_attr_id.get(), value);
-		obj->async_save(true);
-		it = m_attributes.emplace_hint(it, map_object_attr_id, std::move(obj));
-	} else {
-		it->second->set_value(value);
+	ret.reserve(ret.size() + m_attributes.size());
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		ret[it->first] = it->second->get_value();
 	}
+}
+void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers){
+	PROFILE_ME;
+
+	// copy-and-swap
+	decltype(m_attributes) attributes;
+	attributes.reserve(m_attributes.size() + modifiers.size());
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		attributes.emplace(it->first, it->second);
+	}
+	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
+		auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(
+			m_obj->unlocked_get_map_object_uuid(), it->first.get(), it->second);
+		attributes[it->first] = std::move(obj);
+	}
+	m_attributes.swap(attributes);
+	attributes.clear();
+
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		try {
+			it->second->async_save(true);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+
+	MapObjectMap::update(virtual_shared_from_this<MapObject>());
 }
 
 Coord MapObject::get_coord() const {

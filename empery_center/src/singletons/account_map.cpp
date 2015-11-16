@@ -11,6 +11,7 @@
 #include "../events/account.hpp"
 
 #include "../castle.hpp" // FIXME remove this
+#include "../attribute_ids.hpp" // FIXME remove this
 #include "../transaction_element.hpp" // FIXME remove this
 #include "map_object_map.hpp" // FIXME remove this
 #include "../map_object_type_ids.hpp" // FIXME remove this
@@ -307,8 +308,10 @@ castle->create_building_mission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, Build
 castle->create_building_mission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 castle->create_building_mission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 
-const auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 200) - 100, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
-MapObjectMap::update(castle, coord);
+boost::container::flat_map<AttributeId, boost::int64_t> new_attributes;
+new_attributes.emplace(AttributeIds::ID_COORD_X, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
+new_attributes.emplace(AttributeIds::ID_COORD_Y, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
+castle->set_attributes(new_attributes);
 
 set_attribute(account_uuid, 399, castle->get_map_object_uuid().str());
 
