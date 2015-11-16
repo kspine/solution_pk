@@ -7,7 +7,12 @@
 
 namespace EmperyCenter {
 
-class ItemTransactionElement;
+class ItemBox;
+
+template<typename FriendT, typename SomeIdT>
+class TransactionElement;
+
+using ItemTransactionElement = TransactionElement<ItemBox, ItemId>;
 
 namespace Data {
 	class Item {

@@ -15,7 +15,12 @@ namespace MySql {
 	class Center_Item;
 }
 
-class ItemTransactionElement;
+class ItemBox;
+
+template<typename FriendT, typename SomeIdT>
+class TransactionElement;
+
+using ItemTransactionElement = TransactionElement<ItemBox, ItemId>;
 
 class ItemBox : NONCOPYABLE {
 public:

@@ -6,7 +6,7 @@
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../data/item.hpp"
-#include "../item_transaction_element.hpp"
+#include "../transaction_element.hpp"
 
 namespace EmperyCenter {
 

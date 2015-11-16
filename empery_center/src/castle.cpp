@@ -1,6 +1,6 @@
 #include "precompiled.hpp"
 #include "castle.hpp"
-#include "resource_transaction_element.hpp"
+#include "transaction_element.hpp"
 #include "map_object.hpp"
 #include "mysql/castle.hpp"
 #include "msg/sc_castle.hpp"
@@ -20,7 +20,6 @@ namespace {
 		info.building_level     = obj->get_building_level();
 		info.mission            = Castle::Mission(obj->get_mission());
 		info.mission_duration   = obj->get_mission_duration();
-		info.mission_param2     = obj->get_mission_param2();
 		info.mission_time_begin = obj->get_mission_time_begin();
 		info.mission_time_end   = obj->get_mission_time_end();
 	}
@@ -31,7 +30,6 @@ namespace {
 		info.tech_level         = obj->get_tech_level();
 		info.mission            = Castle::Mission(obj->get_mission());
 		info.mission_duration   = obj->get_mission_duration();
-		info.mission_param2     = obj->get_mission_param2();
 		info.mission_time_begin = obj->get_mission_time_begin();
 		info.mission_time_end   = obj->get_mission_time_end();
 	}
@@ -51,7 +49,7 @@ namespace {
 		msg.building_level         = obj->get_building_level();
 		msg.mission                = obj->get_mission();
 		msg.mission_duration       = obj->get_mission_duration();
-		msg.mission_param2         = obj->get_mission_param2();
+		// msg.reserved
 		msg.mission_time_begin     = obj->get_mission_time_begin();
 		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), Poseidon::get_utc_time());
 	}
@@ -63,7 +61,7 @@ namespace {
 		msg.tech_level             = obj->get_tech_level();
 		msg.mission                = obj->get_mission();
 		msg.mission_duration       = obj->get_mission_duration();
-		msg.mission_param2         = obj->get_mission_param2();
+		// msg.reserved
 		msg.mission_time_begin     = obj->get_mission_time_begin();
 		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), Poseidon::get_utc_time());
 	}
@@ -114,7 +112,6 @@ namespace {
 
 		obj->set_mission(Castle::MIS_NONE);
 		obj->set_mission_duration(0);
-		obj->set_mission_param2(0);
 		obj->set_mission_time_end(utc_now + 1);
 	}
 	void check_tech_mission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utc_now){
@@ -156,7 +153,6 @@ namespace {
 
 		obj->set_mission(Castle::MIS_NONE);
 		obj->set_mission_duration(0);
-		obj->set_mission_param2(0);
 		obj->set_mission_time_end(utc_now + 1);
 	}
 }
@@ -213,8 +209,8 @@ void Castle::pump_status(bool force_synchronization_with_client){
 			const auto building_id = *(buildings_allowed.begin());
 			LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
 				", building_base_id = ", building_base_id, ", building_id = ", building_id);
-			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(get_map_object_uuid().get(), building_base_id.get(),
-				building_id.get(), 0, Castle::MIS_NONE, 0, 0, 0, 0);
+			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
+				get_map_object_uuid().get(), building_base_id.get(), building_id.get(), 0, Castle::MIS_NONE, 0, 0, 0);
 			obj->async_save(true);
 			it = m_buildings.emplace_hint(it, building_base_id, std::move(obj));
 		}
@@ -368,7 +364,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-			get_map_object_uuid().get(), building_base_id.get(), 0, 0, MIS_NONE, 0, 0, 0, 0);
+			get_map_object_uuid().get(), building_base_id.get(), 0, 0, MIS_NONE, 0, 0, 0);
 		obj->async_save(true);
 		it = m_buildings.emplace(building_base_id, obj).first;
 	}
@@ -419,7 +415,6 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 
 	obj->set_mission(mission);
 	obj->set_mission_duration(duration);
-	// obj->set_mission_param2(0);
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
@@ -456,7 +451,6 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 
 	obj->set_mission(MIS_NONE);
 	obj->set_mission_duration(0);
-	obj->set_mission_param2(0);
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(utc_now);
 
@@ -538,7 +532,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 	auto it = m_techs.find(tech_id);
 	if(it == m_techs.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleTech>(
-			get_map_object_uuid().get(), tech_id.get(), 0, MIS_NONE, 0, 0, 0, 0);
+			get_map_object_uuid().get(), tech_id.get(), 0, MIS_NONE, 0, 0, 0);
 		obj->async_save(true);
 		it = m_techs.emplace(tech_id, obj).first;
 	}
@@ -575,7 +569,6 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 
 	obj->set_mission(mission);
 	obj->set_mission_duration(duration);
-	// obj->set_mission_param2(0);
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
@@ -612,7 +605,6 @@ void Castle::cancel_tech_mission(TechId tech_id){
 
 	obj->set_mission(MIS_NONE);
 	obj->set_mission_duration(0);
-	obj->set_mission_param2(0);
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(utc_now);
 
@@ -687,7 +679,7 @@ void Castle::get_all_resources(std::vector<Castle::ResourceInfo> &ret) const {
 		ret.emplace_back(std::move(info));
 	}
 }
-ResourceId Castle::commit_resource_transaction_nothrow(const Castle::ResourceTransactionElement *elements, std::size_t count,
+ResourceId Castle::commit_resource_transaction_nothrow(const ResourceTransactionElement *elements, std::size_t count,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
@@ -699,7 +691,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const Castle::ResourceTra
 
 	for(std::size_t i = 0; i < count; ++i){
 		const auto operation  = elements[i].m_operation;
-		const auto resource_id = elements[i].m_resource_id;
+		const auto resource_id = elements[i].m_some_id;
 		const auto delta_count = elements[i].m_delta_count;
 
 		if(delta_count == 0){
@@ -829,7 +821,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const Castle::ResourceTra
 
 	return ResourceId();
 }
-void Castle::commit_resource_transaction(const Castle::ResourceTransactionElement *elements, std::size_t count,
+void Castle::commit_resource_transaction(const ResourceTransactionElement *elements, std::size_t count,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;

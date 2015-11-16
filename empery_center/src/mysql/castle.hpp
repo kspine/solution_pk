@@ -14,9 +14,8 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (building_id)	\
 	FIELD_BIGINT_UNSIGNED   (building_level)	\
 	FIELD_INTEGER_UNSIGNED  (mission)	\
-	FIELD_BIGINT_UNSIGNED   (mission_duration)	\
-	FIELD_BIGINT_UNSIGNED   (mission_param2)	\
 	FIELD_DATETIME          (mission_time_begin)	\
+	FIELD_BIGINT_UNSIGNED   (mission_duration)	\
 	FIELD_DATETIME          (mission_time_end)
 #include <poseidon/mysql/object_generator.hpp>
 
@@ -26,9 +25,8 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (tech_id)	\
 	FIELD_BIGINT_UNSIGNED   (tech_level)	\
 	FIELD_INTEGER_UNSIGNED  (mission)	\
-	FIELD_BIGINT_UNSIGNED   (mission_duration)	\
-	FIELD_BIGINT_UNSIGNED   (mission_param2)	\
 	FIELD_DATETIME          (mission_time_begin)	\
+	FIELD_BIGINT_UNSIGNED   (mission_duration)	\
 	FIELD_DATETIME          (mission_time_end)
 #include <poseidon/mysql/object_generator.hpp>
 

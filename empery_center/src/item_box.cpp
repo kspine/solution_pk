@@ -1,6 +1,6 @@
 #include "precompiled.hpp"
 #include "item_box.hpp"
-#include "item_transaction_element.hpp"
+#include "transaction_element.hpp"
 #include "msg/sc_item.hpp"
 #include "mysql/item.hpp"
 #include "singletons/player_session_map.hpp"
@@ -194,7 +194,7 @@ ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *element
 
 	for(std::size_t i = 0; i < count; ++i){
 		const auto operation  = elements[i].m_operation;
-		const auto item_id = elements[i].m_item_id;
+		const auto item_id = elements[i].m_some_id;
 		const auto delta_count = elements[i].m_delta_count;
 
 		if(delta_count == 0){

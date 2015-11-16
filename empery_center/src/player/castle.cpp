@@ -5,6 +5,7 @@
 #include "../singletons/map_object_map.hpp"
 #include "../castle.hpp"
 #include "../data/castle.hpp"
+#include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 
 namespace EmperyCenter {
@@ -75,9 +76,9 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account_uuid, session, req){
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	std::vector<Castle::ResourceTransactionElement> transaction;
+	std::vector<ResourceTransactionElement> transaction;
 	for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
-		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
 			ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0);
 	}
 	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction.data(), transaction.size(),
@@ -101,11 +102,11 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account_uuid, session, req){
 
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level + 1);
-	std::vector<Castle::ResourceTransactionElement> transaction;
+	std::vector<ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
 		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
 		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
-			transaction.emplace_back(Castle::ResourceTransactionElement::OP_ADD,
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
 				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio)),
 				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.building_id.get(), info.building_level, 0);
 		}
@@ -149,9 +150,9 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account_uuid, session, req){
 			return Response(Msg::CERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	std::vector<Castle::ResourceTransactionElement> transaction;
+	std::vector<ResourceTransactionElement> transaction;
 	for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
-		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
 			ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0);
 	}
 	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction.data(), transaction.size(),
@@ -259,9 +260,9 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account_uuid, session, req){
 			return Response(Msg::CERR_DISPLAY_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	std::vector<Castle::ResourceTransactionElement> transaction;
+	std::vector<ResourceTransactionElement> transaction;
 	for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
-		transaction.emplace_back(Castle::ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
 			ReasonIds::ID_UPGRADE_TECH, tech_data->tech_id_level.first.get(), tech_data->tech_id_level.second, 0);
 	}
 	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction.data(), transaction.size(),
@@ -284,11 +285,11 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account_uuid, session, req){
 	}
 
 	const auto tech_data = Data::CastleTech::require(info.tech_id, info.tech_level + 1);
-	std::vector<Castle::ResourceTransactionElement> transaction;
+	std::vector<ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
 		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
 		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
-			transaction.emplace_back(Castle::ResourceTransactionElement::OP_ADD,
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
 				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio)),
 				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.tech_id.get(), info.tech_level, 0);
 		}

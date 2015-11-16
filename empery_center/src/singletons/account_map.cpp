@@ -11,6 +11,7 @@
 #include "../events/account.hpp"
 
 #include "../castle.hpp" // FIXME remove this
+#include "../transaction_element.hpp" // FIXME remove this
 #include "map_object_map.hpp" // FIXME remove this
 #include "../map_object_type_ids.hpp" // FIXME remove this
 
@@ -291,10 +292,10 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 // FIXME remove this
 auto castle = boost::make_shared<Castle>(MapObjectTypeIds::ID_CASTLE, account_uuid, "aaa");
 
-std::vector<Castle::ResourceTransactionElement> rsrc;
-rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101001), 1000000000, ReasonId(), 0, 0, 0);
-rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101002), 1000000000, ReasonId(), 0, 0, 0);
-rsrc.emplace_back(Castle::ResourceTransactionElement::OP_ADD, ResourceId(1101003), 1000000000, ReasonId(), 0, 0, 0);
+std::vector<ResourceTransactionElement> rsrc;
+rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 1000000000, ReasonId(), 0, 0, 0);
+rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101002), 1000000000, ReasonId(), 0, 0, 0);
+rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101003), 1000000000, ReasonId(), 0, 0, 0);
 castle->commit_resource_transaction(rsrc.data(), rsrc.size());
 
 castle->create_building_mission(BuildingBaseId(2),  Castle::MIS_CONSTRUCT, BuildingId(1902001));

@@ -4,7 +4,7 @@
 #include <string.h>
 #include "formats.hpp"
 #include "../data_session.hpp"
-#include "../item_transaction_element.hpp"
+#include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 
 namespace EmperyCenter {

@@ -7,7 +7,7 @@
 #include "../mail_box.hpp"
 #include "../mail_data.hpp"
 #include "../item_box.hpp"
-#include "../item_transaction_element.hpp"
+#include "../transaction_element.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../reason_ids.hpp"
 #include <poseidon/endian.hpp>

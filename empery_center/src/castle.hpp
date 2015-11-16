@@ -16,6 +16,13 @@ namespace MySql {
 	class Center_CastleTech;
 }
 
+class Castle;
+
+template<typename FriendT, typename SomeIdT>
+class TransactionElement;
+
+using ResourceTransactionElement = TransactionElement<Castle, ResourceId>;
+
 class Castle : public MapObject {
 public:
 	enum Mission {
@@ -32,7 +39,6 @@ public:
 		unsigned building_level;
 		Mission mission;
 		boost::uint64_t mission_duration;
-		boost::uint64_t mission_param2;
 		boost::uint64_t mission_time_begin;
 		boost::uint64_t mission_time_end;
 	};
@@ -42,7 +48,6 @@ public:
 		unsigned tech_level;
 		Mission mission;
 		boost::uint64_t mission_duration;
-		boost::uint64_t mission_param2;
 		boost::uint64_t mission_time_begin;
 		boost::uint64_t mission_time_end;
 	};
@@ -50,36 +55,6 @@ public:
 	struct ResourceInfo {
 		ResourceId resource_id;
 		boost::uint64_t count;
-	};
-
-	class ResourceTransactionElement {
-		friend Castle;
-
-	public:
-		enum Operation {
-			OP_NONE             = 0,
-			OP_ADD              = 1,
-			OP_REMOVE           = 2,
-			OP_REMOVE_SATURATED = 3,
-		};
-
-	private:
-		Operation m_operation;
-		ResourceId m_resource_id;
-		boost::uint64_t m_delta_count;
-
-		ReasonId m_reason;
-		boost::uint64_t m_param1;
-		boost::uint64_t m_param2;
-		boost::uint64_t m_param3;
-
-	public:
-		ResourceTransactionElement(Operation operation, ResourceId resource_id, boost::uint64_t delta_count,
-			ReasonId reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3)
-			: m_operation(operation), m_resource_id(resource_id), m_delta_count(delta_count)
-			, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3)
-		{
-		}
 	};
 
 private:
