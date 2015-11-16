@@ -14,7 +14,6 @@ class PlayerSession;
 
 struct MapObjectMap {
 	static boost::shared_ptr<MapObject> get(MapObjectUuid map_object_uuid);
-	static void insert(const boost::shared_ptr<MapObject> &map_object);
 	static void update(const boost::shared_ptr<MapObject> &map_object);
 	static void remove(MapObjectUuid map_object_uuid) noexcept;
 
