@@ -443,8 +443,6 @@ void MapObjectMap::set_player_view(const boost::shared_ptr<PlayerSession> &sessi
 		player_view_map->erase<0>(session);
 		throw;
 	}
-
-	synchronize_player_view(session, view);
 }
 
 void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept {
