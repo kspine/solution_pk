@@ -191,6 +191,11 @@ bool PlayerSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer payl
 	return impl->send(std::move(whole), true);
 }
 
+void PlayerSession::shutdown(const char *message) noexcept {
+	PROFILE_ME;
+
+	shutdown(Poseidon::Cbpp::ST_INTERNAL_ERROR, message);
+}
 void PlayerSession::shutdown(int reason, const char *message) noexcept {
 	PROFILE_ME;
 

@@ -11,7 +11,7 @@ namespace Events {
 		AccountUuid account_uuid;
 		std::string remote_ip;
 
-		AccountCreated(const AccountUuid &account_uuid_, std::string remote_ip_)
+		AccountCreated(AccountUuid account_uuid_, std::string remote_ip_)
 			: account_uuid(account_uuid_), remote_ip(std::move(remote_ip_))
 		{
 		}
@@ -21,7 +21,7 @@ namespace Events {
 		AccountUuid account_uuid;
 		std::string remote_ip;
 
-		AccountLoggedIn(const AccountUuid &account_uuid_, std::string remote_ip_)
+		AccountLoggedIn(AccountUuid account_uuid_, std::string remote_ip_)
 			: account_uuid(account_uuid_), remote_ip(std::move(remote_ip_))
 		{
 		}
@@ -31,7 +31,7 @@ namespace Events {
 		AccountUuid account_uuid;
 		boost::uint64_t online_duration;
 
-		AccountLoggedOut(const AccountUuid &account_uuid_, boost::uint64_t online_duration_)
+		AccountLoggedOut(AccountUuid account_uuid_, boost::uint64_t online_duration_)
 			: account_uuid(account_uuid_), online_duration(online_duration_)
 		{
 		}

@@ -4,7 +4,6 @@
 #include "../singletons/item_map.hpp"
 #include "../msg/err_account.hpp"
 #include "../item_ids.hpp"
-#include "../checked_arithmetic.hpp"
 
 namespace EmperyPromotion {
 

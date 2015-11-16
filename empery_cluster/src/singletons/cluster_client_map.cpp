@@ -35,9 +35,9 @@ namespace {
 	boost::weak_ptr<ClientMapDelegator> g_client_map;
 
 	MODULE_RAII(handles){
-		get_config(g_client_connect,           "cluster_cbpp_client_connect");
-		get_config(g_client_port,              "cluster_cbpp_client_port");
-		get_config(g_client_use_ssl,            "cluster_cbpp_client_use_ssl");
+		get_config(g_client_connect,             "cluster_cbpp_client_connect");
+		get_config(g_client_port,                "cluster_cbpp_client_port");
+		get_config(g_client_use_ssl,             "cluster_cbpp_client_use_ssl");
 		get_config(g_client_keep_alive_interval, "cluster_cbpp_keep_alive_interval");
 
 		const auto client_map = boost::make_shared<ClientMapDelegator>();

@@ -6,7 +6,6 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/shared_ptr.hpp>
 #include <poseidon/cxx_util.hpp>
-#include <boost/function.hpp>
 #include "id_types.hpp"
 
 namespace EmperyCenter {
@@ -15,12 +14,14 @@ namespace MySql {
 	class Center_Mail;
 }
 
+class MailData;
+
 class MailBox : NONCOPYABLE {
 public:
 	enum : boost::uint64_t {
 		FL_SYSTEM               = 0x0001,
 		FL_READ                 = 0x0010,
-		FL_ATTACHMENT_FETCHED   = 0x0020,
+		FL_ATTACHMENTS_FETCHED  = 0x0020,
 	};
 
 	struct MailInfo {
@@ -36,8 +37,8 @@ private:
 		boost::shared_ptr<MySql::Center_Mail>> m_mails;
 
 public:
-	explicit MailBox(const AccountUuid &account_uuid);
-	MailBox(const AccountUuid &account_uuid,
+	explicit MailBox(AccountUuid account_uuid);
+	MailBox(AccountUuid account_uuid,
 		const std::vector<boost::shared_ptr<MySql::Center_Mail>> &mails);
 	~MailBox();
 
@@ -48,11 +49,12 @@ public:
 
 	void pump_status(bool force_synchronization_with_client = false);
 
-	MailInfo get(const MailUuid &mail_uuid) const;
+	MailInfo get(MailUuid mail_uuid) const;
 	void get_all(std::vector<MailInfo> &ret) const;
 
-	bool create(const MailInfo &info);
-	bool remove(const MailUuid &mail_uuid) noexcept;
+	void insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time);
+	void update(MailInfo info);
+	bool remove(MailUuid mail_uuid) noexcept;
 };
 
 }

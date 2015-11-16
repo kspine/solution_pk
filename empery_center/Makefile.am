@@ -44,4 +44,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/castle.cpp	\
 	src/item_box.cpp	\
 	src/mail_box.cpp	\
+	src/mail_data.cpp	\
 	src/mmain.cpp

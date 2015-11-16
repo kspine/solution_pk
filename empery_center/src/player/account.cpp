@@ -35,11 +35,9 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 		return Response(Msg::CERR_ACCOUNT_BANNED) <<req.login_name;
 	}
 
-	const auto account_uuid = login_info.account_uuid;
-
-	PlayerSessionMap::add(account_uuid, session);
-	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
-	AccountMap::send_attributes_to_client(account_uuid, session, true, true, true, false);
+	PlayerSessionMap::add(login_info.account_uuid, session);
+	session->send(Msg::SC_AccountLoginSuccess(login_info.account_uuid.str()));
+	AccountMap::send_attributes_to_client(login_info.account_uuid, session, true, true, true, false);
 
 	return Response();
 }

@@ -59,6 +59,7 @@ public:
 		return send_control(message_id, status_code, std::string());
 	}
 
+	void shutdown(const char *message) noexcept;
 	void shutdown(int reason, const char *message) noexcept;
 };
 

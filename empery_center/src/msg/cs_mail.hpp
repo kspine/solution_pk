@@ -26,11 +26,11 @@ namespace Msg {
 	FIELD_STRING        (to_account_uuid)	\
 	FIELD_VUINT         (type)	\
 	FIELD_STRING        (subject)	\
-	FIELD_STRING        (text)	\
+	FIELD_STRING        (body)	\
 	FIELD_VUINT         (language_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    CS_MailSetAsRead
+#define MESSAGE_NAME    CS_MailMarkAsRead
 #define MESSAGE_ID      603
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (mail_uuid)
@@ -39,7 +39,8 @@ namespace Msg {
 #define MESSAGE_NAME    CS_MailFetchAttachments
 #define MESSAGE_ID      604
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (mail_uuid)
+	FIELD_STRING        (mail_uuid)	\
+	FIELD_VUINT         (language_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_MailDelete

@@ -148,7 +148,7 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 				session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->force_shutdown();
+				session->shutdown(e.what());
 			}
 		}
 	} else {

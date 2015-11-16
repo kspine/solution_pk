@@ -140,22 +140,22 @@ public:
 	}
 
 public:
-	constexpr bool operator==(const GenericUuid &rhs) const {
+	constexpr bool operator==(GenericUuid rhs) const {
 		return get() == rhs.get();
 	}
-	constexpr bool operator!=(const GenericUuid &rhs) const {
+	constexpr bool operator!=(GenericUuid rhs) const {
 		return get() != rhs.get();
 	}
-	constexpr bool operator<(const GenericUuid &rhs) const {
+	constexpr bool operator<(GenericUuid rhs) const {
 		return get() < rhs.get();
 	}
-	constexpr bool operator>(const GenericUuid &rhs) const {
+	constexpr bool operator>(GenericUuid rhs) const {
 		return get() > rhs.get();
 	}
-	constexpr bool operator<=(const GenericUuid &rhs) const {
+	constexpr bool operator<=(GenericUuid rhs) const {
 		return get() <= rhs.get();
 	}
-	constexpr bool operator>=(const GenericUuid &rhs) const {
+	constexpr bool operator>=(GenericUuid rhs) const {
 		return get() >= rhs.get();
 	}
 

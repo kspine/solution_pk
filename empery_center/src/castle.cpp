@@ -5,7 +5,6 @@
 #include "mysql/castle.hpp"
 #include "msg/sc_castle.hpp"
 #include "singletons/player_session_map.hpp"
-#include "checked_arithmetic.hpp"
 #include "player_session.hpp"
 #include "data/castle.hpp"
 #include "events/resource.hpp"
@@ -162,7 +161,7 @@ namespace {
 	}
 }
 
-Castle::Castle(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name)
+Castle::Castle(MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string name)
 	: MapObject(map_object_type_id, owner_uuid, std::move(name))
 {
 }
@@ -257,7 +256,7 @@ void Castle::pump_status(bool force_synchronization_with_client){
 				}
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->force_shutdown();
+				session->shutdown(e.what());
 			}
 		}
 	}
@@ -283,7 +282,7 @@ void Castle::pump_building_status(BuildingBaseId building_base_id, bool force_sy
 				session->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->force_shutdown();
+				session->shutdown(e.what());
 			}
 		}
 	}
@@ -309,7 +308,7 @@ void Castle::pump_tech_status(TechId tech_id, bool force_synchronization_with_cl
 				session->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->force_shutdown();
+				session->shutdown(e.what());
 			}
 		}
 	}
@@ -434,7 +433,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
@@ -471,7 +470,7 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
@@ -504,7 +503,7 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, boost::u
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
@@ -590,7 +589,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
@@ -627,7 +626,7 @@ void Castle::cancel_tech_mission(TechId tech_id){
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
@@ -660,7 +659,7 @@ void Castle::speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duratio
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
@@ -824,7 +823,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const Castle::ResourceTra
 			}
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 

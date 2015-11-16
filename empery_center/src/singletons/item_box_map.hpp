@@ -9,8 +9,8 @@ namespace EmperyCenter {
 class ItemBox;
 
 struct ItemBoxMap {
-	static boost::shared_ptr<ItemBox> get(const AccountUuid &account_uuid);
-	static boost::shared_ptr<ItemBox> require(const AccountUuid &account_uuid);
+	static boost::shared_ptr<ItemBox> get(AccountUuid account_uuid);
+	static boost::shared_ptr<ItemBox> require(AccountUuid account_uuid);
 
 private:
 	ItemBoxMap() = delete;

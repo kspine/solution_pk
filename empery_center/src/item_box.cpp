@@ -6,7 +6,6 @@
 #include "singletons/player_session_map.hpp"
 #include "events/item.hpp"
 #include "player_session.hpp"
-#include "checked_arithmetic.hpp"
 #include "data/item.hpp"
 #include "reason_ids.hpp"
 
@@ -28,11 +27,11 @@ namespace {
 	}
 }
 
-ItemBox::ItemBox(const AccountUuid &account_uuid)
+ItemBox::ItemBox(AccountUuid account_uuid)
 	: m_account_uuid(account_uuid)
 {
 }
-ItemBox::ItemBox(const AccountUuid &account_uuid,
+ItemBox::ItemBox(AccountUuid account_uuid,
 	const std::vector<boost::shared_ptr<MySql::Center_Item>> &items)
 	: ItemBox(account_uuid)
 {
@@ -155,7 +154,7 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 				}
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->force_shutdown();
+				session->shutdown(e.what());
 			}
 		}
 	}
@@ -316,7 +315,7 @@ ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *element
 			}
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 

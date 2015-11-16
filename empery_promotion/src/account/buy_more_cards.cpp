@@ -3,7 +3,6 @@
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
 #include "../data/promotion.hpp"
-#include "../checked_arithmetic.hpp"
 #include "../singletons/item_map.hpp"
 #include "../singletons/global_status.hpp"
 #include "../data/promotion.hpp"

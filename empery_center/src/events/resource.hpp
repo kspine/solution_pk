@@ -19,7 +19,7 @@ namespace Events {
 		boost::uint64_t param2;
 		boost::uint64_t param3;
 
-		ResourceChanged(const MapObjectUuid &map_object_uuid_, const AccountUuid &owner_uuid_,
+		ResourceChanged(MapObjectUuid map_object_uuid_, AccountUuid owner_uuid_,
 			ResourceId resource_id_, boost::uint64_t old_count_, boost::uint64_t new_count_,
 			ReasonId reason_, boost::uint64_t param1_, boost::uint64_t param2_, boost::uint64_t param3_)
 			: map_object_uuid(map_object_uuid_), owner_uuid(owner_uuid_)

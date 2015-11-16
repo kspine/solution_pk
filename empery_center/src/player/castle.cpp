@@ -4,14 +4,13 @@
 #include "../msg/cerr_castle.hpp"
 #include "../singletons/map_object_map.hpp"
 #include "../castle.hpp"
-#include "../checked_arithmetic.hpp"
 #include "../data/castle.hpp"
 #include "../reason_ids.hpp"
 
 namespace EmperyCenter {
 
 namespace {
-	inline boost::shared_ptr<Castle> require_castle(const AccountUuid &account_uuid, const MapObjectUuid &map_object_uuid){
+	inline boost::shared_ptr<Castle> require_castle(AccountUuid account_uuid, MapObjectUuid map_object_uuid){
 		PROFILE_ME;
 
 		const auto castle = boost::dynamic_pointer_cast<Castle>(MapObjectMap::get(map_object_uuid));

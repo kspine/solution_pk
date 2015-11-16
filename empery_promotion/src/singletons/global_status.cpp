@@ -6,7 +6,6 @@
 #include <poseidon/async_job.hpp>
 #include "../mysql/global_status.hpp"
 #include "../utilities.hpp"
-#include "../checked_arithmetic.hpp"
 #include "../data/promotion.hpp"
 #include "account_map.hpp"
 

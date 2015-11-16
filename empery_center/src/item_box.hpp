@@ -31,8 +31,8 @@ private:
 		boost::shared_ptr<MySql::Center_Item>> m_items;
 
 public:
-	explicit ItemBox(const AccountUuid &account_uuid);
-	ItemBox(const AccountUuid &account_uuid,
+	explicit ItemBox(AccountUuid account_uuid);
+	ItemBox(AccountUuid account_uuid,
 		const std::vector<boost::shared_ptr<MySql::Center_Item>> &items);
 	~ItemBox();
 

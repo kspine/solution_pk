@@ -86,7 +86,7 @@ namespace {
 		std::pair<AccountUuid, boost::weak_ptr<PlayerSession>> account_uuid_session;
 
 		InfoTimestampElement(boost::uint64_t expiry_time_,
-			const AccountUuid &account_uuid_, const boost::shared_ptr<PlayerSession> &session_)
+			AccountUuid account_uuid_, const boost::shared_ptr<PlayerSession> &session_)
 			: expiry_time(expiry_time_), account_uuid_session(account_uuid_, session_)
 		{
 		}
@@ -163,14 +163,14 @@ namespace {
 		info.platform_id           = PlatformId(obj->get_platform_id());
 		info.login_name            = obj->unlocked_get_login_name();
 		info.account_uuid          = AccountUuid(obj->unlocked_get_account_uuid());
-		info.flags                = obj->get_flags();
+		info.flags                 = obj->get_flags();
 		info.login_token           = obj->unlocked_get_login_token();
 		info.login_token_expiry_time = obj->get_login_token_expiry_time();
 		info.banned_until          = obj->get_banned_until();
 	}
 }
 
-bool AccountMap::has(const AccountUuid &account_uuid){
+bool AccountMap::has(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	const auto it = g_account_map.find<0>(account_uuid);
@@ -184,7 +184,7 @@ bool AccountMap::has(const AccountUuid &account_uuid){
 	}
 	return true;
 }
-AccountMap::AccountInfo AccountMap::get(const AccountUuid &account_uuid){
+AccountMap::AccountInfo AccountMap::get(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	AccountInfo info = { };
@@ -202,7 +202,7 @@ AccountMap::AccountInfo AccountMap::get(const AccountUuid &account_uuid){
 	fill_account_info(info, it->obj);
 	return info;
 }
-AccountMap::AccountInfo AccountMap::require(const AccountUuid &account_uuid){
+AccountMap::AccountInfo AccountMap::require(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	auto info = get(account_uuid);
@@ -226,7 +226,7 @@ void AccountMap::get_by_nick(std::vector<AccountMap::AccountInfo> &ret, const st
 	}
 }
 
-AccountMap::LoginInfo AccountMap::get_login_info(const AccountUuid &account_uuid){
+AccountMap::LoginInfo AccountMap::get_login_info(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	LoginInfo info = { };
@@ -315,7 +315,7 @@ set_attribute(account_uuid, 399, castle->get_map_object_uuid().str());
 	return std::make_pair(account_uuid, true);
 }
 
-void AccountMap::set_nick(const AccountUuid &account_uuid, std::string nick){
+void AccountMap::set_nick(AccountUuid account_uuid, std::string nick){
 	PROFILE_ME;
 
 	const auto it = g_account_map.find<0>(account_uuid);
@@ -340,11 +340,11 @@ void AccountMap::set_nick(const AccountUuid &account_uuid, std::string nick){
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
-void AccountMap::set_login_token(const AccountUuid &account_uuid, std::string login_token, boost::uint64_t expiry_time){
+void AccountMap::set_login_token(AccountUuid account_uuid, std::string login_token, boost::uint64_t expiry_time){
 	PROFILE_ME;
 
 	const auto it = g_account_map.find<0>(account_uuid);
@@ -360,7 +360,7 @@ void AccountMap::set_login_token(const AccountUuid &account_uuid, std::string lo
 	it->obj->set_login_token(std::move(login_token)); // noexcept
 	it->obj->set_login_token_expiry_time(expiry_time); // noexcept
 }
-void AccountMap::set_banned_until(const AccountUuid &account_uuid, boost::uint64_t until){
+void AccountMap::set_banned_until(AccountUuid account_uuid, boost::uint64_t until){
 	PROFILE_ME;
 
 	const auto it = g_account_map.find<0>(account_uuid);
@@ -375,7 +375,7 @@ void AccountMap::set_banned_until(const AccountUuid &account_uuid, boost::uint64
 
 	it->obj->set_banned_until(until); // noexcept
 }
-void AccountMap::set_flags(const AccountUuid &account_uuid, boost::uint64_t flags){
+void AccountMap::set_flags(AccountUuid account_uuid, boost::uint64_t flags){
 	PROFILE_ME;
 
 	const auto it = g_account_map.find<0>(account_uuid);
@@ -391,7 +391,7 @@ void AccountMap::set_flags(const AccountUuid &account_uuid, boost::uint64_t flag
 	it->obj->set_flags(flags); // noexcept
 }
 
-const std::string &AccountMap::get_attribute(const AccountUuid &account_uuid, unsigned slot){
+const std::string &AccountMap::get_attribute(AccountUuid account_uuid, unsigned slot){
 	PROFILE_ME;
 
 	const auto it = g_attribute_map.find<0>(std::make_pair(account_uuid, slot));
@@ -402,7 +402,7 @@ const std::string &AccountMap::get_attribute(const AccountUuid &account_uuid, un
 	return it->obj->unlocked_get_value();
 }
 void AccountMap::get_attributes(boost::container::flat_map<unsigned, std::string> &ret,
-	const AccountUuid &account_uuid, unsigned begin_slot, unsigned end_slot)
+	AccountUuid account_uuid, unsigned begin_slot, unsigned end_slot)
 {
 	PROFILE_ME;
 
@@ -413,7 +413,7 @@ void AccountMap::get_attributes(boost::container::flat_map<unsigned, std::string
 		ret.emplace(it->obj->get_slot(), it->obj->unlocked_get_value());
 	}
 }
-void AccountMap::touch_attribute(const AccountUuid &account_uuid, unsigned slot){
+void AccountMap::touch_attribute(AccountUuid account_uuid, unsigned slot){
 	PROFILE_ME;
 
 	auto it = g_attribute_map.find<0>(std::make_pair(account_uuid, slot));
@@ -423,7 +423,7 @@ void AccountMap::touch_attribute(const AccountUuid &account_uuid, unsigned slot)
 		it->obj->async_save(true);
 	}
 }
-void AccountMap::set_attribute(const AccountUuid &account_uuid, unsigned slot, std::string value){
+void AccountMap::set_attribute(AccountUuid account_uuid, unsigned slot, std::string value){
 	PROFILE_ME;
 
 	auto it = g_attribute_map.find<0>(std::make_pair(account_uuid, slot));
@@ -447,12 +447,12 @@ void AccountMap::set_attribute(const AccountUuid &account_uuid, unsigned slot, s
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }
 
-void AccountMap::send_attributes_to_client(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session,
+void AccountMap::send_attributes_to_client(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
 	bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items)
 {
 	PROFILE_ME;
@@ -483,7 +483,7 @@ void AccountMap::send_attributes_to_client(const AccountUuid &account_uuid, cons
 	}
 	session->send(msg);
 }
-void AccountMap::combined_send_attributes_to_client(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session){
+void AccountMap::combined_send_attributes_to_client(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
 	const auto now = Poseidon::get_fast_mono_clock();

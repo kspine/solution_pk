@@ -8,7 +8,6 @@
 #include "account_map.hpp"
 #include "../item_box.hpp"
 #include "../mysql/item.hpp"
-#include "../checked_arithmetic.hpp"
 
 namespace EmperyCenter {
 
@@ -19,10 +18,11 @@ namespace {
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
 		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
+
 		mutable boost::shared_ptr<ItemBox> item_box;
 		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
 
-		ItemBoxElement(const AccountUuid &account_uuid_, boost::uint64_t unload_time_)
+		ItemBoxElement(AccountUuid account_uuid_, boost::uint64_t unload_time_)
 			: account_uuid(account_uuid_), unload_time(unload_time_)
 		{
 		}
@@ -73,7 +73,7 @@ namespace {
 	}
 }
 
-boost::shared_ptr<ItemBox> ItemBoxMap::get(const AccountUuid &account_uuid){
+boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	const auto item_box_map = g_item_box_map.lock();
@@ -145,7 +145,7 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(const AccountUuid &account_uuid){
 
 	return it->item_box;
 }
-boost::shared_ptr<ItemBox> ItemBoxMap::require(const AccountUuid &account_uuid){
+boost::shared_ptr<ItemBox> ItemBoxMap::require(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	auto ret = get(account_uuid);

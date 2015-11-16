@@ -3,7 +3,6 @@
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include "../mysql/global_status.hpp"
-#include "../checked_arithmetic.hpp"
 
 namespace EmperyGoldScramble {
 

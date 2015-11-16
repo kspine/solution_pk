@@ -91,7 +91,7 @@ private:
 		boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
 
 public:
-	Castle(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name);
+	Castle(MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string name);
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,

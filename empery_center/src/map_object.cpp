@@ -5,7 +5,7 @@
 
 namespace EmperyCenter {
 
-MapObject::MapObject(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name){
+MapObject::MapObject(MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string name){
 	m_obj = boost::make_shared<MySql::Center_MapObject>(
 		Poseidon::Uuid::random(), map_object_type_id.get(), owner_uuid.get(), std::move(name), Poseidon::get_utc_time(), false);
 	m_obj->async_save(true);

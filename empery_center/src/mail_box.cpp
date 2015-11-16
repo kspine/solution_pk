@@ -1,10 +1,11 @@
 #include "precompiled.hpp"
 #include "mail_box.hpp"
+#include "mail_data.hpp"
 #include "msg/sc_mail.hpp"
 #include "mysql/mail.hpp"
+#include "singletons/mail_box_map.hpp"
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
-#include "checked_arithmetic.hpp"
 
 namespace EmperyCenter {
 
@@ -26,11 +27,11 @@ namespace {
 	}
 }
 
-MailBox::MailBox(const AccountUuid &account_uuid)
+MailBox::MailBox(AccountUuid account_uuid)
 	: m_account_uuid(account_uuid)
 {
 }
-MailBox::MailBox(const AccountUuid &account_uuid,
+MailBox::MailBox(AccountUuid account_uuid,
 	const std::vector<boost::shared_ptr<MySql::Center_Mail>> &mails)
 	: MailBox(account_uuid)
 {
@@ -47,10 +48,32 @@ void MailBox::pump_status(bool force_synchronization_with_client){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
+	const auto global_mail_box = MailBoxMap::get_global();
+	if(global_mail_box.get() != this){
+		LOG_EMPERY_CENTER_DEBUG("Checking for system mails: account_uuid = ", get_account_uuid());
+
+		for(auto it = global_mail_box->m_mails.begin(); it != global_mail_box->m_mails.end(); ++it){
+			if(it->second->get_expiry_time() < utc_now){
+				continue;
+			}
+			const auto my_it = m_mails.find(it->first);
+			if(my_it != m_mails.end()){
+				continue;
+			}
+			LOG_EMPERY_CENTER_DEBUG("> Creating system mail: mail_uuid = ", it->first);
+			auto obj = boost::make_shared<MySql::Center_Mail>(it->first.get(), get_account_uuid().get(),
+				it->second->get_expiry_time(), it->second->get_flags());
+			obj->async_save(true);
+			m_mails.emplace(it->first, std::move(obj));
+		}
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Checking for expired mails: account_uuid = ", get_account_uuid());
 	{
 		auto it = m_mails.begin();
 		while(it != m_mails.end()){
 			if(it->second->get_expiry_time() < utc_now){
+				LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: mail_uuid = ", it->first);
 				it = m_mails.erase(it);
 			} else {
 				++it;
@@ -69,13 +92,13 @@ void MailBox::pump_status(bool force_synchronization_with_client){
 				}
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->force_shutdown();
+				session->shutdown(e.what());
 			}
 		}
 	}
 }
 
-MailBox::MailInfo MailBox::get(const MailUuid &mail_uuid) const {
+MailBox::MailInfo MailBox::get(MailUuid mail_uuid) const {
 	PROFILE_ME;
 
 	MailInfo info = { };
@@ -107,31 +130,85 @@ void MailBox::get_all(std::vector<MailBox::MailInfo> &ret) const {
 	}
 }
 
-bool MailBox::create(const MailInfo &info){
+void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time){
 	PROFILE_ME;
 
-	bool created = false;
-	auto it = m_mails.find(info.mail_uuid);
+	const auto mail_uuid = mail_data->get_mail_uuid();
+	const auto it = m_mails.find(mail_uuid);
+	if(it != m_mails.end()){
+		LOG_EMPERY_CENTER_WARNING("Mail exists: account_uuid = ", get_account_uuid(), ", mail_uuid = ", mail_uuid);
+		DEBUG_THROW(Exception, sslit("Mail exists"));
+	}
+	boost::uint64_t flags = 0;
+	if(mail_data->get_attachments().empty()){
+		Poseidon::add_flags(flags, FL_ATTACHMENTS_FETCHED);
+	}
+	const auto obj = boost::make_shared<MySql::Center_Mail>(mail_uuid.get(), get_account_uuid().get(), expiry_time, flags);
+	obj->async_save(true);
+	m_mails.emplace(mail_uuid, obj);
+
+	const auto session = PlayerSessionMap::get(get_account_uuid());
+	if(session){
+		try {
+			Msg::SC_MailChanged msg;
+			fill_mail_message(msg, obj, Poseidon::get_utc_time());
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+void MailBox::update(MailInfo info){
+	PROFILE_ME;
+
+	const auto it = m_mails.find(info.mail_uuid);
 	if(it == m_mails.end()){
-		auto obj = boost::make_shared<MySql::Center_Mail>(info.mail_uuid.get(), get_account_uuid().get(), 0, 0);
-		obj->async_save(true);
-		it = m_mails.emplace_hint(it, info.mail_uuid, std::move(obj));
-		created = true;
+		LOG_EMPERY_CENTER_WARNING("Mail not found: account_uuid = ", get_account_uuid(), ", mail_uuid = ", info.mail_uuid);
+		DEBUG_THROW(Exception, sslit("Mail not found"));
 	}
 	const auto &obj = it->second;
+
 	obj->set_expiry_time(info.expiry_time);
 	obj->set_flags(info.flags);
-	return created;
+
+	const auto session = PlayerSessionMap::get(get_account_uuid());
+	if(session){
+		try {
+			Msg::SC_MailChanged msg;
+			fill_mail_message(msg, obj, Poseidon::get_utc_time());
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
-bool MailBox::remove(const MailUuid &mail_uuid) noexcept {
+bool MailBox::remove(MailUuid mail_uuid) noexcept {
 	PROFILE_ME;
 
 	const auto it = m_mails.find(mail_uuid);
 	if(it == m_mails.end()){
 		return false;
 	}
-	it->second->set_expiry_time(0);
+	const auto obj = std::move(it->second);
 	m_mails.erase(it);
+
+	obj->set_expiry_time(0);
+
+	const auto session = PlayerSessionMap::get(get_account_uuid());
+	if(session){
+		try {
+			Msg::SC_MailChanged msg;
+			// fill_mail_message(msg, obj, Poseidon::get_utc_time());
+			msg.mail_uuid = mail_uuid.str();
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+
 	return true;
 }
 

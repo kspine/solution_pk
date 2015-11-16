@@ -3,7 +3,6 @@
 #include <poseidon/multi_index_map.hpp>
 #include "formats.hpp"
 #include "../data_session.hpp"
-#include "../checked_arithmetic.hpp"
 
 namespace EmperyCenter {
 

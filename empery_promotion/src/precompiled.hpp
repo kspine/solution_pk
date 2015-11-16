@@ -17,6 +17,7 @@
 #include <poseidon/uuid.hpp>
 
 #include "log.hpp"
+#include "checked_arithmetic.hpp"
 
 namespace EmperyPromotion {
 

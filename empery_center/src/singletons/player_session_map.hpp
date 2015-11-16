@@ -13,12 +13,12 @@ namespace EmperyCenter {
 class PlayerSession;
 
 struct PlayerSessionMap {
-	static boost::shared_ptr<PlayerSession> get(const AccountUuid &account_uuid);
+	static boost::shared_ptr<PlayerSession> get(AccountUuid account_uuid);
 
 	static AccountUuid get_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session);
 	static AccountUuid require_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session);
 
-	static void add(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session);
+	static void add(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 	static void remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept;
 	static void thread_safe_remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept;
 

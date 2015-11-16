@@ -201,10 +201,10 @@ namespace {
 				map_object->get_attributes(attributes);
 
 				Msg::SC_MapObjectInfo msg;
-				msg.object_uuid   = map_object->get_map_object_uuid().str();
+				msg.object_uuid    = map_object->get_map_object_uuid().str();
 				msg.object_type_id = map_object->get_map_object_type_id().get();
-				msg.owner_uuid    = map_object->get_owner_uuid().str();
-				msg.name         = map_object->get_name();
+				msg.owner_uuid     = map_object->get_owner_uuid().str();
+				msg.name           = map_object->get_name();
 				msg.attributes.reserve(attributes.size());
 				for(auto it = attributes.begin(); it != attributes.end(); ++it){
 					msg.attributes.emplace_back();
@@ -216,7 +216,7 @@ namespace {
 			}
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 	void synchronize_map_object(const boost::shared_ptr<MapObject> &map_object, const Coord &coord) noexcept {
@@ -245,7 +245,7 @@ namespace {
 	}
 }
 
-boost::shared_ptr<MapObject> MapObjectMap::get(const MapObjectUuid &map_object_uuid){
+boost::shared_ptr<MapObject> MapObjectMap::get(MapObjectUuid map_object_uuid){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -314,7 +314,7 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, const 
 
 	synchronize_map_object(map_object, coord);
 }
-void MapObjectMap::remove(const MapObjectUuid &map_object_uuid) noexcept {
+void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -353,7 +353,7 @@ void MapObjectMap::remove(const MapObjectUuid &map_object_uuid) noexcept {
 	synchronize_map_object(map_object, coord);
 }
 
-void MapObjectMap::get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, const AccountUuid &owner_uuid){
+void MapObjectMap::get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -491,7 +491,7 @@ void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		session->force_shutdown();
+		session->shutdown(e.what());
 	}
 }
 

@@ -2,7 +2,6 @@
 #include "item_map.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
-#include "../checked_arithmetic.hpp"
 #include "../item_transaction_element.hpp"
 #include "../mysql/item.hpp"
 #include "../events/item.hpp"

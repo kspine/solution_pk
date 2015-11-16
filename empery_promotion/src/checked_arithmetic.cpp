@@ -1,5 +1,4 @@
 #include "precompiled.hpp"
-#include "checked_arithmetic.hpp"
 #include <poseidon/exception.hpp>
 
 namespace EmperyPromotion {

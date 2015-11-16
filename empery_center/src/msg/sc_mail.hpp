@@ -15,7 +15,7 @@ namespace Msg {
 	FIELD_VUINT         (flags)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SC_MailText
+#define MESSAGE_NAME    SC_MailData
 #define MESSAGE_ID      698
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (mail_uuid)	\
@@ -23,7 +23,7 @@ namespace Msg {
 	FIELD_VUINT         (created_time)	\
 	FIELD_VUINT         (type)	\
 	FIELD_VUINT         (from_account_uuid)	\
-	FIELD_STRING        (summary)	\
+	FIELD_STRING        (subject)	\
 	FIELD_STRING        (body)	\
 	FIELD_ARRAY         (attachments,	\
 		FIELD_VUINT         (item_id)	\

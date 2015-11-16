@@ -13,11 +13,11 @@ class MapObject;
 class PlayerSession;
 
 struct MapObjectMap {
-	static boost::shared_ptr<MapObject> get(const MapObjectUuid &map_object_uuid);
+	static boost::shared_ptr<MapObject> get(MapObjectUuid map_object_uuid);
 	static void update(const boost::shared_ptr<MapObject> &map_object, const Coord &coord);
-	static void remove(const MapObjectUuid &map_object_uuid) noexcept;
+	static void remove(MapObjectUuid map_object_uuid) noexcept;
 
-	static void get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, const AccountUuid &owner_uuid);
+	static void get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);
 
 	static void get_by_rectangle(std::vector<std::pair<Coord, boost::shared_ptr<MapObject>>> &ret, const Rectangle &rectangle);
 

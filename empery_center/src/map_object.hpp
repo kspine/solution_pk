@@ -25,7 +25,7 @@ private:
 	boost::container::flat_map<AttributeId, boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 public:
-	MapObject(MapObjectTypeId map_object_type_id, const AccountUuid &owner_uuid, std::string name);
+	MapObject(MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string name);
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	virtual ~MapObject();

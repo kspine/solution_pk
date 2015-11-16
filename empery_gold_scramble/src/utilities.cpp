@@ -10,7 +10,6 @@
 #include "singletons/http_client_daemon.hpp"
 #include "player_session.hpp"
 #include "msg/sc_account.hpp"
-#include "checked_arithmetic.hpp"
 
 namespace EmperyGoldScramble {
 

@@ -17,7 +17,7 @@ namespace {
 
 		boost::uint64_t online_since;
 
-		SessionElement(const AccountUuid &account_uuid_, boost::weak_ptr<PlayerSession> weak_session_)
+		SessionElement(AccountUuid account_uuid_, boost::weak_ptr<PlayerSession> weak_session_)
 			: account_uuid(account_uuid_), weak_session(std::move(weak_session_))
 			, online_since(Poseidon::get_fast_mono_clock())
 		{
@@ -59,7 +59,7 @@ namespace {
 	}
 }
 
-boost::shared_ptr<PlayerSession> PlayerSessionMap::get(const AccountUuid &account_uuid){
+boost::shared_ptr<PlayerSession> PlayerSessionMap::get(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	const auto it = g_session_map->find<0>(account_uuid);
@@ -95,7 +95,7 @@ AccountUuid PlayerSessionMap::require_account_uuid(const boost::weak_ptr<PlayerS
 	return ret;
 }
 
-void PlayerSessionMap::add(const AccountUuid &account_uuid, const boost::shared_ptr<PlayerSession> &session){
+void PlayerSessionMap::add(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
 	const auto it = g_session_map->find<1>(session);
@@ -118,7 +118,7 @@ void PlayerSessionMap::add(const AccountUuid &account_uuid, const boost::shared_
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: account_uuid = ", account_uuid, ", what = ", e.what());
 				g_session_map->erase(result.first);
-				session->force_shutdown();
+				session->shutdown(e.what());
 				throw;
 			}
 
@@ -167,7 +167,7 @@ void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weak_session
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
 		if(session){
-			session->force_shutdown();
+			session->shutdown(e.what());
 		}
 	}
 }

@@ -18,7 +18,7 @@ namespace Events {
 		boost::uint64_t param2;
 		boost::uint64_t param3;
 
-		ItemChanged(const AccountUuid &account_uuid_,
+		ItemChanged(AccountUuid account_uuid_,
 			ItemId item_id_, boost::uint64_t old_count_, boost::uint64_t new_count_,
 			ReasonId reason_, boost::uint64_t param1_, boost::uint64_t param2_, boost::uint64_t param3_)
 			: account_uuid(account_uuid_)

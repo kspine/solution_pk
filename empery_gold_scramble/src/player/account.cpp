@@ -9,7 +9,6 @@
 #include "../singletons/http_client_daemon.hpp"
 #include "../../../empery_promotion/src/msg/err_account.hpp"
 #include "../utilities.hpp"
-#include "../checked_arithmetic.hpp"
 
 namespace EmperyGoldScramble {
 

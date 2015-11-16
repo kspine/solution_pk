@@ -7,7 +7,6 @@
 #include "events/item.hpp"
 #include "item_transaction_element.hpp"
 #include "item_ids.hpp"
-#include "checked_arithmetic.hpp"
 #include "mysql/outcome_balance_history.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/string.hpp>

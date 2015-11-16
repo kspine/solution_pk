@@ -28,12 +28,12 @@ namespace {
 }
 
 MODULE_RAII_PRIORITY(handles, 9000){
-	auto bind = get_config<std::string> ("admin_http_server_bind", "0.0.0.0");
-	auto port = get_config<unsigned>    ("admin_http_server_port", 13218);
-	auto cert = get_config<std::string> ("admin_http_server_certificate");
-	auto pkey = get_config<std::string> ("admin_http_server_private_key");
-	auto auth = get_config_v<std::string>("admin_http_server_auth_user_pass");
-	auto path = get_config<std::string> ("admin_http_server_path", "/empery/admin");
+	auto bind = get_config<std::string>   ("admin_http_server_bind", "0.0.0.0");
+	auto port = get_config<unsigned>      ("admin_http_server_port", 13218);
+	auto cert = get_config<std::string>   ("admin_http_server_certificate");
+	auto pkey = get_config<std::string>   ("admin_http_server_private_key");
+	auto auth = get_config_v<std::string> ("admin_http_server_auth_user_pass");
+	auto path = get_config<std::string>   ("admin_http_server_path", "/empery/admin");
 
 	const auto bind_addr = Poseidon::IpPort(SharedNts(bind), port);
 	LOG_EMPERY_CENTER_INFO("Creating admin HTTP server on ", bind_addr, path);
