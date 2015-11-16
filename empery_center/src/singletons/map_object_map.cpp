@@ -172,9 +172,7 @@ namespace {
 				}
 				return boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
 			}();
-			const auto coord_x = map_object->get_attribute(AttributeIds::ID_COORD_X);
-			const auto coord_y = map_object->get_attribute(AttributeIds::ID_COORD_Y);
-			const auto coord = Coord(coord_x, coord_y);
+			const auto coord = map_object->get_coord();
 			map_object_map->insert(MapObjectElement(std::move(map_object), coord));
 		}
 		g_map_object_map = map_object_map;
@@ -229,10 +227,7 @@ namespace {
 			return;
 		}
 
-		const auto coord_x = map_object->get_attribute(AttributeIds::ID_COORD_X);
-		const auto coord_y = map_object->get_attribute(AttributeIds::ID_COORD_Y);
-		const auto coord = Coord(coord_x, coord_y);
-
+		const auto coord = map_object->get_coord();
 		const auto range = player_view_map->equal_range<1>(sector_coord);
 		auto view_it = range.first;
 		while(view_it != range.second){
@@ -280,46 +275,48 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object){
 	}
 
 	const auto map_object_uuid = map_object->get_map_object_uuid();
-
 	if(map_object->has_been_deleted()){
-		LOG_EMPERY_CENTER_WARNING("Map object has been marked as deleted: map_object_uuid = ", map_object_uuid);
-		DEBUG_THROW(Exception, sslit("Map object has been marked as deleted"));
+		LOG_EMPERY_CENTER_DEBUG("Map object has been marked as deleted: map_object_uuid = ", map_object_uuid);
+		remove(map_object_uuid);
+		return;
 	}
 
-	const auto coord_x = map_object->get_attribute(AttributeIds::ID_COORD_X);
-	const auto coord_y = map_object->get_attribute(AttributeIds::ID_COORD_Y);
-	const auto coord = Coord(coord_x, coord_y);
-	const auto sector_coord = sector_coord_from_map_coord(coord);
-
-	auto old_sector_it = map_sector_map->end<0>();
-	auto new_sector_it = map_sector_map->find<0>(sector_coord);
+	auto new_coord = map_object->get_coord();
+	auto new_sector_coord = sector_coord_from_map_coord(new_coord);
+	auto new_sector_it = map_sector_map->find<0>(new_sector_coord);
 	if(new_sector_it == map_sector_map->end<0>()){
-		new_sector_it = map_sector_map->insert<0>(new_sector_it, MapSectorElement(sector_coord));
+		new_sector_it = map_sector_map->insert<0>(new_sector_it, MapSectorElement(new_sector_coord));
 	}
 	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
 
+	auto old_coord = Coord(INT64_MIN, INT64_MIN);
+	auto old_sector_coord = Coord(INT64_MIN, INT64_MIN);
+	auto old_sector_it = map_sector_map->end<0>();
+
 	auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		it = map_object_map->insert<0>(it, MapObjectElement(map_object, coord));
+		it = map_object_map->insert<0>(it, MapObjectElement(map_object, new_coord));
 	} else {
-		old_sector_it = map_sector_map->find<0>(sector_coord_from_map_coord(it->coord));
-		map_object_map->set_key<0, 1>(it, coord);
+		old_coord = it->coord;
+		old_sector_coord = sector_coord_from_map_coord(old_coord);
+		old_sector_it = map_sector_map->find<0>(old_sector_coord);
+		map_object_map->set_key<0, 1>(it, new_coord);
 	}
+
+	LOG_EMPERY_CENTER_DEBUG("Updated map object coord: map_object_uuid = ", map_object_uuid,
+		", old_coord = ", old_coord, ", old_sector_coord = ", old_sector_coord,
+		", new_coord = ", new_coord, ", new_sector_coord = ", new_sector_coord);
 
 	if(old_sector_it != new_sector_it){
 		if(old_sector_it != map_sector_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("> Removing map object from sector: map_object_uuid = ", map_object_uuid,
-				", sector_coord = ", old_sector_it->sector_coord);
+			LOG_EMPERY_CENTER_DEBUG("> Removing map object: map_object_uuid = ", map_object_uuid, ", old_sector_coord = ", old_sector_coord);
 			old_sector_it->map_objects.erase(map_object);
-
-			synchronize_map_object_in_sector(map_object, old_sector_it->sector_coord);
+			synchronize_map_object_in_sector(map_object, old_sector_coord);
 		}
-		LOG_EMPERY_CENTER_DEBUG("> Adding map object into sector: map_object_uuid = ", map_object_uuid,
-			", sector_coord = ", new_sector_it->sector_coord);
+		LOG_EMPERY_CENTER_DEBUG("> Adding map object: map_object_uuid = ", map_object_uuid, ", new_sector_coord = ", new_sector_coord);
 		new_sector_it->map_objects.insert(map_object);
 	}
-
-	synchronize_map_object_in_sector(map_object, new_sector_it->sector_coord);
+	synchronize_map_object_in_sector(map_object, new_sector_coord);
 }
 void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
@@ -341,16 +338,15 @@ void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 		return;
 	}
 	const auto map_object = it->map_object;
-	const auto coord = it->coord;
+	const auto old_coord = it->coord;
 	map_object_map->erase<0>(it);
 
-	const auto old_sector_it = map_sector_map->find<0>(sector_coord_from_map_coord(coord));
+	auto old_sector_coord = sector_coord_from_map_coord(old_coord);
+	auto old_sector_it = map_sector_map->find<0>(old_sector_coord);
 	if(old_sector_it != map_sector_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("> Removing map object from sector: map_object_uuid = ", map_object_uuid,
-			", sector_coord = ", old_sector_it->sector_coord);
+		LOG_EMPERY_CENTER_DEBUG("> Removing map object: map_object_uuid = ", map_object_uuid, ", old_sector_coord = ", old_sector_coord);
 		old_sector_it->map_objects.erase(map_object);
-
-		synchronize_map_object_in_sector(map_object, old_sector_it->sector_coord);
+		synchronize_map_object_in_sector(map_object, old_sector_coord);
 	}
 }
 
