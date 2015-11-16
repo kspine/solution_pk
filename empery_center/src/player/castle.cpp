@@ -107,7 +107,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account_uuid, session, req){
 		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
 		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio)),
+				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
 				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.building_id.get(), info.building_level, 0);
 		}
 	}
@@ -290,7 +290,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account_uuid, session, req){
 		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
 		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio)),
+				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
 				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.tech_id.get(), info.tech_level, 0);
 		}
 	}
