@@ -229,39 +229,34 @@ namespace {
 		handles.push(player_view_map);
 	}
 
-	void send_map_object_to_player(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<PlayerSession> &session) noexcept {
+	void send_map_object_to_player(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<PlayerSession> &session){
 		PROFILE_ME;
 
-		try {
-			if(map_object->has_been_deleted()){
-				Msg::SC_MapObjectRemoved msg;
-				msg.object_uuid = map_object->get_map_object_uuid().str();
-				session->send(msg);
-			} else {
-				const auto coord = map_object->get_coord();
+		if(map_object->has_been_deleted()){
+			Msg::SC_MapObjectRemoved msg;
+			msg.object_uuid = map_object->get_map_object_uuid().str();
+			session->send(msg);
+		} else {
+			const auto coord = map_object->get_coord();
 
-				boost::container::flat_map<AttributeId, boost::int64_t> attributes;
-				map_object->get_attributes(attributes);
+			boost::container::flat_map<AttributeId, boost::int64_t> attributes;
+			map_object->get_attributes(attributes);
 
-				Msg::SC_MapObjectInfo msg;
-				msg.object_uuid    = map_object->get_map_object_uuid().str();
-				msg.object_type_id = map_object->get_map_object_type_id().get();
-				msg.owner_uuid     = map_object->get_owner_uuid().str();
-				msg.name           = map_object->get_name();
-				msg.x              = coord.x();
-				msg.y              = coord.y();
-				msg.attributes.reserve(attributes.size());
-				for(auto it = attributes.begin(); it != attributes.end(); ++it){
-					msg.attributes.emplace_back();
-					auto &attribute = msg.attributes.back();
-					attribute.attribute_id = it->first.get();
-					attribute.value        = it->second;
-				}
-				session->send(msg);
+			Msg::SC_MapObjectInfo msg;
+			msg.object_uuid    = map_object->get_map_object_uuid().str();
+			msg.object_type_id = map_object->get_map_object_type_id().get();
+			msg.owner_uuid     = map_object->get_owner_uuid().str();
+			msg.name           = map_object->get_name();
+			msg.x              = coord.x();
+			msg.y              = coord.y();
+			msg.attributes.reserve(attributes.size());
+			for(auto it = attributes.begin(); it != attributes.end(); ++it){
+				msg.attributes.emplace_back();
+				auto &attribute = msg.attributes.back();
+				attribute.attribute_id = it->first.get();
+				attribute.value        = it->second;
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
+			session->send(msg);
 		}
 	}
 	void synchronize_map_object_by_coord(const boost::shared_ptr<MapObject> &map_object, const Coord &coord) noexcept {
@@ -283,7 +278,12 @@ namespace {
 				continue;
 			}
 			if(view_it->view.hit_test(coord)){
-				send_map_object_to_player(map_object, session);
+				try {
+					send_map_object_to_player(map_object, session);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
 			}
 			++view_it;
 		}
