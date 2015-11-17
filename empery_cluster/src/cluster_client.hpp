@@ -59,7 +59,8 @@ protected:
 
 public:
 	bool send(boost::uint16_t message_id, Poseidon::StreamBuffer body);
-	void shutdown(Poseidon::Cbpp::StatusCode error_code, std::string error_message);
+	void shutdown(const char *message) noexcept;
+	void shutdown(int code, const char *message) noexcept;
 
 	// 警告：不能在 servlet 中调用，否则会造成死锁。
 	Result send_and_wait(boost::uint16_t message_id, Poseidon::StreamBuffer body);

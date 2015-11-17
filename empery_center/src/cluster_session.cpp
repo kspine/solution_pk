@@ -163,12 +163,25 @@ bool ClusterSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer bod
 	const auto serial = ++m_serial;
 	return Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()));
 }
-void ClusterSession::shutdown(Poseidon::Cbpp::StatusCode error_code, std::string error_message){
+void ClusterSession::shutdown(const char *message) noexcept {
 	PROFILE_ME;
 
-	Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, error_code, std::move(error_message));
-	shutdown_read();
-	shutdown_write();
+	shutdown(Poseidon::Cbpp::ST_INTERNAL_ERROR, message);
+}
+void ClusterSession::shutdown(int code, const char *message) noexcept {
+	PROFILE_ME;
+
+	if(!message){
+		message = "";
+	}
+	try {
+		Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, code, message);
+		shutdown_read();
+		shutdown_write();
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		force_shutdown();
+	}
 }
 
 Result ClusterSession::send_and_wait(boost::uint16_t message_id, Poseidon::StreamBuffer body){
