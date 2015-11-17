@@ -228,6 +228,7 @@ namespace {
 			session->send(msg);
 		}
 	}
+
 	void synchronize_map_object_by_coord(const boost::shared_ptr<MapObject> &map_object, Coord coord) noexcept {
 		PROFILE_ME;
 
@@ -257,7 +258,6 @@ namespace {
 			++view_it;
 		}
 	}
-
 	void on_update(const boost::shared_ptr<MapObject> &map_object, const Coord *old_coord_opt, const Coord *new_coord_opt) noexcept {
 		PROFILE_ME;
 
