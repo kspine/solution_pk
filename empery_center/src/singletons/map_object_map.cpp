@@ -11,8 +11,6 @@
 #include "../mysql/castle.hpp"
 #include "../msg/sc_map.hpp"
 #include "../castle.hpp"
-#include "cluster_session_map.hpp"
-#include "../cluster_session.hpp"
 
 namespace EmperyCenter {
 
@@ -264,28 +262,10 @@ namespace {
 		PROFILE_ME;
 
 		if(old_coord_opt){
-			const auto server_coord = ClusterSessionMap::get_server_coord_from_map_coord(*old_coord_opt);
-			const auto cluster = ClusterSessionMap::get(server_coord);
-			if(cluster){
-				try {
-					//
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					cluster->shutdown(e.what());
-				}
-			}
+			synchronize_map_object_by_coord(map_object, *old_coord_opt);
 		}
 		if(new_coord_opt){
-			const auto server_coord = ClusterSessionMap::get_server_coord_from_map_coord(*new_coord_opt);
-			const auto cluster = ClusterSessionMap::get(server_coord);
-			if(cluster){
-				try {
-					//
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					cluster->shutdown(e.what());
-				}
-			}
+			synchronize_map_object_by_coord(map_object, *new_coord_opt);
 		}
 	}
 }
@@ -346,8 +326,6 @@ void MapObjectMap::insert(const boost::shared_ptr<MapObject> &map_object){
 		", new_coord = ", new_coord, ", new_sector_coord = ", new_sector_coord);
 	map_object_map->insert(MapObjectElement(map_object));
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
-
-	synchronize_map_object_by_coord(map_object, new_coord);
 
 	on_update(map_object, nullptr, &new_coord);
 }
@@ -415,11 +393,6 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool t
 	}
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	if((old_sector_it != map_sector_map->end<0>()) && (old_sector_it != new_sector_it)){
-		synchronize_map_object_by_coord(map_object, old_coord);
-	}
-	synchronize_map_object_by_coord(map_object, new_coord);
-
 	on_update(map_object, &old_coord, &new_coord);
 }
 void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
@@ -456,10 +429,6 @@ void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 			map_sector_map->erase<0>(old_sector_it);
 			LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
 		}
-	}
-
-	if(old_sector_it != map_sector_map->end<0>()){
-		synchronize_map_object_by_coord(map_object, old_coord);
 	}
 
 	on_update(map_object, &old_coord, nullptr);
