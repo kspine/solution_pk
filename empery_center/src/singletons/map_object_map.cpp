@@ -304,7 +304,11 @@ void MapObjectMap::insert(const boost::shared_ptr<MapObject> &map_object){
 
 	const auto new_coord        = map_object->get_coord();
 	const auto new_sector_coord = get_sector_coord_from_map_coord(new_coord);
-	const auto new_sector_it    = map_sector_map->insert<0>(MapSectorElement(new_sector_coord)).first;
+	const auto result = map_sector_map->insert<0>(MapSectorElement(new_sector_coord));
+	if(result.second){
+		LOG_EMPERY_CENTER_DEBUG("Created map sector: new_sector_coord = ", new_sector_coord);
+	}
+	const auto new_sector_it    = result.first;
 	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
 
 	LOG_EMPERY_CENTER_DEBUG("Inserting map object: map_object_uuid = ", map_object_uuid,
@@ -358,7 +362,11 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool t
 
 	const auto new_coord        = map_object->get_coord();
 	const auto new_sector_coord = get_sector_coord_from_map_coord(new_coord);
-	const auto new_sector_it    = map_sector_map->insert<0>(MapSectorElement(new_sector_coord)).first;
+	const auto result = map_sector_map->insert<0>(MapSectorElement(new_sector_coord));
+	if(result.second){
+		LOG_EMPERY_CENTER_DEBUG("Created map sector: new_sector_coord = ", new_sector_coord);
+	}
+	const auto new_sector_it    = result.first;
 	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
 
 	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid,
@@ -368,8 +376,8 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool t
 	if(old_sector_it != map_sector_map->end<0>()){
 		old_sector_it->map_objects.erase(map_object); // noexcept
 		if(old_sector_it->map_objects.empty()){
-			LOG_EMPERY_CENTER_DEBUG("Removing empty map sector: old_sector_coord = ", old_sector_coord);
 			map_sector_map->erase<0>(old_sector_it);
+			LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
 		}
 	}
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
@@ -410,8 +418,8 @@ void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 	if(old_sector_it != map_sector_map->end<0>()){
 		old_sector_it->map_objects.erase(map_object); // noexcept
 		if(old_sector_it->map_objects.empty()){
-			LOG_EMPERY_CENTER_DEBUG("Removing empty map sector: old_sector_coord = ", old_sector_coord);
 			map_sector_map->erase<0>(old_sector_it);
+			LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
 		}
 	}
 
