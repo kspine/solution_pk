@@ -10,8 +10,8 @@ namespace Msg {
 #define MESSAGE_NAME    KS_MapRegisterCluster
 #define MESSAGE_ID      32300
 #define MESSAGE_FIELDS  \
-	FIELD_VINT          (map_x)	\
-	FIELD_VINT          (map_y)
+	FIELD_VINT          (server_x)	\
+	FIELD_VINT          (server_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

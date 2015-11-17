@@ -15,7 +15,7 @@
 namespace EmperyCenter {
 
 namespace {
-	inline Coord sector_coord_from_coord(const Coord &coord){
+	inline Coord sector_coord_from_coord(Coord coord){
 		return Coord(coord.x() >> 5, coord.y() >> 5);
 	}
 
@@ -47,7 +47,7 @@ namespace {
 
 		mutable boost::container::flat_set<boost::weak_ptr<MapObject>> map_objects;
 
-		explicit MapSectorElement(const Coord &sector_coord_)
+		explicit MapSectorElement(Coord sector_coord_)
 			: sector_coord(sector_coord_)
 		{
 		}
@@ -66,7 +66,7 @@ namespace {
 		Coord sector_coord;
 
 		PlayerViewElement(const Rectangle &view_,
-			boost::weak_ptr<PlayerSession> session_, const Coord &sector_coord_)
+			boost::weak_ptr<PlayerSession> session_, Coord sector_coord_)
 			: view(view_)
 			, session(std::move(session_)), sector_coord(sector_coord_)
 		{
@@ -228,7 +228,7 @@ namespace {
 			session->send(msg);
 		}
 	}
-	void synchronize_map_object_by_coord(const boost::shared_ptr<MapObject> &map_object, const Coord &coord) noexcept {
+	void synchronize_map_object_by_coord(const boost::shared_ptr<MapObject> &map_object, Coord coord) noexcept {
 		PROFILE_ME;
 
 		const auto player_view_map = g_player_view_map.lock();

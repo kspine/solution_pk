@@ -10,9 +10,9 @@ namespace Msg {
 #define MESSAGE_NAME    SC_MapWorldMapList
 #define MESSAGE_ID      399
 #define MESSAGE_FIELDS  \
-	FIELD_ARRAY         (maps,	\
-		FIELD_VINT          (map_x)	\
-		FIELD_VINT          (map_y)	\
+	FIELD_ARRAY         (servers,	\
+		FIELD_VINT          (server_x)	\
+		FIELD_VINT          (server_y)	\
 	)	\
 	FIELD_VUINT         (map_width)	\
 	FIELD_VUINT         (map_height)

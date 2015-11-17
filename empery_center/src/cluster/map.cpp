@@ -7,12 +7,13 @@
 namespace EmperyCenter {
 
 CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, session, req){
-	const auto old_session = ClusterSessionMap::get(req.map_x, req.map_y);
+	const auto server_coord = Coord(req.server_x, req.server_y);
+	const auto old_session = ClusterSessionMap::get(server_coord);
 	if(old_session){
-		LOG_EMPERY_CENTER_WARNING("Cluster server conflict: map_x = ", req.map_x, ", map_y = ", req.map_y);
+		LOG_EMPERY_CENTER_WARNING("Cluster server conflict: server_coord = ", server_coord);
 		return Response(Msg::KERR_MAP_SERVER_CONFLICT) <<"Cluster server conflict";
 	}
-	ClusterSessionMap::set(req.map_x, req.map_y, session);
+	ClusterSessionMap::set(server_coord, session);
 	return Response();
 }
 

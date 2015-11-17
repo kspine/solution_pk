@@ -10,11 +10,11 @@ namespace {
 	boost::uint64_t g_map_height = 300;
 
 	struct ClusterSessionElement {
-		std::pair<boost::int64_t, boost::int64_t> coord;
+		Coord coord;
 		boost::weak_ptr<ClusterSession> session;
 
-		ClusterSessionElement(boost::int64_t map_x_, boost::int64_t map_y_, boost::weak_ptr<ClusterSession> session_)
-			: coord(map_x_, map_y_), session(std::move(session_))
+		ClusterSessionElement(Coord coord_, boost::weak_ptr<ClusterSession> session_)
+			: coord(coord_), session(std::move(session_))
 		{
 		}
 	};
@@ -37,7 +37,7 @@ namespace {
 	}
 }
 
-boost::shared_ptr<ClusterSession> ClusterSessionMap::get(boost::int64_t map_x, boost::int64_t map_y){
+boost::shared_ptr<ClusterSession> ClusterSessionMap::get(Coord server_coord){
 	PROFILE_ME;
 
 	const auto session_map = g_session_map.lock();
@@ -46,20 +46,20 @@ boost::shared_ptr<ClusterSession> ClusterSessionMap::get(boost::int64_t map_x, b
 		return { };
 	}
 
-	const auto it = session_map->find<0>(std::make_pair(map_x, map_y));
+	const auto it = session_map->find<0>(server_coord);
 	if(it == session_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Cluster session map is not found: map_x = ", map_x, ", map_y = ", map_y);
+		LOG_EMPERY_CENTER_DEBUG("Cluster session map is not found: server_coord = ", server_coord);
 		return { };
 	}
 	auto session = it->session.lock();
 	if(!session){
-		LOG_EMPERY_CENTER_DEBUG("Session expired: map_x = ", map_x, ", map_y = ", map_y);
+		LOG_EMPERY_CENTER_DEBUG("Session expired: server_coord = ", server_coord);
 		session_map->erase<0>(it);
 		return { };
 	}
 	return session;
 }
-void ClusterSessionMap::get_all(ClusterSessionMap::SessionContainer &ret){
+void ClusterSessionMap::get_all(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret){
 	PROFILE_ME;
 
 	const auto session_map = g_session_map.lock();
@@ -77,7 +77,7 @@ void ClusterSessionMap::get_all(ClusterSessionMap::SessionContainer &ret){
 		ret.emplace(it->coord, std::move(session));
 	}
 }
-void ClusterSessionMap::set(boost::int64_t map_x, boost::int64_t map_y, const boost::shared_ptr<ClusterSession> &session){
+void ClusterSessionMap::set(Coord server_coord, const boost::shared_ptr<ClusterSession> &session){
 	PROFILE_ME;
 
 	const auto session_map = g_session_map.lock();
@@ -92,20 +92,20 @@ void ClusterSessionMap::set(boost::int64_t map_x, boost::int64_t map_y, const bo
 		DEBUG_THROW(Exception, sslit("Duplicate cluster session"));
 	}
 
-	LOG_EMPERY_CENTER_INFO("Setting up cluster server: map_x = ", map_x, ", map_y = ", map_y);
-	auto it = session_map->find<0>(std::make_pair(map_x, map_y));
+	LOG_EMPERY_CENTER_INFO("Setting up cluster server: server_coord = ", server_coord);
+	auto it = session_map->find<0>(server_coord);
 	if(it == session_map->end<0>()){
-		it = session_map->insert<0>(it, ClusterSessionElement(map_x, map_y, session));
+		it = session_map->insert<0>(it, ClusterSessionElement(server_coord, session));
 	} else {
 		if(!it->session.expired()){
-			LOG_EMPERY_CENTER_WARNING("Map session conflict: map_x = ", map_x, ", map_y = ", map_y);
+			LOG_EMPERY_CENTER_WARNING("Map session conflict: server_coord = ", server_coord);
 			DEBUG_THROW(Exception, sslit("Map session conflict"));
 		}
 		session_map->set_key<0, 1>(it, session);
 	}
 }
 
-std::pair<boost::int64_t, boost::int64_t> ClusterSessionMap::require_map_coord(const boost::weak_ptr<ClusterSession> &session){
+Coord ClusterSessionMap::require_map_coord(const boost::weak_ptr<ClusterSession> &session){
 	PROFILE_ME;
 
 	const auto session_map = g_session_map.lock();
@@ -121,10 +121,12 @@ std::pair<boost::int64_t, boost::int64_t> ClusterSessionMap::require_map_coord(c
 	}
 	return it->coord;
 }
-std::pair<boost::uint64_t, boost::uint64_t> ClusterSessionMap::require_map_size(){
-	PROFILE_ME;
 
-	return std::make_pair(g_map_width, g_map_height);
+boost::uint64_t ClusterSessionMap::get_map_width() noexcept {
+	return g_map_width;
+}
+boost::uint64_t ClusterSessionMap::get_map_height() noexcept {
+	return g_map_height;
 }
 
 }
