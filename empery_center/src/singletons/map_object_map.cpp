@@ -527,61 +527,18 @@ void MapObjectMap::set_player_view(const boost::shared_ptr<PlayerSession> &sessi
 	}
 }
 
-void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept {
+void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept
+try {
 	PROFILE_ME;
 
-	const auto map_object_map = g_map_object_map.lock();
-	if(!map_object_map){
-		LOG_EMPERY_CENTER_DEBUG("Map object map is not initialized.");
-		return;
+	boost::container::flat_multimap<Coord, boost::shared_ptr<MapObject>> map_objects;
+	get_by_rectangle(map_objects, view);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		send_map_object_to_player(it->second, session);
 	}
-	const auto map_sector_map = g_map_sector_map.lock();
-	if(!map_sector_map){
-		LOG_EMPERY_CENTER_DEBUG("Map sector map is not initialized.");
-		return;
-	}
-	const auto player_view_map = g_player_view_map.lock();
-	if(!player_view_map){
-		LOG_EMPERY_CENTER_DEBUG("Player view map is not initialized.");
-		return;
-	}
-
-	const auto sector_bottom_left = SectorCoord(Coord(view.left(), view.bottom()));
-	const auto sector_upper_right = SectorCoord(Coord(view.right() - 1, view.top() - 1));
-	LOG_EMPERY_CENTER_DEBUG("Synchronize player view: view = ", view,
-		", sector_bottom_left = ", sector_bottom_left, ", sector_upper_right = ", sector_upper_right);
-	try {
-		for(auto sector_x = sector_bottom_left.sector_x(); sector_x <= sector_upper_right.sector_x(); ++sector_x){
-			for(auto sector_y = sector_bottom_left.sector_y(); sector_y <= sector_upper_right.sector_y(); ++sector_y){
-				const auto sit = map_sector_map->find<0>(SectorCoord(sector_x, sector_y));
-				if(sit == map_sector_map->end<0>()){
-					continue;
-				}
-				auto &map_objects = sit->map_objects;
-				for(auto next = map_objects.begin(), it = next; (it != map_objects.end()) && (++next, true); it = next){
-					const auto map_object = it->lock();
-					if(!map_object){
-						map_objects.erase(it);
-						continue;
-					}
-					const auto map_object_uuid = map_object->get_map_object_uuid();
-					const auto obj_it = map_object_map->find<0>(map_object_uuid);
-					if(obj_it == map_object_map->end<0>()){
-						map_objects.erase(it);
-						continue;
-					}
-					LOG_EMPERY_CENTER_DEBUG("> Map object in sector: map_object_uuid = ", map_object_uuid);
-
-					if(view.hit_test(obj_it->coord)){
-						send_map_object_to_player(map_object, session);
-					}
-				}
-			}
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		session->shutdown(e.what());
-	}
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	session->shutdown(e.what());
 }
 
 }
