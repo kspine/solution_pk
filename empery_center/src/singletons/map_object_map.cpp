@@ -473,8 +473,7 @@ void MapObjectMap::get_by_rectangle(boost::container::flat_multimap<Coord, boost
 		auto it = map_object_map->lower_bound<1>(Coord(x, rectangle.bottom()));
 		for(;;){
 			if(it == map_object_map->end<1>()){
-				x = INT64_MAX;
-				break;
+				goto _exit_while;
 			}
 			if(it->coord.x() != x){
 				x = it->coord.x();
@@ -488,6 +487,8 @@ void MapObjectMap::get_by_rectangle(boost::container::flat_multimap<Coord, boost
 			++it;
 		}
 	}
+_exit_while:
+	;
 }
 
 void MapObjectMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view){
