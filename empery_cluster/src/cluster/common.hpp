@@ -22,9 +22,9 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 #define CLUSTER_SERVLET(MsgType_, client_arg_, req_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
-			ClusterClient::Result TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
+			::std::pair<long, ::std::string> TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
 				const ::boost::shared_ptr<ClusterClient> &, MsgType_);	\
-			ClusterClient::Result TOKEN_CAT3(ClusterServlet, __LINE__, Entry_) (	\
+			::std::pair<long, ::std::string> TOKEN_CAT3(ClusterServlet, __LINE__, Entry_) (	\
 				const ::boost::shared_ptr<ClusterClient> &client_, ::Poseidon::StreamBuffer payload_)	\
 			{	\
 				PROFILE_ME;	\
@@ -37,7 +37,7 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 	MODULE_RAII(handles_){	\
 		handles_.push(ClusterClient::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
 	}	\
-	ClusterClient::Result Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
+	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<ClusterClient> & (client_arg_),	\
 		MsgType_ (req_arg_)	\
 		)	\
