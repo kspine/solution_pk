@@ -17,6 +17,7 @@ struct ClusterSessionMap {
 	static void get_all(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
 	static void set(Coord server_coord, const boost::shared_ptr<ClusterSession> &session);
 
+	static Coord get_server_coord(const boost::weak_ptr<ClusterSession> &session);
 	static Coord require_server_coord(const boost::weak_ptr<ClusterSession> &session);
 
 	static Coord get_server_coord_from_map_coord(Coord coord);

@@ -3,6 +3,7 @@
 
 #include <boost/cstdint.hpp>
 #include <iosfwd>
+#include <climits>
 
 namespace EmperyCenter {
 
@@ -24,6 +25,8 @@ public:
 	constexpr boost::int64_t y() const noexcept {
 		return m_y;
 	}
+
+	explicit operator bool() const noexcept;
 
 	constexpr bool operator==(const Coord &rhs) const noexcept {
 		return (m_x == rhs.m_x) && (m_y == rhs.m_y);
@@ -48,6 +51,12 @@ public:
 
 inline std::ostream &operator<<(std::ostream &os, const Coord &rhs){
 	return os <<'(' <<rhs.x() <<',' <<rhs.y() <<')';
+}
+
+constexpr auto INVALID_COORD = Coord(INT64_MIN, INT64_MIN);
+
+inline Coord::operator bool() const noexcept {
+	return *this != INVALID_COORD;
 }
 
 }

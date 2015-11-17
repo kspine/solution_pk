@@ -258,14 +258,14 @@ namespace {
 			++view_it;
 		}
 	}
-	void on_update(const boost::shared_ptr<MapObject> &map_object, const Coord *old_coord_opt, const Coord *new_coord_opt) noexcept {
+	void on_update(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
 		PROFILE_ME;
 
-		if(old_coord_opt){
-			synchronize_map_object_by_coord(map_object, *old_coord_opt);
+		if(old_coord){
+			synchronize_map_object_by_coord(map_object, old_coord);
 		}
-		if(new_coord_opt){
-			synchronize_map_object_by_coord(map_object, *new_coord_opt);
+		if(new_coord){
+			synchronize_map_object_by_coord(map_object, new_coord);
 		}
 	}
 }
@@ -327,7 +327,7 @@ void MapObjectMap::insert(const boost::shared_ptr<MapObject> &map_object){
 	map_object_map->insert(MapObjectElement(map_object));
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	on_update(map_object, nullptr, &new_coord);
+	on_update(map_object, INVALID_COORD, new_coord);
 }
 void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -393,7 +393,7 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool t
 	}
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	on_update(map_object, &old_coord, &new_coord);
+	on_update(map_object, old_coord, new_coord);
 }
 void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
@@ -431,7 +431,7 @@ void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 		}
 	}
 
-	on_update(map_object, &old_coord, nullptr);
+	on_update(map_object, old_coord, INVALID_COORD);
 }
 
 void MapObjectMap::get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){

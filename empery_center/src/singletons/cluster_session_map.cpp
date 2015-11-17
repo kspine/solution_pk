@@ -105,21 +105,30 @@ void ClusterSessionMap::set(Coord server_coord, const boost::shared_ptr<ClusterS
 	}
 }
 
-Coord ClusterSessionMap::require_server_coord(const boost::weak_ptr<ClusterSession> &session){
+Coord ClusterSessionMap::get_server_coord(const boost::weak_ptr<ClusterSession> &session){
 	PROFILE_ME;
 
 	const auto session_map = g_session_map.lock();
 	if(!session_map){
 		LOG_EMPERY_CENTER_WARNING("Cluster session map is not loaded.");
-		DEBUG_THROW(Exception, sslit("Cluster session map is not loaded"));
+		return INVALID_COORD;
 	}
 
 	const auto it = session_map->find<1>(session);
 	if(it == session_map->end<1>()){
-		LOG_EMPERY_CENTER_WARNING("Cluster session map is not found");
-		DEBUG_THROW(Exception, sslit("Cluster session map is not found"));
+		LOG_EMPERY_CENTER_DEBUG("Cluster session map is not found");
+		return INVALID_COORD;
 	}
 	return it->coord;
+}
+Coord ClusterSessionMap::require_server_coord(const boost::weak_ptr<ClusterSession> &session){
+	PROFILE_ME;
+
+	auto ret = get_server_coord(session);
+	if(!ret){
+		DEBUG_THROW(Exception, sslit("Session not found"));
+	}
+	return ret;
 }
 
 Coord ClusterSessionMap::get_server_coord_from_map_coord(Coord coord){
