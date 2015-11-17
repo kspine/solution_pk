@@ -15,39 +15,8 @@
 namespace EmperyCenter {
 
 namespace {
-	class SectorCoord {
-	private:
-		boost::int64_t m_x;
-		boost::int64_t m_y;
-
-	public:
-		SectorCoord(boost::int64_t sector_x, boost::int64_t sector_y)
-			: m_x(sector_x), m_y(sector_y)
-		{
-		}
-		explicit SectorCoord(const Coord &coord)
-			: m_x(coord.x() >> 5), m_y(coord.y() >> 5)
-		{
-		}
-
-	public:
-		boost::int64_t sector_x() const {
-			return m_x;
-		}
-		boost::int64_t sector_y() const {
-			return m_y;
-		}
-
-		bool operator==(const SectorCoord &rhs) const {
-			return (m_x == rhs.m_x) && (m_y == rhs.m_y);
-		}
-		bool operator<(const SectorCoord &rhs) const {
-			return (m_x != rhs.m_x) ? (m_x < rhs.m_x) : (m_y < rhs.m_y);
-		}
-	};
-
-	std::ostream &operator<<(std::ostream &os, const SectorCoord &rhs){
-		return os <<"SECTOR" <<'(' <<rhs.sector_x() <<',' <<rhs.sector_y() <<')';
+	inline Coord sector_coord_from_coord(const Coord &coord){
+		return Coord(coord.x() >> 5, coord.y() >> 5);
 	}
 
 	struct MapObjectElement {
@@ -74,11 +43,11 @@ namespace {
 	boost::weak_ptr<MapObjectMapDelegator> g_map_object_map;
 
 	struct MapSectorElement {
-		SectorCoord sector_coord;
+		Coord sector_coord;
 
 		mutable boost::container::flat_set<boost::weak_ptr<MapObject>> map_objects;
 
-		explicit MapSectorElement(const SectorCoord &sector_coord_)
+		explicit MapSectorElement(const Coord &sector_coord_)
 			: sector_coord(sector_coord_)
 		{
 		}
@@ -94,10 +63,10 @@ namespace {
 		Rectangle view;
 
 		boost::weak_ptr<PlayerSession> session;
-		SectorCoord sector_coord;
+		Coord sector_coord;
 
 		PlayerViewElement(const Rectangle &view_,
-			boost::weak_ptr<PlayerSession> session_, const SectorCoord &sector_coord_)
+			boost::weak_ptr<PlayerSession> session_, const Coord &sector_coord_)
 			: view(view_)
 			, session(std::move(session_)), sector_coord(sector_coord_)
 		{
@@ -214,7 +183,7 @@ namespace {
 			auto map_object = it->map_object;
 
 			const auto coord = map_object->get_coord();
-			const auto sector_coord = SectorCoord(coord);
+			const auto sector_coord = sector_coord_from_coord(coord);
 			auto sector_it = map_sector_map->find<0>(sector_coord);
 			if(sector_it == map_sector_map->end<0>()){
 				sector_it = map_sector_map->insert<0>(sector_it, MapSectorElement(sector_coord));
@@ -268,7 +237,7 @@ namespace {
 			return;
 		}
 
-		const auto sector_coord = SectorCoord(coord);
+		const auto sector_coord = sector_coord_from_coord(coord);
 		const auto range = player_view_map->equal_range<1>(sector_coord);
 		auto view_it = range.first;
 		while(view_it != range.second){
@@ -334,7 +303,7 @@ void MapObjectMap::insert(const boost::shared_ptr<MapObject> &map_object){
 	}
 
 	const auto new_coord        = map_object->get_coord();
-	const auto new_sector_coord = SectorCoord(new_coord);
+	const auto new_sector_coord = sector_coord_from_coord(new_coord);
 	const auto new_sector_it    = map_sector_map->insert<0>(MapSectorElement(new_sector_coord)).first;
 	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
 
@@ -384,11 +353,11 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool t
 		return;
 	}
 	const auto old_coord        = it->coord;
-	const auto old_sector_coord = SectorCoord(old_coord);
+	const auto old_sector_coord = sector_coord_from_coord(old_coord);
 	const auto old_sector_it    = map_sector_map->find<0>(old_sector_coord);
 
 	const auto new_coord        = map_object->get_coord();
-	const auto new_sector_coord = SectorCoord(new_coord);
+	const auto new_sector_coord = sector_coord_from_coord(new_coord);
 	const auto new_sector_it    = map_sector_map->insert<0>(MapSectorElement(new_sector_coord)).first;
 	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
 
@@ -428,7 +397,7 @@ void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 	const auto map_object       = it->map_object;
 
 	const auto old_coord        = it->coord;
-	const auto old_sector_coord = SectorCoord(old_coord);
+	const auto old_sector_coord = sector_coord_from_coord(old_coord);
 	const auto old_sector_it    = map_sector_map->find<0>(old_sector_coord);
 
 	LOG_EMPERY_CENTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid,
@@ -511,14 +480,14 @@ void MapObjectMap::set_player_view(const boost::shared_ptr<PlayerSession> &sessi
 		return;
 	}
 
-	const auto sector_bottom_left = SectorCoord(Coord(view.left(), view.bottom()));
-	const auto sector_upper_right = SectorCoord(Coord(view.right() - 1, view.top() - 1));
+	const auto sector_bottom_left = sector_coord_from_coord(Coord(view.left(), view.bottom()));
+	const auto sector_upper_right = sector_coord_from_coord(Coord(view.right() - 1, view.top() - 1));
 	LOG_EMPERY_CENTER_DEBUG("Set player view: view = ", view,
 		", sector_bottom_left = ", sector_bottom_left, ", sector_upper_right = ", sector_upper_right);
 	try {
-		for(auto sector_x = sector_bottom_left.sector_x(); sector_x <= sector_upper_right.sector_x(); ++sector_x){
-			for(auto sector_y = sector_bottom_left.sector_y(); sector_y <= sector_upper_right.sector_y(); ++sector_y){
-				player_view_map->insert(PlayerViewElement(view, session, SectorCoord(sector_x, sector_y)));
+		for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); ++sector_x){
+			for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); ++sector_y){
+				player_view_map->insert(PlayerViewElement(view, session, Coord(sector_x, sector_y)));
 			}
 		}
 	} catch(std::exception &e){
