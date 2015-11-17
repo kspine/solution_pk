@@ -6,8 +6,8 @@
 namespace EmperyCenter {
 
 namespace {
-	boost::uint64_t g_map_width  = 400;
-	boost::uint64_t g_map_height = 300;
+	boost::uint32_t g_map_width  = 400;
+	boost::uint32_t g_map_height = 300;
 
 	struct ClusterSessionElement {
 		Coord coord;
@@ -105,7 +105,7 @@ void ClusterSessionMap::set(Coord server_coord, const boost::shared_ptr<ClusterS
 	}
 }
 
-Coord ClusterSessionMap::require_map_coord(const boost::weak_ptr<ClusterSession> &session){
+Coord ClusterSessionMap::require_server_coord(const boost::weak_ptr<ClusterSession> &session){
 	PROFILE_ME;
 
 	const auto session_map = g_session_map.lock();
@@ -122,11 +122,21 @@ Coord ClusterSessionMap::require_map_coord(const boost::weak_ptr<ClusterSession>
 	return it->coord;
 }
 
-boost::uint64_t ClusterSessionMap::get_map_width() noexcept {
-	return g_map_width;
+Coord ClusterSessionMap::get_server_coord_from_map_coord(Coord coord){
+	PROFILE_ME;
+
+	const auto neg_inf = Coord(INT64_MIN / g_map_width,
+	                           INT64_MIN / g_map_height);
+	return Coord((coord.x() - neg_inf.x() * g_map_width)  / g_map_width  + neg_inf.x(),
+	             (coord.y() - neg_inf.y() * g_map_height) / g_map_height + neg_inf.y());
 }
-boost::uint64_t ClusterSessionMap::get_map_height() noexcept {
-	return g_map_height;
+Rectangle ClusterSessionMap::get_server_map_range(Coord server_coord){
+	PROFILE_ME;
+
+	const auto bottom_left = Coord(server_coord.x() * g_map_width,
+	                               server_coord.y() * g_map_height);
+	return Rectangle(bottom_left.x(), bottom_left.y(),
+	                 g_map_width,     g_map_height);
 }
 
 }

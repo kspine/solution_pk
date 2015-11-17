@@ -12,7 +12,9 @@ private:
 
 public:
 	constexpr Rectangle(const Coord &bl, const Coord &tr) noexcept
-		: m_bl(bl), m_tr((tr.x() >= bl.x()) ? tr.x() : bl.x(), (tr.y() >= bl.y()) ? tr.y() : bl.y())
+		: m_bl(bl)
+		, m_tr((tr.x() >= bl.x()) ? tr.x() : bl.x(),
+		       (tr.y() >= bl.y()) ? tr.y() : bl.y())
 	{
 	}
 	constexpr Rectangle(boost::int64_t l, boost::int64_t b, boost::uint64_t w, boost::uint64_t h) noexcept
@@ -47,6 +49,13 @@ public:
 	}
 	constexpr Coord top_left() const noexcept {
 		return Coord(left(), top());
+	}
+
+	constexpr boost::uint64_t width() const noexcept {
+		return static_cast<boost::uint64_t>(right() - left());
+	}
+	constexpr boost::uint64_t height() const noexcept {
+		return static_cast<boost::uint64_t>(top() - bottom());
 	}
 
 	constexpr bool hit_test(const Coord &coord) const noexcept {

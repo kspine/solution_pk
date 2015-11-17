@@ -12,6 +12,7 @@ namespace EmperyCenter {
 PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
 	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> servers;
 	ClusterSessionMap::get_all(servers);
+	const auto center_rectangle = ClusterSessionMap::get_server_map_range(Coord(0, 0));
 
 	Msg::SC_MapWorldMapList msg;
 	msg.servers.reserve(servers.size());
@@ -21,8 +22,8 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
 		server.server_x = it->first.x();
 		server.server_x = it->first.y();
 	}
-	msg.map_width  = ClusterSessionMap::get_map_width();
-	msg.map_height = ClusterSessionMap::get_map_height();
+	msg.map_width  = center_rectangle.width();
+	msg.map_height = center_rectangle.height();
 	session->send(msg);
 
 	return Response();
