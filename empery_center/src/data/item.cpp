@@ -14,6 +14,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(item_id)
 		MULTI_MEMBER_INDEX(init_count)
 		MULTI_MEMBER_INDEX(auto_inc_type)
+		MULTI_MEMBER_INDEX(is_public)
 	)
 	boost::weak_ptr<const ItemMap> g_item_map;
 	const char ITEM_FILE[] = "item";
@@ -238,6 +239,22 @@ namespace Data {
 
 		const auto begin = item_map->upper_bound<2>(AIT_NONE);
 		const auto end = item_map->end<2>();
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
+		for(auto it = begin; it != end; ++it){
+			ret.emplace_back(item_map, &*it);
+		}
+	}
+	void Item::get_public(std::vector<boost::shared_ptr<const Item>> &ret){
+		PROFILE_ME;
+
+		const auto item_map = g_item_map.lock();
+		if(!item_map){
+			LOG_EMPERY_CENTER_WARNING("ItemMap has not been loaded.");
+			return;
+		}
+
+		const auto begin = item_map->upper_bound<3>(false);
+		const auto end = item_map->end<3>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
 			ret.emplace_back(item_map, &*it);
