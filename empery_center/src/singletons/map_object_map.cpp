@@ -367,6 +367,10 @@ void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool t
 	map_object_map->set_key<0, 1>(it, new_coord);
 	if(old_sector_it != map_sector_map->end<0>()){
 		old_sector_it->map_objects.erase(map_object); // noexcept
+		if(old_sector_it->map_objects.empty()){
+			LOG_EMPERY_CENTER_DEBUG("Removing empty map sector: old_sector_coord = ", old_sector_coord);
+			map_sector_map->erase<0>(old_sector_it);
+		}
 	}
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
@@ -405,6 +409,10 @@ void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 	map_object_map->erase<0>(it);
 	if(old_sector_it != map_sector_map->end<0>()){
 		old_sector_it->map_objects.erase(map_object); // noexcept
+		if(old_sector_it->map_objects.empty()){
+			LOG_EMPERY_CENTER_DEBUG("Removing empty map sector: old_sector_coord = ", old_sector_coord);
+			map_sector_map->erase<0>(old_sector_it);
+		}
 	}
 
 	if(old_sector_it != map_sector_map->end<0>()){
