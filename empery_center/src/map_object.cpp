@@ -6,15 +6,20 @@
 
 namespace EmperyCenter {
 
-MapObject::MapObject(MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string name){
-	m_obj = boost::make_shared<MySql::Center_MapObject>(
-		Poseidon::Uuid::random(), map_object_type_id.get(), owner_uuid.get(), std::move(name), Poseidon::get_utc_time(), false);
-	m_obj->async_save(true);
+MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+	AccountUuid owner_uuid, std::string name, Coord coord)
+	: m_obj([&]{
+		auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
+			owner_uuid.get(), std::move(name), coord.x(), coord.y(), Poseidon::get_utc_time(), false);
+		obj->async_save(true);
+		return obj;
+	}())
+{
 }
 MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
+	: m_obj(std::move(obj))
 {
-	m_obj = std::move(obj);
 	for(auto it = attributes.begin(); it != attributes.end(); ++it){
 		m_attributes.emplace(AttributeId((*it)->get_map_object_attr_id()), *it);
 	}
@@ -31,12 +36,24 @@ MapObjectTypeId MapObject::get_map_object_type_id() const {
 AccountUuid MapObject::get_owner_uuid() const {
 	return AccountUuid(m_obj->unlocked_get_owner_uuid());
 }
+
 const std::string &MapObject::get_name() const {
 	return m_obj->unlocked_get_name();
 }
 void MapObject::set_name(std::string name){
 	m_obj->set_name(std::move(name));
 }
+
+Coord MapObject::get_coord() const {
+	return Coord(m_obj->get_x(), m_obj->get_y());
+}
+void MapObject::set_coord(Coord coord){
+	m_obj->set_x(coord.x());
+	m_obj->set_y(coord.y());
+
+	MapObjectMap::update(virtual_shared_from_this<MapObject>(), false);
+}
+
 boost::uint64_t MapObject::get_created_time() const {
 	return m_obj->get_created_time();
 }
@@ -92,11 +109,7 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 		}
 	}
 
-	MapObjectMap::update(virtual_shared_from_this<MapObject>());
-}
-
-Coord MapObject::get_coord() const {
-	return Coord(get_attribute(AttributeIds::ID_COORD_X), get_attribute(AttributeIds::ID_COORD_Y));
+	MapObjectMap::update(virtual_shared_from_this<MapObject>(), false);
 }
 
 }

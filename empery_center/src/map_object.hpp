@@ -23,7 +23,8 @@ private:
 		boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 public:
-	MapObject(MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string name);
+	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+		AccountUuid owner_uuid, std::string name, Coord coord);
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	virtual ~MapObject();
@@ -32,8 +33,13 @@ public:
 	MapObjectUuid get_map_object_uuid() const;
 	MapObjectTypeId get_map_object_type_id() const;
 	AccountUuid get_owner_uuid() const;
+
 	const std::string &get_name() const;
 	void set_name(std::string name);
+
+	Coord get_coord() const;
+	void set_coord(Coord coord);
+
 	boost::uint64_t get_created_time() const;
 
 	bool has_been_deleted() const;
@@ -42,8 +48,6 @@ public:
 	boost::int64_t get_attribute(AttributeId map_object_attr_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
-
-	Coord get_coord() const;
 };
 
 }

@@ -9,9 +9,7 @@ namespace AttributeIds {
 
 #define DEF_(name_, number_)	constexpr AttributeId name_(number_)
 
-DEF_(ID_COORD_X,                      1);
-DEF_(ID_COORD_Y,                      2);
-DEF_(ID_HIT_POINTS,                   3);
+DEF_(ID_HIT_POINTS,                 701);
 
 DEF_(ID_LEADERSHIP,             2501001);
 

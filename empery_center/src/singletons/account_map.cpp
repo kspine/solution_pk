@@ -291,7 +291,10 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 	it = g_account_map.insert<2>(it, AccountElement(std::move(obj)));
 
 // FIXME remove this
-auto castle = boost::make_shared<Castle>(MapObjectTypeIds::ID_CASTLE, account_uuid, "aaa");
+auto map_object_uuid = MapObjectUuid(Poseidon::Uuid::random());
+auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 200) - 100,
+                   (boost::int32_t)Poseidon::rand32(0, 200) - 100);
+auto castle = boost::make_shared<Castle>(map_object_uuid, MapObjectTypeIds::ID_CASTLE, account_uuid, "aaa", coord);
 
 std::vector<ResourceTransactionElement> rsrc;
 rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 1000000000, ReasonId(), 0, 0, 0);
@@ -308,12 +311,9 @@ castle->create_building_mission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, Build
 castle->create_building_mission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 castle->create_building_mission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 
-boost::container::flat_map<AttributeId, boost::int64_t> new_attributes;
-new_attributes.emplace(AttributeIds::ID_COORD_X, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
-new_attributes.emplace(AttributeIds::ID_COORD_Y, (boost::int32_t)Poseidon::rand32(0, 200) - 100);
-castle->set_attributes(new_attributes);
+MapObjectMap::insert(castle);
 
-set_attribute(account_uuid, 399, castle->get_map_object_uuid().str());
+set_attribute(account_uuid, 399, map_object_uuid.str());
 
 	*withdrawn = false;
 	return std::make_pair(account_uuid, true);

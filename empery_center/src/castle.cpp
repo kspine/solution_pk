@@ -157,8 +157,9 @@ namespace {
 	}
 }
 
-Castle::Castle(MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string name)
-	: MapObject(map_object_type_id, owner_uuid, std::move(name))
+Castle::Castle(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+	AccountUuid owner_uuid, std::string name, Coord coord)
+	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, std::move(name), coord)
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
