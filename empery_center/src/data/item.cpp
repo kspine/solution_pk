@@ -73,10 +73,12 @@ namespace {
 				DEBUG_THROW(Exception, sslit("Unknown item auto increment type"));
 			}
 			boost::uint64_t minutes;
-			csv.get(minutes,           "autoinc_time");
+			csv.get(minutes,             "autoinc_time");
 			elem.auto_inc_offset = checked_mul<boost::uint64_t>(minutes, 60000);
 			csv.get(elem.auto_inc_step,  "autoinc_step");
 			csv.get(elem.auto_inc_bound, "autoinc_bound");
+
+			csv.get(elem.is_public,      "is_public");
 
 			if(!item_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate item: item_id = ", elem.item_id);

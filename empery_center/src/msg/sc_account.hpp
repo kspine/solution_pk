@@ -24,7 +24,7 @@ namespace Msg {
 	)	\
 	FIELD_ARRAY         (public_items,	\
 		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
+		FIELD_VUINT         (item_count)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

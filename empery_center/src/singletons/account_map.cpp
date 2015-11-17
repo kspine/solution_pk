@@ -9,6 +9,9 @@
 #include "../msg/sc_account.hpp"
 #include "../player_session.hpp"
 #include "../events/account.hpp"
+#include "item_box_map.hpp"
+#include "../item_box.hpp"
+#include "../data/item.hpp"
 
 #include "../castle.hpp" // FIXME remove this
 #include "../attribute_ids.hpp" // FIXME remove this
@@ -483,7 +486,19 @@ void AccountMap::send_attributes_to_client(AccountUuid account_uuid, const boost
 		}
 	}
 	if(wants_items){
-		// TODO 添加公开资源。
+		const auto item_box = ItemBoxMap::require(account_uuid);
+		std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
+		Data::Item::get_public(items_to_check);
+		msg.public_items.reserve(items_to_check.size());
+		for(auto it = items_to_check.begin(); it != items_to_check.end(); ++it){
+			const auto &item_data = *it;
+			auto info = item_box->get(item_data->item_id);
+
+			msg.public_items.emplace_back();
+			auto &item = msg.public_items.back();
+			item.item_id    = info.item_id.get();
+			item.item_count = info.count;
+		}
 	}
 	session->send(msg);
 }

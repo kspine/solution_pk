@@ -25,6 +25,7 @@ namespace Data {
 
 		static void get_init(std::vector<boost::shared_ptr<const Item>> &ret);
 		static void get_auto_inc(std::vector<boost::shared_ptr<const Item>> &ret);
+		static void get_public(std::vector<boost::shared_ptr<const Item>> &ret);
 
 	public:
 		ItemId item_id;
@@ -38,6 +39,8 @@ namespace Data {
 		boost::uint64_t auto_inc_offset;
 		boost::int64_t auto_inc_step;
 		boost::uint64_t auto_inc_bound;
+
+		bool is_public;
 	};
 
 	class ItemTrade {
