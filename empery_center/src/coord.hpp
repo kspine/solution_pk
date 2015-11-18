@@ -8,16 +8,15 @@
 namespace EmperyCenter {
 
 class Coord {
-public:
-	static constexpr Coord npos() noexcept {
-		return Coord(INT64_MIN, INT64_MIN);
-	}
-
 private:
 	boost::int64_t m_x;
 	boost::int64_t m_y;
 
 public:
+	constexpr Coord() noexcept
+		: Coord(INT64_MIN, INT64_MIN)
+	{
+	}
 	constexpr Coord(boost::int64_t x, boost::int64_t y) noexcept
 		: m_x(x), m_y(y)
 	{
@@ -32,7 +31,7 @@ public:
 	}
 
 	explicit constexpr operator bool() const noexcept {
-		return *this == npos();
+		return *this == Coord();
 	}
 
 	constexpr bool operator==(const Coord &rhs) const noexcept {

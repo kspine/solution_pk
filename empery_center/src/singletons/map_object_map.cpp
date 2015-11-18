@@ -329,7 +329,7 @@ void MapObjectMap::insert(const boost::shared_ptr<MapObject> &map_object){
 	map_object_map->insert(MapObjectElement(map_object));
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	on_update(map_object, Coord::npos(), new_coord);
+	on_update(map_object, { }, new_coord);
 }
 void MapObjectMap::update(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -433,7 +433,7 @@ void MapObjectMap::remove(MapObjectUuid map_object_uuid) noexcept {
 		}
 	}
 
-	on_update(map_object, old_coord, Coord::npos());
+	on_update(map_object, old_coord, { });
 }
 
 void MapObjectMap::get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
