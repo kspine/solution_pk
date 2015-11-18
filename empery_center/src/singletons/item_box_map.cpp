@@ -37,7 +37,7 @@ namespace {
 
 	void gc_timer_proc(boost::uint64_t now){
 		PROFILE_ME;
-		LOG_EMPERY_CENTER_DEBUG("Item box gc timer: now = ", now);
+		LOG_EMPERY_CENTER_TRACE("Item box gc timer: now = ", now);
 
 		const auto item_box_map = g_item_box_map.lock();
 		if(item_box_map){

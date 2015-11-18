@@ -62,7 +62,7 @@ namespace {
 
 	void gc_timer_proc(boost::uint64_t now){
 		PROFILE_ME;
-		LOG_EMPERY_CENTER_DEBUG("Mail box gc timer: now = ", now);
+		LOG_EMPERY_CENTER_TRACE("Mail box gc timer: now = ", now);
 
 		const auto mail_box_map = g_mail_box_map.lock();
 		if(mail_box_map){
