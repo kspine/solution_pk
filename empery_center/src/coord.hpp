@@ -31,7 +31,7 @@ public:
 	}
 
 	explicit constexpr operator bool() const noexcept {
-		return *this == Coord();
+		return *this != Coord();
 	}
 
 	constexpr bool operator==(const Coord &rhs) const noexcept {
