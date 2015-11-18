@@ -261,7 +261,7 @@ namespace {
 	void on_update(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
 		PROFILE_ME;
 
-		if(old_coord){
+		if(old_coord && (old_coord != new_coord)){
 			synchronize_map_object_by_coord(map_object, old_coord);
 		}
 		if(new_coord){
