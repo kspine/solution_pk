@@ -111,13 +111,13 @@ Coord ClusterSessionMap::get_server_coord(const boost::weak_ptr<ClusterSession> 
 	const auto session_map = g_session_map.lock();
 	if(!session_map){
 		LOG_EMPERY_CENTER_WARNING("Cluster session map is not loaded.");
-		return INVALID_COORD;
+		return Coord::npos();
 	}
 
 	const auto it = session_map->find<1>(session);
 	if(it == session_map->end<1>()){
 		LOG_EMPERY_CENTER_DEBUG("Cluster session map is not found");
-		return INVALID_COORD;
+		return Coord::npos();
 	}
 	return it->coord;
 }

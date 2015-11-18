@@ -8,6 +8,11 @@
 namespace EmperyCenter {
 
 class Coord {
+public:
+	static constexpr Coord npos() noexcept {
+		return Coord(INT64_MIN, INT64_MIN);
+	}
+
 private:
 	boost::int64_t m_x;
 	boost::int64_t m_y;
@@ -26,7 +31,9 @@ public:
 		return m_y;
 	}
 
-	explicit operator bool() const noexcept;
+	explicit constexpr operator bool() const noexcept {
+		return *this == npos();
+	}
 
 	constexpr bool operator==(const Coord &rhs) const noexcept {
 		return (m_x == rhs.m_x) && (m_y == rhs.m_y);
@@ -51,12 +58,6 @@ public:
 
 inline std::ostream &operator<<(std::ostream &os, const Coord &rhs){
 	return os <<'(' <<rhs.x() <<',' <<rhs.y() <<')';
-}
-
-constexpr auto INVALID_COORD = Coord(INT64_MIN, INT64_MIN);
-
-inline Coord::operator bool() const noexcept {
-	return *this != INVALID_COORD;
 }
 
 }
