@@ -43,10 +43,8 @@ ItemBox::ItemBox(AccountUuid account_uuid,
 ItemBox::~ItemBox(){
 }
 
-void ItemBox::pump_status(bool force_synchronization_with_client){
+void ItemBox::check_init_items(){
 	PROFILE_ME;
-
-	const auto utc_now = Poseidon::get_utc_time();
 
 	LOG_EMPERY_CENTER_DEBUG("Checking for init items: account_uuid = ", get_account_uuid());
 	std::vector<ItemTransactionElement> transaction;
@@ -62,10 +60,16 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 		}
 	}
 	commit_transaction(transaction.data(), transaction.size());
+}
+
+void ItemBox::pump_status(bool force_synchronization_with_client){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
 
 	LOG_EMPERY_CENTER_DEBUG("Checking for auto increment items: account_uuid = ", get_account_uuid());
-	transaction.clear();
-	items_to_check.clear();
+	std::vector<ItemTransactionElement> transaction;
+	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 	Data::Item::get_auto_inc(items_to_check);
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t> new_timestamps;
 	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){

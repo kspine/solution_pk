@@ -119,6 +119,7 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 				objs.emplace_back(std::move(obj));
 			}
 			auto item_box = boost::make_shared<ItemBox>(account_uuid, objs);
+			item_box->check_init_items();
 
 			const auto item_box_refresh_interval = get_config<boost::uint64_t>("item_box_refresh_interval", 60000);
 			auto timer = Poseidon::TimerDaemon::register_timer(0, item_box_refresh_interval,

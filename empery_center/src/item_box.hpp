@@ -40,6 +40,8 @@ public:
 		return m_account_uuid;
 	}
 
+	void check_init_items();
+
 	void pump_status(bool force_synchronization_with_client = false);
 
 	ItemInfo get(ItemId item_id) const;
