@@ -41,6 +41,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/get_both_balance_history.cpp	\
 	src/account/get_withdrawal_requests.cpp	\
 	src/account/commit_withdrawal.cpp	\
+	src/account/rollback_withdrawal.cpp	\
 	src/account/create_bill.cpp	\
 	src/account/settle_bill.cpp	\
 	src/account/query_bill_state.cpp	\

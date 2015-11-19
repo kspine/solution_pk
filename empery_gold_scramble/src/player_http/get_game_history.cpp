@@ -19,6 +19,8 @@ namespace MySql {
 
 PLAYER_HTTP_SERVLET("getGameHistory", session, params){
 	const auto &game_auto_id_str = params.get("gameAutoId");
+	const auto &begin = params.get("begin");
+	const auto &count = params.get("count");
 	const auto &time_begin = params.get("timeBegin");
 	const auto &time_end = params.get("timeEnd");
 	const auto &login_name = params.get("loginName");
@@ -53,6 +55,15 @@ PLAYER_HTTP_SERVLET("getGameHistory", session, params){
 		oss <<"AND `nick` = '" <<Poseidon::MySql::StringEscaper(nick) <<"' ";
 	}
 	oss <<"ORDER BY `record_auto_id` DESC";
+	if(!count.empty()){
+		oss <<"LIMIT ";
+		if(!begin.empty()){
+			auto num_begin = boost::lexical_cast<boost::uint64_t>(begin);
+			oss <<num_begin <<", ";
+		}
+		auto num_count = boost::lexical_cast<boost::uint64_t>(count);
+		oss <<num_count;
+	}
 	if(ids_only.empty()){
 		std::vector<boost::shared_ptr<MySql::GoldScramble_GameHistory>> objs;
 		MySql::GoldScramble_GameHistory::batch_load(objs, oss.str());
