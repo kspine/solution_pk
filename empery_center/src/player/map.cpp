@@ -2,10 +2,11 @@
 #include "common.hpp"
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
-#include "../msg/cerr_map.hpp"
-#include "../singletons/cluster_session_map.hpp"
+#include "../msg/err_map.hpp"
 #include "../singletons/map_object_map.hpp"
 #include "../map_object.hpp"
+#include "../singletons/cluster_session_map.hpp"
+#include "../cluster_session.hpp"
 
 namespace EmperyCenter {
 
@@ -45,16 +46,45 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = MapObjectMap::get(map_object_uuid);
 	if(!map_object){
-		return { Msg::CERR_NO_SUCH_OBJECT, map_object_uuid.str() };
+		return Response(Msg::ERR_NO_SUCH_OBJECT) <<map_object_uuid;
 	}
 	if(map_object->get_owner_uuid() != account_uuid){
-		return { Msg::CERR_NOT_YOUR_OBJECT, map_object->get_owner_uuid().str() };
+		return Response(Msg::ERR_NOT_YOUR_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto from_coord = map_object->get_coord();
 	if((from_coord.x() != req.x) || (from_coord.y() != req.y)){
-		return { Msg::CERR_OBJECT_COORD_MISMATCH, boost::lexical_cast<std::string>(from_coord) };
+		return Response(Msg::ERR_OBJECT_COORD_MISMATCH) <<from_coord;
 	}
 	// TODO 判断能不能走。
+
+	std::deque<Coord> abs_coords;
+	abs_coords.emplace_front(from_coord);
+	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
+		const auto &rel_coord = req.waypoints.at(i);
+		if((rel_coord.dx < -1) || (rel_coord.dx > 1) || (rel_coord.dy < -1) || (rel_coord.dy > 1)){
+			LOG_EMPERY_CENTER_DEBUG("Invalid relative coord: i = ", i, ", dx = ", rel_coord.dx, ", dy = ", rel_coord.dy);
+			return Response(Msg::ERR_BROKEN_PATH) <<i;
+		}
+		abs_coords.emplace_back(abs_coords.back().x() + rel_coord.dx, abs_coords.back().y() + rel_coord.dy);
+	}
+	const auto server_coord = ClusterSessionMap::get_server_coord_from_map_coord(from_coord);
+	const auto cluster = ClusterSessionMap::get(server_coord);
+	if(!cluster){
+		LOG_EMPERY_CENTER_WARNING("Lost connection to map server: server_coord = ", server_coord);
+		return Response(Msg::ERR_MAP_SERVER_CONNECTION_LOST) <<server_coord;
+	}
+/*	cluster->
+const auto cluster = 
+static boost::shared_ptr<ClusterSession> get(Coord server_coord);
+static void get_all(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
+static void set(Coord server_coord, const boost::shared_ptr<ClusterSession> &session);
+
+static Coord get_server_coord(const boost::weak_ptr<ClusterSession> &session);
+static Coord require_server_coord(const boost::weak_ptr<ClusterSession> &session);
+
+static Coord get_server_coord_from_map_coord(Coord coord);
+static Rectangle get_server_map_range(Coord server_coord);
+*/	// TODO 设定路径。
 
 	return Response();
 }

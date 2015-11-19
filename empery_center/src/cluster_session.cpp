@@ -47,7 +47,7 @@ boost::shared_ptr<const ServletCallback> ClusterSession::get_servlet(boost::uint
 }
 
 ClusterSession::ClusterSession(Poseidon::UniqueFile socket)
-	: Poseidon::Cbpp::Session(std::move(socket))
+	: Poseidon::Cbpp::Session(std::move(socket), 0x1000000) // 16MiB
 	, m_serial(0)
 {
 	LOG_EMPERY_CENTER_INFO("ClusterSession constructor: this = ", (void *)this);

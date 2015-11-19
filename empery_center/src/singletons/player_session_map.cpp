@@ -46,7 +46,7 @@ namespace {
 				if(!session){
 					continue;
 				}
-				session->shutdown(Msg::KILL_SHUTDOWN, "The server is being shut down.");
+				session->shutdown(Msg::KILL_SHUTDOWN, "The server is being shut down");
 			}
 		}
 	};

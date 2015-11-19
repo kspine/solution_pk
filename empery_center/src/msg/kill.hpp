@@ -12,6 +12,7 @@ namespace Msg {
 		KILL_SESSION_GHOSTED                = -5001,
 		KILL_OPERATOR_COMMAND               = -5002,
 		KILL_SHUTDOWN                       = -5003,
+		KILL_MAP_SERVER_CONFLICT            = -5004,
 	};
 }
 

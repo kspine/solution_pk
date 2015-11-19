@@ -2,7 +2,7 @@
 #include "common.hpp"
 #include "../msg/cs_mail.hpp"
 #include "../msg/sc_mail.hpp"
-#include "../msg/cerr_mail.hpp"
+#include "../msg/err_mail.hpp"
 #include "../singletons/mail_box_map.hpp"
 #include "../mail_box.hpp"
 #include "../mail_data.hpp"
@@ -27,13 +27,13 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account_uuid, session, req){
 	const auto mail_uuid = MailUuid(req.mail_uuid);
 	auto info = mail_box->get(mail_uuid);
 	if(info.expiry_time == 0){
-		return Response(Msg::CERR_NO_SUCH_MAIL) <<mail_uuid;
+		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
 	}
 	const auto language_id = LanguageId(req.language_id);
 	const auto mail_data = MailBoxMap::get_mail_data(mail_uuid, language_id);
 	if(!mail_data){
 		LOG_EMPERY_CENTER_DEBUG("Mail data not found: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
-		return Response(Msg::CERR_NO_SUCH_LANGUAGE_ID) <<mail_uuid;
+		return Response(Msg::ERR_NO_SUCH_LANGUAGE_ID) <<mail_uuid;
 	}
 
 	Msg::SC_MailData msg;
@@ -59,7 +59,7 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account_uuid, session, req){
 PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 	const auto to_account_uuid = AccountUuid(req.to_account_uuid);
 	if(!AccountMap::has(to_account_uuid)){
-		return Response(Msg::CERR_NO_SUCH_ACCOUNT) <<to_account_uuid;
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<to_account_uuid;
 	}
 
 	const auto to_mail_box = MailBoxMap::require(to_account_uuid);
@@ -94,7 +94,7 @@ PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account_uuid, session, req){
 	const auto mail_uuid = MailUuid(req.mail_uuid);
 	auto info = mail_box->get(mail_uuid);
 	if(info.expiry_time == 0){
-		return Response(Msg::CERR_NO_SUCH_MAIL) <<mail_uuid;
+		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
 	}
 
 	Poseidon::add_flags(info.flags, MailBox::FL_READ);
@@ -109,10 +109,10 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account_uuid, session, req){
 	const auto mail_uuid = MailUuid(req.mail_uuid);
 	auto info = mail_box->get(mail_uuid);
 	if(info.expiry_time == 0){
-		return Response(Msg::CERR_NO_SUCH_MAIL) <<mail_uuid;
+		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
 	}
 	if(Poseidon::has_any_flags_of(info.flags, MailBox::FL_ATTACHMENTS_FETCHED)){
-		return Response(Msg::CERR_ATTACHMENTS_FETCHED) <<mail_uuid;
+		return Response(Msg::ERR_ATTACHMENTS_FETCHED) <<mail_uuid;
 	}
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
@@ -144,13 +144,13 @@ PLAYER_SERVLET(Msg::CS_MailDelete, account_uuid, session, req){
 	const auto mail_uuid = MailUuid(req.mail_uuid);
 	auto info = mail_box->get(mail_uuid);
 	if(info.expiry_time == 0){
-		return Response(Msg::CERR_NO_SUCH_MAIL) <<mail_uuid;
+		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
 	}
 	if(Poseidon::has_none_flags_of(info.flags, MailBox::FL_READ)){
-		return Response(Msg::CERR_MAIL_IS_UNREAD) <<mail_uuid;
+		return Response(Msg::ERR_MAIL_IS_UNREAD) <<mail_uuid;
 	}
 	if(Poseidon::has_none_flags_of(info.flags, MailBox::FL_ATTACHMENTS_FETCHED)){
-		return Response(Msg::CERR_MAIL_HAS_ATTACHMENTS) <<mail_uuid;
+		return Response(Msg::ERR_MAIL_HAS_ATTACHMENTS) <<mail_uuid;
 	}
 
 	mail_box->remove(mail_uuid);

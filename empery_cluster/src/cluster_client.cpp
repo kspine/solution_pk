@@ -5,7 +5,7 @@
 #include <poseidon/async_job.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "../../empery_center/src/msg/g_packed.hpp"
-#include "../../empery_center/src/msg/ks_map.hpp"
+#include "../../empery_center/src/msg/kc_map.hpp"
 
 namespace EmperyCluster {
 
@@ -102,7 +102,7 @@ void ClusterClient::on_connect(){
 	// Poseidon::Cbpp::Client::on_connect();
 
 	Poseidon::enqueue_async_job(std::bind([&](const boost::shared_ptr<void> &){
-		const auto result = send_and_wait(Msg::KS_MapRegisterCluster(m_map_x, m_map_y));
+		const auto result = send_and_wait(Msg::KC_MapRegisterCluster(m_map_x, m_map_y));
 		if(result.first != 0){
 			LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
 			DEBUG_THROW(Exception, SharedNts(result.second));
