@@ -52,7 +52,8 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	void on_sync_connect() override;
+	void on_connect() override;
+
 	void on_sync_data_message_header(boost::uint16_t message_id, boost::uint64_t payload_size) override;
 	void on_sync_data_message_payload(boost::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
 	void on_sync_data_message_end(boost::uint64_t payload_size) override;

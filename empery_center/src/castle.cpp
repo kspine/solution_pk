@@ -190,8 +190,10 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 Castle::~Castle(){
 }
 
-void Castle::pump_status(bool force_synchronization_with_client){
+void Castle::pump_status(){
 	PROFILE_ME;
+
+	MapObject::pump_status();
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -231,83 +233,26 @@ void Castle::pump_status(bool force_synchronization_with_client){
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 		check_tech_mission(it->second, utc_now);
 	}
-
-	if(force_synchronization_with_client){
-		const auto session = PlayerSessionMap::get(get_owner_uuid());
-		if(session){
-			try {
-				for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-					Msg::SC_CastleBuildingBase msg;
-					fill_building_message(msg, it->second);
-					session->send(msg);
-				}
-				for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
-					Msg::SC_CastleTech msg;
-					fill_tech_message(msg, it->second);
-					session->send(msg);
-				}
-				for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
-					Msg::SC_CastleResource msg;
-					fill_resource_message(msg, it->second);
-					session->send(msg);
-				}
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
-	}
 }
-void Castle::pump_building_status(BuildingBaseId building_base_id, bool force_synchronization_with_client){
+void Castle::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	const auto it = m_buildings.find(building_base_id);
-	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
-		return;
+	MapObject::synchronize_with_client(session);
+
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		Msg::SC_CastleBuildingBase msg;
+		fill_building_message(msg, it->second);
+		session->send(msg);
 	}
-
-	const auto utc_now = Poseidon::get_utc_time();
-	check_building_mission(it->second, utc_now);
-
-	if(force_synchronization_with_client){
-		const auto session = PlayerSessionMap::get(get_owner_uuid());
-		if(session){
-			try {
-				Msg::SC_CastleBuildingBase msg;
-				fill_building_message(msg, it->second);
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
+	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
+		Msg::SC_CastleTech msg;
+		fill_tech_message(msg, it->second);
+		session->send(msg);
 	}
-}
-void Castle::pump_tech_status(TechId tech_id, bool force_synchronization_with_client){
-	PROFILE_ME;
-
-	const auto it = m_techs.find(tech_id);
-	if(it == m_techs.end()){
-		LOG_EMPERY_CENTER_DEBUG("Tech not found: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
-		return;
-	}
-
-	const auto utc_now = Poseidon::get_utc_time();
-	check_tech_mission(it->second, utc_now);
-
-	if(force_synchronization_with_client){
-		const auto session = PlayerSessionMap::get(get_owner_uuid());
-		if(session){
-			try {
-				Msg::SC_CastleTech msg;
-				fill_tech_message(msg, it->second);
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
+	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
+		Msg::SC_CastleResource msg;
+		fill_resource_message(msg, it->second);
+		session->send(msg);
 	}
 }
 
@@ -503,6 +448,32 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, boost::u
 	}
 }
 
+void Castle::pump_building_status(BuildingBaseId building_base_id){
+	PROFILE_ME;
+
+	const auto it = m_buildings.find(building_base_id);
+	if(it == m_buildings.end()){
+		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+	check_building_mission(it->second, utc_now);
+}
+void Castle::synchronize_building_with_client(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto it = m_buildings.find(building_base_id);
+	if(it == m_buildings.end()){
+		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		return;
+	}
+
+	Msg::SC_CastleBuildingBase msg;
+	fill_building_message(msg, it->second);
+	session->send(msg);
+}
+
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;
 
@@ -655,6 +626,32 @@ void Castle::speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duratio
 			session->shutdown(e.what());
 		}
 	}
+}
+
+void Castle::pump_tech_status(TechId tech_id){
+	PROFILE_ME;
+
+	const auto it = m_techs.find(tech_id);
+	if(it == m_techs.end()){
+		LOG_EMPERY_CENTER_DEBUG("Tech not found: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+	check_tech_mission(it->second, utc_now);
+}
+void Castle::synchronize_tech_with_client(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto it = m_techs.find(tech_id);
+	if(it == m_techs.end()){
+		LOG_EMPERY_CENTER_DEBUG("Tech not found: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
+		return;
+	}
+
+	Msg::SC_CastleTech msg;
+	fill_tech_message(msg, it->second);
+	session->send(msg);
 }
 
 Castle::ResourceInfo Castle::get_resource(ResourceId resource_id) const {

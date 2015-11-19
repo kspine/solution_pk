@@ -96,10 +96,10 @@ void ClusterClient::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Client::on_close(err_code);
 }
 
-void ClusterClient::on_sync_connect(){
+void ClusterClient::on_connect(){
 	PROFILE_ME;
 
-	Poseidon::Cbpp::Client::on_sync_connect();
+	// Poseidon::Cbpp::Client::on_connect();
 
 	Poseidon::enqueue_async_job(std::bind([&](const boost::shared_ptr<void> &){
 		const auto result = send_and_wait(Msg::KS_MapRegisterCluster(m_map_x, m_map_y));

@@ -72,9 +72,8 @@ public:
 	~Castle();
 
 public:
-	void pump_status(bool force_synchronization_with_client = false);
-	void pump_building_status(BuildingBaseId building_base_id, bool force_synchronization_with_client = false);
-	void pump_tech_status(TechId tech_id, bool force_synchronization_with_client = false);
+	void pump_status() override;
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
 
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
 	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;
@@ -85,12 +84,18 @@ public:
 	void cancel_building_mission(BuildingBaseId building_base_id);
 	void speed_up_building_mission(BuildingBaseId building_base_id, boost::uint64_t delta_duration);
 
+	void pump_building_status(BuildingBaseId building_base_id);
+	void synchronize_building_with_client(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
+
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
 	// 同上。
 	void create_tech_mission(TechId tech_id, Mission mission);
 	void cancel_tech_mission(TechId tech_id);
 	void speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duration);
+
+	void pump_tech_status(TechId tech_id);
+	void synchronize_tech_with_client(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	ResourceInfo get_resource(ResourceId resource_id) const;
 	void get_all_resources(std::vector<ResourceInfo> &ret) const;

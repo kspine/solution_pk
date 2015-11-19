@@ -84,6 +84,12 @@ namespace Msg {
 	FIELD_VUINT         (tech_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleQueryMyCastleList
+#define MESSAGE_ID      411
+#define MESSAGE_FIELDS  \
+	//
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

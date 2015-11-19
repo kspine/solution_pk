@@ -31,7 +31,7 @@ namespace Msg {
 	FIELD_VUINT         (height)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    CS_MapSetObjectPath
+#define MESSAGE_NAME    CS_MapSetWaypoints
 #define MESSAGE_ID      303
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\

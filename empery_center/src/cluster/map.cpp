@@ -13,7 +13,9 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, session, req){
 		LOG_EMPERY_CENTER_WARNING("Cluster server conflict: server_coord = ", server_coord);
 		return Response(Msg::KERR_MAP_SERVER_CONFLICT) <<"Cluster server conflict";
 	}
+
 	ClusterSessionMap::set(server_coord, session);
+
 	return Response();
 }
 

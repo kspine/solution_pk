@@ -3,6 +3,9 @@
 #include "mysql/map_object.hpp"
 #include "attribute_ids.hpp"
 #include "singletons/map_object_map.hpp"
+#include "singletons/player_session_map.hpp"
+#include "player_session.hpp"
+#include "msg/sc_map.hpp"
 
 namespace EmperyCenter {
 
@@ -27,6 +30,31 @@ MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 MapObject::~MapObject(){
 }
 
+void MapObject::pump_status(){
+	PROFILE_ME;
+
+	// 无事可做。
+}
+void MapObject::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	Msg::SC_MapObjectInfo msg;
+	msg.object_uuid    = get_map_object_uuid().str();
+	msg.object_type_id = get_map_object_type_id().get();
+	msg.owner_uuid     = get_owner_uuid().str();
+	msg.name           = get_name();
+	msg.x              = get_coord().x();
+	msg.y              = get_coord().y();
+	msg.attributes.reserve(m_attributes.size());
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		msg.attributes.emplace_back();
+		auto &attribute = msg.attributes.back();
+		attribute.attribute_id = it->first.get();
+		attribute.value        = it->second->get_value();
+	}
+	session->send(msg);
+}
+
 MapObjectUuid MapObject::get_map_object_uuid() const {
 	return MapObjectUuid(m_obj->unlocked_get_map_object_uuid());
 }
@@ -42,6 +70,16 @@ const std::string &MapObject::get_name() const {
 }
 void MapObject::set_name(std::string name){
 	m_obj->set_name(std::move(name));
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			synchronize_with_client(session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 Coord MapObject::get_coord() const {
@@ -52,6 +90,16 @@ void MapObject::set_coord(Coord coord){
 	m_obj->set_y(coord.y());
 
 	MapObjectMap::update(virtual_shared_from_this<MapObject>(), false);
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			synchronize_with_client(session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 boost::uint64_t MapObject::get_created_time() const {
@@ -65,6 +113,18 @@ void MapObject::delete_from_game() noexcept {
 	m_obj->set_deleted(true);
 
 	MapObjectMap::remove(get_map_object_uuid());
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_MapObjectRemoved msg;
+			msg.object_uuid = get_map_object_uuid().str();
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 boost::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
@@ -87,29 +147,32 @@ void MapObject::get_attributes(boost::container::flat_map<AttributeId, boost::in
 void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers){
 	PROFILE_ME;
 
-	// copy-and-swap
-	decltype(m_attributes) attributes;
-	attributes.reserve(m_attributes.size() + modifiers.size());
-	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		attributes.emplace(it->first, it->second);
+	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
+		const auto obj_it = m_attributes.find(it->first);
+		if(obj_it == m_attributes.end()){
+			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(
+				get_map_object_uuid().get(), it->first.get(), 0);
+			// obj->async_save(true);
+			obj->enable_auto_saving();
+			m_attributes.emplace(it->first, std::move(obj));
+		}
 	}
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
-		auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(
-			m_obj->unlocked_get_map_object_uuid(), it->first.get(), it->second);
-		attributes[it->first] = std::move(obj);
-	}
-	m_attributes.swap(attributes);
-	attributes.clear();
-
-	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		try {
-			it->second->async_save(true);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		}
+		const auto &obj = m_attributes.at(it->first);
+		obj->set_value(it->second);
 	}
 
 	MapObjectMap::update(virtual_shared_from_this<MapObject>(), false);
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			synchronize_with_client(session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 }

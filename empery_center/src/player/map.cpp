@@ -41,7 +41,7 @@ PLAYER_SERVLET(Msg::CS_MapRefreshView, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapSetObjectPath, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = MapObjectMap::get(map_object_uuid);
 	if(!map_object){

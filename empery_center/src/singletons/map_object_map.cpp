@@ -3,14 +3,13 @@
 #include <boost/container/flat_set.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
-#include "../player_session.hpp"
 #include "../map_object.hpp"
 #include "../attribute_ids.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../mysql/map_object.hpp"
 #include "../mysql/castle.hpp"
-#include "../msg/sc_map.hpp"
 #include "../castle.hpp"
+#include "../player_session.hpp"
 
 namespace EmperyCenter {
 
@@ -200,37 +199,6 @@ namespace {
 		handles.push(player_view_map);
 	}
 
-	void send_map_object_to_player(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<PlayerSession> &session){
-		PROFILE_ME;
-
-		if(map_object->has_been_deleted()){
-			Msg::SC_MapObjectRemoved msg;
-			msg.object_uuid = map_object->get_map_object_uuid().str();
-			session->send(msg);
-		} else {
-			const auto coord = map_object->get_coord();
-
-			boost::container::flat_map<AttributeId, boost::int64_t> attributes;
-			map_object->get_attributes(attributes);
-
-			Msg::SC_MapObjectInfo msg;
-			msg.object_uuid    = map_object->get_map_object_uuid().str();
-			msg.object_type_id = map_object->get_map_object_type_id().get();
-			msg.owner_uuid     = map_object->get_owner_uuid().str();
-			msg.name           = map_object->get_name();
-			msg.x              = coord.x();
-			msg.y              = coord.y();
-			msg.attributes.reserve(attributes.size());
-			for(auto it = attributes.begin(); it != attributes.end(); ++it){
-				msg.attributes.emplace_back();
-				auto &attribute = msg.attributes.back();
-				attribute.attribute_id = it->first.get();
-				attribute.value        = it->second;
-			}
-			session->send(msg);
-		}
-	}
-
 	void synchronize_map_object_by_coord(const boost::shared_ptr<MapObject> &map_object, Coord coord) noexcept {
 		PROFILE_ME;
 
@@ -251,7 +219,7 @@ namespace {
 			}
 			if(view_it->view.hit_test(coord)){
 				try {
-					send_map_object_to_player(map_object, session);
+					map_object->synchronize_with_client(session);
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 					session->shutdown(e.what());
@@ -452,7 +420,7 @@ void MapObjectMap::get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, 
 	}
 }
 
-void MapObjectMap::get_by_rectangle(boost::container::flat_multimap<Coord, boost::shared_ptr<MapObject>> &ret, const Rectangle &rectangle){
+void MapObjectMap::get_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, const Rectangle &rectangle){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -476,7 +444,7 @@ void MapObjectMap::get_by_rectangle(boost::container::flat_multimap<Coord, boost
 				++x;
 				break;
 			}
-			ret.emplace(it->coord, it->map_object);
+			ret.emplace_back(it->map_object);
 			++it;
 		}
 	}
@@ -525,10 +493,11 @@ void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession
 try {
 	PROFILE_ME;
 
-	boost::container::flat_multimap<Coord, boost::shared_ptr<MapObject>> map_objects;
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	get_by_rectangle(map_objects, view);
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-		send_map_object_to_player(it->second, session);
+		const auto &map_object = (*it);
+		map_object->synchronize_with_client(session);
 	}
 } catch(std::exception &e){
 	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

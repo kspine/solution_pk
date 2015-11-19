@@ -5,7 +5,6 @@
 #include "../coord.hpp"
 #include "../rectangle.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/container/flat_map.hpp>
 #include <vector>
 
 namespace EmperyCenter {
@@ -20,8 +19,7 @@ struct MapObjectMap {
 	static void remove(MapObjectUuid map_object_uuid) noexcept;
 
 	static void get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);
-
-	static void get_by_rectangle(boost::container::flat_multimap<Coord, boost::shared_ptr<MapObject>> &ret, const Rectangle &rectangle);
+	static void get_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, const Rectangle &rectangle);
 
 	static void set_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view);
 	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept;
