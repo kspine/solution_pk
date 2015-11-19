@@ -238,7 +238,7 @@ namespace {
 			dt.sec = 0;
 			dt.ms = 0;
 			next_game_begin_time = Poseidon::assemble_time(dt);
-		} else if(dt.hr > game_end_o_clock){
+		} else if(dt.hr >= game_end_o_clock){
 			// 设为第二天开始时间。
 			dt.hr = game_start_o_clock;
 			dt.min = 0;
