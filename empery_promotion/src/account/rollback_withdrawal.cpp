@@ -34,6 +34,11 @@ ACCOUNT_SERVLET("rollbackWithdrawal", session, params){
 		ret[sslit("errorMessage")] = "Withdrawal slip is already settled";
 		return ret;
 	}
+	if(wd_slip_obj->get_state() == (unsigned)BillStates::ST_CANCELLED){
+		ret[sslit("errorCode")] = (int)Msg::ERR_W_D_SLIP_CANCELLED;
+		ret[sslit("errorMessage")] = "Withdrawal slip is cancelled";
+		return ret;
+	}
 
 	std::string callback_ip(session->get_remote_info().ip.get());
 

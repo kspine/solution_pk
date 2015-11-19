@@ -10,7 +10,6 @@ namespace BillStates {
 		ST_SETTLED              = 2,
 
 		ST_CANCELLED            = 100,
-		ST_ABANDONED            = 101,
 	};
 }
 
