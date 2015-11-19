@@ -31,6 +31,9 @@ PLAYER_HTTP_SERVLET("getGameDetailedResult", session, params){
 	Poseidon::JsonArray history;
 	for(auto it = objs.begin(); it != objs.end(); ++it){
 		const auto &obj = *it;
+		if(obj->unlocked_get_login_name().empty()){
+			continue;
+		}
 		Poseidon::JsonObject elem;
 		elem[sslit("loginName")]      = obj->unlocked_get_login_name();
 		elem[sslit("goldCoins")]      = obj->get_gold_coins();
@@ -48,6 +51,9 @@ PLAYER_HTTP_SERVLET("getGameDetailedResult", session, params){
 	history.clear();
 	for(auto it = objs.begin(); it != objs.end(); ++it){
 		const auto &obj = *it;
+		if(obj->unlocked_get_login_name().empty()){
+			continue;
+		}
 		Poseidon::JsonObject elem;
 		elem[sslit("loginName")]      = obj->unlocked_get_login_name();
 		elem[sslit("goldCoins")]      = obj->get_gold_coins();
