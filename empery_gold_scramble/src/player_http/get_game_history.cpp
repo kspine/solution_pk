@@ -1,6 +1,7 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../mysql/game_history.hpp"
+#include <poseidon/mysql/object_base.hpp>
 #include <poseidon/mysql/utilities.hpp>
 
 namespace EmperyGoldScramble {

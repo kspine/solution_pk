@@ -23,6 +23,7 @@ lib_libposeidon_empery_gold_scramble_la_SOURCES = \
 	src/singletons/bid_record_map.cpp	\
 	src/player/account.cpp	\
 	src/player_http/get_game_history.cpp	\
+	src/player_http/get_game_detailed_result.cpp	\
 	src/player_session.cpp	\
 	src/utilities.cpp	\
 	src/mmain.cpp
