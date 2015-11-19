@@ -134,18 +134,30 @@ Coord ClusterSessionMap::require_server_coord(const boost::weak_ptr<ClusterSessi
 Coord ClusterSessionMap::get_server_coord_from_map_coord(Coord coord){
 	PROFILE_ME;
 
-	const auto neg_inf = Coord(INT64_MIN / g_map_width,
-	                           INT64_MIN / g_map_height);
-	return Coord((coord.x() - neg_inf.x() * g_map_width)  / g_map_width  + neg_inf.x(),
-	             (coord.y() - neg_inf.y() * g_map_height) / g_map_height + neg_inf.y());
+/*	boost::int64_t server_x, server_y;
+	if(coord.x() >= 0){
+		server_x = coord.x() / g_map_width;
+	} else {
+		server_x = ~(~coord.x() / g_map_width);
+	}
+	if(coord.y() >= 0){
+		server_y = coord.y() / g_map_height;
+	} else {
+		server_y = ~(~coord.y() / g_map_height);
+	}
+*/
+	const auto mask_x = (coord.x() >= 0) ? 0 : -1;
+	const auto mask_y = (coord.y() >= 0) ? 0 : -1;
+	const auto server_x = ((coord.x() ^ mask_x) / g_map_width)  ^ mask_x;
+	const auto server_y = ((coord.y() ^ mask_y) / g_map_height) ^ mask_y;
+	return Coord(server_x, server_y);
 }
 Rectangle ClusterSessionMap::get_server_map_range(Coord server_coord){
 	PROFILE_ME;
 
-	const auto bottom_left = Coord(server_coord.x() * g_map_width,
-	                               server_coord.y() * g_map_height);
-	return Rectangle(bottom_left.x(), bottom_left.y(),
-	                 g_map_width,     g_map_height);
+	const auto left   = server_coord.x() * g_map_width;
+	const auto bottom = server_coord.y() * g_map_height;
+	return Rectangle(left, bottom, g_map_width, g_map_height);
 }
 
 }

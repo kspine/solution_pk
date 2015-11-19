@@ -15,6 +15,7 @@ namespace Msg {
 		ERR_NOT_YOUR_OBJECT                 = 71304,
 		ERR_NOT_MOVABLE_OBJECT              = 71305,
 		ERR_MAP_SERVER_CONNECTION_LOST      = 71306,
+		ERR_OUT_OF_SERVER_RANGE             = 71307,
 	};
 }
 
