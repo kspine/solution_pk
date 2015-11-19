@@ -42,7 +42,7 @@ ACCOUNT_SERVLET("rollbackWithdrawal", session, params){
 
 	const auto account_id = AccountId(wd_slip_obj->get_account_id());
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(account_id,ItemTransactionElement::OP_REMOVE, ItemIds::ID_WITHDRAWN_BALANCE, amount,
+	transaction.emplace_back(account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_WITHDRAWN_BALANCE, amount,
 		Events::ItemChanged::R_ROLLBACK_WITHDRAWAL, account_id.get(), 0, 0, remarks);
 	transaction.emplace_back(account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, delta_balance,
 		Events::ItemChanged::R_ROLLBACK_WITHDRAWAL, account_id.get(), 0, 0, remarks);
