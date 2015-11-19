@@ -25,15 +25,14 @@ PLAYER_HTTP_SERVLET("getGameDetailedResult", session, params){
 	std::vector<boost::shared_ptr<MySql::LoginNameAndResults>> objs;
 	std::ostringstream oss;
 	oss <<"SELECT `login_name`, SUM(`gold_coins`) AS `gold_coins`, SUM(`account_balance`) AS `account_balance` "
-	    <<"  FROM `GoldScramble_BidHistory` WHERE `game_auto_id` = " <<game_auto_id;
+	    <<"  FROM `GoldScramble_BidHistory` "
+	    <<"  WHERE `game_auto_id` = " <<game_auto_id
+	    <<"  GROUP BY `login_name`";
 	MySql::LoginNameAndResults::batch_load(objs, oss.str());
 
 	Poseidon::JsonArray history;
 	for(auto it = objs.begin(); it != objs.end(); ++it){
 		const auto &obj = *it;
-		if(obj->unlocked_get_login_name().empty()){
-			continue;
-		}
 		Poseidon::JsonObject elem;
 		elem[sslit("loginName")]      = obj->unlocked_get_login_name();
 		elem[sslit("goldCoins")]      = obj->get_gold_coins();
@@ -45,15 +44,14 @@ PLAYER_HTTP_SERVLET("getGameDetailedResult", session, params){
 	objs.clear();
 	oss.str({ });
 	oss <<"SELECT `login_name`, SUM(`gold_coins_won`) AS `gold_coins`, SUM(`account_balance_won`) AS `account_balance` "
-	    <<"  FROM `GoldScramble_GameHistory` WHERE `game_auto_id` = " <<game_auto_id;
+	    <<"  FROM `GoldScramble_GameHistory` "
+	    <<"  WHERE `game_auto_id` = " <<game_auto_id
+	    <<"  GROUP BY `login_name`";
 	MySql::LoginNameAndResults::batch_load(objs, oss.str());
 
 	history.clear();
 	for(auto it = objs.begin(); it != objs.end(); ++it){
 		const auto &obj = *it;
-		if(obj->unlocked_get_login_name().empty()){
-			continue;
-		}
 		Poseidon::JsonObject elem;
 		elem[sslit("loginName")]      = obj->unlocked_get_login_name();
 		elem[sslit("goldCoins")]      = obj->get_gold_coins();
