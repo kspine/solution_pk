@@ -54,7 +54,7 @@ PLAYER_HTTP_SERVLET("getGameHistory", session, params){
 	if(!nick.empty()){
 		oss <<"AND `nick` = '" <<Poseidon::MySql::StringEscaper(nick) <<"' ";
 	}
-	oss <<"ORDER BY `record_auto_id` DESC";
+	oss <<"ORDER BY `record_auto_id` DESC ";
 	if(!count.empty()){
 		oss <<"LIMIT ";
 		if(!begin.empty()){
