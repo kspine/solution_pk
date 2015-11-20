@@ -310,11 +310,11 @@ void AccountMap::create(std::string account_name, std::string token, std::string
 	const auto token_expiry_duration = get_config<boost::uint64_t>("token_expiry_duration", 604800000);
 
 	Poseidon::add_flags(flags, AccountMap::FL_VALID);
-	const auto local_now = Poseidon::get_local_time();
+	const auto utc_now = Poseidon::get_utc_time();
 	const auto password_retry_count = get_config<boost::uint32_t>("password_retry_count", 10);
-	auto obj = boost::make_shared<MySql::Westwalk_Account>(std::move(account_name), std::move(remote_ip), local_now,
+	auto obj = boost::make_shared<MySql::Westwalk_Account>(std::move(account_name), std::move(remote_ip), utc_now,
 		std::move(remarks), std::string() /* get_password_hash(random_password()) */, std::string(), 0, 0,
-		std::move(token), local_now + token_expiry_duration, std::string(), 0, 0, password_retry_count, flags);
+		std::move(token), utc_now + token_expiry_duration, std::string(), 0, 0, password_retry_count, flags);
 	obj->async_save(true);
 	it = g_account_map->insert<0>(it, AccountElement(std::move(obj)));
 }

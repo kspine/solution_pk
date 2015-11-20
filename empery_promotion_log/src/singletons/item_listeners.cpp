@@ -11,7 +11,7 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 5000){
 		auto listener = Poseidon::EventDispatcher::register_listener<Events::ItemChanged>(
 			[](const boost::shared_ptr<Events::ItemChanged> &event){
-				const auto obj = boost::make_shared<MySql::PromotionLog_ItemChanged>(Poseidon::get_local_time(),
+				const auto obj = boost::make_shared<MySql::PromotionLog_ItemChanged>(Poseidon::get_utc_time(),
 					event->account_id.get(), event->item_id.get(), event->old_count, event->new_count,
 					event->reason, event->param1, event->param2, event->param3);
 				obj->async_save(true);

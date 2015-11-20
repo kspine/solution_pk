@@ -26,7 +26,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 				return;
 			}
 
-			const auto local_now = Poseidon::get_utc_time();
+			const auto utc_now = Poseidon::get_utc_time();
 
 			if(event->item_id == ItemIds::ID_ACCOUNT_BALANCE){
 				LOG_EMPERY_PROMOTION_INFO("Writing account balance records...");
@@ -88,18 +88,18 @@ MODULE_RAII_PRIORITY(handles, 9000){
 				}
 				if(event->old_count < event->new_count){
 					const auto obj = boost::make_shared<MySql::Promotion_IncomeBalanceHistory>(
-						event->account_id.get(), local_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
+						event->account_id.get(), utc_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
 						event->new_count - event->old_count, event->reason, event->param1, event->param2, event->param3, oss.str());
 					obj->async_save(true);
 				} else if(event->old_count > event->new_count){
 					const auto obj = boost::make_shared<MySql::Promotion_OutcomeBalanceHistory>(
-						event->account_id.get(), local_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
+						event->account_id.get(), utc_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
 						event->old_count - event->new_count, event->reason, event->param1, event->param2, event->param3, oss.str());
 					obj->async_save(true);
 				}
 			} else if(event->item_id == ItemIds::ID_GOLD_COINS){
 				const auto obj = boost::make_shared<MySql::Promotion_GoldCoinHistory>(
-					event->account_id.get(), local_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
+					event->account_id.get(), utc_now, Poseidon::atomic_add(g_auto_id, 1, Poseidon::ATOMIC_RELAXED),
 					event->old_count, event->new_count, event->reason, event->param1, event->param2, event->param3);
 				obj->async_save(true);
 			}

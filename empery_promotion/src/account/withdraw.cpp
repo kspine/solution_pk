@@ -40,7 +40,7 @@ ACCOUNT_SERVLET("withdraw", session, params){
 	const double withdrawal_fee_ratio = get_config<double>("withdrawal_fee_ratio", 0.05);
 
 	const auto serial = generate_bill_serial(wd_slip_serial_prefix);
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	auto amount = delta_balance;
 	auto fee = static_cast<boost::uint64_t>(std::ceil(delta_balance * withdrawal_fee_ratio - 0.001));
@@ -50,7 +50,7 @@ ACCOUNT_SERVLET("withdraw", session, params){
 	amount -= fee;
 
 	const auto wd_slip_obj = boost::make_shared<MySql::Promotion_WdSlip>(
-		serial, local_now, amount, fee, info.account_id.get(), BillStates::ST_NEW, std::string(), remarks);
+		serial, utc_now, amount, fee, info.account_id.get(), BillStates::ST_NEW, std::string(), remarks);
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, delta_balance,

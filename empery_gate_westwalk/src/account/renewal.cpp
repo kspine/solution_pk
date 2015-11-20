@@ -30,13 +30,13 @@ ACCOUNT_SERVLET("renewal", session, params){
 		ret[sslit("msg")] = "Old token is incorrect";
 		return ret;
 	}
-	const auto local_now = Poseidon::get_local_time();
-	if(local_now >= info.token_expiry_time){
+	const auto utc_now = Poseidon::get_utc_time();
+	if(utc_now >= info.token_expiry_time){
 		ret[sslit("errCode")] = (int)Msg::ERR_TOKEN_EXPIRED;
 		ret[sslit("msg")] = "Token has expired";
 		return ret;
 	}
-	if((info.banned_until != 0) && (local_now < info.banned_until)){
+	if((info.banned_until != 0) && (utc_now < info.banned_until)){
 		ret[sslit("errCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("msg")] = "Account is banned";
 		return ret;
@@ -46,10 +46,10 @@ ACCOUNT_SERVLET("renewal", session, params){
 	const auto token_expiry_duration = get_config<boost::uint64_t>("token_expiry_duration", 604800000);
 
 	LOG_EMPERY_GATE_WESTWALK_INFO("Renewal token: account_name = ", account_name, ", old_token = ", old_token, ", token = ", token);
-	AccountMap::set_token(account_name, token, local_now + token_expiry_duration);
+	AccountMap::set_token(account_name, token, utc_now + token_expiry_duration);
 	Poseidon::EventDispatcher::sync_raise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platform_id, account_name, token, local_now + token_expiry_duration, session->get_remote_info().ip.get()));
+			platform_id, account_name, token, utc_now + token_expiry_duration, session->get_remote_info().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";

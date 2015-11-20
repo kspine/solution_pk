@@ -43,6 +43,12 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_AccountSignIn
+#define MESSAGE_ID      205
+#define MESSAGE_FIELDS  \
+	//
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

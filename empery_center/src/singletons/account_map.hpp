@@ -15,23 +15,24 @@ class PlayerSession;
 
 struct AccountMap {
 	enum {
-		FL_VALID                    = 0x0001,
-		FL_ROBOT                    = 0x0002,
+		FL_VALID                        = 0x0001,
+		FL_ROBOT                        = 0x0002,
 
-		ATTR_CUSTOM_PUBLIC_END      = 100,
-		ATTR_CUSTOM_END             = 200,
-		ATTR_PUBLIC_END             = 300,
-		ATTR_END                    = 400,
+		ATTR_CUSTOM_PUBLIC_END          = 100,
+		ATTR_CUSTOM_END                 = 200,
+		ATTR_PUBLIC_END                 = 300,
+		ATTR_END                        = 500,
 
-		MAX_NICK_LEN                =  255,
-		MAX_ATTRIBUTE_LEN           = 4096,
+		MAX_NICK_LEN                    =  255,
+		MAX_ATTRIBUTE_LEN               = 4096,
 
-		ATTR_GENDER                 =   1,
-		ATTR_AVATAR                 =   2,
+		ATTR_GENDER                     =   1,
+		ATTR_AVATAR                     =   2,
 
-		ATTR_TIME_LAST_LOGGED_IN    = 300,
-		ATTR_TIME_LAST_LOGGED_OUT   = 301,
-		ATTR_TIME_CREATED           = 302,
+		ATTR_LAST_LOGGED_IN_TIME        = 300,
+		ATTR_LAST_LOGGED_OUT_TIME       = 301,
+		ATTR_LAST_SIGNED_IN_TIME        = 302,
+		ATTR_SEQUENTIAL_SIGNED_IN_DAYS  = 303,
 	};
 
 	struct AccountInfo {
@@ -75,12 +76,16 @@ struct AccountMap {
 	static void set_attribute(AccountUuid account_uuid, unsigned slot, std::string value);
 
 	template<typename T, typename DefaultT = T>
-	static T cast_attribute(AccountUuid account_uuid, unsigned slot, const DefaultT def = DefaultT()){
+	static T get_attribute_gen(AccountUuid account_uuid, unsigned slot, const DefaultT def = DefaultT()){
 		const auto &str = get_attribute(account_uuid, slot);
 		if(str.empty()){
 			return T(def);
 		}
 		return boost::lexical_cast<T>(str);
+	}
+	template<typename T>
+	static void set_attribute_gen(AccountUuid account_uuid, unsigned slot, const T &val){
+		set_attribute(account_uuid, slot, boost::lexical_cast<std::string>(val));
 	}
 
 	static void send_attributes_to_client(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,

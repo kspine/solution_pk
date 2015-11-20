@@ -110,14 +110,14 @@ namespace {
 		g_attribute_map = attribute_map;
 		handles.push(attribute_map);
 
-		const auto local_now = Poseidon::get_utc_time();
+		const auto utc_now = Poseidon::get_utc_time();
 		const auto first_balancing_time = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
 		LOG_EMPERY_PROMOTION_INFO("Updating subordinate info cache: first_balancing_time = ", first_balancing_time);
 		boost::container::flat_map<AccountId, SubordinateInfoCacheElement> temp_map;
 		temp_map.reserve(account_map->size());
 		for(auto it = account_map->begin(); it != account_map->end(); ++it){
 			auto level = it->obj->get_level();
-			if((level == 0) && (local_now >= first_balancing_time)){
+			if((level == 0) && (utc_now >= first_balancing_time)){
 				const auto promotion_data = Data::Promotion::get_first();
 				if(!promotion_data){
 					LOG_EMPERY_PROMOTION_FATAL("No first promotion level?");
@@ -482,10 +482,10 @@ AccountId AccountMap::create(std::string login_name, std::string phone_number, s
 	} while(g_account_map->find<0>(account_id) != g_account_map->end<0>());
 
 	Poseidon::add_flags(flags, AccountMap::FL_VALID);
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 	auto obj = boost::make_shared<MySql::Promotion_Account>(account_id.get(), std::move(login_name),
 		std::move(phone_number), std::move(nick), get_password_hash(password), get_password_hash(deal_password),
-		referrer_id.get(), 0, 0, 0, flags, 0, local_now, std::move(created_ip));
+		referrer_id.get(), 0, 0, 0, flags, 0, utc_now, std::move(created_ip));
 	obj->async_save(true);
 	it = g_account_map->insert<1>(it, AccountElement(std::move(obj)));
 

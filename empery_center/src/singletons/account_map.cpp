@@ -283,13 +283,13 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 
 	const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 	Poseidon::add_flags(flags, AccountMap::FL_VALID);
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	LOG_EMPERY_CENTER_INFO("Create account: platform_id = ", platform_id, ", login_name = ", login_name, ", nick = ", nick);
 	Poseidon::async_raise_event(boost::make_shared<Events::AccountCreated>(account_uuid, std::move(remote_ip)), withdrawn);
 
 	auto obj = boost::make_shared<MySql::Center_Account>(
-		account_uuid.get(), platform_id.get(), std::move(login_name), std::move(nick), flags, std::string(), 0, 0, local_now);
+		account_uuid.get(), platform_id.get(), std::move(login_name), std::move(nick), flags, std::string(), 0, 0, utc_now);
 	obj->async_save(true);
 	it = g_account_map.insert<2>(it, AccountElement(std::move(obj)));
 

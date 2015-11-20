@@ -106,9 +106,10 @@ namespace {
 		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
 
 		Poseidon::CsvParser csv;
+		std::string path;
 
 		const auto building_base_map = boost::make_shared<CastleBuildingBaseMap>();
-		auto path = data_directory + "/" + BUILDING_BASE_FILE + ".csv";
+		path = data_directory + "/" + BUILDING_BASE_FILE + ".csv";
 		LOG_EMPERY_CENTER_INFO("Loading castle building bases: path = ", path);
 		csv.load(path.c_str());
 		while(csv.fetch_row()){

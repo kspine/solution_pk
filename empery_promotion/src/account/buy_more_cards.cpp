@@ -32,8 +32,8 @@ ACCOUNT_SERVLET("buyMoreCards", session, params){
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	const auto local_now = Poseidon::get_utc_time();
-	if((info.banned_until != 0) && (local_now < info.banned_until)){
+	const auto utc_now = Poseidon::get_utc_time();
+	if((info.banned_until != 0) && (utc_now < info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Payer is banned";
 		return ret;

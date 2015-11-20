@@ -20,6 +20,8 @@ namespace Msg {
 		ERR_NO_SUCH_LOGIN_NAME              = 71209,
 		ERR_MULTIPLE_LOGIN                  = 71210,
 		ERR_NICK_TOO_LONG                   = 71211,
+		ERR_NO_SUCH_SIGN_IN_REWARD          = 71212,
+		ERR_ALREADY_SIGNED_IN               = 71213,
 	};
 }
 

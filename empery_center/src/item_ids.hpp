@@ -9,7 +9,7 @@ namespace ItemIds {
 
 #define DEF_(name_, number_)        constexpr ItemId name_(number_)
 
-DEF_(ID_CHIPS,                      10001);
+DEF_(ID_SIGNING_IN,                 2100020);
 
 #undef DEF_
 

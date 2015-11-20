@@ -12,7 +12,7 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 5000){
 		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountCreated>(
 			[](const boost::shared_ptr<Events::AccountCreated> &event){
-				const auto obj = boost::make_shared<MySql::PromotionLog_AccountCreated>(Poseidon::get_local_time(),
+				const auto obj = boost::make_shared<MySql::PromotionLog_AccountCreated>(Poseidon::get_utc_time(),
 					event->account_id.get(), event->remote_ip);
 				obj->async_save(true);
 			});
@@ -21,7 +21,7 @@ namespace {
 
 		listener = Poseidon::EventDispatcher::register_listener<Events::AccountLoggedIn>(
 			[](const boost::shared_ptr<Events::AccountLoggedIn> &event){
-				const auto obj = boost::make_shared<MySql::PromotionLog_AccountLoggedIn>(Poseidon::get_local_time(),
+				const auto obj = boost::make_shared<MySql::PromotionLog_AccountLoggedIn>(Poseidon::get_utc_time(),
 					event->account_id.get(), event->remote_ip);
 				obj->async_save(true);
 			});

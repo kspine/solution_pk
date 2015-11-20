@@ -29,6 +29,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/client_only.cpp	\
 	src/data/castle.cpp	\
 	src/data/item.cpp	\
+	src/data/signing_in.cpp	\
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\

@@ -10,7 +10,7 @@ using namespace EmperyCenter;
 MODULE_RAII_PRIORITY(handles, 5000){
 	auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountLoggedIn>(
 		[](const boost::shared_ptr<Events::AccountLoggedIn> &event){
-			const auto obj = boost::make_shared<MySql::CenterLog_AccountLoggedIn>(Poseidon::get_local_time(),
+			const auto obj = boost::make_shared<MySql::CenterLog_AccountLoggedIn>(Poseidon::get_utc_time(),
 				event->account_uuid.get(), event->remote_ip);
 			obj->async_save(true);
 		});

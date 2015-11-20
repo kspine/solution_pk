@@ -359,9 +359,9 @@ void commit_first_balance_bonus(){
 void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, boost::uint64_t amount, boost::uint64_t upgrade_to_level){
 	PROFILE_ME;
 
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 	const auto first_balancing_time = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
-	if(local_now < first_balancing_time){
+	if(utc_now < first_balancing_time){
 		LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
 		return;
 	}
@@ -379,8 +379,8 @@ std::string generate_bill_serial(const std::string &prefix){
 	std::string serial;
 	serial.reserve(255);
 	serial.append(prefix);
-	const auto local_now = Poseidon::get_utc_time();
-	const auto dt = Poseidon::break_down_time(local_now);
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto dt = Poseidon::break_down_time(utc_now);
 	char temp[256];
 	unsigned len = (unsigned)std::sprintf(temp, "%04u%02u%02u%02u", dt.yr, dt.mon, dt.day, dt.hr);
 	serial.append(temp, len);

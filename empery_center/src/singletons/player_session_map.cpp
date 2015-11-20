@@ -104,17 +104,15 @@ void PlayerSessionMap::add(AccountUuid account_uuid, const boost::shared_ptr<Pla
 		DEBUG_THROW(Exception, sslit("Duplicate session"));
 	}
 
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	for(;;){
 		const auto result = g_session_map->insert(SessionElement(account_uuid, session));
 		if(result.second){
 			// 新会话。
 			try {
-				AccountMap::set_attribute(account_uuid, AccountMap::ATTR_TIME_LAST_LOGGED_IN,
-					boost::lexical_cast<std::string>(local_now));
-				AccountMap::set_attribute(account_uuid, AccountMap::ATTR_TIME_LAST_LOGGED_OUT,
-					std::string());
+				AccountMap::set_attribute_gen(account_uuid, AccountMap::ATTR_LAST_LOGGED_IN_TIME, utc_now);
+				AccountMap::set_attribute_gen(account_uuid, AccountMap::ATTR_LAST_LOGGED_OUT_TIME, std::string());
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: account_uuid = ", account_uuid, ", what = ", e.what());
 				g_session_map->erase(result.first);
@@ -156,14 +154,13 @@ void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weak_session
 	const auto online_duration = Poseidon::get_fast_mono_clock() - it->online_since;
 	g_session_map->erase<1>(it);
 
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	try {
 		LOG_EMPERY_CENTER_INFO("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
 		Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
 
-		AccountMap::set_attribute(account_uuid, AccountMap::ATTR_TIME_LAST_LOGGED_OUT,
-			boost::lexical_cast<std::string>(local_now));
+		AccountMap::set_attribute_gen(account_uuid, AccountMap::ATTR_LAST_LOGGED_OUT_TIME, utc_now);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
 		if(session){

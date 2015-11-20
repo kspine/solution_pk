@@ -141,7 +141,7 @@ ItemId ItemMap::commit_transaction_nothrow(const ItemTransactionElement *element
 		DEBUG_THROW(Exception, sslit("Item map is not loaded."));
 	}
 
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto withdrawn = boost::make_shared<bool>(true);
 	TempResultMap temp_results;
@@ -170,7 +170,7 @@ ItemId ItemMap::commit_transaction_nothrow(const ItemTransactionElement *element
 			{
 				auto item_it = item_map->find<2>(std::make_pair(account_id, item_id));
 				if(item_it == item_map->end<2>()){
-					auto obj = boost::make_shared<MySql::Promotion_Item>(account_id.get(), item_id.get(), 0, local_now, 0);
+					auto obj = boost::make_shared<MySql::Promotion_Item>(account_id.get(), item_id.get(), 0, utc_now, 0);
 					obj->async_save(true);
 					item_it = item_map->insert<2>(item_it, ItemElement(std::move(obj)));
 				}

@@ -48,8 +48,8 @@ ACCOUNT_SERVLET("create", session, params){
 			return ret;
 		}
 	}
-	const auto local_now = Poseidon::get_utc_time();
-	if((payer_info.banned_until != 0) && (local_now < payer_info.banned_until)){
+	const auto utc_now = Poseidon::get_utc_time();
+	if((payer_info.banned_until != 0) && (utc_now < payer_info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Payer is banned";
 		return ret;
@@ -61,7 +61,7 @@ ACCOUNT_SERVLET("create", session, params){
 		ret[sslit("errorMessage")] = "Referrer is not found";
 		return ret;
 	}
-	if((referrer_info.banned_until != 0) && (local_now < referrer_info.banned_until)){
+	if((referrer_info.banned_until != 0) && (utc_now < referrer_info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Referrer is banned";
 		return ret;
@@ -77,7 +77,7 @@ ACCOUNT_SERVLET("create", session, params){
 		}
 	} else {
 		const auto first_balancing_time = GlobalStatus::get(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
-		if(local_now < first_balancing_time){
+		if(utc_now < first_balancing_time){
 			LOG_EMPERY_PROMOTION_DEBUG("Before first balancing...");
 		} else {
 			promotion_data = Data::Promotion::get_first();

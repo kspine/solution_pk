@@ -21,13 +21,13 @@ ACCOUNT_SERVLET("regain", session, params){
 		ret[sslit("msg")] = "The specified account is frozen";
 		return ret;
 	}
-	const auto local_now = Poseidon::get_local_time();
-	if((info.banned_until != 0) && (local_now < info.banned_until)){
+	const auto utc_now = Poseidon::get_utc_time();
+	if((info.banned_until != 0) && (utc_now < info.banned_until)){
 		ret[sslit("errCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("msg")] = "Account is banned";
 		return ret;
 	}
-	if(local_now < info.password_regain_cooldown_time){
+	if(utc_now < info.password_regain_cooldown_time){
 		ret[sslit("errCode")] = (int)Msg::ERR_PASSWORD_RAGAIN_COOLDOWN;
 		ret[sslit("msg")] = "Account is in password regain cooldown";
 		return ret;
@@ -38,11 +38,11 @@ ACCOUNT_SERVLET("regain", session, params){
 
 	auto disposable_password = AccountMap::random_password();
 	LOG_EMPERY_GATE_WESTWALK_INFO("Regain: account_name = ", account_name, ", disposable_password = ", disposable_password);
-	AccountMap::set_disposable_password(account_name, disposable_password, local_now + disposable_password_expiry_duration);
+	AccountMap::set_disposable_password(account_name, disposable_password, utc_now + disposable_password_expiry_duration);
 
 	const auto client = boost::make_shared<SmsHttpClient>(account_name, std::move(disposable_password));
 	client->commit();
-	AccountMap::set_password_regain_cooldown_time(account_name, local_now + password_regain_cooldown);
+	AccountMap::set_password_regain_cooldown_time(account_name, utc_now + password_regain_cooldown);
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";

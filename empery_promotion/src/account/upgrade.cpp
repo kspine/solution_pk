@@ -28,8 +28,8 @@ ACCOUNT_SERVLET("upgrade", session, params){
 		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
-	const auto local_now = Poseidon::get_utc_time();
-	if((payer_info.banned_until != 0) && (local_now < payer_info.banned_until)){
+	const auto utc_now = Poseidon::get_utc_time();
+	if((payer_info.banned_until != 0) && (utc_now < payer_info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Payer is banned";
 		return ret;
@@ -41,7 +41,7 @@ ACCOUNT_SERVLET("upgrade", session, params){
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
 	}
-	if((info.banned_until != 0) && (local_now < info.banned_until)){
+	if((info.banned_until != 0) && (utc_now < info.banned_until)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("errorMessage")] = "Account is banned";
 		return ret;

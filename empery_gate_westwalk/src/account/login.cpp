@@ -25,7 +25,7 @@ ACCOUNT_SERVLET("login", session, params){
 		ret[sslit("msg")] = "The specified account is frozen";
 		return ret;
 	}
-	const auto local_now = Poseidon::get_local_time();
+	const auto utc_now = Poseidon::get_utc_time();
 	if(password_hash != info.password_hash){
 		if(password_hash != info.disposable_password_hash){
 			const auto retry_count = AccountMap::decrement_password_retry_count(account_name);
@@ -35,14 +35,14 @@ ACCOUNT_SERVLET("login", session, params){
 			ret[sslit("retryCount")] = retry_count;
 			return ret;
 		}
-		if(local_now >= info.disposable_password_expiry_time){
+		if(utc_now >= info.disposable_password_expiry_time){
 			ret[sslit("errCode")] = (int)Msg::ERR_DISPOSABLE_PASSWD_EXPIRED;
 			ret[sslit("msg")] = "Disposable password has expired";
 			return ret;
 		}
 		AccountMap::commit_disposable_password(account_name);
 	}
-	if((info.banned_until != 0) && (local_now < info.banned_until)){
+	if((info.banned_until != 0) && (utc_now < info.banned_until)){
 		ret[sslit("errCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
 		ret[sslit("msg")] = "Account is banned";
 		return ret;
@@ -54,10 +54,10 @@ ACCOUNT_SERVLET("login", session, params){
 	const auto token_expiry_duration = get_config<boost::uint64_t>("token_expiry_duration", 604800000);
 
 	LOG_EMPERY_GATE_WESTWALK_INFO("Account login: account_name = ", account_name, ", token = ", token);
-	AccountMap::set_token(account_name, token, local_now + token_expiry_duration);
+	AccountMap::set_token(account_name, token, utc_now + token_expiry_duration);
 	Poseidon::EventDispatcher::sync_raise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platform_id, account_name, token, local_now + token_expiry_duration, session->get_remote_info().ip.get()));
+			platform_id, account_name, token, utc_now + token_expiry_duration, session->get_remote_info().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";

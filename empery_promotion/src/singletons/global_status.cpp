@@ -38,15 +38,15 @@ namespace {
 			boost::bind(&GlobalStatus::check_daily_reset));
 		handles.push(std::move(timer));
 
-		const auto local_now = Poseidon::get_utc_time();
+		const auto utc_now = Poseidon::get_utc_time();
 		auto first_balancing_time = Poseidon::scan_time(
 		                          get_config<std::string>("first_balancing_time").c_str());
 		const auto it = status_map->find(GlobalStatus::SLOT_FIRST_BALANCING_TIME);
 		if(it != status_map->end()){
 			first_balancing_time = it->second->get_value();
 		}
-		if(local_now < first_balancing_time){
-			timer = Poseidon::TimerDaemon::register_timer(first_balancing_time - local_now + 10000, 0, // 推迟十秒钟。
+		if(utc_now < first_balancing_time){
+			timer = Poseidon::TimerDaemon::register_timer(first_balancing_time - utc_now + 10000, 0, // 推迟十秒钟。
 				boost::bind(&GlobalStatus::check_daily_reset));
 			handles.push(std::move(timer));
 		}
@@ -106,7 +106,7 @@ void GlobalStatus::check_daily_reset(){
 		return it->second;
 	};
 
-	const auto local_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto server_created_time_obj      = get_obj(SLOT_SERVER_CREATED_TIME);
 	const auto first_balancing_time_obj     = get_obj(SLOT_FIRST_BALANCING_TIME);
@@ -138,17 +138,17 @@ void GlobalStatus::check_daily_reset(){
 			root_password, root_password, AccountId(0), AccountMap::FL_ROBOT, "127.0.0.1");
 		LOG_EMPERY_PROMOTION_INFO("> account_id = ", account_id);
 
-		server_created_time_obj->set_value(local_now);
+		server_created_time_obj->set_value(utc_now);
 		first_balancing_time_obj->set_value(first_balancing_time);
 		acc_card_unit_price_obj->set_value(acc_card_unit_price_begin);
-		server_daily_reset_time_obj->set_value(local_now);
+		server_daily_reset_time_obj->set_value(utc_now);
 	}
 
 	const auto last_reset_time = server_daily_reset_time_obj->get_value();
-	server_daily_reset_time_obj->set_value(local_now);
+	server_daily_reset_time_obj->set_value(utc_now);
 
 	const auto first_balancing_time = first_balancing_time_obj->get_value();
-	if(first_balancing_time < local_now){
+	if(first_balancing_time < utc_now){
 		if(first_balancing_done_obj->get_value() == false){
 			first_balancing_done_obj->set_value(true);
 
@@ -163,7 +163,7 @@ void GlobalStatus::check_daily_reset(){
 
 		// 首次结算之前不涨价。
 		const auto daily_reset_at_o_clock = get_config<unsigned>("daily_reset_at_o_clock", 16);
-		const auto this_day = (local_now - daily_reset_at_o_clock * 3600000) / 86400000;
+		const auto this_day = (utc_now - daily_reset_at_o_clock * 3600000) / 86400000;
 		const auto last_day = (last_reset_time - daily_reset_at_o_clock * 3600000) / 86400000;
 		if(last_day < this_day){
 			const auto delta_days = this_day - last_day;

@@ -114,7 +114,7 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 		const auto old_count = obj->get_count();
 		const auto old_updated_time = obj->get_updated_time();
 
-		const auto prev_interval = saturated_sub(old_updated_time, auto_inc_offset) / auto_inc_period;
+		const auto prev_interval = saturated_sub(saturated_add(old_updated_time, auto_inc_period), auto_inc_offset) / auto_inc_period;
 		const auto cur_interval = saturated_sub(utc_now, auto_inc_offset) / auto_inc_period;
 		LOG_EMPERY_CENTER_DEBUG("> Checking item: item_id = ", item_data->item_id,
 			", prev_interval = ", prev_interval, ", cur_interval = ", cur_interval);
@@ -145,7 +145,11 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 		new_timestamps.emplace(obj, new_updated_time);
 	}
 	commit_transaction(transaction.data(), transaction.size(),
-		[&]{ for(auto &p: new_timestamps){ p.first->set_updated_time(p.second); } });
+		[&]{
+			for(auto &p: new_timestamps){
+				p.first->set_updated_time(p.second);
+			}
+		});
 
 	if(force_synchronization_with_client){
 		const auto session = PlayerSessionMap::get(get_account_uuid());

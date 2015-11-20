@@ -19,7 +19,7 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
-	const auto local_now = Poseidon::get_local_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto platform_id          = get_config<EmperyCenter::PlatformId>("platform_id");
 	const auto token_expiry_duration = get_config<boost::uint64_t>("token_expiry_duration", 604800000);
@@ -29,7 +29,7 @@ ACCOUNT_SERVLET("create", session, params){
 		", remote_info = ", session->get_remote_info(), ", remarks = ", remarks);
 	Poseidon::EventDispatcher::sync_raise(
 		boost::make_shared<EmperyCenter::Events::AccountSetToken>(
-			platform_id, account_name, token, local_now + token_expiry_duration, session->get_remote_info().ip.get()));
+			platform_id, account_name, token, utc_now + token_expiry_duration, session->get_remote_info().ip.get()));
 
 	ret[sslit("errCode")] = (int)Msg::ST_OK;
 	ret[sslit("msg")] = "No error";
