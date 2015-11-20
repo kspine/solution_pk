@@ -51,10 +51,10 @@ namespace {
 			const auto gold_coins_in_pot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
 			const auto account_balance_in_pot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
 			const auto sum = saturated_add(gold_coins_in_pot, account_balance_in_pot / 100);
-			if(sum > 10000){
-				GlobalStatus::fetch_add(GlobalStatus::SLOT_GAME_END_TIME, 1000);
-			} else if(sum > 5000){
+			if(sum >= 5000){
 				GlobalStatus::fetch_add(GlobalStatus::SLOT_GAME_END_TIME, 2000);
+			} else if(sum >= 2000){
+				GlobalStatus::fetch_add(GlobalStatus::SLOT_GAME_END_TIME, 5000);
 			} else {
 				GlobalStatus::fetch_add(GlobalStatus::SLOT_GAME_END_TIME, 10000);
 			}
