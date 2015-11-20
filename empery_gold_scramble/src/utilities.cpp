@@ -28,11 +28,11 @@ namespace {
 	Msg::SC_AccountAuctionStatus make_auction_status_message(){
 		PROFILE_ME;
 
-		const auto begin_time           = GlobalStatus::get(GlobalStatus::SLOT_GAME_BEGIN_TIME);
-		const auto end_time             = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
+		const auto begin_time             = GlobalStatus::get(GlobalStatus::SLOT_GAME_BEGIN_TIME);
+		const auto end_time               = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
 		const auto gold_coins_in_pot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
 		const auto account_balance_in_pot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
-		const auto percent_winners      = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
+		const auto percent_winners        = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
 
 		const auto utc_now = Poseidon::get_utc_time();
 
@@ -41,21 +41,21 @@ namespace {
 		BidRecordMap::get_all(records, visible_bid_record_count);
 
 		Msg::SC_AccountAuctionStatus msg;
-		msg.server_time          = utc_now;
-		msg.begin_time           = begin_time;
-		msg.end_duration         = (utc_now < begin_time) ? 0 : saturated_sub(end_time, utc_now);
+		msg.server_time           = utc_now;
+		msg.begin_time            = begin_time;
+		msg.end_duration          = (utc_now < begin_time) ? 0 : saturated_sub(end_time, utc_now);
 		msg.gold_coins_in_pot      = gold_coins_in_pot;
 		msg.account_balance_in_pot = account_balance_in_pot;
-		msg.number_of_winners     = get_number_of_winners();
-		msg.percent_winners      = percent_winners;
+		msg.number_of_winners      = get_number_of_winners();
+		msg.percent_winners        = percent_winners;
 		msg.records.reserve(records.size());
 		for(auto it = records.rbegin(); it != records.rend(); ++it){
 			msg.records.emplace_back();
 			auto &record = msg.records.back();
-			record.record_auto_id   = it->record_auto_id;
-			record.timestamp      = it->timestamp;
+			record.record_auto_id  = it->record_auto_id;
+			record.timestamp       = it->timestamp;
 			record.login_name      = std::move(it->login_name);
-			record.nick           = std::move(it->nick);
+			record.nick            = std::move(it->nick);
 			record.gold_coins      = it->gold_coins;
 			record.account_balance = it->account_balance;
 		}
@@ -95,11 +95,11 @@ namespace {
 			", gold_coins = ", gold_coins, ", account_balance = ", account_balance, ", game_begin_time = ", game_begin_time,
 			", gold_coins_in_pot = ", gold_coins_in_pot, ", account_balance_in_pot = ", account_balance_in_pot);
 
-		auto promotion_server_host   = get_config<std::string>("promotion_http_server_host",           "127.0.0.1");
-		auto promotion_server_port   = get_config<unsigned>   ("promotion_http_server_port",           6212);
+		auto promotion_server_host    = get_config<std::string>("promotion_http_server_host",           "127.0.0.1");
+		auto promotion_server_port    = get_config<unsigned>   ("promotion_http_server_port",           6212);
 		auto promotion_server_use_ssl = get_config<bool>       ("promotion_http_server_use_ssl",        0);
-		auto promotion_server_auth   = get_config<std::string>("promotion_http_server_auth_user_pass", "");
-		auto promotion_server_path   = get_config<std::string>("promotion_http_server_path",           "/empery_promotion/account/");
+		auto promotion_server_auth    = get_config<std::string>("promotion_http_server_auth_user_pass", "");
+		auto promotion_server_path    = get_config<std::string>("promotion_http_server_path",           "/empery_promotion/account/");
 
 		const auto history_obj = boost::make_shared<MySql::GoldScramble_GameHistory>(
 			GlobalStatus::fetch_add(GlobalStatus::SLOT_RECORD_AUTO_ID, 1), game_auto_id,
@@ -218,8 +218,8 @@ namespace {
 		GlobalStatus::fetch_add(GlobalStatus::SLOT_GAME_AUTO_ID, 1);
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Done calculating game result.");
 
-		const auto game_start_o_clock     = get_config<unsigned>       ("game_start_o_clock",    2);
-		const auto game_end_o_clock       = get_config<unsigned>       ("game_end_o_clock",      12);
+		const auto game_start_o_clock    = get_config<unsigned>       ("game_start_o_clock",    2);
+		const auto game_end_o_clock      = get_config<unsigned>       ("game_end_o_clock",      12);
 		const auto minimum_game_duration = get_config<boost::uint64_t>("minimum_game_duration", 1800000);
 		const auto next_game_delay       = get_config<boost::uint64_t>("next_game_delay",       300000);
 
@@ -251,6 +251,8 @@ namespace {
 		const auto next_game_end_time = next_game_begin_time + minimum_game_duration;
 
 		const auto percent_winners = Poseidon::rand32(percent_winners_low, percent_winners_high);
+		LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Percent of winners: percent_winners = ", percent_winners,
+			", percent_winners_low = ", percent_winners_low, ", percent_winners_high = ", percent_winners_high);
 
 		GlobalStatus::exchange(GlobalStatus::SLOT_GAME_BEGIN_TIME, next_game_begin_time);
 		GlobalStatus::exchange(GlobalStatus::SLOT_GAME_END_TIME,   next_game_end_time);

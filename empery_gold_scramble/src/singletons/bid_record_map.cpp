@@ -36,6 +36,7 @@ namespace {
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Loading bid records: game_auto_id = ", game_auto_id);
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `GoldScramble_BidHistory` WHERE `game_auto_id` = " <<game_auto_id <<" ORDER BY `record_auto_id` ASC";
+		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>();
 			obj->sync_fetch(conn);
