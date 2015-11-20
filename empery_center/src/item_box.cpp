@@ -114,8 +114,8 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 		const auto old_count = obj->get_count();
 		const auto old_updated_time = obj->get_updated_time();
 
-		const auto prev_interval = saturated_sub(saturated_add(old_updated_time, auto_inc_period), auto_inc_offset) / auto_inc_period;
-		const auto cur_interval = saturated_sub(utc_now, auto_inc_offset) / auto_inc_period;
+		const auto prev_interval = checked_sub(checked_add(old_updated_time, auto_inc_period), auto_inc_offset) / auto_inc_period;
+		const auto cur_interval = checked_sub(utc_now, auto_inc_offset) / auto_inc_period;
 		LOG_EMPERY_CENTER_DEBUG("> Checking item: item_id = ", item_data->item_id,
 			", prev_interval = ", prev_interval, ", cur_interval = ", cur_interval);
 		if(cur_interval <= prev_interval){

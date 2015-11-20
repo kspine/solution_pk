@@ -42,6 +42,7 @@ namespace Msg {
 	FIELD_STRING        (object_uuid)	\
 	FIELD_VUINT         (object_type_id)	\
 	FIELD_STRING        (owner_uuid)	\
+	FIELD_STRING        (parent_object_uuid)	\
 	FIELD_STRING        (name)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\

@@ -24,7 +24,7 @@ private:
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-		AccountUuid owner_uuid, std::string name, Coord coord);
+		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord);
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	~MapObject();
@@ -36,6 +36,7 @@ public:
 	MapObjectUuid get_map_object_uuid() const;
 	MapObjectTypeId get_map_object_type_id() const;
 	AccountUuid get_owner_uuid() const;
+	MapObjectUuid get_parent_object_uuid() const;
 
 	const std::string &get_name() const;
 	void set_name(std::string name);

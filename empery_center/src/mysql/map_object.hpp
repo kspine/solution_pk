@@ -12,6 +12,7 @@ namespace MySql {
 	FIELD_UUID              (map_object_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (map_object_type_id)	\
 	FIELD_UUID              (owner_uuid)	\
+	FIELD_UUID              (parent_object_uuid)	\
 	FIELD_STRING            (name)	\
 	FIELD_BIGINT			(x)	\
 	FIELD_BIGINT			(y)	\

@@ -297,7 +297,7 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 auto map_object_uuid = MapObjectUuid(Poseidon::Uuid::random());
 auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 200) - 100,
                    (boost::int32_t)Poseidon::rand32(0, 200) - 100);
-auto castle = boost::make_shared<Castle>(map_object_uuid, MapObjectTypeIds::ID_CASTLE, account_uuid, "aaa", coord);
+auto castle = boost::make_shared<Castle>(map_object_uuid, MapObjectTypeIds::ID_CASTLE, account_uuid, MapObjectUuid(), "aaa", coord);
 
 std::vector<ResourceTransactionElement> rsrc;
 rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 1000000000, ReasonId(), 0, 0, 0);

@@ -10,10 +10,10 @@
 namespace EmperyCenter {
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-	AccountUuid owner_uuid, std::string name, Coord coord)
+	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
 	: m_obj([&]{
 		auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
-			owner_uuid.get(), std::move(name), coord.x(), coord.y(), Poseidon::get_utc_time(), false);
+			owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), Poseidon::get_utc_time(), false);
 		obj->async_save(true);
 		return obj;
 	}())
@@ -39,12 +39,13 @@ void MapObject::synchronize_with_client(const boost::shared_ptr<PlayerSession> &
 	PROFILE_ME;
 
 	Msg::SC_MapObjectInfo msg;
-	msg.object_uuid    = get_map_object_uuid().str();
-	msg.object_type_id = get_map_object_type_id().get();
-	msg.owner_uuid     = get_owner_uuid().str();
-	msg.name           = get_name();
-	msg.x              = get_coord().x();
-	msg.y              = get_coord().y();
+	msg.object_uuid        = get_map_object_uuid().str();
+	msg.object_type_id     = get_map_object_type_id().get();
+	msg.owner_uuid         = get_owner_uuid().str();
+	msg.parent_object_uuid = get_parent_object_uuid().str();
+	msg.name               = get_name();
+	msg.x                  = get_coord().x();
+	msg.y                  = get_coord().y();
 	msg.attributes.reserve(m_attributes.size());
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		msg.attributes.emplace_back();
@@ -63,6 +64,9 @@ MapObjectTypeId MapObject::get_map_object_type_id() const {
 }
 AccountUuid MapObject::get_owner_uuid() const {
 	return AccountUuid(m_obj->unlocked_get_owner_uuid());
+}
+MapObjectUuid MapObject::get_parent_object_uuid() const {
+	return MapObjectUuid(m_obj->unlocked_get_parent_object_uuid());
 }
 
 const std::string &MapObject::get_name() const {
