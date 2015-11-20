@@ -216,17 +216,13 @@ ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *element
 
 		case ItemTransactionElement::OP_ADD:
 			{
-				boost::shared_ptr<MySql::Center_Item> obj;
-				{
-					const auto it = m_items.find(item_id);
-					if(it == m_items.end()){
-						obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_id.get(), 0, 0);
-						obj->async_save(true);
-						m_items.emplace(item_id, obj);
-					} else {
-						obj = it->second;
-					}
+				auto it = m_items.find(item_id);
+				if(it == m_items.end()){
+					auto obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_id.get(), 0, 0);
+					obj->async_save(true);
+					it = m_items.emplace_hint(it, item_id, std::move(obj));
 				}
+				const auto &obj = it->second;
 				auto temp_it = temp_result_map.find(obj);
 				if(temp_it == temp_result_map.end()){
 					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());

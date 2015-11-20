@@ -1,21 +1,19 @@
-#ifndef EMPERY_CENTER_LOG_MYSQL_RESOURCE_CHANGED_HPP_
-#define EMPERY_CENTER_LOG_MYSQL_RESOURCE_CHANGED_HPP_
+#ifndef EMPERY_PROMOTION_MYSQL_GOLD_COIN_HISTORY_HPP_
+#define EMPERY_PROMOTION_MYSQL_GOLD_COIN_HISTORY_HPP_
 
 #include <poseidon/mysql/object_base.hpp>
 
-namespace EmperyCenterLog {
+namespace EmperyPromotion {
 
 namespace MySql {
 
-#define MYSQL_OBJECT_NAME   CenterLog_ResourceChanged
+#define MYSQL_OBJECT_NAME   Promotion_GoldCoinHistory
 #define MYSQL_OBJECT_FIELDS \
+	FIELD_BIGINT_UNSIGNED   (account_id)	\
 	FIELD_DATETIME          (timestamp)	\
-	FIELD_UUID              (map_object_uuid)	\
-	FIELD_UUID              (owner_uuid)	\
-	FIELD_INTEGER_UNSIGNED  (resource_id)	\
+	FIELD_INTEGER_UNSIGNED  (auto_id)	\
 	FIELD_BIGINT_UNSIGNED   (old_count)	\
 	FIELD_BIGINT_UNSIGNED   (new_count)	\
-	FIELD_BIGINT            (delta_count)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
 	FIELD_BIGINT_UNSIGNED   (param1)	\
 	FIELD_BIGINT_UNSIGNED   (param2)	\

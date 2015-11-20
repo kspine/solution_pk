@@ -12,6 +12,7 @@ MODULE_RAII_PRIORITY(handles, 5000){
 		[](const boost::shared_ptr<Events::ResourceChanged> &event){
 			const auto obj = boost::make_shared<MySql::CenterLog_ResourceChanged>(Poseidon::get_local_time(),
 				event->map_object_uuid.get(), event->owner_uuid.get(), event->resource_id.get(), event->old_count, event->new_count,
+				static_cast<boost::int64_t>(event->new_count - event->old_count),
 				event->reason.get(), event->param1, event->param2, event->param3);
 			obj->async_save(true);
 		});

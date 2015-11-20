@@ -14,6 +14,7 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (item_id)	\
 	FIELD_BIGINT_UNSIGNED   (old_count)	\
 	FIELD_BIGINT_UNSIGNED   (new_count)	\
+	FIELD_BIGINT            (delta_count)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
 	FIELD_BIGINT_UNSIGNED   (param1)	\
 	FIELD_BIGINT_UNSIGNED   (param2)	\
