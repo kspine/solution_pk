@@ -17,30 +17,30 @@ namespace Msg {
 }
 
 namespace {
-	std::string g_php_server_host         = "www.paik.im";
-	unsigned    g_php_server_port         = 80;
+	std::string g_php_server_host          = "www.paik.im";
+	unsigned    g_php_server_port          = 80;
 	bool        g_php_server_use_ssl       = false;
-	std::string g_php_server_auth         = "";
-	std::string g_php_server_path         = "/api/";
+	std::string g_php_server_auth          = "";
+	std::string g_php_server_path          = "/api/";
 
-	std::string g_promotion_server_host   = "127.0.0.1";
-	unsigned    g_promotion_server_port   = 6212;
+	std::string g_promotion_server_host    = "127.0.0.1";
+	unsigned    g_promotion_server_port    = 6212;
 	bool        g_promotion_server_use_ssl = false;
-	std::string g_promotion_server_auth   = "";
-	std::string g_promotion_server_path   = "/empery_promotion/account/";
+	std::string g_promotion_server_auth    = "";
+	std::string g_promotion_server_path    = "/empery_promotion/account/";
 
 	MODULE_RAII(){
-		get_config(g_php_server_host,         "php_session_server_host");
-		get_config(g_php_server_port,         "php_session_server_port");
+		get_config(g_php_server_host,          "php_session_server_host");
+		get_config(g_php_server_port,          "php_session_server_port");
 		get_config(g_php_server_use_ssl,       "php_session_server_use_ssl");
-		get_config(g_php_server_auth,         "php_session_server_auth_user_pass");
-		get_config(g_php_server_path,         "php_session_server_path");
+		get_config(g_php_server_auth,          "php_session_server_auth_user_pass");
+		get_config(g_php_server_path,          "php_session_server_path");
 
-		get_config(g_promotion_server_host,   "promotion_http_server_host");
-		get_config(g_promotion_server_port,   "promotion_http_server_port");
+		get_config(g_promotion_server_host,    "promotion_http_server_host");
+		get_config(g_promotion_server_port,    "promotion_http_server_port");
 		get_config(g_promotion_server_use_ssl, "promotion_http_server_use_ssl");
-		get_config(g_promotion_server_auth,   "promotion_http_server_auth_user_pass");
-		get_config(g_promotion_server_path,   "promotion_http_server_path");
+		get_config(g_promotion_server_auth,    "promotion_http_server_auth_user_pass");
+		get_config(g_promotion_server_path,    "promotion_http_server_path");
 	}
 
 	void bump_end_time(boost::uint64_t utc_now){
