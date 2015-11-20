@@ -182,7 +182,7 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account_uuid, session, req){
 	const auto trade_data = Data::ItemTrade::require(signing_in_data->trade_id);
 
 	std::vector<ItemTransactionElement> transaction;
-	Data::ItemTrade::unpack(transaction, trade_data, 1, (*&req).ID); // XXX Stupid GCC warning.
+	Data::ItemTrade::unpack(transaction, trade_data, 1, decltype(req)::ID); // XXX Stupid GCC warning.
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
 		[&]{
 			AccountMap::touch_attribute(account_uuid, AccountMap::ATTR_LAST_SIGNED_IN_TIME);
@@ -190,7 +190,7 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account_uuid, session, req){
 			auto time_str = boost::lexical_cast<std::string>(signed_in_info.now);
 			auto days_str = boost::lexical_cast<std::string>(signed_in_info.sequential_days + 1);
 			AccountMap::set_attribute(account_uuid, AccountMap::ATTR_LAST_SIGNED_IN_TIME, std::move(time_str));
-			AccountMap::set_attribute(account_uuid, AccountMap::ATTR_LAST_SIGNED_IN_TIME, std::move(days_str));
+			AccountMap::set_attribute(account_uuid, AccountMap::ATTR_SEQUENTIAL_SIGNED_IN_DAYS, std::move(days_str));
 		});
 	if(insuff_item_id){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient item: account_uuid = ", account_uuid, ", insuff_item_id = ", insuff_item_id);
