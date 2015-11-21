@@ -40,7 +40,8 @@ namespace Msg {
 	FIELD_ARRAY         (waypoints,	\
 		FIELD_VINT          (dx)	\
 		FIELD_VINT          (dy)	\
-	)
+	)	\
+	FIELD_STRING		(attack_target_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
