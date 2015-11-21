@@ -26,11 +26,12 @@ namespace {
 		MapObjectUuid map_object_uuid;
 		Coord coord;
 		AccountUuid owner_uuid;
+		MapObjectUuid parent_object_uuid;
 
 		explicit MapObjectElement(boost::shared_ptr<MapObject> map_object_)
 			: map_object(std::move(map_object_))
-			, map_object_uuid(map_object->get_map_object_uuid())
-			, coord(map_object->get_coord()), owner_uuid(map_object->get_owner_uuid())
+			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
+			, owner_uuid(map_object->get_owner_uuid()), parent_object_uuid(map_object->get_parent_object_uuid())
 		{
 		}
 	};
@@ -39,6 +40,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
+		MULTI_MEMBER_INDEX(parent_object_uuid)
 	)
 
 	boost::weak_ptr<MapObjectMapDelegator> g_map_object_map;
@@ -66,7 +68,7 @@ namespace {
 		boost::weak_ptr<PlayerSession> session;
 		Coord sector_coord;
 
-		PlayerViewElement(const Rectangle &view_,
+		PlayerViewElement(Rectangle view_,
 			boost::weak_ptr<PlayerSession> session_, Coord sector_coord_)
 			: view(view_)
 			, session(std::move(session_)), sector_coord(sector_coord_)
@@ -419,8 +421,22 @@ void MapObjectMap::get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, 
 		ret.emplace_back(it->map_object);
 	}
 }
+void MapObjectMap::get_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid){
+	PROFILE_ME;
 
-void MapObjectMap::get_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, const Rectangle &rectangle){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		return;
+	}
+
+	const auto range = map_object_map->equal_range<3>(parent_object_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->map_object);
+	}
+}
+void MapObjectMap::get_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -452,7 +468,7 @@ _exit_while:
 	;
 }
 
-void MapObjectMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view){
+void MapObjectMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view){
 	PROFILE_ME;
 
 	const auto map_sector_map = g_map_sector_map.lock();
@@ -489,7 +505,7 @@ void MapObjectMap::set_player_view(const boost::shared_ptr<PlayerSession> &sessi
 	}
 }
 
-void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept
+void MapObjectMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept
 try {
 	PROFILE_ME;
 

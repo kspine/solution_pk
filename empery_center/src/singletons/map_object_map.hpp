@@ -19,10 +19,11 @@ struct MapObjectMap {
 	static void remove(MapObjectUuid map_object_uuid) noexcept;
 
 	static void get_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);
-	static void get_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, const Rectangle &rectangle);
+	static void get_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
+	static void get_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
-	static void set_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view);
-	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, const Rectangle &view) noexcept;
+	static void set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view);
+	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept;
 
 private:
 	MapObjectMap() = delete;
