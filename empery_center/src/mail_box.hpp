@@ -1,11 +1,11 @@
 #ifndef EMPERY_CENTER_MAIL_BOX_HPP_
 #define EMPERY_CENTER_MAIL_BOX_HPP_
 
+#include "abstract_data_object.hpp"
 #include <cstddef>
 #include <vector>
 #include <boost/container/flat_map.hpp>
 #include <boost/shared_ptr.hpp>
-#include <poseidon/cxx_util.hpp>
 #include "id_types.hpp"
 
 namespace EmperyCenter {
@@ -16,7 +16,7 @@ namespace MySql {
 
 class MailData;
 
-class MailBox : NONCOPYABLE {
+class MailBox : public virtual AbstractDataObject {
 public:
 	enum : boost::uint64_t {
 		FL_SYSTEM               = 0x0001,
@@ -43,11 +43,12 @@ public:
 	~MailBox();
 
 public:
+	void pump_status() override;
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
+
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
 	}
-
-	void pump_status(bool force_synchronization_with_client = false);
 
 	MailInfo get(MailUuid mail_uuid) const;
 	void get_all(std::vector<MailInfo> &ret) const;

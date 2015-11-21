@@ -23,7 +23,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
-	FIELD_STRING        (parent_castle_uuid)	\
+	FIELD_STRING        (parent_object_uuid)	\
 	FIELD_STRING        (owner_uuid)	\
 	FIELD_ARRAY         (buffs,	\
 		FIELD_VUINT         (buff_id)	\
@@ -33,7 +33,7 @@ namespace Msg {
 		FIELD_VUINT         (expiry_duration)	\
 	)	\
 	FIELD_ARRAY         (attributes,	\
-		FIELD_VUINT         (slot)	\
+		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>

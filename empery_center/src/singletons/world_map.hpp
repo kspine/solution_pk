@@ -9,10 +9,20 @@
 
 namespace EmperyCenter {
 
+class MapCell;
 class MapObject;
 class PlayerSession;
 
 struct WorldMap {
+	// MapCell
+	static boost::shared_ptr<MapCell> get_map_cell(Coord coord);
+	static void insert_map_cell(const boost::shared_ptr<MapCell> &map_cell);
+	static void update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists = true);
+
+	static void get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid);
+	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
+
+	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
 	static void insert_map_object(const boost::shared_ptr<MapObject> &map_object);
 	static void update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists = true);
@@ -22,6 +32,7 @@ struct WorldMap {
 	static void get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
+	// view
 	static void set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view);
 	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept;
 

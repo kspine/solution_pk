@@ -1,11 +1,11 @@
 #ifndef EMPERY_CENTER_ITEM_BOX_HPP_
 #define EMPERY_CENTER_ITEM_BOX_HPP_
 
+#include "abstract_data_object.hpp"
 #include <cstddef>
 #include <vector>
 #include <boost/container/flat_map.hpp>
 #include <boost/shared_ptr.hpp>
-#include <poseidon/cxx_util.hpp>
 #include <boost/function.hpp>
 #include "id_types.hpp"
 #include "transaction_element_fwd.hpp"
@@ -16,7 +16,7 @@ namespace MySql {
 	class Center_Item;
 }
 
-class ItemBox : NONCOPYABLE {
+class ItemBox : public virtual AbstractDataObject {
 public:
 	struct ItemInfo {
 		ItemId item_id;
@@ -36,13 +36,14 @@ public:
 	~ItemBox();
 
 public:
+	void pump_status() override;
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
+
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
 	}
 
 	void check_init_items();
-
-	void pump_status(bool force_synchronization_with_client = false);
 
 	ItemInfo get(ItemId item_id) const;
 	void get_all(std::vector<ItemInfo> &ret) const;

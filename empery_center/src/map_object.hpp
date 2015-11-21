@@ -1,8 +1,7 @@
 #ifndef EMPERY_CENTER_MAP_OBJECT_HPP_
 #define EMPERY_CENTER_MAP_OBJECT_HPP_
 
-#include <poseidon/cxx_util.hpp>
-#include <poseidon/virtual_shared_from_this.hpp>
+#include "abstract_data_object.hpp"
 #include <boost/container/flat_map.hpp>
 #include "id_types.hpp"
 #include "coord.hpp"
@@ -16,7 +15,7 @@ namespace MySql {
 
 class PlayerSession;
 
-class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+class MapObject : public virtual AbstractDataObject {
 private:
 	boost::shared_ptr<MySql::Center_MapObject> m_obj;
 	boost::container::flat_map<AttributeId,
@@ -30,8 +29,8 @@ public:
 	~MapObject();
 
 public:
-	virtual void pump_status();
-	virtual void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const;
+	void pump_status() override;
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
 
 	MapObjectUuid get_map_object_uuid() const;
 	MapObjectTypeId get_map_object_type_id() const;
@@ -49,7 +48,7 @@ public:
 	bool has_been_deleted() const;
 	void delete_from_game() noexcept;
 
-	boost::int64_t get_attribute(AttributeId map_object_attr_id) const;
+	boost::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 };

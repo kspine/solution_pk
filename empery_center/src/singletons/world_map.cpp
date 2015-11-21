@@ -3,8 +3,10 @@
 #include <boost/container/flat_set.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
-#include "../map_object.hpp"
 #include "../attribute_ids.hpp"
+#include "../map_cell.hpp"
+#include "../mysql/map_cell.hpp"
+#include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../mysql/map_object.hpp"
 #include "../mysql/castle.hpp"
@@ -19,6 +21,26 @@ namespace {
 
 		return Coord(coord.x() >> 5, coord.y() >> 5);
 	}
+
+	struct MapCellElement {
+		boost::shared_ptr<MapCell> map_cell;
+
+		Coord coord;
+		MapObjectUuid parent_object_uuid;
+
+		explicit MapCellElement(boost::shared_ptr<MapCell> map_cell_)
+			: map_cell(std::move(map_cell_))
+			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid())
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(MapCellMapDelegator, MapCellElement,
+		UNIQUE_MEMBER_INDEX(coord)
+		MULTI_MEMBER_INDEX(parent_object_uuid)
+	)
+
+	boost::weak_ptr<MapCellMapDelegator> g_map_cell_map;
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -36,14 +58,14 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(WorldMapDelegator, MapObjectElement,
+	MULTI_INDEX_MAP(MapObjectMapDelegator, MapObjectElement,
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 	)
 
-	boost::weak_ptr<WorldMapDelegator> g_world_map;
+	boost::weak_ptr<MapObjectMapDelegator> g_map_object_map;
 
 	struct MapSectorElement {
 		Coord sector_coord;
@@ -86,11 +108,54 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 5300){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
+		// MapCell
+		struct TempMapCellElement {
+			boost::shared_ptr<MySql::Center_MapCell> obj;
+			std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>> attributes;
+		};
+		std::map<Coord, TempMapCellElement> temp_map_cell_map;
+
+		LOG_EMPERY_CENTER_INFO("Loading map cells...");
+		conn->execute_sql("SELECT * FROM `Center_MapCell`");
+		while(conn->fetch_row()){
+			auto obj = boost::make_shared<MySql::Center_MapCell>();
+			obj->sync_fetch(conn);
+			obj->enable_auto_saving();
+			const auto coord = Coord(obj->get_x(), obj->get_y());
+			temp_map_cell_map[coord].obj = std::move(obj);
+		}
+		LOG_EMPERY_CENTER_INFO("Loaded ", temp_map_cell_map.size(), " map cell(s).");
+
+		LOG_EMPERY_CENTER_INFO("Loading map cell attributes...");
+		conn->execute_sql("SELECT * FROM `Center_MapCellAttribute`");
+		while(conn->fetch_row()){
+			auto obj = boost::make_shared<MySql::Center_MapCellAttribute>();
+			obj->sync_fetch(conn);
+			obj->enable_auto_saving();
+			const auto coord = Coord(obj->get_x(), obj->get_y());
+			const auto it = temp_map_cell_map.find(coord);
+			if(it == temp_map_cell_map.end()){
+				continue;
+			}
+			it->second.attributes.emplace_back(std::move(obj));
+		}
+		LOG_EMPERY_CENTER_INFO("Done loading map cell attributes.");
+
+		const auto map_cell_map = boost::make_shared<MapCellMapDelegator>();
+		for(auto it = temp_map_cell_map.begin(); it != temp_map_cell_map.end(); ++it){
+			auto map_cell = boost::make_shared<MapCell>(std::move(it->second.obj), it->second.attributes);
+
+			map_cell_map->insert(MapCellElement(std::move(map_cell)));
+		}
+		g_map_cell_map = map_cell_map;
+		handles.push(map_cell_map);
+
+		// MapObject
 		struct TempMapObjectElement {
 			boost::shared_ptr<MySql::Center_MapObject> obj;
 			std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attributes;
 		};
-		std::map<Poseidon::Uuid, TempMapObjectElement> temp_world_map;
+		std::map<Poseidon::Uuid, TempMapObjectElement> temp_map_object_map;
 
 		LOG_EMPERY_CENTER_INFO("Loading map objects...");
 		conn->execute_sql("SELECT * FROM `Center_MapObject` WHERE `deleted` = 0");
@@ -99,9 +164,9 @@ namespace {
 			obj->sync_fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
-			temp_world_map[map_object_uuid].obj = std::move(obj);
+			temp_map_object_map[map_object_uuid].obj = std::move(obj);
 		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", temp_world_map.size(), " map object(s).");
+		LOG_EMPERY_CENTER_INFO("Loaded ", temp_map_object_map.size(), " map object(s).");
 
 		LOG_EMPERY_CENTER_INFO("Loading map object attributes...");
 		conn->execute_sql("SELECT * FROM `Center_MapObjectAttribute`");
@@ -110,8 +175,8 @@ namespace {
 			obj->sync_fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
-			const auto it = temp_world_map.find(map_object_uuid);
-			if(it == temp_world_map.end()){
+			const auto it = temp_map_object_map.find(map_object_uuid);
+			if(it == temp_map_object_map.end()){
 				continue;
 			}
 			it->second.attributes.emplace_back(std::move(obj));
@@ -123,6 +188,7 @@ namespace {
 			std::vector<boost::shared_ptr<MySql::Center_CastleTech>> techs;
 			std::vector<boost::shared_ptr<MySql::Center_CastleResource>> resources;
 		};
+		const TempCastleElement empty_castle = { };
 		std::map<Poseidon::Uuid, TempCastleElement> temp_castle_map;
 
 		LOG_EMPERY_CENTER_INFO("Loading castle building bases...");
@@ -132,8 +198,8 @@ namespace {
 			obj->sync_fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
-			const auto it = temp_world_map.find(map_object_uuid);
-			if(it == temp_world_map.end()){
+			const auto it = temp_map_object_map.find(map_object_uuid);
+			if(it == temp_map_object_map.end()){
 				continue;
 			}
 			temp_castle_map[map_object_uuid].buildings.emplace_back(std::move(obj));
@@ -162,27 +228,33 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading castle resources.");
 
-		const auto world_map = boost::make_shared<WorldMapDelegator>();
-		for(auto it = temp_world_map.begin(); it != temp_world_map.end(); ++it){
-			const auto map_object = [&]() -> boost::shared_ptr<MapObject> {
-				const auto map_object_type_id = MapObjectTypeId(it->second.obj->get_map_object_type_id());
-				if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-					const auto castle_it = temp_castle_map.find(it->first);
-					if(castle_it == temp_castle_map.end()){
-						return boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes);
-					}
-					return boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
-						castle_it->second.buildings, castle_it->second.techs, castle_it->second.resources);
-				}
-				return boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
-			}();
-			world_map->insert(MapObjectElement(std::move(map_object)));
-		}
-		g_world_map = world_map;
-		handles.push(world_map);
+		const auto map_object_map = boost::make_shared<MapObjectMapDelegator>();
+		for(auto it = temp_map_object_map.begin(); it != temp_map_object_map.end(); ++it){
+			boost::shared_ptr<MapObject> map_object;
 
+			const auto map_object_type_id = MapObjectTypeId(it->second.obj->get_map_object_type_id());
+			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+				const TempCastleElement *elem;
+				const auto cit = temp_castle_map.find(it->first);
+				if(cit == temp_castle_map.end()){
+					elem = &empty_castle;
+				} else {
+					elem = &cit->second;
+				}
+				map_object = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
+					elem->buildings, elem->techs, elem->resources);
+			} else {
+				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
+			}
+
+			map_object_map->insert(MapObjectElement(std::move(map_object)));
+		}
+		g_map_object_map = map_object_map;
+		handles.push(map_object_map);
+
+		// view
 		const auto map_sector_map = boost::make_shared<MapSectorMapDelegator>();
-		for(auto it = world_map->begin(); it != world_map->end(); ++it){
+		for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
 			auto map_object = it->map_object;
 
 			const auto coord = map_object->get_coord();
@@ -199,6 +271,36 @@ namespace {
 		const auto player_view_map = boost::make_shared<PlayerViewMapDelegator>();
 		g_player_view_map = player_view_map;
 		handles.push(player_view_map);
+	}
+
+	void synchronise_map_cell_by_coord(const boost::shared_ptr<MapCell> &map_cell, Coord coord) noexcept {
+		PROFILE_ME;
+
+		const auto player_view_map = g_player_view_map.lock();
+		if(!player_view_map){
+			LOG_EMPERY_CENTER_WARNING("Player view map is not initialized.");
+			return;
+		}
+
+		const auto sector_coord = get_sector_coord_from_map_coord(coord);
+		const auto range = player_view_map->equal_range<1>(sector_coord);
+		auto view_it = range.first;
+		while(view_it != range.second){
+			const auto session = view_it->session.lock();
+			if(!session){
+				view_it = player_view_map->erase<1>(view_it);
+				continue;
+			}
+			if(view_it->view.hit_test(coord)){
+				try {
+					map_cell->synchronize_with_client(session);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
+			}
+			++view_it;
+		}
 	}
 
 	void synchronize_map_object_by_coord(const boost::shared_ptr<MapObject> &map_object, Coord coord) noexcept {
@@ -230,7 +332,7 @@ namespace {
 			++view_it;
 		}
 	}
-	void on_update(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
+	void on_update_map_object_coord(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
 		PROFILE_ME;
 
 		if(old_coord && (old_coord != new_coord)){
@@ -242,17 +344,128 @@ namespace {
 	}
 }
 
+boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		return { };
+	}
+
+	const auto it = map_cell_map->find<0>(coord);
+	if(it == map_cell_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Map cell is not found: coord = ", coord);
+		return { };
+	}
+	return it->map_cell;
+}
+void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		DEBUG_THROW(Exception, sslit("Map cell map is not loaded"));
+	}
+
+	const auto coord = map_cell->get_coord();
+
+	const auto it = map_cell_map->find<0>(coord);
+	if(it != map_cell_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("Map cell already exists: coord = ", coord);
+		DEBUG_THROW(Exception, sslit("Map cell already exists"));
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Inserting map cell: coord = ", coord);
+	map_cell_map->insert(MapCellElement(map_cell));
+}
+void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Map cell map is not loaded"));
+		}
+		return;
+	}
+
+	const auto coord = map_cell->get_coord();
+
+	const auto it = map_cell_map->find<0>(coord);
+	if(it == map_cell_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("Map cell is not found: coord = ", coord);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Map object is not found"));
+		}
+		return;
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord);
+
+	synchronise_map_cell_by_coord(map_cell, coord);
+}
+
+void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		return;
+	}
+
+	const auto range = map_cell_map->equal_range<1>(parent_object_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->map_cell);
+	}
+}
+void WorldMap::get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		return;
+	}
+
+	auto x = rectangle.left();
+	while(x < rectangle.right()){
+		auto it = map_cell_map->lower_bound<0>(Coord(x, rectangle.bottom()));
+		for(;;){
+			if(it == map_cell_map->end<0>()){
+				goto _exit_while;
+			}
+			if(it->coord.x() != x){
+				x = it->coord.x();
+				break;
+			}
+			if(it->coord.y() >= rectangle.top()){
+				++x;
+				break;
+			}
+			ret.emplace_back(it->map_cell);
+			++it;
+		}
+	}
+_exit_while:
+	;
+}
+
 boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_uuid){
 	PROFILE_ME;
 
-	const auto world_map = g_world_map.lock();
-	if(!world_map){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
 		return { };
 	}
 
-	const auto it = world_map->find<0>(map_object_uuid);
-	if(it == world_map->end<0>()){
+	const auto it = map_object_map->find<0>(map_object_uuid);
+	if(it == map_object_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Map object is not found: map_object_uuid = ", map_object_uuid);
 		return { };
 	}
@@ -261,8 +474,8 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object){
 	PROFILE_ME;
 
-	const auto world_map = g_world_map.lock();
-	if(!world_map){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
 		DEBUG_THROW(Exception, sslit("Map object map is not loaded"));
 	}
@@ -279,8 +492,8 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 		DEBUG_THROW(Exception, sslit("Map object has been marked as deleted"));
 	}
 
-	const auto it = world_map->find<0>(map_object_uuid);
-	if(it != world_map->end<0>()){
+	const auto it = map_object_map->find<0>(map_object_uuid);
+	if(it != map_object_map->end<0>()){
 		LOG_EMPERY_CENTER_WARNING("Map object already exists: map_object_uuid = ", map_object_uuid);
 		DEBUG_THROW(Exception, sslit("Map object already exists"));
 	}
@@ -296,16 +509,16 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 
 	LOG_EMPERY_CENTER_DEBUG("Inserting map object: map_object_uuid = ", map_object_uuid,
 		", new_coord = ", new_coord, ", new_sector_coord = ", new_sector_coord);
-	world_map->insert(MapObjectElement(map_object));
+	map_object_map->insert(MapObjectElement(map_object));
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	on_update(map_object, { }, new_coord);
+	on_update_map_object_coord(map_object, { }, new_coord);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
 
-	const auto world_map = g_world_map.lock();
-	if(!world_map){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Map object map is not loaded"));
@@ -331,8 +544,8 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		return;
 	}
 
-	const auto it = world_map->find<0>(map_object_uuid);
-	if(it == world_map->end<0>()){
+	const auto it = map_object_map->find<0>(map_object_uuid);
+	if(it == map_object_map->end<0>()){
 		LOG_EMPERY_CENTER_WARNING("Map object is not found: map_object_uuid = ", map_object_uuid);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Map object is not found"));
@@ -355,7 +568,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid,
 		", old_coord = ", old_coord, ", old_sector_coord = ", old_sector_coord,
 		", new_coord = ", new_coord, ", new_sector_coord = ", new_sector_coord);
-	world_map->set_key<0, 1>(it, new_coord);
+	map_object_map->set_key<0, 1>(it, new_coord);
 	if(old_sector_it != map_sector_map->end<0>()){
 		old_sector_it->map_objects.erase(map_object); // noexcept
 		if(old_sector_it->map_objects.empty()){
@@ -365,13 +578,13 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	}
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	on_update(map_object, old_coord, new_coord);
+	on_update_map_object_coord(map_object, old_coord, new_coord);
 }
 void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
 
-	const auto world_map = g_world_map.lock();
-	if(!world_map){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
 		return;
 	}
@@ -381,8 +594,8 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 		std::abort();
 	}
 
-	const auto it = world_map->find<0>(map_object_uuid);
-	if(it == world_map->end<0>()){
+	const auto it = map_object_map->find<0>(map_object_uuid);
+	if(it == map_object_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Map object is not found: map_object_uuid = ", map_object_uuid);
 		return;
 	}
@@ -394,7 +607,7 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 
 	LOG_EMPERY_CENTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid,
 		", old_coord = ", old_coord, ", old_sector_coord = ", old_sector_coord);
-	world_map->erase<0>(it);
+	map_object_map->erase<0>(it);
 	if(old_sector_it != map_sector_map->end<0>()){
 		old_sector_it->map_objects.erase(map_object); // noexcept
 		if(old_sector_it->map_objects.empty()){
@@ -403,19 +616,19 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 		}
 	}
 
-	on_update(map_object, old_coord, { });
+	on_update_map_object_coord(map_object, old_coord, { });
 }
 
 void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
 	PROFILE_ME;
 
-	const auto world_map = g_world_map.lock();
-	if(!world_map){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
 		return;
 	}
 
-	const auto range = world_map->equal_range<2>(owner_uuid);
+	const auto range = map_object_map->equal_range<2>(owner_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->map_object);
@@ -424,13 +637,13 @@ void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>
 void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid){
 	PROFILE_ME;
 
-	const auto world_map = g_world_map.lock();
-	if(!world_map){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
 		return;
 	}
 
-	const auto range = world_map->equal_range<3>(parent_object_uuid);
+	const auto range = map_object_map->equal_range<3>(parent_object_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->map_object);
@@ -439,17 +652,17 @@ void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<Ma
 void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
-	const auto world_map = g_world_map.lock();
-	if(!world_map){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
 		return;
 	}
 
 	auto x = rectangle.left();
 	while(x < rectangle.right()){
-		auto it = world_map->lower_bound<1>(Coord(x, rectangle.bottom()));
+		auto it = map_object_map->lower_bound<1>(Coord(x, rectangle.bottom()));
 		for(;;){
-			if(it == world_map->end<1>()){
+			if(it == map_object_map->end<1>()){
 				goto _exit_while;
 			}
 			if(it->coord.x() != x){

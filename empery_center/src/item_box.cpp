@@ -43,26 +43,7 @@ ItemBox::ItemBox(AccountUuid account_uuid,
 ItemBox::~ItemBox(){
 }
 
-void ItemBox::check_init_items(){
-	PROFILE_ME;
-
-	LOG_EMPERY_CENTER_DEBUG("Checking for init items: account_uuid = ", get_account_uuid());
-	std::vector<ItemTransactionElement> transaction;
-	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
-	Data::Item::get_init(items_to_check);
-	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
-		const auto &item_data = *dit;
-		const auto it = m_items.find(item_data->item_id);
-		if(it == m_items.end()){
-			LOG_EMPERY_CENTER_DEBUG("> Adding items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, item_data->init_count,
-				ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
-		}
-	}
-	commit_transaction(transaction.data(), transaction.size());
-}
-
-void ItemBox::pump_status(bool force_synchronization_with_client){
+void ItemBox::pump_status(){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -150,22 +131,34 @@ void ItemBox::pump_status(bool force_synchronization_with_client){
 				p.first->set_updated_time(p.second);
 			}
 		});
+}
+void ItemBox::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
 
-	if(force_synchronization_with_client){
-		const auto session = PlayerSessionMap::get(get_account_uuid());
-		if(session){
-			try {
-				for(auto it = m_items.begin(); it != m_items.end(); ++it){
-					Msg::SC_ItemChanged msg;
-					fill_item_message(msg, it->second);
-					session->send(msg);
-				}
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
+	for(auto it = m_items.begin(); it != m_items.end(); ++it){
+		Msg::SC_ItemChanged msg;
+		fill_item_message(msg, it->second);
+		session->send(msg);
+	}
+}
+
+void ItemBox::check_init_items(){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("Checking for init items: account_uuid = ", get_account_uuid());
+	std::vector<ItemTransactionElement> transaction;
+	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
+	Data::Item::get_init(items_to_check);
+	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
+		const auto &item_data = *dit;
+		const auto it = m_items.find(item_data->item_id);
+		if(it == m_items.end()){
+			LOG_EMPERY_CENTER_DEBUG("> Adding items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, item_data->init_count,
+				ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
 		}
 	}
+	commit_transaction(transaction.data(), transaction.size());
 }
 
 ItemBox::ItemInfo ItemBox::get(ItemId item_id) const {

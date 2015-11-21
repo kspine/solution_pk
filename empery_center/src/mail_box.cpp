@@ -43,7 +43,7 @@ MailBox::MailBox(AccountUuid account_uuid,
 MailBox::~MailBox(){
 }
 
-void MailBox::pump_status(bool force_synchronization_with_client){
+void MailBox::pump_status(){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -80,21 +80,16 @@ void MailBox::pump_status(bool force_synchronization_with_client){
 			}
 		}
 	}
+}
+void MailBox::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
 
-	if(force_synchronization_with_client){
-		const auto session = PlayerSessionMap::get(get_account_uuid());
-		if(session){
-			try {
-				for(auto it = m_mails.begin(); it != m_mails.end(); ++it){
-					Msg::SC_MailChanged msg;
-					fill_mail_message(msg, it->second, utc_now);
-					session->send(msg);
-				}
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
+	const auto utc_now = Poseidon::get_utc_time();
+
+	for(auto it = m_mails.begin(); it != m_mails.end(); ++it){
+		Msg::SC_MailChanged msg;
+		fill_mail_message(msg, it->second, utc_now);
+		session->send(msg);
 	}
 }
 

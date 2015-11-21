@@ -12,14 +12,15 @@ namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_ItemGetAllItems, account_uuid, session, /* req */){
 	const auto item_box = ItemBoxMap::require(account_uuid);
-	item_box->pump_status(true);
+	item_box->pump_status();
+	item_box->synchronize_with_client(session);
 
 	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account_uuid, session, req){
 	const auto item_box = ItemBoxMap::require(account_uuid);
-	item_box->pump_status(true);
+	item_box->pump_status();
 
 	const auto repeat_count = req.repeat_count;
 	if(repeat_count == 0){
@@ -44,7 +45,7 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account_uuid, session, req){
 
 PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account_uuid, session, req){
 	const auto item_box = ItemBoxMap::require(account_uuid);
-	item_box->pump_status(true);
+	item_box->pump_status();
 
 	const auto repeat_count = req.repeat_count;
 	if(repeat_count == 0){

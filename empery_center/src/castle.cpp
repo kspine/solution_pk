@@ -163,11 +163,6 @@ Castle::Castle(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
-	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
-	: MapObject(std::move(obj), attributes)
-{
-}
-Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,

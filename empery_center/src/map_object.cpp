@@ -24,7 +24,7 @@ MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 	: m_obj(std::move(obj))
 {
 	for(auto it = attributes.begin(); it != attributes.end(); ++it){
-		m_attributes.emplace(AttributeId((*it)->get_map_object_attr_id()), *it);
+		m_attributes.emplace(AttributeId((*it)->get_attribute_id()), *it);
 	}
 }
 MapObject::~MapObject(){
@@ -131,10 +131,10 @@ void MapObject::delete_from_game() noexcept {
 	}
 }
 
-boost::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
+boost::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
 	PROFILE_ME;
 
-	const auto it = m_attributes.find(map_object_attr_id);
+	const auto it = m_attributes.find(attribute_id);
 	if(it == m_attributes.end()){
 		return 0;
 	}
