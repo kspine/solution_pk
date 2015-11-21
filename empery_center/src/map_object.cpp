@@ -2,7 +2,7 @@
 #include "map_object.hpp"
 #include "mysql/map_object.hpp"
 #include "attribute_ids.hpp"
-#include "singletons/map_object_map.hpp"
+#include "singletons/world_map.hpp"
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
 #include "msg/sc_map.hpp"
@@ -93,7 +93,7 @@ void MapObject::set_coord(Coord coord){
 	m_obj->set_x(coord.x());
 	m_obj->set_y(coord.y());
 
-	MapObjectMap::update(virtual_shared_from_this<MapObject>(), false);
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -116,7 +116,7 @@ bool MapObject::has_been_deleted() const {
 void MapObject::delete_from_game() noexcept {
 	m_obj->set_deleted(true);
 
-	MapObjectMap::remove(get_map_object_uuid());
+	WorldMap::remove_map_object(get_map_object_uuid());
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -166,7 +166,7 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 		obj->set_value(it->second);
 	}
 
-	MapObjectMap::update(virtual_shared_from_this<MapObject>(), false);
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){

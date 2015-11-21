@@ -23,16 +23,18 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
-	FIELD_VUINT         (terrain_id)	\
-	FIELD_VUINT         (overlay_id)	\
-	FIELD_VUINT         (resource_id)	\
-	FIELD_VUINT         (resource_count)	\
+	FIELD_STRING        (parent_castle_uuid)	\
 	FIELD_STRING        (owner_uuid)	\
-	FIELD_ARRAY         (buff_set,	\
+	FIELD_ARRAY         (buffs,	\
 		FIELD_VUINT         (buff_id)	\
-		FIELD_STRING        (buff_owner_uuid)	\
-		FIELD_VINT          (buff_value)	\
+		FIELD_STRING        (owner_uuid)	\
+		FIELD_VINT          (value)	\
+		FIELD_VUINT         (full_duration)	\
 		FIELD_VUINT         (expiry_duration)	\
+	)	\
+	FIELD_ARRAY         (attributes,	\
+		FIELD_VUINT         (slot)	\
+		FIELD_VINT          (value)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

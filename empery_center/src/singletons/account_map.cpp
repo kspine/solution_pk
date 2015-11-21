@@ -16,7 +16,7 @@
 #include "../castle.hpp" // FIXME remove this
 #include "../attribute_ids.hpp" // FIXME remove this
 #include "../transaction_element.hpp" // FIXME remove this
-#include "map_object_map.hpp" // FIXME remove this
+#include "world_map.hpp" // FIXME remove this
 #include "../map_object_type_ids.hpp" // FIXME remove this
 
 namespace EmperyCenter {
@@ -314,7 +314,7 @@ castle->create_building_mission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, Build
 castle->create_building_mission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 castle->create_building_mission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 
-MapObjectMap::insert(castle);
+WorldMap::insert_map_object(castle);
 
 set_attribute(account_uuid, 399, map_object_uuid.str());
 

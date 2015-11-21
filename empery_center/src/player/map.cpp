@@ -3,7 +3,7 @@
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
-#include "../singletons/map_object_map.hpp"
+#include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../singletons/cluster_session_map.hpp"
 #include "../cluster_session.hpp"
@@ -31,20 +31,20 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetView, account_uuid, session, req){
-	MapObjectMap::set_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
+	WorldMap::set_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
 
 	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_MapRefreshView, account_uuid, session, req){
-	MapObjectMap::synchronize_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
+	WorldMap::synchronize_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
 
 	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto map_object = MapObjectMap::get(map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_OBJECT) <<map_object_uuid;
 	}
