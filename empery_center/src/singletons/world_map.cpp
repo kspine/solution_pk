@@ -17,7 +17,7 @@ namespace EmperyCenter {
 
 namespace {
 	inline Coord get_sector_coord_from_map_coord(Coord coord){
-		assert(coord);
+		assert(coord != Coord::npos());
 
 		return Coord(coord.x() >> 5, coord.y() >> 5);
 	}
@@ -332,16 +332,6 @@ namespace {
 			++view_it;
 		}
 	}
-	void on_update_map_object_coord(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
-		PROFILE_ME;
-
-		if(old_coord && (old_coord != new_coord)){
-			synchronize_map_object_by_coord(map_object, old_coord);
-		}
-		if(new_coord){
-			synchronize_map_object_by_coord(map_object, new_coord);
-		}
-	}
 }
 
 boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
@@ -512,7 +502,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 	map_object_map->insert(MapObjectElement(map_object));
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	on_update_map_object_coord(map_object, { }, new_coord);
+	synchronize_map_object_by_coord(map_object, new_coord);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -578,7 +568,8 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	}
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	on_update_map_object_coord(map_object, old_coord, new_coord);
+	synchronize_map_object_by_coord(map_object, old_coord);
+	synchronize_map_object_by_coord(map_object, new_coord);
 }
 void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
@@ -616,7 +607,7 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 		}
 	}
 
-	on_update_map_object_coord(map_object, old_coord, { });
+	synchronize_map_object_by_coord(map_object, old_coord);
 }
 
 void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
