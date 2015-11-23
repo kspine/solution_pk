@@ -49,7 +49,7 @@ void MailBox::pump_status(){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto global_mail_box = MailBoxMap::get_global();
-	if(global_mail_box.get() != this){
+	if(global_mail_box && (global_mail_box.get() != this)){
 		LOG_EMPERY_CENTER_DEBUG("Checking for system mails: account_uuid = ", get_account_uuid());
 
 		for(auto it = global_mail_box->m_mails.begin(); it != global_mail_box->m_mails.end(); ++it){
