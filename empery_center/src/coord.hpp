@@ -3,16 +3,10 @@
 
 #include <boost/cstdint.hpp>
 #include <iosfwd>
-#include <climits>
 
 namespace EmperyCenter {
 
 class Coord {
-public:
-	static constexpr Coord npos() noexcept {
-		return Coord(INT64_MIN, INT64_MIN);
-	}
-
 private:
 	boost::int64_t m_x;
 	boost::int64_t m_y;

@@ -45,7 +45,8 @@ struct WorldMap {
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord) noexcept;
 
-	static Rectangle get_cluster_range(Coord coord);
+	static Rectangle get_cluster_scope_by_coord(Coord coord);
+	static void get_cluster_scopes(std::vector<Rectangle> &ret, const boost::shared_ptr<ClusterSession> &cluster);
 
 private:
 	WorldMap() = delete;

@@ -48,7 +48,7 @@ void ItemBox::pump_status(){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	LOG_EMPERY_CENTER_DEBUG("Checking for auto increment items: account_uuid = ", get_account_uuid());
+	LOG_EMPERY_CENTER_TRACE("Checking for auto increment items: account_uuid = ", get_account_uuid());
 	std::vector<ItemTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 	Data::Item::get_auto_inc(items_to_check);
@@ -97,7 +97,7 @@ void ItemBox::pump_status(){
 
 		const auto prev_interval = checked_sub(checked_add(old_updated_time, auto_inc_period), auto_inc_offset) / auto_inc_period;
 		const auto cur_interval = checked_sub(utc_now, auto_inc_offset) / auto_inc_period;
-		LOG_EMPERY_CENTER_DEBUG("> Checking item: item_id = ", item_data->item_id,
+		LOG_EMPERY_CENTER_TRACE("> Checking item: item_id = ", item_data->item_id,
 			", prev_interval = ", prev_interval, ", cur_interval = ", cur_interval);
 		if(cur_interval <= prev_interval){
 			continue;
@@ -108,16 +108,16 @@ void ItemBox::pump_status(){
 			if(old_count < item_data->auto_inc_bound){
 				const auto count_to_add = saturated_mul(static_cast<boost::uint64_t>(item_data->auto_inc_step), interval_count);
 				const auto new_count = std::min(saturated_add(old_count, count_to_add), item_data->auto_inc_bound);
-				LOG_EMPERY_CENTER_DEBUG("> Adding items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
+				LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
 				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, new_count - old_count,
 					ReasonIds::ID_AUTO_INCREMENT, item_data->auto_inc_type, item_data->auto_inc_offset, 0);
 			}
 		} else {
 			if(old_count > item_data->auto_inc_bound){
-				LOG_EMPERY_CENTER_DEBUG("> Removing items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
+				LOG_EMPERY_CENTER_TRACE("> Removing items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
 				const auto count_to_remove = saturated_mul(static_cast<boost::uint64_t>(-(item_data->auto_inc_step)), interval_count);
 				const auto new_count = std::max(saturated_sub(old_count, count_to_remove), item_data->auto_inc_bound);
-				LOG_EMPERY_CENTER_DEBUG("> Removing items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
+				LOG_EMPERY_CENTER_TRACE("> Removing items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
 				transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_data->item_id, old_count - new_count,
 					ReasonIds::ID_AUTO_INCREMENT, item_data->auto_inc_type, item_data->auto_inc_offset, 0);
 			}
@@ -145,7 +145,7 @@ void ItemBox::synchronize_with_client(const boost::shared_ptr<PlayerSession> &se
 void ItemBox::check_init_items(){
 	PROFILE_ME;
 
-	LOG_EMPERY_CENTER_DEBUG("Checking for init items: account_uuid = ", get_account_uuid());
+	LOG_EMPERY_CENTER_TRACE("Checking for init items: account_uuid = ", get_account_uuid());
 	std::vector<ItemTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 	Data::Item::get_init(items_to_check);
@@ -153,7 +153,7 @@ void ItemBox::check_init_items(){
 		const auto &item_data = *dit;
 		const auto it = m_items.find(item_data->item_id);
 		if(it == m_items.end()){
-			LOG_EMPERY_CENTER_DEBUG("> Adding items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
+			LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
 			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, item_data->init_count,
 				ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
 		}

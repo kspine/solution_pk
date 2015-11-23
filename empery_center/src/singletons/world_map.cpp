@@ -122,13 +122,9 @@ namespace {
 	boost::weak_ptr<ClusterMapDelegator> g_cluster_map;
 
 	inline Coord get_sector_coord_from_world_coord(Coord coord){
-		assert(coord != Coord::npos());
-
 		return Coord(coord.x() & -32, coord.y() & -32);
 	}
 	inline Coord get_cluster_coord_from_world_coord(Coord coord){
-		assert(coord != Coord::npos());
-
 		const auto mask_x = (coord.x() >= 0) ? 0 : -1;
 		const auto mask_y = (coord.y() >= 0) ? 0 : -1;
 
@@ -958,7 +954,7 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 
 	try {
 		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> map_objects;
-		get_map_objects_by_rectangle(map_objects, get_cluster_range(coord));
+		get_map_objects_by_rectangle(map_objects, get_cluster_scope_by_coord(coord));
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 			notify_cluster_map_object_added(it->second, cluster);
 		}
@@ -968,11 +964,26 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 	}
 }
 
-Rectangle WorldMap::get_cluster_range(Coord coord){
+Rectangle WorldMap::get_cluster_scope_by_coord(Coord coord){
 	PROFILE_ME;
 
 	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
 	return Rectangle(cluster_coord.x(), cluster_coord.y(), g_map_width, g_map_height);
+}
+void WorldMap::get_cluster_scopes(std::vector<Rectangle> &ret, const boost::shared_ptr<ClusterSession> &cluster){
+	PROFILE_ME;
+
+	const auto cluster_map = g_cluster_map.lock();
+	if(!cluster_map){
+		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
+		return;
+	}
+
+	const auto range = cluster_map->equal_range<1>(cluster);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(get_cluster_scope_by_coord(it->coord));
+	}
 }
 
 }

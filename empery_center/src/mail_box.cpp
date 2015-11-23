@@ -50,7 +50,7 @@ void MailBox::pump_status(){
 
 	const auto global_mail_box = MailBoxMap::get_global();
 	if(global_mail_box && (global_mail_box.get() != this)){
-		LOG_EMPERY_CENTER_DEBUG("Checking for system mails: account_uuid = ", get_account_uuid());
+		LOG_EMPERY_CENTER_TRACE("Checking for system mails: account_uuid = ", get_account_uuid());
 
 		for(auto it = global_mail_box->m_mails.begin(); it != global_mail_box->m_mails.end(); ++it){
 			if(it->second->get_expiry_time() < utc_now){
@@ -60,7 +60,7 @@ void MailBox::pump_status(){
 			if(my_it != m_mails.end()){
 				continue;
 			}
-			LOG_EMPERY_CENTER_DEBUG("> Creating system mail: mail_uuid = ", it->first);
+			LOG_EMPERY_CENTER_DEBUG("> Creating system mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
 			auto obj = boost::make_shared<MySql::Center_Mail>(it->first.get(), get_account_uuid().get(),
 				it->second->get_expiry_time(), it->second->get_flags());
 			obj->async_save(true);
@@ -68,12 +68,12 @@ void MailBox::pump_status(){
 		}
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Checking for expired mails: account_uuid = ", get_account_uuid());
+	LOG_EMPERY_CENTER_TRACE("Checking for expired mails: account_uuid = ", get_account_uuid());
 	{
 		auto it = m_mails.begin();
 		while(it != m_mails.end()){
 			if(it->second->get_expiry_time() < utc_now){
-				LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: mail_uuid = ", it->first);
+				LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
 				it = m_mails.erase(it);
 			} else {
 				++it;

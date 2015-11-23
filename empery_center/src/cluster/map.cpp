@@ -10,7 +10,7 @@
 namespace EmperyCenter {
 
 CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
-	const auto center_rectangle = WorldMap::get_cluster_range(Coord(0, 0));
+	const auto center_rectangle = WorldMap::get_cluster_scope_by_coord(Coord(0, 0));
 	const auto map_width  = static_cast<boost::uint32_t>(center_rectangle.width());
 	const auto map_height = static_cast<boost::uint32_t>(center_rectangle.height());
 
@@ -21,7 +21,7 @@ CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
 		LOG_EMPERY_CENTER_WARNING("Invalid numerical coord: num_coord = ", num_coord, ", inf_x = ", inf_x, ", inf_y = ", inf_y);
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;
 	}
-	const auto cluster_range = WorldMap::get_cluster_range(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
+	const auto cluster_range = WorldMap::get_cluster_scope_by_coord(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
 	const auto cluster_coord = cluster_range.bottom_left();
 	LOG_EMPERY_CENTER_DEBUG("Registering cluster server: num_coord = ", num_coord, ", cluster_range = ", cluster_range);
 
@@ -50,6 +50,10 @@ CLUSTER_SERVLET(Msg::KC_MapUpdateMapObject, cluster, req){
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
 	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
 
 	boost::container::flat_map<AttributeId, boost::int64_t> modifiers;
 	modifiers.reserve(req.attributes.size());
@@ -68,6 +72,10 @@ CLUSTER_SERVLET(Msg::KC_MapRemoveMapObject, cluster, req){
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
 
 	map_object->delete_from_game();
