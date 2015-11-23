@@ -22,7 +22,7 @@ namespace {
 		PROFILE_ME;
 
 		msg.mail_uuid       = obj->get_mail_uuid().to_string();
-		msg.expiry_duration = saturated_sub(utc_now, obj->get_expiry_time());
+		msg.expiry_duration = saturated_sub(obj->get_expiry_time(), utc_now);
 		msg.flags           = obj->get_flags();
 	}
 }
@@ -134,6 +134,9 @@ void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64
 		LOG_EMPERY_CENTER_WARNING("Mail exists: account_uuid = ", get_account_uuid(), ", mail_uuid = ", mail_uuid);
 		DEBUG_THROW(Exception, sslit("Mail exists"));
 	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
 	boost::uint64_t flags = 0;
 	if(mail_data->get_attachments().empty()){
 		Poseidon::add_flags(flags, FL_ATTACHMENTS_FETCHED);
@@ -146,7 +149,7 @@ void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64
 	if(session){
 		try {
 			Msg::SC_MailChanged msg;
-			fill_mail_message(msg, obj, Poseidon::get_utc_time());
+			fill_mail_message(msg, obj, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -167,6 +170,8 @@ void MailBox::update(MailInfo info, bool throws_if_not_exists){
 	}
 	const auto &obj = it->second;
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	obj->set_expiry_time(info.expiry_time);
 	obj->set_flags(info.flags);
 
@@ -174,7 +179,7 @@ void MailBox::update(MailInfo info, bool throws_if_not_exists){
 	if(session){
 		try {
 			Msg::SC_MailChanged msg;
-			fill_mail_message(msg, obj, Poseidon::get_utc_time());
+			fill_mail_message(msg, obj, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -192,13 +197,15 @@ bool MailBox::remove(MailUuid mail_uuid) noexcept {
 	const auto obj = std::move(it->second);
 	m_mails.erase(it);
 
+	// const auto utc_now = Poseidon::get_utc_time();
+
 	obj->set_expiry_time(0);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
 			Msg::SC_MailChanged msg;
-			// fill_mail_message(msg, obj, Poseidon::get_utc_time());
+			// fill_mail_message(msg, obj, utc_now);
 			msg.mail_uuid = mail_uuid.str();
 			session->send(msg);
 		} catch(std::exception &e){

@@ -122,8 +122,8 @@ public:
 		: m_uuid(uuid)
 	{
 	}
-	GenericUuid(const std::string &str)
-		: m_uuid(str)
+	explicit GenericUuid(const std::string &str)
+		: m_uuid(str.empty() ? Poseidon::Uuid() : Poseidon::Uuid(str))
 	{
 	}
 

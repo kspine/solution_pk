@@ -12,6 +12,7 @@
 #include "../cluster_client.hpp"
 #include "../log.hpp"
 #include "../../../empery_center/src/cbpp_response.hpp"
+#include "../../../empery_center/src/msg/kill.hpp"
 
 /*
 CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
@@ -19,7 +20,7 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 }
 */
 
-#define CLUSTER_SERVLET(MsgType_, client_arg_, req_arg_)	\
+#define CLUSTER_SERVLET(MsgType_, client_arg_, msg_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
@@ -29,7 +30,7 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 			{	\
 				PROFILE_ME;	\
 				MsgType_ msg_(::std::move(payload_));	\
-				LOG_EMPERY_CLUSTER_DEBUG("Received request from ", client_->get_remote_info(), ": ", msg_);	\
+				LOG_EMPERY_CLUSTER_DEBUG("Received message from ", client_->get_remote_info(), ": ", msg_);	\
 				return TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (client_, ::std::move(msg_));	\
 			}	\
 		}	\
@@ -39,13 +40,17 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr<ClusterClient> & (client_arg_),	\
-		MsgType_ (req_arg_)	\
+		MsgType_ (msg_arg_)	\
 		)	\
 
 #define CLUSTER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
 #define CLUSTER_THROW(code_)             CLUSTER_THROW_MSG(code_, sslit(""))
 
 namespace EmperyCluster {
+
+namespace Msg {
+	using namespace ::EmperyCenter::Msg;
+}
 
 using Response = ::EmperyCenter::CbppResponse;
 

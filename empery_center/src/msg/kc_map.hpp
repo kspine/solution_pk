@@ -10,8 +10,8 @@ namespace Msg {
 #define MESSAGE_NAME    KC_MapRegisterCluster
 #define MESSAGE_ID      32300
 #define MESSAGE_FIELDS  \
-	FIELD_VINT          (server_x)	\
-	FIELD_VINT          (server_y)
+	FIELD_VINT          (numerical_x)	\
+	FIELD_VINT          (numerical_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KC_MapUpdateMapObject
@@ -24,6 +24,12 @@ namespace Msg {
 		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\
 	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    KC_MapRemoveMapObject
+#define MESSAGE_ID      32302
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

@@ -10,12 +10,12 @@ namespace Msg {
 #define MESSAGE_NAME    SC_MapWorldMapList
 #define MESSAGE_ID      399
 #define MESSAGE_FIELDS  \
-	FIELD_ARRAY         (servers,	\
-		FIELD_VINT          (server_x)	\
-		FIELD_VINT          (server_y)	\
+	FIELD_ARRAY         (clusters,	\
+		FIELD_VINT          (x)	\
+		FIELD_VINT          (y)	\
 	)	\
-	FIELD_VUINT         (map_width)	\
-	FIELD_VUINT         (map_height)
+	FIELD_VUINT         (cluster_width)	\
+	FIELD_VUINT         (cluster_height)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapCellInfo

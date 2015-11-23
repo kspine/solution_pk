@@ -41,7 +41,7 @@ public:
 	void set_name(std::string name);
 
 	Coord get_coord() const;
-	void set_coord(Coord coord);
+	void set_coord(Coord coord) noexcept;
 
 	boost::uint64_t get_created_time() const;
 

@@ -89,7 +89,10 @@ void MapObject::set_name(std::string name){
 Coord MapObject::get_coord() const {
 	return Coord(m_obj->get_x(), m_obj->get_y());
 }
-void MapObject::set_coord(Coord coord){
+void MapObject::set_coord(Coord coord) noexcept {
+	if(get_coord() == coord){
+		return;
+	}
 	m_obj->set_x(coord.x());
 	m_obj->set_y(coord.y());
 
@@ -114,6 +117,9 @@ bool MapObject::has_been_deleted() const {
 	return m_obj->get_deleted();
 }
 void MapObject::delete_from_game() noexcept {
+	if(has_been_deleted()){
+		return;
+	}
 	m_obj->set_deleted(true);
 
 	WorldMap::remove_map_object(get_map_object_uuid());
@@ -161,9 +167,19 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 			m_attributes.emplace(it->first, std::move(obj));
 		}
 	}
+
+	bool dirty = false;
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
 		const auto &obj = m_attributes.at(it->first);
+		const auto old_value = obj->get_value();
+		if(old_value == it->second){
+			continue;
+		}
 		obj->set_value(it->second);
+		++dirty;
+	}
+	if(!dirty){
+		return;
 	}
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);

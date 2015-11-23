@@ -48,7 +48,7 @@ public:
 	template<class MessageT>
 	bool send(const MessageT &msg){
 		if(MessageT::ID != 0){
-			LOG_EMPERY_CENTER_TRACE("Sending data to ", get_remote_info(), ": ", msg);
+			LOG_EMPERY_CENTER_DEBUG("Sending data to ", get_remote_info(), ": ", msg);
 		}
 		return send(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}

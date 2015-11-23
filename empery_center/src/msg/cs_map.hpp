@@ -35,8 +35,6 @@ namespace Msg {
 #define MESSAGE_ID      303
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VINT          (x)	\
-	FIELD_VINT          (y)	\
 	FIELD_ARRAY         (waypoints,	\
 		FIELD_VINT          (dx)	\
 		FIELD_VINT          (dy)	\
