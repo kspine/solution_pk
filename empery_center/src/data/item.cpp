@@ -74,7 +74,7 @@ namespace {
 				LOG_EMPERY_CENTER_WARNING("Unknown item auto increment type: ", str);
 				DEBUG_THROW(Exception, sslit("Unknown item auto increment type"));
 			}
-			boost::uint64_t minutes;
+			boost::uint64_t minutes = 0;
 			csv.get(minutes,             "autoinc_time");
 			elem.auto_inc_offset = checked_mul<boost::uint64_t>(minutes, 60000);
 			csv.get(elem.auto_inc_step,  "autoinc_step");

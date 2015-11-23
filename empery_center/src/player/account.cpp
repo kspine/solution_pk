@@ -32,7 +32,7 @@ namespace {
 			DEBUG_THROW(Exception, sslit("Sign-in item is not daily-reset"));
 		}
 		const auto auto_inc_offset = item_data->auto_inc_offset;
-		LOG_EMPERY_CENTER_DEBUG("Retrieved daily sign-in offset: account_uuid = ", account_uuid, ", auto_inc_offset = ", auto_inc_offset);
+		LOG_EMPERY_CENTER_DEBUG("Retrieved daily sign-in offset: auto_inc_offset = ", auto_inc_offset);
 
 		const auto last_signed_in_time = AccountMap::get_attribute_gen<boost::uint64_t>(account_uuid, AccountMap::ATTR_LAST_SIGNED_IN_TIME);
 		const auto utc_now = Poseidon::get_utc_time();
@@ -151,8 +151,12 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account_uuid, session, req){
 		if(!AccountMap::has(other_uuid)){
 			continue;
 		}
+		const bool wants_nick               = Poseidon::has_any_flags_of(it->detail_flags, FL_NICK);
+		const bool wants_attributes         = Poseidon::has_any_flags_of(it->detail_flags, FL_ATTRIBUTES);
+		const bool wants_private_attributes = wants_attributes && (other_uuid == account_uuid);
+		const bool wants_items              = Poseidon::has_any_flags_of(it->detail_flags, FL_ITEMS);
 		AccountMap::send_attributes_to_client(other_uuid, session,
-			it->detail_flags & FL_NICK, it->detail_flags & FL_ATTRIBUTES, other_uuid == account_uuid, it->detail_flags & FL_ITEMS);
+			wants_nick, wants_attributes, wants_private_attributes, wants_items);
 		account.error_code = Msg::ST_OK;
 	}
 	session->send(msg);
