@@ -138,6 +138,8 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 			it->item_box = std::move(item_box);
 			it->timer    = std::move(timer);
 		}
+
+		assert(it->item_box);
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();

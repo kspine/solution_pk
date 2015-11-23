@@ -190,6 +190,8 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 			it->mail_box = std::move(mail_box);
 			it->timer    = std::move(timer);
 		}
+
+		assert(it->mail_box);
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
@@ -276,6 +278,8 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 			it->sink      = { };
 			it->mail_data = std::move(mail_data);
 		}
+
+		assert(it->mail_data);
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
