@@ -252,7 +252,7 @@ namespace {
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
 
-		// view
+		// PlayerView
 		const auto map_sector_map = boost::make_shared<MapSectorMapDelegator>();
 		for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
 			auto map_object = it->map_object;
@@ -273,6 +273,31 @@ namespace {
 		handles.push(player_view_map);
 	}
 
+	void get_sessions_by_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord){
+		PROFILE_ME;
+
+		const auto player_view_map = g_player_view_map.lock();
+		if(!player_view_map){
+			LOG_EMPERY_CENTER_WARNING("Player view map is not initialized.");
+			return;
+		}
+
+		const auto sector_coord = get_sector_coord_from_map_coord(coord);
+		const auto range = player_view_map->equal_range<1>(sector_coord);
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		auto view_it = range.first;
+		while(view_it != range.second){
+			auto session = view_it->session.lock();
+			if(!session){
+				view_it = player_view_map->erase<1>(view_it);
+				continue;
+			}
+			if(view_it->view.hit_test(coord)){
+				ret.emplace_back(std::move(session));
+			}
+			++view_it;
+		}
+	}
 	void synchronise_map_cell_by_coord(const boost::shared_ptr<MapCell> &map_cell, Coord coord) noexcept {
 		PROFILE_ME;
 
@@ -302,7 +327,6 @@ namespace {
 			++view_it;
 		}
 	}
-
 	void synchronize_map_object_by_coord(const boost::shared_ptr<MapObject> &map_object, Coord coord) noexcept {
 		PROFILE_ME;
 
@@ -672,6 +696,11 @@ _exit_while:
 	;
 }
 
+void WorldMap::get_players_viewing_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord){
+	PROFILE_ME;
+
+	get_sessions_by_coord(ret, coord);
+}
 void WorldMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view){
 	PROFILE_ME;
 

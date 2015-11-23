@@ -11,6 +11,7 @@ namespace EmperyCenter {
 
 class MapCell;
 class MapObject;
+class ClusterSession;
 class PlayerSession;
 
 struct WorldMap {
@@ -32,10 +33,16 @@ struct WorldMap {
 	static void get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
-	// view
+	// PlayerView
+	static void get_players_viewing_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord);
 	static void set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view);
 	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept;
 
+	// ClusterView
+/*	static boost::shared_ptr<ClusterSession> get(Coord server_coord);
+	static void get_all(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
+	static void set(Coord server_coord, const boost::shared_ptr<ClusterSession> &session);
+*/
 private:
 	WorldMap() = delete;
 };
