@@ -52,9 +52,7 @@ public:
 	}
 };
 
-inline std::ostream &operator<<(std::ostream &os, const Coord &rhs){
-	return os <<'(' <<rhs.x() <<',' <<rhs.y() <<')';
-}
+extern std::ostream &operator<<(std::ostream &os, const Coord &rhs);
 
 }
 

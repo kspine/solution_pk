@@ -63,9 +63,7 @@ public:
 	}
 };
 
-inline std::ostream &operator<<(std::ostream &os, const Rectangle &rhs){
-	return os <<"RECTANGLE" <<'[' <<rhs.bottom_left() <<',' <<rhs.top_right() <<']';
-}
+extern std::ostream &operator<<(std::ostream &os, const Rectangle &rhs);
 
 }
 
