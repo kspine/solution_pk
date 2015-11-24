@@ -5,7 +5,7 @@
 
 namespace EmperyCluster {
 
-using namespace EmperyCenter::IdTypes;
+using namespace ::EmperyCenter::IdTypes;
 
 }
 

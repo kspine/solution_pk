@@ -12,7 +12,7 @@
 namespace EmperyCluster {
 
 namespace Msg {
-	using namespace EmperyCenter::Msg;
+	using namespace ::EmperyCenter::Msg;
 }
 
 using Result          = ClusterClient::Result;

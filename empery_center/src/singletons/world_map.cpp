@@ -3,7 +3,6 @@
 #include <boost/container/flat_set.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
-#include "../attribute_ids.hpp"
 #include "../map_cell.hpp"
 #include "../mysql/map_cell.hpp"
 #include "../map_object.hpp"
