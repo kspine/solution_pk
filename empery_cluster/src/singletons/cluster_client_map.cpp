@@ -4,13 +4,13 @@
 #include <poseidon/string.hpp>
 #include <poseidon/file.hpp>
 #include "../cluster_client.hpp"
-
+/*
 namespace EmperyCluster {
 
 namespace {
-	std::string     g_client_connect           = "127.0.0.1";
-	unsigned        g_client_port              = 13217;
-	bool            g_client_use_ssl            = false;
+	std::string     g_client_connect             = "127.0.0.1";
+	unsigned        g_client_port                = 13217;
+	bool            g_client_use_ssl             = false;
 	boost::uint64_t g_client_keep_alive_interval = 15000;
 
 	struct ClientElement {
@@ -83,3 +83,4 @@ namespace {
 }
 
 }
+*/

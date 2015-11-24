@@ -294,30 +294,29 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 	it = g_account_map.insert<2>(it, AccountElement(std::move(obj)));
 
 // FIXME remove this
-auto map_object_uuid = MapObjectUuid(Poseidon::Uuid::random());
-auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 200) - 100,
-                   (boost::int32_t)Poseidon::rand32(0, 200) - 100);
-auto castle = boost::make_shared<Castle>(map_object_uuid, MapObjectTypeIds::ID_CASTLE, account_uuid, MapObjectUuid(), "aaa", coord);
+for(int i = 0; i < 3; ++i){
+	auto map_object_uuid = MapObjectUuid(Poseidon::Uuid::random());
+	auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 400) - 200,
+                   	(boost::int32_t)Poseidon::rand32(0, 400) - 200);
+	auto castle = boost::make_shared<Castle>(map_object_uuid, MapObjectTypeIds::ID_CASTLE, account_uuid, MapObjectUuid(), "aaa", coord);
 
-std::vector<ResourceTransactionElement> rsrc;
-rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 1000000000, ReasonId(), 0, 0, 0);
-rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101002), 1000000000, ReasonId(), 0, 0, 0);
-rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101003), 1000000000, ReasonId(), 0, 0, 0);
-castle->commit_resource_transaction(rsrc.data(), rsrc.size());
+	std::vector<ResourceTransactionElement> rsrc;
+	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 500000000, ReasonId(), 0, 0, 0);
+	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101002), 500000000, ReasonId(), 0, 0, 0);
+	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101003), 500000000, ReasonId(), 0, 0, 0);
+	castle->commit_resource_transaction(rsrc.data(), rsrc.size());
 
-castle->create_building_mission(BuildingBaseId(2),  Castle::MIS_CONSTRUCT, BuildingId(1902001));
-castle->create_building_mission(BuildingBaseId(3),  Castle::MIS_CONSTRUCT, BuildingId(1902002));
-castle->create_building_mission(BuildingBaseId(4),  Castle::MIS_CONSTRUCT, BuildingId(1902003));
-castle->create_building_mission(BuildingBaseId(5),  Castle::MIS_CONSTRUCT, BuildingId(1902004));
-castle->create_building_mission(BuildingBaseId(11), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-castle->create_building_mission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-castle->create_building_mission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-castle->create_building_mission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+	castle->create_building_mission(BuildingBaseId(2),  Castle::MIS_CONSTRUCT, BuildingId(1902001));
+	castle->create_building_mission(BuildingBaseId(3),  Castle::MIS_CONSTRUCT, BuildingId(1902002));
+	castle->create_building_mission(BuildingBaseId(4),  Castle::MIS_CONSTRUCT, BuildingId(1902003));
+	castle->create_building_mission(BuildingBaseId(5),  Castle::MIS_CONSTRUCT, BuildingId(1902004));
+	castle->create_building_mission(BuildingBaseId(11), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+	castle->create_building_mission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+	castle->create_building_mission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
+	castle->create_building_mission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 
-WorldMap::insert_map_object(castle);
-
-set_attribute(account_uuid, 399, map_object_uuid.str());
-
+	WorldMap::insert_map_object(castle);
+}
 	*withdrawn = false;
 	return std::make_pair(account_uuid, true);
 }

@@ -23,6 +23,8 @@ public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(boost::uint16_t message_id, ServletCallback callback);
 	static boost::shared_ptr<const ServletCallback> get_servlet(boost::uint16_t message_id);
 
+	static boost::shared_ptr<ClusterClient> create(boost::int64_t numerical_x, boost::int64_t numerical_y);
+
 private:
 	struct RequestElement {
 		Result *result;
@@ -38,21 +40,17 @@ private:
 	unsigned m_message_id;
 	Poseidon::StreamBuffer m_payload;
 
-	const boost::int64_t m_map_x;
-	const boost::int64_t m_map_y;
-
 	boost::uint64_t m_serial;
 	std::multimap<boost::uint64_t, RequestElement> m_requests;
 
+private:
+	ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, boost::uint64_t keep_alive_interval);
+
 public:
-	ClusterClient(const Poseidon::IpPort &addr, bool use_ssl, boost::uint64_t keep_alive_interval,
-		boost::int64_t map_x, boost::int64_t map_y);
 	~ClusterClient();
 
 protected:
 	void on_close(int err_code) noexcept override;
-
-	void on_connect() override;
 
 	void on_sync_data_message_header(boost::uint16_t message_id, boost::uint64_t payload_size) override;
 	void on_sync_data_message_payload(boost::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;

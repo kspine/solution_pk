@@ -18,9 +18,15 @@ public:
 	{
 	}
 	constexpr Rectangle(boost::int64_t l, boost::int64_t b, boost::uint64_t w, boost::uint64_t h) noexcept
-		: Rectangle(Coord(l, b),
+		: Rectangle(
+			Coord(l, b),
 			Coord(static_cast<boost::int64_t>(static_cast<boost::uint64_t>(l) + w),
-			      static_cast<boost::int64_t>(static_cast<boost::uint64_t>(b) + h)))
+			      static_cast<boost::int64_t>(static_cast<boost::uint64_t>(b) + h))
+			)
+	{
+	}
+	constexpr Rectangle(const Coord &bl, boost::uint64_t w, boost::uint64_t h) noexcept
+		: Rectangle(bl.x(), bl.y(), w, h)
 	{
 	}
 
@@ -63,7 +69,9 @@ public:
 	}
 };
 
-extern std::ostream &operator<<(std::ostream &os, const Rectangle &rhs);
+inline std::ostream &operator<<(std::ostream &os, const Rectangle &rhs){
+	return os <<"RECTANGLE" <<'[' <<rhs.bottom_left() <<',' <<rhs.top_right() <<']';
+}
 
 }
 

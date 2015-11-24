@@ -20,6 +20,8 @@ namespace Msg {
 #define MESSAGE_ID      32398
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_STRING        (owner_uuid)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_ARRAY         (attributes,	\
@@ -38,10 +40,12 @@ namespace Msg {
 #define MESSAGE_ID      32396
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
 	FIELD_ARRAY         (waypoints,	\
 		FIELD_VUINT         (delay)	\
-		FIELD_VINT          (x)	\
-		FIELD_VINT          (y)	\
+		FIELD_VINT          (dx)	\
+		FIELD_VINT          (dy)	\
 	)	\
 	FIELD_STRING        (attack_target_uuid)
 #include <poseidon/cbpp/message_generator.hpp>

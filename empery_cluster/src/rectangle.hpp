@@ -5,7 +5,7 @@
 
 namespace EmperyCluster {
 
-using EmperyCenter::Rectangle;
+using ::EmperyCenter::Rectangle;
 
 }
 

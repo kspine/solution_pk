@@ -5,7 +5,7 @@
 
 namespace EmperyCluster {
 
-using EmperyCenter::Coord;
+using ::EmperyCenter::Coord;
 
 }
 

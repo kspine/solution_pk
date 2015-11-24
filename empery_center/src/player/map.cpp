@@ -12,7 +12,7 @@
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
-	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+	std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterSession>>> clusters;
 	WorldMap::get_all_clusters(clusters);
 	const auto center_rectangle = WorldMap::get_cluster_scope_by_coord(Coord(0, 0));
 
@@ -21,8 +21,8 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
 		msg.clusters.emplace_back();
 		auto &cluster = msg.clusters.back();
-		cluster.x = it->first.x();
-		cluster.y = it->first.y();
+		cluster.x = it->first.left();
+		cluster.y = it->first.bottom();
 	}
 	msg.cluster_width  = center_rectangle.width();
 	msg.cluster_height = center_rectangle.height();
@@ -63,33 +63,30 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<from_coord;
 	}
 
-	std::vector<Coord> abs_coords;
-	abs_coords.reserve(req.waypoints.size() + 1);
-	abs_coords.emplace_back(from_coord);
+	Msg::CK_MapSetWaypoints kreq;
+	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
+	kreq.x = from_coord.x();
+	kreq.y = from_coord.y();
+	kreq.waypoints.reserve(req.waypoints.size());
+	auto last_coord = from_coord;
 	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
 		const auto &step = req.waypoints.at(i);
 		if((step.dx < -1) || (step.dx > 1) || (step.dy < -1) || (step.dy > 1)){
 			LOG_EMPERY_CENTER_DEBUG("Invalid relative coord: i = ", i, ", dx = ", step.dx, ", dy = ", step.dy);
 			return Response(Msg::ERR_BROKEN_PATH) <<i;
 		}
-		const auto cur = abs_coords.back();
-		const auto next = Coord(cur.x() + step.dx, cur.y() + step.dy);
-		if(!are_coords_adjacent(cur, next)){
-			LOG_EMPERY_CENTER_DEBUG("Broken path: cur = ", cur, ", next = ", next);
+		const auto next_coord = Coord(last_coord.x() + step.dx, last_coord.y() + step.dy);
+		if(!are_coords_adjacent(last_coord, next_coord)){
+			LOG_EMPERY_CENTER_DEBUG("Broken path: last_coord = ", last_coord, ", next_coord = ", next_coord);
 			return Response(Msg::ERR_BROKEN_PATH) <<i;
 		}
-		abs_coords.emplace_back(next);
-	}
+		last_coord = next_coord;
 
-	Msg::CK_MapSetWaypoints kreq;
-	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-	kreq.waypoints.reserve(abs_coords.size());
-	for(auto it = abs_coords.begin(); it != abs_coords.end(); ++it){
 		kreq.waypoints.emplace_back();
 		auto &waypoint = kreq.waypoints.back();
 		waypoint.delay = 1000; // XXX remove this
-		waypoint.x = it->x();
-		waypoint.y = it->y();
+		waypoint.dx    = step.dx;
+		waypoint.dy    = step.dy;
 	}
 	kreq.attack_target_uuid = attack_target_uuid.str();
 	auto kresult = cluster->send_and_wait(kreq);

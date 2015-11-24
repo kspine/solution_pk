@@ -12,8 +12,17 @@
 namespace EmperyCluster {
 
 class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
-private:
-	class InvalidationGuard;
+public:
+	// 时间是快速单调时钟，坐标是世界坐标。
+	struct Waypoint {
+		boost::uint64_t timestamp;
+		Coord coord;
+
+		Waypoint(boost::uint64_t timestamp_, Coord coord_)
+			: timestamp(timestamp_), coord(coord_)
+		{
+		}
+	};
 
 private:
 	const MapObjectUuid m_map_object_uuid;
@@ -23,11 +32,14 @@ private:
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
 
-	bool m_invalidated;
 	boost::shared_ptr<Poseidon::TimerItem> m_timer;
 
+	// 移动。
 	boost::uint64_t m_last_step_time;
-	std::deque<Coord> m_waypoints;
+	std::deque<Waypoint> m_waypoints;
+
+	// 战斗。
+	MapObjectUuid m_attack_target_uuid;
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
@@ -35,6 +47,7 @@ public:
 	~MapObject();
 
 private:
+	void setup_timer();
 	void on_timer(boost::uint64_t now);
 
 public:
@@ -55,7 +68,9 @@ public:
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 
-	void set_waypoints(std::deque<Coord> waypoints);
+	void set_waypoints(std::deque<Waypoint> waypoints);
+
+	void set_attack_target_uuid(MapObjectUuid attack_target_uuid);
 };
 
 }

@@ -3,7 +3,9 @@
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
 #include <poseidon/async_job.hpp>
+#include <poseidon/sock_addr.hpp>
 #include <poseidon/cbpp/control_message.hpp>
+#include <poseidon/singletons/dns_daemon.hpp>
 #include "../../empery_center/src/msg/g_packed.hpp"
 #include "../../empery_center/src/msg/kc_map.hpp"
 
@@ -49,19 +51,38 @@ boost::shared_ptr<const ServletCallback> ClusterClient::get_servlet(boost::uint1
 	return servlet;
 }
 
-ClusterClient::ClusterClient(const Poseidon::IpPort &addr, bool use_ssl, boost::uint64_t keep_alive_interval,
-	boost::int64_t map_x, boost::int64_t map_y)
-	: Poseidon::Cbpp::Client(addr, use_ssl, keep_alive_interval)
+boost::shared_ptr<ClusterClient> ClusterClient::create(boost::int64_t numerical_x, boost::int64_t numerical_y){
+	PROFILE_ME;
+
+	const auto host       = get_config<std::string>    ("cluster_cbpp_client_connect",      "127.0.0.1");
+	const auto port       = get_config<unsigned>       ("cluster_cbpp_client_port",         13217);
+	const auto use_ssl    = get_config<bool>           ("cluster_cbpp_client_use_ssl",      false);
+	const auto keep_alive = get_config<boost::uint64_t>("cluster_cbpp_keep_alive_interval", 0);
+
+	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
+
+	const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, host, port);
+	Poseidon::JobDispatcher::yield(promise);
+	promise->check_and_rethrow();
+
+	auto client = boost::shared_ptr<ClusterClient>(new ClusterClient(*sock_addr, use_ssl, keep_alive));
+	const auto result = client->send_and_wait(Msg::KC_MapRegisterCluster(numerical_x, numerical_y));
+	if(result.first != 0){
+		LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
+		DEBUG_THROW(Exception, SharedNts(result.second));
+	}
+	LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: numerical_x = ", numerical_x, ", numerical_y = ", numerical_y);
+	return client;
+}
+
+ClusterClient::ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, boost::uint64_t keep_alive_interval)
+	: Poseidon::Cbpp::Client(sock_addr, use_ssl, keep_alive_interval)
 	, m_message_id(0), m_payload()
-	, m_map_x(map_x), m_map_y(map_y)
 	, m_serial(0)
 {
-	LOG_EMPERY_CLUSTER_INFO("ClusterClient constructor: this = ", (void *)this, ", addr = ", addr, ", use_ssl = ", use_ssl,
-		", map_x = ", m_map_x, ", map_y = ", m_map_y);
+	LOG_EMPERY_CLUSTER_INFO("Creating cluster client: remote = ", Poseidon::get_ip_port_from_sock_addr(sock_addr));
 }
 ClusterClient::~ClusterClient(){
-	LOG_EMPERY_CLUSTER_INFO("ClusterClient destructor: this = ", (void *)this,
-		", map_x = ", m_map_x, ", map_y = ", m_map_y);
 }
 
 void ClusterClient::on_close(int err_code) noexcept {
@@ -96,20 +117,6 @@ void ClusterClient::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Client::on_close(err_code);
 }
 
-void ClusterClient::on_connect(){
-	PROFILE_ME;
-
-	// Poseidon::Cbpp::Client::on_connect();
-
-	Poseidon::enqueue_async_job(std::bind([&](const boost::shared_ptr<void> &){
-		const auto result = send_and_wait(Msg::KC_MapRegisterCluster(m_map_x, m_map_y));
-		if(result.first != 0){
-			LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
-			DEBUG_THROW(Exception, SharedNts(result.second));
-		}
-		LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: map_x = ", m_map_x, ", map_y = ", m_map_y);
-	}, shared_from_this()));
-}
 void ClusterClient::on_sync_data_message_header(boost::uint16_t message_id, boost::uint64_t payload_size){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Message header: message_id = ", message_id, ", payload_size = ", payload_size);

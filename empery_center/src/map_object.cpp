@@ -73,6 +73,8 @@ const std::string &MapObject::get_name() const {
 	return m_obj->unlocked_get_name();
 }
 void MapObject::set_name(std::string name){
+	PROFILE_ME;
+
 	m_obj->set_name(std::move(name));
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -90,6 +92,8 @@ Coord MapObject::get_coord() const {
 	return Coord(m_obj->get_x(), m_obj->get_y());
 }
 void MapObject::set_coord(Coord coord) noexcept {
+	PROFILE_ME;
+
 	if(get_coord() == coord){
 		return;
 	}
@@ -117,6 +121,8 @@ bool MapObject::has_been_deleted() const {
 	return m_obj->get_deleted();
 }
 void MapObject::delete_from_game() noexcept {
+	PROFILE_ME;
+
 	if(has_been_deleted()){
 		return;
 	}

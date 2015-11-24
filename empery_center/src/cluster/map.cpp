@@ -30,6 +30,11 @@ CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
 		LOG_EMPERY_CENTER_ERROR("Cluster server conflict: num_coord = ", num_coord, ", cluster_coord = ", cluster_coord);
 		return Response(Msg::KILL_CLUSTER_SERVER_CONFLICT) <<cluster_coord;
 	}
+	const auto old_scope = WorldMap::get_cluster_scope(cluster);
+	if((old_scope.width() != 0) || (old_scope.height() != 0)){
+		LOG_EMPERY_CENTER_ERROR("Cluster server already registered: num_coord = ", num_coord, ", cluster_coord = ", cluster_coord);
+		return Response(Msg::KILL_MAP_SERVER_ALREADY_REGISTERED);
+	}
 
 	Msg::CK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_range.left();

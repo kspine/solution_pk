@@ -116,7 +116,7 @@ namespace {
 
 	MULTI_INDEX_MAP(ClusterMapDelegator, ClusterElement,
 		UNIQUE_MEMBER_INDEX(coord)
-		MULTI_MEMBER_INDEX(cluster)
+		UNIQUE_MEMBER_INDEX(cluster)
 	)
 
 	boost::weak_ptr<ClusterMapDelegator> g_cluster_map;
@@ -402,9 +402,11 @@ namespace {
 		map_object->get_attributes(attributes);
 
 		Msg::CK_MapAddMapObject msg;
-		msg.map_object_uuid = map_object->get_map_object_uuid().str();
-		msg.x               = map_object->get_coord().x();
-		msg.y               = map_object->get_coord().y();
+		msg.map_object_uuid    = map_object->get_map_object_uuid().str();
+		msg.map_object_type_id = map_object->get_map_object_type_id().get();
+		msg.owner_uuid         = map_object->get_owner_uuid().str();
+		msg.x                  = map_object->get_coord().x();
+		msg.y                  = map_object->get_coord().y();
 		msg.attributes.reserve(attributes.size());
 		for(auto it = attributes.begin(); it != attributes.end(); ++it){
 			msg.attributes.emplace_back();
@@ -886,6 +888,12 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 	}
 }
 
+Rectangle WorldMap::get_cluster_scope_by_coord(Coord coord){
+	PROFILE_ME;
+
+	return Rectangle(get_cluster_coord_from_world_coord(coord), g_map_width, g_map_height);
+}
+
 boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 	PROFILE_ME;
 
@@ -909,7 +917,7 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 	}
 	return std::move(cluster);
 }
-void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret){
+void WorldMap::get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterSession>>> &ret){
 	PROFILE_ME;
 
 	const auto cluster_map = g_cluster_map.lock();
@@ -924,8 +932,24 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 		if(!cluster){
 			continue;
 		}
-		ret.emplace(it->coord, std::move(cluster));
+		ret.emplace_back(get_cluster_scope_by_coord(it->coord), std::move(cluster));
 	}
+}
+Rectangle WorldMap::get_cluster_scope(const boost::weak_ptr<ClusterSession> &cluster){
+	PROFILE_ME;
+
+	const auto cluster_map = g_cluster_map.lock();
+	if(!cluster_map){
+		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
+		return Rectangle(0, 0, 0, 0);
+	}
+
+	const auto it = cluster_map->find<1>(cluster);
+	if(it == cluster_map->end<1>()){
+		LOG_EMPERY_CENTER_DEBUG("Cluster session not found.");
+		return Rectangle(0, 0, 0, 0);
+	}
+	return Rectangle(it->coord, g_map_width, g_map_height);
 }
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
 	PROFILE_ME;
@@ -934,6 +958,12 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	if(!cluster_map){
 		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
 		DEBUG_THROW(Exception, sslit("Cluster map is not loaded"));
+	}
+
+	const auto cit = cluster_map->find<1>(cluster);
+	if(cit != cluster_map->end<1>()){
+		LOG_EMPERY_CENTER_WARNING("Cluster already registered: old_coord = ", cit->coord);
+		DEBUG_THROW(Exception, sslit("Cluster already registered"));
 	}
 
 	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
@@ -961,28 +991,6 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		cluster->shutdown(e.what());
-	}
-}
-
-Rectangle WorldMap::get_cluster_scope_by_coord(Coord coord){
-	PROFILE_ME;
-
-	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
-	return Rectangle(cluster_coord.x(), cluster_coord.y(), g_map_width, g_map_height);
-}
-void WorldMap::get_cluster_scopes(std::vector<Rectangle> &ret, const boost::shared_ptr<ClusterSession> &cluster){
-	PROFILE_ME;
-
-	const auto cluster_map = g_cluster_map.lock();
-	if(!cluster_map){
-		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
-		return;
-	}
-
-	const auto range = cluster_map->equal_range<1>(cluster);
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-	for(auto it = range.first; it != range.second; ++it){
-		ret.emplace_back(get_cluster_scope_by_coord(it->coord));
 	}
 }
 

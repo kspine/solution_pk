@@ -40,13 +40,13 @@ struct WorldMap {
 	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept;
 
 	// ClusterSession
+	static Rectangle get_cluster_scope_by_coord(Coord coord);
+
 	static boost::shared_ptr<ClusterSession> get_cluster(Coord coord);
-	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
+	static void get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterSession>>> &ret);
+	static Rectangle get_cluster_scope(const boost::weak_ptr<ClusterSession> &cluster); // 找不到则返回空的矩形。
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord) noexcept;
-
-	static Rectangle get_cluster_scope_by_coord(Coord coord);
-	static void get_cluster_scopes(std::vector<Rectangle> &ret, const boost::shared_ptr<ClusterSession> &cluster);
 
 private:
 	WorldMap() = delete;

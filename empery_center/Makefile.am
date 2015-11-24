@@ -25,7 +25,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/world_map.cpp	\
 	src/singletons/item_box_map.cpp	\
 	src/singletons/mail_box_map.cpp	\
-	src/data/client_only.cpp	\
 	src/data/castle.cpp	\
 	src/data/item.cpp	\
 	src/data/signing_in.cpp	\
@@ -41,8 +40,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/cluster_session.cpp	\
 	src/data_session.cpp	\
 	src/admin_session.cpp	\
-	src/coord.cpp	\
-	src/rectangle.cpp	\
 	src/map_cell.cpp	\
 	src/map_object.cpp	\
 	src/castle.cpp	\
