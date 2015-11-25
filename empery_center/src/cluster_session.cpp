@@ -50,10 +50,10 @@ ClusterSession::ClusterSession(Poseidon::UniqueFile socket)
 	: Poseidon::Cbpp::Session(std::move(socket), 0x1000000) // 16MiB
 	, m_serial(0)
 {
-	LOG_EMPERY_CENTER_INFO("ClusterSession constructor: this = ", (void *)this);
+	LOG_EMPERY_CENTER_INFO("Cluster session constructor: this = ", (void *)this);
 }
 ClusterSession::~ClusterSession(){
-	LOG_EMPERY_CENTER_INFO("ClusterSession destructor: this = ", (void *)this);
+	LOG_EMPERY_CENTER_INFO("Cluster session destructor: this = ", (void *)this);
 }
 
 void ClusterSession::on_close(int err_code) noexcept {
@@ -90,7 +90,7 @@ void ClusterSession::on_close(int err_code) noexcept {
 
 void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_DEBUG("Received data message from cluster server: remote = ", get_remote_info(),
+	LOG_EMPERY_CENTER_TRACE("Received data message from cluster server: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", size = ", payload.size());
 
 	if(message_id == Msg::G_PackedRequest::ID){
@@ -114,7 +114,8 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		LOG_EMPERY_CENTER_DEBUG("Sending response to cluster server: code = ", result.first, ", message = ", result.second);
+		LOG_EMPERY_CENTER_DEBUG("Sending response to cluster server: message_id = ", message_id,
+			", code = ", result.first, ", message = ", result.second);
 		Poseidon::Cbpp::Session::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
 		if(result.first < 0){
 			shutdown_read();
@@ -122,7 +123,7 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 		}
 	} else if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(std::move(payload));
-		LOG_EMPERY_CENTER_DEBUG("Received response from cluster server: code = ", packed.code, ", message = ", packed.message);
+		LOG_EMPERY_CENTER_TRACE("Received response from cluster server: code = ", packed.code, ", message = ", packed.message);
 		const auto it = m_requests.find(packed.serial);
 		if(it != m_requests.end()){
 			const auto elem = std::move(it->second);
@@ -137,7 +138,7 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 		}
 	} else if(message_id == Msg::G_PackedAccountNotification::ID){
 		Msg::G_PackedAccountNotification packed(std::move(payload));
-		LOG_EMPERY_CENTER_DEBUG("Forwarding message: account_uuid = ", packed.account_uuid,
+		LOG_EMPERY_CENTER_TRACE("Forwarding message: account_uuid = ", packed.account_uuid,
 			", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
 		const auto account_uuid = AccountUuid(packed.account_uuid);
 		const auto session = PlayerSessionMap::get(account_uuid);

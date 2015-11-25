@@ -57,21 +57,25 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(boost::int64_t numerical_
 	const auto host       = get_config<std::string>    ("cluster_cbpp_client_connect",      "127.0.0.1");
 	const auto port       = get_config<unsigned>       ("cluster_cbpp_client_port",         13217);
 	const auto use_ssl    = get_config<bool>           ("cluster_cbpp_client_use_ssl",      false);
-	const auto keep_alive = get_config<boost::uint64_t>("cluster_cbpp_keep_alive_interval", 0);
+	const auto keep_alive = get_config<boost::uint64_t>("cluster_cbpp_keep_alive_interval", 15000);
 
 	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 
 	const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, host, port);
 	Poseidon::JobDispatcher::yield(promise);
 	promise->check_and_rethrow();
+	LOG_EMPERY_CLUSTER_DEBUG("DNS lookup succeeded: host = ", host, ", ip = ", Poseidon::get_ip_port_from_sock_addr(*sock_addr).ip);
 
 	auto client = boost::shared_ptr<ClusterClient>(new ClusterClient(*sock_addr, use_ssl, keep_alive));
+	client->go_resident();
+
 	const auto result = client->send_and_wait(Msg::KC_MapRegisterCluster(numerical_x, numerical_y));
 	if(result.first != 0){
 		LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
 		DEBUG_THROW(Exception, SharedNts(result.second));
 	}
 	LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: numerical_x = ", numerical_x, ", numerical_y = ", numerical_y);
+
 	return client;
 }
 
@@ -136,7 +140,7 @@ void ClusterClient::on_sync_data_message_end(boost::uint64_t payload_size){
 
 	auto message_id = m_message_id;
 	auto payload = std::move(m_payload);
-	LOG_EMPERY_CLUSTER_DEBUG("Received data message from center server: remote = ", get_remote_info(),
+	LOG_EMPERY_CLUSTER_TRACE("Received data message from center server: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", payload_size = ", payload.size());
 
 	if(message_id == Msg::G_PackedRequest::ID){
@@ -160,7 +164,8 @@ void ClusterClient::on_sync_data_message_end(boost::uint64_t payload_size){
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		LOG_EMPERY_CLUSTER_DEBUG("Sending response to center server: code = ", result.first, ", message = ", result.second);
+		LOG_EMPERY_CLUSTER_DEBUG("Sending response to center server: message_id = ", message_id,
+			", code = ", result.first, ", message = ", result.second);
 		Poseidon::Cbpp::Client::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
 		if(result.first < 0){
 			shutdown_read();
@@ -168,7 +173,7 @@ void ClusterClient::on_sync_data_message_end(boost::uint64_t payload_size){
 		}
 	} else if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(std::move(payload));
-		LOG_EMPERY_CLUSTER_DEBUG("Received response from center server: code = ", packed.code, ", message = ", packed.message);
+		LOG_EMPERY_CLUSTER_TRACE("Received response from center server: code = ", packed.code, ", message = ", packed.message);
 		const auto it = m_requests.find(packed.serial);
 		if(it != m_requests.end()){
 			const auto elem = std::move(it->second);

@@ -20,7 +20,7 @@ void MapObject::setup_timer(){
 	PROFILE_ME;
 
 	if(!m_timer){
-		m_timer = Poseidon::TimerDaemon::register_timer(0, 1000,
+		m_timer = Poseidon::TimerDaemon::register_timer(0, 500,
 			std::bind([](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
 				PROFILE_ME;
 				const auto map_object = weak.lock();
@@ -36,11 +36,19 @@ void MapObject::setup_timer(){
 }
 void MapObject::on_timer(boost::uint64_t now){
 	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_TRACE("Map object timer: map_object_uuid = ", get_map_object_uuid(), ", now = ", now);
+	LOG_EMPERY_CLUSTER_TRACE("Map object timer: map_object_uuid = ", get_map_object_uuid());
 
 	bool busy = false;
 
-	//
+	if(!m_waypoints.empty()){
+		++busy;
+
+		if(m_waypoints.front().timestamp < now){
+			const auto coord = m_waypoints.front().coord;
+			set_coord(coord);
+			m_waypoints.pop_front();
+		}
+	}
 
 	if(!busy){
 		LOG_EMPERY_CLUSTER_DEBUG("Releasing timer: map_object_uuid = ", get_map_object_uuid());

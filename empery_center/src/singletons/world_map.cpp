@@ -104,11 +104,14 @@ namespace {
 	boost::uint32_t g_map_height = 240;
 
 	struct ClusterElement {
+		Rectangle scope;
+
 		Coord coord;
 		boost::weak_ptr<ClusterSession> cluster;
 
-		ClusterElement(Coord coord_, boost::weak_ptr<ClusterSession> cluster_)
-			: coord(coord_), cluster(std::move(cluster_))
+		ClusterElement(Rectangle scope_, boost::weak_ptr<ClusterSession> cluster_)
+			: scope(scope_)
+			, coord(scope.bottom_left()), cluster(std::move(cluster_))
 		{
 		}
 	};
@@ -315,7 +318,7 @@ namespace {
 
 		const auto player_view_map = g_player_view_map.lock();
 		if(!player_view_map){
-			LOG_EMPERY_CENTER_WARNING("Player view map is not initialized.");
+			LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
 			return;
 		}
 
@@ -340,7 +343,7 @@ namespace {
 
 		const auto player_view_map = g_player_view_map.lock();
 		if(!player_view_map){
-			LOG_EMPERY_CENTER_WARNING("Player view map is not initialized.");
+			LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
 			return;
 		}
 
@@ -369,7 +372,7 @@ namespace {
 
 		const auto player_view_map = g_player_view_map.lock();
 		if(!player_view_map){
-			LOG_EMPERY_CENTER_WARNING("Player view map is not initialized.");
+			LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
 			return;
 		}
 
@@ -422,59 +425,6 @@ namespace {
 		msg.map_object_uuid = map_object->get_map_object_uuid().str();
 		cluster->send(msg);
 	}
-
-	void add_map_object_into_cluster(const boost::shared_ptr<MapObject> &map_object, Coord cluster_coord) noexcept {
-		PROFILE_ME;
-
-		const auto cluster_map = g_cluster_map.lock();
-		if(!cluster_map){
-			LOG_EMPERY_CENTER_WARNING("Cluster map is not initialized.");
-			return;
-		}
-		LOG_EMPERY_CENTER_DEBUG("Adding map object into cluster: map_object_uuid = ", map_object->get_map_object_uuid(),
-			", cluster_coord = ", cluster_coord);
-
-		const auto it = cluster_map->find<0>(cluster_coord);
-		if(it != cluster_map->end<0>()){
-			const auto cluster = it->cluster.lock();
-			if(cluster){
-				try {
-					notify_cluster_map_object_added(map_object, cluster);
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					cluster->shutdown(e.what());
-				}
-			} else {
-				cluster_map->erase<0>(it);
-			}
-		}
-	}
-	void remove_map_object_from_cluster(const boost::shared_ptr<MapObject> &map_object, Coord cluster_coord) noexcept {
-		PROFILE_ME;
-
-		const auto cluster_map = g_cluster_map.lock();
-		if(!cluster_map){
-			LOG_EMPERY_CENTER_WARNING("Cluster map is not initialized.");
-			return;
-		}
-		LOG_EMPERY_CENTER_DEBUG("Removing map object from cluster: map_object_uuid = ", map_object->get_map_object_uuid(),
-			", cluster_coord = ", cluster_coord);
-
-		const auto it = cluster_map->find<0>(cluster_coord);
-		if(it != cluster_map->end<0>()){
-			const auto cluster = it->cluster.lock();
-			if(cluster){
-				try {
-					notify_cluster_map_object_removed(map_object, cluster);
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					cluster->shutdown(e.what());
-				}
-			} else {
-				cluster_map->erase<0>(it);
-			}
-		}
-	}
 }
 
 boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
@@ -482,13 +432,13 @@ boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
 
 	const auto map_cell_map = g_map_cell_map.lock();
 	if(!map_cell_map){
-		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
 		return { };
 	}
 
 	const auto it = map_cell_map->find<0>(coord);
 	if(it == map_cell_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Map cell is not found: coord = ", coord);
+		LOG_EMPERY_CENTER_DEBUG("Map cell not found: coord = ", coord);
 		return { };
 	}
 	return it->map_cell;
@@ -498,8 +448,8 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 
 	const auto map_cell_map = g_map_cell_map.lock();
 	if(!map_cell_map){
-		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
-		DEBUG_THROW(Exception, sslit("Map cell map is not loaded"));
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
+		DEBUG_THROW(Exception, sslit("Map cell map not loaded"));
 	}
 
 	const auto coord = map_cell->get_coord();
@@ -518,9 +468,9 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 
 	const auto map_cell_map = g_map_cell_map.lock();
 	if(!map_cell_map){
-		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
 		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Map cell map is not loaded"));
+			DEBUG_THROW(Exception, sslit("Map cell map not loaded"));
 		}
 		return;
 	}
@@ -529,9 +479,9 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 
 	const auto it = map_cell_map->find<0>(coord);
 	if(it == map_cell_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Map cell is not found: coord = ", coord);
+		LOG_EMPERY_CENTER_WARNING("Map cell not found: coord = ", coord);
 		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Map object is not found"));
+			DEBUG_THROW(Exception, sslit("Map object not found"));
 		}
 		return;
 	}
@@ -546,7 +496,7 @@ void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapC
 
 	const auto map_cell_map = g_map_cell_map.lock();
 	if(!map_cell_map){
-		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
 		return;
 	}
 
@@ -561,7 +511,7 @@ void WorldMap::get_map_cells_by_rectangle(boost::container::flat_map<Coord, boos
 
 	const auto map_cell_map = g_map_cell_map.lock();
 	if(!map_cell_map){
-		LOG_EMPERY_CENTER_WARNING("Map cell map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
 		return;
 	}
 
@@ -593,13 +543,13 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		return { };
 	}
 
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Map object is not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
 		return { };
 	}
 	return it->map_object;
@@ -609,13 +559,13 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
-		DEBUG_THROW(Exception, sslit("Map object map is not loaded"));
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		DEBUG_THROW(Exception, sslit("Map object map not loaded"));
 	}
 	const auto map_sector_map = g_map_sector_map.lock();
 	if(!map_sector_map){
-		LOG_EMPERY_CENTER_WARNING("Map sector map is not loaded.");
-		DEBUG_THROW(Exception, sslit("Map sector map is not loaded"));
+		LOG_EMPERY_CENTER_WARNING("Map sector map not loaded.");
+		DEBUG_THROW(Exception, sslit("Map sector map not loaded"));
 	}
 
 	const auto map_object_uuid = map_object->get_map_object_uuid();
@@ -647,25 +597,32 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 
 	synchronize_map_object_in_sector(map_object, new_sector_coord);
 
-	const auto new_cluster_coord = get_cluster_coord_from_world_coord(new_coord);
-	add_map_object_into_cluster(map_object, new_cluster_coord);
+	const auto new_cluster = get_cluster(new_coord);
+	if(new_cluster){
+		try {
+			notify_cluster_map_object_added(map_object, new_cluster);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			new_cluster->shutdown(e.what());
+		}
+	}
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Map object map is not loaded"));
+			DEBUG_THROW(Exception, sslit("Map object map not loaded"));
 		}
 		return;
 	}
 	const auto map_sector_map = g_map_sector_map.lock();
 	if(!map_sector_map){
-		LOG_EMPERY_CENTER_WARNING("Map sector map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map sector map not loaded.");
 		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Map sector map is not loaded"));
+			DEBUG_THROW(Exception, sslit("Map sector map not loaded"));
 		}
 		return;
 	}
@@ -682,9 +639,9 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Map object is not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CENTER_WARNING("Map object not found: map_object_uuid = ", map_object_uuid);
 		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Map object is not found"));
+			DEBUG_THROW(Exception, sslit("Map object not found"));
 		}
 		return;
 	}
@@ -702,8 +659,8 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
 
 	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid,
-		", old_coord = ", old_coord, ", old_sector_coord = ", old_sector_coord,
-		", new_coord = ", new_coord, ", new_sector_coord = ", new_sector_coord);
+		", old_coord = ", old_coord, ", new_coord = ", new_coord,
+		", old_sector_coord = ", old_sector_coord, ", new_sector_coord = ", new_sector_coord);
 	map_object_map->set_key<0, 1>(it, new_coord);
 	if(old_sector_it != map_sector_map->end<0>()){
 		old_sector_it->map_objects.erase(map_object); // noexcept
@@ -719,11 +676,23 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	}
 	synchronize_map_object_in_sector(map_object, new_sector_coord);
 
-	const auto old_cluster_coord = get_cluster_coord_from_world_coord(old_coord);
-	const auto new_cluster_coord = get_cluster_coord_from_world_coord(new_coord);
-	if(old_cluster_coord != new_cluster_coord){
-		remove_map_object_from_cluster(map_object, old_cluster_coord);
-		add_map_object_into_cluster(map_object, new_cluster_coord);
+	const auto old_cluster = get_cluster(old_coord);
+	const auto new_cluster = get_cluster(new_coord);
+	if(old_cluster && (old_cluster != new_cluster)){
+		try {
+			notify_cluster_map_object_removed(map_object, old_cluster);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			old_cluster->shutdown(e.what());
+		}
+	}
+	if(new_cluster){
+		try {
+			notify_cluster_map_object_added(map_object, new_cluster);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			new_cluster->shutdown(e.what());
+		}
 	}
 }
 void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
@@ -731,18 +700,18 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		return;
 	}
 	const auto map_sector_map = g_map_sector_map.lock();
 	if(!map_sector_map){
-		LOG_EMPERY_CENTER_FATAL("Map sector map is not loaded.");
+		LOG_EMPERY_CENTER_FATAL("Map sector map not loaded.");
 		std::abort();
 	}
 
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Map object is not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
 		return;
 	}
 	const auto map_object       = it->map_object;
@@ -764,8 +733,15 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 
     synchronize_map_object_in_sector(map_object, old_sector_coord);
 
-	const auto old_cluster_coord = get_cluster_coord_from_world_coord(old_coord);
-	remove_map_object_from_cluster(map_object, old_cluster_coord);
+	const auto old_cluster = get_cluster(old_coord);
+	if(old_cluster){
+		try {
+			notify_cluster_map_object_removed(map_object, old_cluster);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			old_cluster->shutdown(e.what());
+		}
+	}
 }
 
 void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
@@ -773,7 +749,7 @@ void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		return;
 	}
 
@@ -788,7 +764,7 @@ void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<Ma
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		return;
 	}
 
@@ -803,7 +779,7 @@ void WorldMap::get_map_objects_by_rectangle(boost::container::flat_map<Coord, bo
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		return;
 	}
 
@@ -840,13 +816,13 @@ void WorldMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, 
 
 	const auto map_sector_map = g_map_sector_map.lock();
 	if(!map_sector_map){
-		LOG_EMPERY_CENTER_WARNING("Map sector map is not initialized.");
-		DEBUG_THROW(Exception, sslit("Map sector map is not initialized"));
+		LOG_EMPERY_CENTER_WARNING("Map sector map not initialized.");
+		DEBUG_THROW(Exception, sslit("Map sector map not initialized"));
 	}
 	const auto player_view_map = g_player_view_map.lock();
 	if(!player_view_map){
-		LOG_EMPERY_CENTER_WARNING("Player view map is not initialized.");
-		DEBUG_THROW(Exception, sslit("Player view map is not initialized"));
+		LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
+		DEBUG_THROW(Exception, sslit("Player view map not initialized"));
 	}
 
 	player_view_map->erase<0>(session);
@@ -898,14 +874,14 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_DEBUG("Cluster map is not loaded.");
+		LOG_EMPERY_CENTER_DEBUG("Cluster map not loaded.");
 		return { };
 	}
 
 	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
 	const auto it = cluster_map->find<0>(cluster_coord);
 	if(it == cluster_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Cluster is not found: coord = ", coord, ", cluster_coord = ", cluster_coord);
+		LOG_EMPERY_CENTER_DEBUG("Cluster not found: coord = ", coord, ", cluster_coord = ", cluster_coord);
 		return { };
 	}
 	auto cluster = it->cluster.lock();
@@ -921,7 +897,7 @@ void WorldMap::get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_p
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_DEBUG("Cluster map is not loaded.");
+		LOG_EMPERY_CENTER_DEBUG("Cluster map not loaded.");
 		return;
 	}
 
@@ -931,7 +907,7 @@ void WorldMap::get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_p
 		if(!cluster){
 			continue;
 		}
-		ret.emplace_back(get_cluster_scope_by_coord(it->coord), std::move(cluster));
+		ret.emplace_back(it->scope, std::move(cluster));
 	}
 }
 Rectangle WorldMap::get_cluster_scope(const boost::weak_ptr<ClusterSession> &cluster){
@@ -939,7 +915,7 @@ Rectangle WorldMap::get_cluster_scope(const boost::weak_ptr<ClusterSession> &clu
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
 		return Rectangle(0, 0, 0, 0);
 	}
 
@@ -948,31 +924,31 @@ Rectangle WorldMap::get_cluster_scope(const boost::weak_ptr<ClusterSession> &clu
 		LOG_EMPERY_CENTER_DEBUG("Cluster session not found.");
 		return Rectangle(0, 0, 0, 0);
 	}
-	return Rectangle(it->coord, g_map_width, g_map_height);
+	return it->scope;
 }
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
 	PROFILE_ME;
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
-		DEBUG_THROW(Exception, sslit("Cluster map is not loaded"));
+		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
+		DEBUG_THROW(Exception, sslit("Cluster map not loaded"));
 	}
 
 	const auto cit = cluster_map->find<1>(cluster);
 	if(cit != cluster_map->end<1>()){
-		LOG_EMPERY_CENTER_WARNING("Cluster already registered: old_coord = ", cit->coord);
+		LOG_EMPERY_CENTER_WARNING("Cluster already registered: old_scope = ", cit->scope);
 		DEBUG_THROW(Exception, sslit("Cluster already registered"));
 	}
 
-	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
-	LOG_EMPERY_CENTER_INFO("Setting up cluster server: coord = ", coord, ", cluster_coord = ", cluster_coord);
-	auto it = cluster_map->find<0>(cluster_coord);
+	const auto scope = get_cluster_scope_by_coord(coord);
+	LOG_EMPERY_CENTER_INFO("Setting up cluster server:  scope = ", scope);
+	auto it = cluster_map->find<0>(scope.bottom_left());
 	if(it == cluster_map->end<0>()){
-		it = cluster_map->insert<0>(it, ClusterElement(cluster_coord, cluster));
+		it = cluster_map->insert<0>(it, ClusterElement(scope, cluster));
 	} else {
 		if(!it->cluster.expired()){
-			LOG_EMPERY_CENTER_WARNING("Cluster server conflict: coord = ", coord, ", cluster_coord = ", cluster_coord);
+			LOG_EMPERY_CENTER_WARNING("Cluster server conflict:  scope = ", scope);
 			DEBUG_THROW(Exception, sslit("Cluster server conflict"));
 		}
 		cluster_map->set_key<0, 1>(it, cluster);

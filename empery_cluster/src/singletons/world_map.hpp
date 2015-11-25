@@ -16,7 +16,7 @@ class ClusterClient;
 struct WorldMap {
 	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
-	static void replace_map_object(const boost::shared_ptr<MapObject> &map_object);
+	static void replace_map_object_no_synchronize(const boost::shared_ptr<MapObject> &map_object);
 	static void update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists = true);
 	static void remove_map_object(MapObjectUuid map_object_uuid) noexcept;
 
