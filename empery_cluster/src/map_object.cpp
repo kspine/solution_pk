@@ -28,38 +28,52 @@ void MapObject::setup_timer(){
 				if(!map_object){
 					return;
 				}
-				map_object->on_timer(now);
+				if(!map_object->on_timer(now)){
+					LOG_EMPERY_CLUSTER_DEBUG("Releasing timer: map_object_uuid = ", map_object->get_map_object_uuid());
+					map_object->m_timer.reset();
+				}
 			}, virtual_weak_from_this<MapObject>(), std::placeholders::_2));
 		LOG_EMPERY_CLUSTER_DEBUG("Created timer: map_object_uuid = ", get_map_object_uuid());
 	} else {
 		Poseidon::TimerDaemon::set_absolute_time(m_timer, 0);
 	}
 }
-void MapObject::on_timer(boost::uint64_t now){
+bool MapObject::on_timer(boost::uint64_t now){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Map object timer: map_object_uuid = ", get_map_object_uuid());
 
-	bool busy = false;
+	bool preserves_timer = false;
 
-	if(!m_waypoints.empty()){
-		++busy;
-
-		auto delay = m_waypoints.front().delay;
-		// TODO 移动速度加成。
-		const auto due_time = saturated_add(m_last_step_time, delay);
-		if(due_time < now){
-			auto coord = get_coord();
-			coord = Coord(coord.x() + m_waypoints.front().dx, coord.y() + m_waypoints.front().dy);
-			LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", coord = ", coord);
-			set_coord(coord);
-			m_waypoints.pop_front();
+	// 检查移动。
+	auto waypoints_erased_end = m_waypoints.begin();
+	auto due_time = m_last_step_time;
+	auto coord = get_coord();
+	for(;;){
+		if(waypoints_erased_end == m_waypoints.end()){
+			break;
 		}
+		const auto &waypoint = *waypoints_erased_end;
+		preserves_timer = true;
+
+		const auto new_due_time = saturated_add(due_time, waypoint.delay);
+		if(now < new_due_time){
+			break;
+		}
+		const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
+
+		++waypoints_erased_end;
+		due_time = new_due_time;
+		coord = new_coord;
+	}
+	if(waypoints_erased_end != m_waypoints.begin()){
+		LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", coord = ", coord);
+		set_coord(coord);
+
+		m_last_step_time = now;
+		m_waypoints.erase(m_waypoints.begin(), waypoints_erased_end);
 	}
 
-	if(!busy){
-		LOG_EMPERY_CLUSTER_DEBUG("Releasing timer: map_object_uuid = ", get_map_object_uuid());
-		m_timer.reset();
-	}
+	return preserves_timer;
 }
 
 Coord MapObject::get_coord() const {

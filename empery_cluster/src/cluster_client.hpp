@@ -8,7 +8,6 @@
 #include <map>
 #include <utility>
 #include "id_types.hpp"
-#include "log.hpp"
 
 namespace EmperyCluster {
 
@@ -66,24 +65,17 @@ public:
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
-		LOG_EMPERY_CLUSTER_TRACE("Sending request to center: remote = ", get_remote_info(), ", msg = ", msg);
 		return send(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 	template<typename MsgT>
 	Result send_and_wait(const MsgT &msg){
-		LOG_EMPERY_CLUSTER_TRACE("Sending request to center: remote = ", get_remote_info(), ", msg = ", msg);
-		auto ret = send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
-		LOG_EMPERY_CLUSTER_TRACE("Received response from center: remote = ", get_remote_info(),
-			", error_code = ", static_cast<int>(ret.first), ", error_message = ", ret.second);
-		return ret;
+		return send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 
 	bool send_notification(AccountUuid account_uuid, boost::uint16_t message_id, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
 	bool send_notification(AccountUuid account_uuid, const MsgT &msg){
-		LOG_EMPERY_CLUSTER_TRACE("Sending notification to center: remote = ", get_remote_info(),
-			", account_uuid = ", account_uuid, ", msg = ", msg);
 		return send_notification(account_uuid, MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 };

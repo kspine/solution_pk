@@ -11,7 +11,6 @@
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/http/session.hpp>
-#include "log.hpp"
 
 namespace EmperyCenter {
 
@@ -47,9 +46,6 @@ public:
 
 	template<class MessageT>
 	bool send(const MessageT &msg){
-		if(MessageT::ID != 0){
-			LOG_EMPERY_CENTER_DEBUG("Sending data to ", get_remote_info(), ": ", msg);
-		}
 		return send(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
 	bool send_control(boost::uint16_t message_id, int status_code, std::string reason){

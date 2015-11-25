@@ -13,11 +13,10 @@ namespace EmperyCluster {
 
 class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
-	// 时间是快速单调时钟，坐标是世界坐标。
 	struct Waypoint {
-		boost::uint64_t delay;
-		boost::int64_t dx;
-		boost::int64_t dy;
+		boost::uint64_t delay; // 毫秒
+		boost::int64_t  dx;    // 相对坐标 X
+		boost::int64_t  dy;    // 相对坐标 Y
 
 		Waypoint(boost::uint64_t delay_, boost::int64_t dx_, boost::int64_t dy_)
 			: delay(delay_), dx(dx_), dy(dy_)
@@ -49,7 +48,7 @@ public:
 
 private:
 	void setup_timer();
-	void on_timer(boost::uint64_t now);
+	bool on_timer(boost::uint64_t now); // 返回 false 导致计时器被删除。
 
 public:
 	MapObjectUuid get_map_object_uuid() const {

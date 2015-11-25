@@ -130,8 +130,8 @@ namespace {
 		const auto mask_x = (coord.x() >= 0) ? 0 : -1;
 		const auto mask_y = (coord.y() >= 0) ? 0 : -1;
 
-		const auto cluster_x = ((coord.x() ^ mask_x) / g_map_width  * g_map_width)  ^ mask_x;
-		const auto cluster_y = ((coord.y() ^ mask_y) / g_map_height * g_map_height) ^ mask_y;
+		const auto cluster_x = ((coord.x() ^ mask_x) / g_map_width  ^ mask_x) * g_map_width;
+		const auto cluster_y = ((coord.y() ^ mask_y) / g_map_height ^ mask_y) * g_map_height;
 
 		return Coord(cluster_x, cluster_y);
 	}
@@ -945,7 +945,7 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	}
 
 	const auto scope = get_cluster_scope_by_coord(coord);
-	LOG_EMPERY_CENTER_INFO("Setting up cluster server:  scope = ", scope);
+	LOG_EMPERY_CENTER_INFO("Setting up cluster server: scope = ", scope);
 	auto it = cluster_map->find<0>(scope.bottom_left());
 	if(it == cluster_map->end<0>()){
 		it = cluster_map->insert<0>(it, ClusterElement(scope, cluster));
