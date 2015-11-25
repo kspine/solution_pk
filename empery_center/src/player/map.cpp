@@ -54,7 +54,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_data = Data::MapObjectType::require(map_object->get_map_object_type_id());
-	const auto ms_per_cell = map_object_type_data->ms_per_cell;
+	const auto ms_per_cell = 1000u; // FIXME   map_object_type_data->ms_per_cell;
 	if(ms_per_cell == 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_data->map_object_type_id;
 	}

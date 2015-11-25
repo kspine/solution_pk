@@ -20,8 +20,10 @@ MapObject::~MapObject(){
 void MapObject::setup_timer(){
 	PROFILE_ME;
 
+	constexpr boost::uint64_t TIMER_PERIOD = 100;
+
 	if(!m_timer){
-		m_timer = Poseidon::TimerDaemon::register_timer(0, 100,
+		m_timer = Poseidon::TimerDaemon::register_timer(TIMER_PERIOD, TIMER_PERIOD,
 			std::bind([](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
 				PROFILE_ME;
 				const auto map_object = weak.lock();
@@ -35,7 +37,7 @@ void MapObject::setup_timer(){
 			}, virtual_weak_from_this<MapObject>(), std::placeholders::_2));
 		LOG_EMPERY_CLUSTER_DEBUG("Created timer: map_object_uuid = ", get_map_object_uuid());
 	} else {
-		Poseidon::TimerDaemon::set_absolute_time(m_timer, 0);
+		Poseidon::TimerDaemon::set_time(m_timer, TIMER_PERIOD);
 	}
 }
 bool MapObject::on_timer(boost::uint64_t now){
@@ -45,32 +47,25 @@ bool MapObject::on_timer(boost::uint64_t now){
 	bool preserves_timer = false;
 
 	// 检查移动。
-	auto waypoints_erased_end = m_waypoints.begin();
-	auto due_time = m_last_step_time;
-	auto coord = get_coord();
 	for(;;){
-		if(waypoints_erased_end == m_waypoints.end()){
+		if(m_waypoints.empty()){
 			break;
 		}
-		const auto &waypoint = *waypoints_erased_end;
 		preserves_timer = true;
+		const auto &waypoint = m_waypoints.front();
 
-		const auto new_due_time = saturated_add(due_time, waypoint.delay);
-		if(now < new_due_time){
+		const auto due_time = saturated_add(m_last_step_time, waypoint.delay);
+		if(now < due_time){
 			break;
 		}
-		const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
+		const auto old_coord = get_coord();
+		const auto new_coord = Coord(old_coord.x() + waypoint.dx, old_coord.y() + waypoint.dy);
 
-		++waypoints_erased_end;
-		due_time = new_due_time;
-		coord = new_coord;
-	}
-	if(waypoints_erased_end != m_waypoints.begin()){
-		LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", coord = ", coord);
-		set_coord(coord);
+		LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", new_coord = ", new_coord);
+		set_coord(new_coord);
 
-		m_last_step_time = now;
-		m_waypoints.erase(m_waypoints.begin(), waypoints_erased_end);
+		m_waypoints.pop_front();
+		m_last_step_time = due_time;
 	}
 
 	return preserves_timer;
@@ -137,8 +132,8 @@ void MapObject::set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints){
 
 	setup_timer();
 
-	m_last_step_time = Poseidon::get_fast_mono_clock();
 	m_waypoints = std::move(waypoints);
+	m_last_step_time = Poseidon::get_fast_mono_clock();
 }
 
 void MapObject::set_attack_target_uuid(MapObjectUuid attack_target_uuid){
