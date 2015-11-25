@@ -21,7 +21,7 @@ void MapObject::setup_timer(){
 	PROFILE_ME;
 
 	if(!m_timer){
-		m_timer = Poseidon::TimerDaemon::register_timer(0, 500,
+		m_timer = Poseidon::TimerDaemon::register_timer(0, 100,
 			std::bind([](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
 				PROFILE_ME;
 				const auto map_object = weak.lock();
