@@ -678,20 +678,23 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 
 	const auto old_cluster = get_cluster(old_coord);
 	const auto new_cluster = get_cluster(new_coord);
-	if(old_cluster && (old_cluster != new_cluster)){
-		try {
-			notify_cluster_map_object_removed(map_object, old_cluster);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			old_cluster->shutdown(e.what());
+	if(old_cluster != new_cluster){
+		// 切换地图服务器。
+		if(old_cluster){
+			try {
+				notify_cluster_map_object_removed(map_object, old_cluster);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				old_cluster->shutdown(e.what());
+			}
 		}
-	}
-	if(new_cluster){
-		try {
-			notify_cluster_map_object_added(map_object, new_cluster);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			new_cluster->shutdown(e.what());
+		if(new_cluster){
+			try {
+				notify_cluster_map_object_added(map_object, new_cluster);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				new_cluster->shutdown(e.what());
+			}
 		}
 	}
 }

@@ -45,6 +45,7 @@ void MapObject::on_timer(boost::uint64_t now){
 
 		if(m_waypoints.front().timestamp < now){
 			const auto coord = m_waypoints.front().coord;
+			LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", coord = ", coord);
 			set_coord(coord);
 			m_waypoints.pop_front();
 		}
