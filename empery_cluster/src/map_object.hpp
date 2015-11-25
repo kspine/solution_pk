@@ -15,11 +15,12 @@ class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	// 时间是快速单调时钟，坐标是世界坐标。
 	struct Waypoint {
-		boost::uint64_t timestamp;
-		Coord coord;
+		boost::uint64_t delay;
+		boost::int64_t dx;
+		boost::int64_t dy;
 
-		Waypoint(boost::uint64_t timestamp_, Coord coord_)
-			: timestamp(timestamp_), coord(coord_)
+		Waypoint(boost::uint64_t delay_, boost::int64_t dx_, boost::int64_t dy_)
+			: delay(delay_), dx(dx_), dy(dy_)
 		{
 		}
 	};
@@ -68,7 +69,7 @@ public:
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 
-	void set_waypoints(std::deque<Waypoint> waypoints);
+	void set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints);
 
 	void set_attack_target_uuid(MapObjectUuid attack_target_uuid);
 };

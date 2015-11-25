@@ -3,6 +3,7 @@
 #include <poseidon/singletons/timer_daemon.hpp>
 #include "cluster_client.hpp"
 #include "singletons/world_map.hpp"
+#include "checked_arithmetic.hpp"
 
 namespace EmperyCluster {
 
@@ -43,8 +44,12 @@ void MapObject::on_timer(boost::uint64_t now){
 	if(!m_waypoints.empty()){
 		++busy;
 
-		if(m_waypoints.front().timestamp < now){
-			const auto coord = m_waypoints.front().coord;
+		auto delay = m_waypoints.front().delay;
+		// TODO 移动速度加成。
+		const auto due_time = saturated_add(m_last_step_time, delay);
+		if(due_time < now){
+			auto coord = get_coord();
+			coord = Coord(coord.x() + m_waypoints.front().dx, coord.y() + m_waypoints.front().dy);
 			LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", coord = ", coord);
 			set_coord(coord);
 			m_waypoints.pop_front();
@@ -111,8 +116,10 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
 
-void MapObject::set_waypoints(std::deque<Waypoint> waypoints){
+void MapObject::set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints){
 	PROFILE_ME;
+
+	set_coord(from_coord);
 
 	setup_timer();
 

@@ -4,7 +4,6 @@
 #include "../../../empery_center/src/msg/err_map.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
-#include "../checked_arithmetic.hpp"
 
 namespace EmperyCluster {
 
@@ -55,16 +54,12 @@ CLUSTER_SERVLET(Msg::CK_MapSetWaypoints, cluster, req){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
 	}
 
-	const auto now = Poseidon::get_fast_mono_clock();
-
+	const auto from_coord = Coord(req.x, req.y);
 	std::deque<MapObject::Waypoint> waypoints;
-	auto pt = MapObject::Waypoint(now, Coord(req.x, req.y));
-	waypoints.emplace_back(pt);
 	for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
-		pt = MapObject::Waypoint(saturated_add(pt.timestamp, it->delay), Coord(pt.coord.x() + it->dx, pt.coord.y() + it->dy));
-		waypoints.emplace_back(pt);
+		waypoints.emplace_back(it->delay, it->dx, it->dy);
 	}
-	map_object->set_waypoints(std::move(waypoints));
+	map_object->set_waypoints(from_coord, std::move(waypoints));
 
 	map_object->set_attack_target_uuid(attack_target_uuid);
 
