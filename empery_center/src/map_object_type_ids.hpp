@@ -9,7 +9,9 @@ namespace MapObjectTypeIds {
 
 #define DEF_(name_, number_)        constexpr MapObjectTypeId name_(number_)
 
-DEF_(ID_CASTLE,                     1901002);
+DEF_(ID_CASTLE,                     1205001);
+DEF_(ID_DEFENSE_TOWER,              1206001);
+DEF_(ID_IMMIGRANTS,                 1207001);
 
 #undef DEF_
 

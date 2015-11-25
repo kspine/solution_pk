@@ -8,6 +8,7 @@
 #include "../map_object.hpp"
 #include "../cluster_session.hpp"
 #include "../msg/ck_map.hpp"
+#include "../data/map_object_type.hpp"
 
 namespace EmperyCenter {
 
@@ -52,7 +53,11 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	if(map_object->get_owner_uuid() != account_uuid){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
-	// TODO 判断能不能走。
+	const auto map_object_type_data = Data::MapObjectType::require(map_object->get_map_object_type_id());
+	const auto ms_per_cell = map_object_type_data->ms_per_cell;
+	if(ms_per_cell == 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_data->map_object_type_id;
+	}
 
 	const auto attack_target_uuid = MapObjectUuid(req.attack_target_uuid);
 
@@ -84,7 +89,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 
 		kreq.waypoints.emplace_back();
 		auto &waypoint = kreq.waypoints.back();
-		waypoint.delay = 1000; // XXX remove this
+		waypoint.delay = ms_per_cell;
 		waypoint.dx    = step.dx;
 		waypoint.dy    = step.dy;
 	}

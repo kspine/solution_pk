@@ -22,7 +22,7 @@ namespace {
 
 		const auto signing_in_map = boost::make_shared<SigningInMap>();
 		path = data_directory + "/" + SIGNING_IN_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading signing in items: path = ", path);
+		LOG_EMPERY_CENTER_INFO("Loading signing-in items: path = ", path);
 		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::SigningIn elem = { };
@@ -31,8 +31,8 @@ namespace {
 			csv.get(elem.trade_id,        "trading_id");
 
 			if(!signing_in_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate signing in element: sequential_days = ", elem.sequential_days);
-				DEBUG_THROW(Exception, sslit("Duplicate signing in element"));
+				LOG_EMPERY_CENTER_ERROR("Duplicate SigningIn: sequential_days = ", elem.sequential_days);
+				DEBUG_THROW(Exception, sslit("Duplicate SigningIn"));
 			}
 		}
 		g_signing_in_map = signing_in_map;
