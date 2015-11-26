@@ -159,20 +159,21 @@ namespace {
 	void fill_account_info(AccountMap::AccountInfo &info, const boost::shared_ptr<MySql::Promotion_Account> &obj){
 		PROFILE_ME;
 
-		info.account_id        = AccountId(obj->get_account_id());
-		info.login_name        = obj->unlocked_get_login_name();
-		info.phone_number      = obj->unlocked_get_phone_number();
-		info.nick             = obj->unlocked_get_nick();
-		info.password_hash     = obj->unlocked_get_password_hash();
+		info.account_id         = AccountId(obj->get_account_id());
+		info.login_name         = obj->unlocked_get_login_name();
+		info.phone_number       = obj->unlocked_get_phone_number();
+		info.nick               = obj->unlocked_get_nick();
+		info.password_hash      = obj->unlocked_get_password_hash();
 		info.deal_password_hash = obj->unlocked_get_deal_password_hash();
-		info.referrer_id       = AccountId(obj->get_referrer_id());
-		info.level            = obj->get_level();
-		info.max_level         = obj->get_max_level();
-		info.subordinate_count = obj->get_subordinate_count();
-		info.flags            = obj->get_flags();
-		info.banned_until      = obj->get_banned_until();
-		info.created_time      = obj->get_created_time();
-		info.created_ip        = obj->get_created_ip();
+		info.referrer_id        = AccountId(obj->get_referrer_id());
+		info.level              = obj->get_level();
+		info.max_level          = obj->get_max_level();
+		info.subordinate_count  = obj->get_subordinate_count();
+		info.performance        = obj->get_performance();
+		info.flags              = obj->get_flags();
+		info.banned_until       = obj->get_banned_until();
+		info.created_time       = obj->get_created_time();
+		info.created_ip         = obj->get_created_ip();
 	}
 }
 
@@ -445,6 +446,26 @@ void AccountMap::set_banned_until(AccountId account_id, boost::uint64_t banned_u
 
 	it->obj->set_banned_until(banned_until);
 }
+void AccountMap::accumulate_performance(AccountId account_id, boost::uint64_t amount){
+	PROFILE_ME;
+
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
+		DEBUG_THROW(Exception, sslit("Account not found"));
+	}
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
+		DEBUG_THROW(Exception, sslit("Account deleted"));
+	}
+
+	const auto old_value = it->obj->get_performance();
+	auto new_value = old_value + amount;
+	if(new_value < old_value){
+		new_value = UINT64_MAX;
+	}
+	it->obj->set_performance(new_value);
+}
 
 AccountId AccountMap::create(std::string login_name, std::string phone_number, std::string nick,
 	const std::string &password, const std::string &deal_password, AccountId referrer_id, boost::uint64_t flags, std::string created_ip)
@@ -485,7 +506,7 @@ AccountId AccountMap::create(std::string login_name, std::string phone_number, s
 	const auto utc_now = Poseidon::get_utc_time();
 	auto obj = boost::make_shared<MySql::Promotion_Account>(account_id.get(), std::move(login_name),
 		std::move(phone_number), std::move(nick), get_password_hash(password), get_password_hash(deal_password),
-		referrer_id.get(), 0, 0, 0, flags, 0, utc_now, std::move(created_ip));
+		referrer_id.get(), 0, 0, 0, 0, flags, 0, utc_now, std::move(created_ip));
 	obj->async_save(true);
 	it = g_account_map->insert<1>(it, AccountElement(std::move(obj)));
 

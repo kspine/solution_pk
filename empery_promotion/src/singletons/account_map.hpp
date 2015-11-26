@@ -18,15 +18,15 @@ struct AccountMap {
 
 		MAX_ATTR_LEN                    = 4096,
 
-		ATTR_GENDER                     = 1,
-		ATTR_COUNTRY                    = 2,
-//		ATTR_PHONE_NUMBER               = 3,
-		ATTR_BANK_ACCOUNT_NAME          = 4,
-		ATTR_BANK_NAME                  = 5,
-		ATTR_BANK_ACCOUNT_NUMBER        = 6,
-		ATTR_BANK_SWIFT_CODE            = 7,
-		ATTR_REMARKS                    = 8,
-		ATTR_MAX_VISIBLE_SUBORD_DEPTH   = 9,
+		ATTR_GENDER                     =  1,
+		ATTR_COUNTRY                    =  2,
+//		ATTR_PHONE_NUMBER               =  3,
+		ATTR_BANK_ACCOUNT_NAME          =  4,
+		ATTR_BANK_NAME                  =  5,
+		ATTR_BANK_ACCOUNT_NUMBER        =  6,
+		ATTR_BANK_SWIFT_CODE            =  7,
+		ATTR_REMARKS                    =  8,
+		ATTR_MAX_VISIBLE_SUBORD_DEPTH   =  9,
 	};
 
 	struct AccountInfo {
@@ -40,6 +40,7 @@ struct AccountMap {
 		boost::uint64_t level;
 		boost::uint64_t max_level;
 		boost::uint64_t subordinate_count;
+		boost::uint64_t performance;
 		boost::uint64_t flags;
 		boost::uint64_t banned_until;
 		boost::uint64_t created_time;
@@ -68,6 +69,7 @@ struct AccountMap {
 	static void set_level(AccountId account_id, boost::uint64_t level);
 	static void set_flags(AccountId account_id, boost::uint64_t flags);
 	static void set_banned_until(AccountId account_id, boost::uint64_t banned_until);
+	static void accumulate_performance(AccountId account_id, boost::uint64_t amount);
 
 	static AccountId create(std::string login_name, std::string phone_number, std::string nick,
 		const std::string &password, const std::string &deal_password, AccountId referrer_id, boost::uint64_t flags, std::string created_ip);

@@ -172,6 +172,8 @@ namespace {
 			const auto referrer_promotion_data = std::move(referrers.front().second);
 			referrers.pop_front();
 
+			AccountMap::accumulate_performance(referrer_id, amount);
+
 			if(!referrer_promotion_data){
 				LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero: referrer_id = ", referrer_id);
 				continue;

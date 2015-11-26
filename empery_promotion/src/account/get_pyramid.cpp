@@ -52,6 +52,7 @@ ACCOUNT_SERVLET("getPyramid", session, params){
 				member[sslit("level")]          = boost::lexical_cast<std::string>(it->level);
 				member[sslit("maxSubordLevel")] = it->max_level;
 				member[sslit("subordCount")]    = it->subordinate_count;
+				member[sslit("performance")]    = it->performance;
 				member[sslit("members")]        = Poseidon::JsonArray();
 
 				next_level.emplace_back(it->account_id, &member[sslit("members")].get<Poseidon::JsonArray>());
@@ -67,6 +68,7 @@ ACCOUNT_SERVLET("getPyramid", session, params){
 	ret[sslit("level")]          = boost::lexical_cast<std::string>(info.level);
 	ret[sslit("maxSubordLevel")] = info.max_level;
 	ret[sslit("subordCount")]    = info.subordinate_count;
+	ret[sslit("performance")]    = info.performance;
 	ret[sslit("members")]        = std::move(members);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
