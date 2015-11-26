@@ -76,10 +76,14 @@ public:
 		return *this -= 1;
 	}
 	GenericId operator++(int){
-		return *this + 1;
+		auto ret = *this;
+		++*this;
+		return ret;
 	}
 	GenericId operator--(int){
-		return *this - 1;
+		auto ret = *this;
+		--*this;
+		return ret;
 	}
 };
 
