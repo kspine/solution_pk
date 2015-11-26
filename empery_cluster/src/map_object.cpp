@@ -1,6 +1,5 @@
 #include "precompiled.hpp"
 #include "map_object.hpp"
-#include <poseidon/singletons/timer_daemon.hpp>
 #include "cluster_client.hpp"
 #include "singletons/world_map.hpp"
 #include "checked_arithmetic.hpp"
@@ -17,41 +16,17 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::~MapObject(){
 }
 
-void MapObject::setup_timer(){
-	PROFILE_ME;
-
-	constexpr boost::uint64_t TIMER_PERIOD = 100;
-
-	if(!m_timer){
-		m_timer = Poseidon::TimerDaemon::register_timer(TIMER_PERIOD, TIMER_PERIOD,
-			std::bind([](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
-				PROFILE_ME;
-				const auto map_object = weak.lock();
-				if(!map_object){
-					return;
-				}
-				if(!map_object->on_timer(now)){
-					LOG_EMPERY_CLUSTER_DEBUG("Releasing timer: map_object_uuid = ", map_object->get_map_object_uuid());
-					map_object->m_timer.reset();
-				}
-			}, virtual_weak_from_this<MapObject>(), std::placeholders::_2));
-		LOG_EMPERY_CLUSTER_DEBUG("Created timer: map_object_uuid = ", get_map_object_uuid());
-	} else {
-		Poseidon::TimerDaemon::set_time(m_timer, TIMER_PERIOD);
-	}
-}
-bool MapObject::on_timer(boost::uint64_t now){
+void MapObject::pump_status(){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Map object timer: map_object_uuid = ", get_map_object_uuid());
 
-	bool preserves_timer = false;
+	const auto now = Poseidon::get_fast_mono_clock();
 
 	// 检查移动。
 	for(;;){
 		if(m_waypoints.empty()){
 			break;
 		}
-		preserves_timer = true;
 		const auto &waypoint = m_waypoints.front();
 
 		const auto due_time = saturated_add(m_last_step_time, waypoint.delay);
@@ -68,7 +43,7 @@ bool MapObject::on_timer(boost::uint64_t now){
 		m_last_step_time = due_time;
 	}
 
-	return preserves_timer;
+	// TODO AI
 }
 
 Coord MapObject::get_coord() const {
@@ -129,8 +104,6 @@ void MapObject::set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints){
 	PROFILE_ME;
 
 	set_coord(from_coord);
-
-	setup_timer();
 
 	m_waypoints = std::move(waypoints);
 	m_last_step_time = Poseidon::get_fast_mono_clock();

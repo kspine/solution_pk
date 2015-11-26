@@ -1,8 +1,7 @@
 #ifndef EMPERY_CLUSTER_MAP_OBJECT_HPP_
 #define EMPERY_CLUSTER_MAP_OBJECT_HPP_
 
-#include <poseidon/cxx_util.hpp>
-#include <poseidon/virtual_shared_from_this.hpp>
+#include "abstract_data_object.hpp"
 #include <poseidon/fwd.hpp>
 #include <boost/container/flat_map.hpp>
 #include <deque>
@@ -11,7 +10,7 @@
 
 namespace EmperyCluster {
 
-class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+class MapObject : public virtual AbstractDataObject {
 public:
 	struct Waypoint {
 		boost::uint64_t delay; // 毫秒
@@ -32,8 +31,6 @@ private:
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
 
-	boost::shared_ptr<Poseidon::TimerItem> m_timer;
-
 	// 移动。
 	std::deque<Waypoint> m_waypoints;
 	boost::uint64_t m_last_step_time;
@@ -46,11 +43,9 @@ public:
 		Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes);
 	~MapObject();
 
-private:
-	void setup_timer();
-	bool on_timer(boost::uint64_t now); // 返回 false 导致计时器被删除。
-
 public:
+	void pump_status() override;
+
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
 	}
