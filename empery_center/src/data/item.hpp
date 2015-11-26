@@ -19,6 +19,16 @@ namespace Data {
 			AIT_PERIODIC = 4,
 		};
 
+		enum Category {
+			CAT_UNKNOWN               = 0, //
+			CAT_UPGRADE_TURBO         = 1, // 建造加速，训练加速，研究加速
+			CAT_SIGNING_IN            = 2, // 签到专用
+			CAT_CURRENCY              = 3, // 黄金，钻石，铁矿，赤铜
+			CAT_GIFT_BOX              = 4, // 礼包
+			CAT_LAND_PURCHASE_TICKET  = 5, // 土地购买券专用
+			CAT_LAND_UPGRADE_TICKET   = 6, // 土地升级券专用
+		};
+
 	public:
 		static boost::shared_ptr<const Item> get(ItemId item_id);
 		static boost::shared_ptr<const Item> require(ItemId item_id);
@@ -30,8 +40,9 @@ namespace Data {
 	public:
 		ItemId item_id;
 		unsigned quality;
-		std::pair<unsigned, unsigned> type;
-		boost::uint64_t value;
+		Category category;
+		unsigned type;          // 这两个的意义要根据 category 而定
+		boost::uint64_t value;  //
 
 		boost::uint64_t init_count;
 

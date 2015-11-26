@@ -52,8 +52,10 @@ namespace {
 
 			csv.get(elem.item_id,      "itemid");
 			csv.get(elem.quality,      "quality");
-			csv.get(elem.type.first,   "class");
-			csv.get(elem.type.second,  "type");
+			unsigned category = Data::Item::CAT_UNKNOWN;
+			csv.get(category,          "class");
+			elem.category = static_cast<Data::Item::Category>(category);
+			csv.get(elem.type,         "type");
 			csv.get(elem.value,        "value");
 
 			csv.get(elem.init_count,   "init_count");
