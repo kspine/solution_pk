@@ -60,6 +60,7 @@ CLUSTER_SERVLET(Msg::KC_MapUpdateMapObject, cluster, req){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
 
+
 	boost::container::flat_map<AttributeId, boost::int64_t> modifiers;
 	modifiers.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
@@ -67,7 +68,17 @@ CLUSTER_SERVLET(Msg::KC_MapUpdateMapObject, cluster, req){
 	}
 	map_object->set_attributes(modifiers);
 
-	map_object->set_coord(Coord(req.x, req.y)); // noexcept
+	const auto old_coord = map_object->get_coord();
+	const auto new_coord = Coord(req.x, req.y);
+	map_object->set_coord(new_coord); // noexcept
+
+	const auto new_cluster = WorldMap::get_cluster(new_coord);
+	if(!new_cluster){
+		LOG_EMPERY_CENTER_DEBUG("No cluster there: new_coord = ", new_coord);
+		// 注意，这个不能和上面那个 set_coord() 合并成一个操作。
+		// 如果我们跨服务器设定了坐标，在这里地图服务器会重新同步数据，并删除旧的路径。
+		map_object->set_coord(old_coord); // noexcept
+	}
 
 	return Response();
 }
