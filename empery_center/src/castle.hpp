@@ -104,6 +104,17 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 };
 
+inline void synchronize_castle_with_client(const boost::shared_ptr<const Castle> &castle,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	castle->synchronize_with_client(session);
+}
+inline void synchronize_castle_with_client(const boost::shared_ptr<Castle> &castle,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	castle->synchronize_with_client(session);
+}
+
 }
 
 #endif

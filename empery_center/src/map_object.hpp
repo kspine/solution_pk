@@ -54,6 +54,17 @@ public:
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 };
 
+inline void synchronize_map_object_with_client(const boost::shared_ptr<const MapObject> &map_object,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	map_object->synchronize_with_client(session);
+}
+inline void synchronize_map_object_with_client(const boost::shared_ptr<MapObject> &map_object,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	map_object->synchronize_with_client(session);
+}
+
 }
 
 #endif

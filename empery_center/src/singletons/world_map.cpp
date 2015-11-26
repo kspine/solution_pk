@@ -358,7 +358,7 @@ namespace {
 			}
 			if(view_it->view.hit_test(coord)){
 				try {
-					map_cell->synchronize_with_client(session);
+					synchronize_map_cell_with_client(map_cell, session);
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 					session->shutdown(e.what());
@@ -384,7 +384,7 @@ namespace {
 			if(session){
 				try {
 					if(it->view.hit_test(coord)){
-						map_object->synchronize_with_client(session);
+						synchronize_map_object_with_client(map_object, session);
 					}
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -860,7 +860,7 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> map_objects;
 		get_map_objects_by_rectangle(map_objects, view);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			it->second->synchronize_with_client(session);
+			synchronize_map_object_with_client(it->second, session);
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

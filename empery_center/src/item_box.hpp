@@ -55,6 +55,17 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 };
 
+inline void synchronize_item_box_with_client(const boost::shared_ptr<const ItemBox> &item_box,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	item_box->synchronize_with_client(session);
+}
+inline void synchronize_item_box_with_client(const boost::shared_ptr<ItemBox> &item_box,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	item_box->synchronize_with_client(session);
+}
+
 }
 
 #endif
