@@ -35,6 +35,7 @@ void MapObject::pump_status(){
 
 	// 无事可做。
 }
+
 void MapObject::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 

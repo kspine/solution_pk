@@ -71,7 +71,8 @@ public:
 
 public:
 	void pump_status() override;
-	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
+
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const;
 
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
 	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;

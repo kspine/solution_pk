@@ -229,10 +229,9 @@ void Castle::pump_status(){
 		check_tech_mission(it->second, utc_now);
 	}
 }
+
 void Castle::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
-
-	MapObject::synchronize_with_client(session);
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		Msg::SC_CastleBuildingBase msg;

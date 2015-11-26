@@ -30,7 +30,8 @@ public:
 
 public:
 	void pump_status() override;
-	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
+
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const;
 
 	MapObjectUuid get_map_object_uuid() const;
 	MapObjectTypeId get_map_object_type_id() const;

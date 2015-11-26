@@ -31,7 +31,8 @@ public:
 
 public:
 	void pump_status() override;
-	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
+
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const;
 
 	Coord get_coord() const;
 

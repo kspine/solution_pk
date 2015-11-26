@@ -132,6 +132,7 @@ void ItemBox::pump_status(){
 			}
 		});
 }
+
 void ItemBox::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 

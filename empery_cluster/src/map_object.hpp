@@ -31,6 +31,8 @@ private:
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
 
+	boost::shared_ptr<Poseidon::TimerItem> m_timer;
+
 	// 移动。
 	std::deque<Waypoint> m_waypoints;
 	boost::uint64_t m_last_step_time;
@@ -63,9 +65,7 @@ public:
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 
-	void set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints);
-
-	void set_attack_target_uuid(MapObjectUuid attack_target_uuid);
+	void set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints, MapObjectUuid attack_target_uuid);
 };
 
 }

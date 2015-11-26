@@ -17,7 +17,6 @@ public:
 
 public:
 	virtual void pump_status() = 0;
-	virtual void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const = 0;
 };
 
 }

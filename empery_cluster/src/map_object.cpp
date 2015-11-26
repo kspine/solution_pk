@@ -100,18 +100,13 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
 
-void MapObject::set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints){
+void MapObject::set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints, MapObjectUuid attack_target_uuid){
 	PROFILE_ME;
 
 	set_coord(from_coord);
 
 	m_waypoints = std::move(waypoints);
 	m_last_step_time = Poseidon::get_fast_mono_clock();
-}
-
-void MapObject::set_attack_target_uuid(MapObjectUuid attack_target_uuid){
-	PROFILE_ME;
-
 	m_attack_target_uuid = attack_target_uuid;
 }
 

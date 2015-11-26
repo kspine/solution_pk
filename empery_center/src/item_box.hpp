@@ -37,7 +37,8 @@ public:
 
 public:
 	void pump_status() override;
-	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const override;
+
+	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const;
 
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;

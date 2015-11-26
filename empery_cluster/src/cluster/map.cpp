@@ -59,9 +59,7 @@ CLUSTER_SERVLET(Msg::CK_MapSetWaypoints, cluster, req){
 	for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
 		waypoints.emplace_back(it->delay, it->dx, it->dy);
 	}
-	map_object->set_waypoints(from_coord, std::move(waypoints));
-
-	map_object->set_attack_target_uuid(attack_target_uuid);
+	map_object->set_waypoints(from_coord, std::move(waypoints), attack_target_uuid);
 
 	return Response();
 }

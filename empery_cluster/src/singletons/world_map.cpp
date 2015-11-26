@@ -64,32 +64,6 @@ namespace {
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
 
-		auto timer = Poseidon::TimerDaemon::register_timer(0, 100,
-			std::bind(
-				[](const boost::weak_ptr<MapObjectMapDelegator> &weak){
-					PROFILE_ME;
-					const auto map_object_map = weak.lock();
-					if(!map_object_map){
-						return;
-					}
-					std::vector<boost::shared_ptr<MapObject>> map_objects;
-					map_objects.reserve(map_object_map->size());
-					for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
-						map_objects.emplace_back(it->map_object);
-					}
-					for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-						const auto &map_object = *it;
-						try {
-							map_object->pump_status();
-						} catch(std::exception &e){
-							LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
-						}
-					}
-				},
-				boost::weak_ptr<MapObjectMapDelegator>(map_object_map))
-			);
-		handles.push(std::move(timer));
-
 		const auto cluster_map = boost::make_shared<ClusterMapDelegator>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
@@ -113,7 +87,7 @@ namespace {
 			}
 			LOG_EMPERY_CLUSTER_DEBUG("> Logical server: num_x = ", num_x, ", num_y = ", num_y);
 		}
-		timer = Poseidon::TimerDaemon::register_timer(0, 10000,
+		auto timer = Poseidon::TimerDaemon::register_timer(0, 10000,
 			std::bind(
 				[](InitServerMap &init_servers){
 					PROFILE_ME;
