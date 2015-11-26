@@ -31,9 +31,8 @@ private:
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
 
-	boost::shared_ptr<Poseidon::TimerItem> m_timer;
-
 	// 移动。
+	boost::shared_ptr<Poseidon::TimerItem> m_movement_timer;
 	std::deque<Waypoint> m_waypoints;
 	boost::uint64_t m_last_step_time;
 
