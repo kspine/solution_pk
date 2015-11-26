@@ -662,14 +662,16 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		", old_coord = ", old_coord, ", new_coord = ", new_coord,
 		", old_sector_coord = ", old_sector_coord, ", new_sector_coord = ", new_sector_coord);
 	map_object_map->set_key<0, 1>(it, new_coord);
-	if(old_sector_it != map_sector_map->end<0>()){
-		old_sector_it->map_objects.erase(map_object); // noexcept
-		if(old_sector_it->map_objects.empty()){
-			map_sector_map->erase<0>(old_sector_it);
-			LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
+	if(old_sector_it != new_sector_it){
+		if(old_sector_it != map_sector_map->end<0>()){
+			old_sector_it->map_objects.erase(map_object); // noexcept
+			if(old_sector_it->map_objects.empty()){
+				map_sector_map->erase<0>(old_sector_it);
+				LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
+			}
 		}
+		new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 	}
-	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
 	if(old_sector_coord != new_sector_coord){
 		synchronize_map_object_in_sector(map_object, old_sector_coord);
