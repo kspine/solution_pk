@@ -682,6 +682,8 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto new_cluster = get_cluster(new_coord);
 	if(old_cluster != new_cluster){
 		// 切换地图服务器。
+		LOG_EMPERY_CENTER_DEBUG("Switching map server: map_object_uuid = ", map_object_uuid,
+			", old_cluster = ", old_cluster, ", new_cluster = ", new_cluster);
 		if(old_cluster){
 			try {
 				notify_cluster_map_object_removed(map_object, old_cluster);

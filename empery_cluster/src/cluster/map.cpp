@@ -31,7 +31,7 @@ CLUSTER_SERVLET(Msg::CK_MapAddMapObject, cluster, req){
 	LOG_EMPERY_CLUSTER_DEBUG("Creating map object: map_object_uuid = ", map_object_uuid,
 		", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", coord = ", coord);
 	const auto map_object = boost::make_shared<MapObject>(map_object_uuid, map_object_type_id, owner_uuid, coord, std::move(attributes));
-	WorldMap::replace_map_object_no_synchronize(map_object);
+	WorldMap::replace_map_object_no_synchronize(cluster, map_object);
 
 	return Response();
 }
@@ -40,7 +40,7 @@ CLUSTER_SERVLET(Msg::CK_MapRemoveMapObject, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 
 	LOG_EMPERY_CLUSTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid);
-	WorldMap::remove_map_object(map_object_uuid);
+	WorldMap::remove_map_object_no_synchronize(cluster, map_object_uuid);
 
 	return Response();
 }

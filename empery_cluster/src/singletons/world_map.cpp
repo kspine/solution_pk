@@ -23,6 +23,8 @@ namespace {
 		Coord coord;
 		AccountUuid owner_uuid;
 
+		mutable boost::weak_ptr<const ClusterClient> master;
+
 		explicit MapObjectElement(boost::shared_ptr<MapObject> map_object_)
 			: map_object(std::move(map_object_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
@@ -152,7 +154,9 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 	}
 	return it->map_object;
 }
-void WorldMap::replace_map_object_no_synchronize(const boost::shared_ptr<MapObject> &map_object){
+void WorldMap::replace_map_object_no_synchronize(const boost::weak_ptr<const ClusterClient> &master,
+	const boost::shared_ptr<MapObject> &map_object)
+{
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -171,6 +175,33 @@ void WorldMap::replace_map_object_no_synchronize(const boost::shared_ptr<MapObje
 		LOG_EMPERY_CLUSTER_DEBUG("Replacing existent map object: map_object_uuid = ", map_object_uuid);
 		map_object_map->replace<0>(it, MapObjectElement(map_object));
 	}
+	it->master = master;
+}
+void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<const ClusterClient> &master,
+	MapObjectUuid map_object_uuid) noexcept
+{
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	const auto it = map_object_map->find<0>(map_object_uuid);
+	if(it == map_object_map->end<0>()){
+		LOG_EMPERY_CLUSTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
+		return;
+	}
+	if((it->master < master) || (master < it->master)){
+		LOG_EMPERY_CLUSTER_DEBUG("Map object has been taken over by another cluster: map_object_uuid = ", map_object_uuid);
+		return;
+	}
+	const auto map_object = it->map_object;
+	const auto old_coord  = it->coord;
+
+	LOG_EMPERY_CLUSTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
+	map_object_map->erase<0>(it);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
