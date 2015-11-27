@@ -70,7 +70,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 
 	const auto attack_target_uuid = MapObjectUuid(req.attack_target_uuid);
 
-	const auto from_coord = map_object->get_coord();
+	auto from_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(from_coord);
 	if(!cluster){
 		LOG_EMPERY_CENTER_WARNING("No cluster server available: from_coord = ", from_coord);
@@ -79,6 +79,16 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 
 	Msg::CK_MapSetWaypoints kreq;
 	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
+	kreq.x = from_coord.x();
+	kreq.y = from_coord.y();
+	// 撤销当前的路径。
+	auto kresult = cluster->send_and_wait(kreq);
+	if(kresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+		return std::move(kresult);
+	}
+	// 重新计算坐标。
+	from_coord = map_object->get_coord();
 	kreq.x = from_coord.x();
 	kreq.y = from_coord.y();
 	kreq.waypoints.reserve(req.waypoints.size());
@@ -103,7 +113,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 		waypoint.dy    = step.dy;
 	}
 	kreq.attack_target_uuid = attack_target_uuid.str();
-	auto kresult = cluster->send_and_wait(kreq);
+	kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		return std::move(kresult);

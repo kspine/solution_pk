@@ -34,9 +34,10 @@ private:
 	// 移动。
 	boost::shared_ptr<Poseidon::TimerItem> m_movement_timer;
 	std::deque<Waypoint> m_waypoints;
-	boost::uint64_t m_last_step_time;
+	boost::uint64_t m_next_step_time;
 
 	// 战斗。
+	boost::shared_ptr<Poseidon::TimerItem> m_battle_timer;
 	MapObjectUuid m_attack_target_uuid;
 
 public:

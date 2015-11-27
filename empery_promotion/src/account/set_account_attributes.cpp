@@ -7,22 +7,23 @@
 namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("setAccountAttributes", session, params){
-	const auto &login_name      = params.at("loginName");
-	auto new_login_name          = params.get("newLoginName");
-	auto phone_number           = params.get("phoneNumber");
-	auto nick                  = params.get("nick");
-	auto password              = params.get("password");
-	auto deal_password          = params.get("dealPassword");
-	auto banned_until           = params.get("bannedUntil");
-	auto gender                = params.get("gender");
-	auto country               = params.get("country");
-	auto bank_account_name       = params.get("bankAccountName");
-	auto bank_name              = params.get("bankName");
-	auto bank_account_number     = params.get("bankAccountNumber");
-	auto bank_swift_code         = params.get("bankSwiftCode");
-	auto remarks               = params.get("remarks");
-	auto level                 = params.get("level");
-	auto max_visible_subord_depth = params.get("maxVisibleSubordDepth");
+	const auto &login_name            = params.at("loginName");
+	auto new_login_name               = params.get("newLoginName");
+	auto phone_number                 = params.get("phoneNumber");
+	auto nick                         = params.get("nick");
+	auto password                     = params.get("password");
+	auto deal_password                = params.get("dealPassword");
+	auto banned_until                 = params.get("bannedUntil");
+	auto gender                       = params.get("gender");
+	auto country                      = params.get("country");
+	auto bank_account_name            = params.get("bankAccountName");
+	auto bank_name                    = params.get("bankName");
+	auto bank_account_number          = params.get("bankAccountNumber");
+	auto bank_swift_code              = params.get("bankSwiftCode");
+	auto remarks                      = params.get("remarks");
+	auto level                        = params.get("level");
+	auto max_visible_subord_depth     = params.get("maxVisibleSubordDepth");
+	auto can_view_account_performance = params.get("canViewAccountPerformance");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);
@@ -67,6 +68,10 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	if(!max_visible_subord_depth.empty()){
 		const auto depth = boost::lexical_cast<boost::uint64_t>(max_visible_subord_depth);
 		max_visible_subord_depth = boost::lexical_cast<std::string>(depth);
+	}
+	if(!can_view_account_performance.empty()){
+		const auto visible = boost::lexical_cast<bool>(can_view_account_performance);
+		can_view_account_performance = boost::lexical_cast<std::string>(visible);
 	}
 
 	if(!new_login_name.empty()){
@@ -114,6 +119,9 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	}
 	if(!max_visible_subord_depth.empty()){
 		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH, std::move(max_visible_subord_depth));
+	}
+	if(!can_view_account_performance.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE, std::move(can_view_account_performance));
 	}
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

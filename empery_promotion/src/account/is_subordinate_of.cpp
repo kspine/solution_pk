@@ -39,16 +39,21 @@ ACCOUNT_SERVLET("isSubordinateOf", session, params){
 		++depth;
 	}
 
+	const auto referrer_id = referrer_info.account_id;
+
 	boost::uint64_t max_visible_subord_depth;
-	const auto &str = AccountMap::get_attribute(referrer_info.account_id, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
+	const auto &str = AccountMap::get_attribute(referrer_id, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
 	if(str.empty()){
 		max_visible_subord_depth = get_config<boost::uint64_t>("default_max_visible_subord_depth", 2);
 	} else {
 		max_visible_subord_depth = boost::lexical_cast<boost::uint64_t>(str);
 	}
 
+	const bool can_view_account_performance = AccountMap::cast_attribute<bool>(referrer_id, AccountMap::ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE);
+
 	ret[sslit("depth")] = depth;
 	ret[sslit("maxVisibleSubordDepth")] = max_visible_subord_depth;
+	ret[sslit("canViewAccountPerformance")] = can_view_account_performance;
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

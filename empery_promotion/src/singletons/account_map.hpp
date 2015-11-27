@@ -12,21 +12,22 @@ namespace EmperyPromotion {
 
 struct AccountMap {
 	enum {
-		FL_VALID                        = 0x0001,
-		FL_ROBOT                        = 0x0002,
-		FL_DEACTIVATED                  = 0x0004,
+		FL_VALID                          = 0x0001,
+		FL_ROBOT                          = 0x0002,
+		FL_DEACTIVATED                    = 0x0004,
 
-		MAX_ATTR_LEN                    = 4096,
+		MAX_ATTR_LEN                      = 4096,
 
-		ATTR_GENDER                     =  1,
-		ATTR_COUNTRY                    =  2,
-//		ATTR_PHONE_NUMBER               =  3,
-		ATTR_BANK_ACCOUNT_NAME          =  4,
-		ATTR_BANK_NAME                  =  5,
-		ATTR_BANK_ACCOUNT_NUMBER        =  6,
-		ATTR_BANK_SWIFT_CODE            =  7,
-		ATTR_REMARKS                    =  8,
-		ATTR_MAX_VISIBLE_SUBORD_DEPTH   =  9,
+		ATTR_GENDER                       =  1,
+		ATTR_COUNTRY                      =  2,
+//		ATTR_PHONE_NUMBER                 =  3,
+		ATTR_BANK_ACCOUNT_NAME            =  4,
+		ATTR_BANK_NAME                    =  5,
+		ATTR_BANK_ACCOUNT_NUMBER          =  6,
+		ATTR_BANK_SWIFT_CODE              =  7,
+		ATTR_REMARKS                      =  8,
+		ATTR_MAX_VISIBLE_SUBORD_DEPTH     =  9,
+		ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE = 10,
 	};
 
 	struct AccountInfo {
