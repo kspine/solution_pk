@@ -34,7 +34,7 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account_uuid, session, req){
 	const auto trade_data = Data::ItemTrade::require(recharge_data->trade_id);
 
 	std::vector<ItemTransactionElement> transaction;
-	Data::ItemTrade::unpack(transaction, trade_data, repeat_count, req.ID);
+	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size());
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
@@ -59,7 +59,7 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account_uuid, session, req){
 	const auto trade_data = Data::ItemTrade::require(shop_data->trade_id);
 
 	std::vector<ItemTransactionElement> transaction;
-	Data::ItemTrade::unpack(transaction, trade_data, repeat_count, req.ID);
+	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size());
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;

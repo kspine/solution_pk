@@ -25,7 +25,7 @@ DEF_(ID_MAIL_ATTACHMENTS,           673004); // 邮件 UUID 最后      语言 I
                                              // 64 位（大端序）
 
 DEF_(ID_MAP_CELL_PURCHASE,          674001); // 世界坐标 X          世界坐标 Y          0
-DEF_(ID_MAP_CELL_UPGRADE,           674002); // 世界坐标 X          世界坐标 Y          旧的等级
+DEF_(ID_MAP_CELL_UPGRADE,           674002); // 世界坐标 X          世界坐标 Y          0
 DEF_(ID_MAP_CELL_RECYCLE,           674003); // 世界坐标 X          世界坐标 Y          0
 
 #undef DEF_

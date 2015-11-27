@@ -60,10 +60,6 @@ namespace Data {
 		static boost::shared_ptr<const ItemTrade> get(TradeId trade_id);
 		static boost::shared_ptr<const ItemTrade> require(TradeId trade_id);
 
-		static void unpack(std::vector<ItemTransactionElement> &transaction,
-			const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
-			boost::int64_t param1);
-
 	public:
 		TradeId trade_id;
 		boost::container::flat_map<ItemId, boost::uint64_t> items_consumed;
@@ -89,6 +85,10 @@ namespace Data {
 		ShopId shop_id;
 		TradeId trade_id;
 	};
+
+	extern void unpack_item_trade(std::vector<ItemTransactionElement> &transaction,
+		const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
+		boost::int64_t param1);
 }
 
 }

@@ -317,23 +317,6 @@ namespace Data {
 		return ret;
 	}
 
-	void ItemTrade::unpack(std::vector<ItemTransactionElement> &transaction,
-		const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
-		boost::int64_t param1)
-	{
-		PROFILE_ME;
-
-		transaction.reserve(transaction.size() + trade_data->items_consumed.size() + trade_data->items_produced.size());
-		for(auto it = trade_data->items_consumed.begin(); it != trade_data->items_consumed.end(); ++it){
-			transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, checked_mul(it->second, repeat_count),
-				ReasonIds::ID_TRADE_REQUEST, param1, trade_data->trade_id.get(), repeat_count);
-		}
-		for(auto it = trade_data->items_produced.begin(); it != trade_data->items_produced.end(); ++it){
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, checked_mul(it->second, repeat_count),
-				ReasonIds::ID_TRADE_REQUEST, param1, trade_data->trade_id.get(), repeat_count);
-		}
-	}
-
 	boost::shared_ptr<const ItemRecharge> ItemRecharge::get(RechargeId recharge_id){
 		PROFILE_ME;
 
@@ -385,6 +368,24 @@ namespace Data {
 		}
 		return ret;
 	}
+
+	void unpack_item_trade(std::vector<ItemTransactionElement> &transaction,
+		const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
+		boost::int64_t param1)
+	{
+		PROFILE_ME;
+
+		transaction.reserve(transaction.size() + trade_data->items_consumed.size() + trade_data->items_produced.size());
+		for(auto it = trade_data->items_consumed.begin(); it != trade_data->items_consumed.end(); ++it){
+			transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, checked_mul(it->second, repeat_count),
+				ReasonIds::ID_TRADE_REQUEST, param1, trade_data->trade_id.get(), repeat_count);
+		}
+		for(auto it = trade_data->items_produced.begin(); it != trade_data->items_produced.end(); ++it){
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, checked_mul(it->second, repeat_count),
+				ReasonIds::ID_TRADE_REQUEST, param1, trade_data->trade_id.get(), repeat_count);
+		}
+	}
+
 }
 
 }

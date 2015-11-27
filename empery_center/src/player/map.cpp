@@ -113,6 +113,13 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
+	static constexpr ResourceId PRODUCIBLE_RESOURCES[] = { ResourceId(1101001), ResourceId(1101002), ResourceId(1101003) };
+
+	const auto resource_id = ResourceId(req.resource_id);
+	if(std::find(std::begin(PRODUCIBLE_RESOURCES), std::end(PRODUCIBLE_RESOURCES), resource_id) == std::end(PRODUCIBLE_RESOURCES)){
+		return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
+	}
+
 	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!map_object){
@@ -165,22 +172,52 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
 		map_cell = boost::make_shared<MapCell>(coord);
 		WorldMap::insert_map_cell(map_cell);
 	}
-/*
+
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
-		[&]{
-			
-		});
+		[&]{ map_cell->set_owner(parent_object_uuid, resource_id, ticket_item_id); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}
-*/
+
 	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
+	static constexpr auto MAP_CELL_UPGRADE_TRADE_ID = TradeId(2804014);
+
+	const auto coord = Coord(req.x, req.y);
+	const auto map_cell = WorldMap::get_map_cell(coord);
+	if(!map_cell){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
+	}
+	if(map_cell->get_owner_uuid() != account_uuid){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
+	}
+
+	const auto old_ticket_item_id = map_cell->get_ticket_item_id();
+	if(!old_ticket_item_id){
+		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL);
+	}
+	const auto old_ticket_data = Data::Item::require(old_ticket_item_id);
+	const auto new_ticket_data = Data::Item::get_by_type(old_ticket_data->type.first, old_ticket_data->type.second + 1);
+	if(!new_ticket_data){
+		return Response(Msg::ERR_MAX_MAP_CELL_LEVEL_EXCEEDED);
+	}
+	const auto new_ticket_item_id = new_ticket_data->item_id;
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+
+	const auto trade_data = Data::ItemTrade::require(MAP_CELL_UPGRADE_TRADE_ID);
+	std::vector<ItemTransactionElement> transaction;
+	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{ map_cell->set_ticket_item_id(new_ticket_item_id); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
+	}
 
 	return Response();
 }
