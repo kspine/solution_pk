@@ -81,7 +81,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 			return Response(Msg::ERR_BROKEN_PATH) <<i;
 		}
 		const auto next_coord = Coord(last_coord.x() + step.dx, last_coord.y() + step.dy);
-		if(!are_coords_adjacent(last_coord, next_coord)){
+		if(get_distance_of_coords(last_coord, next_coord) > 1){
 			LOG_EMPERY_CENTER_DEBUG("Broken path: last_coord = ", last_coord, ", next_coord = ", next_coord);
 			return Response(Msg::ERR_BROKEN_PATH) <<i;
 		}

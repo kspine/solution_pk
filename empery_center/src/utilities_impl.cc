@@ -6,10 +6,32 @@
 
 namespace EMPERY_CENTER_UTILITIES_NAMESPACE_ {
 
+boost::uint64_t get_distance_of_coords(Coord lhs, Coord rhs){
+	PROFILE_ME;
+
+	// 求 rhs 所在点的 60°（斜率 2，截距 b1）和 120°（斜率 -2，截距 b2）的两条直线的截距。
+	auto b1 = rhs.y() - rhs.x() * 2;
+	auto b2 = rhs.y() + rhs.x() * 2;
+
+	const int rhs_in_odd_row = !!(rhs.y() & 1);
+	const int lhs_in_odd_row = !!(lhs.y() & 1);
+	// 以偶数行为基准修正截距。
+	b1 -= rhs_in_odd_row;
+	b2 += rhs_in_odd_row;
+	// 求上述两条直线和 lhs 所在横轴的交点横坐标。
+	b1 += lhs_in_odd_row;
+	b2 -= lhs_in_odd_row;
+	const auto x1 = (lhs.y() - b1) / 2;
+	const auto x2 = (b2 - lhs.y()) / 2;
+	return static_cast<boost::uint64_t>(std::max({
+		std::abs(x1 - lhs.x()), std::abs(x2 - lhs.x()), std::abs(rhs.y() - lhs.y())
+		}));
+}
+
 namespace {
 	boost::array<boost::array<std::vector<Coord>, 2>, 64> g_surrounding_table;
 
-	void generate_surrounding_coords(std::vector<Coord> &ret, const Coord &origin, boost::uint64_t radius, bool in_odd_row){
+	void generate_surrounding_coords(std::vector<Coord> &ret, Coord origin, boost::uint64_t radius, bool in_odd_row){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_DEBUG("Generating surrounding coords: radius = ", radius);
 
@@ -49,7 +71,7 @@ namespace {
 	}
 }
 
-void get_surrounding_coords(std::vector<Coord> &ret, const Coord &origin, boost::uint64_t radius){
+void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, boost::uint64_t radius){
 	PROFILE_ME;
 
 	if(radius == 0){
