@@ -23,13 +23,13 @@ private:
 	boost::uint64_t m_delta_count;
 
 	ReasonId m_reason;
-	boost::uint64_t m_param1;
-	boost::uint64_t m_param2;
-	boost::uint64_t m_param3;
+	boost::int64_t m_param1;
+	boost::int64_t m_param2;
+	boost::int64_t m_param3;
 
 public:
 	TransactionElement(Operation operation, SomeIdT some_id, boost::uint64_t delta_count,
-		ReasonId reason, boost::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3)
+		ReasonId reason, boost::int64_t param1, boost::int64_t param2, boost::int64_t param3)
 		: m_operation(operation), m_some_id(some_id), m_delta_count(delta_count)
 		, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3)
 	{

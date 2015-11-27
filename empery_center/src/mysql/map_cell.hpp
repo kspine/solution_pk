@@ -11,7 +11,12 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_BIGINT            (x)	\
 	FIELD_BIGINT            (y)	\
-	FIELD_UUID              (parent_object_uuid)
+	FIELD_UUID              (parent_object_uuid)	\
+	FIELD_TINYINT_UNSIGNED  (acceleration_card_applied)	\
+	FIELD_INTEGER_UNSIGNED  (ticket_item_id)	\
+	FIELD_INTEGER_UNSIGNED  (production_resource_id)	\
+	FIELD_DATETIME          (production_begin_time)	\
+	FIELD_BIGINT_UNSIGNED   (resource_amount)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapCellAttribute

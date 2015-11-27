@@ -42,6 +42,23 @@ namespace Msg {
 	FIELD_STRING		(attack_target_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapPurchaseMapCell
+#define MESSAGE_ID      304
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (parent_object_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (resource_id)	\
+	FIELD_VUINT         (ticket_item_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MapUpgradeMapCell
+#define MESSAGE_ID      305
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

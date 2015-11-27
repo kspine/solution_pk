@@ -2,16 +2,19 @@
 #include "map_cell.hpp"
 #include "map_object.hpp"
 #include "mysql/map_cell.hpp"
-#include "attribute_ids.hpp"
 #include "singletons/world_map.hpp"
 #include "player_session.hpp"
 #include "msg/sc_map.hpp"
+#include "transaction_element.hpp"
+#include "reason_ids.hpp"
+#include "castle.hpp"
 
 namespace EmperyCenter {
 
 MapCell::MapCell(Coord coord)
 	: m_obj([&]{
-		auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(), Poseidon::Uuid());
+		auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(),
+			Poseidon::Uuid(), false, 0, 0, 0, 0);
 		obj->async_save(true);
 		return obj;
 	}())
@@ -31,17 +34,23 @@ MapCell::~MapCell(){
 void MapCell::pump_status(){
 	PROFILE_ME;
 
-	// 无事可做。
+	// TODO 更新资源数。
 }
 
 void MapCell::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	Msg::SC_MapCellInfo msg;
-	msg.x                  = get_coord().x();
-	msg.y                  = get_coord().y();
-	msg.parent_object_uuid = get_parent_object_uuid().str();
-	msg.owner_uuid         = get_owner_uuid().str();
+	msg.x                         = get_coord().x();
+	msg.y                         = get_coord().y();
+	msg.parent_object_uuid        = get_parent_object_uuid().str();
+	msg.owner_uuid                = get_owner_uuid().str();
+	msg.acceleration_card_applied = is_acceleration_card_applied();
+	msg.ticket_item_id            = get_ticket_item_id().get();
+	msg.production_resource_id    = get_production_resource_id().get();
+	msg.production_init_delay     = saturated_sub(get_production_begin_time(), utc_now);
 	msg.attributes.reserve(m_attributes.size());
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		msg.attributes.emplace_back();
@@ -49,7 +58,6 @@ void MapCell::synchronize_with_client(const boost::shared_ptr<PlayerSession> &se
 		attribute.attribute_id = it->first.get();
 		attribute.value        = it->second->get_value();
 	}
-	// TODO buff
 	session->send(msg);
 }
 
@@ -69,8 +77,72 @@ AccountUuid MapCell::get_owner_uuid() const {
 	}
 	return parent_object->get_owner_uuid();
 }
-void MapCell::set_parent_object_uuid(MapObjectUuid parent_object_uuid){
-	m_obj->set_parent_object_uuid(parent_object_uuid.get());
+
+bool MapCell::is_acceleration_card_applied() const {
+	return m_obj->get_acceleration_card_applied();
+}
+void MapCell::set_acceleration_card_applied(bool value){
+	m_obj->set_acceleration_card_applied(value);
+}
+
+ItemId MapCell::get_ticket_item_id() const {
+	return ItemId(m_obj->get_ticket_item_id());
+}
+ResourceId MapCell::get_production_resource_id() const {
+	return ResourceId(m_obj->get_production_resource_id());
+}
+boost::uint64_t MapCell::get_production_begin_time() const {
+	return m_obj->get_production_begin_time();
+}
+boost::uint64_t MapCell::get_resource_amount() const {
+	return m_obj->get_resource_amount();
+}
+
+void MapCell::set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id){
+	PROFILE_ME;
+
+	pump_status();
+
+	m_obj->set_parent_object_uuid     (parent_object_uuid.get());
+	m_obj->set_production_resource_id (production_resource_id.get());
+	m_obj->set_ticket_item_id         (ticket_item_id.get());
+
+	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
+}
+void MapCell::set_ticket_item_id(ItemId ticket_item_id){
+	PROFILE_ME;
+
+	pump_status();
+
+	m_obj->set_ticket_item_id(ticket_item_id.get());
+
+	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
+}
+
+void MapCell::harvest_resource(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount){
+	PROFILE_ME;
+
+	const auto coord = get_coord();
+	const auto ticket_item_id = get_ticket_item_id();
+	if(!ticket_item_id){
+		LOG_EMPERY_CENTER_DEBUG("No ticket on map cell: coord = ", coord);
+		return;
+	}
+
+	const auto resource_id = get_production_resource_id();
+	const auto amount = std::min(get_resource_amount(), max_amount);
+	if(!resource_id || (amount == 0)){
+		LOG_EMPERY_CENTER_DEBUG("No resource have been produced: coord = ", coord);
+		return;
+	}
+	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", castle_uuid = ", castle->get_map_object_uuid(),
+		", ticket_item_id = ", ticket_item_id, ", resource_id = ", resource_id, ", amount = ", amount);
+
+	std::vector<ResourceTransactionElement> transaction;
+	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
+		ReasonIds::ID_HARVEST, coord.x(), coord.y(), ticket_item_id.get());
+	castle->commit_resource_transaction(transaction.data(), transaction.size(),
+		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount)); });
 }
 
 boost::int64_t MapCell::get_attribute(AttributeId attribute_id) const {

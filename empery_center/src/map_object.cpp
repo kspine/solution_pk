@@ -1,7 +1,6 @@
 #include "precompiled.hpp"
 #include "map_object.hpp"
 #include "mysql/map_object.hpp"
-#include "attribute_ids.hpp"
 #include "singletons/world_map.hpp"
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"

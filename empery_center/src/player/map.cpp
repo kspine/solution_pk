@@ -9,6 +9,15 @@
 #include "../cluster_session.hpp"
 #include "../msg/ck_map.hpp"
 #include "../data/map_object_type.hpp"
+#include "../map_cell.hpp"
+#include "../castle.hpp"
+#include "../building_ids.hpp"
+#include "../data/castle.hpp"
+#include "../data/item.hpp"
+#include "../singletons/item_box_map.hpp"
+#include "../item_box.hpp"
+#include "../transaction_element.hpp"
+#include "../reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -99,6 +108,79 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		return std::move(kresult);
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
+	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
+	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<parent_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account_uuid){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+	if(!castle){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object->get_map_object_type_id();
+	}
+	std::vector<Castle::BuildingBaseInfo> primary_buildings;
+	castle->get_buildings_by_id(primary_buildings, BuildingIds::ID_PRIMARY);
+	if(primary_buildings.empty()){
+		LOG_EMPERY_CENTER_ERROR("No primary buildign in castle? map_object_uuid = ", castle->get_map_object_uuid());
+		DEBUG_THROW(Exception, sslit("No primary buildign in castle"));
+	}
+	const auto updrade_data = Data::CastleUpgradePrimary::require(primary_buildings.front().building_level);
+	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: building_level = ", updrade_data->building_level,
+		", max_map_cell_count = ", updrade_data->max_map_cell_count, ", max_map_cell_distance = ", updrade_data->max_map_cell_distance);
+
+	const auto current_cell_count = WorldMap::count_map_cells_by_parent_object(castle->get_map_object_uuid());
+	if(current_cell_count >= updrade_data->max_map_cell_count){
+		return Response(Msg::ERR_TOO_MANY_MAP_CELLS) <<current_cell_count;
+	}
+	const auto coord = Coord(req.x, req.y);
+	const auto distance = get_distance_of_coords(coord, castle->get_coord());
+	if(distance > updrade_data->max_map_cell_distance){
+		return Response(Msg::ERR_MAP_CELL_IS_TOO_FAR_AWAY) <<distance;
+	}
+
+	const auto ticket_item_id = ItemId(req.ticket_item_id);
+	const auto item_data = Data::Item::get(ticket_item_id);
+	if(!item_data){
+		return Response(Msg::ERR_LAND_PURCHASE_TICKET_NOT_FOUND) <<ticket_item_id;
+	}
+	if(item_data->type.first != Data::Item::CAT_LAND_PURCHASE_TICKET){
+		return Response(Msg::ERR_BAD_LAND_PURCHASE_TICKET_TYPE) <<item_data->type.first;
+	}
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+
+	auto map_cell = WorldMap::get_map_cell(coord);
+	if(map_cell){
+		if(map_cell->get_owner_uuid()){
+			return Response(Msg::ERR_MAP_CELL_ALREADY_HAS_AN_OWNER) <<map_cell->get_owner_uuid();
+		}
+	} else {
+		map_cell = boost::make_shared<MapCell>(coord);
+		WorldMap::insert_map_cell(map_cell);
+	}
+/*
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
+		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{
+			
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
+	}
+*/
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 
 	return Response();
 }

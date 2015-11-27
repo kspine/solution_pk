@@ -204,4 +204,10 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account_uuid, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_AccountSynchronizeSystemClock, account_uuid, session, req){
+	session->send(Msg::SC_AccountSynchronizeSystemClock(std::move(req.context), Poseidon::get_utc_time()));
+
+	return Response();
+}
+
 }

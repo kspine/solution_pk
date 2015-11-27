@@ -12,6 +12,7 @@ namespace EmperyCenter {
 namespace {
 	MULTI_INDEX_MAP(ItemMap, Data::Item,
 		UNIQUE_MEMBER_INDEX(item_id)
+		MULTI_MEMBER_INDEX(type)
 		MULTI_MEMBER_INDEX(init_count)
 		MULTI_MEMBER_INDEX(auto_inc_type)
 		MULTI_MEMBER_INDEX(is_public)
@@ -51,11 +52,11 @@ namespace {
 			Data::Item elem = { };
 
 			csv.get(elem.item_id,      "itemid");
-			csv.get(elem.quality,      "quality");
-			unsigned category = Data::Item::CAT_UNKNOWN;
+
+			unsigned category = Data::Item::CAT_UNKNOWN, type = 0;
 			csv.get(category,          "class");
-			elem.category = static_cast<Data::Item::Category>(category);
-			csv.get(elem.type,         "type");
+			csv.get(type,              "type");
+			elem.type = std::make_pair(static_cast<Data::Item::Category>(category), type);
 			csv.get(elem.value,        "value");
 
 			csv.get(elem.init_count,   "init_count");
@@ -215,6 +216,32 @@ namespace Data {
 		return ret;
 	}
 
+	boost::shared_ptr<const Item> Item::get_by_type(Item::Category category, unsigned type){
+		PROFILE_ME;
+
+		const auto item_map = g_item_map.lock();
+		if(!item_map){
+			LOG_EMPERY_CENTER_WARNING("ItemMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = item_map->find<1>(std::make_pair(category, type));
+		if(it == item_map->end<1>()){
+			LOG_EMPERY_CENTER_DEBUG("Item not found: category = ", (unsigned)category, ", type = ", type);
+			return { };
+		}
+		return boost::shared_ptr<const Item>(item_map, &*it);
+	}
+	boost::shared_ptr<const Item> Item::require_by_type(Item::Category category, unsigned type){
+		PROFILE_ME;
+
+		auto ret = get_by_type(category, type);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("Item not found"));
+		}
+		return ret;
+	}
+
 	void Item::get_init(std::vector<boost::shared_ptr<const Item>> &ret){
 		PROFILE_ME;
 
@@ -224,8 +251,8 @@ namespace Data {
 			return;
 		}
 
-		const auto begin = item_map->upper_bound<1>(0);
-		const auto end = item_map->end<1>();
+		const auto begin = item_map->upper_bound<2>(0);
+		const auto end = item_map->end<2>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
 			ret.emplace_back(item_map, &*it);
@@ -240,8 +267,8 @@ namespace Data {
 			return;
 		}
 
-		const auto begin = item_map->upper_bound<2>(AIT_NONE);
-		const auto end = item_map->end<2>();
+		const auto begin = item_map->upper_bound<3>(AIT_NONE);
+		const auto end = item_map->end<3>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
 			ret.emplace_back(item_map, &*it);
@@ -256,8 +283,8 @@ namespace Data {
 			return;
 		}
 
-		const auto begin = item_map->upper_bound<3>(false);
-		const auto end = item_map->end<3>();
+		const auto begin = item_map->upper_bound<4>(false);
+		const auto end = item_map->end<4>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
 			ret.emplace_back(item_map, &*it);
@@ -292,7 +319,7 @@ namespace Data {
 
 	void ItemTrade::unpack(std::vector<ItemTransactionElement> &transaction,
 		const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
-		boost::uint64_t param1)
+		boost::int64_t param1)
 	{
 		PROFILE_ME;
 

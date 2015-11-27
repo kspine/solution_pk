@@ -15,13 +15,13 @@ namespace Events {
 		boost::uint64_t new_count;
 
 		ReasonId reason;
-		boost::uint64_t param1;
-		boost::uint64_t param2;
-		boost::uint64_t param3;
+		boost::int64_t param1;
+		boost::int64_t param2;
+		boost::int64_t param3;
 
 		ResourceChanged(MapObjectUuid map_object_uuid_, AccountUuid owner_uuid_,
 			ResourceId resource_id_, boost::uint64_t old_count_, boost::uint64_t new_count_,
-			ReasonId reason_, boost::uint64_t param1_, boost::uint64_t param2_, boost::uint64_t param3_)
+			ReasonId reason_, boost::int64_t param1_, boost::int64_t param2_, boost::int64_t param3_)
 			: map_object_uuid(map_object_uuid_), owner_uuid(owner_uuid_)
 			, resource_id(resource_id_), old_count(old_count_), new_count(new_count_)
 			, reason(reason_), param1(param1_), param2(param2_), param3(param3_)

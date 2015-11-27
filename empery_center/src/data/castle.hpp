@@ -29,7 +29,7 @@ namespace Data {
 			T_BARRACKS      = 2,
 			T_ACADEMY       = 3,
 			T_CIVILIAN      = 4,
-//			T_WATCHTOWER    = 5,
+			// T_WATCHTOWER    = 5,
 			T_WAREHOUSE     = 6,
 			T_CITADEL_WALL  = 7,
 			T_DEFENSE_TOWER = 8,
@@ -68,7 +68,8 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradePrimary> require(unsigned building_level);
 
 	public:
-		boost::uint64_t max_territories;
+		boost::uint64_t max_map_cell_count;
+		boost::uint64_t max_map_cell_distance;
 	};
 
 	class CastleUpgradeBarracks : public CastleUpgradeAbstract {

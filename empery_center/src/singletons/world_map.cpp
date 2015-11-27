@@ -491,6 +491,17 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	synchronise_map_cell_by_coord(map_cell, coord);
 }
 
+std::size_t WorldMap::count_map_cells_by_parent_object(MapObjectUuid parent_object_uuid){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
+		return 0;
+	}
+
+	return map_cell_map->count<1>(parent_object_uuid);
+}
 void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid){
 	PROFILE_ME;
 

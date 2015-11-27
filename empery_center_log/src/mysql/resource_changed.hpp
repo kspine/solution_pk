@@ -17,9 +17,9 @@ namespace MySql {
 	FIELD_BIGINT_UNSIGNED   (new_count)	\
 	FIELD_BIGINT            (delta_count)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
-	FIELD_BIGINT_UNSIGNED   (param1)	\
-	FIELD_BIGINT_UNSIGNED   (param2)	\
-	FIELD_BIGINT_UNSIGNED   (param3)
+	FIELD_BIGINT            (param1)	\
+	FIELD_BIGINT            (param2)	\
+	FIELD_BIGINT            (param3)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

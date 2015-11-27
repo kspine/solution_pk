@@ -49,6 +49,12 @@ namespace Msg {
 	//
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_AccountSynchronizeSystemClock
+#define MESSAGE_ID      206
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (context)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

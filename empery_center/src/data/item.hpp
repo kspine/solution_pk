@@ -33,16 +33,17 @@ namespace Data {
 		static boost::shared_ptr<const Item> get(ItemId item_id);
 		static boost::shared_ptr<const Item> require(ItemId item_id);
 
+		static boost::shared_ptr<const Item> get_by_type(Category category, unsigned type);
+		static boost::shared_ptr<const Item> require_by_type(Category category, unsigned type);
+
 		static void get_init(std::vector<boost::shared_ptr<const Item>> &ret);
 		static void get_auto_inc(std::vector<boost::shared_ptr<const Item>> &ret);
 		static void get_public(std::vector<boost::shared_ptr<const Item>> &ret);
 
 	public:
 		ItemId item_id;
-		unsigned quality;
-		Category category;
-		unsigned type;          // 这两个的意义要根据 category 而定
-		boost::uint64_t value;  //
+		std::pair<Category, unsigned> type;
+		boost::uint64_t value;
 
 		boost::uint64_t init_count;
 
@@ -61,7 +62,7 @@ namespace Data {
 
 		static void unpack(std::vector<ItemTransactionElement> &transaction,
 			const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
-			boost::uint64_t param1);
+			boost::int64_t param1);
 
 	public:
 		TradeId trade_id;

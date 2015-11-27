@@ -14,7 +14,6 @@
 #include "../data/item.hpp"
 
 #include "../castle.hpp" // FIXME remove this
-#include "../attribute_ids.hpp" // FIXME remove this
 #include "../transaction_element.hpp" // FIXME remove this
 #include "world_map.hpp" // FIXME remove this
 #include "../map_object_type_ids.hpp" // FIXME remove this
@@ -301,9 +300,9 @@ for(int i = 0; i < 3; ++i){
 	auto castle = boost::make_shared<Castle>(map_object_uuid, MapObjectTypeIds::ID_CASTLE, account_uuid, MapObjectUuid(), "aaa", coord);
 
 	std::vector<ResourceTransactionElement> rsrc;
-	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 500000000, ReasonId(), 0, 0, 0);
-	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101002), 500000000, ReasonId(), 0, 0, 0);
-	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101003), 500000000, ReasonId(), 0, 0, 0);
+	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 500000000, ReasonId(0), 0, 0, 0);
+	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101002), 500000000, ReasonId(0), 0, 0, 0);
+	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101003), 500000000, ReasonId(0), 0, 0, 0);
 	castle->commit_resource_transaction(rsrc.data(), rsrc.size());
 
 	castle->create_building_mission(BuildingBaseId(2),  Castle::MIS_CONSTRUCT, BuildingId(1902001));

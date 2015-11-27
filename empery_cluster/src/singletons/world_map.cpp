@@ -169,10 +169,10 @@ void WorldMap::replace_map_object_no_synchronize(const boost::weak_ptr<const Clu
 
 	auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CLUSTER_DEBUG("Creating new map object: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CLUSTER_TRACE("Creating new map object: map_object_uuid = ", map_object_uuid);
 		it = map_object_map->insert<0>(it, MapObjectElement(map_object));
 	} else {
-		LOG_EMPERY_CLUSTER_DEBUG("Replacing existent map object: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CLUSTER_TRACE("Replacing existent map object: map_object_uuid = ", map_object_uuid);
 		map_object_map->replace<0>(it, MapObjectElement(map_object));
 	}
 	it->master = master;
@@ -194,13 +194,13 @@ void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<const Clus
 		return;
 	}
 	if((it->master < master) || (master < it->master)){
-		LOG_EMPERY_CLUSTER_DEBUG("Map object has been taken over by another cluster: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CLUSTER_TRACE("Map object has been taken over by another cluster: map_object_uuid = ", map_object_uuid);
 		return;
 	}
 	const auto map_object = it->map_object;
 	const auto old_coord  = it->coord;
 
-	LOG_EMPERY_CLUSTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
+	LOG_EMPERY_CLUSTER_TRACE("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
 	map_object_map->erase<0>(it);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
@@ -228,7 +228,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto old_coord = it->coord;
 	const auto new_coord = map_object->get_coord();
 
-	LOG_EMPERY_CLUSTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid,
+	LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
 		", old_coord = ", old_coord, ", new_coord = ", new_coord);
 	map_object_map->set_key<0, 1>(it, new_coord);
 
@@ -259,7 +259,7 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	const auto map_object = it->map_object;
 	const auto old_coord  = it->coord;
 
-	LOG_EMPERY_CLUSTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
+	LOG_EMPERY_CLUSTER_TRACE("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
 	map_object_map->erase<0>(it);
 
 	const auto old_cluster = get_cluster(old_coord);

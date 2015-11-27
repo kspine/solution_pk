@@ -25,13 +25,10 @@ namespace Msg {
 	FIELD_VINT          (y)	\
 	FIELD_STRING        (parent_object_uuid)	\
 	FIELD_STRING        (owner_uuid)	\
-	FIELD_ARRAY         (buffs,	\
-		FIELD_VUINT         (buff_id)	\
-		FIELD_STRING        (owner_uuid)	\
-		FIELD_VINT          (value)	\
-		FIELD_VUINT         (full_duration)	\
-		FIELD_VUINT         (expiry_duration)	\
-	)	\
+	FIELD_VUINT         (acceleration_card_applied)	\
+	FIELD_VUINT         (ticket_item_id)	\
+	FIELD_VUINT         (production_resource_id)	\
+	FIELD_VUINT         (production_init_delay)	\
 	FIELD_ARRAY         (attributes,	\
 		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\

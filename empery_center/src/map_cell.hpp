@@ -13,6 +13,7 @@ namespace MySql {
 	class Center_MapCellAttribute;
 }
 
+class Castle;
 class PlayerSession;
 
 class MapCell : public virtual AbstractDataObject {
@@ -38,7 +39,19 @@ public:
 
 	MapObjectUuid get_parent_object_uuid() const;
 	AccountUuid get_owner_uuid() const;
-	void set_parent_object_uuid(MapObjectUuid parent_object_uuid);
+
+	bool is_acceleration_card_applied() const;
+	void set_acceleration_card_applied(bool value);
+
+	ItemId get_ticket_item_id() const;
+	ResourceId get_production_resource_id() const;
+	boost::uint64_t get_production_begin_time() const;
+	boost::uint64_t get_resource_amount() const;
+
+	void set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
+	void set_ticket_item_id(ItemId ticket_item_id);
+
+	void harvest_resource(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount = UINT64_MAX);
 
 	boost::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
