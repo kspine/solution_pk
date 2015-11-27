@@ -8,6 +8,7 @@ namespace EmperyPromotion {
 ACCOUNT_SERVLET("getPyramid", session, params){
 	const auto &login_name = params.at("loginName");
 	const auto &max_depth_str = params.get("maxDepth");
+	const auto &view_performance_str = params.get("viewPerformance");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);
@@ -47,13 +48,15 @@ ACCOUNT_SERVLET("getPyramid", session, params){
 				current_array_dest->emplace_back(Poseidon::JsonObject());
 				auto &member = current_array_dest->back().get<Poseidon::JsonObject>();
 
-				member[sslit("loginName")]      = std::move(it->login_name);
-				member[sslit("nick")]           = std::move(it->nick);
-				member[sslit("level")]          = boost::lexical_cast<std::string>(it->level);
-				member[sslit("maxSubordLevel")] = it->max_level;
-				member[sslit("subordCount")]    = it->subordinate_count;
-				member[sslit("performance")]    = it->performance;
-				member[sslit("members")]        = Poseidon::JsonArray();
+				member[sslit("loginName")]       = std::move(it->login_name);
+				member[sslit("nick")]            = std::move(it->nick);
+				member[sslit("level")]           = boost::lexical_cast<std::string>(it->level);
+				member[sslit("maxSubordLevel")]  = it->max_level;
+				member[sslit("subordCount")]     = it->subordinate_count;
+				if(!view_performance_str.empty()){
+					member[sslit("performance")] = it->performance;
+				}
+				member[sslit("members")]         = Poseidon::JsonArray();
 
 				next_level.emplace_back(it->account_id, &member[sslit("members")].get<Poseidon::JsonArray>());
 			}
@@ -63,13 +66,15 @@ ACCOUNT_SERVLET("getPyramid", session, params){
 		next_level.clear();
 	}
 
-	ret[sslit("loginName")]      = std::move(info.login_name);
-	ret[sslit("nick")]           = std::move(info.nick);
-	ret[sslit("level")]          = boost::lexical_cast<std::string>(info.level);
-	ret[sslit("maxSubordLevel")] = info.max_level;
-	ret[sslit("subordCount")]    = info.subordinate_count;
-	ret[sslit("performance")]    = info.performance;
-	ret[sslit("members")]        = std::move(members);
+	ret[sslit("loginName")]       = std::move(info.login_name);
+	ret[sslit("nick")]            = std::move(info.nick);
+	ret[sslit("level")]           = boost::lexical_cast<std::string>(info.level);
+	ret[sslit("maxSubordLevel")]  = info.max_level;
+	ret[sslit("subordCount")]     = info.subordinate_count;
+	if(!view_performance_str.empty()){
+		ret[sslit("performance")] = info.performance;
+	}
+	ret[sslit("members")]         = std::move(members);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
