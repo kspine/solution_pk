@@ -15,7 +15,7 @@ namespace MySql {
 	FIELD_TINYINT_UNSIGNED  (acceleration_card_applied)	\
 	FIELD_INTEGER_UNSIGNED  (ticket_item_id)	\
 	FIELD_INTEGER_UNSIGNED  (production_resource_id)	\
-	FIELD_DATETIME          (production_begin_time)	\
+	FIELD_DATETIME          (last_production_time)	\
 	FIELD_BIGINT_UNSIGNED   (resource_amount)
 #include <poseidon/mysql/object_generator.hpp>
 

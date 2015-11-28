@@ -8,6 +8,8 @@
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
 #include "castle.hpp"
+#include "checked_arithmetic.hpp"
+#include "data/map_cell.hpp"
 
 namespace EmperyCenter {
 
@@ -34,13 +36,56 @@ MapCell::~MapCell(){
 void MapCell::pump_status(){
 	PROFILE_ME;
 
-	// TODO 更新资源数。
+	const auto terrain_id = TerrainId(1602001); // TODO terrain id
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const bool acc_card_applied = m_obj->get_acceleration_card_applied();
+	const auto ticket_item_id = get_ticket_item_id();
+	const auto production_resource_id = get_production_resource_id();
+	if(ticket_item_id && production_resource_id){
+		const auto non_best_rate_modifier     = get_config<double>("map_cell_non_best_resource_production_rate_modifier", 0.5);
+		const auto non_best_capacity_modifier = get_config<double>("map_cell_non_best_resource_capacity_modifier",        0.5);
+		const auto acc_card_rate_modifier     = get_config<double>("acceleration_card_resource_production_rate_modifier", 2.0);
+		const auto acc_card_capacity_modifier = get_config<double>("acceleration_card_resource_capacity_modifier",        2.0);
+
+		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
+		const auto production_data = Data::MapCellProduction::require(terrain_id);
+		double production_rate     = production_data->best_production_rate;
+		double capacity            = production_data->best_capacity;
+		if(production_resource_id != production_data->best_resource_id){
+			production_rate *= non_best_rate_modifier;
+			capacity        *= non_best_capacity_modifier;
+		}
+		production_rate *= ticket_data->production_rate_modifier;
+		capacity        *= ticket_data->capacity_modifier;
+		if(acc_card_applied){
+			production_rate *= acc_card_rate_modifier;
+			capacity        *= acc_card_capacity_modifier;
+		}
+		production_rate = std::max(production_rate, 0.0);
+		capacity        = std::max(capacity,        0.0);
+		LOG_EMPERY_CENTER_DEBUG("Checking map cell production: coord = ", get_coord(),
+			", terrain_id = ", terrain_id, ", acc_card_applied = ", acc_card_applied,
+			", ticket_item_id = ", ticket_item_id, ", production_resource_id = ", production_resource_id,
+			", production_rate = ", production_rate, ", capacity = ", capacity);
+
+		const auto old_last_production_time = m_obj->get_last_production_time();
+		const auto old_resource_amount      = m_obj->get_resource_amount();
+
+		const auto resource_produced = static_cast<boost::uint64_t>(std::round(
+			saturated_sub(utc_now, old_last_production_time) * production_rate / 60000.0));
+		const auto new_resource_amount = saturated_add(
+			old_resource_amount, static_cast<boost::uint64_t>(std::round(resource_produced)));
+		LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
+			", terrain_id = ", terrain_id, ", resource_produced = ", resource_produced);
+
+		m_obj->set_last_production_time (utc_now);
+		m_obj->set_resource_amount      (new_resource_amount);
+	}
 }
 
 void MapCell::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
-
-	const auto utc_now = Poseidon::get_utc_time();
 
 	Msg::SC_MapCellInfo msg;
 	msg.x                         = get_coord().x();
@@ -50,7 +95,6 @@ void MapCell::synchronize_with_client(const boost::shared_ptr<PlayerSession> &se
 	msg.acceleration_card_applied = is_acceleration_card_applied();
 	msg.ticket_item_id            = get_ticket_item_id().get();
 	msg.production_resource_id    = get_production_resource_id().get();
-	msg.production_init_delay     = saturated_sub(get_production_begin_time(), utc_now);
 	msg.attributes.reserve(m_attributes.size());
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		msg.attributes.emplace_back();
@@ -91,8 +135,8 @@ ItemId MapCell::get_ticket_item_id() const {
 ResourceId MapCell::get_production_resource_id() const {
 	return ResourceId(m_obj->get_production_resource_id());
 }
-boost::uint64_t MapCell::get_production_begin_time() const {
-	return m_obj->get_production_begin_time();
+boost::uint64_t MapCell::get_last_production_time() const {
+	return m_obj->get_last_production_time();
 }
 boost::uint64_t MapCell::get_resource_amount() const {
 	return m_obj->get_resource_amount();
@@ -104,8 +148,9 @@ void MapCell::set_owner(MapObjectUuid parent_object_uuid, ResourceId production_
 	pump_status();
 
 	m_obj->set_parent_object_uuid     (parent_object_uuid.get());
-	m_obj->set_production_resource_id (production_resource_id.get());
 	m_obj->set_ticket_item_id         (ticket_item_id.get());
+	m_obj->set_production_resource_id (production_resource_id.get());
+	m_obj->set_resource_amount        (0);
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
@@ -114,7 +159,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 
 	pump_status();
 
-	m_obj->set_ticket_item_id(ticket_item_id.get());
+	m_obj->set_ticket_item_id         (ticket_item_id.get());
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }

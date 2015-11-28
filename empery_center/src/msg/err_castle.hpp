@@ -28,6 +28,7 @@ namespace Msg {
 		ERR_NO_SUCH_TECH                    = 71417,
 		ERR_DISPLAY_PREREQUISITE_NOT_MET    = 71418,
 		ERR_BUILD_LIMIT_EXCEEDED            = 71419,
+		ERR_CASTLE_HAS_NO_MAP_CELL          = 71420,
 	};
 }
 

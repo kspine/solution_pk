@@ -45,7 +45,7 @@ public:
 
 	ItemId get_ticket_item_id() const;
 	ResourceId get_production_resource_id() const;
-	boost::uint64_t get_production_begin_time() const;
+	boost::uint64_t get_last_production_time() const;
 	boost::uint64_t get_resource_amount() const;
 
 	void set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);

@@ -8,6 +8,7 @@
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 #include "../map_object_type_ids.hpp"
+#include "../map_cell.hpp"
 
 namespace EmperyCenter {
 
@@ -23,6 +24,14 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account_uuid, session, req){
 
 	castle->pump_status();
 	castle->synchronize_with_client(session);
+
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		map_cell->pump_status();
+		map_cell->synchronize_with_client(session);
+	}
 
 	return Response();
 }
@@ -410,6 +419,30 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account_uuid, session, /* req */
 			continue;
 		}
 		synchronize_map_object_with_client(map_object, session);
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account_uuid){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+	if(map_cells.empty()){
+		return Response(Msg::ERR_CASTLE_HAS_NO_MAP_CELL) <<map_object_uuid;
+	}
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		map_cell->pump_status();
+		map_cell->harvest_resource(castle);
 	}
 
 	return Response();

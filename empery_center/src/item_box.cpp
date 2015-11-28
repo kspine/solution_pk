@@ -127,8 +127,8 @@ void ItemBox::pump_status(){
 	}
 	commit_transaction(transaction.data(), transaction.size(),
 		[&]{
-			for(auto &p: new_timestamps){
-				p.first->set_updated_time(p.second);
+			for(auto it = new_timestamps.begin(); it != new_timestamps.end(); ++it){
+				it->first->set_updated_time(it->second);
 			}
 		});
 }

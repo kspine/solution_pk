@@ -13,6 +13,7 @@
 #include "../castle.hpp"
 #include "../building_ids.hpp"
 #include "../data/castle.hpp"
+#include "../data/map_cell.hpp"
 #include "../data/item.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
@@ -123,10 +124,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
-	static constexpr ResourceId PRODUCIBLE_RESOURCES[] = { ResourceId(1101001), ResourceId(1101002), ResourceId(1101003) };
-
 	const auto resource_id = ResourceId(req.resource_id);
-	if(std::find(std::begin(PRODUCIBLE_RESOURCES), std::end(PRODUCIBLE_RESOURCES), resource_id) == std::end(PRODUCIBLE_RESOURCES)){
+	if(!Data::MapCellProduction::is_resource_producible(resource_id)){
 		return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
 	}
 
@@ -196,8 +195,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
-	static constexpr auto MAP_CELL_UPGRADE_TRADE_ID = TradeId(2804014);
-
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
@@ -220,6 +217,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
 
+	constexpr auto MAP_CELL_UPGRADE_TRADE_ID = TradeId(2804014);
 	const auto trade_data = Data::ItemTrade::require(MAP_CELL_UPGRADE_TRADE_ID);
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);

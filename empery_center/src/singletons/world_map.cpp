@@ -870,6 +870,12 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 	PROFILE_ME;
 
 	try {
+		boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> map_cells;
+		get_map_cells_by_rectangle(map_cells, view);
+		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+			synchronize_map_cell_with_client(it->second, session);
+		}
+
 		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> map_objects;
 		get_map_objects_by_rectangle(map_objects, view);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
