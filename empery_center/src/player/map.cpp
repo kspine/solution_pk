@@ -78,7 +78,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<from_coord;
 	}
 
-	Msg::CK_MapSetWaypoints kreq;
+	Msg::CK_MapSetAction kreq;
 	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
 	kreq.x = from_coord.x();
 	kreq.y = from_coord.y();

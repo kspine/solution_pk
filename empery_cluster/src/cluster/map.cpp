@@ -45,7 +45,7 @@ CLUSTER_SERVLET(Msg::CK_MapRemoveMapObject, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::CK_MapSetWaypoints, cluster, req){
+CLUSTER_SERVLET(Msg::CK_MapSetAction, cluster, req){
 	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
 	const auto attack_target_uuid = MapObjectUuid(req.attack_target_uuid);
 
@@ -59,7 +59,7 @@ CLUSTER_SERVLET(Msg::CK_MapSetWaypoints, cluster, req){
 	for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
 		waypoints.emplace_back(it->delay, it->dx, it->dy);
 	}
-	map_object->set_waypoints(from_coord, std::move(waypoints), attack_target_uuid);
+	map_object->set_action(from_coord, std::move(waypoints), attack_target_uuid);
 
 	return Response();
 }

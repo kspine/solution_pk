@@ -36,7 +36,7 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    CK_MapSetWaypoints
+#define MESSAGE_NAME    CK_MapSetAction
 #define MESSAGE_ID      32396
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
