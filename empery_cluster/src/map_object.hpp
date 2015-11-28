@@ -31,19 +31,22 @@ private:
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
 
+	boost::shared_ptr<Poseidon::TimerItem> m_action_timer;
+
 	// 移动。
-	boost::shared_ptr<Poseidon::TimerItem> m_movement_timer;
-	std::deque<Waypoint> m_waypoints;
 	boost::uint64_t m_next_step_time;
+	std::deque<Waypoint> m_waypoints;
 
 	// 战斗。
-	boost::shared_ptr<Poseidon::TimerItem> m_battle_timer;
 	MapObjectUuid m_attack_target_uuid;
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 		Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes);
 	~MapObject();
+
+private:
+	void on_action_timer(boost::uint64_t now);
 
 public:
 	void pump_status() override;

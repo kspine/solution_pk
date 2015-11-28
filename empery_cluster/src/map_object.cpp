@@ -17,6 +17,28 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::~MapObject(){
 }
 
+void MapObject::on_action_timer(boost::uint64_t now){
+	PROFILE_ME;
+
+	// 移动。
+	while((m_next_step_time < now) && !m_waypoints.empty()){
+		const auto &waypoint = m_waypoints.front();
+
+		const auto old_coord = get_coord();
+		const auto new_coord = Coord(old_coord.x() + waypoint.dx, old_coord.y() + waypoint.dy);
+		const auto next_step_time = saturated_add(m_next_step_time, waypoint.delay);
+
+		LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", new_coord = ", new_coord);
+		set_coord(new_coord);
+
+		m_waypoints.pop_front();
+		m_next_step_time = next_step_time;
+	}
+
+	// 攻击。
+	//TODO
+}
+
 void MapObject::pump_status(){
 	PROFILE_ME;
 
@@ -80,73 +102,43 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 void MapObject::set_waypoints(Coord from_coord, std::deque<Waypoint> waypoints, MapObjectUuid attack_target_uuid){
 	PROFILE_ME;
 
-	if(!waypoints.empty()){
-		const auto movement_timer_proc = [&](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
-			PROFILE_ME;
-
-			const auto shared = weak.lock();
-			if(!shared){
-				return;
-			}
-			LOG_EMPERY_CLUSTER_TRACE("Map object movement timer: map_object_uuid = ", get_map_object_uuid());
-
-			while((m_next_step_time < now) && !m_waypoints.empty()){
-				const auto &waypoint = m_waypoints.front();
-
-				const auto old_coord = get_coord();
-				const auto new_coord = Coord(old_coord.x() + waypoint.dx, old_coord.y() + waypoint.dy);
-				const auto next_step_time = saturated_add(m_next_step_time, waypoint.delay);
-
-				LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", get_map_object_uuid(), ", new_coord = ", new_coord);
-				set_coord(new_coord);
-
-				m_waypoints.pop_front();
-				m_next_step_time = next_step_time;
-			}
-			if(m_waypoints.empty()){
-				LOG_EMPERY_CLUSTER_DEBUG("Releasing movement timer: map_object_uuid = ", get_map_object_uuid());
-				m_movement_timer.reset();
-			}
-		};
-
-		auto timer = Poseidon::TimerDaemon::register_timer(0, 200,
-			std::bind(movement_timer_proc, virtual_weak_from_this<MapObject>(), std::placeholders::_2));
-		LOG_EMPERY_CLUSTER_DEBUG("Created movement timer: map_object_uuid = ", get_map_object_uuid());
-		m_movement_timer = std::move(timer);
-	}
-
-	if(attack_target_uuid){
-		const auto battle_timer_proc = [&](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
-			PROFILE_ME;
-
-			const auto shared = weak.lock();
-			if(!shared){
-				return;
-			}
-			LOG_EMPERY_CLUSTER_TRACE("Map object battle timer: map_object_uuid = ", get_map_object_uuid());
-
-			// TODO
-			m_attack_target_uuid = { };
-
-			if(!m_attack_target_uuid){
-				LOG_EMPERY_CLUSTER_DEBUG("Releasing battle timer: map_object_uuid = ", get_map_object_uuid());
-				m_battle_timer.reset();
-			}
-		};
-
-		auto timer = Poseidon::TimerDaemon::register_timer(0, 1000,
-			std::bind(battle_timer_proc, virtual_weak_from_this<MapObject>(), std::placeholders::_2));
-		LOG_EMPERY_CLUSTER_DEBUG("Created battle timer: map_object_uuid = ", get_map_object_uuid());
-		m_battle_timer = std::move(timer);
-	};
-
-	const auto now = Poseidon::get_fast_mono_clock();
+	m_next_step_time     = 0;
+	m_waypoints          = { };
+	m_attack_target_uuid = { };
 
 	set_coord(from_coord);
 
-	m_waypoints          = std::move(waypoints);
+	if(!m_action_timer && !(waypoints.empty() && !attack_target_uuid)){
+		auto timer = Poseidon::TimerDaemon::register_timer(0, 200,
+			std::bind(
+				[&](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
+					PROFILE_ME;
+
+					const auto shared = weak.lock();
+					if(!shared){
+						return;
+					}
+					LOG_EMPERY_CLUSTER_TRACE("Map object action timer: map_object_uuid = ", get_map_object_uuid());
+
+					on_action_timer(now);
+
+					if(m_waypoints.empty() && !m_attack_target_uuid){
+						LOG_EMPERY_CLUSTER_DEBUG("Releasing action timer: map_object_uuid = ", get_map_object_uuid());
+						m_action_timer.reset();
+					}
+				},
+				virtual_weak_from_this<MapObject>(), std::placeholders::_2)
+			);
+		LOG_EMPERY_CLUSTER_DEBUG("Created action timer: map_object_uuid = ", get_map_object_uuid());
+		m_action_timer = std::move(timer);
+	}
+
+	const auto now = Poseidon::get_fast_mono_clock();
+
 	m_next_step_time     = now;
+	m_waypoints          = std::move(waypoints);
 	m_attack_target_uuid = attack_target_uuid;
+
 }
 
 }
