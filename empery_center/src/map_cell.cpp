@@ -73,7 +73,7 @@ void MapCell::pump_status(){
 		const auto old_resource_amount      = m_obj->get_resource_amount();
 
 		const auto resource_produced = static_cast<boost::uint64_t>(std::round(
-			saturated_sub(utc_now, old_last_production_time) * production_rate / 60000.0));
+			saturated_sub(utc_now, old_last_production_time) * production_rate));
 		const auto new_resource_amount = saturated_add(
 			old_resource_amount, static_cast<boost::uint64_t>(std::round(resource_produced)));
 		LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
@@ -147,9 +147,12 @@ void MapCell::set_owner(MapObjectUuid parent_object_uuid, ResourceId production_
 
 	pump_status();
 
+	const auto now = Poseidon::get_utc_time();
+
 	m_obj->set_parent_object_uuid     (parent_object_uuid.get());
 	m_obj->set_ticket_item_id         (ticket_item_id.get());
 	m_obj->set_production_resource_id (production_resource_id.get());
+	m_obj->set_last_production_time   (now);
 	m_obj->set_resource_amount        (0);
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);

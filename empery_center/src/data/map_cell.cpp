@@ -56,7 +56,11 @@ namespace {
 
 			csv.get(elem.terrain_id,           "territory_id");
 			csv.get(elem.best_resource_id,     "production");
-			csv.get(elem.best_production_rate, "output_perminute");
+
+			boost::uint64_t rate = 0;
+			csv.get(rate,                      "output_perminute");
+			elem.best_production_rate = rate / 60000.0;
+
 			csv.get(elem.best_capacity,        "resource_max");
 			csv.get(elem.passable,             "mobile");
 

@@ -27,8 +27,8 @@ namespace Data {
 	public:
 		TerrainId terrain_id;
 		ResourceId best_resource_id;
-		boost::uint64_t best_production_rate;
-		boost::uint64_t best_capacity;
+		double best_production_rate; // 每毫秒产出资源。
+		double best_capacity;
 		bool passable;
 	};
 }
