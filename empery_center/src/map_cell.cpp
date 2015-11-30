@@ -11,6 +11,7 @@
 #include "checked_arithmetic.hpp"
 #include "data/map_cell.hpp"
 #include "singletons/account_map.hpp"
+#include "data/global.hpp"
 
 namespace EmperyCenter {
 
@@ -44,10 +45,10 @@ void MapCell::pump_status(){
 	const auto ticket_item_id = get_ticket_item_id();
 	const auto production_resource_id = get_production_resource_id();
 	if(ticket_item_id && production_resource_id){
-		const auto non_best_rate_modifier     = get_config<double>("map_cell_non_best_resource_production_rate_modifier", 0.5);
-		const auto non_best_capacity_modifier = get_config<double>("map_cell_non_best_resource_capacity_modifier",        0.5);
-		const auto acc_card_rate_modifier     = get_config<double>("acceleration_card_resource_production_rate_modifier", 2.0);
-		const auto acc_card_capacity_modifier = get_config<double>("acceleration_card_resource_capacity_modifier",        2.0);
+		const auto non_best_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_PRODUCTION_RATE_MODIFIER);
+		const auto non_best_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_CAPACITY_MODIFIER);
+		const auto acc_card_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_PRODUCTION_RATE_MODIFIER);
+		const auto acc_card_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_CAPACITY_MODIFIER);
 
 		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
 		const auto production_data = Data::MapCellProduction::require(terrain_id);

@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include <poseidon/endian.hpp>
 #include "../msg/cs_mail.hpp"
 #include "../msg/sc_mail.hpp"
 #include "../msg/err_mail.hpp"
@@ -10,7 +11,7 @@
 #include "../transaction_element.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../reason_ids.hpp"
-#include <poseidon/endian.hpp>
+#include "../data/global.hpp"
 
 namespace EmperyCenter {
 
@@ -70,13 +71,13 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 	const auto language_id = LanguageId(req.language_id);
 
-	const auto default_expiry_duration = get_config<boost::uint64_t>("default_mail_expiry_duration", 604800000);
+	const auto expiry_duration = checked_mul(Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION), (boost::uint64_t)60000);
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id,
 		0, account_uuid, std::move(req.subject), std::move(req.body), boost::container::flat_map<ItemId, boost::uint64_t>());
 	MailBoxMap::insert_mail_data(mail_data);
-	to_mail_box->insert(mail_data, saturated_add(utc_now, default_expiry_duration));
+	to_mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration));
 
 	const auto to_session = PlayerSessionMap::get(to_account_uuid);
 	if(to_session){

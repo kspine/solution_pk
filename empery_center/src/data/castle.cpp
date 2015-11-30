@@ -56,9 +56,7 @@ namespace {
 
 	template<typename ElementT>
 	void read_upgrade_element(ElementT &elem, const Poseidon::CsvParser &csv){
-		boost::uint64_t minutes;
-		csv.get(minutes, "levelup_time");
-		elem.upgrade_duration = checked_mul<boost::uint64_t>(minutes, 60000);
+		csv.get(elem.upgrade_duration, "levelup_time");
 
 		std::string str;
 		csv.get(str, "need_resource", "{}");
@@ -98,8 +96,7 @@ namespace {
 		}
 
 		csv.get(elem.prosperity_points, "prosperity");
-		csv.get(minutes, "demolition");
-		elem.destruct_duration = checked_mul<boost::uint64_t>(minutes, 60000);
+		csv.get(elem.destruct_duration, "demolition");
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){
@@ -353,9 +350,7 @@ namespace {
 				throw;
 			}
 
-			boost::uint64_t minutes;
-			csv.get(minutes, "levelup_time");
-			elem.upgrade_duration = checked_mul<boost::uint64_t>(minutes, 60000);
+			csv.get(elem.upgrade_duration, "levelup_time");
 
 			csv.get(str, "need_resource", "{}");
 			try {

@@ -127,22 +127,6 @@ namespace Data {
 		}
 		return ret;
 	}
-
-	bool MapCellProduction::is_resource_producible(ResourceId resource_id){
-		PROFILE_ME;
-
-		const auto production_map = g_production_map.lock();
-		if(!production_map){
-			LOG_EMPERY_CENTER_WARNING("MapCellProductionMap has not been loaded.");
-			DEBUG_THROW(Exception, sslit("MapCellProductionMap has not been loaded"));
-		}
-
-		const auto it = production_map->find<1>(resource_id);
-		if(it == production_map->end<1>()){
-			return false;
-		}
-		return true;
-	}
 }
 
 }

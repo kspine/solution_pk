@@ -3,6 +3,8 @@
 #include <boost/container/flat_set.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/json.hpp>
+#include "../data/global.hpp"
 #include "../map_cell.hpp"
 #include "../mysql/map_cell.hpp"
 #include "../map_object.hpp"
@@ -304,8 +306,9 @@ namespace {
 		handles.push(player_view_map);
 
 		// ClusterSession
-		get_config(g_map_width,  "map_width");
-		get_config(g_map_height, "map_height");
+		const auto map_size = Data::Global::as_array(Data::Global::SLOT_MAP_SIZE);
+		g_map_width  = map_size.at(0).get<double>();
+		g_map_height = map_size.at(1).get<double>();
 		LOG_EMPERY_CENTER_DEBUG("> Map width = ", g_map_width, ", map height = ", g_map_height);
 
 		const auto cluster_map = boost::make_shared<ClusterMapDelegator>();
@@ -489,6 +492,10 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord);
+	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
+	if(it->parent_object_uuid != parent_object_uuid){
+		map_cell_map->set_key<0, 1>(it, parent_object_uuid);
+	}
 
 	synchronise_map_cell_by_coord(map_cell, coord);
 }
@@ -674,7 +681,9 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid,
 		", old_coord = ", old_coord, ", new_coord = ", new_coord,
 		", old_sector_coord = ", old_sector_coord, ", new_sector_coord = ", new_sector_coord);
-	map_object_map->set_key<0, 1>(it, new_coord);
+	if(it->coord != new_coord){
+		map_object_map->set_key<0, 1>(it, new_coord);
+	}
 	if(old_sector_it != new_sector_it){
 		if(old_sector_it != map_sector_map->end<0>()){
 			old_sector_it->map_objects.erase(map_object); // noexcept
@@ -684,6 +693,14 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 			}
 		}
 		new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
+	}
+	const auto owner_uuid = map_object->get_owner_uuid();
+	if(it->owner_uuid != owner_uuid){
+		map_object_map->set_key<0, 2>(it, owner_uuid);
+	}
+	const auto parent_object_uuid = map_object->get_parent_object_uuid();
+	if(it->parent_object_uuid != parent_object_uuid){
+		map_object_map->set_key<0, 3>(it, parent_object_uuid);
 	}
 
 	if(old_sector_coord != new_sector_coord){

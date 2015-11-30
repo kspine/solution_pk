@@ -323,7 +323,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 		{
 			const auto building_data = Data::CastleBuilding::require(building_id);
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
-			duration = upgrade_data->upgrade_duration;
+			duration = checked_mul(upgrade_data->upgrade_duration, (boost::uint64_t)60000);
 		}
 		obj->set_building_id(building_id.get());
 		obj->set_building_level(0);
@@ -334,7 +334,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 			const unsigned level = obj->get_building_level();
 			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level + 1);
-			duration = upgrade_data->upgrade_duration;
+			duration = checked_mul(upgrade_data->upgrade_duration, (boost::uint64_t)60000);
 		}
 		break;
 
@@ -343,7 +343,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 			const unsigned level = obj->get_building_level();
 			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level);
-			duration = upgrade_data->destruct_duration;
+			duration = checked_mul(upgrade_data->destruct_duration, (boost::uint64_t)60000);
 		}
 		break;
 
@@ -520,7 +520,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 		{
 			const unsigned level = obj->get_tech_level();
 			const auto tech_data = Data::CastleTech::require(TechId(obj->get_tech_id()), level + 1);
-			duration = tech_data->upgrade_duration;
+			duration = checked_mul(tech_data->upgrade_duration, (boost::uint64_t)60000);
 		}
 		break;
 

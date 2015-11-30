@@ -3,6 +3,7 @@
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
+#include <poseidon/json.hpp>
 #include "../singletons/world_map.hpp"
 #include "../utilities.hpp"
 #include "../map_object.hpp"
@@ -20,6 +21,7 @@
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 #include "../map_object_type_ids.hpp"
+#include "../data/global.hpp"
 
 namespace EmperyCenter {
 
@@ -127,9 +129,16 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
 	const auto resource_id = ResourceId(req.resource_id);
-	if(!Data::MapCellProduction::is_resource_producible(resource_id)){
-		return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
+
+	const auto &producible_resources = Data::Global::as_array(Data::Global::SLOT_PRODUCIBLE_RESOURCES);
+	for(auto it = producible_resources.begin(); it != producible_resources.end(); ++it){
+		if(resource_id == ResourceId(it->get<double>())){
+			goto _producible;
+		}
 	}
+	return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
+_producible:
+	;
 
 	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
@@ -225,8 +234,8 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
 
-	constexpr auto MAP_CELL_UPGRADE_TRADE_ID = TradeId(2804014);
-	const auto trade_data = Data::ItemTrade::require(MAP_CELL_UPGRADE_TRADE_ID);
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_UPGRADE_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
@@ -262,7 +271,8 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 		}
 	}
 	// 检测与其他城堡距离。
-	const auto min_distance = get_config<boost::uint32_t>("min_distance_between_castles", 11);
+	const boost::uint32_t min_distance = Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
+
 	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(castle_coord);
 	const auto coll_left   = std::max(castle_coord.x() - (min_distance - 1), cluster_scope.left());
 	const auto coll_bottom = std::max(castle_coord.y() - (min_distance - 1), cluster_scope.bottom());

@@ -51,18 +51,18 @@ namespace {
 		while(csv.fetch_row()){
 			Data::Item elem = { };
 
-			csv.get(elem.item_id,      "itemid");
+			csv.get(elem.item_id,    "itemid");
 
 			unsigned category = Data::Item::CAT_UNKNOWN, type = 0;
-			csv.get(category,          "class");
-			csv.get(type,              "type");
+			csv.get(category,        "class");
+			csv.get(type,            "type");
 			elem.type = std::make_pair(static_cast<Data::Item::Category>(category), type);
-			csv.get(elem.value,        "value");
+			csv.get(elem.value,      "value");
 
-			csv.get(elem.init_count,   "init_count");
+			csv.get(elem.init_count, "init_count");
 
 			std::string str;
-			csv.get(str,               "autoinc_type");
+			csv.get(str,             "autoinc_type");
 			if(::strcasecmp(str.c_str(), "none") == 0){
 				elem.auto_inc_type = Data::Item::AIT_NONE;
 			} else if(::strcasecmp(str.c_str(), "hourly") == 0){
@@ -77,13 +77,11 @@ namespace {
 				LOG_EMPERY_CENTER_WARNING("Unknown item auto increment type: ", str);
 				DEBUG_THROW(Exception, sslit("Unknown item auto increment type"));
 			}
-			boost::uint64_t minutes = 0;
-			csv.get(minutes,             "autoinc_time");
-			elem.auto_inc_offset = checked_mul<boost::uint64_t>(minutes, 60000);
-			csv.get(elem.auto_inc_step,  "autoinc_step");
-			csv.get(elem.auto_inc_bound, "autoinc_bound");
+			csv.get(elem.auto_inc_offset, "autoinc_time");
+			csv.get(elem.auto_inc_step,   "autoinc_step");
+			csv.get(elem.auto_inc_bound,  "autoinc_bound");
 
-			csv.get(elem.is_public,      "is_public");
+			csv.get(elem.is_public,       "is_public");
 
 			if(!item_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate item: item_id = ", elem.item_id);

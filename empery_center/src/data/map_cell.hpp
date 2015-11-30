@@ -22,8 +22,6 @@ namespace Data {
 		static boost::shared_ptr<const MapCellProduction> get(TerrainId terrain_id);
 		static boost::shared_ptr<const MapCellProduction> require(TerrainId terrain_id);
 
-		static bool is_resource_producible(ResourceId resource_id);
-
 	public:
 		TerrainId terrain_id;
 		ResourceId best_resource_id;

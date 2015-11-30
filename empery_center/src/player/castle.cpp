@@ -9,6 +9,7 @@
 #include "../reason_ids.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../map_cell.hpp"
+#include "../data/global.hpp"
 
 namespace EmperyCenter {
 
@@ -116,7 +117,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account_uuid, session, req){
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level + 1);
 	std::vector<ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
+		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
 		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
 				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
@@ -348,7 +349,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account_uuid, session, req){
 	const auto tech_data = Data::CastleTech::require(info.tech_id, info.tech_level + 1);
 	std::vector<ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refund_ratio = get_config<double>("castle_cancellation_refund_ratio", 0.5);
+		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
 		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
 				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
