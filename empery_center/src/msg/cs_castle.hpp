@@ -96,6 +96,12 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleQueryMapCells
+#define MESSAGE_ID      413
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

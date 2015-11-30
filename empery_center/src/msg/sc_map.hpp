@@ -28,7 +28,7 @@ namespace Msg {
 	FIELD_VUINT         (acceleration_card_applied)	\
 	FIELD_VUINT         (ticket_item_id)	\
 	FIELD_VUINT         (production_resource_id)	\
-	FIELD_VUINT         (reserved)	\
+	FIELD_VUINT         (resource_amount)	\
 	FIELD_ARRAY         (attributes,	\
 		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\

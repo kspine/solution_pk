@@ -10,6 +10,7 @@
 #include "castle.hpp"
 #include "checked_arithmetic.hpp"
 #include "data/map_cell.hpp"
+#include "singletons/account_map.hpp"
 
 namespace EmperyCenter {
 
@@ -72,12 +73,13 @@ void MapCell::pump_status(){
 		const auto old_last_production_time = m_obj->get_last_production_time();
 		const auto old_resource_amount      = m_obj->get_resource_amount();
 
-		const auto resource_produced = static_cast<boost::uint64_t>(std::round(
-			saturated_sub(utc_now, old_last_production_time) * production_rate));
-		const auto new_resource_amount = saturated_add(
-			old_resource_amount, static_cast<boost::uint64_t>(std::round(resource_produced)));
+		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
+		const auto new_resource_amount = std::min(
+			saturated_add(old_resource_amount,
+				static_cast<boost::uint64_t>(std::round(production_duration * production_rate))),
+			static_cast<boost::uint64_t>(std::round(capacity)));
 		LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
-			", terrain_id = ", terrain_id, ", resource_produced = ", resource_produced);
+			", terrain_id = ", terrain_id, ", new_resource_amount = ", new_resource_amount);
 
 		m_obj->set_last_production_time (utc_now);
 		m_obj->set_resource_amount      (new_resource_amount);
@@ -94,14 +96,20 @@ void MapCell::synchronize_with_client(const boost::shared_ptr<PlayerSession> &se
 		msg.y                         = get_coord().y();
 		session->send(msg);
 	} else {
+		const auto owner_uuid = get_owner_uuid();
+		if(owner_uuid){
+			AccountMap::combined_send_attributes_to_client(owner_uuid, session);
+		}
+
 		Msg::SC_MapCellInfo msg;
 		msg.x                         = get_coord().x();
 		msg.y                         = get_coord().y();
 		msg.parent_object_uuid        = parent_object_uuid.str();
-		msg.owner_uuid                = get_owner_uuid().str();
+		msg.owner_uuid                = owner_uuid.str();
 		msg.acceleration_card_applied = is_acceleration_card_applied();
 		msg.ticket_item_id            = get_ticket_item_id().get();
 		msg.production_resource_id    = get_production_resource_id().get();
+		msg.resource_amount           = get_resource_amount();
 		msg.attributes.reserve(m_attributes.size());
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 			msg.attributes.emplace_back();

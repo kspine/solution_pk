@@ -5,6 +5,7 @@
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
 #include "msg/sc_map.hpp"
+#include "singletons/account_map.hpp"
 
 namespace EmperyCenter {
 
@@ -44,10 +45,15 @@ void MapObject::synchronize_with_client(const boost::shared_ptr<PlayerSession> &
 		msg.object_uuid        = get_map_object_uuid().str();
 		session->send(msg);
 	} else {
+		const auto owner_uuid = get_owner_uuid();
+		if(owner_uuid){
+			AccountMap::combined_send_attributes_to_client(owner_uuid, session);
+		}
+
 		Msg::SC_MapObjectInfo msg;
 		msg.object_uuid        = get_map_object_uuid().str();
 		msg.object_type_id     = get_map_object_type_id().get();
-		msg.owner_uuid         = get_owner_uuid().str();
+		msg.owner_uuid         = owner_uuid.str();
 		msg.parent_object_uuid = get_parent_object_uuid().str();
 		msg.name               = get_name();
 		msg.x                  = get_coord().x();

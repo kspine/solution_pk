@@ -144,6 +144,12 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
 	if(!castle){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
 	}
+	const auto coord = Coord(req.x, req.y);
+	const auto cell_cluster_scope   = WorldMap::get_cluster_scope_by_coord(coord);
+	const auto castle_cluster_scope = WorldMap::get_cluster_scope_by_coord(castle->get_coord());
+	if(cell_cluster_scope.bottom_left() != castle_cluster_scope.bottom_left()){
+		return Response(Msg::ERR_NOT_ON_THE_SAME_MAP_SERVER);
+	}
 	std::vector<Castle::BuildingBaseInfo> primary_buildings;
 	castle->get_buildings_by_id(primary_buildings, BuildingIds::ID_PRIMARY);
 	if(primary_buildings.empty()){
@@ -158,7 +164,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
 	if(current_cell_count >= updrade_data->max_map_cell_count){
 		return Response(Msg::ERR_TOO_MANY_MAP_CELLS) <<current_cell_count;
 	}
-	const auto coord = Coord(req.x, req.y);
 	const auto distance = get_distance_of_coords(coord, castle->get_coord());
 	if(distance > updrade_data->max_map_cell_distance){
 		return Response(Msg::ERR_MAP_CELL_IS_TOO_FAR_AWAY) <<distance;
@@ -254,6 +259,26 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 		const auto &coord = *it;
 		if(false){ // TODO check
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
+		}
+	}
+	// 检测与其他城堡距离。
+	const auto min_distance = get_config<boost::uint32_t>("min_distance_between_castles", 11);
+	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(castle_coord);
+	const auto coll_left   = std::max(castle_coord.x() - (min_distance - 1), cluster_scope.left());
+	const auto coll_bottom = std::max(castle_coord.y() - (min_distance - 1), cluster_scope.bottom());
+	const auto coll_right  = std::min(castle_coord.x() + (min_distance + 2), cluster_scope.right());
+	const auto coll_top    = std::max(castle_coord.y() + (min_distance + 2), cluster_scope.top());
+	boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> coll_map_objects;
+	WorldMap::get_map_objects_by_rectangle(coll_map_objects, Rectangle(Coord(coll_left, coll_bottom), Coord(coll_right, coll_top)));
+	for(auto it = coll_map_objects.begin(); it != coll_map_objects.end(); ++it){
+		const auto &coord        = it->first;
+		const auto &other_object = it->second;
+		if(other_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		const auto distance = get_distance_of_coords(coord, castle_coord);
+		if(distance <= min_distance){
+			return Response(Msg::ERR_TOO_CLOSE_TO_ANOTHER_CASTLE) <<other_object->get_map_object_uuid();
 		}
 	}
 
