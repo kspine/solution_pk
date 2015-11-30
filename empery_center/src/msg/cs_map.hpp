@@ -59,6 +59,13 @@ namespace Msg {
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapDeployImmigrants
+#define MESSAGE_ID      306
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_STRING        (castle_name)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
