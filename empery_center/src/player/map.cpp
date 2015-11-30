@@ -276,6 +276,7 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 		if(other_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
+		LOG_EMPERY_CENTER_DEBUG("Checking distance: coord = ", coord, ", map_object_uuid = ", other_object->get_map_object_uuid());
 		const auto distance = get_distance_of_coords(coord, castle_coord);
 		if(distance <= min_distance){
 			return Response(Msg::ERR_TOO_CLOSE_TO_ANOTHER_CASTLE) <<other_object->get_map_object_uuid();
