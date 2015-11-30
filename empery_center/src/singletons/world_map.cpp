@@ -462,6 +462,8 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 
 	LOG_EMPERY_CENTER_DEBUG("Inserting map cell: coord = ", coord);
 	map_cell_map->insert(MapCellElement(map_cell));
+
+	synchronise_map_cell_by_coord(map_cell, coord);
 }
 void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists){
 	PROFILE_ME;

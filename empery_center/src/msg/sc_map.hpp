@@ -59,6 +59,13 @@ namespace Msg {
 	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapCellRemoved
+#define MESSAGE_ID      395
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

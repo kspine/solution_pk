@@ -2,6 +2,7 @@
 #include "castle.hpp"
 #include "transaction_element.hpp"
 #include "map_object.hpp"
+#include "map_object_type_ids.hpp"
 #include "mysql/castle.hpp"
 #include "msg/sc_castle.hpp"
 #include "singletons/player_session_map.hpp"
@@ -157,9 +158,10 @@ namespace {
 	}
 }
 
-Castle::Castle(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+Castle::Castle(MapObjectUuid map_object_uuid,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
-	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord)
+	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
+		owner_uuid, parent_object_uuid, std::move(name), coord)
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,

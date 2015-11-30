@@ -87,22 +87,30 @@ void MapCell::pump_status(){
 void MapCell::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	Msg::SC_MapCellInfo msg;
-	msg.x                         = get_coord().x();
-	msg.y                         = get_coord().y();
-	msg.parent_object_uuid        = get_parent_object_uuid().str();
-	msg.owner_uuid                = get_owner_uuid().str();
-	msg.acceleration_card_applied = is_acceleration_card_applied();
-	msg.ticket_item_id            = get_ticket_item_id().get();
-	msg.production_resource_id    = get_production_resource_id().get();
-	msg.attributes.reserve(m_attributes.size());
-	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		msg.attributes.emplace_back();
-		auto &attribute = msg.attributes.back();
-		attribute.attribute_id = it->first.get();
-		attribute.value        = it->second->get_value();
+	const auto parent_object_uuid = get_parent_object_uuid();
+	if(!parent_object_uuid){
+		Msg::SC_MapCellRemoved msg;
+		msg.x                         = get_coord().x();
+		msg.y                         = get_coord().y();
+		session->send(msg);
+	} else {
+		Msg::SC_MapCellInfo msg;
+		msg.x                         = get_coord().x();
+		msg.y                         = get_coord().y();
+		msg.parent_object_uuid        = parent_object_uuid.str();
+		msg.owner_uuid                = get_owner_uuid().str();
+		msg.acceleration_card_applied = is_acceleration_card_applied();
+		msg.ticket_item_id            = get_ticket_item_id().get();
+		msg.production_resource_id    = get_production_resource_id().get();
+		msg.attributes.reserve(m_attributes.size());
+		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+			msg.attributes.emplace_back();
+			auto &attribute = msg.attributes.back();
+			attribute.attribute_id = it->first.get();
+			attribute.value        = it->second->get_value();
+		}
+		session->send(msg);
 	}
-	session->send(msg);
 }
 
 Coord MapCell::get_coord() const {

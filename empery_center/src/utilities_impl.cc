@@ -100,6 +100,22 @@ void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, boost::uint64
 	}
 }
 
+void get_castle_foundation(std::vector<Coord> &ret, Coord origin){
+	PROFILE_ME;
+
+	static constexpr boost::array<boost::array<Coord, 8>, 2> castle_foundation_table = {{
+		{{ {-1, 1}, {0, 1}, {1, 1}, {2, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0} }},
+		{{ { 0, 1}, {1, 1}, {2, 1}, {2, 0}, {2, -1}, {1, -1}, { 0, -1}, {-1, 0} }},
+	}};
+
+	const bool in_odd_row = origin.y() & 1;
+	const auto &table = castle_foundation_table.at(in_odd_row);
+	ret.reserve(ret.size() + table.size());
+	for(auto it = table.begin(); it != table.end(); ++it){
+		ret.emplace_back(origin.x() + it->x(), origin.y() + it->y());
+	}
+}
+
 }
 
 #undef EMPERY_CENTER_UTILITIES_NAMESPACE_

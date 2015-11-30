@@ -38,22 +38,29 @@ void MapObject::pump_status(){
 void MapObject::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	Msg::SC_MapObjectInfo msg;
-	msg.object_uuid        = get_map_object_uuid().str();
-	msg.object_type_id     = get_map_object_type_id().get();
-	msg.owner_uuid         = get_owner_uuid().str();
-	msg.parent_object_uuid = get_parent_object_uuid().str();
-	msg.name               = get_name();
-	msg.x                  = get_coord().x();
-	msg.y                  = get_coord().y();
-	msg.attributes.reserve(m_attributes.size());
-	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		msg.attributes.emplace_back();
-		auto &attribute = msg.attributes.back();
-		attribute.attribute_id = it->first.get();
-		attribute.value        = it->second->get_value();
+	const bool deleted = has_been_deleted();
+	if(deleted){
+		Msg::SC_MapObjectRemoved msg;
+		msg.object_uuid        = get_map_object_uuid().str();
+		session->send(msg);
+	} else {
+		Msg::SC_MapObjectInfo msg;
+		msg.object_uuid        = get_map_object_uuid().str();
+		msg.object_type_id     = get_map_object_type_id().get();
+		msg.owner_uuid         = get_owner_uuid().str();
+		msg.parent_object_uuid = get_parent_object_uuid().str();
+		msg.name               = get_name();
+		msg.x                  = get_coord().x();
+		msg.y                  = get_coord().y();
+		msg.attributes.reserve(m_attributes.size());
+		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+			msg.attributes.emplace_back();
+			auto &attribute = msg.attributes.back();
+			attribute.attribute_id = it->first.get();
+			attribute.value        = it->second->get_value();
+		}
+		session->send(msg);
 	}
-	session->send(msg);
 }
 
 MapObjectUuid MapObject::get_map_object_uuid() const {
@@ -133,9 +140,7 @@ void MapObject::delete_from_game() noexcept {
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
-			Msg::SC_MapObjectRemoved msg;
-			msg.object_uuid = get_map_object_uuid().str();
-			session->send(msg);
+			synchronize_with_client(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());

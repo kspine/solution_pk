@@ -19,6 +19,7 @@
 #include "../item_box.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
+#include "../map_object_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -63,7 +64,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	if(map_object->get_owner_uuid() != account_uuid){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
-	const auto map_object_type_data = Data::MapObjectType::require(map_object->get_map_object_type_id());
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
 	const auto ms_per_cell = 1000u; // FIXME   map_object_type_data->ms_per_cell;
 	if(ms_per_cell == 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_data->map_object_type_id;
@@ -137,9 +139,10 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
 	if(map_object->get_owner_uuid() != account_uuid){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 	if(!castle){
-		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object->get_map_object_type_id();
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
 	}
 	std::vector<Castle::BuildingBaseInfo> primary_buildings;
 	castle->get_buildings_by_id(primary_buildings, BuildingIds::ID_PRIMARY);
@@ -226,6 +229,41 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account_uuid){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	if(map_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_IMMIGRANTS) <<map_object_type_id;
+	}
+
+	const auto castle_coord = map_object->get_coord();
+	std::vector<Coord> foundation;
+	get_castle_foundation(foundation, castle_coord);
+	for(auto it = foundation.begin(); it != foundation.end(); ++it){
+		const auto &coord = *it;
+		if(false){ // TODO check
+			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
+		}
+	}
+
+	const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
+	const auto castle = boost::make_shared<Castle>(castle_uuid,
+		account_uuid, map_object->get_parent_object_uuid(), std::move(req.castle_name), castle_coord);
+	castle->pump_status();
+	WorldMap::insert_map_object(castle);
+	LOG_EMPERY_CENTER_INFO("Created castle: castle_uuid = ", castle_uuid, ", account_uuid = ", account_uuid);
+	map_object->delete_from_game(); // noexcept
 
 	return Response();
 }
