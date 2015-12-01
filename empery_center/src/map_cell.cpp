@@ -38,7 +38,14 @@ MapCell::~MapCell(){
 void MapCell::pump_status(){
 	PROFILE_ME;
 
-	const auto terrain_id = TerrainId(1602001); // TODO terrain id
+	const auto coord = get_coord();
+	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(coord);
+	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+	const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope, ", map_x = ", map_x, ", map_y = ", map_y);
+	const auto terrain_data = Data::MapCellTerrain::require(map_x, map_y);
+	const auto terrain_id = terrain_data->terrain_id;
+
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const bool acc_card_applied = m_obj->get_acceleration_card_applied();

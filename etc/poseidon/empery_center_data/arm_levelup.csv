@@ -1,0 +1,5 @@
+锘縜rm_id,arm,max_level,force_Levelup,attack_levelup,defence_levelup,speed_levelup,shoot_range_levelup,telent_id,telent_levelup,food_levelup,wood_levelup,stone_levelup,gold_levelup
+1201001,闀挎灙,5,{1:100},{1:10},{1:5},{1:0},{1:0},0,{},{4:0},{4:0},{4:0},{4:0}
+1202001,杞婚獞,5,{1:100},{1:13},{1:5},{1:0},{1:0},0,{},{4:0},{4:0},{4:0},{4:0}
+1203001,杞诲紦,5,{1:100},{1:12},{1:3},{1:0},{1:0},0,{},{4:0},{4:0},{4:0},{4:0}
+1201002,鍒

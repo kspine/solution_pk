@@ -6,12 +6,13 @@
 namespace EmperyCenter {
 
 namespace Data {
-	class MapCell {
+	class MapCellTerrain {
 	public:
-		static boost::shared_ptr<const MapCell> get(boost::uint32_t map_x, boost::uint32_t map_y);
-		static boost::shared_ptr<const MapCell> require(boost::uint32_t map_x, boost::uint32_t map_y);
+		static boost::shared_ptr<const MapCellTerrain> get(unsigned map_x, unsigned map_y);
+		static boost::shared_ptr<const MapCellTerrain> require(unsigned map_x, unsigned map_y);
 
 	public:
+		std::pair<unsigned, unsigned> map_coord;
 		TerrainId terrain_id;
 	};
 

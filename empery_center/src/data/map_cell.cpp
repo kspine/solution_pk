@@ -8,6 +8,12 @@
 namespace EmperyCenter {
 
 namespace {
+	MULTI_INDEX_MAP(TerrainMap, Data::MapCellTerrain,
+		UNIQUE_MEMBER_INDEX(map_coord)
+	)
+	boost::weak_ptr<const TerrainMap> g_terrain_map;
+	const char TERRAIN_FILE[] = "map";
+
 	MULTI_INDEX_MAP(TicketMap, Data::MapCellTicket,
 		UNIQUE_MEMBER_INDEX(ticket_item_id)
 	)
@@ -26,6 +32,37 @@ namespace {
 
 		Poseidon::CsvParser csv;
 		std::string path;
+
+		const auto terrain_map = boost::make_shared<TerrainMap>();
+		path = data_directory + "/" + TERRAIN_FILE + ".csv";
+		LOG_EMPERY_CENTER_INFO("Loading map terrain: path = ", path);
+		csv.load(path.c_str());
+		while(csv.fetch_row()){
+			Data::MapCellTerrain elem = { };
+
+			std::string str;
+			csv.get(str,             "coord");
+			try {
+				std::istringstream iss(str);
+				const auto root = Poseidon::JsonParser::parse_array(iss);
+				const unsigned x = root.at(0).get<double>();
+				const unsigned y = root.at(1).get<double>();
+				elem.map_coord = std::make_pair(x, y);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", str = ", str);
+				throw;
+			}
+
+			csv.get(elem.terrain_id, "territory_id");
+
+			if(!terrain_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellTerrain: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);
+				DEBUG_THROW(Exception, sslit("Duplicate MapCellTerrain"));
+			}
+		}
+		g_terrain_map = terrain_map;
+		handles.push(DataSession::create_servlet(TERRAIN_FILE, serialize_csv(csv, "coord")));
+		handles.push(terrain_map);
 
 		const auto ticket_map = boost::make_shared<TicketMap>();
 		path = data_directory + "/" + TICKET_FILE + ".csv";
@@ -76,6 +113,32 @@ namespace {
 }
 
 namespace Data {
+	boost::shared_ptr<const MapCellTerrain> MapCellTerrain::get(unsigned map_x, unsigned map_y){
+		PROFILE_ME;
+
+		const auto terrain_map = g_terrain_map.lock();
+		if(!terrain_map){
+			LOG_EMPERY_CENTER_WARNING("MapCellTerrainMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = terrain_map->find<0>(std::make_pair(map_x, map_y));
+		if(it == terrain_map->end<0>()){
+			LOG_EMPERY_CENTER_DEBUG("MapCellterrain not found: map_x = ", map_x, ", map_y = ", map_y);
+			return { };
+		}
+		return boost::shared_ptr<const MapCellTerrain>(terrain_map, &*it);
+	}
+	boost::shared_ptr<const MapCellTerrain> MapCellTerrain::require(unsigned map_x, unsigned map_y){
+		PROFILE_ME;
+
+		auto ret = get(map_x, map_y);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("MapCellTerrain not found"));
+		}
+		return ret;
+	}
+
 	boost::shared_ptr<const MapCellTicket> MapCellTicket::get(ItemId ticket_item_id){
 		PROFILE_ME;
 
