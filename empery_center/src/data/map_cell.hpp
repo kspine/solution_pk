@@ -6,10 +6,10 @@
 namespace EmperyCenter {
 
 namespace Data {
-	class MapCellTerrain {
+	class MapCellBasic {
 	public:
-		static boost::shared_ptr<const MapCellTerrain> get(unsigned map_x, unsigned map_y);
-		static boost::shared_ptr<const MapCellTerrain> require(unsigned map_x, unsigned map_y);
+		static boost::shared_ptr<const MapCellBasic> get(unsigned map_x, unsigned map_y);
+		static boost::shared_ptr<const MapCellBasic> require(unsigned map_x, unsigned map_y);
 
 	public:
 		std::pair<unsigned, unsigned> map_coord;
@@ -27,10 +27,10 @@ namespace Data {
 		double capacity_modifier;
 	};
 
-	class MapCellProduction {
+	class MapCellTerrain {
 	public:
-		static boost::shared_ptr<const MapCellProduction> get(TerrainId terrain_id);
-		static boost::shared_ptr<const MapCellProduction> require(TerrainId terrain_id);
+		static boost::shared_ptr<const MapCellTerrain> get(TerrainId terrain_id);
+		static boost::shared_ptr<const MapCellTerrain> require(TerrainId terrain_id);
 
 	public:
 		TerrainId terrain_id;

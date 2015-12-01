@@ -266,12 +266,19 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 	get_castle_foundation(foundation, castle_coord);
 	for(auto it = foundation.begin(); it != foundation.end(); ++it){
 		const auto &coord = *it;
-		if(false){ // TODO check
+		const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(coord);
+		const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+		const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+		LOG_EMPERY_CENTER_DEBUG("Castle foundation: coord = ", coord, ", cluster_scope = ", cluster_scope,
+			", map_x = ", map_x, ", map_y = ", map_y);
+		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+		const auto terrain_data = Data::MapCellTerrain::require(cell_data->terrain_id);
+		if(!terrain_data->passable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
 		}
 	}
 	// 检测与其他城堡距离。
-	const boost::uint32_t min_distance = Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
+	const auto min_distance = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
 
 	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(castle_coord);
 	const auto coll_left   = std::max(castle_coord.x() - (min_distance - 1), cluster_scope.left());

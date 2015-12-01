@@ -10,6 +10,10 @@
 #include "../map_object_type_ids.hpp"
 #include "../map_cell.hpp"
 #include "../data/global.hpp"
+#include "../singletons/item_box_map.hpp"
+#include "../item_box.hpp"
+#include "../data/item.hpp"
+#include "../msg/err_item.hpp"
 
 namespace EmperyCenter {
 
@@ -235,8 +239,21 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account_uuid, session,
 		return Response(Msg::ERR_NO_BUILDING_MISSION) <<building_base_id;
 	}
 
-	// TODO 计算消耗。
-	castle->speed_up_building_mission(building_base_id, UINT64_MAX);
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	std::vector<ItemTransactionElement> transaction;
+
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_BUILDING_IMMEDIATE_UPGRADE_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
+	const auto trade_count = static_cast<boost::uint64_t>(std::ceil(time_remaining / 60000.0));
+	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{ castle->speed_up_building_mission(building_base_id, UINT64_MAX); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
 
 	return Response();
 }
@@ -380,8 +397,21 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account_uuid, session, req
 		return Response(Msg::ERR_NO_TECH_MISSION) <<tech_id;
 	}
 
-	// TODO 计算消耗。
-	castle->speed_up_tech_mission(tech_id, UINT64_MAX);
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	std::vector<ItemTransactionElement> transaction;
+
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_TECH_IMMEDIATE_UPGRADE_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
+	const auto trade_count = static_cast<boost::uint64_t>(std::ceil(time_remaining / 60000.0));
+	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{ castle->speed_up_tech_mission(tech_id, UINT64_MAX); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
 
 	return Response();
 }

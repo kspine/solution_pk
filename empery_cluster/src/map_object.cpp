@@ -111,6 +111,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 		}
 		if(m_attack_target_uuid){
 			const auto target = WorldMap::get_map_object(m_attack_target_uuid);
+			boost::uint64_t delay = 100;
 			if(!target){
 				LOG_EMPERY_CLUSTER_DEBUG("Lost target: map_object_uuid = ", map_object_uuid, ", attack_target_uuid = ", m_attack_target_uuid);
 				m_attack_target_uuid = MapObjectUuid();
@@ -120,7 +121,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 				m_attack_target_uuid = { };
 			}
 
-			m_next_action_time = saturated_add(m_next_action_time, (boost::uint64_t)1000); // TODO
+			m_next_action_time = saturated_add(m_next_action_time, delay);
 			goto _check_loop;
 		}
 

@@ -42,9 +42,10 @@ void MapCell::pump_status(){
 	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(coord);
 	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
 	const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
-	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope, ", map_x = ", map_x, ", map_y = ", map_y);
-	const auto terrain_data = Data::MapCellTerrain::require(map_x, map_y);
-	const auto terrain_id = terrain_data->terrain_id;
+	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope,
+		", map_x = ", map_x, ", map_y = ", map_y);
+	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+	const auto terrain_id = cell_data->terrain_id;
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -58,7 +59,7 @@ void MapCell::pump_status(){
 		const auto acc_card_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_CAPACITY_MODIFIER);
 
 		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
-		const auto production_data = Data::MapCellProduction::require(terrain_id);
+		const auto production_data = Data::MapCellTerrain::require(terrain_id);
 		double production_rate     = production_data->best_production_rate;
 		double capacity            = production_data->best_capacity;
 		if(production_resource_id != production_data->best_resource_id){
