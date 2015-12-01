@@ -104,8 +104,8 @@ void get_castle_foundation(std::vector<Coord> &ret, Coord origin){
 	PROFILE_ME;
 
 	static constexpr boost::array<boost::array<Coord, 8>, 2> castle_foundation_table = {{
-		{{ {-1, 1}, {0, 1}, {1, 1}, {2, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0} }},
-		{{ { 0, 1}, {1, 1}, {2, 1}, {2, 0}, {2, -1}, {1, -1}, { 0, -1}, {-1, 0} }},
+		{{ {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {2, 0}, {1, 1}, {0, 1}, {-1, 1} }},
+		{{ {-1, 0}, { 0, -1}, {1, -1}, {2, -1}, {2, 0}, {2, 1}, {1, 1}, { 0, 1} }},
 	}};
 
 	const bool in_odd_row = origin.y() & 1;
