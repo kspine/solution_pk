@@ -32,6 +32,14 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account_uuid, session, req){
 	castle->pump_status();
 	castle->synchronize_with_client(session);
 
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		map_object->pump_status();
+		map_object->synchronize_with_client(session);
+	}
+
 	return Response();
 }
 
@@ -564,39 +572,6 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
-	}
-
-	return Response();
-}
-
-PLAYER_SERVLET(Msg::CS_CastleQueryChildren, account_uuid, session, req){
-	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
-	}
-	if(castle->get_owner_uuid() != account_uuid){
-		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
-	}
-
-	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
-	for(auto it = map_objects.begin(); it != map_objects.end(); ){
-		const auto &child = *it;
-		const auto child_type_id = child->get_map_object_type_id();
-		if(child_type_id == MapObjectTypeIds::ID_CASTLE){
-			it = map_objects.erase(it);
-		} else {
-			++it;
-		}
-	}
-	if(map_objects.empty()){
-		return Response(Msg::ERR_CASTLE_HAS_NO_CHILDREN) <<map_object_uuid;
-	}
-	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-		const auto &map_object = *it;
-		map_object->pump_status();
-		map_object->synchronize_with_client(session);
 	}
 
 	return Response();
