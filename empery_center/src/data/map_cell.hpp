@@ -6,6 +6,15 @@
 namespace EmperyCenter {
 
 namespace Data {
+	class MapCell {
+	public:
+		static boost::shared_ptr<const MapCell> get(boost::uint32_t map_x, boost::uint32_t map_y);
+		static boost::shared_ptr<const MapCell> require(boost::uint32_t map_x, boost::uint32_t map_y);
+
+	public:
+		TerrainId terrain_id;
+	};
+
 	class MapCellTicket {
 	public:
 		static boost::shared_ptr<const MapCellTicket> get(ItemId ticket_item_id);

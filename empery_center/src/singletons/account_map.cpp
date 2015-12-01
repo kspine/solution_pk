@@ -512,8 +512,12 @@ void AccountMap::combined_send_attributes_to_client(AccountUuid account_uuid, co
 		LOG_EMPERY_CENTER_DEBUG("Cache hit: account_uuid = ", account_uuid);
 		return;
 	}
+
 	send_attributes_to_client(account_uuid, session, true, true, false, true);
-	g_info_timestamp_map->insert(InfoTimestampElement(now + cache_timeout, account_uuid, session));
+
+	if(cache_timeout != 0){
+		g_info_timestamp_map->insert(InfoTimestampElement(saturated_add(now, cache_timeout), account_uuid, session));
+	}
 }
 
 }
