@@ -163,9 +163,10 @@ _producible:
 	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: castle_level = ", castle_level,
 		", max_map_cell_count = ", updrade_data->max_map_cell_count, ", max_map_cell_distance = ", updrade_data->max_map_cell_distance);
 
-	const auto current_cell_count = WorldMap::count_map_cells_by_parent_object(castle->get_map_object_uuid());
-	if(current_cell_count >= updrade_data->max_map_cell_count){
-		return Response(Msg::ERR_TOO_MANY_MAP_CELLS) <<current_cell_count;
+	std::vector<boost::shared_ptr<MapCell>> current_cells;
+	WorldMap::get_map_cells_by_parent_object(current_cells, parent_object_uuid);
+	if(current_cells.size() >= updrade_data->max_map_cell_count){
+		return Response(Msg::ERR_TOO_MANY_MAP_CELLS) <<current_cells.size();
 	}
 	const auto distance = get_distance_of_coords(coord, castle->get_coord());
 	if(distance > updrade_data->max_map_cell_distance){
