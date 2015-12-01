@@ -142,16 +142,6 @@ void MapObject::delete_from_game() noexcept {
 	m_obj->set_deleted(true);
 
 	WorldMap::remove_map_object(get_map_object_uuid());
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_client(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 boost::int64_t MapObject::get_attribute(AttributeId attribute_id) const {

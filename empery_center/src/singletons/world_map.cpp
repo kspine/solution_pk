@@ -4,6 +4,7 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/json.hpp>
+#include "player_session_map.hpp"
 #include "../data/global.hpp"
 #include "../map_cell.hpp"
 #include "../mysql/map_cell.hpp"
@@ -615,6 +616,16 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 	map_object_map->insert(MapObjectElement(map_object));
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
+	const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
+	if(session){
+		try {
+			synchronize_map_object_with_client(map_object, session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+
 	synchronize_map_object_in_sector(map_object, new_sector_coord);
 
 	const auto new_cluster = get_cluster(new_coord);
@@ -703,6 +714,16 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		map_object_map->set_key<0, 3>(it, parent_object_uuid);
 	}
 
+	const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
+	if(session){
+		try {
+			synchronize_map_object_with_client(map_object, session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+
 	if(old_sector_coord != new_sector_coord){
 		synchronize_map_object_in_sector(map_object, old_sector_coord);
 	}
@@ -765,6 +786,16 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 		if(old_sector_it->map_objects.empty()){
 			map_sector_map->erase<0>(old_sector_it);
 			LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
+		}
+	}
+
+	const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
+	if(session){
+		try {
+			synchronize_map_object_with_client(map_object, session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
 		}
 	}
 

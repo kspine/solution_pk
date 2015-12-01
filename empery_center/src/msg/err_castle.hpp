@@ -32,6 +32,7 @@ namespace Msg {
 		ERR_CASTLE_LEVEL_TOO_LOW            = 71421,
 		ERR_MAX_NUMBER_OF_IMMIGRANT_GROUPS  = 71422,
 		ERR_NO_ROOM_FOR_NEW_UNIT            = 71423,
+		ERR_CASTLE_HAS_NO_CHILDREN          = 71424,
 	};
 }
 
