@@ -14,6 +14,8 @@
 #include "../item_box.hpp"
 #include "../data/item.hpp"
 #include "../msg/err_item.hpp"
+#include "../building_ids.hpp"
+#include "../utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -242,12 +244,12 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account_uuid, session,
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
-	std::vector<ItemTransactionElement> transaction;
 
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_BUILDING_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto trade_count = static_cast<boost::uint64_t>(std::ceil(time_remaining / 60000.0));
+	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
 		[&]{ castle->speed_up_building_mission(building_base_id, UINT64_MAX); });
@@ -400,12 +402,12 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account_uuid, session, req
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
-	std::vector<ItemTransactionElement> transaction;
 
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_TECH_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto trade_count = static_cast<boost::uint64_t>(std::ceil(time_remaining / 60000.0));
+	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
 		[&]{ castle->speed_up_tech_mission(tech_id, UINT64_MAX); });
@@ -490,6 +492,78 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account_uuid, session, req){
 		const auto &map_cell = *it;
 		map_cell->pump_status();
 		map_cell->synchronize_with_client(session);
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account_uuid){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto castle_level = castle->get_level();
+	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+	if(upgrade_data->max_immigrant_group_count == 0){
+		return Response(Msg::ERR_CASTLE_LEVEL_TOO_LOW);
+	}
+
+	std::size_t immigrant_group_count = 0;
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child = *it;
+		const auto child_type = child->get_map_object_type_id();
+		if((child_type != MapObjectTypeIds::ID_CASTLE) && (child_type != MapObjectTypeIds::ID_IMMIGRANTS)){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("Found child castle or immigrant group: map_object_uuid = ", map_object_uuid,
+			", child_object_uuid = ", child->get_map_object_uuid(), ", child_type = ", child_type);
+		++immigrant_group_count;
+	}
+	if(immigrant_group_count >= upgrade_data->max_immigrant_group_count){
+		return Response(Msg::ERR_MAX_NUMBER_OF_IMMIGRANT_GROUPS);
+	}
+
+	std::vector<Coord> foundation;
+	get_castle_foundation(foundation, castle->get_coord());
+	for(;;){
+		if(foundation.empty()){
+			return Response(Msg::ERR_NO_ROOM_FOR_NEW_UNIT);
+		}
+		const auto &coord = foundation.front();
+		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> test_objects;
+		WorldMap::get_map_objects_by_rectangle(test_objects, Rectangle(coord, 1, 1));
+		if(test_objects.empty()){
+			LOG_EMPERY_CENTER_DEBUG("Found coord for immigrant: coord = ", coord);
+			break;
+		}
+		foundation.erase(foundation.begin());
+	}
+	const auto &coord = foundation.front();
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+
+	std::vector<ItemTransactionElement> transaction;
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_IMMIGRANT_CREATION_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+		[&]{
+			const auto immigrants_uuid = MapObjectUuid(Poseidon::Uuid::random());
+			const auto immigrants = boost::make_shared<MapObject>(immigrants_uuid, MapObjectTypeIds::ID_IMMIGRANTS,
+				account_uuid, map_object_uuid, std::string(), coord);
+			immigrants->pump_status();
+			WorldMap::insert_map_object(immigrants);
+			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid, ", account_uuid = ", account_uuid);
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
 
 	return Response();

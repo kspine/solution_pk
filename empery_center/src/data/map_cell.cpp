@@ -91,15 +91,16 @@ namespace {
 		while(csv.fetch_row()){
 			Data::MapCellTerrain elem = { };
 
-			csv.get(elem.terrain_id,           "territory_id");
-			csv.get(elem.best_resource_id,     "production");
+			csv.get(elem.terrain_id,       "territory_id");
+			csv.get(elem.best_resource_id, "production");
 
 			boost::uint64_t rate = 0;
-			csv.get(rate,                      "output_perminute");
+			csv.get(rate,                  "output_perminute");
 			elem.best_production_rate = rate / 60000.0;
 
-			csv.get(elem.best_capacity,        "resource_max");
-			csv.get(elem.passable,             "mobile");
+			csv.get(elem.best_capacity,    "resource_max");
+			csv.get(elem.passable,         "mobile");
+			csv.get(elem.buildable,        "construction");
 
 			if(!terrain_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellTerrain: terrain_id = ", elem.terrain_id);

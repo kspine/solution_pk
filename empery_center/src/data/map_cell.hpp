@@ -38,6 +38,7 @@ namespace Data {
 		double best_production_rate; // 每毫秒产出资源。
 		double best_capacity;
 		bool passable;
+		bool buildable;
 	};
 }
 

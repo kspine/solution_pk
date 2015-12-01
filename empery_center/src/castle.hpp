@@ -58,6 +58,7 @@ private:
 		boost::shared_ptr<MySql::Center_CastleTech>> m_techs;
 	boost::container::flat_map<ResourceId,
 		boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
+	bool m_locked_by_transaction;
 
 public:
 	Castle(MapObjectUuid map_object_uuid,
@@ -85,6 +86,8 @@ public:
 
 	void pump_building_status(BuildingBaseId building_base_id);
 	void synchronize_building_with_client(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
+
+	unsigned get_level() const;
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;

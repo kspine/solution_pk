@@ -12,7 +12,6 @@
 #include "../data/map_object_type.hpp"
 #include "../map_cell.hpp"
 #include "../castle.hpp"
-#include "../building_ids.hpp"
 #include "../data/castle.hpp"
 #include "../data/map_cell.hpp"
 #include "../data/item.hpp"
@@ -159,14 +158,9 @@ _producible:
 	if(cell_cluster_scope.bottom_left() != castle_cluster_scope.bottom_left()){
 		return Response(Msg::ERR_NOT_ON_THE_SAME_MAP_SERVER);
 	}
-	std::vector<Castle::BuildingBaseInfo> primary_buildings;
-	castle->get_buildings_by_id(primary_buildings, BuildingIds::ID_PRIMARY);
-	if(primary_buildings.empty()){
-		LOG_EMPERY_CENTER_ERROR("No primary buildign in castle? map_object_uuid = ", castle->get_map_object_uuid());
-		DEBUG_THROW(Exception, sslit("No primary buildign in castle"));
-	}
-	const auto updrade_data = Data::CastleUpgradePrimary::require(primary_buildings.front().building_level);
-	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: building_level = ", updrade_data->building_level,
+	const auto castle_level = castle->get_level();
+	const auto updrade_data = Data::CastleUpgradePrimary::require(castle_level);
+	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: castle_level = ", castle_level,
 		", max_map_cell_count = ", updrade_data->max_map_cell_count, ", max_map_cell_distance = ", updrade_data->max_map_cell_distance);
 
 	const auto current_cell_count = WorldMap::count_map_cells_by_parent_object(castle->get_map_object_uuid());
@@ -273,7 +267,7 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 			", map_x = ", map_x, ", map_y = ", map_y);
 		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
 		const auto terrain_data = Data::MapCellTerrain::require(cell_data->terrain_id);
-		if(!terrain_data->passable){
+		if(!terrain_data->buildable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
 		}
 	}

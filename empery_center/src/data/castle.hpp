@@ -57,9 +57,6 @@ namespace Data {
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		boost::uint64_t prosperity_points;
 		boost::uint64_t destruct_duration;
-
-	protected:
-		CastleUpgradeAbstract() = default;
 	};
 
 	class CastleUpgradePrimary : public CastleUpgradeAbstract {
@@ -70,6 +67,7 @@ namespace Data {
 	public:
 		boost::uint64_t max_map_cell_count;
 		boost::uint64_t max_map_cell_distance;
+		boost::uint64_t max_immigrant_group_count;
 	};
 
 	class CastleUpgradeBarracks : public CastleUpgradeAbstract {

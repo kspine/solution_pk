@@ -175,8 +175,9 @@ namespace {
 			csv.get(elem.building_level, "castel_level");
 			read_upgrade_element(elem, csv);
 
-			csv.get(elem.max_map_cell_count,    "territory_number");
-			csv.get(elem.max_map_cell_distance, "range");
+			csv.get(elem.max_map_cell_count,        "territory_number");
+			csv.get(elem.max_map_cell_distance,     "range");
+			csv.get(elem.max_immigrant_group_count, "people");
 
 			if(!upgrade_primary_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade primary: building_level = ", elem.building_level);
