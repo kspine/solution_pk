@@ -274,6 +274,7 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 		if(!terrain_data->buildable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
 		}
+		// TODO 检测森立。
 	}
 	// 检测与其他城堡距离。
 	const auto min_distance = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
