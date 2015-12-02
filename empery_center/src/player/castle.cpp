@@ -30,14 +30,14 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account_uuid, session, req){
 	}
 
 	castle->pump_status();
-	castle->synchronize_with_client(session);
+	castle->synchronize_with_player(session);
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
 		map_object->pump_status();
-		map_object->synchronize_with_client(session);
+		map_object->synchronize_with_player(session);
 	}
 
 	return Response();
@@ -280,7 +280,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryIndividualBuildingInfo, account_uuid, session,
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 	castle->pump_building_status(building_base_id);
-	castle->synchronize_building_with_client(building_base_id, session);
+	castle->synchronize_building_with_player(building_base_id, session);
 
 	return Response();
 }
@@ -438,7 +438,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, account_uuid, session, req
 
 	const auto tech_id = TechId(req.tech_id);
 	castle->pump_tech_status(tech_id);
-	castle->synchronize_tech_with_client(tech_id, session);
+	castle->synchronize_tech_with_player(tech_id, session);
 
 	return Response();
 }
@@ -451,7 +451,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account_uuid, session, /* req */
 		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		synchronize_map_object_with_client(map_object, session);
+		synchronize_map_object_with_player(map_object, session);
 	}
 
 	return Response();
@@ -499,7 +499,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account_uuid, session, req){
 	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 		const auto &map_cell = *it;
 		map_cell->pump_status();
-		map_cell->synchronize_with_client(session);
+		map_cell->synchronize_with_player(session);
 	}
 
 	return Response();

@@ -45,7 +45,7 @@ public:
 public:
 	void pump_status() override;
 
-	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
@@ -59,15 +59,15 @@ public:
 	bool remove(MailUuid mail_uuid) noexcept;
 };
 
-inline void synchronize_mail_box_with_client(const boost::shared_ptr<const MailBox> &mail_box,
+inline void synchronize_mail_box_with_player(const boost::shared_ptr<const MailBox> &mail_box,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	mail_box->synchronize_with_client(session);
+	mail_box->synchronize_with_player(session);
 }
-inline void synchronize_mail_box_with_client(const boost::shared_ptr<MailBox> &mail_box,
+inline void synchronize_mail_box_with_player(const boost::shared_ptr<MailBox> &mail_box,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	mail_box->synchronize_with_client(session);
+	mail_box->synchronize_with_player(session);
 }
 
 }

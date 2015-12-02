@@ -50,6 +50,18 @@ namespace Msg {
 	FIELD_STRING        (attack_target_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CK_MapAddMapCell
+#define MESSAGE_ID      32395
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_STRING        (owner_uuid)	\
+	FIELD_ARRAY         (attributes,	\
+		FIELD_VUINT         (attribute_id)	\
+		FIELD_VINT          (value)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

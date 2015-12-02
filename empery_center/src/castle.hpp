@@ -73,7 +73,7 @@ public:
 public:
 	void pump_status() override;
 
-	void synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
 	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;
@@ -85,7 +85,7 @@ public:
 	void speed_up_building_mission(BuildingBaseId building_base_id, boost::uint64_t delta_duration);
 
 	void pump_building_status(BuildingBaseId building_base_id);
-	void synchronize_building_with_client(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	unsigned get_level() const;
 
@@ -97,7 +97,7 @@ public:
 	void speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duration);
 
 	void pump_tech_status(TechId tech_id);
-	void synchronize_tech_with_client(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	ResourceInfo get_resource(ResourceId resource_id) const;
 	void get_all_resources(std::vector<ResourceInfo> &ret) const;
@@ -107,15 +107,15 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 };
 
-inline void synchronize_castle_with_client(const boost::shared_ptr<const Castle> &castle,
+inline void synchronize_castle_with_player(const boost::shared_ptr<const Castle> &castle,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	castle->synchronize_with_client(session);
+	castle->synchronize_with_player(session);
 }
-inline void synchronize_castle_with_client(const boost::shared_ptr<Castle> &castle,
+inline void synchronize_castle_with_player(const boost::shared_ptr<Castle> &castle,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	castle->synchronize_with_client(session);
+	castle->synchronize_with_player(session);
 }
 
 }

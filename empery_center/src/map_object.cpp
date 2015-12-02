@@ -36,7 +36,7 @@ void MapObject::pump_status(){
 	// 无事可做。
 }
 
-void MapObject::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	const bool deleted = has_been_deleted();
@@ -93,7 +93,7 @@ void MapObject::set_name(std::string name){
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
-			synchronize_with_client(session);
+			synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -118,7 +118,7 @@ void MapObject::set_coord(Coord coord) noexcept {
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
-			synchronize_with_client(session);
+			synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -194,7 +194,7 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
-			synchronize_with_client(session);
+			synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());

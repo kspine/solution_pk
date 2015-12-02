@@ -46,7 +46,7 @@ struct WorldMap {
 	static void get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterSession>>> &ret);
 	static Rectangle get_cluster_scope(const boost::weak_ptr<ClusterSession> &cluster); // 找不到则返回空的矩形。
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
-	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord) noexcept;
+	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept;
 
 private:
 	WorldMap() = delete;

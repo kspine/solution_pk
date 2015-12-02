@@ -21,9 +21,9 @@ CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
 		LOG_EMPERY_CENTER_WARNING("Invalid numerical coord: num_coord = ", num_coord, ", inf_x = ", inf_x, ", inf_y = ", inf_y);
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;
 	}
-	const auto cluster_range = WorldMap::get_cluster_scope_by_coord(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
-	const auto cluster_coord = cluster_range.bottom_left();
-	LOG_EMPERY_CENTER_DEBUG("Registering cluster server: num_coord = ", num_coord, ", cluster_range = ", cluster_range);
+	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
+	const auto cluster_coord = cluster_scope.bottom_left();
+	LOG_EMPERY_CENTER_DEBUG("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
 
 	const auto old_cluster = WorldMap::get_cluster(cluster_coord);
 	if(old_cluster){
@@ -37,14 +37,14 @@ CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
 	}
 
 	Msg::CK_MapClusterRegistrationSucceeded msg;
-	msg.cluster_x = cluster_range.left();
-	msg.cluster_y = cluster_range.bottom();
-	msg.width     = cluster_range.width();
-	msg.height    = cluster_range.height();
+	msg.cluster_x = cluster_scope.left();
+	msg.cluster_y = cluster_scope.bottom();
+	msg.width     = cluster_scope.width();
+	msg.height    = cluster_scope.height();
 	cluster->send(msg);
 
 	WorldMap::set_cluster(cluster, cluster_coord);
-	WorldMap::synchronize_cluster(cluster, cluster_coord);
+	WorldMap::synchronize_cluster(cluster, cluster_scope);
 
 	return Response();
 }

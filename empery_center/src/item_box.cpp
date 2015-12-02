@@ -157,7 +157,7 @@ void ItemBox::pump_status(){
 		});
 }
 
-void ItemBox::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+void ItemBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	for(auto it = m_items.begin(); it != m_items.end(); ++it){

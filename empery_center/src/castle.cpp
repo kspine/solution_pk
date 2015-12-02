@@ -257,7 +257,7 @@ void Castle::pump_status(){
 	}
 }
 
-void Castle::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
@@ -481,7 +481,7 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 	const auto utc_now = Poseidon::get_utc_time();
 	check_building_mission(it->second, utc_now);
 }
-void Castle::synchronize_building_with_client(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
+void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	const auto it = m_buildings.find(building_base_id);
@@ -677,7 +677,7 @@ void Castle::pump_tech_status(TechId tech_id){
 	const auto utc_now = Poseidon::get_utc_time();
 	check_tech_mission(it->second, utc_now);
 }
-void Castle::synchronize_tech_with_client(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const {
+void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	const auto it = m_techs.find(tech_id);

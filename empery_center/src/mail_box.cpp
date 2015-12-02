@@ -82,7 +82,7 @@ void MailBox::pump_status(){
 	}
 }
 
-void MailBox::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+void MailBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();

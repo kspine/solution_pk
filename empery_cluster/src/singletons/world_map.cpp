@@ -22,13 +22,12 @@ namespace {
 		MapObjectUuid map_object_uuid;
 		Coord coord;
 		AccountUuid owner_uuid;
+		boost::weak_ptr<ClusterClient> master;
 
-		mutable boost::weak_ptr<const ClusterClient> master;
-
-		explicit MapObjectElement(boost::shared_ptr<MapObject> map_object_)
+		MapObjectElement(boost::shared_ptr<MapObject> map_object_, const boost::shared_ptr<ClusterClient> &master_)
 			: map_object(std::move(map_object_))
-			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
-			, owner_uuid(map_object->get_owner_uuid())
+			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord()), owner_uuid(map_object->get_owner_uuid())
+			, master(master_)
 		{
 		}
 	};
@@ -37,6 +36,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
+		MULTI_MEMBER_INDEX(master)
 	)
 
 	boost::weak_ptr<MapObjectMapDelegator> g_map_object_map;
@@ -93,6 +93,7 @@ namespace {
 			std::bind(
 				[](InitServerMap &init_servers){
 					PROFILE_ME;
+
 					for(auto it = init_servers.begin(); it != init_servers.end(); ++it){
 						if(!it->second.expired()){
 							continue;
@@ -152,11 +153,15 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 		LOG_EMPERY_CLUSTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
 		return { };
 	}
+	if(it->master.expired()){
+		LOG_EMPERY_CLUSTER_DEBUG("Master expired: map_object_uuid = ", map_object_uuid);
+		const auto master = it->master;
+		map_object_map->erase<3>(master);
+		return { };
+	}
 	return it->map_object;
 }
-void WorldMap::replace_map_object_no_synchronize(const boost::weak_ptr<const ClusterClient> &master,
-	const boost::shared_ptr<MapObject> &map_object)
-{
+void WorldMap::replace_map_object_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapObject> &map_object){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -170,16 +175,13 @@ void WorldMap::replace_map_object_no_synchronize(const boost::weak_ptr<const Clu
 	auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
 		LOG_EMPERY_CLUSTER_TRACE("Creating new map object: map_object_uuid = ", map_object_uuid);
-		it = map_object_map->insert<0>(it, MapObjectElement(map_object));
+		it = map_object_map->insert<0>(it, MapObjectElement(map_object, master));
 	} else {
 		LOG_EMPERY_CLUSTER_TRACE("Replacing existent map object: map_object_uuid = ", map_object_uuid);
-		map_object_map->replace<0>(it, MapObjectElement(map_object));
+		map_object_map->replace<0>(it, MapObjectElement(map_object, master));
 	}
-	it->master = master;
 }
-void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<const ClusterClient> &master,
-	MapObjectUuid map_object_uuid) noexcept
-{
+void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterClient> &master, MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();

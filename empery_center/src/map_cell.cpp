@@ -95,7 +95,7 @@ void MapCell::pump_status(){
 	}
 }
 
-void MapCell::synchronize_with_client(const boost::shared_ptr<PlayerSession> &session) const {
+void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	const auto parent_object_uuid = get_parent_object_uuid();
