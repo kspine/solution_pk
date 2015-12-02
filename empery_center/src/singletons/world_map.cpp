@@ -438,11 +438,10 @@ namespace {
 			};
 
 			const auto old_cluster_coord = get_cluster_coord_from_world_coord(old_coord);
-			// synchronize_in_cluster(old_cluster_coord);  // 这里的数据同步是单向的。
+			synchronize_in_cluster(old_cluster_coord);
 
 			const auto new_cluster_coord = get_cluster_coord_from_world_coord(new_coord);
 			if(new_cluster_coord != old_cluster_coord){
-				synchronize_in_cluster(old_cluster_coord); // 单向同步，加到这里。
 				synchronize_in_cluster(new_cluster_coord);
 			}
 		}

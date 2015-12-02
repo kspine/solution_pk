@@ -38,20 +38,31 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
 
 CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
-	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto owner_uuid         = AccountUuid(req.owner_uuid);
-	const auto coord              = Coord(req.x, req.y);
 
-	boost::container::flat_map<AttributeId, boost::int64_t> attributes;
-	attributes.reserve(req.attributes.size());
-	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
-		attributes.emplace(AttributeId(it->attribute_id), it->value);
+	auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(map_object){
+		const auto old_cluster = WorldMap::get_cluster(map_object->get_coord());
+		if(old_cluster != cluster){
+			// 替换旧的。
+			map_object.reset();
+		}
 	}
+	if(!map_object){
+		const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+		const auto owner_uuid         = AccountUuid(req.owner_uuid);
+		const auto coord              = Coord(req.x, req.y);
 
-	LOG_EMPERY_CLUSTER_TRACE("Creating map object: map_object_uuid = ", map_object_uuid,
-		", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", coord = ", coord);
-	const auto map_object = boost::make_shared<MapObject>(map_object_uuid, map_object_type_id, owner_uuid, coord, std::move(attributes));
-	WorldMap::replace_map_object_no_synchronize(cluster, map_object);
+		boost::container::flat_map<AttributeId, boost::int64_t> attributes;
+		attributes.reserve(req.attributes.size());
+		for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
+			attributes.emplace(AttributeId(it->attribute_id), it->value);
+		}
+
+		LOG_EMPERY_CLUSTER_DEBUG("Creating map object: map_object_uuid = ", map_object_uuid,
+			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", coord = ", coord);
+		map_object = boost::make_shared<MapObject>(map_object_uuid, map_object_type_id, owner_uuid, coord, std::move(attributes));
+		WorldMap::replace_map_object_no_synchronize(cluster, map_object);
+	}
 
 	return Response();
 }
@@ -59,7 +70,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 CLUSTER_SERVLET(Msg::SK_MapRemoveMapObject, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 
-	LOG_EMPERY_CLUSTER_TRACE("Removing map object: map_object_uuid = ", map_object_uuid);
+	LOG_EMPERY_CLUSTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid);
 	WorldMap::remove_map_object_no_synchronize(cluster, map_object_uuid);
 
 	return Response();
