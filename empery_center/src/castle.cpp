@@ -14,6 +14,29 @@
 namespace EmperyCenter {
 
 namespace {
+	class FlagGuard {
+	private:
+		bool &m_locked;
+
+	public:
+		explicit FlagGuard(bool &locked)
+			: m_locked(locked)
+		{
+			if(m_locked){
+				DEBUG_THROW(Exception, sslit("Transaction locked"));
+			}
+			m_locked = true;
+		}
+		~FlagGuard(){
+			if(!m_locked){
+				assert(false);
+			}
+			m_locked = false;
+		}
+
+		FlagGuard(const FlagGuard &) = delete;
+	};
+
 	void fill_building_base_info(Castle::BuildingBaseInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
 		PROFILE_ME;
 
@@ -696,136 +719,126 @@ ResourceId Castle::commit_resource_transaction_nothrow(const ResourceTransaction
 {
 	PROFILE_ME;
 
-	if(m_locked_by_transaction){
-		LOG_EMPERY_CENTER_ERROR("Castle resources have been locked for transaction: map_object_uuid = ", get_map_object_uuid());
-		DEBUG_THROW(Exception, sslit("Castle resources have been locked for transaction"));
-	}
+	const FlagGuard transaction_guard(m_locked_by_transaction);
 
 	boost::shared_ptr<bool> withdrawn;
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, boost::uint64_t /* new_count */> temp_result_map;
 
-	m_locked_by_transaction = true;
-	try {
-		for(std::size_t i = 0; i < count; ++i){
-			const auto operation  = elements[i].m_operation;
-			const auto resource_id = elements[i].m_some_id;
-			const auto delta_count = elements[i].m_delta_count;
+	for(std::size_t i = 0; i < count; ++i){
+		const auto operation  = elements[i].m_operation;
+		const auto resource_id = elements[i].m_some_id;
+		const auto delta_count = elements[i].m_delta_count;
 
-			if(delta_count == 0){
-				continue;
-			}
+		if(delta_count == 0){
+			continue;
+		}
 
-			const auto reason = elements[i].m_reason;
-			const auto param1 = elements[i].m_param1;
-			const auto param2 = elements[i].m_param2;
-			const auto param3 = elements[i].m_param3;
+		const auto reason = elements[i].m_reason;
+		const auto param1 = elements[i].m_param1;
+		const auto param2 = elements[i].m_param2;
+		const auto param3 = elements[i].m_param3;
 
-			switch(operation){
-			case ResourceTransactionElement::OP_NONE:
-				break;
+		switch(operation){
+		case ResourceTransactionElement::OP_NONE:
+			break;
 
-			case ResourceTransactionElement::OP_ADD:
-				{
-					boost::shared_ptr<MySql::Center_CastleResource> obj;
-					{
-						const auto it = m_resources.find(resource_id);
-						if(it == m_resources.end()){
-							obj = boost::make_shared<MySql::Center_CastleResource>(
-								get_map_object_uuid().get(), resource_id.get(), 0);
-							obj->async_save(true);
-							m_resources.emplace(resource_id, obj);
-						} else {
-							obj = it->second;
-						}
-					}
-					auto temp_it = temp_result_map.find(obj);
-					if(temp_it == temp_result_map.end()){
-						temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
-					}
-					const auto old_count = temp_it->second;
-					temp_it->second = checked_add(old_count, delta_count);
-					const auto new_count = temp_it->second;
-
-					const auto &map_object_uuid = get_map_object_uuid();
-					const auto &owner_uuid = get_owner_uuid();
-					LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
-						", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
-						", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-					if(!withdrawn){
-						withdrawn = boost::make_shared<bool>(true);
-					}
-					Poseidon::async_raise_event(
-						boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
-							resource_id, old_count, new_count, reason, param1, param2, param3),
-						withdrawn);
-				}
-				break;
-
-			case ResourceTransactionElement::OP_REMOVE:
-			case ResourceTransactionElement::OP_REMOVE_SATURATED:
+		case ResourceTransactionElement::OP_ADD:
+			{
+				boost::shared_ptr<MySql::Center_CastleResource> obj;
 				{
 					const auto it = m_resources.find(resource_id);
 					if(it == m_resources.end()){
-						if(operation != ResourceTransactionElement::OP_REMOVE_SATURATED){
-							LOG_EMPERY_CENTER_DEBUG("Resource not found: resource_id = ", resource_id);
-							return resource_id;
-						}
-						break;
-					}
-					const auto &obj = it->second;
-					auto temp_it = temp_result_map.find(obj);
-					if(temp_it == temp_result_map.end()){
-						temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
-					}
-					const auto old_count = temp_it->second;
-					if(temp_it->second >= delta_count){
-						temp_it->second -= delta_count;
+						obj = boost::make_shared<MySql::Center_CastleResource>(
+							get_map_object_uuid().get(), resource_id.get(), 0);
+						obj->async_save(true);
+						m_resources.emplace(resource_id, obj);
 					} else {
-						if(operation != ResourceTransactionElement::OP_REMOVE_SATURATED){
-							LOG_EMPERY_CENTER_DEBUG("No enough resources: resource_id = ", resource_id,
-								", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
-							return resource_id;
-						}
-						temp_it->second = 0;
+						obj = it->second;
 					}
-					const auto new_count = temp_it->second;
-
-					const auto &map_object_uuid = get_map_object_uuid();
-					const auto &owner_uuid = get_owner_uuid();
-					LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
-						", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
-						", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-					if(!withdrawn){
-						withdrawn = boost::make_shared<bool>(true);
-					}
-					Poseidon::async_raise_event(
-						boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
-							resource_id, old_count, new_count, reason, param1, param2, param3),
-						withdrawn);
 				}
-				break;
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
+				}
+				const auto old_count = temp_it->second;
+				temp_it->second = checked_add(old_count, delta_count);
+				const auto new_count = temp_it->second;
 
-			default:
-				LOG_EMPERY_CENTER_ERROR("Unknown resource transaction operation: operation = ", (unsigned)operation);
-				DEBUG_THROW(Exception, sslit("Unknown resource transaction operation"));
+				const auto &map_object_uuid = get_map_object_uuid();
+				const auto &owner_uuid = get_owner_uuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
+					", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
+					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				if(!withdrawn){
+					withdrawn = boost::make_shared<bool>(true);
+				}
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
+						resource_id, old_count, new_count, reason, param1, param2, param3),
+					withdrawn);
 			}
-		}
+			break;
 
-		if(callback){
-			callback();
+		case ResourceTransactionElement::OP_REMOVE:
+		case ResourceTransactionElement::OP_REMOVE_SATURATED:
+			{
+				const auto it = m_resources.find(resource_id);
+				if(it == m_resources.end()){
+					if(operation != ResourceTransactionElement::OP_REMOVE_SATURATED){
+						LOG_EMPERY_CENTER_DEBUG("Resource not found: resource_id = ", resource_id);
+						return resource_id;
+					}
+					break;
+				}
+				const auto &obj = it->second;
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
+				}
+				const auto old_count = temp_it->second;
+				if(temp_it->second >= delta_count){
+					temp_it->second -= delta_count;
+				} else {
+					if(operation != ResourceTransactionElement::OP_REMOVE_SATURATED){
+						LOG_EMPERY_CENTER_DEBUG("No enough resources: resource_id = ", resource_id,
+							", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
+						return resource_id;
+					}
+					temp_it->second = 0;
+				}
+				const auto new_count = temp_it->second;
+
+				const auto &map_object_uuid = get_map_object_uuid();
+				const auto &owner_uuid = get_owner_uuid();
+				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
+					", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
+					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				if(!withdrawn){
+					withdrawn = boost::make_shared<bool>(true);
+				}
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
+						resource_id, old_count, new_count, reason, param1, param2, param3),
+					withdrawn);
+			}
+			break;
+
+		default:
+			LOG_EMPERY_CENTER_ERROR("Unknown resource transaction operation: operation = ", (unsigned)operation);
+			DEBUG_THROW(Exception, sslit("Unknown resource transaction operation"));
 		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_DEBUG("std::exception thrown: what = ", e.what());
-		m_locked_by_transaction = false;
-		throw;
 	}
+
+	if(callback){
+		callback();
+	}
+
 	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 		it->first->set_count(it->second);
 	}
 	if(withdrawn){
 		*withdrawn = false;
 	}
-	m_locked_by_transaction = false;
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){

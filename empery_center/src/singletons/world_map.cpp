@@ -342,7 +342,7 @@ namespace {
 			++view_it;
 		}
 	}
-	void synchronise_map_cell_by_coord(const boost::shared_ptr<MapCell> &map_cell, Coord coord) noexcept {
+	void synchronize_map_cell_by_coord(const boost::shared_ptr<MapCell> &map_cell, Coord coord) noexcept {
 		PROFILE_ME;
 
 		const auto player_view_map = g_player_view_map.lock();
@@ -467,7 +467,7 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 	LOG_EMPERY_CENTER_DEBUG("Inserting map cell: coord = ", coord);
 	map_cell_map->insert(MapCellElement(map_cell));
 
-	synchronise_map_cell_by_coord(map_cell, coord);
+	synchronize_map_cell_by_coord(map_cell, coord);
 }
 void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -498,7 +498,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 		map_cell_map->set_key<0, 1>(it, parent_object_uuid);
 	}
 
-	synchronise_map_cell_by_coord(map_cell, coord);
+	synchronize_map_cell_by_coord(map_cell, coord);
 }
 
 void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid){
