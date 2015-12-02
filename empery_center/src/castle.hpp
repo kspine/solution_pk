@@ -58,7 +58,7 @@ private:
 		boost::shared_ptr<MySql::Center_CastleTech>> m_techs;
 	boost::container::flat_map<ResourceId,
 		boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
-	bool m_locked_by_transaction;
+	bool m_locked_by_transaction = false;
 
 public:
 	Castle(MapObjectUuid map_object_uuid,

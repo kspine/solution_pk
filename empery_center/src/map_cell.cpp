@@ -4,7 +4,9 @@
 #include "mysql/map_cell.hpp"
 #include "singletons/world_map.hpp"
 #include "player_session.hpp"
+#include "cluster_session.hpp"
 #include "msg/sc_map.hpp"
+#include "msg/sk_map.hpp"
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
 #include "castle.hpp"
@@ -128,6 +130,25 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		}
 		session->send(msg);
 	}
+}
+void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
+	PROFILE_ME;
+
+	const auto parent_object_uuid = get_parent_object_uuid();
+
+	Msg::SK_MapAddMapCell msg;
+	msg.x                  = get_coord().x();
+	msg.y                  = get_coord().y();
+	msg.parent_object_uuid = parent_object_uuid.str();
+	msg.owner_uuid         = get_owner_uuid().str();
+	msg.attributes.reserve(m_attributes.size());
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		msg.attributes.emplace_back();
+		auto &attribute = msg.attributes.back();
+		attribute.attribute_id = it->first.get();
+		attribute.value        = it->second->get_value();
+	}
+	cluster->send(msg);
 }
 
 Coord MapCell::get_coord() const {

@@ -23,7 +23,7 @@ struct AccountMap {
 		ATTR_PUBLIC_END                 = 300,
 		ATTR_END                        = 500,
 
-		MAX_NICK_LEN                    =  255,
+		MAX_NISK_LEN                    =  255,
 		MAX_ATTRIBUTE_LEN               = 4096,
 
 		ATTR_GENDER                     =   1,

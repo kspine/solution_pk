@@ -4,7 +4,9 @@
 #include "singletons/world_map.hpp"
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
+#include "cluster_session.hpp"
 #include "msg/sc_map.hpp"
+#include "msg/sk_map.hpp"
 #include "singletons/account_map.hpp"
 
 namespace EmperyCenter {
@@ -66,6 +68,31 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 			attribute.value        = it->second->get_value();
 		}
 		session->send(msg);
+	}
+}
+void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
+	PROFILE_ME;
+
+	const bool deleted = has_been_deleted();
+	if(deleted){
+		Msg::SK_MapRemoveMapObject msg;
+		msg.map_object_uuid = get_map_object_uuid().str();
+		cluster->send(msg);
+	} else {
+		Msg::SK_MapAddMapObject msg;
+		msg.map_object_uuid    = get_map_object_uuid().str();
+		msg.map_object_type_id = get_map_object_type_id().get();
+		msg.owner_uuid         = get_owner_uuid().str();
+		msg.x                  = get_coord().x();
+		msg.y                  = get_coord().y();
+		msg.attributes.reserve(m_attributes.size());
+		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+			msg.attributes.emplace_back();
+			auto &attribute = msg.attributes.back();
+			attribute.attribute_id = it->first.get();
+			attribute.value        = it->second->get_value();
+		}
+		cluster->send(msg);
 	}
 }
 

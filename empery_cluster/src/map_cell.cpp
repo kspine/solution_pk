@@ -7,10 +7,10 @@
 
 namespace EmperyCluster {
 
-MapCell::MapCell(Coord coord,
-	AccountUuid owner_uuid, boost::container::flat_map<AttributeId, boost::int64_t> attributes)
+MapCell::MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,
+	boost::container::flat_map<AttributeId, boost::int64_t> attributes)
 	: m_coord(coord)
-	, m_owner_uuid(owner_uuid), m_attributes(std::move(attributes))
+	, m_parent_object_uuid(parent_object_uuid), m_owner_uuid(owner_uuid), m_attributes(std::move(attributes))
 {
 }
 MapCell::~MapCell(){

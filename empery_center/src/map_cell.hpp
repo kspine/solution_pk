@@ -15,6 +15,7 @@ namespace MySql {
 
 class Castle;
 class PlayerSession;
+class ClusterSession;
 
 class MapCell : public virtual AbstractDataObject {
 private:
@@ -34,6 +35,7 @@ public:
 	void pump_status() override;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
 
 	Coord get_coord() const;
 
@@ -67,6 +69,16 @@ inline void synchronize_map_cell_with_player(const boost::shared_ptr<MapCell> &m
 	const boost::shared_ptr<PlayerSession> &session)
 {
 	map_cell->synchronize_with_player(session);
+}
+inline void synchronize_map_cell_with_cluster(const boost::shared_ptr<const MapCell> &map_cell,
+	const boost::shared_ptr<ClusterSession> &cluster)
+{
+	map_cell->synchronize_with_cluster(cluster);
+}
+inline void synchronize_map_cell_with_cluster(const boost::shared_ptr<MapCell> &map_cell,
+	const boost::shared_ptr<ClusterSession> &cluster)
+{
+	map_cell->synchronize_with_cluster(cluster);
 }
 
 }

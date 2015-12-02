@@ -1,7 +1,7 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
-#include "../msg/kc_map.hpp"
-#include "../msg/ck_map.hpp"
+#include "../msg/ks_map.hpp"
+#include "../msg/sk_map.hpp"
 #include "../msg/err_map.hpp"
 #include "../msg/kill.hpp"
 #include "../singletons/world_map.hpp"
@@ -9,7 +9,7 @@
 
 namespace EmperyCenter {
 
-CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
+CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	const auto center_rectangle = WorldMap::get_cluster_scope_by_coord(Coord(0, 0));
 	const auto map_width  = static_cast<boost::uint32_t>(center_rectangle.width());
 	const auto map_height = static_cast<boost::uint32_t>(center_rectangle.height());
@@ -36,7 +36,7 @@ CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
 		return Response(Msg::KILL_MAP_SERVER_ALREADY_REGISTERED);
 	}
 
-	Msg::CK_MapClusterRegistrationSucceeded msg;
+	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_scope.left();
 	msg.cluster_y = cluster_scope.bottom();
 	msg.width     = cluster_scope.width();
@@ -49,7 +49,7 @@ CLUSTER_SERVLET(Msg::KC_MapRegisterCluster, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::KC_MapUpdateMapObject, cluster, req){
+CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
@@ -83,7 +83,7 @@ CLUSTER_SERVLET(Msg::KC_MapUpdateMapObject, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::KC_MapRemoveMapObject, cluster, req){
+CLUSTER_SERVLET(Msg::KS_MapRemoveMapObject, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){

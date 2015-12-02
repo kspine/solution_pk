@@ -32,12 +32,14 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account_uuid, session, req){
 	castle->pump_status();
 	castle->synchronize_with_player(session);
 
-	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
-	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-		const auto &map_object = *it;
-		map_object->pump_status();
-		map_object->synchronize_with_player(session);
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child = *it;
+		LOG_EMPERY_CENTER_DEBUG("Child object: map_object_uuid = ", map_object_uuid,
+			", child_object_uuid = ", child->get_map_object_uuid(), ", child_type_id = ", child->get_map_object_type_id());
+		child->pump_status();
+		child->synchronize_with_player(session);
 	}
 
 	return Response();

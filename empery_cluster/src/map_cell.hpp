@@ -13,12 +13,13 @@ class MapCell : public virtual AbstractDataObject {
 private:
 	const Coord m_coord;
 
+	MapObjectUuid m_parent_object_uuid;
 	AccountUuid m_owner_uuid;
 	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
 
 public:
-	MapCell(Coord coord,
-		AccountUuid owner_uuid, boost::container::flat_map<AttributeId, boost::int64_t> attributes);
+	MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,
+		boost::container::flat_map<AttributeId, boost::int64_t> attributes);
 	~MapCell();
 
 public:
@@ -28,6 +29,9 @@ public:
 		return m_coord;
 	}
 
+	MapObjectUuid get_parent_object_uuid() const {
+		return m_parent_object_uuid;
+	}
 	AccountUuid get_owner_uuid() const {
 		return m_owner_uuid;
 	}

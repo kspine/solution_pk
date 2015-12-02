@@ -27,13 +27,9 @@ namespace {
 	}
 }
 
-MailBox::MailBox(AccountUuid account_uuid)
-	: m_account_uuid(account_uuid)
-{
-}
 MailBox::MailBox(AccountUuid account_uuid,
 	const std::vector<boost::shared_ptr<MySql::Center_Mail>> &mails)
-	: MailBox(account_uuid)
+	: m_account_uuid(account_uuid)
 {
 	for(auto it = mails.begin(); it != mails.end(); ++it){
 		const auto &obj = *it;

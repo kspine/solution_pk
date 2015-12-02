@@ -186,7 +186,6 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
 	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
 		owner_uuid, parent_object_uuid, std::move(name), coord)
-	, m_locked_by_transaction(false)
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,

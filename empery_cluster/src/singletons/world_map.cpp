@@ -3,9 +3,10 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <boost/container/flat_map.hpp>
-#include "../../../empery_center/src/msg/kc_map.hpp"
-#include "../map_object.hpp"
+#include "../../../empery_center/src/msg/ks_map.hpp"
 #include "../coord.hpp"
+#include "../map_cell.hpp"
+#include "../map_object.hpp"
 #include "../rectangle.hpp"
 #include "../cluster_client.hpp"
 
@@ -16,6 +17,29 @@ namespace Msg {
 }
 
 namespace {
+	struct MapCellElement {
+		boost::shared_ptr<MapCell> map_cell;
+
+		Coord coord;
+		MapObjectUuid parent_object_uuid;
+		boost::weak_ptr<ClusterClient> master;
+
+		MapCellElement(boost::shared_ptr<MapCell> map_cell_, const boost::shared_ptr<ClusterClient> &master_)
+			: map_cell(std::move(map_cell_))
+			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid())
+			, master(master_)
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(MapCellMapDelegator, MapCellElement,
+		UNIQUE_MEMBER_INDEX(coord)
+		MULTI_MEMBER_INDEX(parent_object_uuid)
+		MULTI_MEMBER_INDEX(master)
+	)
+
+	boost::weak_ptr<MapCellMapDelegator> g_map_cell_map;
+
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
 
@@ -62,6 +86,10 @@ namespace {
 	boost::weak_ptr<ClusterMapDelegator> g_cluster_map;
 
 	MODULE_RAII_PRIORITY(handles, 5300){
+		const auto map_cell_map = boost::make_shared<MapCellMapDelegator>();
+		g_map_cell_map = map_cell_map;
+		handles.push(map_cell_map);
+
 		const auto map_object_map = boost::make_shared<MapObjectMapDelegator>();
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
@@ -117,7 +145,7 @@ namespace {
 		boost::container::flat_map<AttributeId, boost::int64_t> attributes;
 		map_object->get_attributes(attributes);
 
-		Msg::KC_MapUpdateMapObject msg;
+		Msg::KS_MapUpdateMapObject msg;
 		msg.map_object_uuid    = map_object->get_map_object_uuid().str();
 		msg.x                  = map_object->get_coord().x();
 		msg.y                  = map_object->get_coord().y();
@@ -133,10 +161,85 @@ namespace {
 	void notify_cluster_map_object_removed(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<ClusterClient> &cluster){
 		PROFILE_ME;
 
-		Msg::KC_MapRemoveMapObject msg;
+		Msg::KS_MapRemoveMapObject msg;
 		msg.map_object_uuid = map_object->get_map_object_uuid().str();
 		cluster->send(msg);
 	}
+}
+
+boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map cell map not loaded.");
+		return { };
+	}
+
+	const auto it = map_cell_map->find<0>(coord);
+	if(it == map_cell_map->end<0>()){
+		LOG_EMPERY_CLUSTER_DEBUG("Map cell not found: coord = ", coord);
+		return { };
+	}
+	if(it->master.expired()){
+		LOG_EMPERY_CLUSTER_DEBUG("Master expired: coord = ", coord);
+		const auto master = it->master;
+		map_cell_map->erase<2>(master);
+		return { };
+	}
+	return it->map_cell;
+}
+void WorldMap::replace_map_cell_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapCell> &map_cell){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map cell map not loaded.");
+		DEBUG_THROW(Exception, sslit("Map cell map not loaded"));
+	}
+
+	const auto coord = map_cell->get_coord();
+
+	auto it = map_cell_map->find<0>(coord);
+	if(it == map_cell_map->end<0>()){
+		LOG_EMPERY_CLUSTER_TRACE("Creating new map cell: coord = ", coord);
+		it = map_cell_map->insert<0>(it, MapCellElement(map_cell, master));
+	} else {
+		LOG_EMPERY_CLUSTER_TRACE("Replacing existent map cell: coord = ", coord);
+		map_cell_map->replace<0>(it, MapCellElement(map_cell, master));
+	}
+}
+
+void WorldMap::get_map_cells_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> &ret, Rectangle rectangle){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map cell map not loaded.");
+		return;
+	}
+
+	auto x = rectangle.left();
+	while(x < rectangle.right()){
+		auto it = map_cell_map->lower_bound<0>(Coord(x, rectangle.bottom()));
+		for(;;){
+			if(it == map_cell_map->end<0>()){
+				goto _exit_while;
+			}
+			if(it->coord.x() != x){
+				x = it->coord.x();
+				break;
+			}
+			if(it->coord.y() >= rectangle.top()){
+				++x;
+				break;
+			}
+			ret.emplace(it->coord, it->map_cell);
+			++it;
+		}
+	}
+_exit_while:
+	;
 }
 
 boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_uuid){
@@ -181,7 +284,7 @@ void WorldMap::replace_map_object_no_synchronize(const boost::shared_ptr<Cluster
 		map_object_map->replace<0>(it, MapObjectElement(map_object, master));
 	}
 }
-void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterClient> &master, MapObjectUuid map_object_uuid) noexcept {
+void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterClient> & /* master */, MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -193,10 +296,6 @@ void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterCli
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
 		LOG_EMPERY_CLUSTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
-		return;
-	}
-	if((it->master < master) || (master < it->master)){
-		LOG_EMPERY_CLUSTER_TRACE("Map object has been taken over by another cluster: map_object_uuid = ", map_object_uuid);
 		return;
 	}
 	const auto map_object = it->map_object;
@@ -216,6 +315,14 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		}
 		return;
 	}
+	const auto cluster_map = g_cluster_map.lock();
+	if(!cluster_map){
+		LOG_EMPERY_CLUSTER_WARNING("Cluster map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Cluster object map not loaded"));
+		}
+		return;
+	}
 
 	const auto map_object_uuid = map_object->get_map_object_uuid();
 
@@ -230,9 +337,21 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto old_coord = it->coord;
 	const auto new_coord = map_object->get_coord();
 
-	LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
-		", old_coord = ", old_coord, ", new_coord = ", new_coord);
-	map_object_map->set_key<0, 1>(it, new_coord);
+	const auto cit = cluster_map->find<1>(it->master);
+	if((cit == cluster_map->end<1>()) || !cit->scope.hit_test(new_coord)){
+		LOG_EMPERY_CLUSTER_DEBUG("Map object is out of the scope of its master: map_object_uuid = ", map_object_uuid);
+		map_object_map->erase<0>(it);
+	} else {
+		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
+			", old_coord = ", old_coord, ", new_coord = ", new_coord);
+		if(it->coord != new_coord){
+			map_object_map->set_key<0, 1>(it, new_coord);
+		}
+		const auto owner_uuid = map_object->get_owner_uuid();
+		if(it->owner_uuid != owner_uuid){
+			map_object_map->set_key<0, 2>(it, owner_uuid);
+		}
+	}
 
 	const auto old_cluster = get_cluster(old_coord);
 	if(old_cluster){
@@ -273,6 +392,38 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 			old_cluster->shutdown(e.what());
 		}
 	}
+}
+
+void WorldMap::get_map_objects_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	auto x = rectangle.left();
+	while(x < rectangle.right()){
+		auto it = map_object_map->lower_bound<1>(Coord(x, rectangle.bottom()));
+		for(;;){
+			if(it == map_object_map->end<1>()){
+				goto _exit_while;
+			}
+			if(it->coord.x() != x){
+				x = it->coord.x();
+				break;
+			}
+			if(it->coord.y() >= rectangle.top()){
+				++x;
+				break;
+			}
+			ret.emplace(it->coord, it->map_object);
+			++it;
+		}
+	}
+_exit_while:
+	;
 }
 
 boost::shared_ptr<ClusterClient> WorldMap::get_cluster(Coord coord){

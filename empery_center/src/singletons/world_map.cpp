@@ -15,7 +15,6 @@
 #include "../castle.hpp"
 #include "../player_session.hpp"
 #include "../cluster_session.hpp"
-#include "../msg/ck_map.hpp"
 
 namespace EmperyCenter {
 
@@ -317,136 +316,136 @@ namespace {
 		handles.push(cluster_map);
 	}
 
-	void get_sessions_by_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord){
+	void synchronize_map_cell_all(const boost::shared_ptr<MapCell> &map_cell, Coord old_coord, Coord new_coord) noexcept {
 		PROFILE_ME;
-
-		const auto player_view_map = g_player_view_map.lock();
-		if(!player_view_map){
-			LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
-			return;
-		}
-
-		const auto sector_coord = get_sector_coord_from_world_coord(coord);
-		const auto range = player_view_map->equal_range<1>(sector_coord);
-		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-		auto view_it = range.first;
-		while(view_it != range.second){
-			auto session = view_it->session.lock();
-			if(!session){
-				view_it = player_view_map->erase<1>(view_it);
-				continue;
-			}
-			if(view_it->view.hit_test(coord)){
-				ret.emplace_back(std::move(session));
-			}
-			++view_it;
-		}
-	}
-	void synchronize_map_cell_in_sector(const boost::shared_ptr<MapCell> &map_cell, Coord sector_coord) noexcept {
-		PROFILE_ME;
-
-		const auto player_view_map = g_player_view_map.lock();
-		if(!player_view_map){
-			LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
-			return;
-		}
 
 		const auto coord = map_cell->get_coord();
-		const auto range = player_view_map->equal_range<1>(sector_coord);
-		auto view_it = range.first;
-		while(view_it != range.second){
-			const auto session = view_it->session.lock();
-			if(!session){
-				view_it = player_view_map->erase<1>(view_it);
-				continue;
-			}
-			if(view_it->view.hit_test(coord)){
-				try {
-					synchronize_map_cell_with_player(map_cell, session);
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					session->shutdown(e.what());
-				}
-			}
-			++view_it;
-		}
-	}
-	void synchronize_map_object_in_sector(const boost::shared_ptr<MapObject> &map_object, Coord sector_coord) noexcept {
-		PROFILE_ME;
 
 		const auto player_view_map = g_player_view_map.lock();
-		if(!player_view_map){
-			LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
-			return;
+		if(player_view_map){
+			const auto synchronize_in_sector = [&](Coord sector_coord){
+				const auto range = player_view_map->equal_range<1>(sector_coord);
+				for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
+					const auto session = it->session.lock();
+					if(!session){
+						player_view_map->erase<1>(it);
+						continue;
+					}
+					if(it->view.hit_test(coord)){
+						try {
+							synchronize_map_cell_with_player(map_cell, session);
+						} catch(std::exception &e){
+							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+							session->shutdown(e.what());
+						}
+					}
+				}
+			};
+
+			const auto old_sector_coord = get_sector_coord_from_world_coord(old_coord);
+			synchronize_in_sector(old_sector_coord);
+
+			const auto new_sector_coord = get_sector_coord_from_world_coord(new_coord);
+			if(new_sector_coord != old_sector_coord){
+				synchronize_in_sector(new_sector_coord);
+			}
 		}
 
-        const auto coord = map_object->get_coord();
-		const auto range = player_view_map->equal_range<1>(sector_coord);
-		auto it = range.first;
-		while(it != range.second){
-			const auto session = it->session.lock();
-			if(session){
-				try {
-					if(it->view.hit_test(coord)){
-						synchronize_map_object_with_player(map_object, session);
+		const auto cluster_map = g_cluster_map.lock();
+		if(cluster_map){
+			const auto synchronize_in_cluster = [&](Coord cluster_coord){
+				const auto range = cluster_map->equal_range<0>(cluster_coord);
+				for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
+					const auto cluster = it->cluster.lock();
+					if(!cluster){
+						cluster_map->erase<0>(it);
+						continue;
 					}
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					session->shutdown(e.what());
+					if(it->scope.hit_test(coord)){
+						try {
+							synchronize_map_cell_with_cluster(map_cell, cluster);
+						} catch(std::exception &e){
+							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+							cluster->shutdown(e.what());
+						}
+					}
 				}
-				++it;
-			} else {
-				it = player_view_map->erase<1>(it);
+			};
+
+			const auto old_cluster_coord = get_cluster_coord_from_world_coord(old_coord);
+			synchronize_in_cluster(old_cluster_coord);
+
+			const auto new_cluster_coord = get_cluster_coord_from_world_coord(new_coord);
+			if(new_cluster_coord != old_cluster_coord){
+				synchronize_in_cluster(new_cluster_coord);
 			}
 		}
 	}
-
-	void notify_cluster_map_object_added(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<ClusterSession> &cluster){
+	void synchronize_map_object_all(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
 		PROFILE_ME;
 
-		boost::container::flat_map<AttributeId, boost::int64_t> attributes;
-		map_object->get_attributes(attributes);
+		const auto coord = map_object->get_coord();
 
-		Msg::CK_MapAddMapObject msg;
-		msg.map_object_uuid    = map_object->get_map_object_uuid().str();
-		msg.map_object_type_id = map_object->get_map_object_type_id().get();
-		msg.owner_uuid         = map_object->get_owner_uuid().str();
-		msg.x                  = map_object->get_coord().x();
-		msg.y                  = map_object->get_coord().y();
-		msg.attributes.reserve(attributes.size());
-		for(auto it = attributes.begin(); it != attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
-			attribute.attribute_id = it->first.get();
-			attribute.value        = it->second;
+		const auto player_view_map = g_player_view_map.lock();
+		if(player_view_map){
+			const auto synchronize_in_sector = [&](Coord sector_coord){
+				const auto range = player_view_map->equal_range<1>(sector_coord);
+				for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
+					const auto session = it->session.lock();
+					if(!session){
+						player_view_map->erase<1>(it);
+						continue;
+					}
+					if(it->view.hit_test(coord)){
+						try {
+							synchronize_map_object_with_player(map_object, session);
+						} catch(std::exception &e){
+							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+							session->shutdown(e.what());
+						}
+					}
+				}
+			};
+
+			const auto old_sector_coord = get_sector_coord_from_world_coord(old_coord);
+			synchronize_in_sector(old_sector_coord);
+
+			const auto new_sector_coord = get_sector_coord_from_world_coord(new_coord);
+			if(new_sector_coord != old_sector_coord){
+				synchronize_in_sector(new_sector_coord);
+			}
 		}
-		cluster->send(msg);
-	}
-	void notify_cluster_map_object_removed(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<ClusterSession> &cluster){
-		PROFILE_ME;
 
-		Msg::CK_MapRemoveMapObject msg;
-		msg.map_object_uuid = map_object->get_map_object_uuid().str();
-		cluster->send(msg);
-	}
-	void notify_cluster_map_cell_added(const boost::shared_ptr<MapCell> &map_cell, const boost::shared_ptr<ClusterSession> &cluster){
-		PROFILE_ME;
+		const auto cluster_map = g_cluster_map.lock();
+		if(cluster_map){
+			const auto synchronize_in_cluster = [&](Coord cluster_coord){
+				const auto range = cluster_map->equal_range<0>(cluster_coord);
+				for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
+					const auto cluster = it->cluster.lock();
+					if(!cluster){
+						cluster_map->erase<0>(it);
+						continue;
+					}
+					if(it->scope.hit_test(coord)){
+						try {
+							synchronize_map_object_with_cluster(map_object, cluster);
+						} catch(std::exception &e){
+							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+							cluster->shutdown(e.what());
+						}
+					}
+				}
+			};
 
-		boost::container::flat_map<AttributeId, boost::int64_t> attributes;
-		map_cell->get_attributes(attributes);
+			const auto old_cluster_coord = get_cluster_coord_from_world_coord(old_coord);
+			// synchronize_in_cluster(old_cluster_coord);  // 这里的数据同步是单向的。
 
-		Msg::CK_MapAddMapCell msg;
-		msg.x                  = map_cell->get_coord().x();
-		msg.y                  = map_cell->get_coord().y();
-		msg.owner_uuid         = map_cell->get_owner_uuid().str();
-		msg.attributes.reserve(attributes.size());
-		for(auto it = attributes.begin(); it != attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
-			attribute.attribute_id = it->first.get();
-			attribute.value        = it->second;
+			const auto new_cluster_coord = get_cluster_coord_from_world_coord(new_coord);
+			if(new_cluster_coord != old_cluster_coord){
+				synchronize_in_cluster(old_cluster_coord); // 单向同步，加到这里。
+				synchronize_in_cluster(new_cluster_coord);
+			}
 		}
-		cluster->send(msg);
 	}
 }
 
@@ -482,22 +481,21 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 		LOG_EMPERY_CENTER_WARNING("Map cell already exists: coord = ", coord);
 		DEBUG_THROW(Exception, sslit("Map cell already exists"));
 	}
-	const auto sector_coord = get_sector_coord_from_world_coord(coord);
 
 	LOG_EMPERY_CENTER_DEBUG("Inserting map cell: coord = ", coord);
 	map_cell_map->insert(MapCellElement(map_cell));
 
-	synchronize_map_cell_in_sector(map_cell, sector_coord);
-
-	const auto cluster = get_cluster(coord);
-	if(cluster){
+	const auto session = PlayerSessionMap::get(map_cell->get_owner_uuid());
+	if(session){
 		try {
-			notify_cluster_map_cell_added(map_cell, cluster);
+			synchronize_map_cell_with_player(map_cell, session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			cluster->shutdown(e.what());
+			session->shutdown(e.what());
 		}
 	}
+
+	synchronize_map_cell_all(map_cell, coord, coord);
 }
 void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -521,7 +519,6 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 		}
 		return;
 	}
-	const auto sector_coord = get_sector_coord_from_world_coord(coord);
 
 	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord);
 	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
@@ -529,17 +526,17 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 		map_cell_map->set_key<0, 1>(it, parent_object_uuid);
 	}
 
-	synchronize_map_cell_in_sector(map_cell, sector_coord);
-
-	const auto cluster = get_cluster(coord);
-	if(cluster){
+	const auto session = PlayerSessionMap::get(map_cell->get_owner_uuid());
+	if(session){
 		try {
-			notify_cluster_map_cell_added(map_cell, cluster);
+			synchronize_map_cell_with_player(map_cell, session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			cluster->shutdown(e.what());
+			session->shutdown(e.what());
 		}
 	}
+
+	synchronize_map_cell_all(map_cell, coord, coord);
 }
 
 void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid){
@@ -656,17 +653,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 		}
 	}
 
-	synchronize_map_object_in_sector(map_object, new_sector_coord);
-
-	const auto new_cluster = get_cluster(new_coord);
-	if(new_cluster){
-		try {
-			notify_cluster_map_object_added(map_object, new_cluster);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			new_cluster->shutdown(e.what());
-		}
-	}
+	synchronize_map_object_all(map_object, new_coord, new_coord);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -725,6 +712,14 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	if(it->coord != new_coord){
 		map_object_map->set_key<0, 1>(it, new_coord);
 	}
+	const auto owner_uuid = map_object->get_owner_uuid();
+	if(it->owner_uuid != owner_uuid){
+		map_object_map->set_key<0, 2>(it, owner_uuid);
+	}
+	const auto parent_object_uuid = map_object->get_parent_object_uuid();
+	if(it->parent_object_uuid != parent_object_uuid){
+		map_object_map->set_key<0, 3>(it, parent_object_uuid);
+	}
 	if(old_sector_it != new_sector_it){
 		if(old_sector_it != map_sector_map->end<0>()){
 			old_sector_it->map_objects.erase(map_object); // noexcept
@@ -734,14 +729,6 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 			}
 		}
 		new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
-	}
-	const auto owner_uuid = map_object->get_owner_uuid();
-	if(it->owner_uuid != owner_uuid){
-		map_object_map->set_key<0, 2>(it, owner_uuid);
-	}
-	const auto parent_object_uuid = map_object->get_parent_object_uuid();
-	if(it->parent_object_uuid != parent_object_uuid){
-		map_object_map->set_key<0, 3>(it, parent_object_uuid);
 	}
 
 	const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
@@ -754,34 +741,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		}
 	}
 
-	if(old_sector_coord != new_sector_coord){
-		synchronize_map_object_in_sector(map_object, old_sector_coord);
-	}
-	synchronize_map_object_in_sector(map_object, new_sector_coord);
-
-	const auto old_cluster = get_cluster(old_coord);
-	const auto new_cluster = get_cluster(new_coord);
-	if(old_cluster != new_cluster){
-		// 切换地图服务器。
-		LOG_EMPERY_CENTER_DEBUG("Switching map server: map_object_uuid = ", map_object_uuid,
-			", old_cluster = ", old_cluster, ", new_cluster = ", new_cluster);
-		if(old_cluster){
-			try {
-				notify_cluster_map_object_removed(map_object, old_cluster);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				old_cluster->shutdown(e.what());
-			}
-		}
-		if(new_cluster){
-			try {
-				notify_cluster_map_object_added(map_object, new_cluster);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				new_cluster->shutdown(e.what());
-			}
-		}
-	}
+	synchronize_map_object_all(map_object, old_coord, new_coord);
 }
 void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
@@ -829,17 +789,7 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 		}
 	}
 
-    synchronize_map_object_in_sector(map_object, old_sector_coord);
-
-	const auto old_cluster = get_cluster(old_coord);
-	if(old_cluster){
-		try {
-			notify_cluster_map_object_removed(map_object, old_cluster);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			old_cluster->shutdown(e.what());
-		}
-	}
+	synchronize_map_object_all(map_object, old_coord, old_coord);
 }
 
 void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
@@ -907,7 +857,27 @@ _exit_while:
 void WorldMap::get_players_viewing_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord){
 	PROFILE_ME;
 
-	get_sessions_by_coord(ret, coord);
+	const auto player_view_map = g_player_view_map.lock();
+	if(!player_view_map){
+		LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
+		return;
+	}
+
+	const auto sector_coord = get_sector_coord_from_world_coord(coord);
+	const auto range = player_view_map->equal_range<1>(sector_coord);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	auto view_it = range.first;
+	while(view_it != range.second){
+		auto session = view_it->session.lock();
+		if(!session){
+			view_it = player_view_map->erase<1>(view_it);
+			continue;
+		}
+		if(view_it->view.hit_test(coord)){
+			ret.emplace_back(std::move(session));
+		}
+		++view_it;
+	}
 }
 void WorldMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view){
 	PROFILE_ME;
@@ -1065,13 +1035,13 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 		boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> map_cells;
 		get_map_cells_by_rectangle(map_cells, view);
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-			notify_cluster_map_cell_added(it->second, cluster);
+			synchronize_map_cell_with_cluster(it->second, cluster);
 		}
 
 		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> map_objects;
 		get_map_objects_by_rectangle(map_objects, view);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			notify_cluster_map_object_added(it->second, cluster);
+			synchronize_map_object_with_cluster(it->second, cluster);
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

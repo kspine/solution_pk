@@ -8,7 +8,7 @@
 #include "../utilities.hpp"
 #include "../map_object.hpp"
 #include "../cluster_session.hpp"
-#include "../msg/ck_map.hpp"
+#include "../msg/sk_map.hpp"
 #include "../data/map_object_type.hpp"
 #include "../map_cell.hpp"
 #include "../castle.hpp"
@@ -81,7 +81,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<from_coord;
 	}
 
-	Msg::CK_MapSetAction kreq;
+	Msg::SK_MapSetAction kreq;
 	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
 	kreq.x = from_coord.x();
 	kreq.y = from_coord.y();

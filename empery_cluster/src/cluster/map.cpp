@@ -1,13 +1,14 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
-#include "../../../empery_center/src/msg/ck_map.hpp"
+#include "../../../empery_center/src/msg/sk_map.hpp"
 #include "../../../empery_center/src/msg/err_map.hpp"
 #include "../singletons/world_map.hpp"
+#include "../map_cell.hpp"
 #include "../map_object.hpp"
 
 namespace EmperyCluster {
 
-CLUSTER_SERVLET(Msg::CK_MapClusterRegistrationSucceeded, cluster, req){
+CLUSTER_SERVLET(Msg::SK_MapClusterRegistrationSucceeded, cluster, req){
 	const auto scope = Rectangle(req.cluster_x, req.cluster_y, req.width, req.height);
 	LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: scope = ", scope);
 
@@ -16,7 +17,26 @@ CLUSTER_SERVLET(Msg::CK_MapClusterRegistrationSucceeded, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::CK_MapAddMapObject, cluster, req){
+CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
+	const auto coord              = Coord(req.x, req.y);
+	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
+	const auto owner_uuid         = AccountUuid(req.owner_uuid);
+
+	boost::container::flat_map<AttributeId, boost::int64_t> attributes;
+	attributes.reserve(req.attributes.size());
+	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
+		attributes.emplace(AttributeId(it->attribute_id), it->value);
+	}
+
+	LOG_EMPERY_CLUSTER_TRACE("Creating map cell: coord = ", coord,
+		", parent_object_uuid = ", parent_object_uuid, ", owner_uuid = ", owner_uuid);
+	const auto map_cell = boost::make_shared<MapCell>(coord, parent_object_uuid, owner_uuid, std::move(attributes));
+	WorldMap::replace_map_cell_no_synchronize(cluster, map_cell);
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
 	const auto owner_uuid         = AccountUuid(req.owner_uuid);
@@ -36,7 +56,7 @@ CLUSTER_SERVLET(Msg::CK_MapAddMapObject, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::CK_MapRemoveMapObject, cluster, req){
+CLUSTER_SERVLET(Msg::SK_MapRemoveMapObject, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 
 	LOG_EMPERY_CLUSTER_TRACE("Removing map object: map_object_uuid = ", map_object_uuid);
@@ -45,7 +65,7 @@ CLUSTER_SERVLET(Msg::CK_MapRemoveMapObject, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::CK_MapSetAction, cluster, req){
+CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
 	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
 	const auto attack_target_uuid = MapObjectUuid(req.attack_target_uuid);
 

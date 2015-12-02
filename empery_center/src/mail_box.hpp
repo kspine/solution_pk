@@ -37,7 +37,6 @@ private:
 		boost::shared_ptr<MySql::Center_Mail>> m_mails;
 
 public:
-	explicit MailBox(AccountUuid account_uuid);
 	MailBox(AccountUuid account_uuid,
 		const std::vector<boost::shared_ptr<MySql::Center_Mail>> &mails);
 	~MailBox();

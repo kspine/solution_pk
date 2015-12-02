@@ -111,8 +111,8 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account_uuid, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetNick, account_uuid, session, req){
-	if(req.nick.size() > AccountMap::MAX_NICK_LEN){
-		return Response(Msg::ERR_NICK_TOO_LONG) <<AccountMap::MAX_NICK_LEN;
+	if(req.nick.size() > AccountMap::MAX_NISK_LEN){
+		return Response(Msg::ERR_NISK_TOO_LONG) <<AccountMap::MAX_NISK_LEN;
 	}
 
 	AccountMap::set_nick(account_uuid, std::move(req.nick));

@@ -50,14 +50,9 @@ namespace {
 	}
 }
 
-ItemBox::ItemBox(AccountUuid account_uuid)
-	: m_account_uuid(account_uuid)
-	, m_locked_by_transaction(false)
-{
-}
 ItemBox::ItemBox(AccountUuid account_uuid,
 	const std::vector<boost::shared_ptr<MySql::Center_Item>> &items)
-	: ItemBox(account_uuid)
+	: m_account_uuid(account_uuid)
 {
 	for(auto it = items.begin(); it != items.end(); ++it){
 		const auto &obj = *it;

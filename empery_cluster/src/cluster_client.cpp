@@ -7,7 +7,7 @@
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
 #include "../../empery_center/src/msg/g_packed.hpp"
-#include "../../empery_center/src/msg/kc_map.hpp"
+#include "../../empery_center/src/msg/ks_map.hpp"
 
 namespace EmperyCluster {
 
@@ -69,7 +69,7 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(boost::int64_t numerical_
 	auto client = boost::shared_ptr<ClusterClient>(new ClusterClient(*sock_addr, use_ssl, keep_alive));
 	client->go_resident();
 
-	const auto result = client->send_and_wait(Msg::KC_MapRegisterCluster(numerical_x, numerical_y));
+	const auto result = client->send_and_wait(Msg::KS_MapRegisterCluster(numerical_x, numerical_y));
 	if(result.first != 0){
 		LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
 		DEBUG_THROW(Exception, SharedNts(result.second));

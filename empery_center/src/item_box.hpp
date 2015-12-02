@@ -28,10 +28,9 @@ private:
 
 	boost::container::flat_map<ItemId,
 		boost::shared_ptr<MySql::Center_Item>> m_items;
-	bool m_locked_by_transaction;
+	bool m_locked_by_transaction = false;
 
 public:
-	explicit ItemBox(AccountUuid account_uuid);
 	ItemBox(AccountUuid account_uuid,
 		const std::vector<boost::shared_ptr<MySql::Center_Item>> &items);
 	~ItemBox();
