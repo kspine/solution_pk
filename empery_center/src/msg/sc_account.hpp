@@ -33,7 +33,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_ARRAY         (accounts,	\
 		FIELD_STRING        (account_uuid)	\
-		FIELD_VUINT         (error_code)	\
+		FIELD_VINT          (error_code)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

@@ -140,6 +140,9 @@ public:
 	}
 
 	std::string str() const {
+		if(m_uuid == Poseidon::Uuid()){
+			return { };
+		}
 		return m_uuid.to_string();
 	}
 
