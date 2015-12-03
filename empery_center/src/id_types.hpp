@@ -208,6 +208,7 @@ namespace IdTypes {
 	using AccountUuid       = GenericUuid<210001>;
 	using MapObjectUuid     = GenericUuid<210002>;
 	using MailUuid          = GenericUuid<210003>;
+	using ChatMessageUuid   = GenericUuid<210004>;
 }
 
 using namespace IdTypes;

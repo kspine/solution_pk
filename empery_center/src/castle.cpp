@@ -256,26 +256,6 @@ void Castle::pump_status(){
 	}
 }
 
-void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
-	PROFILE_ME;
-
-	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		Msg::SC_CastleBuildingBase msg;
-		fill_building_message(msg, it->second);
-		session->send(msg);
-	}
-	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
-		Msg::SC_CastleTech msg;
-		fill_tech_message(msg, it->second);
-		session->send(msg);
-	}
-	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
-		Msg::SC_CastleResource msg;
-		fill_resource_message(msg, it->second);
-		session->send(msg);
-	}
-}
-
 Castle::BuildingBaseInfo Castle::get_building_base(BuildingBaseId building_base_id) const {
 	PROFILE_ME;
 
@@ -864,6 +844,26 @@ void Castle::commit_resource_transaction(const ResourceTransactionElement *eleme
 	if(insuff_id != ResourceId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: map_object_uuid = ", get_map_object_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient resources in castle"));
+	}
+}
+
+void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		Msg::SC_CastleBuildingBase msg;
+		fill_building_message(msg, it->second);
+		session->send(msg);
+	}
+	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
+		Msg::SC_CastleTech msg;
+		fill_tech_message(msg, it->second);
+		session->send(msg);
+	}
+	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
+		Msg::SC_CastleResource msg;
+		fill_resource_message(msg, it->second);
+		session->send(msg);
 	}
 }
 

@@ -16,6 +16,8 @@ namespace MySql {
 	class Center_Item;
 }
 
+class PlayerSession;
+
 class ItemBox : public virtual AbstractDataObject {
 public:
 	struct ItemInfo {

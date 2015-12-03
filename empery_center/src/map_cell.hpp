@@ -34,9 +34,6 @@ public:
 public:
 	void pump_status() override;
 
-	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
-	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
-
 	Coord get_coord() const;
 
 	MapObjectUuid get_parent_object_uuid() const;
@@ -58,6 +55,9 @@ public:
 	boost::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
 };
 
 inline void synchronize_map_cell_with_player(const boost::shared_ptr<const MapCell> &map_cell,

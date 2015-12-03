@@ -97,60 +97,6 @@ void MapCell::pump_status(){
 	}
 }
 
-void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
-	PROFILE_ME;
-
-	const auto parent_object_uuid = get_parent_object_uuid();
-	if(!parent_object_uuid){
-		Msg::SC_MapCellRemoved msg;
-		msg.x                         = get_coord().x();
-		msg.y                         = get_coord().y();
-		session->send(msg);
-	} else {
-		const auto owner_uuid = get_owner_uuid();
-		if(owner_uuid){
-			AccountMap::combined_send_attributes_to_client(owner_uuid, session);
-		}
-
-		Msg::SC_MapCellInfo msg;
-		msg.x                         = get_coord().x();
-		msg.y                         = get_coord().y();
-		msg.parent_object_uuid        = parent_object_uuid.str();
-		msg.owner_uuid                = owner_uuid.str();
-		msg.acceleration_card_applied = is_acceleration_card_applied();
-		msg.ticket_item_id            = get_ticket_item_id().get();
-		msg.production_resource_id    = get_production_resource_id().get();
-		msg.resource_amount           = get_resource_amount();
-		msg.attributes.reserve(m_attributes.size());
-		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
-			attribute.attribute_id = it->first.get();
-			attribute.value        = it->second->get_value();
-		}
-		session->send(msg);
-	}
-}
-void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
-	PROFILE_ME;
-
-	const auto parent_object_uuid = get_parent_object_uuid();
-
-	Msg::SK_MapAddMapCell msg;
-	msg.x                  = get_coord().x();
-	msg.y                  = get_coord().y();
-	msg.parent_object_uuid = parent_object_uuid.str();
-	msg.owner_uuid         = get_owner_uuid().str();
-	msg.attributes.reserve(m_attributes.size());
-	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		msg.attributes.emplace_back();
-		auto &attribute = msg.attributes.back();
-		attribute.attribute_id = it->first.get();
-		attribute.value        = it->second->get_value();
-	}
-	cluster->send(msg);
-}
-
 Coord MapCell::get_coord() const {
 	return Coord(m_obj->get_x(), m_obj->get_y());
 }
@@ -275,6 +221,60 @@ void MapCell::set_attributes(const boost::container::flat_map<AttributeId, boost
 	}
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
+}
+
+void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto parent_object_uuid = get_parent_object_uuid();
+	if(!parent_object_uuid){
+		Msg::SC_MapCellRemoved msg;
+		msg.x                         = get_coord().x();
+		msg.y                         = get_coord().y();
+		session->send(msg);
+	} else {
+		const auto owner_uuid = get_owner_uuid();
+		if(owner_uuid){
+			AccountMap::combined_send_attributes_to_client(owner_uuid, session);
+		}
+
+		Msg::SC_MapCellInfo msg;
+		msg.x                         = get_coord().x();
+		msg.y                         = get_coord().y();
+		msg.parent_object_uuid        = parent_object_uuid.str();
+		msg.owner_uuid                = owner_uuid.str();
+		msg.acceleration_card_applied = is_acceleration_card_applied();
+		msg.ticket_item_id            = get_ticket_item_id().get();
+		msg.production_resource_id    = get_production_resource_id().get();
+		msg.resource_amount           = get_resource_amount();
+		msg.attributes.reserve(m_attributes.size());
+		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+			msg.attributes.emplace_back();
+			auto &attribute = msg.attributes.back();
+			attribute.attribute_id = it->first.get();
+			attribute.value        = it->second->get_value();
+		}
+		session->send(msg);
+	}
+}
+void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
+	PROFILE_ME;
+
+	const auto parent_object_uuid = get_parent_object_uuid();
+
+	Msg::SK_MapAddMapCell msg;
+	msg.x                  = get_coord().x();
+	msg.y                  = get_coord().y();
+	msg.parent_object_uuid = parent_object_uuid.str();
+	msg.owner_uuid         = get_owner_uuid().str();
+	msg.attributes.reserve(m_attributes.size());
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		msg.attributes.emplace_back();
+		auto &attribute = msg.attributes.back();
+		attribute.attribute_id = it->first.get();
+		attribute.value        = it->second->get_value();
+	}
+	cluster->send(msg);
 }
 
 }

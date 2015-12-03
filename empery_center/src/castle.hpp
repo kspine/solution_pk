@@ -17,6 +17,8 @@ namespace MySql {
 	class Center_CastleTech;
 }
 
+class PlayerSession;
+
 class Castle : public MapObject {
 public:
 	enum Mission {
@@ -73,8 +75,6 @@ public:
 public:
 	void pump_status() override;
 
-	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
-
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
 	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;
 	std::size_t count_buildings_by_id(BuildingId building_id) const;
@@ -105,6 +105,8 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 	void commit_resource_transaction(const ResourceTransactionElement *elements, std::size_t count,
 		const boost::function<void ()> &callback = boost::function<void ()>());
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
 inline void synchronize_castle_with_player(const boost::shared_ptr<const Castle> &castle,

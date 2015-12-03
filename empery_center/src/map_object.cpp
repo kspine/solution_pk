@@ -38,64 +38,6 @@ void MapObject::pump_status(){
 	// 无事可做。
 }
 
-void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
-	PROFILE_ME;
-
-	const bool deleted = has_been_deleted();
-	if(deleted){
-		Msg::SC_MapObjectRemoved msg;
-		msg.object_uuid        = get_map_object_uuid().str();
-		session->send(msg);
-	} else {
-		const auto owner_uuid = get_owner_uuid();
-		if(owner_uuid){
-			AccountMap::combined_send_attributes_to_client(owner_uuid, session);
-		}
-
-		Msg::SC_MapObjectInfo msg;
-		msg.object_uuid        = get_map_object_uuid().str();
-		msg.object_type_id     = get_map_object_type_id().get();
-		msg.owner_uuid         = owner_uuid.str();
-		msg.parent_object_uuid = get_parent_object_uuid().str();
-		msg.name               = get_name();
-		msg.x                  = get_coord().x();
-		msg.y                  = get_coord().y();
-		msg.attributes.reserve(m_attributes.size());
-		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
-			attribute.attribute_id = it->first.get();
-			attribute.value        = it->second->get_value();
-		}
-		session->send(msg);
-	}
-}
-void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
-	PROFILE_ME;
-
-	const bool deleted = has_been_deleted();
-	if(deleted){
-		Msg::SK_MapRemoveMapObject msg;
-		msg.map_object_uuid = get_map_object_uuid().str();
-		cluster->send(msg);
-	} else {
-		Msg::SK_MapAddMapObject msg;
-		msg.map_object_uuid    = get_map_object_uuid().str();
-		msg.map_object_type_id = get_map_object_type_id().get();
-		msg.owner_uuid         = get_owner_uuid().str();
-		msg.x                  = get_coord().x();
-		msg.y                  = get_coord().y();
-		msg.attributes.reserve(m_attributes.size());
-		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
-			attribute.attribute_id = it->first.get();
-			attribute.value        = it->second->get_value();
-		}
-		cluster->send(msg);
-	}
-}
-
 MapObjectUuid MapObject::get_map_object_uuid() const {
 	return MapObjectUuid(m_obj->unlocked_get_map_object_uuid());
 }
@@ -226,6 +168,64 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
 		}
+	}
+}
+
+void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const bool deleted = has_been_deleted();
+	if(deleted){
+		Msg::SC_MapObjectRemoved msg;
+		msg.object_uuid        = get_map_object_uuid().str();
+		session->send(msg);
+	} else {
+		const auto owner_uuid = get_owner_uuid();
+		if(owner_uuid){
+			AccountMap::combined_send_attributes_to_client(owner_uuid, session);
+		}
+
+		Msg::SC_MapObjectInfo msg;
+		msg.object_uuid        = get_map_object_uuid().str();
+		msg.object_type_id     = get_map_object_type_id().get();
+		msg.owner_uuid         = owner_uuid.str();
+		msg.parent_object_uuid = get_parent_object_uuid().str();
+		msg.name               = get_name();
+		msg.x                  = get_coord().x();
+		msg.y                  = get_coord().y();
+		msg.attributes.reserve(m_attributes.size());
+		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+			msg.attributes.emplace_back();
+			auto &attribute = msg.attributes.back();
+			attribute.attribute_id = it->first.get();
+			attribute.value        = it->second->get_value();
+		}
+		session->send(msg);
+	}
+}
+void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
+	PROFILE_ME;
+
+	const bool deleted = has_been_deleted();
+	if(deleted){
+		Msg::SK_MapRemoveMapObject msg;
+		msg.map_object_uuid = get_map_object_uuid().str();
+		cluster->send(msg);
+	} else {
+		Msg::SK_MapAddMapObject msg;
+		msg.map_object_uuid    = get_map_object_uuid().str();
+		msg.map_object_type_id = get_map_object_type_id().get();
+		msg.owner_uuid         = get_owner_uuid().str();
+		msg.x                  = get_coord().x();
+		msg.y                  = get_coord().y();
+		msg.attributes.reserve(m_attributes.size());
+		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+			msg.attributes.emplace_back();
+			auto &attribute = msg.attributes.back();
+			attribute.attribute_id = it->first.get();
+			attribute.value        = it->second->get_value();
+		}
+		cluster->send(msg);
 	}
 }
 
