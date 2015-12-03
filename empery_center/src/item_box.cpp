@@ -39,7 +39,7 @@ namespace {
 		PROFILE_ME;
 
 		info.item_id = ItemId(obj->get_item_id());
-		info.count  = obj->get_count();
+		info.count   = obj->get_count();
 	}
 
 	void fill_item_message(Msg::SC_ItemChanged &msg, const boost::shared_ptr<MySql::Center_Item> &obj){

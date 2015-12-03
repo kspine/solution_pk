@@ -113,15 +113,15 @@ namespace {
 		LOG_EMPERY_CENTER_DEBUG("Building mission complete: map_object_uuid = ", obj->get_map_object_uuid(),
 			", building_base_id = ", obj->get_building_base_id(), ", building_id = ", obj->get_building_id(), ", mission = ", (unsigned)mission);
 		switch(mission){
+			unsigned level;
+
 		case Castle::MIS_CONSTRUCT:
 			obj->set_building_level(1);
 			break;
 
 		case Castle::MIS_UPGRADE:
-			{
-				const unsigned level = obj->get_building_level();
-				obj->set_building_level(level + 1);
-			}
+			level = obj->get_building_level();
+			obj->set_building_level(level + 1);
 			break;
 
 		case Castle::MIS_DESTRUCT:
@@ -154,22 +154,22 @@ namespace {
 		LOG_EMPERY_CENTER_DEBUG("Tech mission complete: map_object_uuid = ", obj->get_map_object_uuid(),
 			", tech_id = ", obj->get_tech_id(), ", mission = ", (unsigned)mission);
 		switch(mission){
-//		case Castle::MIS_CONSTRUCT:
-//			obj->set_tech_level(1);
-//			break;
-
-		case Castle::MIS_UPGRADE:
-			{
-				const unsigned level = obj->get_tech_level();
-				obj->set_tech_level(level + 1);
-			}
+			unsigned level;
+/*
+		case Castle::MIS_CONSTRUCT:
+			obj->set_tech_level(1);
 			break;
-
-//		case Castle::MIS_DESTRUCT:
-//			obj->set_tech_id(0);
-//			obj->set_tech_level(0);
-//			break;
-
+*/
+		case Castle::MIS_UPGRADE:
+			level = obj->get_tech_level();
+			obj->set_tech_level(level + 1);
+			break;
+/*
+		case Castle::MIS_DESTRUCT:
+			obj->set_tech_id(0);
+			obj->set_tech_level(0);
+			break;
+*/
 		default:
 			LOG_EMPERY_CENTER_ERROR("Unknown tech mission: map_object_uuid = ", obj->get_map_object_uuid(),
 				", tech_id = ", obj->get_tech_id(), ", mission = ", (unsigned)mission);
