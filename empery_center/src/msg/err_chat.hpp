@@ -12,6 +12,7 @@ namespace Msg {
 		ERR_ACCOUNT_QUIETED                 = 71801,
 		ERR_CHAT_FLOOD                      = 71802,
 		ERR_INVALID_CHAT_MESSAGE_SLOT       = 71803,
+		ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL   = 71804,
 	};
 }
 
