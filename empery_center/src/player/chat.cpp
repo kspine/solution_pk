@@ -29,8 +29,6 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
 
-	// TODO check flood
-
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	segments.reserve(req.segments.size());
 	for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
