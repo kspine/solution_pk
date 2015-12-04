@@ -26,6 +26,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/item_box_map.cpp	\
 	src/singletons/mail_box_map.cpp	\
 	src/singletons/chat_message_map.cpp	\
+	src/singletons/announcement_map.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
 	src/data/item.cpp	\
@@ -38,6 +39,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/item.cpp	\
 	src/player/mail.cpp	\
 	src/player/chat.cpp	\
+	src/player/announcement.cpp	\
 	src/cluster/map.cpp	\
 	src/utilities.cpp	\
 	src/abstract_data_object.cpp	\
@@ -52,4 +54,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/mail_box.cpp	\
 	src/mail_data.cpp	\
 	src/chat_message.cpp	\
+	src/announcement.cpp	\
 	src/mmain.cpp

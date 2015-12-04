@@ -6,8 +6,8 @@
 
 namespace EmperyCenter {
 
-ChatMessage::ChatMessage(unsigned channel, unsigned type, LanguageId language_id,
-	AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<unsigned, std::string>> segments)
+ChatMessage::ChatMessage(ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id,
+	AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
 	: m_chat_message_uuid(Poseidon::Uuid::random())
 	, m_channel(channel), m_type(type), m_language_id(language_id)
 	, m_from_account_uuid(from_account_uuid), m_sent_time(sent_time), m_segments(std::move(segments))
@@ -26,15 +26,15 @@ void ChatMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 
 	Msg::SC_ChatMessageData msg;
 	msg.chat_message_uuid   = get_chat_message_uuid().str();
-	msg.channel             = get_channel();
-	msg.type                = get_type();
+	msg.channel             = get_channel().get();
+	msg.type                = get_type().get();
 	msg.language_id         = get_language_id().get();
 	msg.from_account_uuid   = from_account_uuid.str();
 	msg.segments.reserve(m_segments.size());
 	for(auto it = m_segments.begin(); it != m_segments.end(); ++it){
 		msg.segments.emplace_back();
 		auto &segment = msg.segments.back();
-		segment.slot   = it->first;
+		segment.slot   = it->first.get();
 		segment.value  = it->second;
 	}
 	session->send(msg);

@@ -13,7 +13,7 @@ namespace {
 		boost::shared_ptr<ChatMessage> message;
 
 		ChatMessageUuid message_uuid;
-		std::pair<unsigned, boost::uint64_t> channel_sent_time;
+		std::pair<ChatChannelId, boost::uint64_t> channel_sent_time;
 
 		explicit ChatMessageElement(boost::shared_ptr<ChatMessage> message_)
 			: message(std::move(message_))
@@ -62,7 +62,7 @@ boost::shared_ptr<ChatMessage> ChatMessageMap::require(ChatMessageUuid chat_mess
 	}
 	return ret;
 }
-void ChatMessageMap::get_all_by_channel(std::vector<boost::shared_ptr<ChatMessage>> &ret, unsigned channel){
+void ChatMessageMap::get_all_by_channel(std::vector<boost::shared_ptr<ChatMessage>> &ret, ChatChannelId channel){
 	PROFILE_ME;
 
 	const auto chat_message_map = g_chat_message_map.lock();
@@ -121,8 +121,8 @@ void ChatMessageMap::insert(const boost::shared_ptr<ChatMessage> &message){
 			try {
 				Msg::SC_ChatMessageReceived msg;
 				msg.chat_message_uuid     = chat_message_uuid.str();
-				msg.channel               = channel;
-				msg.type                  = message->get_type();
+				msg.channel               = message->get_channel().get();
+				msg.type                  = message->get_type().get();
 				msg.language_id           = message->get_language_id().get();
 				session->send(msg);
 			} catch(std::exception &e){

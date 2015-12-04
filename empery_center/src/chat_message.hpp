@@ -13,37 +13,20 @@ namespace EmperyCenter {
 class PlayerSession;
 
 class ChatMessage : NONCOPYABLE {
-public:
-	enum {
-		// Channel
-		CHAN_CLUSTER    = 0,
-		CHAN_SYSTEM     = 1,
-		CHAN_TRADE      = 2,
-		CHAN_ALLIANCE   = 3,
-
-		// Type
-		T_PLAIN         = 0,
-
-		// Slot
-		SLOT_TEXT       = 0,
-		SLOT_SMILEY     = 1,
-		SLOT_VOICE      = 2,
-	};
-
 private:
 	const ChatMessageUuid m_chat_message_uuid;
 
-	unsigned m_channel;
-	unsigned m_type;
+	ChatChannelId m_channel;
+	ChatMessageTypeId m_type;
 	LanguageId m_language_id;
 
 	AccountUuid m_from_account_uuid;
 	boost::uint64_t m_sent_time;
-	std::vector<std::pair<unsigned, std::string>> m_segments;
+	std::vector<std::pair<ChatMessageSlotId, std::string>> m_segments;
 
 public:
-	ChatMessage(unsigned channel, unsigned type, LanguageId language_id,
-		AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<unsigned, std::string>> segments);
+	ChatMessage(ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id,
+		AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
 	~ChatMessage();
 
 public:
@@ -51,10 +34,10 @@ public:
 		return m_chat_message_uuid;
 	}
 
-	unsigned get_channel() const {
+	ChatChannelId get_channel() const {
 		return m_channel;
 	}
-	unsigned get_type() const {
+	ChatMessageTypeId get_type() const {
 		return m_type;
 	}
 	LanguageId get_language_id() const {
@@ -67,7 +50,7 @@ public:
 	boost::uint64_t get_sent_time() const {
 		return m_sent_time;
 	}
-	const std::vector<std::pair<unsigned, std::string>> &get_segments() const {
+	const std::vector<std::pair<ChatMessageSlotId, std::string>> &get_segments() const {
 		return m_segments;
 	}
 

@@ -189,26 +189,29 @@ std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &uuid){
 }
 
 namespace IdTypes {
-	using PlatformId        = GenericId<boost::uint32_t, 110001>;
-	using LanguageId        = GenericId<boost::uint32_t, 110002>;
-	using ReasonId          = GenericId<boost::uint32_t, 110003>;
+	using PlatformId          = GenericId<boost::uint32_t, 110001>;
+	using LanguageId          = GenericId<boost::uint32_t, 110002>;
+	using ReasonId            = GenericId<boost::uint32_t, 110003>;
+	using ChatChannelId       = GenericId<boost::uint32_t, 110004>;
+	using ChatMessageTypeId   = GenericId<boost::uint32_t, 110005>;
+	using ChatMessageSlotId   = GenericId<boost::uint32_t, 110006>;
 
-	using TerrainId         = GenericId<boost::uint32_t, 120001>;
-	using ResourceId        = GenericId<boost::uint32_t, 120002>;
-	using MapObjectTypeId   = GenericId<boost::uint32_t, 120003>;
-	using AttributeId       = GenericId<boost::uint32_t, 120004>;
-	using BuildingBaseId    = GenericId<boost::uint32_t, 120005>;
-	using BuildingId        = GenericId<boost::uint32_t, 120006>;
-	using TechId            = GenericId<boost::uint32_t, 120007>;
-	using ItemId            = GenericId<boost::uint32_t, 120008>;
-	using TradeId           = GenericId<boost::uint32_t, 120009>;
-	using RechargeId        = GenericId<boost::uint32_t, 120010>;
-	using ShopId            = GenericId<boost::uint32_t, 120011>;
+	using TerrainId           = GenericId<boost::uint32_t, 120001>;
+	using ResourceId          = GenericId<boost::uint32_t, 120002>;
+	using MapObjectTypeId     = GenericId<boost::uint32_t, 120003>;
+	using AttributeId         = GenericId<boost::uint32_t, 120004>;
+	using BuildingBaseId      = GenericId<boost::uint32_t, 120005>;
+	using BuildingId          = GenericId<boost::uint32_t, 120006>;
+	using TechId              = GenericId<boost::uint32_t, 120007>;
+	using ItemId              = GenericId<boost::uint32_t, 120008>;
+	using TradeId             = GenericId<boost::uint32_t, 120009>;
+	using RechargeId          = GenericId<boost::uint32_t, 120010>;
+	using ShopId              = GenericId<boost::uint32_t, 120011>;
 
-	using AccountUuid       = GenericUuid<210001>;
-	using MapObjectUuid     = GenericUuid<210002>;
-	using MailUuid          = GenericUuid<210003>;
-	using ChatMessageUuid   = GenericUuid<210004>;
+	using AccountUuid         = GenericUuid<210001>;
+	using MapObjectUuid       = GenericUuid<210002>;
+	using MailUuid            = GenericUuid<210003>;
+	using ChatMessageUuid     = GenericUuid<210004>;
 }
 
 using namespace IdTypes;

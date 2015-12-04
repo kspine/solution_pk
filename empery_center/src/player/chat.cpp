@@ -5,27 +5,37 @@
 #include "../msg/err_chat.hpp"
 #include "../singletons/chat_message_map.hpp"
 #include "../chat_message.hpp"
+#include "../chat_channel_ids.hpp"
+#include "../chat_message_type_ids.hpp"
+#include "../chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 	// TODO quiet
 
-	const unsigned channel = req.channel;
-	const unsigned type    = req.type;
+	const auto channel     = ChatChannelId(req.channel);
+	const auto type        = ChatMessageTypeId(req.type);
 	const auto language_id = LanguageId(req.language_id);
 
-	if(channel == ChatMessage::CHAN_SYSTEM){
-		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL);
+	if(channel == ChatChannelIds::ID_CLUSTER){
+		// TODO check flood
+	} else if(channel == ChatChannelIds::ID_TRADE){
+		// TODO check flood
+	} else if(channel == ChatChannelIds::ID_ALLIANCE){
+		// TODO check flood
+		// TODO check alliance
+	} else {
+		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
 
 	// TODO check flood
 
-	std::vector<std::pair<unsigned, std::string>> segments;
+	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	segments.reserve(req.segments.size());
 	for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
-		const unsigned slot = it->slot;
-		if((slot != ChatMessage::SLOT_TEXT) && (slot != ChatMessage::SLOT_SMILEY) && (slot != ChatMessage::SLOT_VOICE)){
+		const auto slot = ChatMessageSlotId(it->slot);
+		if((slot != ChatMessageSlotIds::ID_TEXT) && (slot != ChatMessageSlotIds::ID_SMILEY) && (slot != ChatMessageSlotIds::ID_VOICE)){
 			return Response(Msg::ERR_INVALID_CHAT_MESSAGE_SLOT) <<slot;
 		}
 		segments.emplace_back(slot, std::move(it->value));
