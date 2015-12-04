@@ -9,6 +9,8 @@
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
+	// TODO quiet
+
 	const unsigned channel = req.channel;
 	const unsigned type    = req.type;
 	const auto language_id = LanguageId(req.language_id);
@@ -54,10 +56,6 @@ PLAYER_SERVLET(Msg::CS_ChatGetMessages, account_uuid, session, req){
 		const auto message = ChatMessageMap::get(chat_message_uuid);
 		if(!message){
 			continue;
-		}
-		const auto from_account_uuid = message->get_from_account_uuid();
-		if(from_account_uuid){
-			AccountMap::combined_send_attributes_to_client(from_account_uuid, session);
 		}
 		synchronize_chat_message_with_player(message, session);
 	}
