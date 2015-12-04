@@ -152,16 +152,6 @@ void ItemBox::pump_status(){
 		});
 }
 
-void ItemBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
-	PROFILE_ME;
-
-	for(auto it = m_items.begin(); it != m_items.end(); ++it){
-		Msg::SC_ItemChanged msg;
-		fill_item_message(msg, it->second);
-		session->send(msg);
-	}
-}
-
 void ItemBox::check_init_items(){
 	PROFILE_ME;
 
@@ -349,6 +339,16 @@ void ItemBox::commit_transaction(const ItemTransactionElement *elements, std::si
 	if(insuff_id != ItemId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient items in item box: account_uuid = ", get_account_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient items in item box"));
+	}
+}
+
+void ItemBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	for(auto it = m_items.begin(); it != m_items.end(); ++it){
+		Msg::SC_ItemChanged msg;
+		fill_item_message(msg, it->second);
+		session->send(msg);
 	}
 }
 

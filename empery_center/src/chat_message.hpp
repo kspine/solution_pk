@@ -10,20 +10,21 @@
 
 namespace EmperyCenter {
 
+class PlayerSession;
+
 class ChatMessage : NONCOPYABLE {
 public:
-	enum Channel {
+	enum {
+		// Channel
 		CHAN_CLUSTER    = 0,
 		CHAN_SYSTEM     = 1,
 		CHAN_TRADE      = 2,
 		CHAN_ALLIANCE   = 3,
-	};
 
-	enum Type {
+		// Type
 		T_PLAIN         = 0,
-	};
 
-	enum Slot {
+		// Slot
 		SLOT_TEXT       = 0,
 		SLOT_SMILEY     = 1,
 		SLOT_VOICE      = 2,
@@ -32,17 +33,17 @@ public:
 private:
 	const ChatMessageUuid m_chat_message_uuid;
 
-	Channel m_channel;
-	Type m_type;
+	unsigned m_channel;
+	unsigned m_type;
 	LanguageId m_language_id;
 
 	AccountUuid m_from_account_uuid;
 	boost::uint64_t m_sent_time;
-	std::vector<std::pair<Slot, std::string>> m_segments;
+	std::vector<std::pair<unsigned, std::string>> m_segments;
 
 public:
-	ChatMessage(Channel channel, Type type, LanguageId language_id,
-		AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<Slot, std::string>> segments);
+	ChatMessage(unsigned channel, unsigned type, LanguageId language_id,
+		AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<unsigned, std::string>> segments);
 	~ChatMessage();
 
 public:
@@ -50,10 +51,10 @@ public:
 		return m_chat_message_uuid;
 	}
 
-	Channel get_channel() const {
+	unsigned get_channel() const {
 		return m_channel;
 	}
-	Type get_type() const {
+	unsigned get_type() const {
 		return m_type;
 	}
 	LanguageId get_language_id() const {
@@ -66,10 +67,23 @@ public:
 	boost::uint64_t get_sent_time() const {
 		return m_sent_time;
 	}
-	const std::vector<std::pair<Slot, std::string>> &get_segments() const {
+	const std::vector<std::pair<unsigned, std::string>> &get_segments() const {
 		return m_segments;
 	}
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
+
+inline void synchronize_chat_message_with_player(const boost::shared_ptr<const ChatMessage> &chat_message,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	chat_message->synchronize_with_player(session);
+}
+inline void synchronize_chat_message_with_player(const boost::shared_ptr<ChatMessage> &chat_message,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	chat_message->synchronize_with_player(session);
+}
 
 }
 

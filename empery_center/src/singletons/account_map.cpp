@@ -172,6 +172,61 @@ namespace {
 		info.login_token_expiry_time = obj->get_login_token_expiry_time();
 		info.banned_until          = obj->get_banned_until();
 	}
+
+	void send_attributes_to_client_and_update_cache(boost::uint64_t now, boost::uint64_t cache_timeout,
+		AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
+		bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items)
+	{
+		PROFILE_ME;
+
+		Msg::SC_AccountAttributes msg;
+		msg.account_uuid = account_uuid.str();
+		if(wants_nick){
+			auto info = AccountMap::require(account_uuid);
+			msg.nick = std::move(info.nick);
+		}
+		if(wants_attributes){
+			unsigned slot_end = AccountMap::ATTR_PUBLIC_END;
+			if(wants_private_attributes){
+				slot_end = AccountMap::ATTR_END;
+			}
+			boost::container::flat_map<unsigned, std::string> attributes;
+			AccountMap::get_attributes(attributes, account_uuid, 0, slot_end);
+			msg.attributes.reserve(attributes.size());
+			for(auto it = attributes.begin(); it != attributes.end(); ++it){
+				msg.attributes.emplace_back();
+				auto &attribute = msg.attributes.back();
+				attribute.slot = it->first;
+				attribute.value = std::move(it->second);
+			}
+		}
+		if(wants_items){
+			const auto item_box = ItemBoxMap::require(account_uuid);
+			std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
+			Data::Item::get_public(items_to_check);
+			msg.public_items.reserve(items_to_check.size());
+			for(auto it = items_to_check.begin(); it != items_to_check.end(); ++it){
+				const auto &item_data = *it;
+				auto info = item_box->get(item_data->item_id);
+
+				msg.public_items.emplace_back();
+				auto &item = msg.public_items.back();
+				item.item_id    = info.item_id.get();
+				item.item_count = info.count;
+			}
+		}
+		session->send(msg);
+
+		if(cache_timeout != 0){
+			const auto expiry_time = saturated_add(now, cache_timeout);
+			auto it = g_info_timestamp_map->find<1>(std::make_pair(account_uuid, session));
+			if(it == g_info_timestamp_map->end<1>()){
+				it = g_info_timestamp_map->insert<1>(it, InfoTimestampElement(expiry_time, account_uuid, session));
+			} else {
+				g_info_timestamp_map->replace<1>(it, InfoTimestampElement(expiry_time, account_uuid, session));
+			}
+		}
+	}
 }
 
 bool AccountMap::has(AccountUuid account_uuid){
@@ -462,43 +517,11 @@ void AccountMap::send_attributes_to_client(AccountUuid account_uuid, const boost
 {
 	PROFILE_ME;
 
-	Msg::SC_AccountAttributes msg;
-	msg.account_uuid = account_uuid.str();
-	if(wants_nick){
-		auto info = AccountMap::require(account_uuid);
-		msg.nick = std::move(info.nick);
-	}
-	if(wants_attributes){
-		unsigned slot_end = AccountMap::ATTR_PUBLIC_END;
-		if(wants_private_attributes){
-			slot_end = AccountMap::ATTR_END;
-		}
-		boost::container::flat_map<unsigned, std::string> attributes;
-		AccountMap::get_attributes(attributes, account_uuid, 0, slot_end);
-		msg.attributes.reserve(attributes.size());
-		for(auto it = attributes.begin(); it != attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
-			attribute.slot = it->first;
-			attribute.value = std::move(it->second);
-		}
-	}
-	if(wants_items){
-		const auto item_box = ItemBoxMap::require(account_uuid);
-		std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
-		Data::Item::get_public(items_to_check);
-		msg.public_items.reserve(items_to_check.size());
-		for(auto it = items_to_check.begin(); it != items_to_check.end(); ++it){
-			const auto &item_data = *it;
-			auto info = item_box->get(item_data->item_id);
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto cache_timeout = get_config<boost::uint64_t>("account_info_cache_timeout", 0);
 
-			msg.public_items.emplace_back();
-			auto &item = msg.public_items.back();
-			item.item_id    = info.item_id.get();
-			item.item_count = info.count;
-		}
-	}
-	session->send(msg);
+	send_attributes_to_client_and_update_cache(now, cache_timeout, account_uuid, session,
+		wants_nick, wants_attributes, wants_private_attributes, wants_items);
 }
 void AccountMap::combined_send_attributes_to_client(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
@@ -513,11 +536,8 @@ void AccountMap::combined_send_attributes_to_client(AccountUuid account_uuid, co
 		return;
 	}
 
-	send_attributes_to_client(account_uuid, session, true, true, false, true);
-
-	if(cache_timeout != 0){
-		g_info_timestamp_map->insert(InfoTimestampElement(saturated_add(now, cache_timeout), account_uuid, session));
-	}
+	send_attributes_to_client_and_update_cache(now, cache_timeout, account_uuid, session,
+		true, true, false, true);
 }
 
 }

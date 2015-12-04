@@ -20,18 +20,21 @@ namespace Msg {
 #define MESSAGE_ID      898
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (chat_message_uuid)	\
+	FIELD_VUINT         (channel)	\
+	FIELD_VUINT         (type)	\
+	FIELD_VUINT         (language_id)	\
 	FIELD_STRING        (from_account_uuid)	\
 	FIELD_VUINT         (sent_time)	\
 	FIELD_ARRAY         (segments,	\
 		FIELD_VUINT         (slot)	\
-		FIELD_VUINT         (value)	\
+		FIELD_STRING        (value)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_ChatGetMessagesRet
 #define MESSAGE_ID      897
 #define MESSAGE_FIELDS  \
-	FIELD_ARRAY         (messages,  \
+	FIELD_ARRAY         (chat_messages,  \
 		FIELD_STRING        (chat_message_uuid)  \
 		FIELD_VINT          (error_code)    \
 	)

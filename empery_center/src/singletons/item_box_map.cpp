@@ -153,8 +153,8 @@ boost::shared_ptr<ItemBox> ItemBoxMap::require(AccountUuid account_uuid){
 
 	auto ret = get(account_uuid);
 	if(!ret){
-		LOG_EMPERY_CENTER_WARNING("ItemBox not found: account_uuid = ", account_uuid);
-		DEBUG_THROW(Exception, sslit("ItemBox not found"));
+		LOG_EMPERY_CENTER_WARNING("Item box not found: account_uuid = ", account_uuid);
+		DEBUG_THROW(Exception, sslit("Item box not found"));
 	}
 	return ret;
 }

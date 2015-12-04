@@ -44,8 +44,6 @@ public:
 public:
 	void pump_status() override;
 
-	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
-
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
 	}
@@ -56,6 +54,8 @@ public:
 	void insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time);
 	void update(MailInfo info, bool throws_if_not_exists = true);
 	bool remove(MailUuid mail_uuid) noexcept;
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
 inline void synchronize_mail_box_with_player(const boost::shared_ptr<const MailBox> &mail_box,

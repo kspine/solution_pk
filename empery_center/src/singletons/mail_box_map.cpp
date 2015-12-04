@@ -293,8 +293,8 @@ boost::shared_ptr<MailData> MailBoxMap::require_mail_data(MailUuid mail_uuid, La
 
 	auto ret = get_mail_data(mail_uuid, language_id);
 	if(!ret){
-		LOG_EMPERY_CENTER_WARNING("MailData not found: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
-		DEBUG_THROW(Exception, sslit("MailData not found"));
+		LOG_EMPERY_CENTER_WARNING("Mail data not found: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+		DEBUG_THROW(Exception, sslit("Mail data not found"));
 	}
 	return ret;
 }
@@ -303,8 +303,8 @@ void MailBoxMap::insert_mail_data(boost::shared_ptr<MailData> mail_data){
 
 	const auto mail_data_map = g_mail_data_map.lock();
 	if(!mail_data_map){
-		LOG_EMPERY_CENTER_WARNING("MailDataMap is not loaded.");
-		DEBUG_THROW(Exception, sslit("MailDataMap is not loaded"));
+		LOG_EMPERY_CENTER_WARNING("Mail data map is not loaded.");
+		DEBUG_THROW(Exception, sslit("Mail data map is not loaded"));
 	}
 
 	const auto mail_uuid = mail_data->get_mail_uuid();

@@ -148,6 +148,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account_uuid, session, req){
 		auto &account = msg.accounts.back();
 		account.account_uuid = std::move(it->account_uuid);
 		account.error_code = Msg::ERR_NO_SUCH_ACCOUNT;
+
 		if(!AccountMap::has(other_uuid)){
 			continue;
 		}

@@ -40,8 +40,6 @@ public:
 public:
 	void pump_status() override;
 
-	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
-
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
 	}
@@ -55,6 +53,8 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 	void commit_transaction(const ItemTransactionElement *elements, std::size_t count,
 		const boost::function<void ()> &callback = boost::function<void ()>());
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
 inline void synchronize_item_box_with_player(const boost::shared_ptr<const ItemBox> &item_box,

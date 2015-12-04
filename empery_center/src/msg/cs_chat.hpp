@@ -23,7 +23,7 @@ namespace Msg {
 #define MESSAGE_ID      801
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (language_id)	\
-	FIELD_ARRAY         (messages,	\
+	FIELD_ARRAY         (chat_messages,	\
 		FIELD_STRING        (chat_message_uuid)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
