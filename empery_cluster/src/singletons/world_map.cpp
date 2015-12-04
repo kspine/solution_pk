@@ -98,6 +98,54 @@ namespace {
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 
+		const auto gc_timer_interval = get_config<boost::uint64_t>("world_map_gc_timer_interval", 300000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_timer_interval,
+			std::bind(
+				[](const boost::weak_ptr<MapCellMapDelegator> &map_cell_weak,
+					const boost::weak_ptr<MapObjectMapDelegator> &map_object_weak,
+					const boost::weak_ptr<ClusterMapDelegator> &cluster_weak)
+				{
+					PROFILE_ME;
+
+					const auto cluster_map = cluster_weak.lock();
+					if(!cluster_map){
+						return;
+					}
+
+					const auto map_cell_map = map_cell_weak.lock();
+					if(map_cell_map){
+						auto it = map_cell_map->begin<2>();
+						while(it != map_cell_map->end<2>()){
+							const auto prev = it;
+							it = map_cell_map->upper_bound<2>(prev->master);
+
+							if(prev->master.expired()){
+								LOG_EMPERY_CLUSTER_WARNING("Master is gone! Removing ", std::distance(prev, it), " map cell(s).");
+								map_cell_map->erase<2>(prev, it);
+							}
+						}
+					}
+
+					const auto map_object_map = map_object_weak.lock();
+					if(map_object_map){
+						auto it = map_object_map->begin<3>();
+						while(it != map_object_map->end<3>()){
+							const auto prev = it;
+							it = map_object_map->upper_bound<3>(prev->master);
+
+							if(prev->master.expired()){
+								LOG_EMPERY_CLUSTER_WARNING("Master is gone! Removing ", std::distance(prev, it), " map object(s).");
+								map_object_map->erase<3>(prev, it);
+							}
+						}
+					}
+				},
+				boost::weak_ptr<MapCellMapDelegator>(map_cell_map),
+				boost::weak_ptr<MapObjectMapDelegator>(map_object_map),
+				boost::weak_ptr<ClusterMapDelegator>(cluster_map))
+			);
+		handles.push(std::move(timer));
+
 		using InitServerMap = boost::container::flat_map<std::pair<boost::int64_t, boost::int64_t>, boost::weak_ptr<ClusterClient>>;
 		InitServerMap init_servers;
 		LOG_EMPERY_CLUSTER_INFO("Loading logical map servers...");
@@ -117,7 +165,8 @@ namespace {
 			}
 			LOG_EMPERY_CLUSTER_DEBUG("> Logical server: num_x = ", num_x, ", num_y = ", num_y);
 		}
-		auto timer = Poseidon::TimerDaemon::register_timer(0, 10000,
+		const auto client_timer_interval = get_config<boost::uint64_t>("cluster_client_reconnect_delay", 10000);
+		timer = Poseidon::TimerDaemon::register_timer(0, client_timer_interval,
 			std::bind(
 				[](InitServerMap &init_servers){
 					PROFILE_ME;
