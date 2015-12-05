@@ -2,6 +2,9 @@
 #include "mail_data.hpp"
 #include <poseidon/json.hpp>
 #include "mysql/mail.hpp"
+#include "player_session.hpp"
+#include "msg/sc_mail.hpp"
+#include "singletons/account_map.hpp"
 
 namespace EmperyCenter {
 
@@ -103,9 +106,37 @@ const boost::container::flat_map<ItemId, boost::uint64_t> &MailData::get_attachm
 	return m_attachments;
 }
 void MailData::set_attachments(boost::container::flat_map<ItemId, boost::uint64_t> attachments){
+	PROFILE_ME;
+
 	auto str = encode_attachments(attachments);
 	m_attachments = std::move(attachments);
 	m_obj->set_attachments(std::move(str));
+}
+
+void MailData::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto from_account_uuid = get_from_account_uuid();
+	if(from_account_uuid){
+		AccountMap::combined_send_attributes_to_client(from_account_uuid, session);
+	}
+
+	Msg::SC_MailData msg;
+	msg.mail_uuid         = get_mail_uuid().str();
+	msg.language_id       = get_language_id().get();
+	msg.created_time      = get_created_time();
+	msg.type              = get_type();
+	msg.from_account_uuid = from_account_uuid.str();
+	msg.subject           = get_subject();
+	msg.body              = get_body();
+	msg.attachments.reserve(m_attachments.size());
+	for(auto it = m_attachments.begin(); it != m_attachments.end(); ++it){
+		msg.attachments.emplace_back();
+		auto &attachment = msg.attachments.back();
+		attachment.item_id    = it->first.get();
+		attachment.item_count = it->second;
+	}
+	session->send(msg);
 }
 
 }

@@ -1,5 +1,5 @@
-#ifndef EMPERY_CENTER_CHAT_MESSAGE_HPP_
-#define EMPERY_CENTER_CHAT_MESSAGE_HPP_
+#ifndef EMPERY_CENTER_ANNOUNCEMENT_HPP_
+#define EMPERY_CENTER_ANNOUNCEMENT_HPP_
 
 #include <poseidon/cxx_util.hpp>
 #include <boost/shared_ptr.hpp>
@@ -12,21 +12,19 @@ namespace EmperyCenter {
 
 class PlayerSession;
 
-class ChatMessage : NONCOPYABLE {
+class Announcement : NONCOPYABLE {
 private:
-	const ChatMessageUuid m_chat_message_uuid;
+	const AnnouncementUuid m_announcement_uuid;
 
-	const ChatChannelId m_channel;
-	const ChatMessageTypeId m_type;
 	const LanguageId m_language_id;
-	const boost::uint64_t m_created_time;
 
 	AccountUuid m_from_account_uuid;
+	boost::uint64_t m_sent_time;
 	std::vector<std::pair<ChatMessageSlotId, std::string>> m_segments;
 
 public:
-	ChatMessage(ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id, boost::uint64_t created_time,
-		AccountUuid from_account_uuid, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
+	ChatMessage(ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id,
+		AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
 	~ChatMessage();
 
 public:
@@ -43,12 +41,12 @@ public:
 	LanguageId get_language_id() const {
 		return m_language_id;
 	}
-	boost::uint64_t get_created_time() const {
-		return m_created_time;
-	}
 
 	AccountUuid get_from_account_uuid() const {
 		return m_from_account_uuid;
+	}
+	boost::uint64_t get_sent_time() const {
+		return m_sent_time;
 	}
 	const std::vector<std::pair<ChatMessageSlotId, std::string>> &get_segments() const {
 		return m_segments;

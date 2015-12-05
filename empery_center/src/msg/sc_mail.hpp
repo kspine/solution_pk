@@ -22,7 +22,7 @@ namespace Msg {
 	FIELD_VUINT         (language_id)	\
 	FIELD_VUINT         (created_time)	\
 	FIELD_VUINT         (type)	\
-	FIELD_VUINT         (from_account_uuid)	\
+	FIELD_STRING        (from_account_uuid)	\
 	FIELD_STRING        (subject)	\
 	FIELD_STRING        (body)	\
 	FIELD_ARRAY         (attachments,	\

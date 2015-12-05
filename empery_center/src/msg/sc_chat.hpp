@@ -13,7 +13,8 @@ namespace Msg {
 	FIELD_STRING        (chat_message_uuid)	\
 	FIELD_VUINT         (channel)	\
 	FIELD_VUINT         (type)	\
-	FIELD_VUINT         (language_id)
+	FIELD_VUINT         (language_id)	\
+	FIELD_VUINT         (created_time)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_ChatMessageData
@@ -23,8 +24,8 @@ namespace Msg {
 	FIELD_VUINT         (channel)	\
 	FIELD_VUINT         (type)	\
 	FIELD_VUINT         (language_id)	\
+	FIELD_VUINT         (created_time)	\
 	FIELD_STRING        (from_account_uuid)	\
-	FIELD_VUINT         (sent_time)	\
 	FIELD_ARRAY         (segments,	\
 		FIELD_VUINT         (slot)	\
 		FIELD_STRING        (value)	\

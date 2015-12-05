@@ -39,22 +39,7 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account_uuid, session, req){
 		return Response(Msg::ERR_NO_SUCH_LANGUAGE_ID) <<mail_uuid;
 	}
 
-	Msg::SC_MailData msg;
-	msg.mail_uuid     = mail_data->get_mail_uuid().str();
-	msg.language_id   = mail_data->get_language_id().get();
-	msg.created_time  = mail_data->get_created_time();
-	msg.type          = mail_data->get_type();
-	msg.subject       = mail_data->get_subject();
-	msg.body          = mail_data->get_body();
-	const auto &attachments = mail_data->get_attachments();
-	msg.attachments.reserve(attachments.size());
-	for(auto it = attachments.begin(); it != attachments.end(); ++it){
-		msg.attachments.emplace_back();
-		auto &attachment = msg.attachments.back();
-		attachment.item_id    = it->first.get();
-		attachment.item_count = it->second;
-	}
-	session->send(msg);
+	synchronize_mail_data_with_player(mail_data, session);
 
 	return Response();
 }

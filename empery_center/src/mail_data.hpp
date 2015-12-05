@@ -13,6 +13,8 @@ namespace MySql {
 	class Center_MailData;
 }
 
+class PlayerSession;
+
 class MailData : NONCOPYABLE {
 private:
 	const boost::shared_ptr<MySql::Center_MailData> m_obj;
@@ -45,7 +47,20 @@ public:
 
 	const boost::container::flat_map<ItemId, boost::uint64_t> &get_attachments() const;
 	void set_attachments(boost::container::flat_map<ItemId, boost::uint64_t> attachments);
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
+
+inline void synchronize_mail_data_with_player(const boost::shared_ptr<const MailData> &mail_data,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	mail_data->synchronize_with_player(session);
+}
+inline void synchronize_mail_data_with_player(const boost::shared_ptr<MailData> &mail_data,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	mail_data->synchronize_with_player(session);
+}
 
 }
 
