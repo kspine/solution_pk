@@ -40,7 +40,7 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AccountMapDelegator, AccountElement,
+	MULTI_INDEX_MAP(AccountMapContainer, AccountElement,
 		UNIQUE_MEMBER_INDEX(account_id)
 		MULTI_MEMBER_INDEX(login_name, StringCaseComparator)
 		MULTI_MEMBER_INDEX(phone_number)
@@ -48,7 +48,7 @@ namespace {
 		MULTI_MEMBER_INDEX(referrer_id)
 	)
 
-	boost::shared_ptr<AccountMapDelegator> g_account_map;
+	boost::shared_ptr<AccountMapContainer> g_account_map;
 
 	struct AccountAttributeElement {
 		boost::shared_ptr<MySql::Promotion_AccountAttribute> obj;
@@ -64,12 +64,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AccountAttributeMapDelegator, AccountAttributeElement,
+	MULTI_INDEX_MAP(AccountAttributeMapContainer, AccountAttributeElement,
 		MULTI_MEMBER_INDEX(account_id)
 		UNIQUE_MEMBER_INDEX(account_slot)
 	)
 
-	boost::shared_ptr<AccountAttributeMapDelegator> g_attribute_map;
+	boost::shared_ptr<AccountAttributeMapContainer> g_attribute_map;
 
 	struct SubordinateInfoCacheElement {
 		boost::uint64_t max_level;
@@ -79,7 +79,7 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto account_map = boost::make_shared<AccountMapDelegator>();
+		const auto account_map = boost::make_shared<AccountMapContainer>();
 		LOG_EMPERY_PROMOTION_INFO("Loading accounts...");
 		conn->execute_sql("SELECT * FROM `Promotion_Account`");
 		while(conn->fetch_row()){
@@ -92,7 +92,7 @@ namespace {
 		g_account_map = account_map;
 		handles.push(account_map);
 
-		const auto attribute_map = boost::make_shared<AccountAttributeMapDelegator>();
+		const auto attribute_map = boost::make_shared<AccountAttributeMapContainer>();
 		LOG_EMPERY_PROMOTION_INFO("Loading account attributes...");
 		conn->execute_sql("SELECT * FROM `Promotion_AccountAttribute`");
 		while(conn->fetch_row()){

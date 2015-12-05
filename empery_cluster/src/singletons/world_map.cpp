@@ -32,13 +32,13 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapCellMapDelegator, MapCellElement,
+	MULTI_INDEX_MAP(MapCellMapContainer, MapCellElement,
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 		MULTI_MEMBER_INDEX(master)
 	)
 
-	boost::weak_ptr<MapCellMapDelegator> g_map_cell_map;
+	boost::weak_ptr<MapCellMapContainer> g_map_cell_map;
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -56,14 +56,14 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapObjectMapDelegator, MapObjectElement,
+	MULTI_INDEX_MAP(MapObjectMapContainer, MapObjectElement,
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
 		MULTI_MEMBER_INDEX(master)
 	)
 
-	boost::weak_ptr<MapObjectMapDelegator> g_map_object_map;
+	boost::weak_ptr<MapObjectMapContainer> g_map_object_map;
 
 	struct ClusterElement {
 		Rectangle scope;
@@ -78,32 +78,32 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ClusterMapDelegator, ClusterElement,
+	MULTI_INDEX_MAP(ClusterMapContainer, ClusterElement,
 		UNIQUE_MEMBER_INDEX(coord)
 		UNIQUE_MEMBER_INDEX(cluster)
 	)
 
-	boost::weak_ptr<ClusterMapDelegator> g_cluster_map;
+	boost::weak_ptr<ClusterMapContainer> g_cluster_map;
 
 	MODULE_RAII_PRIORITY(handles, 5300){
-		const auto map_cell_map = boost::make_shared<MapCellMapDelegator>();
+		const auto map_cell_map = boost::make_shared<MapCellMapContainer>();
 		g_map_cell_map = map_cell_map;
 		handles.push(map_cell_map);
 
-		const auto map_object_map = boost::make_shared<MapObjectMapDelegator>();
+		const auto map_object_map = boost::make_shared<MapObjectMapContainer>();
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
 
-		const auto cluster_map = boost::make_shared<ClusterMapDelegator>();
+		const auto cluster_map = boost::make_shared<ClusterMapContainer>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 
 		const auto gc_timer_interval = get_config<boost::uint64_t>("world_map_gc_timer_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_timer_interval,
 			std::bind(
-				[](const boost::weak_ptr<MapCellMapDelegator> &map_cell_weak,
-					const boost::weak_ptr<MapObjectMapDelegator> &map_object_weak,
-					const boost::weak_ptr<ClusterMapDelegator> &cluster_weak)
+				[](const boost::weak_ptr<MapCellMapContainer> &map_cell_weak,
+					const boost::weak_ptr<MapObjectMapContainer> &map_object_weak,
+					const boost::weak_ptr<ClusterMapContainer> &cluster_weak)
 				{
 					PROFILE_ME;
 
@@ -140,9 +140,9 @@ namespace {
 						}
 					}
 				},
-				boost::weak_ptr<MapCellMapDelegator>(map_cell_map),
-				boost::weak_ptr<MapObjectMapDelegator>(map_object_map),
-				boost::weak_ptr<ClusterMapDelegator>(cluster_map))
+				boost::weak_ptr<MapCellMapContainer>(map_cell_map),
+				boost::weak_ptr<MapObjectMapContainer>(map_object_map),
+				boost::weak_ptr<ClusterMapContainer>(cluster_map))
 			);
 		handles.push(std::move(timer));
 

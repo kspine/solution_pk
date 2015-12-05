@@ -30,12 +30,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MailBoxMapDelegator, MailBoxElement,
+	MULTI_INDEX_MAP(MailBoxMapContainer, MailBoxElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<MailBoxMapDelegator> g_mail_box_map;
+	boost::weak_ptr<MailBoxMapContainer> g_mail_box_map;
 
 	struct MailDataElement {
 		std::pair<MailUuid, LanguageId> pkey;
@@ -53,12 +53,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MailDataMapDelegator, MailDataElement,
+	MULTI_INDEX_MAP(MailDataMapContainer, MailDataElement,
 		UNIQUE_MEMBER_INDEX(pkey)
 		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<MailDataMapDelegator> g_mail_data_map;
+	boost::weak_ptr<MailDataMapContainer> g_mail_data_map;
 
 	void gc_timer_proc(boost::uint64_t now){
 		PROFILE_ME;
@@ -108,11 +108,11 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto mail_box_map = boost::make_shared<MailBoxMapDelegator>();
+		const auto mail_box_map = boost::make_shared<MailBoxMapContainer>();
 		g_mail_box_map = mail_box_map;
 		handles.push(mail_box_map);
 
-		const auto mail_data_map = boost::make_shared<MailDataMapDelegator>();
+		const auto mail_data_map = boost::make_shared<MailDataMapContainer>();
 		g_mail_data_map = mail_data_map;
 		handles.push(mail_data_map);
 

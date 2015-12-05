@@ -31,7 +31,9 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 		segments.emplace_back(slot, std::move(it->value));
 	}
 
-	const auto message = boost::make_shared<ChatMessage>(channel, type, language_id, utc_now, account_uuid, std::move(segments));
+	const auto chat_message_uuid = ChatMessageUuid(Poseidon::Uuid::random());
+	const auto message = boost::make_shared<ChatMessage>(
+		chat_message_uuid, channel, type, language_id, utc_now, account_uuid, std::move(segments));
 
 	if(channel == ChatChannelIds::ID_WORLD){
 		// TODO check flood
@@ -53,7 +55,7 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 				--it;
 				const auto chat_box = ChatBoxMap::get(it->first);
 				if(chat_box){
-					chat_box->remove(message->get_chat_message_uuid());
+					chat_box->remove(chat_message_uuid);
 				}
 			}
 			throw;

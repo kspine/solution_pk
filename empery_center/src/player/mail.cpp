@@ -12,6 +12,7 @@
 #include "../singletons/item_box_map.hpp"
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
+#include "../mail_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -59,8 +60,9 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 	const auto expiry_duration = checked_mul(Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION), (boost::uint64_t)60000);
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id,
-		0, account_uuid, std::move(req.subject), std::move(req.body), boost::container::flat_map<ItemId, boost::uint64_t>());
+	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
+		MailTypeIds::ID_NORMAL, account_uuid, std::move(req.subject), std::move(req.body),
+		boost::container::flat_map<ItemId, boost::uint64_t>());
 	MailBoxMap::insert_mail_data(mail_data);
 	to_mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration));
 

@@ -32,12 +32,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapCellMapDelegator, MapCellElement,
+	MULTI_INDEX_MAP(MapCellMapContainer, MapCellElement,
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 	)
 
-	boost::weak_ptr<MapCellMapDelegator> g_map_cell_map;
+	boost::weak_ptr<MapCellMapContainer> g_map_cell_map;
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -55,14 +55,14 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapObjectMapDelegator, MapObjectElement,
+	MULTI_INDEX_MAP(MapObjectMapContainer, MapObjectElement,
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 	)
 
-	boost::weak_ptr<MapObjectMapDelegator> g_map_object_map;
+	boost::weak_ptr<MapObjectMapContainer> g_map_object_map;
 
 	struct MapSectorElement {
 		Coord sector_coord;
@@ -75,11 +75,11 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapSectorMapDelegator, MapSectorElement,
+	MULTI_INDEX_MAP(MapSectorMapContainer, MapSectorElement,
 		UNIQUE_MEMBER_INDEX(sector_coord)
 	)
 
-	boost::weak_ptr<MapSectorMapDelegator> g_map_sector_map;
+	boost::weak_ptr<MapSectorMapContainer> g_map_sector_map;
 
 	struct PlayerViewElement {
 		Rectangle view;
@@ -95,12 +95,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(PlayerViewMapDelegator, PlayerViewElement,
+	MULTI_INDEX_MAP(PlayerViewMapContainer, PlayerViewElement,
 		MULTI_MEMBER_INDEX(session)
 		MULTI_MEMBER_INDEX(sector_coord)
 	)
 
-	boost::weak_ptr<PlayerViewMapDelegator> g_player_view_map;
+	boost::weak_ptr<PlayerViewMapContainer> g_player_view_map;
 
 	boost::uint32_t g_map_width  = 270;
 	boost::uint32_t g_map_height = 240;
@@ -118,12 +118,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ClusterMapDelegator, ClusterElement,
+	MULTI_INDEX_MAP(ClusterMapContainer, ClusterElement,
 		UNIQUE_MEMBER_INDEX(coord)
 		UNIQUE_MEMBER_INDEX(cluster)
 	)
 
-	boost::weak_ptr<ClusterMapDelegator> g_cluster_map;
+	boost::weak_ptr<ClusterMapContainer> g_cluster_map;
 
 	inline Coord get_sector_coord_from_world_coord(Coord coord){
 		return Coord(coord.x() & -32, coord.y() & -32);
@@ -174,7 +174,7 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading map cell attributes.");
 
-		const auto map_cell_map = boost::make_shared<MapCellMapDelegator>();
+		const auto map_cell_map = boost::make_shared<MapCellMapContainer>();
 		for(auto it = temp_map_cell_map.begin(); it != temp_map_cell_map.end(); ++it){
 			auto map_cell = boost::make_shared<MapCell>(std::move(it->second.obj), it->second.attributes);
 
@@ -261,7 +261,7 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading castle resources.");
 
-		const auto map_object_map = boost::make_shared<MapObjectMapDelegator>();
+		const auto map_object_map = boost::make_shared<MapObjectMapContainer>();
 		for(auto it = temp_map_object_map.begin(); it != temp_map_object_map.end(); ++it){
 			boost::shared_ptr<MapObject> map_object;
 
@@ -286,7 +286,7 @@ namespace {
 		handles.push(map_object_map);
 
 		// PlayerSession
-		const auto map_sector_map = boost::make_shared<MapSectorMapDelegator>();
+		const auto map_sector_map = boost::make_shared<MapSectorMapContainer>();
 		for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
 			auto map_object = it->map_object;
 
@@ -301,7 +301,7 @@ namespace {
 		g_map_sector_map = map_sector_map;
 		handles.push(map_sector_map);
 
-		const auto player_view_map = boost::make_shared<PlayerViewMapDelegator>();
+		const auto player_view_map = boost::make_shared<PlayerViewMapContainer>();
 		g_player_view_map = player_view_map;
 		handles.push(player_view_map);
 
@@ -311,7 +311,7 @@ namespace {
 		g_map_height = map_size.at(1).get<double>();
 		LOG_EMPERY_CENTER_DEBUG("> Map width = ", g_map_width, ", map height = ", g_map_height);
 
-		const auto cluster_map = boost::make_shared<ClusterMapDelegator>();
+		const auto cluster_map = boost::make_shared<ClusterMapContainer>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 	}

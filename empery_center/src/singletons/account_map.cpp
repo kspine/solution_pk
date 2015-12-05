@@ -59,13 +59,13 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AccountMapDelegator, AccountElement,
+	MULTI_INDEX_MAP(AccountMapContainer, AccountElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(nick, StringCaseComparator)
 		UNIQUE_MEMBER_INDEX(login_key)
 	)
 
-	AccountMapDelegator g_account_map;
+	AccountMapContainer g_account_map;
 
 	struct AccountAttributeElement {
 		boost::shared_ptr<MySql::Center_AccountAttribute> obj;
@@ -79,11 +79,11 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AccountAttributeMapDelegator, AccountAttributeElement,
+	MULTI_INDEX_MAP(AccountAttributeMapContainer, AccountAttributeElement,
 		UNIQUE_MEMBER_INDEX(account_slot)
 	)
 
-	AccountAttributeMapDelegator g_attribute_map;
+	AccountAttributeMapContainer g_attribute_map;
 
 	struct InfoTimestampElement {
 		boost::uint64_t expiry_time;
@@ -106,7 +106,7 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		AccountMapDelegator account_map;
+		AccountMapContainer account_map;
 		LOG_EMPERY_CENTER_INFO("Loading accounts...");
 		conn->execute_sql("SELECT * FROM `Center_Account`");
 		while(conn->fetch_row()){
@@ -118,7 +118,7 @@ namespace {
 		LOG_EMPERY_CENTER_INFO("Loaded ", account_map.size(), " account(s).");
 		g_account_map.swap(account_map);
 
-		AccountAttributeMapDelegator attribute_map;
+		AccountAttributeMapContainer attribute_map;
 		LOG_EMPERY_CENTER_INFO("Loading account attributes...");
 		conn->execute_sql("SELECT * FROM `Center_AccountAttribute`");
 		while(conn->fetch_row()){

@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_ANNOUNCEMENT_HPP_
 #define EMPERY_CENTER_ANNOUNCEMENT_HPP_
 
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/cxx_util.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/cstdint.hpp>
@@ -10,60 +11,47 @@
 
 namespace EmperyCenter {
 
+namespace MySql {
+	class Center_Announcement;
+}
+
 class PlayerSession;
 
-class Announcement : NONCOPYABLE {
+class Announcement : public virtual Poseidon::VirtualSharedFromThis {
 private:
-	const AnnouncementUuid m_announcement_uuid;
+	const boost::shared_ptr<MySql::Center_Announcement> m_obj;
 
-	const LanguageId m_language_id;
-
-	AccountUuid m_from_account_uuid;
-	boost::uint64_t m_sent_time;
 	std::vector<std::pair<ChatMessageSlotId, std::string>> m_segments;
 
 public:
-	ChatMessage(ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id,
-		AccountUuid from_account_uuid, boost::uint64_t sent_time, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
-	~ChatMessage();
+	Announcement(AnnouncementUuid announcement_uuid, LanguageId language_id, boost::uint64_t created_time,
+		boost::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
+	explicit Announcement(boost::shared_ptr<MySql::Center_Announcement> obj);
+	~Announcement();
 
 public:
-	ChatMessageUuid get_chat_message_uuid() const {
-		return m_chat_message_uuid;
-	}
+	AnnouncementUuid get_announcement_uuid() const;
+	LanguageId get_language_id() const;
+	boost::uint64_t get_created_time() const;
 
-	ChatChannelId get_channel() const {
-		return m_channel;
-	}
-	ChatMessageTypeId get_type() const {
-		return m_type;
-	}
-	LanguageId get_language_id() const {
-		return m_language_id;
-	}
+	boost::uint64_t get_expiry_time() const;
+	boost::uint64_t get_period() const;
+	const std::vector<std::pair<ChatMessageSlotId, std::string>> &get_segments() const;
 
-	AccountUuid get_from_account_uuid() const {
-		return m_from_account_uuid;
-	}
-	boost::uint64_t get_sent_time() const {
-		return m_sent_time;
-	}
-	const std::vector<std::pair<ChatMessageSlotId, std::string>> &get_segments() const {
-		return m_segments;
-	}
+	void modify(boost::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_chat_message_with_player(const boost::shared_ptr<const ChatMessage> &chat_message,
+inline void synchronize_announcement_with_player(const boost::shared_ptr<const Announcement> &announcement,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	chat_message->synchronize_with_player(session);
+	announcement->synchronize_with_player(session);
 }
-inline void synchronize_chat_message_with_player(const boost::shared_ptr<ChatMessage> &chat_message,
+inline void synchronize_announcement_with_player(const boost::shared_ptr<Announcement> &announcement,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	chat_message->synchronize_with_player(session);
+	announcement->synchronize_with_player(session);
 }
 
 }

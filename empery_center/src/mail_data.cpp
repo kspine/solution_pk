@@ -17,9 +17,9 @@ namespace {
 		}
 		Poseidon::JsonObject root;
 		for(auto it = attachments.begin(); it != attachments.end(); ++it){
-			char str[256];
-			auto len = (unsigned)std::sprintf(str, "%lu", static_cast<unsigned long>(it->first.get()));
-			root[SharedNts(str, len)] = it->second;
+			const auto item_id = it->first;
+			const auto item_count = it->second;
+			root[SharedNts(boost::lexical_cast<std::string>(item_id))] = item_count;
 		}
 		std::ostringstream oss;
 		root.dump(oss);
@@ -36,20 +36,20 @@ namespace {
 		auto root = Poseidon::JsonParser::parse_object(iss);
 		attachments.reserve(root.size());
 		for(auto it = root.begin(); it != root.end(); ++it){
-			const auto item_id = boost::lexical_cast<ItemId>(it->first);
-			const auto item_count = static_cast<boost::uint64_t>(it->second.get<double>());
+			auto item_id = boost::lexical_cast<ItemId>(it->first);
+			auto item_count = static_cast<boost::uint64_t>(it->second.get<double>());
 			attachments[item_id] = item_count;
 		}
 		return attachments;
 	}
 }
 
-MailData::MailData(MailUuid mail_uuid, LanguageId language_id,
-	unsigned type, AccountUuid from_account_uuid, std::string subject, std::string body,
+MailData::MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
+	MailTypeId type, AccountUuid from_account_uuid, std::string subject, std::string body,
 	boost::container::flat_map<ItemId, boost::uint64_t> attachments)
 	: m_obj([&]{
-		auto obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(),
-			Poseidon::get_utc_time(), type, from_account_uuid.get(), std::move(subject), std::move(body), encode_attachments(attachments));
+		auto obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(), created_time,
+			type.get(), from_account_uuid.get(), std::move(subject), std::move(body), encode_attachments(attachments));
 		obj->async_save(true);
 		return obj;
 	}())
@@ -74,11 +74,11 @@ boost::uint64_t MailData::get_created_time() const {
 	return m_obj->get_created_time();
 }
 
-unsigned MailData::get_type() const {
-	return m_obj->get_type();
+MailTypeId MailData::get_type() const {
+	return MailTypeId(m_obj->get_type());
 }
-void MailData::set_type(unsigned type){
-	m_obj->set_type(type);
+void MailData::set_type(MailTypeId type){
+	m_obj->set_type(type.get());
 }
 
 AccountUuid MailData::get_from_account_uuid() const {
@@ -125,7 +125,7 @@ void MailData::synchronize_with_player(const boost::shared_ptr<PlayerSession> &s
 	msg.mail_uuid         = get_mail_uuid().str();
 	msg.language_id       = get_language_id().get();
 	msg.created_time      = get_created_time();
-	msg.type              = get_type();
+	msg.type              = get_type().get();
 	msg.from_account_uuid = from_account_uuid.str();
 	msg.subject           = get_subject();
 	msg.body              = get_body();

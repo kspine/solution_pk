@@ -8,7 +8,7 @@ namespace EmperyCenter {
 namespace ChatMessageTypeIds {
 
 constexpr ChatMessageTypeId
-	ID_PLAIN          ( 1 );
+	ID_PLAIN                ( 1 );
 
 }
 

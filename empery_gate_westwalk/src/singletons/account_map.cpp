@@ -29,16 +29,16 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AccountMapDelegator, AccountElement,
+	MULTI_INDEX_MAP(AccountMapContainer, AccountElement,
 		UNIQUE_MEMBER_INDEX(account_name, StrCaseComparator)
 	)
 
-	boost::shared_ptr<AccountMapDelegator> g_account_map;
+	boost::shared_ptr<AccountMapContainer> g_account_map;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto account_map = boost::make_shared<AccountMapDelegator>();
+		const auto account_map = boost::make_shared<AccountMapContainer>();
 		LOG_EMPERY_GATE_WESTWALK_INFO("Loading accounts...");
 		conn->execute_sql("SELECT * FROM `Westwalk_Account`");
 		while(conn->fetch_row()){

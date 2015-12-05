@@ -24,18 +24,18 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ItemMapDelegator, ItemElement,
+	MULTI_INDEX_MAP(ItemMapContainer, ItemElement,
 		MULTI_MEMBER_INDEX(account_id)
 		MULTI_MEMBER_INDEX(item_id)
 		UNIQUE_MEMBER_INDEX(account_item)
 	)
 
-	boost::weak_ptr<ItemMapDelegator> g_item_map;
+	boost::weak_ptr<ItemMapContainer> g_item_map;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto item_map = boost::make_shared<ItemMapDelegator>();
+		const auto item_map = boost::make_shared<ItemMapContainer>();
 		LOG_EMPERY_PROMOTION_INFO("Loading items...");
 		conn->execute_sql("SELECT * FROM `Promotion_Item`");
 		while(conn->fetch_row()){

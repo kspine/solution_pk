@@ -25,7 +25,7 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MessageMapDelegator, MessageElement,
+	MULTI_INDEX_MAP(MessageMapContainer, MessageElement,
 		UNIQUE_MEMBER_INDEX(chat_message_uuid)
 		MULTI_MEMBER_INDEX(channel_time)
 	)
@@ -57,7 +57,7 @@ void ChatBox::pump_status(){
 boost::shared_ptr<ChatMessage> ChatBox::get(ChatMessageUuid chat_message_uuid) const {
 	PROFILE_ME;
 
-	const auto messages = boost::static_pointer_cast<MessageMapDelegator>(m_messages);
+	const auto messages = boost::static_pointer_cast<MessageMapContainer>(m_messages);
 	if(!messages){
 		return { };
 	}
@@ -71,7 +71,7 @@ boost::shared_ptr<ChatMessage> ChatBox::get(ChatMessageUuid chat_message_uuid) c
 void ChatBox::get_all(std::vector<boost::shared_ptr<ChatMessage>> &ret) const {
 	PROFILE_ME;
 
-	const auto messages = boost::static_pointer_cast<MessageMapDelegator>(m_messages);
+	const auto messages = boost::static_pointer_cast<MessageMapContainer>(m_messages);
 	if(!messages){
 		return;
 	}
@@ -101,9 +101,9 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 		return;
 	}
 
-	auto messages = boost::static_pointer_cast<MessageMapDelegator>(m_messages);
+	auto messages = boost::static_pointer_cast<MessageMapContainer>(m_messages);
 	if(!messages){
-		messages = boost::make_shared<MessageMapDelegator>();
+		messages = boost::make_shared<MessageMapContainer>();
 		m_messages = messages;
 	}
 
@@ -145,7 +145,7 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 bool ChatBox::remove(ChatMessageUuid chat_message_uuid) noexcept {
 	PROFILE_ME;
 
-	const auto messages = boost::static_pointer_cast<MessageMapDelegator>(m_messages);
+	const auto messages = boost::static_pointer_cast<MessageMapContainer>(m_messages);
 	if(!messages){
 		return false;
 	}
@@ -163,7 +163,7 @@ bool ChatBox::remove(ChatMessageUuid chat_message_uuid) noexcept {
 void ChatBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	const auto messages = boost::static_pointer_cast<MessageMapDelegator>(m_messages);
+	const auto messages = boost::static_pointer_cast<MessageMapContainer>(m_messages);
 	if(!messages){
 		return;
 	}

@@ -28,12 +28,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ItemBoxMapDelegator, ItemBoxElement,
+	MULTI_INDEX_MAP(ItemBoxMapContainer, ItemBoxElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<ItemBoxMapDelegator> g_item_box_map;
+	boost::weak_ptr<ItemBoxMapContainer> g_item_box_map;
 
 	void gc_timer_proc(boost::uint64_t now){
 		PROFILE_ME;
@@ -62,7 +62,7 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto item_box_map = boost::make_shared<ItemBoxMapDelegator>();
+		const auto item_box_map = boost::make_shared<ItemBoxMapContainer>();
 		g_item_box_map = item_box_map;
 		handles.push(item_box_map);
 

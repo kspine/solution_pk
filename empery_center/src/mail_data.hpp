@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_MAIL_DATA_HPP_
 #define EMPERY_CENTER_MAIL_DATA_HPP_
 
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <boost/container/flat_map.hpp>
 #include <boost/shared_ptr.hpp>
@@ -15,15 +16,15 @@ namespace MySql {
 
 class PlayerSession;
 
-class MailData : NONCOPYABLE {
+class MailData : public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const boost::shared_ptr<MySql::Center_MailData> m_obj;
 
 	boost::container::flat_map<ItemId, boost::uint64_t> m_attachments;
 
 public:
-	MailData(MailUuid mail_uuid, LanguageId language_id,
-		unsigned type, AccountUuid from_account_uuid, std::string subject, std::string body,
+	MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
+		MailTypeId type, AccountUuid from_account_uuid, std::string subject, std::string body,
 		boost::container::flat_map<ItemId, boost::uint64_t> attachments);
 	explicit MailData(boost::shared_ptr<MySql::Center_MailData> obj);
 	~MailData();
@@ -33,8 +34,8 @@ public:
 	LanguageId get_language_id() const;
 	boost::uint64_t get_created_time() const;
 
-	unsigned get_type() const;
-	void set_type(unsigned type);
+	MailTypeId get_type() const;
+	void set_type(MailTypeId type);
 
 	AccountUuid get_from_account_uuid() const;
 	void set_from_account_uuid(AccountUuid account_uuid);

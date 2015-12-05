@@ -192,9 +192,10 @@ namespace IdTypes {
 	using PlatformId          = GenericId<boost::uint32_t, 110001>;
 	using LanguageId          = GenericId<boost::uint32_t, 110002>;
 	using ReasonId            = GenericId<boost::uint32_t, 110003>;
-	using ChatChannelId       = GenericId<boost::uint32_t, 110004>;
-	using ChatMessageTypeId   = GenericId<boost::uint32_t, 110005>;
-	using ChatMessageSlotId   = GenericId<boost::uint32_t, 110006>;
+	using MailTypeId          = GenericId<boost::uint32_t, 110004>;
+	using ChatChannelId       = GenericId<boost::uint32_t, 110005>;
+	using ChatMessageTypeId   = GenericId<boost::uint32_t, 110006>;
+	using ChatMessageSlotId   = GenericId<boost::uint32_t, 110007>;
 
 	using TerrainId           = GenericId<boost::uint32_t, 120001>;
 	using ResourceId          = GenericId<boost::uint32_t, 120002>;
