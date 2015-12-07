@@ -116,8 +116,8 @@ namespace {
 			account_map->insert(AccountElement(std::move(obj)));
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", account_map->size(), " account(s).");
-		handles.push(account_map);
 		g_account_map = account_map;
+		handles.push(account_map);
 
 		const auto attribute_map = boost::make_shared<AccountAttributeMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading account attributes...");
@@ -134,12 +134,12 @@ namespace {
 			attribute_map->insert(AccountAttributeElement(std::move(obj)));
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", attribute_map->size(), " account attribute(s).");
-		handles.push(attribute_map);
 		g_attribute_map = attribute_map;
+		handles.push(attribute_map);
 
 		const auto info_timestamp_map = boost::make_shared<InfoTimestampMap>();
-		g_info_timestamp_map = info_timestamp_map;
 		handles.push(info_timestamp_map);
+		g_info_timestamp_map = info_timestamp_map;
 
 		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountSetToken>(
 			[](const boost::shared_ptr<Events::AccountSetToken> &event){
