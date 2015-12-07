@@ -40,7 +40,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Promotion_Item`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Promotion_Item>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			item_map->insert(ItemElement(std::move(obj)));
 		}

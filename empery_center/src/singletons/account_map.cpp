@@ -111,7 +111,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_Account`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_Account>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			account_map->insert(AccountElement(std::move(obj)));
 		}
@@ -124,7 +124,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_AccountAttribute`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_AccountAttribute>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			const auto it = g_account_map->find<0>(AccountUuid(obj->unlocked_get_account_uuid()));
 			if(it == g_account_map->end<0>()){
 				LOG_EMPERY_CENTER_ERROR("No such account: account_uuid = ", obj->unlocked_get_account_uuid());

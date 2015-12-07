@@ -39,7 +39,7 @@ namespace {
 		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto it = queue.find<1>(obj->unlocked_get_login_name());
 			if(it == queue.end<1>()){

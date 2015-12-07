@@ -43,7 +43,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Westwalk_Account`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Westwalk_Account>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			account_map->insert(AccountElement(std::move(obj)));
 		}

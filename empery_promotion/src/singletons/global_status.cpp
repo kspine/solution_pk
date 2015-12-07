@@ -25,7 +25,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Promotion_GlobalStatus`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Promotion_GlobalStatus>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			status_map->emplace(obj->get_slot(), std::move(obj));
 		}

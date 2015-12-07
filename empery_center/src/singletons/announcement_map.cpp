@@ -35,7 +35,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_Announcement`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_Announcement>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto announcement = boost::make_shared<Announcement>(std::move(obj));
 			announcement_map->insert(AnnouncementElement(std::move(announcement)));

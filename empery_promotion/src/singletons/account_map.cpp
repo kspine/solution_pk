@@ -84,7 +84,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Promotion_Account`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Promotion_Account>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			account_map->insert(AccountElement(std::move(obj)));
 		}
@@ -97,7 +97,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Promotion_AccountAttribute`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Promotion_AccountAttribute>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			const auto it = g_account_map->find<0>(AccountId(obj->get_account_id()));
 			if(it == g_account_map->end<0>()){
 				LOG_EMPERY_PROMOTION_ERROR("No such account: account_id = ", AccountId(obj->get_account_id()));

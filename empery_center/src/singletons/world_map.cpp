@@ -152,7 +152,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_MapCell`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapCell>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto coord = Coord(obj->get_x(), obj->get_y());
 			temp_map_cell_map[coord].obj = std::move(obj);
@@ -163,7 +163,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_MapCellAttribute`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapCellAttribute>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto coord = Coord(obj->get_x(), obj->get_y());
 			const auto it = temp_map_cell_map.find(coord);
@@ -194,7 +194,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_MapObject` WHERE `deleted` = 0");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapObject>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
 			temp_map_object_map[map_object_uuid].obj = std::move(obj);
@@ -205,7 +205,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_MapObjectAttribute`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
 			const auto it = temp_map_object_map.find(map_object_uuid);
@@ -228,7 +228,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_CastleBuildingBase`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
 			const auto it = temp_map_object_map.find(map_object_uuid);
@@ -243,7 +243,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_CastleTech`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_CastleTech>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
 			temp_castle_map[map_object_uuid].techs.emplace_back(std::move(obj));
@@ -254,7 +254,7 @@ namespace {
 		conn->execute_sql("SELECT * FROM `Center_CastleResource`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_CastleResource>();
-			obj->sync_fetch(conn);
+			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
 			temp_castle_map[map_object_uuid].resources.emplace_back(std::move(obj));

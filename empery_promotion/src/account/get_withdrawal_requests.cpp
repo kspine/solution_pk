@@ -91,7 +91,7 @@ ACCOUNT_SERVLET("getWithdrawalRequests", session, params){
 		ret[sslit("requests")] = std::move(requests);
 	} else {
 		const auto obj = boost::make_shared<MySql::Promotion_SumRows>();
-		obj->sync_load(oss.str());
+		obj->load_and_wait(oss.str());
 		ret[sslit("sum")] = obj->get_sum();
 		ret[sslit("rows")] = obj->get_rows();
 	}
