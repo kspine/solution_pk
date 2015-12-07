@@ -44,6 +44,27 @@ namespace {
 		g_announcement_map = announcement_map;
 		handles.push(announcement_map);
 	}
+
+	void synchronize_announcement_all(const boost::shared_ptr<Announcement> &announcement) noexcept {
+		PROFILE_ME;
+
+		try {
+			boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> sessions;
+			PlayerSessionMap::get_all(sessions);
+			for(auto it = sessions.begin(); it != sessions.end(); ++it){
+				const auto &session = it->second;
+				try {
+					synchronize_announcement_with_player(announcement, session);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			PlayerSessionMap::clear(e.what());
+		}
+	}
 }
 
 boost::shared_ptr<Announcement> AnnouncementMap::get(AnnouncementUuid announcement_uuid){
@@ -74,10 +95,74 @@ boost::shared_ptr<Announcement> AnnouncementMap::require(AnnouncementUuid announ
 }
 
 void AnnouncementMap::insert(const boost::shared_ptr<Announcement> &announcement){
+	PROFILE_ME;
+
+	const auto announcement_map = g_announcement_map.lock();
+	if(!announcement_map){
+		LOG_EMPERY_CENTER_WARNING("Announcement is not loaded.");
+		DEBUG_THROW(Exception, sslit("Announcement map not loaded"));
+	}
+
+	const auto announcement_uuid = announcement->get_announcement_uuid();
+
+	const auto it = announcement_map->find<0>(announcement_uuid);
+	if(it != announcement_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("Announcement already exists: announcement_uuid = ", announcement_uuid);
+		DEBUG_THROW(Exception, sslit("Announcement already exists"));
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Inserting announcement: announcement_uuid = ", announcement_uuid);
+	announcement_map->insert(AnnouncementElement(announcement));
+
+	synchronize_announcement_all(announcement);
 }
 void AnnouncementMap::update(const boost::shared_ptr<Announcement> &announcement, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto announcement_map = g_announcement_map.lock();
+	if(!announcement_map){
+		LOG_EMPERY_CENTER_WARNING("Announcement map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Announcement map not loaded"));
+		}
+		return;
+	}
+
+	const auto announcement_uuid = announcement->get_announcement_uuid();
+
+	const auto it = announcement_map->find<0>(announcement_uuid);
+	if(it == announcement_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("Announcement not found: announcement_uuid = ", announcement_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Announcement not found"));
+		}
+		return;
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Updating announcement: announcement_uuid = ", announcement_uuid);
+
+	synchronize_announcement_all(announcement);
 }
 void AnnouncementMap::remove(AnnouncementUuid announcement_uuid) noexcept {
+	PROFILE_ME;
+
+	const auto announcement_map = g_announcement_map.lock();
+	if(!announcement_map){
+		LOG_EMPERY_CENTER_WARNING("Announcement map not loaded.");
+		return;
+	}
+
+	const auto it = announcement_map->find<0>(announcement_uuid);
+	if(it == announcement_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Announcement not found: announcement_uuid = ", announcement_uuid);
+		return;
+	}
+	const auto announcement = it->announcement;
+
+	LOG_EMPERY_CENTER_DEBUG("Removing announcement: announcement_uuid = ", announcement_uuid);
+	announcement_map->erase<0>(it);
+
+	synchronize_announcement_all(announcement);
 }
 
 }

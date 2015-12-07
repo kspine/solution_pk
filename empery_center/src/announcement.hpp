@@ -39,6 +39,7 @@ public:
 	const std::vector<std::pair<ChatMessageSlotId, std::string>> &get_segments() const;
 
 	void modify(boost::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
+	void delete_from_game() noexcept;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

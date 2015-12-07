@@ -101,26 +101,40 @@ void Announcement::modify(boost::uint64_t expiry_time, boost::uint64_t period, s
 
 	AnnouncementMap::update(virtual_shared_from_this<Announcement>(), false);
 }
+void Announcement::delete_from_game() noexcept {
+	PROFILE_ME;
+
+	m_obj->set_expiry_time(0);
+
+	AnnouncementMap::remove(get_announcement_uuid());
+}
 
 void Announcement::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	Msg::SC_AnnouncementReceived msg;
-	msg.announcement_uuid = get_announcement_uuid().str();
-	msg.language_id       = get_language_id().get();
-	msg.created_time      = get_created_time();
-	msg.expiry_time       = saturated_sub(get_expiry_time(), utc_now);
-	msg.period            = get_period();
-	msg.segments.reserve(m_segments.size());
-	for(auto it = m_segments.begin(); it != m_segments.end(); ++it){
-		msg.segments.emplace_back();
-		auto &segment = msg.segments.back();
-		segment.slot  = it->first.get();
-		segment.value = it->second;
+	const auto expiry_duration = saturated_sub(get_expiry_time(), utc_now);
+	if(expiry_duration == 0){
+		Msg::SC_AnnouncementRemoved msg;
+		msg.announcement_uuid = get_announcement_uuid().str();
+		session->send(msg);
+	} else {
+		Msg::SC_AnnouncementReceived msg;
+		msg.announcement_uuid = get_announcement_uuid().str();
+		msg.language_id       = get_language_id().get();
+		msg.created_time      = get_created_time();
+		msg.expiry_duration   = expiry_duration;
+		msg.period            = get_period();
+		msg.segments.reserve(m_segments.size());
+		for(auto it = m_segments.begin(); it != m_segments.end(); ++it){
+			msg.segments.emplace_back();
+			auto &segment = msg.segments.back();
+			segment.slot  = it->first.get();
+			segment.value = it->second;
+		}
+		session->send(msg);
 	}
-	session->send(msg);
 }
 
 }

@@ -181,5 +181,29 @@ void PlayerSessionMap::get_all(boost::container::flat_map<AccountUuid, boost::sh
 		ret.emplace(it->account_uuid, std::move(session));
 	}
 }
+void PlayerSessionMap::clear(const char *reason) noexcept {
+	PROFILE_ME;
+
+	for(auto it = g_session_map->begin(); it != g_session_map->end(); ++it){
+		auto session = it->weak_session.lock();
+		if(!session){
+			continue;
+		}
+		session->shutdown(reason);
+	}
+	g_session_map->clear();
+}
+void PlayerSessionMap::clear(int code, const char *reason) noexcept {
+	PROFILE_ME;
+
+	for(auto it = g_session_map->begin(); it != g_session_map->end(); ++it){
+		auto session = it->weak_session.lock();
+		if(!session){
+			continue;
+		}
+		session->shutdown(code, reason);
+	}
+	g_session_map->clear();
+}
 
 }

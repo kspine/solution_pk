@@ -13,12 +13,18 @@ namespace Msg {
 	FIELD_STRING        (announcement_uuid)	\
 	FIELD_VUINT         (language_id)	\
 	FIELD_VUINT         (created_time)	\
-	FIELD_VUINT         (expiry_time)	\
+	FIELD_VUINT         (expiry_duration)	\
 	FIELD_VUINT         (period)	\
 	FIELD_ARRAY         (segments,	\
 		FIELD_VUINT         (slot)	\
 		FIELD_STRING        (value)	\
 	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_AnnouncementRemoved
+#define MESSAGE_ID      998
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (announcement_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
