@@ -65,7 +65,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(login_key)
 	)
 
-	AccountMapContainer g_account_map;
+	boost::shared_ptr<AccountMapContainer> g_account_map;
 
 	struct AccountAttributeElement {
 		boost::shared_ptr<MySql::Center_AccountAttribute> obj;
@@ -83,7 +83,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(account_slot)
 	)
 
-	AccountAttributeMapContainer g_attribute_map;
+	boost::shared_ptr<AccountAttributeMapContainer> g_attribute_map;
 
 	struct InfoTimestampElement {
 		boost::uint64_t expiry_time;
@@ -106,34 +106,36 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		AccountMapContainer account_map;
+		const auto account_map = boost::make_shared<AccountMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading accounts...");
 		conn->execute_sql("SELECT * FROM `Center_Account`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_Account>();
 			obj->sync_fetch(conn);
 			obj->enable_auto_saving();
-			account_map.insert(AccountElement(std::move(obj)));
+			account_map->insert(AccountElement(std::move(obj)));
 		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", account_map.size(), " account(s).");
-		g_account_map.swap(account_map);
+		LOG_EMPERY_CENTER_INFO("Loaded ", account_map->size(), " account(s).");
+		handles.push(account_map);
+		g_account_map = account_map;
 
-		AccountAttributeMapContainer attribute_map;
+		const auto attribute_map = boost::make_shared<AccountAttributeMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading account attributes...");
 		conn->execute_sql("SELECT * FROM `Center_AccountAttribute`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_AccountAttribute>();
 			obj->sync_fetch(conn);
-			const auto it = g_account_map.find<0>(AccountUuid(obj->unlocked_get_account_uuid()));
-			if(it == g_account_map.end<0>()){
+			const auto it = g_account_map->find<0>(AccountUuid(obj->unlocked_get_account_uuid()));
+			if(it == g_account_map->end<0>()){
 				LOG_EMPERY_CENTER_ERROR("No such account: account_uuid = ", obj->unlocked_get_account_uuid());
 				continue;
 			}
 			obj->enable_auto_saving();
-			attribute_map.insert(AccountAttributeElement(std::move(obj)));
+			attribute_map->insert(AccountAttributeElement(std::move(obj)));
 		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", attribute_map.size(), " account attribute(s).");
-		g_attribute_map.swap(attribute_map);
+		LOG_EMPERY_CENTER_INFO("Loaded ", attribute_map->size(), " account attribute(s).");
+		handles.push(attribute_map);
+		g_attribute_map = attribute_map;
 
 		const auto info_timestamp_map = boost::make_shared<InfoTimestampMap>();
 		g_info_timestamp_map = info_timestamp_map;
@@ -157,20 +159,20 @@ namespace {
 
 		info.account_uuid = AccountUuid(obj->unlocked_get_account_uuid());
 		info.login_name   = obj->unlocked_get_login_name();
-		info.nick        = obj->unlocked_get_nick();
-		info.flags       = obj->get_flags();
+		info.nick         = obj->unlocked_get_nick();
+		info.flags        = obj->get_flags();
 		info.created_time = obj->get_created_time();
 	}
 	void fill_login_info(AccountMap::LoginInfo &info, const boost::shared_ptr<MySql::Center_Account> &obj){
 		PROFILE_ME;
 
-		info.platform_id           = PlatformId(obj->get_platform_id());
-		info.login_name            = obj->unlocked_get_login_name();
-		info.account_uuid          = AccountUuid(obj->unlocked_get_account_uuid());
-		info.flags                 = obj->get_flags();
-		info.login_token           = obj->unlocked_get_login_token();
+		info.platform_id             = PlatformId(obj->get_platform_id());
+		info.login_name              = obj->unlocked_get_login_name();
+		info.account_uuid            = AccountUuid(obj->unlocked_get_account_uuid());
+		info.flags                   = obj->get_flags();
+		info.login_token             = obj->unlocked_get_login_token();
 		info.login_token_expiry_time = obj->get_login_token_expiry_time();
-		info.banned_until          = obj->get_banned_until();
+		info.banned_until            = obj->get_banned_until();
 	}
 
 	void send_attributes_to_client_and_update_cache(boost::uint64_t now, boost::uint64_t cache_timeout,
@@ -232,8 +234,8 @@ namespace {
 bool AccountMap::has(AccountUuid account_uuid){
 	PROFILE_ME;
 
-	const auto it = g_account_map.find<0>(account_uuid);
-	if(it == g_account_map.end<0>()){
+	const auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		return false;
 	}
@@ -249,8 +251,8 @@ AccountMap::AccountInfo AccountMap::get(AccountUuid account_uuid){
 	AccountInfo info = { };
 	info.account_uuid = account_uuid;
 
-	const auto it = g_account_map.find<0>(account_uuid);
-	if(it == g_account_map.end<0>()){
+	const auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		return info;
 	}
@@ -273,7 +275,7 @@ AccountMap::AccountInfo AccountMap::require(AccountUuid account_uuid){
 void AccountMap::get_by_nick(std::vector<AccountMap::AccountInfo> &ret, const std::string &nick){
 	PROFILE_ME;
 
-	const auto range = g_account_map.equal_range<1>(nick);
+	const auto range = g_account_map->equal_range<1>(nick);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
@@ -291,8 +293,8 @@ AccountMap::LoginInfo AccountMap::get_login_info(AccountUuid account_uuid){
 	LoginInfo info = { };
 	info.account_uuid = account_uuid;
 
-	const auto it = g_account_map.find<0>(account_uuid);
-	if(it == g_account_map.end<0>()){
+	const auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		return info;
 	}
@@ -310,8 +312,8 @@ AccountMap::LoginInfo AccountMap::get_login_info(PlatformId platform_id, const s
 	info.platform_id = platform_id;
 	info.login_name = login_name;
 
-	const auto it = g_account_map.find<2>(LoginKey(platform_id, login_name));
-	if(it == g_account_map.end<2>()){
+	const auto it = g_account_map->find<2>(LoginKey(platform_id, login_name));
+	if(it == g_account_map->end<2>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: platform_id = ", platform_id, ", login_name = ", login_name);
 		return info;
 	}
@@ -328,8 +330,8 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 {
 	PROFILE_ME;
 
-	auto it = g_account_map.find<2>(LoginKey(platform_id, login_name));
-	if(it != g_account_map.end<2>()){
+	auto it = g_account_map->find<2>(LoginKey(platform_id, login_name));
+	if(it != g_account_map->end<2>()){
 		return std::make_pair(it->account_uuid, false);
 	}
 
@@ -345,7 +347,7 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 	auto obj = boost::make_shared<MySql::Center_Account>(
 		account_uuid.get(), platform_id.get(), std::move(login_name), std::move(nick), flags, std::string(), 0, 0, utc_now);
 	obj->async_save(true);
-	it = g_account_map.insert<2>(it, AccountElement(std::move(obj)));
+	it = g_account_map->insert<2>(it, AccountElement(std::move(obj)));
 
 // FIXME remove this
 for(int i = 0; i < 3; ++i){
@@ -378,8 +380,8 @@ for(int i = 0; i < 3; ++i){
 void AccountMap::set_nick(AccountUuid account_uuid, std::string nick){
 	PROFILE_ME;
 
-	const auto it = g_account_map.find<0>(account_uuid);
-	if(it == g_account_map.end<0>()){
+	const auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
@@ -388,7 +390,7 @@ void AccountMap::set_nick(AccountUuid account_uuid, std::string nick){
 		DEBUG_THROW(Exception, sslit("Account deleted"));
 	}
 
-	g_account_map.set_key<0, 1>(it, nick); // throws std::bad_alloc
+	g_account_map->set_key<0, 1>(it, nick); // throws std::bad_alloc
 	it->obj->set_nick(std::move(nick)); // noexcept
 
 	const auto session = PlayerSessionMap::get(account_uuid);
@@ -407,8 +409,8 @@ void AccountMap::set_nick(AccountUuid account_uuid, std::string nick){
 void AccountMap::set_login_token(AccountUuid account_uuid, std::string login_token, boost::uint64_t expiry_time){
 	PROFILE_ME;
 
-	const auto it = g_account_map.find<0>(account_uuid);
-	if(it == g_account_map.end<0>()){
+	const auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
@@ -423,8 +425,8 @@ void AccountMap::set_login_token(AccountUuid account_uuid, std::string login_tok
 void AccountMap::set_banned_until(AccountUuid account_uuid, boost::uint64_t until){
 	PROFILE_ME;
 
-	const auto it = g_account_map.find<0>(account_uuid);
-	if(it == g_account_map.end<0>()){
+	const auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
@@ -438,8 +440,8 @@ void AccountMap::set_banned_until(AccountUuid account_uuid, boost::uint64_t unti
 void AccountMap::set_flags(AccountUuid account_uuid, boost::uint64_t flags){
 	PROFILE_ME;
 
-	const auto it = g_account_map.find<0>(account_uuid);
-	if(it == g_account_map.end<0>()){
+	const auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		DEBUG_THROW(Exception, sslit("Account not found"));
 	}
@@ -454,8 +456,8 @@ void AccountMap::set_flags(AccountUuid account_uuid, boost::uint64_t flags){
 const std::string &AccountMap::get_attribute(AccountUuid account_uuid, unsigned slot){
 	PROFILE_ME;
 
-	const auto it = g_attribute_map.find<0>(std::make_pair(account_uuid, slot));
-	if(it == g_attribute_map.end<0>()){
+	const auto it = g_attribute_map->find<0>(std::make_pair(account_uuid, slot));
+	if(it == g_attribute_map->end<0>()){
 		LOG_EMPERY_CENTER_TRACE("Account attribute not found: account_uuid = ", account_uuid, ", slot = ", slot);
 		return Poseidon::EMPTY_STRING;
 	}
@@ -466,8 +468,8 @@ void AccountMap::get_attributes(boost::container::flat_map<unsigned, std::string
 {
 	PROFILE_ME;
 
-	const auto begin = g_attribute_map.lower_bound<0>(std::make_pair(account_uuid, begin_slot));
-	const auto end   = g_attribute_map.upper_bound<0>(std::make_pair(account_uuid, end_slot));
+	const auto begin = g_attribute_map->lower_bound<0>(std::make_pair(account_uuid, begin_slot));
+	const auto end   = g_attribute_map->upper_bound<0>(std::make_pair(account_uuid, end_slot));
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 	for(auto it = begin; it != end; ++it){
 		ret.emplace(it->obj->get_slot(), it->obj->unlocked_get_value());
@@ -476,9 +478,9 @@ void AccountMap::get_attributes(boost::container::flat_map<unsigned, std::string
 void AccountMap::touch_attribute(AccountUuid account_uuid, unsigned slot){
 	PROFILE_ME;
 
-	auto it = g_attribute_map.find<0>(std::make_pair(account_uuid, slot));
-	if(it == g_attribute_map.end<0>()){
-		it = g_attribute_map.insert<0>(it, AccountAttributeElement(
+	auto it = g_attribute_map->find<0>(std::make_pair(account_uuid, slot));
+	if(it == g_attribute_map->end<0>()){
+		it = g_attribute_map->insert<0>(it, AccountAttributeElement(
 			boost::make_shared<MySql::Center_AccountAttribute>(account_uuid.get(), slot, std::string())));
 		it->obj->async_save(true);
 	}
@@ -486,9 +488,9 @@ void AccountMap::touch_attribute(AccountUuid account_uuid, unsigned slot){
 void AccountMap::set_attribute(AccountUuid account_uuid, unsigned slot, std::string value){
 	PROFILE_ME;
 
-	auto it = g_attribute_map.find<0>(std::make_pair(account_uuid, slot));
-	if(it == g_attribute_map.end<0>()){
-		it = g_attribute_map.insert<0>(it, AccountAttributeElement(
+	auto it = g_attribute_map->find<0>(std::make_pair(account_uuid, slot));
+	if(it == g_attribute_map->end<0>()){
+		it = g_attribute_map->insert<0>(it, AccountAttributeElement(
 			boost::make_shared<MySql::Center_AccountAttribute>(account_uuid.get(), slot, std::move(value))));
 		it->obj->async_save(true);
 	} else {
