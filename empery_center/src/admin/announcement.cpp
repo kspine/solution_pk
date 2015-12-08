@@ -31,21 +31,6 @@ namespace {
 	}
 }
 
-ADMIN_SERVLET("announcement/get", root, session, params){
-	const auto announcement_uuid = AnnouncementUuid(params.at("announcement_uuid"));
-
-	const auto announcement = AnnouncementMap::get(announcement_uuid);
-	if(!announcement){
-		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid;
-	}
-
-	Poseidon::JsonArray temp_array;
-	temp_array.emplace_back(get_announcement_as_json(announcement));
-	root[sslit("announcements")] = std::move(temp_array);
-
-	return Response();
-}
-
 ADMIN_SERVLET("announcement/get_all", root, session, /* params */){
 	std::vector<boost::shared_ptr<Announcement>> announcements;
 	AnnouncementMap::get_all(announcements);
@@ -87,10 +72,11 @@ ADMIN_SERVLET("announcement/insert", root, session, params){
 
 ADMIN_SERVLET("announcement/update", root, session, params){
 	const auto announcement_uuid = AnnouncementUuid(params.at("announcement_uuid"));
+	const auto language_id       = boost::lexical_cast<LanguageId>(params.at("language_id"));
 
-	const auto announcement = AnnouncementMap::get(announcement_uuid);
+	const auto announcement = AnnouncementMap::get(announcement_uuid, language_id);
 	if(!announcement){
-		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid;
+		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid <<',' <<language_id;
 	}
 
 	const auto expiry_time = boost::lexical_cast<boost::uint64_t>(params.at("expiry_time"));
@@ -114,10 +100,11 @@ ADMIN_SERVLET("announcement/update", root, session, params){
 
 ADMIN_SERVLET("announcement/remove", root, session, params){
 	const auto announcement_uuid = AnnouncementUuid(params.at("announcement_uuid"));
+	const auto language_id       = boost::lexical_cast<LanguageId>(params.at("language_id"));
 
-	const auto announcement = AnnouncementMap::get(announcement_uuid);
+	const auto announcement = AnnouncementMap::get(announcement_uuid, language_id);
 	if(!announcement){
-		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid;
+		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid <<',' <<language_id;
 	}
 
 	announcement->delete_from_game();

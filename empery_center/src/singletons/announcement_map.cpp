@@ -13,17 +13,22 @@ namespace {
 	struct AnnouncementElement {
 		boost::shared_ptr<Announcement> announcement;
 
+		std::pair<AnnouncementUuid, LanguageId> announcement_uuid_language_id;
 		AnnouncementUuid announcement_uuid;
+		LanguageId language_id;
 
 		explicit AnnouncementElement(boost::shared_ptr<Announcement> announcement_)
 			: announcement(std::move(announcement_))
-			, announcement_uuid(announcement->get_announcement_uuid())
+			, announcement_uuid_language_id(announcement->get_announcement_uuid(), announcement->get_language_id())
+			, announcement_uuid(announcement_uuid_language_id.first), language_id(announcement_uuid_language_id.second)
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(AnnouncementMapContainer, AnnouncementElement,
-		UNIQUE_MEMBER_INDEX(announcement_uuid)
+		UNIQUE_MEMBER_INDEX(announcement_uuid_language_id)
+		MULTI_MEMBER_INDEX(announcement_uuid)
+		MULTI_MEMBER_INDEX(language_id)
 	)
 
 	boost::weak_ptr<AnnouncementMapContainer> g_announcement_map;
@@ -72,7 +77,7 @@ namespace {
 	}
 }
 
-boost::shared_ptr<Announcement> AnnouncementMap::get(AnnouncementUuid announcement_uuid){
+boost::shared_ptr<Announcement> AnnouncementMap::get(AnnouncementUuid announcement_uuid, LanguageId language_id){
 	PROFILE_ME;
 
 	const auto announcement_map = g_announcement_map.lock();
@@ -81,19 +86,19 @@ boost::shared_ptr<Announcement> AnnouncementMap::get(AnnouncementUuid announceme
 		return { };
 	}
 
-	const auto it = announcement_map->find<0>(announcement_uuid);
+	const auto it = announcement_map->find<0>(std::make_pair(announcement_uuid, language_id));
 	if(it == announcement_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Announcement not found: announcement_uuid = ", announcement_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Announcement not found: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 		return { };
 	}
 	return it->announcement;
 }
-boost::shared_ptr<Announcement> AnnouncementMap::require(AnnouncementUuid announcement_uuid){
+boost::shared_ptr<Announcement> AnnouncementMap::require(AnnouncementUuid announcement_uuid, LanguageId language_id){
 	PROFILE_ME;
 
-	auto ret = get(announcement_uuid);
+	auto ret = get(announcement_uuid, language_id);
 	if(!ret){
-		LOG_EMPERY_CENTER_WARNING("Announcement not found: announcement_uuid = ", announcement_uuid);
+		LOG_EMPERY_CENTER_WARNING("Announcement not found: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 		DEBUG_THROW(Exception, sslit("Announcement not found"));
 	}
 	return ret;
@@ -113,6 +118,36 @@ void AnnouncementMap::get_all(std::vector<boost::shared_ptr<Announcement>> &ret)
 		ret.emplace_back(it->announcement);
 	}
 }
+void AnnouncementMap::get_all_by_announcement_uuid(std::vector<boost::shared_ptr<Announcement>> &ret, AnnouncementUuid announcement_uuid){
+	PROFILE_ME;
+
+	const auto announcement_map = g_announcement_map.lock();
+	if(!announcement_map){
+		LOG_EMPERY_CENTER_WARNING("Announcement is not loaded.");
+		return;
+	}
+
+	const auto range = announcement_map->equal_range<1>(announcement_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->announcement);
+	}
+}
+void AnnouncementMap::get_all_by_language_id(std::vector<boost::shared_ptr<Announcement>> &ret, LanguageId language_id){
+	PROFILE_ME;
+
+	const auto announcement_map = g_announcement_map.lock();
+	if(!announcement_map){
+		LOG_EMPERY_CENTER_WARNING("Announcement is not loaded.");
+		return;
+	}
+
+	const auto range = announcement_map->equal_range<2>(language_id);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->announcement);
+	}
+}
 
 void AnnouncementMap::insert(const boost::shared_ptr<Announcement> &announcement){
 	PROFILE_ME;
@@ -124,14 +159,15 @@ void AnnouncementMap::insert(const boost::shared_ptr<Announcement> &announcement
 	}
 
 	const auto announcement_uuid = announcement->get_announcement_uuid();
+	const auto language_id = announcement->get_language_id();
 
-	const auto it = announcement_map->find<0>(announcement_uuid);
+	const auto it = announcement_map->find<0>(std::make_pair(announcement_uuid, language_id));
 	if(it != announcement_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Announcement already exists: announcement_uuid = ", announcement_uuid);
+		LOG_EMPERY_CENTER_WARNING("Announcement already exists: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 		DEBUG_THROW(Exception, sslit("Announcement already exists"));
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Inserting announcement: announcement_uuid = ", announcement_uuid);
+	LOG_EMPERY_CENTER_DEBUG("Inserting announcement: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 	announcement_map->insert(AnnouncementElement(announcement));
 
 	synchronize_announcement_all(announcement);
@@ -149,21 +185,22 @@ void AnnouncementMap::update(const boost::shared_ptr<Announcement> &announcement
 	}
 
 	const auto announcement_uuid = announcement->get_announcement_uuid();
+	const auto language_id = announcement->get_language_id();
 
-	const auto it = announcement_map->find<0>(announcement_uuid);
+	const auto it = announcement_map->find<0>(std::make_pair(announcement_uuid, language_id));
 	if(it == announcement_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Announcement not found: announcement_uuid = ", announcement_uuid);
+		LOG_EMPERY_CENTER_WARNING("Announcement not found: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Announcement not found"));
 		}
 		return;
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Updating announcement: announcement_uuid = ", announcement_uuid);
+	LOG_EMPERY_CENTER_DEBUG("Updating announcement: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 
 	synchronize_announcement_all(announcement);
 }
-void AnnouncementMap::remove(AnnouncementUuid announcement_uuid) noexcept {
+void AnnouncementMap::remove(AnnouncementUuid announcement_uuid, LanguageId language_id) noexcept {
 	PROFILE_ME;
 
 	const auto announcement_map = g_announcement_map.lock();
@@ -172,14 +209,14 @@ void AnnouncementMap::remove(AnnouncementUuid announcement_uuid) noexcept {
 		return;
 	}
 
-	const auto it = announcement_map->find<0>(announcement_uuid);
+	const auto it = announcement_map->find<0>(std::make_pair(announcement_uuid, language_id));
 	if(it == announcement_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Announcement not found: announcement_uuid = ", announcement_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Announcement not found: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 		return;
 	}
 	const auto announcement = it->announcement;
 
-	LOG_EMPERY_CENTER_DEBUG("Removing announcement: announcement_uuid = ", announcement_uuid);
+	LOG_EMPERY_CENTER_DEBUG("Removing announcement: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 	announcement_map->erase<0>(it);
 
 	synchronize_announcement_all(announcement);
