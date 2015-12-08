@@ -74,7 +74,7 @@ namespace {
 
 		explicit AccountAttributeElement(boost::shared_ptr<MySql::Center_AccountAttribute> obj_)
 			: obj(std::move(obj_))
-			, account_slot(std::make_pair(AccountUuid(obj->get_account_uuid()), obj->get_slot()))
+			, account_slot(std::make_pair(AccountUuid(obj->get_account_uuid()), obj->get_account_attribute_id()))
 		{
 		}
 	};
@@ -346,7 +346,7 @@ AccountUuid AccountMap::create(PlatformId platform_id, std::string login_name, s
 	Poseidon::async_raise_event(boost::make_shared<Events::AccountCreated>(account_uuid, std::move(remote_ip)), withdrawn);
 
 	auto obj = boost::make_shared<MySql::Center_Account>(
-		account_uuid.get(), platform_id.get(), std::move(login_name), std::move(nick), flags, std::string(), 0, 0, utc_now);
+		account_uuid.get(), platform_id.get(), std::move(login_name), utc_now, std::move(nick), flags, std::string(), 0, 0);
 	obj->async_save(true);
 	it = g_account_map->insert<2>(it, AccountElement(std::move(obj)));
 
@@ -473,7 +473,7 @@ void AccountMap::get_attributes(boost::container::flat_map<unsigned, std::string
 	const auto end   = g_attribute_map->upper_bound<0>(std::make_pair(account_uuid, end_slot));
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 	for(auto it = begin; it != end; ++it){
-		ret.emplace(it->obj->get_slot(), it->obj->unlocked_get_value());
+		ret.emplace(it->obj->get_account_attribute_id(), it->obj->unlocked_get_value());
 	}
 }
 void AccountMap::touch_attribute(AccountUuid account_uuid, unsigned slot){

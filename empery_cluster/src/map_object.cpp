@@ -17,12 +17,6 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::~MapObject(){
 }
 
-void MapObject::pump_status(){
-	PROFILE_ME;
-
-	// 无事可做。
-}
-
 Coord MapObject::get_coord() const {
 	return m_coord;
 }

@@ -48,12 +48,6 @@ ChatBox::ChatBox(AccountUuid account_uuid)
 ChatBox::~ChatBox(){
 }
 
-void ChatBox::pump_status(){
-	PROFILE_ME;
-
-	// 无事可做。
-}
-
 boost::shared_ptr<ChatMessage> ChatBox::get(ChatMessageUuid chat_message_uuid) const {
 	PROFILE_ME;
 

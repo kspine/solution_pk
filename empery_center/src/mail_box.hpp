@@ -1,7 +1,7 @@
 #ifndef EMPERY_CENTER_MAIL_BOX_HPP_
 #define EMPERY_CENTER_MAIL_BOX_HPP_
 
-#include "abstract_data_object.hpp"
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <vector>
 #include <boost/container/flat_map.hpp>
@@ -15,8 +15,9 @@ namespace MySql {
 }
 
 class MailData;
+class PlayerSession;
 
-class MailBox : public virtual AbstractDataObject {
+class MailBox : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum : boost::uint64_t {
 		FL_SYSTEM               = 0x0001,
@@ -42,7 +43,7 @@ public:
 	~MailBox();
 
 public:
-	void pump_status() override;
+	virtual void pump_status();
 
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;

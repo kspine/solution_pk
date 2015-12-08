@@ -1,7 +1,7 @@
 #ifndef EMPERY_CENTER_CHAT_BOX_HPP_
 #define EMPERY_CENTER_CHAT_BOX_HPP_
 
-#include "abstract_data_object.hpp"
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <vector>
 #include <boost/scoped_ptr.hpp>
@@ -11,8 +11,9 @@
 namespace EmperyCenter {
 
 class ChatMessage;
+class PlayerSession;
 
-class ChatBox : public virtual AbstractDataObject {
+class ChatBox : public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const AccountUuid m_account_uuid;
 
@@ -23,8 +24,6 @@ public:
 	~ChatBox();
 
 public:
-	void pump_status() override;
-
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
 	}

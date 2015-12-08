@@ -18,7 +18,6 @@ lib_LTLIBRARIES = \
 lib_libposeidon_empery_cluster_la_SOURCES = \
 	src/singletons/world_map.cpp	\
 	src/cluster/map.cpp	\
-	src/abstract_data_object.cpp	\
 	src/utilities.cpp	\
 	src/cluster_client.cpp	\
 	src/map_cell.cpp	\

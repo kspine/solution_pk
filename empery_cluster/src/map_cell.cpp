@@ -16,12 +16,6 @@ MapCell::MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owne
 MapCell::~MapCell(){
 }
 
-void MapCell::pump_status(){
-	PROFILE_ME;
-
-	// 无事可做。
-}
-
 boost::int64_t MapCell::get_attribute(AttributeId map_object_attr_id) const {
 	PROFILE_ME;
 

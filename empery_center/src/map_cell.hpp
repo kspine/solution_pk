@@ -1,7 +1,7 @@
 #ifndef EMPERY_CENTER_MAP_CELL_HPP_
 #define EMPERY_CENTER_MAP_CELL_HPP_
 
-#include "abstract_data_object.hpp"
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <boost/container/flat_map.hpp>
 #include "id_types.hpp"
 #include "coord.hpp"
@@ -17,7 +17,7 @@ class Castle;
 class PlayerSession;
 class ClusterSession;
 
-class MapCell : public virtual AbstractDataObject {
+class MapCell : public virtual Poseidon::VirtualSharedFromThis {
 private:
 	boost::shared_ptr<MySql::Center_MapCell> m_obj;
 	boost::container::flat_map<AttributeId,
@@ -30,7 +30,7 @@ public:
 	~MapCell();
 
 public:
-	void pump_status() override;
+	virtual void pump_status();
 
 	Coord get_coord() const;
 

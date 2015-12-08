@@ -1,7 +1,7 @@
 #ifndef EMPERY_CENTER_ITEM_BOX_HPP_
 #define EMPERY_CENTER_ITEM_BOX_HPP_
 
-#include "abstract_data_object.hpp"
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <vector>
 #include <boost/container/flat_map.hpp>
@@ -18,7 +18,7 @@ namespace MySql {
 
 class PlayerSession;
 
-class ItemBox : public virtual AbstractDataObject {
+class ItemBox : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct ItemInfo {
 		ItemId item_id;
@@ -38,7 +38,7 @@ public:
 	~ItemBox();
 
 public:
-	void pump_status() override;
+	virtual void pump_status();
 
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;

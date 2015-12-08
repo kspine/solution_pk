@@ -1,7 +1,7 @@
 #ifndef EMPERY_CLUSTER_MAP_OBJECT_HPP_
 #define EMPERY_CLUSTER_MAP_OBJECT_HPP_
 
-#include "abstract_data_object.hpp"
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/fwd.hpp>
 #include <boost/container/flat_map.hpp>
 #include <deque>
@@ -10,7 +10,7 @@
 
 namespace EmperyCluster {
 
-class MapObject : public virtual AbstractDataObject {
+class MapObject : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct Waypoint {
 		boost::uint64_t delay; // 毫秒
@@ -44,8 +44,6 @@ public:
 	~MapObject();
 
 public:
-	void pump_status() override;
-
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
 	}

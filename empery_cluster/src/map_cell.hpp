@@ -1,7 +1,7 @@
 #ifndef EMPERY_CLUSTER_MAP_CELL_HPP_
 #define EMPERY_CLUSTER_MAP_CELL_HPP_
 
-#include "abstract_data_object.hpp"
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/fwd.hpp>
 #include <boost/container/flat_map.hpp>
 #include "id_types.hpp"
@@ -9,7 +9,7 @@
 
 namespace EmperyCluster {
 
-class MapCell : public virtual AbstractDataObject {
+class MapCell : public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const Coord m_coord;
 
@@ -23,8 +23,6 @@ public:
 	~MapCell();
 
 public:
-	void pump_status() override;
-
 	Coord get_coord() const {
 		return m_coord;
 	}
