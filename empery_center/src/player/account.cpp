@@ -188,7 +188,7 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account_uuid, session, req){
 
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, 1, decltype(req)::ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
 		[&]{
 			AccountMap::touch_attribute(account_uuid, AccountMap::ATTR_LAST_SIGNED_IN_TIME);
 			AccountMap::touch_attribute(account_uuid, AccountMap::ATTR_SEQUENTIAL_SIGNED_IN_DAYS);

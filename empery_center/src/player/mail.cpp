@@ -125,7 +125,7 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account_uuid, session, req){
 			ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), 0);
 	}
 	Poseidon::add_flags(info.flags, MailBox::FL_ATTACHMENTS_FETCHED);
-	item_box->commit_transaction(transaction.data(), transaction.size(),
+	item_box->commit_transaction(transaction,
 		[&]{ mail_box->update(std::move(info)); });
 
 	return Response();

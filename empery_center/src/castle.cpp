@@ -693,7 +693,7 @@ void Castle::get_all_resources(std::vector<Castle::ResourceInfo> &ret) const {
 		ret.emplace_back(std::move(info));
 	}
 }
-ResourceId Castle::commit_resource_transaction_nothrow(const ResourceTransactionElement *elements, std::size_t count,
+ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<ResourceTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
@@ -703,19 +703,19 @@ ResourceId Castle::commit_resource_transaction_nothrow(const ResourceTransaction
 	boost::shared_ptr<bool> withdrawn;
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, boost::uint64_t /* new_count */> temp_result_map;
 
-	for(std::size_t i = 0; i < count; ++i){
-		const auto operation  = elements[i].m_operation;
-		const auto resource_id = elements[i].m_some_id;
-		const auto delta_count = elements[i].m_delta_count;
+    for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
+		const auto operation   = tit->m_operation;
+		const auto resource_id = tit->m_some_id;
+		const auto delta_count = tit->m_delta_count;
 
 		if(delta_count == 0){
 			continue;
 		}
 
-		const auto reason = elements[i].m_reason;
-		const auto param1 = elements[i].m_param1;
-		const auto param2 = elements[i].m_param2;
-		const auto param3 = elements[i].m_param3;
+		const auto reason = tit->m_reason;
+		const auto param1 = tit->m_param1;
+		const auto param2 = tit->m_param2;
+		const auto param3 = tit->m_param3;
 
 		switch(operation){
 		case ResourceTransactionElement::OP_NONE:
@@ -835,12 +835,12 @@ ResourceId Castle::commit_resource_transaction_nothrow(const ResourceTransaction
 
 	return ResourceId();
 }
-void Castle::commit_resource_transaction(const ResourceTransactionElement *elements, std::size_t count,
+void Castle::commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
-	const auto insuff_id = commit_resource_transaction_nothrow(elements, count, callback);
+	const auto insuff_id = commit_resource_transaction_nothrow(transaction, callback);
 	if(insuff_id != ResourceId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: map_object_uuid = ", get_map_object_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient resources in castle"));

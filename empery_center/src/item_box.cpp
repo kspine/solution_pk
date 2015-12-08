@@ -144,7 +144,7 @@ void ItemBox::pump_status(){
 		const auto new_updated_time = saturated_add(old_updated_time, saturated_mul(auto_inc_period, interval_count));
 		new_timestamps.emplace(obj, new_updated_time);
 	}
-	commit_transaction(transaction.data(), transaction.size(),
+	commit_transaction(transaction,
 		[&]{
 			for(auto it = new_timestamps.begin(); it != new_timestamps.end(); ++it){
 				it->first->set_updated_time(it->second);
@@ -168,7 +168,7 @@ void ItemBox::check_init_items(){
 				ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
 		}
 	}
-	commit_transaction(transaction.data(), transaction.size());
+	commit_transaction(transaction);
 }
 
 ItemBox::ItemInfo ItemBox::get(ItemId item_id) const {
@@ -195,7 +195,7 @@ void ItemBox::get_all(std::vector<ItemBox::ItemInfo> &ret) const {
 	}
 }
 
-ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *elements, std::size_t count,
+ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
@@ -205,19 +205,19 @@ ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *element
 	boost::shared_ptr<bool> withdrawn;
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t /* new_count */> temp_result_map;
 
-	for(std::size_t i = 0; i < count; ++i){
-		const auto operation  = elements[i].m_operation;
-		const auto item_id = elements[i].m_some_id;
-		const auto delta_count = elements[i].m_delta_count;
+	for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
+		const auto operation   = tit->m_operation;
+		const auto item_id     = tit->m_some_id;
+		const auto delta_count = tit->m_delta_count;
 
 		if(delta_count == 0){
 			continue;
 		}
 
-		const auto reason = elements[i].m_reason;
-		const auto param1 = elements[i].m_param1;
-		const auto param2 = elements[i].m_param2;
-		const auto param3 = elements[i].m_param3;
+		const auto reason = tit->m_reason;
+		const auto param1 = tit->m_param1;
+		const auto param2 = tit->m_param2;
+		const auto param3 = tit->m_param3;
 
 		switch(operation){
 		case ItemTransactionElement::OP_NONE:
@@ -330,12 +330,12 @@ ItemId ItemBox::commit_transaction_nothrow(const ItemTransactionElement *element
 
 	return ItemId();
 }
-void ItemBox::commit_transaction(const ItemTransactionElement *elements, std::size_t count,
+void ItemBox::commit_transaction(const std::vector<ItemTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
-	const auto insuff_id = commit_transaction_nothrow(elements, count, callback);
+	const auto insuff_id = commit_transaction_nothrow(transaction, callback);
 	if(insuff_id != ItemId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient items in item box: account_uuid = ", get_account_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient items in item box"));

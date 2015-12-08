@@ -101,9 +101,9 @@ public:
 
 	ResourceInfo get_resource(ResourceId resource_id) const;
 	void get_all_resources(std::vector<ResourceInfo> &ret) const;
-	ResourceId commit_resource_transaction_nothrow(const ResourceTransactionElement *elements, std::size_t count,
+	ResourceId commit_resource_transaction_nothrow(const std::vector<ResourceTransactionElement> &transaction,
 		const boost::function<void ()> &callback = boost::function<void ()>());
-	void commit_resource_transaction(const ResourceTransactionElement *elements, std::size_t count,
+	void commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,
 		const boost::function<void ()> &callback = boost::function<void ()>());
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

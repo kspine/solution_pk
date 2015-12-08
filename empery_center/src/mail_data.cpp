@@ -19,7 +19,9 @@ namespace {
 		for(auto it = attachments.begin(); it != attachments.end(); ++it){
 			const auto item_id = it->first;
 			const auto item_count = it->second;
-			root[SharedNts(boost::lexical_cast<std::string>(item_id))] = item_count;
+			char str[64];
+			unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)item_id.get());
+			root[SharedNts(str, len)] = item_count;
 		}
 		std::ostringstream oss;
 		root.dump(oss);

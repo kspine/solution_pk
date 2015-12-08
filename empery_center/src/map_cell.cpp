@@ -181,7 +181,7 @@ void MapCell::harvest_resource(const boost::shared_ptr<Castle> &castle, boost::u
 	std::vector<ResourceTransactionElement> transaction;
 	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
 		ReasonIds::ID_HARVEST, coord.x(), coord.y(), ticket_item_id.get());
-	castle->commit_resource_transaction(transaction.data(), transaction.size(),
+	castle->commit_resource_transaction(transaction,
 		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount)); });
 }
 

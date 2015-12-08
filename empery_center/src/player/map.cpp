@@ -194,7 +194,7 @@ _producible:
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
 		[&]{
 			if(!map_cell){
 				map_cell = boost::make_shared<MapCell>(coord);
@@ -236,7 +236,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction.data(), transaction.size(),
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
 		[&]{ map_cell->set_ticket_item_id(new_ticket_item_id); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
