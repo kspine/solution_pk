@@ -18,7 +18,7 @@ namespace Msg {
 #define MESSAGE_NAME    CS_AccountSetAttribute
 #define MESSAGE_ID      201
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (slot)	\
+	FIELD_VUINT         (account_attribute_id)	\
 	FIELD_STRING        (value)
 #include <poseidon/cbpp/message_generator.hpp>
 

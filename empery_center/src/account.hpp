@@ -16,8 +16,7 @@ namespace MySql {
 class Account : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum {
-		FL_VALID            = 0x0001,
-		FL_ROBOT            = 0x0002,
+		FL_ROBOT            = 0x0001,
 
 		MAX_NICK_LEN        =  255,
 		MAX_ATTRIBUTE_LEN   = 4096,

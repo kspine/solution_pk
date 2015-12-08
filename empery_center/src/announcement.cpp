@@ -4,7 +4,6 @@
 #include "mysql/announcement.hpp"
 #include "player_session.hpp"
 #include "msg/sc_announcement.hpp"
-#include "singletons/account_map.hpp"
 #include "singletons/announcement_map.hpp"
 #include "checked_arithmetic.hpp"
 

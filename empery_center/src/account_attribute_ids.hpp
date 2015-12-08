@@ -8,6 +8,7 @@ namespace EmperyCenter {
 namespace AccountAttributeIds {
 
 constexpr AccountAttributeId
+	ID_BEGIN                      (   0),
 	ID_CUSTOM_PUBLIC_END          ( 100),
 	ID_CUSTOM_END                 ( 200),
 	ID_PUBLIC_END                 ( 300),

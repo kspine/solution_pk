@@ -2,6 +2,7 @@
 #include "chat_message.hpp"
 #include "player_session.hpp"
 #include "msg/sc_chat.hpp"
+#include "singletons/player_session_map.hpp"
 #include "singletons/account_map.hpp"
 
 namespace EmperyCenter {
@@ -22,7 +23,7 @@ void ChatMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 
 	const auto from_account_uuid = get_from_account_uuid();
 	if(from_account_uuid){
-		AccountMap::combined_send_attributes_to_client(from_account_uuid, session);
+		AccountMap::cached_synchronize_account_with_player(from_account_uuid, session);
 	}
 
 	Msg::SC_ChatMessageData msg;
@@ -34,10 +35,10 @@ void ChatMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 	msg.from_account_uuid   = from_account_uuid.str();
 	msg.segments.reserve(m_segments.size());
 	for(auto it = m_segments.begin(); it != m_segments.end(); ++it){
-	msg.segments.emplace_back();
-	auto &segment = msg.segments.back();
-	segment.slot   = it->first.get();
-	segment.value  = it->second;
+		msg.segments.emplace_back();
+		auto &segment = msg.segments.back();
+		segment.slot   = it->first.get();
+		segment.value  = it->second;
 	}
 	session->send(msg);
 }

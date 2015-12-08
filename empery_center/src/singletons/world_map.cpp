@@ -164,12 +164,12 @@ namespace {
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapCellAttribute>();
 			obj->fetch(conn);
-			obj->enable_auto_saving();
 			const auto coord = Coord(obj->get_x(), obj->get_y());
 			const auto it = temp_map_cell_map.find(coord);
 			if(it == temp_map_cell_map.end()){
 				continue;
 			}
+			obj->enable_auto_saving();
 			it->second.attributes.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading map cell attributes.");
@@ -206,12 +206,12 @@ namespace {
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>();
 			obj->fetch(conn);
-			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
 			const auto it = temp_map_object_map.find(map_object_uuid);
 			if(it == temp_map_object_map.end()){
 				continue;
 			}
+			obj->enable_auto_saving();
 			it->second.attributes.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading map object attributes.");

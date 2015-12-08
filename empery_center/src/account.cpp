@@ -27,7 +27,7 @@ Account::~Account(){
 }
 
 AccountUuid Account::get_account_uuid() const {
-	return AccountUuid(m_obj->get_account_uuid());
+	return AccountUuid(m_obj->unlocked_get_account_uuid());
 }
 PlatformId Account::get_platform_id() const {
 	return PlatformId(m_obj->get_platform_id());
@@ -44,7 +44,7 @@ void Account::set_nick(std::string nick){
 
 	m_obj->set_nick(std::move(nick));
 
-	// AccountMap::update(virtual_shared_from_this<Account>(), false);
+	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
 
 boost::uint64_t Account::get_flags() const {

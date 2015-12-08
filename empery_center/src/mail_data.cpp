@@ -4,6 +4,7 @@
 #include "mysql/mail.hpp"
 #include "player_session.hpp"
 #include "msg/sc_mail.hpp"
+#include "singletons/player_session_map.hpp"
 #include "singletons/account_map.hpp"
 
 namespace EmperyCenter {
@@ -120,7 +121,7 @@ void MailData::synchronize_with_player(const boost::shared_ptr<PlayerSession> &s
 
 	const auto from_account_uuid = get_from_account_uuid();
 	if(from_account_uuid){
-		AccountMap::combined_send_attributes_to_client(from_account_uuid, session);
+		AccountMap::cached_synchronize_account_with_player(from_account_uuid, session);
 	}
 
 	Msg::SC_MailData msg;

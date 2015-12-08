@@ -235,7 +235,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	} else {
 		const auto owner_uuid = get_owner_uuid();
 		if(owner_uuid){
-			AccountMap::combined_send_attributes_to_client(owner_uuid, session);
+			AccountMap::cached_synchronize_account_with_player(owner_uuid, session);
 		}
 
 		Msg::SC_MapCellInfo msg;

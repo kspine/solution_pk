@@ -47,7 +47,9 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account_uuid, session, req){
 
 PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 	const auto to_account_uuid = AccountUuid(req.to_account_uuid);
-	if(!AccountMap::has(to_account_uuid)){
+
+	const auto to_account = AccountMap::get(to_account_uuid);
+	if(!to_account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<to_account_uuid;
 	}
 

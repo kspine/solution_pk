@@ -19,7 +19,7 @@ namespace Msg {
 	FIELD_STRING        (account_uuid)	\
 	FIELD_STRING        (nick)	\
 	FIELD_ARRAY         (attributes,	\
-		FIELD_VUINT         (slot)	\
+		FIELD_VUINT         (account_attribute_id)	\
 		FIELD_STRING        (value)	\
 	)	\
 	FIELD_ARRAY         (public_items,	\
