@@ -1,9 +1,9 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include <poseidon/json.hpp>
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
-#include <poseidon/json.hpp>
 #include "../singletons/world_map.hpp"
 #include "../utilities.hpp"
 #include "../map_object.hpp"
@@ -274,7 +274,6 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 		if(!terrain_data->buildable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
 		}
-		// TODO 检测森立。
 	}
 	// 检测与其他城堡距离。
 	const auto min_distance  = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
@@ -306,6 +305,48 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 	WorldMap::insert_map_object(castle);
 	LOG_EMPERY_CENTER_INFO("Created castle: castle_uuid = ", castle_uuid, ", account_uuid = ", account_uuid);
 	map_object->delete_from_game(); // noexcept
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapStopTroops, account_uuid, session, req){
+	Msg::SC_MapStopTroopsRet msg;
+	msg.map_objects.reserve(req.map_objects.size());
+	for(auto it = req.map_objects.begin(); it != req.map_objects.end(); ++it){
+		const auto map_object_uuid = MapObjectUuid(it->map_object_uuid);
+		const auto map_object = WorldMap::get_map_object(map_object_uuid);
+		if(!map_object){
+			LOG_EMPERY_CENTER_DEBUG("No such map object: map_object_uuid = ", map_object_uuid);
+			continue;
+		}
+		if(map_object->get_owner_uuid() != account_uuid){
+			LOG_EMPERY_CENTER_DEBUG("Not your object: map_object_uuid = ", map_object_uuid);
+			continue;
+		}
+
+		const auto from_coord = map_object->get_coord();
+		const auto cluster = WorldMap::get_cluster(from_coord);
+		if(!cluster){
+			LOG_EMPERY_CENTER_WARNING("No cluster server available: from_coord = ", from_coord);
+			continue;
+		}
+
+		Msg::SK_MapSetAction kreq;
+		kreq.map_object_uuid = map_object->get_map_object_uuid().str();
+		kreq.x = from_coord.x();
+		kreq.y = from_coord.y();
+		// 撤销当前的路径。
+		const auto kresult = cluster->send_and_wait(kreq);
+		if(kresult.first != Msg::ST_OK){
+			LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+			continue;
+		}
+
+		msg.map_objects.emplace_back();
+		auto &elem = msg.map_objects.back();
+		elem.map_object_uuid = map_object_uuid.str();
+	}
+	session->send(msg);
 
 	return Response();
 }

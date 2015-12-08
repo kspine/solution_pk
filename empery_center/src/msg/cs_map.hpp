@@ -66,6 +66,14 @@ namespace Msg {
 	FIELD_STRING        (castle_name)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapStopTroops
+#define MESSAGE_ID      307
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (map_objects,	\
+		FIELD_STRING        (map_object_uuid)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

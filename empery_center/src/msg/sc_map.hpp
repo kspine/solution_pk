@@ -66,6 +66,14 @@ namespace Msg {
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapStopTroopsRet
+#define MESSAGE_ID      394
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (map_objects,   \
+		FIELD_STRING        (map_object_uuid)   \
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
