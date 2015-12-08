@@ -75,7 +75,10 @@ ADMIN_SERVLET("item/remove", root, session, params){
 	const auto operation = saturated ? ItemTransactionElement::OP_REMOVE_SATURATED : ItemTransactionElement::OP_REMOVE;
 	transaction.emplace_back(operation, item_id, count_to_remove,
 		ReasonIds::ID_ADMIN_OPERATION, param1, param2, param3);
-	item_box->commit_transaction(transaction);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
 
 	return Response();
 }
