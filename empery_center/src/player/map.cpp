@@ -277,13 +277,13 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 		// TODO 检测森立。
 	}
 	// 检测与其他城堡距离。
-	const auto min_distance = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
+	const auto min_distance  = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
 
 	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(castle_coord);
-	const auto coll_left   = std::max(castle_coord.x() - (min_distance - 1), cluster_scope.left());
-	const auto coll_bottom = std::max(castle_coord.y() - (min_distance - 1), cluster_scope.bottom());
-	const auto coll_right  = std::min(castle_coord.x() + (min_distance + 2), cluster_scope.right());
-	const auto coll_top    = std::max(castle_coord.y() + (min_distance + 2), cluster_scope.top());
+	const auto coll_left     = std::max(castle_coord.x() - (min_distance - 1), cluster_scope.left());
+	const auto coll_bottom   = std::max(castle_coord.y() - (min_distance - 1), cluster_scope.bottom());
+	const auto coll_right    = std::min(castle_coord.x() + (min_distance + 2), cluster_scope.right());
+	const auto coll_top      = std::max(castle_coord.y() + (min_distance + 2), cluster_scope.top());
 	boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> coll_map_objects;
 	WorldMap::get_map_objects_by_rectangle(coll_map_objects, Rectangle(Coord(coll_left, coll_bottom), Coord(coll_right, coll_top)));
 	for(auto it = coll_map_objects.begin(); it != coll_map_objects.end(); ++it){
