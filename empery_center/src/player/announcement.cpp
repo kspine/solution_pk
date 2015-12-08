@@ -12,7 +12,7 @@ PLAYER_SERVLET(Msg::CS_AnnouncementGetAnnouncements, account_uuid, session, req)
 	const auto language_id = LanguageId(req.language_id);
 
 	std::vector<boost::shared_ptr<Announcement>> announcements;
-	AnnouncementMap::get_all_by_language_id(announcements, language_id);
+	AnnouncementMap::get_by_language_id(announcements, language_id);
 	// XXX neutral?
 	for(auto it = announcements.begin(); it != announcements.end(); ++it){
 		const auto &announcement = *it;

@@ -118,7 +118,7 @@ void AnnouncementMap::get_all(std::vector<boost::shared_ptr<Announcement>> &ret)
 		ret.emplace_back(it->announcement);
 	}
 }
-void AnnouncementMap::get_all_by_announcement_uuid(std::vector<boost::shared_ptr<Announcement>> &ret, AnnouncementUuid announcement_uuid){
+void AnnouncementMap::get_by_announcement_uuid(std::vector<boost::shared_ptr<Announcement>> &ret, AnnouncementUuid announcement_uuid){
 	PROFILE_ME;
 
 	const auto announcement_map = g_announcement_map.lock();
@@ -133,7 +133,7 @@ void AnnouncementMap::get_all_by_announcement_uuid(std::vector<boost::shared_ptr
 		ret.emplace_back(it->announcement);
 	}
 }
-void AnnouncementMap::get_all_by_language_id(std::vector<boost::shared_ptr<Announcement>> &ret, LanguageId language_id){
+void AnnouncementMap::get_by_language_id(std::vector<boost::shared_ptr<Announcement>> &ret, LanguageId language_id){
 	PROFILE_ME;
 
 	const auto announcement_map = g_announcement_map.lock();

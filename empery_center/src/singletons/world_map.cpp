@@ -538,6 +538,20 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	synchronize_map_cell_all(map_cell, coord, coord);
 }
 
+void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
+		return;
+	}
+
+	ret.reserve(ret.size() + map_cell_map->size());
+	for(auto it = map_cell_map->begin<0>(); it != map_cell_map->end<0>(); ++it){
+		ret.emplace_back(it->map_cell);
+	}
+}
 void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid){
 	PROFILE_ME;
 
@@ -791,6 +805,20 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	synchronize_map_object_all(map_object, old_coord, old_coord);
 }
 
+void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	ret.reserve(ret.size() + map_object_map->size());
+	for(auto it = map_object_map->begin<0>(); it != map_object_map->end<0>(); ++it){
+		ret.emplace_back(it->map_object);
+	}
+}
 void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
 	PROFILE_ME;
 
