@@ -23,8 +23,6 @@ private:
 	boost::container::flat_map<AttributeId,
 		boost::shared_ptr<MySql::Center_MapCellAttribute>> m_attributes;
 
-	// buff
-
 public:
 	explicit MapCell(Coord coord);
 	MapCell(boost::shared_ptr<MySql::Center_MapCell> obj,

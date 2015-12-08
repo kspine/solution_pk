@@ -61,8 +61,7 @@ struct AccountMap {
 	static LoginInfo get_login_info(AccountUuid account_uuid);
 	static LoginInfo get_login_info(PlatformId platform_id, const std::string &login_name);
 
-	static std::pair<AccountUuid, bool> create(PlatformId platform_id, std::string login_name,
-		std::string nick, boost::uint64_t flags, std::string remote_ip);
+	static AccountUuid create(PlatformId platform_id, std::string login_name, std::string nick, boost::uint64_t flags, std::string remote_ip);
 
 	static void set_nick(AccountUuid account_uuid, std::string nick);
 	static void set_login_token(AccountUuid account_uuid, std::string login_token, boost::uint64_t expiry_time);

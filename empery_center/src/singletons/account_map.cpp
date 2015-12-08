@@ -146,9 +146,11 @@ namespace {
 				PROFILE_ME;
 				LOG_EMPERY_CENTER_INFO("Set token: platform_id = ", event->platform_id, ", login_name = ", event->login_name,
 					", login_token = ", event->login_token, ", expiry_time = ", event->expiry_time, ", remote_ip = ", event->remote_ip);
-				const auto account_uuid = AccountMap::create(event->platform_id, event->login_name,
-					event->login_name, 0, event->remote_ip).first;
-				AccountMap::set_login_token(account_uuid, event->login_token, event->expiry_time);
+				auto login_info = AccountMap::get_login_info(event->platform_id, event->login_name);
+				if(!login_info.account_uuid){
+					login_info.account_uuid = AccountMap::create(event->platform_id, event->login_name, event->login_name, 0, event->remote_ip);
+				}
+				AccountMap::set_login_token(login_info.account_uuid, event->login_token, event->expiry_time);
 			});
 		LOG_EMPERY_CENTER_DEBUG("Created AccountSetToken listener");
 		handles.push(listener);
@@ -325,14 +327,13 @@ AccountMap::LoginInfo AccountMap::get_login_info(PlatformId platform_id, const s
 	return info;
 }
 
-std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::string login_name,
-	std::string nick, boost::uint64_t flags, std::string remote_ip)
-{
+AccountUuid AccountMap::create(PlatformId platform_id, std::string login_name, std::string nick, boost::uint64_t flags, std::string remote_ip){
 	PROFILE_ME;
 
 	auto it = g_account_map->find<2>(LoginKey(platform_id, login_name));
 	if(it != g_account_map->end<2>()){
-		return std::make_pair(it->account_uuid, false);
+		LOG_EMPERY_CENTER_WARNING("Duplicate login name: platform_id = ", platform_id, ", login_name = ", login_name);
+		DEBUG_THROW(Exception, sslit("Duplicate login name"));
 	}
 
 	const auto withdrawn = boost::make_shared<bool>(true);
@@ -374,7 +375,7 @@ for(int i = 0; i < 1; ++i){
 	WorldMap::insert_map_object(castle);
 }
 	*withdrawn = false;
-	return std::make_pair(account_uuid, true);
+	return account_uuid;
 }
 
 void AccountMap::set_nick(AccountUuid account_uuid, std::string nick){
