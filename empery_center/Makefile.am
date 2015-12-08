@@ -40,6 +40,12 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/mail.cpp	\
 	src/player/chat.cpp	\
 	src/player/announcement.cpp	\
+	src/admin/account.cpp	\
+	src/admin/item.cpp	\
+	src/admin/castle.cpp	\
+	src/admin/resource.cpp	\
+	src/admin/announcement.cpp	\
+	src/admin/mail.cpp	\
 	src/cluster/map.cpp	\
 	src/utilities.cpp	\
 	src/abstract_data_object.cpp	\

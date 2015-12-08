@@ -17,6 +17,7 @@ namespace {
 
 		explicit AnnouncementElement(boost::shared_ptr<Announcement> announcement_)
 			: announcement(std::move(announcement_))
+			, announcement_uuid(announcement->get_announcement_uuid())
 		{
 		}
 	};
@@ -29,6 +30,7 @@ namespace {
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
+		const auto utc_now = Poseidon::get_utc_time();
 
 		const auto announcement_map = boost::make_shared<AnnouncementMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading announcements...");
@@ -36,6 +38,9 @@ namespace {
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_Announcement>();
 			obj->fetch(conn);
+			if(obj->get_expiry_time() < utc_now){
+				continue;
+			}
 			obj->enable_auto_saving();
 			auto announcement = boost::make_shared<Announcement>(std::move(obj));
 			announcement_map->insert(AnnouncementElement(std::move(announcement)));
@@ -92,6 +97,21 @@ boost::shared_ptr<Announcement> AnnouncementMap::require(AnnouncementUuid announ
 		DEBUG_THROW(Exception, sslit("Announcement not found"));
 	}
 	return ret;
+}
+
+void AnnouncementMap::get_all(std::vector<boost::shared_ptr<Announcement>> &ret){
+	PROFILE_ME;
+
+	const auto announcement_map = g_announcement_map.lock();
+	if(!announcement_map){
+		LOG_EMPERY_CENTER_WARNING("Announcement is not loaded.");
+		return;
+	}
+
+	ret.reserve(ret.size() + announcement_map->size());
+	for(auto it = announcement_map->begin<0>(); it != announcement_map->end<0>(); ++it){
+		ret.emplace_back(it->announcement);
+	}
 }
 
 void AnnouncementMap::insert(const boost::shared_ptr<Announcement> &announcement){

@@ -4,6 +4,7 @@
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/cbpp/control_codes.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
+#include <poseidon/cbpp/exception.hpp>
 #include <poseidon/http/status_codes.hpp>
 #include <poseidon/http/exception.hpp>
 #include <poseidon/http/utilities.hpp>
@@ -79,7 +80,7 @@ protected:
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"std::exception thrown: message_id = ", message_id, ", what = ", e.what());
-			result.first = Msg::ST_INTERNAL_ERROR;
+			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
 		if(message_id != Poseidon::Cbpp::ControlMessage::ID){

@@ -11,7 +11,7 @@ namespace EmperyCenter {
 class AdminHttpSession : public Poseidon::Http::Session {
 public:
 	using ServletCallback = boost::function<
-		Poseidon::JsonObject (const boost::shared_ptr<AdminHttpSession> &session, Poseidon::OptionalMap params)>;
+		 std::pair<long, std::string> (Poseidon::JsonObject &, const boost::shared_ptr<AdminHttpSession> &session, Poseidon::OptionalMap params)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(const std::string &uri, ServletCallback callback);

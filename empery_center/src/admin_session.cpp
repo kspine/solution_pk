@@ -4,6 +4,8 @@
 #include <poseidon/http/status_codes.hpp>
 #include <poseidon/http/exception.hpp>
 #include <poseidon/http/utilities.hpp>
+#include <poseidon/cbpp/status_codes.hpp>
+#include <poseidon/cbpp/exception.hpp>
 #include <poseidon/job_base.hpp>
 #include <poseidon/json.hpp>
 
@@ -81,23 +83,28 @@ void AdminHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_he
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 
-	Poseidon::JsonObject result;
+	std::pair<long, std::string> result;
+	Poseidon::JsonObject root;
 	try {
-		result = (*servlet)(virtual_shared_from_this<AdminHttpSession>(), std::move(request_headers.get_params));
+		result = (*servlet)(root, virtual_shared_from_this<AdminHttpSession>(), std::move(request_headers.get_params));
 	} catch(Poseidon::Http::Exception &){
 		throw;
-	} catch(std::logic_error &e){
-		LOG_EMPERY_CENTER_WARNING("std::logic_error thrown: what = ", e.what());
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_BAD_REQUEST);
+	} catch(Poseidon::Cbpp::Exception &e){
+		LOG_EMPERY_CENTER_WARNING("Poseidon::Cbpp::Exception thrown: what = ", e.what());
+		result.first = e.status_code();
+		result.second = e.what();
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
+		result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
+		result.second = e.what();
 	}
-	LOG_EMPERY_CENTER_DEBUG("Sending response: ", result.dump());
+	root[sslit("err_code")] = result.first;
+	root[sslit("err_msg")] = std::move(result.second);
+	LOG_EMPERY_CENTER_DEBUG("Sending response: ", root.dump());
 	Poseidon::OptionalMap headers;
 	headers.set(sslit("Content-Type"), "application/json");
 	headers.set(sslit("Access-Control-Allow-Origin"), "*");
-	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
+	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(root.dump()));
 }
 
 }
