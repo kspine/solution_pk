@@ -350,7 +350,7 @@ std::pair<AccountUuid, bool> AccountMap::create(PlatformId platform_id, std::str
 	it = g_account_map->insert<2>(it, AccountElement(std::move(obj)));
 
 // FIXME remove this
-for(int i = 0; i < 3; ++i){
+for(int i = 0; i < 1; ++i){
 	auto map_object_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 400) - 200,
                    	(boost::int32_t)Poseidon::rand32(0, 400) - 200);
