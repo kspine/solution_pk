@@ -547,7 +547,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
 			return Response(Msg::ERR_NO_ROOM_FOR_NEW_UNIT);
 		}
 		const auto &coord = foundation.front();
-		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> test_objects;
+		std::vector<boost::shared_ptr<MapObject>> test_objects;
 		WorldMap::get_map_objects_by_rectangle(test_objects, Rectangle(coord, 1, 1));
 		if(test_objects.empty()){
 			LOG_EMPERY_CENTER_DEBUG("Found coord for immigrant: coord = ", coord);

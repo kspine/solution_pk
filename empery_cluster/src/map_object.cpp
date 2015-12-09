@@ -4,6 +4,8 @@
 #include "cluster_client.hpp"
 #include "singletons/world_map.hpp"
 #include "checked_arithmetic.hpp"
+#include "utilities.hpp"
+#include "../../empery_center/src/map_object_type_ids.hpp"
 
 namespace EmperyCluster {
 
@@ -12,9 +14,45 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id), m_owner_uuid(owner_uuid)
 	, m_coord(coord), m_attributes(std::move(attributes))
 	, m_next_action_time(0)
+	, m_blocked_retry_count(0)
 {
 }
 MapObject::~MapObject(){
+}
+
+bool MapObject::is_blocked(Coord new_coord) const {
+	PROFILE_ME;
+
+	const auto new_map_cell = WorldMap::get_map_cell(new_coord);
+	if(new_map_cell){
+		// TODO
+	}
+
+	std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+	WorldMap::get_map_objects_by_rectangle(adjacent_objects,
+		Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 3, new_coord.y() + 3)));
+	std::vector<Coord> foundation;
+	for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
+		const auto &other_object = *it;
+		const auto other_coord = other_object->get_coord();
+		if(new_coord == other_coord){
+			LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_object->get_map_object_uuid());
+			return true;
+		}
+		if(other_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		foundation.clear();
+		get_castle_foundation(foundation, other_coord);
+		for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
+			if(new_coord == *fit){
+				LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_object->get_map_object_uuid());
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 Coord MapObject::get_coord() const {
@@ -84,43 +122,62 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 		const auto map_object_uuid = get_map_object_uuid();
 		LOG_EMPERY_CLUSTER_TRACE("Map object action timer: map_object_uuid = ", map_object_uuid);
 
-	_check_loop:
-		if(now < m_next_action_time){
-			if(m_action_timer){
-				Poseidon::TimerDaemon::set_absolute_time(m_action_timer, m_next_action_time);
+		for(;;){
+			if(now < m_next_action_time){
+				if(m_action_timer){
+					Poseidon::TimerDaemon::set_absolute_time(m_action_timer, m_next_action_time);
+				}
+				break;
 			}
-			return;
-		}
+//=============================================================================
+	if(!m_waypoints.empty()){
+		const auto waypoint = m_waypoints.front();
+		const auto old_coord = get_coord();
+		const auto new_coord = Coord(old_coord.x() + waypoint.dx, old_coord.y() + waypoint.dy);
 
-		if(!m_waypoints.empty()){
-			const auto waypoint = m_waypoints.front();
-			const auto old_coord = get_coord();
-			const auto new_coord = Coord(old_coord.x() + waypoint.dx, old_coord.y() + waypoint.dy);
-			LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
-			set_coord(new_coord);
-			m_waypoints.pop_front();
-
-			m_next_action_time = saturated_add(m_next_action_time, waypoint.delay);
-			goto _check_loop;
-		}
-		if(m_attack_target_uuid){
-			const auto target = WorldMap::get_map_object(m_attack_target_uuid);
-			boost::uint64_t delay = 100;
-			if(!target){
-				LOG_EMPERY_CLUSTER_DEBUG("Lost target: map_object_uuid = ", map_object_uuid, ", attack_target_uuid = ", m_attack_target_uuid);
-				m_attack_target_uuid = MapObjectUuid();
-			} else {
-				// TODO 战斗。
-				LOG_EMPERY_CLUSTER_FATAL("=== BATTLE ===");
-				m_attack_target_uuid = { };
+		if(is_blocked(new_coord)){
+			const auto retry_delay = get_config<boost::uint64_t>("blocked_path_retry_delay", 500);
+			const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
+			LOG_EMPERY_CLUSTER_DEBUG("Path is blocked: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord,
+				", retry_max_count = ", retry_max_count, ", retry_count = ", m_blocked_retry_count);
+			if(m_blocked_retry_count >= retry_max_count){
+				LOG_EMPERY_CLUSTER_DEBUG("Give up the path.");
+				m_waypoints.clear();
+				m_blocked_retry_count = 0;
+				continue;
 			}
-
-			m_next_action_time = saturated_add(m_next_action_time, delay);
-			goto _check_loop;
+			LOG_EMPERY_CLUSTER_DEBUG("Will retry later.");
+			++m_blocked_retry_count;
+			m_next_action_time = saturated_add(m_next_action_time, retry_delay);
+			continue;
 		}
 
-		LOG_EMPERY_CLUSTER_DEBUG("Releasing action timer: map_object_uuid = ", map_object_uuid);
-		m_action_timer.reset();
+		LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
+		set_coord(new_coord);
+		m_waypoints.pop_front();
+		m_blocked_retry_count = 0;
+		m_next_action_time = saturated_add(m_next_action_time, waypoint.delay);
+		continue;
+	}
+
+	if(m_attack_target_uuid){
+		const auto target = WorldMap::get_map_object(m_attack_target_uuid);
+		if(!target){
+			LOG_EMPERY_CLUSTER_DEBUG("Lost target: map_object_uuid = ", map_object_uuid, ", target_uuid = ", m_attack_target_uuid);
+			m_attack_target_uuid = { };
+			continue;
+		}
+		// TODO 战斗。
+		LOG_EMPERY_CLUSTER_FATAL("=== BATTLE ===");
+		m_attack_target_uuid = { };
+		m_next_action_time = saturated_add(m_next_action_time, (boost::uint64_t)1000);
+		continue;
+	}
+//=============================================================================
+			LOG_EMPERY_CLUSTER_DEBUG("Releasing action timer: map_object_uuid = ", map_object_uuid);
+			m_action_timer.reset();
+			break;
+		}
 	};
 
 	m_waypoints.clear();

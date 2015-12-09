@@ -35,6 +35,7 @@ private:
 	boost::uint64_t m_next_action_time;
 	// 移动。
 	std::deque<Waypoint> m_waypoints;
+	unsigned m_blocked_retry_count;
 	// 战斗。
 	MapObjectUuid m_attack_target_uuid;
 
@@ -42,6 +43,9 @@ public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 		Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes);
 	~MapObject();
+
+private:
+	bool is_blocked(Coord new_coord) const;
 
 public:
 	MapObjectUuid get_map_object_uuid() const {

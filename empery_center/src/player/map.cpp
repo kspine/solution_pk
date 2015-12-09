@@ -283,16 +283,16 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 	const auto coll_bottom   = std::max(castle_coord.y() - (min_distance - 1), cluster_scope.bottom());
 	const auto coll_right    = std::min(castle_coord.x() + (min_distance + 2), cluster_scope.right());
 	const auto coll_top      = std::max(castle_coord.y() + (min_distance + 2), cluster_scope.top());
-	boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> coll_map_objects;
+	std::vector<boost::shared_ptr<MapObject>> coll_map_objects;
 	WorldMap::get_map_objects_by_rectangle(coll_map_objects, Rectangle(Coord(coll_left, coll_bottom), Coord(coll_right, coll_top)));
 	for(auto it = coll_map_objects.begin(); it != coll_map_objects.end(); ++it){
-		const auto &coord        = it->first;
-		const auto &other_object = it->second;
+		const auto &other_object = *it;
+		const auto other_coord = other_object->get_coord();
 		if(other_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		LOG_EMPERY_CENTER_DEBUG("Checking distance: coord = ", coord, ", map_object_uuid = ", other_object->get_map_object_uuid());
-		const auto distance = get_distance_of_coords(coord, castle_coord);
+		LOG_EMPERY_CENTER_DEBUG("Checking distance: other_coord = ", other_coord, ", map_object_uuid = ", other_object->get_map_object_uuid());
+		const auto distance = get_distance_of_coords(other_coord, castle_coord);
 		if(distance <= min_distance){
 			return Response(Msg::ERR_TOO_CLOSE_TO_ANOTHER_CASTLE) <<other_object->get_map_object_uuid();
 		}

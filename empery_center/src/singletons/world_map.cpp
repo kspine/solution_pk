@@ -567,7 +567,7 @@ void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapC
 		ret.emplace_back(it->map_cell);
 	}
 }
-void WorldMap::get_map_cells_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> &ret, Rectangle rectangle){
+void WorldMap::get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
 	const auto map_cell_map = g_map_cell_map.lock();
@@ -591,7 +591,7 @@ void WorldMap::get_map_cells_by_rectangle(boost::container::flat_map<Coord, boos
 				++x;
 				break;
 			}
-			ret.emplace(it->coord, it->map_cell);
+			ret.emplace_back(it->map_cell);
 			++it;
 		}
 	}
@@ -849,7 +849,7 @@ void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<Ma
 		ret.emplace_back(it->map_object);
 	}
 }
-void WorldMap::get_map_objects_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
+void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -873,7 +873,7 @@ void WorldMap::get_map_objects_by_rectangle(boost::container::flat_map<Coord, bo
 				++x;
 				break;
 			}
-			ret.emplace(it->coord, it->map_object);
+			ret.emplace_back(it->map_object);
 			++it;
 		}
 	}
@@ -947,16 +947,18 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 	PROFILE_ME;
 
 	try {
-		boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> map_cells;
+		std::vector<boost::shared_ptr<MapCell>> map_cells;
 		get_map_cells_by_rectangle(map_cells, view);
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-			synchronize_map_cell_with_player(it->second, session);
+			const auto &map_cell = *it;
+			synchronize_map_cell_with_player(map_cell, session);
 		}
 
-		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> map_objects;
+		std::vector<boost::shared_ptr<MapObject>> map_objects;
 		get_map_objects_by_rectangle(map_objects, view);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			synchronize_map_object_with_player(it->second, session);
+			const auto &map_object = *it;
+			synchronize_map_object_with_player(map_object, session);
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -1059,16 +1061,18 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 	PROFILE_ME;
 
 	try {
-		boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> map_cells;
+		std::vector<boost::shared_ptr<MapCell>> map_cells;
 		get_map_cells_by_rectangle(map_cells, view);
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-			synchronize_map_cell_with_cluster(it->second, cluster);
+			const auto &map_cell = *it;
+			synchronize_map_cell_with_cluster(map_cell, cluster);
 		}
 
-		boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> map_objects;
+		std::vector<boost::shared_ptr<MapObject>> map_objects;
 		get_map_objects_by_rectangle(map_objects, view);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			synchronize_map_object_with_cluster(it->second, cluster);
+			const auto &map_object = *it;
+			synchronize_map_object_with_cluster(map_object, cluster);
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

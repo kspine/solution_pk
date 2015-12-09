@@ -23,7 +23,7 @@ struct WorldMap {
 
 	static void get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret);
 	static void get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid);
-	static void get_map_cells_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
+	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
 
 	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
@@ -34,7 +34,7 @@ struct WorldMap {
 	static void get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret);
 	static void get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);
 	static void get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
-	static void get_map_objects_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
+	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
 	// PlayerSession
 	static void get_players_viewing_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord);

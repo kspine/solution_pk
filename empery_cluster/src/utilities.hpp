@@ -4,6 +4,6 @@
 #include "coord.hpp"
 
 #define EMPERY_CENTER_UTILITIES_NAMESPACE_  EmperyCluster
-#include "../empery_center/src/utilities_decl.hh"
+#include "../../empery_center/src/utilities_decl.hh"
 
 #endif

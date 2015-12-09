@@ -5,7 +5,6 @@
 #include "../coord.hpp"
 #include "../rectangle.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/container/flat_map.hpp>
 #include <vector>
 
 namespace EmperyCluster {
@@ -20,7 +19,7 @@ struct WorldMap {
 	static void replace_map_cell_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapCell> &map_cell);
 	// static void update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists = true);
 
-	static void get_map_cells_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
+	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
 
 	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
@@ -29,7 +28,7 @@ struct WorldMap {
 	static void update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists = true);
 	static void remove_map_object(MapObjectUuid map_object_uuid) noexcept;
 
-	static void get_map_objects_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
+	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
 	// ClusterClient
 	static boost::shared_ptr<ClusterClient> get_cluster(Coord coord);

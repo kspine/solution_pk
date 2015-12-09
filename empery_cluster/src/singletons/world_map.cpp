@@ -259,7 +259,7 @@ void WorldMap::replace_map_cell_no_synchronize(const boost::shared_ptr<ClusterCl
 	}
 }
 
-void WorldMap::get_map_cells_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapCell>> &ret, Rectangle rectangle){
+void WorldMap::get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
 	const auto map_cell_map = g_map_cell_map.lock();
@@ -283,7 +283,7 @@ void WorldMap::get_map_cells_by_rectangle(boost::container::flat_map<Coord, boos
 				++x;
 				break;
 			}
-			ret.emplace(it->coord, it->map_cell);
+			ret.emplace_back(it->map_cell);
 			++it;
 		}
 	}
@@ -443,7 +443,7 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	}
 }
 
-void WorldMap::get_map_objects_by_rectangle(boost::container::flat_map<Coord, boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
+void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -467,7 +467,7 @@ void WorldMap::get_map_objects_by_rectangle(boost::container::flat_map<Coord, bo
 				++x;
 				break;
 			}
-			ret.emplace(it->coord, it->map_object);
+			ret.emplace_back(it->map_object);
 			++it;
 		}
 	}
