@@ -210,8 +210,7 @@ void MapCell::set_attributes(const boost::container::flat_map<AttributeId, boost
 		if(obj_it == m_attributes.end()){
 			auto obj = boost::make_shared<MySql::Center_MapCellAttribute>(m_obj->get_x(), m_obj->get_y(),
 				it->first.get(), 0);
-			// obj->async_save(true);
-			obj->enable_auto_saving();
+			obj->enable_auto_saving(); // obj->async_save(true);
 			m_attributes.emplace(it->first, std::move(obj));
 		}
 	}

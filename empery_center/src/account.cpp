@@ -97,8 +97,7 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 		if(obj_it == m_attributes.end()){
 			auto obj = boost::make_shared<MySql::Center_AccountAttribute>(m_obj->get_account_uuid(),
 				it->first.get(), std::string());
-			// obj->async_save(true);
-			obj->enable_auto_saving();
+			obj->enable_auto_saving(); // obj->async_save(true);
 			m_attributes.emplace(it->first, std::move(obj));
 		}
 	}
