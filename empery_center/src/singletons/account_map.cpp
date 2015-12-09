@@ -142,6 +142,10 @@ namespace {
 		g_account_map = account_map;
 		handles.push(account_map);
 
+		const auto info_cache_map = boost::make_shared<InfoCacheContainer>();
+		g_info_cache_map = info_cache_map;
+		handles.push(info_cache_map);
+
 		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountSetToken>(
 			[](const boost::shared_ptr<Events::AccountSetToken> &event){
 				PROFILE_ME;
