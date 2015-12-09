@@ -43,6 +43,7 @@ namespace {
 
 		Poseidon::CsvParser csv;
 		std::string path;
+		boost::shared_ptr<const DataSession::SerializedData> servlet;
 
 		const auto item_map = boost::make_shared<ItemMap>();
 		path = data_directory + "/" + ITEM_FILE + ".csv";
@@ -89,8 +90,9 @@ namespace {
 			}
 		}
 		g_item_map = item_map;
-		handles.push(DataSession::create_servlet(ITEM_FILE, serialize_csv(csv, "itemid")));
 		handles.push(item_map);
+		servlet = DataSession::create_servlet(ITEM_FILE, serialize_csv(csv, "itemid"));
+		handles.push(std::move(servlet));
 
 		const auto trade_map = boost::make_shared<TradeMap>();
 		path = data_directory + "/" + TRADE_FILE + ".csv";
@@ -144,8 +146,9 @@ namespace {
 			}
 		}
 		g_trade_map = trade_map;
-		handles.push(DataSession::create_servlet(TRADE_FILE, serialize_csv(csv, "trading_id")));
 		handles.push(trade_map);
+		servlet = DataSession::create_servlet(TRADE_FILE, serialize_csv(csv, "trading_id"));
+		handles.push(std::move(servlet));
 
 		const auto recharge_map = boost::make_shared<RechargeMap>();
 		path = data_directory + "/" + RECHARGE_FILE + ".csv";
@@ -155,7 +158,7 @@ namespace {
 			Data::ItemRecharge elem = { };
 
 			csv.get(elem.recharge_id, "recharge_id");
-			csv.get(elem.trade_id,  "trading_id");
+			csv.get(elem.trade_id,    "trading_id");
 
 			if(!recharge_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate recharge element: recharge_id = ", elem.recharge_id);
@@ -163,8 +166,9 @@ namespace {
 			}
 		}
 		g_recharge_map = recharge_map;
-		handles.push(DataSession::create_servlet(RECHARGE_FILE, serialize_csv(csv, "recharge_id")));
 		handles.push(recharge_map);
+		servlet = DataSession::create_servlet(RECHARGE_FILE, serialize_csv(csv, "recharge_id"));
+		handles.push(std::move(servlet));
 
 		const auto shop_map = boost::make_shared<ShopMap>();
 		path = data_directory + "/" + SHOP_FILE + ".csv";
@@ -173,8 +177,8 @@ namespace {
 		while(csv.fetch_row()){
 			Data::ItemShop elem = { };
 
-			csv.get(elem.shop_id, "shop_id");
-			csv.get(elem.trade_id,  "trading_id");
+			csv.get(elem.shop_id,  "shop_id");
+			csv.get(elem.trade_id, "trading_id");
 
 			if(!shop_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate shop element: shop_id = ", elem.shop_id);
@@ -182,8 +186,9 @@ namespace {
 			}
 		}
 		g_shop_map = shop_map;
-		handles.push(DataSession::create_servlet(SHOP_FILE, serialize_csv(csv, "shop_id")));
 		handles.push(shop_map);
+		servlet = DataSession::create_servlet(SHOP_FILE, serialize_csv(csv, "shop_id"));
+		handles.push(std::move(servlet));
 	}
 }
 

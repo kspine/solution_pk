@@ -26,6 +26,7 @@ namespace {
 
 		Poseidon::CsvParser csv;
 		std::string path;
+		boost::shared_ptr<const DataSession::SerializedData> servlet;
 
 		const auto global_map = boost::make_shared<GlobalMap>();
 		path = data_directory + "/" + GLOBAL_FILE + ".csv";
@@ -44,8 +45,9 @@ namespace {
 			}
 		}
 		g_global_map = global_map;
-		handles.push(DataSession::create_servlet(GLOBAL_FILE, serialize_csv(csv, "id")));
 		handles.push(global_map);
+		servlet = DataSession::create_servlet(GLOBAL_FILE, serialize_csv(csv, "id"));
+		handles.push(std::move(servlet));
 	}
 }
 

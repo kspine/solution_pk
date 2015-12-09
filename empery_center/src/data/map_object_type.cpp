@@ -19,6 +19,7 @@ namespace {
 
 		Poseidon::CsvParser csv;
 		std::string path;
+		boost::shared_ptr<const DataSession::SerializedData> servlet;
 
 		const auto map_object_type_map = boost::make_shared<MapObjectTypeMap>();
 		path = data_directory + "/" + MAP_OBJECT_TYPE_FILE + ".csv";
@@ -41,8 +42,9 @@ namespace {
 			}
 		}
 		g_map_object_type_map = map_object_type_map;
-		handles.push(DataSession::create_servlet(MAP_OBJECT_TYPE_FILE, serialize_csv(csv, "arm_id")));
 		handles.push(map_object_type_map);
+		servlet = DataSession::create_servlet(MAP_OBJECT_TYPE_FILE, serialize_csv(csv, "arm_id"));
+		handles.push(std::move(servlet));
 	}
 }
 

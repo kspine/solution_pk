@@ -104,6 +104,7 @@ namespace {
 
 		Poseidon::CsvParser csv;
 		std::string path;
+		boost::shared_ptr<const DataSession::SerializedData> servlet;
 
 		const auto building_base_map = boost::make_shared<CastleBuildingBaseMap>();
 		path = data_directory + "/" + BUILDING_BASE_FILE + ".csv";
@@ -140,8 +141,9 @@ namespace {
 			}
 		}
 		g_building_base_map = building_base_map;
-		handles.push(DataSession::create_servlet(BUILDING_BASE_FILE, serialize_csv(csv, "index")));
 		handles.push(building_base_map);
+		servlet = DataSession::create_servlet(BUILDING_BASE_FILE, serialize_csv(csv, "index"));
+		handles.push(std::move(servlet));
 
 		const auto building_map = boost::make_shared<CastleBuildingMap>();
 		path = data_directory + "/" + BUILDING_FILE + ".csv";
@@ -162,8 +164,9 @@ namespace {
 			}
 		}
 		g_building_map = building_map;
-		handles.push(DataSession::create_servlet(BUILDING_FILE, serialize_csv(csv, "id")));
 		handles.push(building_map);
+		servlet = DataSession::create_servlet(BUILDING_FILE, serialize_csv(csv, "id"));
+		handles.push(std::move(servlet));
 
 		const auto upgrade_primary_map = boost::make_shared<CastleUpgradePrimaryMap>();
 		path = data_directory + "/" + UPGRADE_PRIMARY_FILE + ".csv";
@@ -185,8 +188,9 @@ namespace {
 			}
 		}
 		g_upgrade_primary_map = upgrade_primary_map;
-		handles.push(DataSession::create_servlet(UPGRADE_PRIMARY_FILE, serialize_csv(csv, "castel_level")));
 		handles.push(upgrade_primary_map);
+		servlet = DataSession::create_servlet(UPGRADE_PRIMARY_FILE, serialize_csv(csv, "castel_level"));
+		handles.push(std::move(servlet));
 
 		const auto upgrade_barracks_map = boost::make_shared<CastleUpgradeBarracksMap>();
 		path = data_directory + "/" + UPGRADE_BARRACKS_FILE + ".csv";
@@ -206,8 +210,9 @@ namespace {
 			}
 		}
 		g_upgrade_barracks_map = upgrade_barracks_map;
-		handles.push(DataSession::create_servlet(UPGRADE_BARRACKS_FILE, serialize_csv(csv, "camp_level")));
 		handles.push(upgrade_barracks_map);
+		servlet = DataSession::create_servlet(UPGRADE_BARRACKS_FILE, serialize_csv(csv, "camp_level"));
+		handles.push(std::move(servlet));
 
 		const auto upgrade_academy_map = boost::make_shared<CastleUpgradeAcademyMap>();
 		path = data_directory + "/" + UPGRADE_ACADEMY_FILE + ".csv";
@@ -227,8 +232,9 @@ namespace {
 			}
 		}
 		g_upgrade_academy_map = upgrade_academy_map;
-		handles.push(DataSession::create_servlet(UPGRADE_ACADEMY_FILE, serialize_csv(csv, "college_level")));
 		handles.push(upgrade_academy_map);
+		servlet = DataSession::create_servlet(UPGRADE_ACADEMY_FILE, serialize_csv(csv, "college_level"));
+		handles.push(std::move(servlet));
 
 		const auto upgrade_civilian_map = boost::make_shared<CastleUpgradeCivilianMap>();
 		path = data_directory + "/" + UPGRADE_CIVILIAN_FILE + ".csv";
@@ -248,8 +254,9 @@ namespace {
 			}
 		}
 		g_upgrade_civilian_map = upgrade_civilian_map;
-		handles.push(DataSession::create_servlet(UPGRADE_CIVILIAN_FILE, serialize_csv(csv, "house_level")));
 		handles.push(upgrade_civilian_map);
+		servlet = DataSession::create_servlet(UPGRADE_CIVILIAN_FILE, serialize_csv(csv, "house_level"));
+		handles.push(std::move(servlet));
 
 		const auto upgrade_warehouse_map = boost::make_shared<CastleUpgradeWarehouseMap>();
 		path = data_directory + "/" + UPGRADE_WAREHOUSE_FILE + ".csv";
@@ -286,8 +293,9 @@ namespace {
 			}
 		}
 		g_upgrade_warehouse_map = upgrade_warehouse_map;
-		handles.push(DataSession::create_servlet(UPGRADE_WAREHOUSE_FILE, serialize_csv(csv, "storage_level")));
 		handles.push(upgrade_warehouse_map);
+		servlet = DataSession::create_servlet(UPGRADE_WAREHOUSE_FILE, serialize_csv(csv, "storage_level"));
+		handles.push(std::move(servlet));
 
 		const auto upgrade_citadel_wall_map = boost::make_shared<CastleUpgradeCitadelWallMap>();
 		path = data_directory + "/" + UPGRADE_CITADEL_WALL_FILE + ".csv";
@@ -308,8 +316,9 @@ namespace {
 			}
 		}
 		g_upgrade_citadel_wall_map = upgrade_citadel_wall_map;
-		handles.push(DataSession::create_servlet(UPGRADE_CITADEL_WALL_FILE, serialize_csv(csv, "wall_level")));
 		handles.push(upgrade_citadel_wall_map);
+		servlet = DataSession::create_servlet(UPGRADE_CITADEL_WALL_FILE, serialize_csv(csv, "wall_level"));
+		handles.push(std::move(servlet));
 
 		const auto upgrade_defense_tower_map = boost::make_shared<CastleUpgradeDefenseTowerMap>();
 		path = data_directory + "/" + UPGRADE_DEFENSE_TOWER_FILE + ".csv";
@@ -329,8 +338,9 @@ namespace {
 			}
 		}
 		g_upgrade_defense_tower_map = upgrade_defense_tower_map;
-		handles.push(DataSession::create_servlet(UPGRADE_DEFENSE_TOWER_FILE, serialize_csv(csv, "tower_level")));
 		handles.push(upgrade_defense_tower_map);
+		servlet = DataSession::create_servlet(UPGRADE_DEFENSE_TOWER_FILE, serialize_csv(csv, "tower_level"));
+		handles.push(std::move(servlet));
 
 		const auto tech_map = boost::make_shared<CastleTechMap>();
 		path = data_directory + "/" + TECH_FILE + ".csv";
@@ -435,8 +445,9 @@ namespace {
 			}
 		}
 		g_tech_map = tech_map;
-		handles.push(DataSession::create_servlet(TECH_FILE, serialize_csv(csv, "tech_id_level")));
 		handles.push(tech_map);
+		servlet = DataSession::create_servlet(TECH_FILE, serialize_csv(csv, "tech_id_level"));
+		handles.push(std::move(servlet));
 	}
 }
 

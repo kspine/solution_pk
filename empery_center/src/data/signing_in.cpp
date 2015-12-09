@@ -19,6 +19,7 @@ namespace {
 
 		Poseidon::CsvParser csv;
 		std::string path;
+		boost::shared_ptr<const DataSession::SerializedData> servlet;
 
 		const auto signing_in_map = boost::make_shared<SigningInMap>();
 		path = data_directory + "/" + SIGNING_IN_FILE + ".csv";
@@ -36,8 +37,9 @@ namespace {
 			}
 		}
 		g_signing_in_map = signing_in_map;
-		handles.push(DataSession::create_servlet(SIGNING_IN_FILE, serialize_csv(csv, "sign_id")));
 		handles.push(signing_in_map);
+		servlet = DataSession::create_servlet(SIGNING_IN_FILE, serialize_csv(csv, "sign_id"));
+		handles.push(std::move(servlet));
 	}
 }
 

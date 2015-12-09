@@ -32,6 +32,7 @@ namespace {
 
 		Poseidon::CsvParser csv;
 		std::string path;
+		boost::shared_ptr<const DataSession::SerializedData> servlet;
 
 		const auto basic_map = boost::make_shared<TerrainMap>();
 		path = data_directory + "/" + BASIC_FILE + ".csv";
@@ -61,8 +62,9 @@ namespace {
 			}
 		}
 		g_basic_map = basic_map;
-		handles.push(DataSession::create_servlet(BASIC_FILE, serialize_csv(csv, "coord")));
 		handles.push(basic_map);
+		servlet = DataSession::create_servlet(BASIC_FILE, serialize_csv(csv, "coord"));
+		handles.push(std::move(servlet));
 
 		const auto ticket_map = boost::make_shared<TicketMap>();
 		path = data_directory + "/" + TICKET_FILE + ".csv";
@@ -81,8 +83,9 @@ namespace {
 			}
 		}
 		g_ticket_map = ticket_map;
-		handles.push(DataSession::create_servlet(TICKET_FILE, serialize_csv(csv, "territory_certificate")));
 		handles.push(ticket_map);
+		servlet = DataSession::create_servlet(TICKET_FILE, serialize_csv(csv, "territory_certificate"));
+		handles.push(std::move(servlet));
 
 		const auto terrain_map = boost::make_shared<ProductionMap>();
 		path = data_directory + "/" + TERRAIN_FILE + ".csv";
@@ -108,8 +111,9 @@ namespace {
 			}
 		}
 		g_terrain_map = terrain_map;
-		handles.push(DataSession::create_servlet(TERRAIN_FILE, serialize_csv(csv, "territory_id")));
 		handles.push(terrain_map);
+		servlet = DataSession::create_servlet(TERRAIN_FILE, serialize_csv(csv, "territory_id"));
+		handles.push(std::move(servlet));
 	}
 }
 
