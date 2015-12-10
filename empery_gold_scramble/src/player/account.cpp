@@ -150,6 +150,8 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingGoldCoins, login_name, session, /* req */)
 	const auto gold_coins_in_pot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
 	const auto account_balance_in_pot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
 
+	bump_end_time(utc_now); // 在异步请求返回之前增加时间，降低由于网络延迟造成扣了道具但是当前游戏结束的风险。
+
 	Poseidon::OptionalMap params;
 	params.set(sslit("loginName"), login_name);
 	params.set(sslit("goldCoins"), boost::lexical_cast<std::string>(gold_coins_cost));
@@ -172,7 +174,6 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingGoldCoins, login_name, session, /* req */)
 	}
 
 	GlobalStatus::fetch_add(GlobalStatus::SLOT_GOLD_COINS_IN_POT, gold_coins_reward);
-	bump_end_time(utc_now);
 	BidRecordMap::append(login_name, std::move(nick), gold_coins_cost, 0);
 	invalidate_auction_status();
 
@@ -204,6 +205,8 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingAccountBalance, login_name, session, /* re
 	const auto gold_coins_in_pot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
 	const auto account_balance_in_pot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
 
+	bump_end_time(utc_now); // 在异步请求返回之前增加时间，降低由于网络延迟造成扣了道具但是当前游戏结束的风险。
+
 	Poseidon::OptionalMap params;
 	params.set(sslit("loginName"), login_name);
 	params.set(sslit("goldCoins"), "0");
@@ -226,7 +229,6 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingAccountBalance, login_name, session, /* re
 	}
 
 	GlobalStatus::fetch_add(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT, account_balance_reward);
-	bump_end_time(utc_now);
 	BidRecordMap::append(login_name, std::move(nick), 0, account_balance_cost);
 	invalidate_auction_status();
 
