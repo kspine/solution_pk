@@ -37,7 +37,7 @@ struct WorldMap {
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
 	// PlayerSession
-	static void get_players_viewing_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord);
+	static void get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle);
 	static void set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view);
 	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept;
 

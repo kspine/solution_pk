@@ -881,7 +881,7 @@ _exit_while:
 	;
 }
 
-void WorldMap::get_players_viewing_coord(std::vector<boost::shared_ptr<PlayerSession>> &ret, Coord coord){
+void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
 	const auto player_view_map = g_player_view_map.lock();
@@ -890,20 +890,35 @@ void WorldMap::get_players_viewing_coord(std::vector<boost::shared_ptr<PlayerSes
 		return;
 	}
 
-	const auto sector_coord = get_sector_coord_from_world_coord(coord);
-	const auto range = player_view_map->equal_range<1>(sector_coord);
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-	auto view_it = range.first;
-	while(view_it != range.second){
-		auto session = view_it->session.lock();
-		if(!session){
-			view_it = player_view_map->erase<1>(view_it);
-			continue;
+	auto temp_sector_coord = get_sector_coord_from_world_coord(Coord(rectangle.left(), rectangle.bottom()));
+	const auto x_begin = temp_sector_coord.x();
+	const auto y_begin = temp_sector_coord.y();
+
+	temp_sector_coord = get_sector_coord_from_world_coord(Coord(rectangle.right() - 1, rectangle.top() - 1));
+	const auto x_end = temp_sector_coord.x() + 1;
+	const auto y_end = temp_sector_coord.y() + 1;
+
+	for(auto y = y_begin; y < y_end; ++y){
+		for(auto x = x_begin; x < x_end; ++x){
+			const auto sector_coord = Coord(x, y);
+			const auto range = player_view_map->equal_range<1>(sector_coord);
+			ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+			auto view_it = range.first;
+			while(view_it != range.second){
+				auto session = view_it->session.lock();
+				if(!session){
+					view_it = player_view_map->erase<1>(view_it);
+					continue;
+				}
+				const auto &view = view_it->view;
+				if((view.left() < rectangle.right()) && (rectangle.left() < view.right()) &&
+					(view.bottom() < rectangle.top()) && (rectangle.bottom() < view.top()))
+				{
+					ret.emplace_back(std::move(session));
+				}
+				++view_it;
+			}
 		}
-		if(view_it->view.hit_test(coord)){
-			ret.emplace_back(std::move(session));
-		}
-		++view_it;
 	}
 }
 void WorldMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view){
