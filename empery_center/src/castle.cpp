@@ -65,7 +65,9 @@ namespace {
 		info.count              = obj->get_count();
 	}
 
-	void fill_building_message(Msg::SC_CastleBuildingBase &msg, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
+	void fill_building_message(Msg::SC_CastleBuildingBase &msg, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj,
+		boost::uint64_t utc_now)
+	{
 		PROFILE_ME;
 
 		msg.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
@@ -76,9 +78,11 @@ namespace {
 		msg.mission_duration       = obj->get_mission_duration();
 		// msg.reserved
 		msg.mission_time_begin     = obj->get_mission_time_begin();
-		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), Poseidon::get_utc_time());
+		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), utc_now);
 	}
-	void fill_tech_message(Msg::SC_CastleTech &msg, const boost::shared_ptr<MySql::Center_CastleTech> &obj){
+	void fill_tech_message(Msg::SC_CastleTech &msg, const boost::shared_ptr<MySql::Center_CastleTech> &obj,
+		boost::uint64_t utc_now)
+	{
 		PROFILE_ME;
 
 		msg.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
@@ -88,7 +92,7 @@ namespace {
 		msg.mission_duration       = obj->get_mission_duration();
 		// msg.reserved
 		msg.mission_time_begin     = obj->get_mission_time_begin();
-		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), Poseidon::get_utc_time());
+		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), utc_now);
 	}
 	void fill_resource_message(Msg::SC_CastleResource &msg, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
 		PROFILE_ME;
@@ -137,7 +141,8 @@ namespace {
 
 		obj->set_mission(Castle::MIS_NONE);
 		obj->set_mission_duration(0);
-		obj->set_mission_time_end(utc_now + 1);
+		obj->set_mission_time_begin(0);
+		obj->set_mission_time_end(0);
 	}
 	void check_tech_mission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utc_now){
 		PROFILE_ME;
@@ -147,7 +152,7 @@ namespace {
 			return;
 		}
 		const auto mission_time_end = obj->get_mission_time_end();
-		if(utc_now < mission_time_end){
+		if(utc_now <= mission_time_end){
 			return;
 		}
 
@@ -178,7 +183,7 @@ namespace {
 
 		obj->set_mission(Castle::MIS_NONE);
 		obj->set_mission_duration(0);
-		obj->set_mission_time_end(utc_now + 1);
+		obj->set_mission_time_end(utc_now);
 	}
 }
 
@@ -213,8 +218,6 @@ Castle::~Castle(){
 
 void Castle::pump_status(){
 	PROFILE_ME;
-
-	MapObject::pump_status();
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -370,7 +373,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	if(session){
 		try {
 			Msg::SC_CastleBuildingBase msg;
-			fill_building_message(msg, it->second);
+			fill_building_message(msg, it->second, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -406,7 +409,7 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 	if(session){
 		try {
 			Msg::SC_CastleBuildingBase msg;
-			fill_building_message(msg, it->second);
+			fill_building_message(msg, it->second, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -439,7 +442,7 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, boost::u
 	if(session){
 		try {
 			Msg::SC_CastleBuildingBase msg;
-			fill_building_message(msg, it->second);
+			fill_building_message(msg, it->second, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -458,6 +461,7 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
+
 	check_building_mission(it->second, utc_now);
 }
 void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
@@ -469,8 +473,10 @@ void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, c
 		return;
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	Msg::SC_CastleBuildingBase msg;
-	fill_building_message(msg, it->second);
+	fill_building_message(msg, it->second, utc_now);
 	session->send(msg);
 }
 
@@ -566,7 +572,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 	if(session){
 		try {
 			Msg::SC_CastleTech msg;
-			fill_tech_message(msg, it->second);
+			fill_tech_message(msg, it->second, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -602,7 +608,7 @@ void Castle::cancel_tech_mission(TechId tech_id){
 	if(session){
 		try {
 			Msg::SC_CastleTech msg;
-			fill_tech_message(msg, it->second);
+			fill_tech_message(msg, it->second, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -635,7 +641,7 @@ void Castle::speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duratio
 	if(session){
 		try {
 			Msg::SC_CastleTech msg;
-			fill_tech_message(msg, it->second);
+			fill_tech_message(msg, it->second, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -654,6 +660,7 @@ void Castle::pump_tech_status(TechId tech_id){
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
+
 	check_tech_mission(it->second, utc_now);
 }
 void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const {
@@ -665,8 +672,10 @@ void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_pt
 		return;
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	Msg::SC_CastleTech msg;
-	fill_tech_message(msg, it->second);
+	fill_tech_message(msg, it->second, utc_now);
 	session->send(msg);
 }
 
@@ -850,14 +859,16 @@ void Castle::commit_resource_transaction(const std::vector<ResourceTransactionEl
 void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		Msg::SC_CastleBuildingBase msg;
-		fill_building_message(msg, it->second);
+		fill_building_message(msg, it->second, utc_now);
 		session->send(msg);
 	}
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 		Msg::SC_CastleTech msg;
-		fill_tech_message(msg, it->second);
+		fill_tech_message(msg, it->second, utc_now);
 		session->send(msg);
 	}
 	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
