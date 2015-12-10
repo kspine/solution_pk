@@ -2,7 +2,8 @@
 #include "map_object_type.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <string.h>
-#include "formats.hpp"
+#include <poseidon/csv_parser.hpp>
+#include <poseidon/json.hpp>
 #include "../data_session.hpp"
 
 namespace EmperyCenter {
@@ -15,16 +16,8 @@ namespace {
 	const char MAP_OBJECT_TYPE_FILE[] = "Arm";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
-
-		Poseidon::CsvParser csv;
-		std::string path;
-		boost::shared_ptr<const DataSession::SerializedData> servlet;
-
+		auto csv = Data::sync_load_data(MAP_OBJECT_TYPE_FILE);
 		const auto map_object_type_map = boost::make_shared<MapObjectTypeMap>();
-		path = data_directory + "/" + MAP_OBJECT_TYPE_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading map object types: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::MapObjectType elem = { };
 
@@ -43,7 +36,7 @@ namespace {
 		}
 		g_map_object_type_map = map_object_type_map;
 		handles.push(map_object_type_map);
-		servlet = DataSession::create_servlet(MAP_OBJECT_TYPE_FILE, serialize_csv(csv, "arm_id"));
+		auto servlet = DataSession::create_servlet(MAP_OBJECT_TYPE_FILE, Data::encode_csv_as_json(csv, "arm_id"));
 		handles.push(std::move(servlet));
 	}
 }

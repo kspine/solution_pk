@@ -2,7 +2,8 @@
 #include "signing_in.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <string.h>
-#include "formats.hpp"
+#include <poseidon/csv_parser.hpp>
+#include <poseidon/json.hpp>
 #include "../data_session.hpp"
 
 namespace EmperyCenter {
@@ -15,16 +16,8 @@ namespace {
 	const char SIGNING_IN_FILE[] = "sign";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
-
-		Poseidon::CsvParser csv;
-		std::string path;
-		boost::shared_ptr<const DataSession::SerializedData> servlet;
-
+		auto csv = Data::sync_load_data(SIGNING_IN_FILE);
 		const auto signing_in_map = boost::make_shared<SigningInMap>();
-		path = data_directory + "/" + SIGNING_IN_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading signing-in items: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::SigningIn elem = { };
 
@@ -38,7 +31,7 @@ namespace {
 		}
 		g_signing_in_map = signing_in_map;
 		handles.push(signing_in_map);
-		servlet = DataSession::create_servlet(SIGNING_IN_FILE, serialize_csv(csv, "sign_id"));
+		auto servlet = DataSession::create_servlet(SIGNING_IN_FILE, Data::encode_csv_as_json(csv, "sign_id"));
 		handles.push(std::move(servlet));
 	}
 }

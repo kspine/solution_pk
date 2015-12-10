@@ -2,7 +2,8 @@
 #include "item.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <string.h>
-#include "formats.hpp"
+#include <poseidon/csv_parser.hpp>
+#include <poseidon/json.hpp>
 #include "../data_session.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
@@ -39,16 +40,8 @@ namespace {
 	const char SHOP_FILE[] = "shop";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
-
-		Poseidon::CsvParser csv;
-		std::string path;
-		boost::shared_ptr<const DataSession::SerializedData> servlet;
-
+		auto csv = Data::sync_load_data(ITEM_FILE);
 		const auto item_map = boost::make_shared<ItemMap>();
-		path = data_directory + "/" + ITEM_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading items: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::Item elem = { };
 
@@ -91,53 +84,37 @@ namespace {
 		}
 		g_item_map = item_map;
 		handles.push(item_map);
-		servlet = DataSession::create_servlet(ITEM_FILE, serialize_csv(csv, "itemid"));
+		auto servlet = DataSession::create_servlet(ITEM_FILE, Data::encode_csv_as_json(csv, "itemid"));
 		handles.push(std::move(servlet));
 
+		csv = Data::sync_load_data(TRADE_FILE);
 		const auto trade_map = boost::make_shared<TradeMap>();
-		path = data_directory + "/" + TRADE_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading trade items: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::ItemTrade elem = { };
 
 			csv.get(elem.trade_id, "trading_id");
 
-			std::string str;
-			csv.get(str, "consumption_item", "{}");
-			try {
-				std::istringstream iss(str);
-				const auto root = Poseidon::JsonParser::parse_object(iss);
-				elem.items_consumed.reserve(root.size());
-				for(auto it = root.begin(); it != root.end(); ++it){
-					const auto item_id = boost::lexical_cast<ItemId>(it->first);
-					const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
-					if(!elem.items_consumed.emplace(item_id, count).second){
-						LOG_EMPERY_CENTER_ERROR("Duplicate item amount: item_id = ", item_id);
-						DEBUG_THROW(Exception, sslit("Duplicate item amount"));
-					}
+			Poseidon::JsonObject object;
+			csv.get(object, "consumption_item");
+			elem.items_consumed.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
+				if(!elem.items_consumed.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate item amount: item_id = ", item_id);
+					DEBUG_THROW(Exception, sslit("Duplicate item amount"));
 				}
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", trade_id = ", elem.trade_id, ", str = ", str);
-				throw;
 			}
 
-			csv.get(str, "obtain_item", "{}");
-			try {
-				std::istringstream iss(str);
-				const auto root = Poseidon::JsonParser::parse_object(iss);
-				elem.items_produced.reserve(root.size());
-				for(auto it = root.begin(); it != root.end(); ++it){
-					const auto item_id = boost::lexical_cast<ItemId>(it->first);
-					const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
-					if(!elem.items_produced.emplace(item_id, count).second){
-						LOG_EMPERY_CENTER_ERROR("Duplicate item amount: item_id = ", item_id);
-						DEBUG_THROW(Exception, sslit("Duplicate item amount"));
-					}
+			csv.get(object, "obtain_item");
+			elem.items_produced.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
+				if(!elem.items_produced.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate item amount: item_id = ", item_id);
+					DEBUG_THROW(Exception, sslit("Duplicate item amount"));
 				}
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", trade_id = ", elem.trade_id, ", str = ", str);
-				throw;
 			}
 
 			if(!trade_map->insert(std::move(elem)).second){
@@ -147,13 +124,11 @@ namespace {
 		}
 		g_trade_map = trade_map;
 		handles.push(trade_map);
-		servlet = DataSession::create_servlet(TRADE_FILE, serialize_csv(csv, "trading_id"));
+		servlet = DataSession::create_servlet(TRADE_FILE, Data::encode_csv_as_json(csv, "trading_id"));
 		handles.push(std::move(servlet));
 
+		csv = Data::sync_load_data(RECHARGE_FILE);
 		const auto recharge_map = boost::make_shared<RechargeMap>();
-		path = data_directory + "/" + RECHARGE_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading recharge items: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::ItemRecharge elem = { };
 
@@ -167,13 +142,11 @@ namespace {
 		}
 		g_recharge_map = recharge_map;
 		handles.push(recharge_map);
-		servlet = DataSession::create_servlet(RECHARGE_FILE, serialize_csv(csv, "recharge_id"));
+		servlet = DataSession::create_servlet(RECHARGE_FILE, Data::encode_csv_as_json(csv, "recharge_id"));
 		handles.push(std::move(servlet));
 
+		csv = Data::sync_load_data(SHOP_FILE);
 		const auto shop_map = boost::make_shared<ShopMap>();
-		path = data_directory + "/" + SHOP_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading shop items: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::ItemShop elem = { };
 
@@ -187,7 +160,7 @@ namespace {
 		}
 		g_shop_map = shop_map;
 		handles.push(shop_map);
-		servlet = DataSession::create_servlet(SHOP_FILE, serialize_csv(csv, "shop_id"));
+		servlet = DataSession::create_servlet(SHOP_FILE, Data::encode_csv_as_json(csv, "shop_id"));
 		handles.push(std::move(servlet));
 	}
 }

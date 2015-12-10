@@ -2,16 +2,17 @@
 #include "map_cell.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <string.h>
-#include "formats.hpp"
+#include <poseidon/csv_parser.hpp>
+#include <poseidon/json.hpp>
 #include "../data_session.hpp"
 
 namespace EmperyCenter {
 
 namespace {
-	MULTI_INDEX_MAP(TerrainMap, Data::MapCellBasic,
+	MULTI_INDEX_MAP(BasicMap, Data::MapCellBasic,
 		UNIQUE_MEMBER_INDEX(map_coord)
 	)
-	boost::weak_ptr<const TerrainMap> g_basic_map;
+	boost::weak_ptr<const BasicMap> g_basic_map;
 	const char BASIC_FILE[] = "map";
 
 	MULTI_INDEX_MAP(TicketMap, Data::MapCellTicket,
@@ -20,39 +21,23 @@ namespace {
 	boost::weak_ptr<const TicketMap> g_ticket_map;
 	const char TICKET_FILE[] = "Territory_levelup";
 
-	MULTI_INDEX_MAP(ProductionMap, Data::MapCellTerrain,
+	MULTI_INDEX_MAP(TerrainMap, Data::MapCellTerrain,
 		UNIQUE_MEMBER_INDEX(terrain_id)
-		MULTI_MEMBER_INDEX(best_resource_id)
 	)
-	boost::weak_ptr<const ProductionMap> g_terrain_map;
+	boost::weak_ptr<const TerrainMap> g_terrain_map;
 	const char TERRAIN_FILE[] = "Territory_product";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
-
-		Poseidon::CsvParser csv;
-		std::string path;
-		boost::shared_ptr<const DataSession::SerializedData> servlet;
-
-		const auto basic_map = boost::make_shared<TerrainMap>();
-		path = data_directory + "/" + BASIC_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading map terrain: path = ", path);
-		csv.load(path.c_str());
+		auto csv = Data::sync_load_data(BASIC_FILE);
+		const auto basic_map = boost::make_shared<BasicMap>();
 		while(csv.fetch_row()){
 			Data::MapCellBasic elem = { };
 
-			std::string str;
-			csv.get(str,             "coord");
-			try {
-				std::istringstream iss(str);
-				const auto root = Poseidon::JsonParser::parse_array(iss);
-				const unsigned x = root.at(0).get<double>();
-				const unsigned y = root.at(1).get<double>();
-				elem.map_coord = std::make_pair(x, y);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what(), ", str = ", str);
-				throw;
-			}
+			Poseidon::JsonArray array;
+			csv.get(array, "coord");
+			const unsigned x = array.at(0).get<double>();
+			const unsigned y = array.at(1).get<double>();
+			elem.map_coord = std::make_pair(x, y);
 
 			csv.get(elem.terrain_id, "territory_id");
 
@@ -63,13 +48,11 @@ namespace {
 		}
 		g_basic_map = basic_map;
 		handles.push(basic_map);
-		servlet = DataSession::create_servlet(BASIC_FILE, serialize_csv(csv, "coord"));
+		auto servlet = DataSession::create_servlet(BASIC_FILE, Data::encode_csv_as_json(csv, "coord"));
 		handles.push(std::move(servlet));
 
+		csv = Data::sync_load_data(TICKET_FILE);
 		const auto ticket_map = boost::make_shared<TicketMap>();
-		path = data_directory + "/" + TICKET_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading map cell ticket items: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			Data::MapCellTicket elem = { };
 
@@ -84,13 +67,11 @@ namespace {
 		}
 		g_ticket_map = ticket_map;
 		handles.push(ticket_map);
-		servlet = DataSession::create_servlet(TICKET_FILE, serialize_csv(csv, "territory_certificate"));
+		servlet = DataSession::create_servlet(TICKET_FILE, Data::encode_csv_as_json(csv, "territory_certificate"));
 		handles.push(std::move(servlet));
 
-		const auto terrain_map = boost::make_shared<ProductionMap>();
-		path = data_directory + "/" + TERRAIN_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading map cell production items: path = ", path);
-		csv.load(path.c_str());
+		csv = Data::sync_load_data(TERRAIN_FILE);
+		const auto terrain_map = boost::make_shared<TerrainMap>();
 		while(csv.fetch_row()){
 			Data::MapCellTerrain elem = { };
 
@@ -112,7 +93,7 @@ namespace {
 		}
 		g_terrain_map = terrain_map;
 		handles.push(terrain_map);
-		servlet = DataSession::create_servlet(TERRAIN_FILE, serialize_csv(csv, "territory_id"));
+		servlet = DataSession::create_servlet(TERRAIN_FILE, Data::encode_csv_as_json(csv, "territory_id"));
 		handles.push(std::move(servlet));
 	}
 }

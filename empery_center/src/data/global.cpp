@@ -1,7 +1,8 @@
 #include "../precompiled.hpp"
 #include "global.hpp"
+#include <poseidon/csv_parser.hpp>
+#include <poseidon/json.hpp>
 #include <boost/container/flat_map.hpp>
-#include "formats.hpp"
 #include "../data_session.hpp"
 
 namespace EmperyCenter {
@@ -22,16 +23,8 @@ namespace {
 	const char GLOBAL_FILE[] = "Public";
 
 	MODULE_RAII_PRIORITY(handles, 900){
-		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
-
-		Poseidon::CsvParser csv;
-		std::string path;
-		boost::shared_ptr<const DataSession::SerializedData> servlet;
-
+		auto csv = Data::sync_load_data(GLOBAL_FILE);
 		const auto global_map = boost::make_shared<GlobalMap>();
-		path = data_directory + "/" + GLOBAL_FILE + ".csv";
-		LOG_EMPERY_CENTER_INFO("Loading global config: path = ", path);
-		csv.load(path.c_str());
 		while(csv.fetch_row()){
 			unsigned slot;
 			DataStorage storage = { };
@@ -46,7 +39,7 @@ namespace {
 		}
 		g_global_map = global_map;
 		handles.push(global_map);
-		servlet = DataSession::create_servlet(GLOBAL_FILE, serialize_csv(csv, "id"));
+		auto servlet = DataSession::create_servlet(GLOBAL_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 	}
 }
