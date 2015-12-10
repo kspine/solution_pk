@@ -3,15 +3,13 @@
 
 #include <cstddef>
 #include <boost/shared_ptr.hpp>
-#include <vector>
-#include <poseidon/optional_map.hpp>
-#include <poseidon/shared_nts.hpp>
+#include <poseidon/fwd.hpp>
 #include "../id_types.hpp"
 
 namespace EmperyCluster {
 
 namespace Data {
-	extern std::vector<Poseidon::OptionalMap> sync_load_data(const char *file);
+	extern Poseidon::CsvParser sync_load_data(const char *file);
 }
 
 }

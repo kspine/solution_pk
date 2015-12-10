@@ -10,10 +10,12 @@ namespace Data {
 		PROFILE_ME;
 
 		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
-		const auto path = data_directory + "/" + file + ".csv";
 
+		Poseidon::CsvParser csv;
+		const auto path = data_directory + "/" + file + ".csv";
 		LOG_EMPERY_CENTER_INFO("Loading csv file: path = ", path);
-		return Poseidon::CsvParser(path.c_str());
+		csv.load(path.c_str());
+		return csv;
 	}
 	Poseidon::JsonArray encode_csv_as_json(const Poseidon::CsvParser &csv, const char *primary_key){
 		PROFILE_ME;
