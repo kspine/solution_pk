@@ -106,6 +106,7 @@ namespace {
 				}
 			}
 
+			object.clear();
 			csv.get(object, "obtain_item");
 			elem.items_produced.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){

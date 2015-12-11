@@ -71,6 +71,7 @@ namespace {
 			}
 		}
 
+		object.clear();
 		csv.get(object, "need");
 		elem.prerequisite.reserve(object.size());
 		for(auto it = object.begin(); it != object.end(); ++it){
@@ -315,6 +316,7 @@ namespace {
 				}
 			}
 
+			object.clear();
 			csv.get(object, "need");
 			elem.prerequisite.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
@@ -326,6 +328,7 @@ namespace {
 				}
 			}
 
+			object.clear();
 			csv.get(object, "level_open");
 			elem.display_prerequisite.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
@@ -337,6 +340,7 @@ namespace {
 				}
 			}
 
+			object.clear();
 			csv.get(object, "tech_effect");
 			elem.attributes.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
