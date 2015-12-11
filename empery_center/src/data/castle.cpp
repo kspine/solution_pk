@@ -124,7 +124,7 @@ namespace {
 
 			csv.get(elem.building_id, "id");
 			csv.get(elem.build_limit, "num");
-			unsigned temp;
+			unsigned temp = 0;
 			csv.get(temp, "type");
 			elem.type = static_cast<Data::CastleBuilding::Type>(temp);
 
