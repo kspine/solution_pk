@@ -316,7 +316,9 @@ namespace {
 		handles.push(cluster_map);
 	}
 
-	void synchronize_map_cell_all(const boost::shared_ptr<MapCell> &map_cell, Coord old_coord, Coord new_coord) noexcept {
+	void synchronize_map_cell_all(const boost::shared_ptr<MapCell> &map_cell, Coord old_coord, Coord new_coord,
+		const boost::shared_ptr<PlayerSession> &excluded_session) noexcept
+	{
 		PROFILE_ME;
 
 		const auto coord = map_cell->get_coord();
@@ -329,6 +331,9 @@ namespace {
 					const auto session = it->session.lock();
 					if(!session){
 						player_view_map->erase<1>(it);
+						continue;
+					}
+					if(session == excluded_session){
 						continue;
 					}
 					if(it->view.hit_test(coord)){
@@ -381,7 +386,9 @@ namespace {
 			}
 		}
 	}
-	void synchronize_map_object_all(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
+	void synchronize_map_object_all(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord,
+		const boost::shared_ptr<PlayerSession> &excluded_session) noexcept
+	{
 		PROFILE_ME;
 
 		const auto coord = map_object->get_coord();
@@ -394,6 +401,9 @@ namespace {
 					const auto session = it->session.lock();
 					if(!session){
 						player_view_map->erase<1>(it);
+						continue;
+					}
+					if(session == excluded_session){
 						continue;
 					}
 					if(it->view.hit_test(coord)){
@@ -484,7 +494,8 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 	LOG_EMPERY_CENTER_DEBUG("Inserting map cell: coord = ", coord);
 	map_cell_map->insert(MapCellElement(map_cell));
 
-	const auto session = PlayerSessionMap::get(map_cell->get_owner_uuid());
+	const auto owner_uuid = map_cell->get_owner_uuid();
+	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
 			synchronize_map_cell_with_player(map_cell, session);
@@ -493,8 +504,7 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 			session->shutdown(e.what());
 		}
 	}
-
-	synchronize_map_cell_all(map_cell, coord, coord);
+	synchronize_map_cell_all(map_cell, coord, coord, session);
 }
 void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -525,7 +535,8 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 		map_cell_map->set_key<0, 1>(it, parent_object_uuid);
 	}
 
-	const auto session = PlayerSessionMap::get(map_cell->get_owner_uuid());
+	const auto owner_uuid = map_cell->get_owner_uuid();
+	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
 			synchronize_map_cell_with_player(map_cell, session);
@@ -534,8 +545,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 			session->shutdown(e.what());
 		}
 	}
-
-	synchronize_map_cell_all(map_cell, coord, coord);
+	synchronize_map_cell_all(map_cell, coord, coord, session);
 }
 
 void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
@@ -656,7 +666,8 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 	map_object_map->insert(MapObjectElement(map_object));
 	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
-	const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
+	const auto owner_uuid = map_object->get_owner_uuid();
+	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
 			synchronize_map_object_with_player(map_object, session);
@@ -665,8 +676,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 			session->shutdown(e.what());
 		}
 	}
-
-	synchronize_map_object_all(map_object, new_coord, new_coord);
+	synchronize_map_object_all(map_object, new_coord, new_coord, session);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -744,7 +754,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 	}
 
-	const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
+	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
 			synchronize_map_object_with_player(map_object, session);
@@ -753,8 +763,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 			session->shutdown(e.what());
 		}
 	}
-
-	synchronize_map_object_all(map_object, old_coord, new_coord);
+	synchronize_map_object_all(map_object, old_coord, new_coord, session);
 }
 void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
@@ -792,7 +801,8 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 		}
 	}
 
-	const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
+	const auto owner_uuid = map_object->get_owner_uuid();
+	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
 			synchronize_map_object_with_player(map_object, session);
@@ -801,8 +811,7 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 			session->shutdown(e.what());
 		}
 	}
-
-	synchronize_map_object_all(map_object, old_coord, old_coord);
+	synchronize_map_object_all(map_object, old_coord, old_coord, session);
 }
 
 void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret){
