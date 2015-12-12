@@ -9,6 +9,10 @@
 #include "../chat_channel_ids.hpp"
 #include "../chat_message_type_ids.hpp"
 #include "../chat_message_slot_ids.hpp"
+#include "../account.hpp"
+#include "../account_attribute_ids.hpp"
+#include "../data/global.hpp"
+#include "../singletons/world_map.hpp"
 
 namespace EmperyCenter {
 
@@ -31,42 +35,56 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 		segments.emplace_back(slot, std::move(it->value));
 	}
 
+	const auto account = AccountMap::require(account_uuid);
+
+	boost::uint64_t last_chat_time;
+	boost::uint64_t min_seconds;
+	if(channel == ChatChannelIds::ID_ADJACENT){
+		last_chat_time = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ADJACENT);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_ADJACENT_CHANNEL);
+	} else if(channel == ChatChannelIds::ID_TRADE){
+		last_chat_time = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_TRADE);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_TRADE_CHANNEL);
+	} else if(channel == ChatChannelIds::ID_ALLIANCE){
+		last_chat_time = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_ALLIANCE_CHANNEL);
+	} else {
+		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
+	}
+	const auto milliseconds_remaining = saturated_sub(
+		saturated_mul<boost::uint64_t>(min_seconds, 1000), saturated_sub(utc_now, last_chat_time));
+	if(milliseconds_remaining != 0){
+		return Response(Msg::ERR_CHAT_FLOOD) <<milliseconds_remaining;
+	}
+
+	if(channel == ChatChannelIds::ID_ALLIANCE){
+		// TODO check alliance
+	}
+
 	const auto chat_message_uuid = ChatMessageUuid(Poseidon::Uuid::random());
 	const auto message = boost::make_shared<ChatMessage>(
 		chat_message_uuid, channel, type, language_id, utc_now, account_uuid, std::move(segments));
 
-	if(channel == ChatChannelIds::ID_WORLD){
-		// TODO check flood
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers[AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE] = boost::lexical_cast<std::string>(utc_now);
+	account->set_attributes(std::move(modifiers));
 
-		// XXX 附近的人
-		boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> sessions;
-		PlayerSessionMap::get_all(sessions);
-		auto it = sessions.begin();
-		try {
-			while(it != sessions.end()){
-				const auto chat_box = ChatBoxMap::get(it->first);
-				if(chat_box){
-					chat_box->insert(message);
-				}
-				++it;
+	if(channel == ChatChannelIds::ID_ADJACENT){
+		std::vector<boost::shared_ptr<PlayerSession>> sessions;
+		WorldMap::get_players_viewing_rectangle(sessions, Rectangle(req.x, req.y, 1, 1));
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = *it;
+			try {
+				const auto other_account_uuid = PlayerSessionMap::require_account_uuid(session);
+				const auto other_chat_box = ChatBoxMap::require(other_account_uuid);
+				other_chat_box->insert(message);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
 			}
-		} catch(...){
-			while(it != sessions.begin()){
-				--it;
-				const auto chat_box = ChatBoxMap::get(it->first);
-				if(chat_box){
-					chat_box->remove(chat_message_uuid);
-				}
-			}
-			throw;
 		}
 	} else if(channel == ChatChannelIds::ID_TRADE){
-		// TODO check flood
 	} else if(channel == ChatChannelIds::ID_ALLIANCE){
-		// TODO check flood
-		// TODO check alliance
-	} else {
-		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
 
 	return Response();

@@ -8,7 +8,7 @@ namespace EmperyCenter {
 namespace ChatChannelIds {
 
 constexpr ChatChannelId
-	ID_WORLD                ( 1 ),
+	ID_ADJACENT             ( 1 ),
 	ID_SYSTEM               ( 2 ),
 	ID_TRADE                ( 3 ),
 	ID_ALLIANCE             ( 4 );

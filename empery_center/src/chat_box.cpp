@@ -81,8 +81,8 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 
 	boost::uint64_t max_count_in_channel = 0;
 	const auto channel = message->get_channel();
-	if(channel == ChatChannelIds::ID_WORLD){
-		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_WORLD_CHANNEL);
+	if(channel == ChatChannelIds::ID_ADJACENT){
+		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_ADJACENT_CHANNEL);
 	} else if(channel == ChatChannelIds::ID_ALLIANCE){
 		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_ALLIANCE_CHANNEL);
 	} else if(channel == ChatChannelIds::ID_SYSTEM){
