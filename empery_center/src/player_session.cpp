@@ -14,6 +14,7 @@
 #include <poseidon/websocket/handshake.hpp>
 #include "singletons/player_session_map.hpp"
 #include "msg/kill.hpp"
+#include "singletons/world_map.hpp"
 
 namespace EmperyCenter {
 
@@ -124,6 +125,7 @@ boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(boost::uint1
 PlayerSession::PlayerSession(Poseidon::UniqueFile socket, std::string path)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_path(std::move(path))
+	, m_view(INT64_MIN, INT64_MIN, 0, 0)
 {
 }
 PlayerSession::~PlayerSession(){
@@ -215,6 +217,14 @@ void PlayerSession::shutdown(int reason, const char *message) noexcept {
 
 	Poseidon::Http::Session::shutdown_read();
 	Poseidon::Http::Session::shutdown_write();
+}
+
+void PlayerSession::set_view(Rectangle view){
+	PROFILE_ME;
+
+	m_view = view;
+
+	WorldMap::update_player_view(virtual_shared_from_this<PlayerSession>());
 }
 
 }

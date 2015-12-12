@@ -930,7 +930,7 @@ void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<Playe
 		}
 	}
 }
-void WorldMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view){
+void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
 	const auto map_sector_map = g_map_sector_map.lock();
@@ -944,9 +944,11 @@ void WorldMap::set_player_view(const boost::shared_ptr<PlayerSession> &session, 
 		DEBUG_THROW(Exception, sslit("Player view map not initialized"));
 	}
 
+	const auto view = session->get_view();
+
 	player_view_map->erase<0>(session);
 
-	if((view.left() == view.right()) || (view.bottom() == view.top())){
+	if((view.width() == 0) || (view.height() == 0)){
 		return;
 	}
 

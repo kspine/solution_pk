@@ -70,17 +70,24 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 	account->set_attributes(std::move(modifiers));
 
 	if(channel == ChatChannelIds::ID_ADJACENT){
-		std::vector<boost::shared_ptr<PlayerSession>> sessions;
-		WorldMap::get_players_viewing_rectangle(sessions, Rectangle(req.x, req.y, 1, 1));
-		for(auto it = sessions.begin(); it != sessions.end(); ++it){
-			const auto &session = *it;
-			try {
-				const auto other_account_uuid = PlayerSessionMap::require_account_uuid(session);
-				const auto other_chat_box = ChatBoxMap::require(other_account_uuid);
-				other_chat_box->insert(message);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
+		const auto view = session->get_view();
+		if((view.width() == 0) || (view.height() == 0)){
+			LOG_EMPERY_CENTER_DEBUG("View is null: account_uuid = ", account_uuid);
+		} else {
+			const auto center_x = view.left()   + static_cast<boost::int64_t>(view.width() / 2);
+			const auto center_y = view.bottom() + static_cast<boost::int64_t>(view.height() / 2);
+			std::vector<boost::shared_ptr<PlayerSession>> other_sessions;
+			WorldMap::get_players_viewing_rectangle(other_sessions, Rectangle(center_x, center_y, 1, 1));
+			for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){
+				const auto &other_session = *it;
+				try {
+					const auto other_account_uuid = PlayerSessionMap::require_account_uuid(other_session);
+					const auto other_chat_box = ChatBoxMap::require(other_account_uuid);
+					other_chat_box->insert(message);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					other_session->shutdown(e.what());
+				}
 			}
 		}
 	} else if(channel == ChatChannelIds::ID_TRADE){

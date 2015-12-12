@@ -11,6 +11,7 @@
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/http/session.hpp>
+#include "rectangle.hpp"
 
 namespace EmperyCenter {
 
@@ -28,6 +29,8 @@ private:
 
 private:
 	const std::string m_path;
+
+	Rectangle m_view;
 
 public:
 	PlayerSession(Poseidon::UniqueFile socket, std::string path);
@@ -57,6 +60,11 @@ public:
 
 	void shutdown(const char *message) noexcept;
 	void shutdown(int reason, const char *message) noexcept;
+
+	Rectangle get_view() const {
+		return m_view;
+	}
+	void set_view(Rectangle view);
 };
 
 }

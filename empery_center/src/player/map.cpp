@@ -45,7 +45,7 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetView, account_uuid, session, req){
-	WorldMap::set_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
+	session->set_view(Rectangle(req.x, req.y, req.width, req.height));
 
 	return Response();
 }
