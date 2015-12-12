@@ -2,6 +2,9 @@
 #include "account.hpp"
 #include "mysql/account.hpp"
 #include "singletons/account_map.hpp"
+#include "msg/sc_account.hpp"
+#include "player_session.hpp"
+#include "singletons/player_session_map.hpp"
 
 namespace EmperyCenter {
 
@@ -45,6 +48,20 @@ void Account::set_nick(std::string nick){
 	m_obj->set_nick(std::move(nick));
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
+
+	const auto account_uuid = get_account_uuid();
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+		try {
+			Msg::SC_AccountAttributes msg;
+			msg.account_uuid = account_uuid.str();
+			msg.nick         = m_obj->unlocked_get_nick();
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 boost::uint64_t Account::get_flags() const {
@@ -104,6 +121,28 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
 		const auto &obj = m_attributes.at(it->first);
 		obj->set_value(std::move(it->second));
+	}
+
+	const auto account_uuid = get_account_uuid();
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+		try {
+			Msg::SC_AccountAttributes msg;
+			msg.account_uuid = account_uuid.str();
+			msg.attributes.reserve(modifiers.size());
+			for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
+				const auto &obj = m_attributes.at(it->first);
+
+				msg.attributes.emplace_back();
+				auto &attribute = msg.attributes.back();
+				attribute.account_attribute_id = obj->get_account_attribute_id();
+				attribute.value                = obj->unlocked_get_value();
+			}
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
 	}
 }
 
