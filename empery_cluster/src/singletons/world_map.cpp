@@ -478,36 +478,7 @@ _exit_while:
 boost::shared_ptr<ClusterClient> WorldMap::get_cluster(Coord coord){
 	PROFILE_ME;
 
-	const auto cluster_map = g_cluster_map.lock();
-	if(!cluster_map){
-		LOG_EMPERY_CLUSTER_DEBUG("Cluster map not loaded.");
-		return { };
-	}
-
-	boost::shared_ptr<ClusterClient> cluster;
-
-	auto it = cluster_map->upper_bound<0>(coord);
-	for(;;){
-		if(it == cluster_map->begin<0>()){
-			LOG_EMPERY_CLUSTER_DEBUG("Cluster not found: coord = ", coord);
-			break;
-		}
-		--it;
-
-		if(!it->scope.hit_test(coord)){
-			continue;
-		}
-
-		auto test = it->cluster.lock();
-		if(test){
-			LOG_EMPERY_CLUSTER_DEBUG("Cluster found: coord = ", coord, ", scope = ", it->scope);
-			cluster = std::move(test);
-			break;
-		}
-		it = cluster_map->erase<0>(it);
-	}
-
-	return std::move(cluster);
+	return get_cluster_and_scope(coord).first;
 }
 void WorldMap::get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterClient>>> &ret){
 	PROFILE_ME;
@@ -542,6 +513,41 @@ Rectangle WorldMap::get_cluster_scope(const boost::weak_ptr<ClusterClient> &clus
 		return Rectangle(0, 0, 0, 0);
 	}
 	return it->scope;
+}
+std::pair<boost::shared_ptr<ClusterClient>, Rectangle> WorldMap::get_cluster_and_scope(Coord coord){
+	PROFILE_ME;
+
+	auto ret = std::make_pair(boost::shared_ptr<ClusterClient>(), Rectangle(0, 0, 0, 0));
+
+	const auto cluster_map = g_cluster_map.lock();
+	if(!cluster_map){
+		LOG_EMPERY_CLUSTER_DEBUG("Cluster map not loaded.");
+		return ret;
+	}
+
+	auto it = cluster_map->upper_bound<0>(coord);
+	for(;;){
+		if(it == cluster_map->begin<0>()){
+			LOG_EMPERY_CLUSTER_DEBUG("Cluster not found: coord = ", coord);
+			break;
+		}
+		--it;
+
+		if(!it->scope.hit_test(coord)){
+			continue;
+		}
+
+		auto test = it->cluster.lock();
+		if(test){
+			LOG_EMPERY_CLUSTER_DEBUG("Cluster found: coord = ", coord, ", scope = ", it->scope);
+			ret.first  = std::move(test);
+			ret.second = it->scope;
+			break;
+		}
+		it = cluster_map->erase<0>(it);
+	}
+
+	return ret;
 }
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Rectangle scope){
 	PROFILE_ME;

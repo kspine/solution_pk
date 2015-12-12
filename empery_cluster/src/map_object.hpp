@@ -45,7 +45,7 @@ public:
 	~MapObject();
 
 private:
-	bool is_blocked(Coord new_coord) const;
+	unsigned is_blocked(Coord new_coord) const;
 
 public:
 	MapObjectUuid get_map_object_uuid() const {

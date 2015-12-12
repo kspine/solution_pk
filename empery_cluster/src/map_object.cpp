@@ -5,9 +5,19 @@
 #include "singletons/world_map.hpp"
 #include "checked_arithmetic.hpp"
 #include "utilities.hpp"
+#include "map_cell.hpp"
+#include "data/map_cell.hpp"
 #include "../../empery_center/src/map_object_type_ids.hpp"
 
 namespace EmperyCluster {
+
+namespace {
+	enum BlockedResult {
+		BR_UNBLOCKED     = 0,
+		BR_BLOCKED_PERMA = 1,
+		BR_BLOCKED_TEMP  = 2,
+	};
+}
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes)
@@ -20,12 +30,33 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::~MapObject(){
 }
 
-bool MapObject::is_blocked(Coord new_coord) const {
+unsigned MapObject::is_blocked(Coord new_coord) const {
 	PROFILE_ME;
 
+	const auto owner_uuid = get_owner_uuid();
 	const auto new_map_cell = WorldMap::get_map_cell(new_coord);
 	if(new_map_cell){
-		// TODO
+		const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
+		if(cell_owner_uuid && (owner_uuid != cell_owner_uuid)){
+			LOG_EMPERY_CLUSTER_DEBUG("Blocked by a cell owned by another player: cell_owner_uuid = ", cell_owner_uuid);
+			return BR_BLOCKED_PERMA;
+		}
+	}
+
+	const auto new_cluster_and_scope = WorldMap::get_cluster_and_scope(new_coord);
+	const auto &new_cluster = new_cluster_and_scope.first;
+	if(!new_cluster){
+		LOG_EMPERY_CLUSTER_DEBUG("Lost connection to center server.");
+		return BR_BLOCKED_PERMA;
+	}
+	const auto &new_scope = new_cluster_and_scope.second;
+	const auto map_x = static_cast<unsigned>(new_coord.x() - new_scope.left());
+	const auto map_y = static_cast<unsigned>(new_coord.y() - new_scope.bottom());
+	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+	const auto terrain_data = Data::MapCellTerrain::require(cell_data->terrain_id);
+	if(!terrain_data->passable){
+		LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_data->terrain_id);
+		return BR_BLOCKED_PERMA;
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
@@ -34,10 +65,14 @@ bool MapObject::is_blocked(Coord new_coord) const {
 	std::vector<Coord> foundation;
 	for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
 		const auto &other_object = *it;
+		const auto other_map_object_uuid = other_object->get_map_object_uuid();
 		const auto other_coord = other_object->get_coord();
 		if(new_coord == other_coord){
-			LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_object->get_map_object_uuid());
-			return true;
+			LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
+			if(!other_object->m_waypoints.empty()){
+				return BR_BLOCKED_TEMP;
+			}
+			return BR_BLOCKED_PERMA;
 		}
 		if(other_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
 			continue;
@@ -46,13 +81,13 @@ bool MapObject::is_blocked(Coord new_coord) const {
 		get_castle_foundation(foundation, other_coord);
 		for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
 			if(new_coord == *fit){
-				LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_object->get_map_object_uuid());
-				return true;
+				LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
+				return BR_BLOCKED_PERMA;
 			}
 		}
 	}
 
-	return false;
+	return BR_UNBLOCKED;
 }
 
 Coord MapObject::get_coord() const {
@@ -135,18 +170,26 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 		const auto old_coord = get_coord();
 		const auto new_coord = Coord(old_coord.x() + waypoint.dx, old_coord.y() + waypoint.dy);
 
-		if(is_blocked(new_coord)){
-			const auto retry_delay = get_config<boost::uint64_t>("blocked_path_retry_delay", 500);
+		auto blocked_result = is_blocked(new_coord);
+		if(blocked_result == BR_BLOCKED_TEMP){
 			const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
 			LOG_EMPERY_CLUSTER_DEBUG("Path is blocked: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord,
 				", retry_max_count = ", retry_max_count, ", retry_count = ", m_blocked_retry_count);
 			if(m_blocked_retry_count >= retry_max_count){
 				LOG_EMPERY_CLUSTER_DEBUG("Give up the path.");
+				blocked_result = BR_BLOCKED_PERMA;
+			}
+		}
+		if(blocked_result != BR_UNBLOCKED){
+			if(blocked_result == BR_BLOCKED_PERMA){
 				m_waypoints.clear();
 				m_blocked_retry_count = 0;
 				continue;
 			}
 			LOG_EMPERY_CLUSTER_DEBUG("Will retry later.");
+
+			const auto retry_delay = get_config<boost::uint64_t>("blocked_path_retry_delay", 500);
+
 			++m_blocked_retry_count;
 			m_next_action_time = saturated_add(m_next_action_time, retry_delay);
 			continue;

@@ -1,6 +1,8 @@
 #include "../precompiled.hpp"
 #include "map_cell.hpp"
 #include <poseidon/multi_index_map.hpp>
+#include <poseidon/csv_parser.hpp>
+#include <poseidon/json.hpp>
 
 namespace EmperyCluster {
 
@@ -18,7 +20,43 @@ namespace {
 	const char TERRAIN_FILE[] = "Territory_product";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-//	extern std::vector<Poseidon::OptionalMap> sync_get_data_from_CLUSTER(const char *path);
+		auto csv = Data::sync_load_data(BASIC_FILE);
+		const auto basic_map = boost::make_shared<BasicMap>();
+		while(csv.fetch_row()){
+			Data::MapCellBasic elem = { };
+
+			Poseidon::JsonArray array;
+			csv.get(array, "coord");
+			const unsigned x = array.at(0).get<double>();
+			const unsigned y = array.at(1).get<double>();
+			elem.map_coord = std::make_pair(x, y);
+
+			csv.get(elem.terrain_id, "territory_id");
+
+			if(!basic_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapCellBasic: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);
+				DEBUG_THROW(Exception, sslit("Duplicate MapCellBasic"));
+			}
+		}
+		g_basic_map = basic_map;
+		handles.push(basic_map);
+
+		csv = Data::sync_load_data(TERRAIN_FILE);
+		const auto terrain_map = boost::make_shared<TerrainMap>();
+		while(csv.fetch_row()){
+			Data::MapCellTerrain elem = { };
+
+			csv.get(elem.terrain_id,       "territory_id");
+
+			csv.get(elem.passable,         "mobile");
+
+			if(!terrain_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapCellTerrain: terrain_id = ", elem.terrain_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapCellTerrain"));
+			}
+		}
+		g_terrain_map = terrain_map;
+		handles.push(terrain_map);
 	}
 }
 

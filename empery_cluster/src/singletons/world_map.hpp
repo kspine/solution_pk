@@ -34,6 +34,7 @@ struct WorldMap {
 	static boost::shared_ptr<ClusterClient> get_cluster(Coord coord);
 	static void get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterClient>>> &ret);
 	static Rectangle get_cluster_scope(const boost::weak_ptr<ClusterClient> &cluster); // 找不到则返回空的矩形。
+	static std::pair<boost::shared_ptr<ClusterClient>, Rectangle> get_cluster_and_scope(Coord coord);
 	static void set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Rectangle scope);
 
 private:

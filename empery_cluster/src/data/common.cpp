@@ -1,18 +1,20 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include <poseidon/csv_parser.hpp>
+#include <poseidon/json.hpp>
 
 namespace EmperyCluster {
 
 namespace Data {
 	Poseidon::CsvParser sync_load_data(const char *file){
 		PROFILE_ME;
-/*
-		const auto addr = get_config<std::string>("data_http_client_connect", "127.0.0.1");
-		const auto port = get_config<unsigned>   ("data_http_client_port",    13212);
-		const auto ssl  = get_config<bool>       ("data_http_client_use_ssl", false);
-*/
+
+		const auto data_directory = get_config<std::string>("data_directory", "empery_center_data");
+
 		Poseidon::CsvParser csv;
+		const auto path = data_directory + "/" + file + ".csv";
+		LOG_EMPERY_CLUSTER_INFO("Loading csv file: path = ", path);
+		csv.load(path.c_str());
 		return csv;
 	}
 }
