@@ -3,6 +3,7 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/event_dispatcher.hpp>
+#include <tuple>
 #include "player_session_map.hpp"
 #include "../mysql/account.hpp"
 #include "../msg/sc_account.hpp"
@@ -80,19 +81,27 @@ namespace {
 
 	boost::shared_ptr<AccountMapContainer> g_account_map;
 
+	enum CacheType {
+		CT_NICK,
+		CT_ATTRIBUTES,
+		CT_PRIVATE_ATTRIBUTES,
+		CT_ITEMS,
+	};
+
 	struct InfoCacheElement {
 		boost::uint64_t expiry_time;
-		std::pair<AccountUuid, boost::weak_ptr<PlayerSession>> account_uuid_session;
+		std::tuple<AccountUuid, boost::weak_ptr<PlayerSession>, CacheType> key;
 
-		InfoCacheElement(boost::uint64_t expiry_time_, AccountUuid account_uuid_, const boost::shared_ptr<PlayerSession> &session_)
-			: expiry_time(expiry_time_), account_uuid_session(account_uuid_, session_)
+		InfoCacheElement(boost::uint64_t expiry_time_,
+			AccountUuid account_uuid_, const boost::shared_ptr<PlayerSession> &session_, CacheType type_)
+			: expiry_time(expiry_time_), key(account_uuid_, session_, type_)
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(InfoCacheContainer, InfoCacheElement,
 		MULTI_MEMBER_INDEX(expiry_time)
-		UNIQUE_MEMBER_INDEX(account_uuid_session)
+		UNIQUE_MEMBER_INDEX(key)
 	)
 
 	boost::shared_ptr<InfoCacheContainer> g_info_cache_map;
@@ -225,11 +234,28 @@ namespace {
 
 		if(cache_timeout != 0){
 			const auto expiry_time = saturated_add(now, cache_timeout);
-			auto it = g_info_cache_map->find<1>(std::make_pair(account_uuid, session));
-			if(it == g_info_cache_map->end<1>()){
-				it = g_info_cache_map->insert<1>(it, InfoCacheElement(expiry_time, account_uuid, session));
-			} else {
-				g_info_cache_map->replace<1>(it, InfoCacheElement(expiry_time, account_uuid, session));
+
+			const auto update_cache = [&](CacheType type){
+				auto elem = InfoCacheElement(expiry_time, account_uuid, session, type);
+				auto it = g_info_cache_map->find<1>(elem.key);
+				if(it == g_info_cache_map->end<1>()){
+					it = g_info_cache_map->insert<1>(it, std::move(elem));
+				} else {
+					g_info_cache_map->replace<1>(it, std::move(elem));
+				}
+			};
+
+			if(wants_nick){
+				update_cache(CT_NICK);
+			}
+			if(wants_attributes){
+				update_cache(CT_ATTRIBUTES);
+			}
+			if(wants_private_attributes){
+				update_cache(CT_PRIVATE_ATTRIBUTES);
+			}
+			if(wants_items){
+				update_cache(CT_ITEMS);
 			}
 		}
 	}
@@ -386,12 +412,15 @@ void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const
 	const auto now = Poseidon::get_fast_mono_clock();
 	const auto cache_timeout = get_config<boost::uint64_t>("account_info_cache_timeout", 0);
 
-	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
+	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(),
+		g_info_cache_map->upper_bound<0>(now));
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, session,
 		wants_nick, wants_attributes, wants_private_attributes, wants_items);
 }
-void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept {
+void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
+	bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items) noexcept
+{
 	PROFILE_ME;
 
 	const auto account = get(account_uuid);
@@ -403,15 +432,16 @@ void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid
 	const auto now = Poseidon::get_fast_mono_clock();
 	const auto cache_timeout = get_config<boost::uint64_t>("account_info_cache_timeout", 0);
 
-	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
+	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(),
+		g_info_cache_map->upper_bound<0>(now));
 
-	if(g_info_cache_map->find<1>(std::make_pair(account_uuid, session)) != g_info_cache_map->end<1>()){
-		LOG_EMPERY_CENTER_DEBUG("Cache hit: account_uuid = ", account_uuid);
-		return;
-	}
+	const auto is_miss = [&](CacheType type){
+		return g_info_cache_map->find<1>(std::make_tuple(account_uuid, session, type)) == g_info_cache_map->end<1>();
+	};
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, session,
-		true, true, false, true);
+		wants_nick && is_miss(CT_NICK), wants_attributes && is_miss(CT_ATTRIBUTES),
+		wants_private_attributes && is_miss(CT_PRIVATE_ATTRIBUTES), wants_items && is_miss(CT_ITEMS));
 }
 
 }
