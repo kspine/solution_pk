@@ -159,21 +159,21 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-void MapCell::harvest_resource(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount){
+boost::uint64_t MapCell::harvest_resource(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
 	const auto ticket_item_id = get_ticket_item_id();
 	if(!ticket_item_id){
 		LOG_EMPERY_CENTER_DEBUG("No ticket on map cell: coord = ", coord);
-		return;
+		return 0;
 	}
 
 	const auto resource_id = get_production_resource_id();
 	const auto amount = std::min(get_resource_amount(), max_amount);
 	if(!resource_id || (amount == 0)){
 		LOG_EMPERY_CENTER_DEBUG("No resource have been produced: coord = ", coord);
-		return;
+		return 0;
 	}
 	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", castle_uuid = ", castle->get_map_object_uuid(),
 		", ticket_item_id = ", ticket_item_id, ", resource_id = ", resource_id, ", amount = ", amount);
@@ -183,6 +183,7 @@ void MapCell::harvest_resource(const boost::shared_ptr<Castle> &castle, boost::u
 		ReasonIds::ID_HARVEST, coord.x(), coord.y(), ticket_item_id.get());
 	castle->commit_resource_transaction(transaction,
 		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount)); });
+	return amount;
 }
 
 boost::int64_t MapCell::get_attribute(AttributeId attribute_id) const {

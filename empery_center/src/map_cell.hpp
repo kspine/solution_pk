@@ -48,7 +48,7 @@ public:
 	void set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
 	void set_ticket_item_id(ItemId ticket_item_id);
 
-	void harvest_resource(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount = UINT64_MAX);
+	boost::uint64_t harvest_resource(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount);
 
 	boost::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;

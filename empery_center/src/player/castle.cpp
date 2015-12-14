@@ -474,10 +474,49 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
 	if(map_cells.empty()){
 		return Response(Msg::ERR_CASTLE_HAS_NO_MAP_CELL) <<map_object_uuid;
 	}
+
+	std::vector<Castle::BuildingBaseInfo> warehouses;
+	castle->get_buildings_by_id(warehouses, BuildingIds::ID_WAREHOUSE);
+	if(warehouses.empty()){
+		return Response(Msg::ERR_NO_WAREHOUSE);
+	}
+	boost::container::flat_map<ResourceId, boost::uint64_t> max_amounts;
+	for(auto it = warehouses.begin(); it != warehouses.end(); ++it){
+		const auto warehouse_data = Data::CastleUpgradeWarehouse::require(it->building_level);
+		max_amounts.reserve(warehouse_data->max_resource_amounts.size());
+		for(auto dit = warehouse_data->max_resource_amounts.begin(); dit != warehouse_data->max_resource_amounts.end(); ++dit){
+			auto &max = max_amounts[dit->first];
+			max = saturated_add(max, dit->second);
+		}
+	}
+
+	bool harvested_some = false;
 	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 		const auto &map_cell = *it;
+
+		const auto resource_id = map_cell->get_production_resource_id();
+		const auto ait = max_amounts.find(resource_id);
+		if(ait == max_amounts.end()){
+			LOG_EMPERY_CENTER_DEBUG("No storage: map_object_uuid = ", map_object_uuid,
+				", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);
+			continue;
+		}
+		const auto current = castle->get_resource(resource_id).count;
+		const auto max = ait->second;
+
 		map_cell->pump_status();
-		map_cell->harvest_resource(castle);
+
+		const auto amount_harvested = map_cell->harvest_resource(castle, saturated_sub(max, current));
+		if(amount_harvested == 0){
+			LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
+				", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);
+			continue;
+		}
+
+		harvested_some = true;
+	}
+	if(!harvested_some){
+		return Response(Msg::ERR_WAREHOUSE_FULL);
 	}
 
 	return Response();

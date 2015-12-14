@@ -35,6 +35,8 @@ namespace Msg {
 		ERR_CASTLE_HAS_NO_CHILDREN          = 71424,
 		ERR_NOT_BUILDING_UPGRADE_ITEM       = 71425,
 		ERR_NOT_TECH_UPGRADE_ITEM           = 71426,
+		ERR_NO_WAREHOUSE                    = 71427,
+		ERR_WAREHOUSE_FULL                  = 71428,
 	};
 }
 

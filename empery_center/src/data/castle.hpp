@@ -103,7 +103,7 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeWarehouse> require(unsigned building_level);
 
 	public:
-		boost::container::flat_map<ResourceId, boost::uint64_t> max_resource_amount;
+		boost::container::flat_map<ResourceId, boost::uint64_t> max_resource_amounts;
 	};
 
 	class CastleUpgradeCitadelWall : public CastleUpgradeAbstract {

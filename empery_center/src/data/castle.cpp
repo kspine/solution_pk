@@ -231,11 +231,11 @@ namespace {
 
 			Poseidon::JsonObject object;
 			csv.get(object, "resource_max");
-			elem.max_resource_amount.reserve(object.size());
+			elem.max_resource_amounts.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
 				const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
-				if(!elem.max_resource_amount.emplace(resource_id, count).second){
+				if(!elem.max_resource_amounts.emplace(resource_id, count).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate resource amount: resource_id = ", resource_id);
 					DEBUG_THROW(Exception, sslit("Duplicate resource amount"));
 				}
