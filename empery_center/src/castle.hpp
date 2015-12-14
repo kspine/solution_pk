@@ -50,7 +50,7 @@ public:
 
 	struct ResourceInfo {
 		ResourceId resource_id;
-		boost::uint64_t count;
+		boost::uint64_t amount;
 	};
 
 private:
@@ -88,6 +88,7 @@ public:
 	void synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	unsigned get_level() const;
+	boost::container::flat_map<ResourceId, boost::uint64_t> get_max_resource_amounts() const;
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;

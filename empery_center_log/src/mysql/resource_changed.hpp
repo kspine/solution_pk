@@ -13,9 +13,9 @@ namespace MySql {
 	FIELD_UUID              (map_object_uuid)	\
 	FIELD_UUID              (owner_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (resource_id)	\
-	FIELD_BIGINT_UNSIGNED   (old_count)	\
-	FIELD_BIGINT_UNSIGNED   (new_count)	\
-	FIELD_BIGINT            (delta_count)	\
+	FIELD_BIGINT_UNSIGNED   (old_amount)	\
+	FIELD_BIGINT_UNSIGNED   (new_amount)	\
+	FIELD_BIGINT            (delta_amount)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
 	FIELD_BIGINT            (param1)	\
 	FIELD_BIGINT            (param2)	\

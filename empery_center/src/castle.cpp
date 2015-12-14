@@ -62,7 +62,7 @@ namespace {
 		PROFILE_ME;
 
 		info.resource_id        = ResourceId(obj->get_resource_id());
-		info.count              = obj->get_count();
+		info.amount             = obj->get_amount();
 	}
 
 	void fill_building_message(Msg::SC_CastleBuildingBase &msg, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj,
@@ -99,7 +99,7 @@ namespace {
 
 		msg.map_object_uuid = obj->unlocked_get_map_object_uuid().to_string();
 		msg.resource_id     = obj->get_resource_id();
-		msg.count           = obj->get_count();
+		msg.amount          = obj->get_amount();
 	}
 
 	void check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utc_now){
@@ -485,15 +485,36 @@ unsigned Castle::get_level() const {
 
 	unsigned level = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(BuildingId(it->second->get_building_id()) != BuildingIds::ID_PRIMARY){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		if(building_id != BuildingIds::ID_PRIMARY){
 			continue;
 		}
-		const auto current_level = it->second->get_building_level();
-		if(level < current_level){
-			level = current_level;
+		const unsigned current_level = it->second->get_building_level();
+		if(level >= current_level){
+			continue;
 		}
+		level = current_level;
 	}
 	return level;
+}
+boost::container::flat_map<ResourceId, boost::uint64_t> Castle::get_max_resource_amounts() const {
+	PROFILE_ME;
+
+	boost::container::flat_map<ResourceId, boost::uint64_t> max_amounts;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		if(building_id != BuildingIds::ID_WAREHOUSE){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		const auto data = Data::CastleUpgradeWarehouse::require(current_level);
+		max_amounts.reserve(data->max_resource_amounts.size());
+		for(auto it = data->max_resource_amounts.begin(); it != data->max_resource_amounts.end(); ++it){
+			auto &val = max_amounts[it->first];
+			val = saturated_add(val, it->second);
+		}
+	}
+	return max_amounts;
 }
 
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
@@ -713,11 +734,11 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, boost::uint64_t /* new_count */> temp_result_map;
 
     for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
-		const auto operation   = tit->m_operation;
-		const auto resource_id = tit->m_some_id;
-		const auto delta_count = tit->m_delta_count;
+		const auto operation    = tit->m_operation;
+		const auto resource_id  = tit->m_some_id;
+		const auto delta_amount = tit->m_delta_count;
 
-		if(delta_count == 0){
+		if(delta_amount == 0){
 			continue;
 		}
 
@@ -746,23 +767,23 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 				}
 				auto temp_it = temp_result_map.find(obj);
 				if(temp_it == temp_result_map.end()){
-					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_amount());
 				}
-				const auto old_count = temp_it->second;
-				temp_it->second = checked_add(old_count, delta_count);
-				const auto new_count = temp_it->second;
+				const auto old_amount = temp_it->second;
+				temp_it->second = checked_add(old_amount, delta_amount);
+				const auto new_amount = temp_it->second;
 
 				const auto &map_object_uuid = get_map_object_uuid();
 				const auto &owner_uuid = get_owner_uuid();
 				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
-					", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
+					", resource_id = ", resource_id, ", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
 					withdrawn = boost::make_shared<bool>(true);
 				}
 				Poseidon::async_raise_event(
 					boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
-						resource_id, old_count, new_count, reason, param1, param2, param3),
+						resource_id, old_amount, new_amount, reason, param1, param2, param3),
 					withdrawn);
 			}
 			break;
@@ -781,32 +802,32 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 				const auto &obj = it->second;
 				auto temp_it = temp_result_map.find(obj);
 				if(temp_it == temp_result_map.end()){
-					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_amount());
 				}
-				const auto old_count = temp_it->second;
-				if(temp_it->second >= delta_count){
-					temp_it->second -= delta_count;
+				const auto old_amount = temp_it->second;
+				if(temp_it->second >= delta_amount){
+					temp_it->second -= delta_amount;
 				} else {
 					if(operation != ResourceTransactionElement::OP_REMOVE_SATURATED){
 						LOG_EMPERY_CENTER_DEBUG("No enough resources: resource_id = ", resource_id,
-							", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
+							", temp_amount = ", temp_it->second, ", delta_amount = ", delta_amount);
 						return resource_id;
 					}
 					temp_it->second = 0;
 				}
-				const auto new_count = temp_it->second;
+				const auto new_amount = temp_it->second;
 
 				const auto &map_object_uuid = get_map_object_uuid();
 				const auto &owner_uuid = get_owner_uuid();
 				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
-					", resource_id = ", resource_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
+					", resource_id = ", resource_id, ", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
 					withdrawn = boost::make_shared<bool>(true);
 				}
 				Poseidon::async_raise_event(
 					boost::make_shared<Events::ResourceChanged>(map_object_uuid, owner_uuid,
-						resource_id, old_count, new_count, reason, param1, param2, param3),
+						resource_id, old_amount, new_amount, reason, param1, param2, param3),
 					withdrawn);
 			}
 			break;
@@ -822,7 +843,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 	}
 
 	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
-		it->first->set_count(it->second);
+		it->first->set_amount(it->second);
 	}
 	if(withdrawn){
 		*withdrawn = false;

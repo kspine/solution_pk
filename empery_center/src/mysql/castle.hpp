@@ -34,7 +34,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (map_object_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (resource_id)	\
-	FIELD_BIGINT_UNSIGNED   (count)
+	FIELD_BIGINT_UNSIGNED   (amount)
 #include <poseidon/mysql/object_generator.hpp>
 
 }
