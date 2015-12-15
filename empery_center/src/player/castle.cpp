@@ -485,7 +485,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
 
 		const auto max_amount = max_amounts.at(resource_id);
 		const auto current_amount = castle->get_resource(resource_id).amount;
-		const auto amount_harvested = map_cell->harvest_resource(castle, saturated_sub(max_amount, current_amount));
+		const auto amount_harvested = map_cell->harvest(castle, saturated_sub(max_amount, current_amount));
 		if(amount_harvested == 0){
 			LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
 				", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);

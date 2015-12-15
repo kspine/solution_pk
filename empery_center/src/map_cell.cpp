@@ -11,7 +11,7 @@
 #include "reason_ids.hpp"
 #include "castle.hpp"
 #include "checked_arithmetic.hpp"
-#include "data/map_cell.hpp"
+#include "data/map.hpp"
 #include "singletons/account_map.hpp"
 #include "data/global.hpp"
 
@@ -61,7 +61,7 @@ void MapCell::pump_status(){
 		const auto acc_card_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_CAPACITY_MODIFIER);
 
 		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
-		const auto production_data = Data::MapCellTerrain::require(terrain_id);
+		const auto production_data = Data::MapTerrain::require(terrain_id);
 		double production_rate     = production_data->best_production_rate;
 		double capacity            = production_data->best_capacity;
 		if(production_resource_id != production_data->best_resource_id){
@@ -163,7 +163,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-boost::uint64_t MapCell::harvest_resource(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount){
+boost::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
@@ -184,7 +184,7 @@ boost::uint64_t MapCell::harvest_resource(const boost::shared_ptr<Castle> &castl
 
 	std::vector<ResourceTransactionElement> transaction;
 	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
-		ReasonIds::ID_HARVEST, coord.x(), coord.y(), ticket_item_id.get());
+		ReasonIds::ID_HARVEST_MAP_CELL, coord.x(), coord.y(), ticket_item_id.get());
 	castle->commit_resource_transaction(transaction,
 		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount)); });
 	return amount;

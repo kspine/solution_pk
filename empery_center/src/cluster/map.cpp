@@ -45,8 +45,7 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 
 	WorldMap::set_cluster(cluster, cluster_coord);
 
-// FIXME
-//	WorldMap::synchronize_cluster(cluster, cluster_scope);
+	WorldMap::synchronize_cluster(cluster, cluster_scope);
 
 	return Response();
 }

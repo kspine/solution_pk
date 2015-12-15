@@ -74,6 +74,20 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapOverlayInfo
+#define MESSAGE_ID      393
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (overlay_unique_name)	\
+	FIELD_VUINT         (overlay_id)	\
+	FIELD_VUINT         (resource_amount)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_MapOverlayRemoved
+#define MESSAGE_ID      392
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (overlay_unique_name)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

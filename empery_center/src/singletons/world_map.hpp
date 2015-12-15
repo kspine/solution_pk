@@ -11,6 +11,7 @@
 namespace EmperyCenter {
 
 class MapCell;
+class Overlay;
 class MapObject;
 class ClusterSession;
 class PlayerSession;

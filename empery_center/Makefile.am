@@ -32,7 +32,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/castle.cpp	\
 	src/data/item.cpp	\
 	src/data/signing_in.cpp	\
-	src/data/map_cell.cpp	\
+	src/data/map.cpp	\
 	src/data/map_object_type.cpp	\
 	src/player/account.cpp	\
 	src/player/map.cpp	\
@@ -62,4 +62,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/chat_box.cpp	\
 	src/chat_message.cpp	\
 	src/announcement.cpp	\
+	src/overlay.cpp	\
 	src/mmain.cpp

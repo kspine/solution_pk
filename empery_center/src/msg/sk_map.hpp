@@ -63,6 +63,20 @@ namespace Msg {
 	FIELD_STRING        (attack_target_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SK_MapAddOverlay
+#define MESSAGE_ID      32394
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (overlay_unique_name)	\
+	FIELD_VUINT         (overlay_id)	\
+	FIELD_VUINT         (resource_amount)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SK_MapRemoveOverlay
+#define MESSAGE_ID      32393
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (overlay_unique_name)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

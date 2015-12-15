@@ -13,7 +13,7 @@
 #include "../map_cell.hpp"
 #include "../castle.hpp"
 #include "../data/castle.hpp"
-#include "../data/map_cell.hpp"
+#include "../data/map.hpp"
 #include "../data/item.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
@@ -262,7 +262,7 @@ PLAYER_SERVLET(Msg::CS_MapDeployImmigrants, account_uuid, session, req){
 		LOG_EMPERY_CENTER_DEBUG("Castle foundation: coord = ", coord, ", cluster_scope = ", cluster_scope,
 			", map_x = ", map_x, ", map_y = ", map_y);
 		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
-		const auto terrain_data = Data::MapCellTerrain::require(cell_data->terrain_id);
+		const auto terrain_data = Data::MapTerrain::require(cell_data->terrain_id);
 		if(!terrain_data->buildable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
 		}

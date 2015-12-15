@@ -2,7 +2,6 @@
 #define EMPERY_CENTER_DATA_MAP_CELL_HPP_
 
 #include "common.hpp"
-#include <array>
 #include <vector>
 
 namespace EmperyCenter {
@@ -13,13 +12,13 @@ namespace Data {
 		static boost::shared_ptr<const MapCellBasic> get(unsigned map_x, unsigned map_y);
 		static boost::shared_ptr<const MapCellBasic> require(unsigned map_x, unsigned map_y);
 
-		static void get_by_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::array<char, 32> &group);
+		static void get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group);
 
 	public:
 		std::pair<unsigned, unsigned> map_coord;
 		TerrainId terrain_id;
 		OverlayId overlay_id;
-		std::array<char, 32> group;
+		std::string overlay_group;
 	};
 
 	class MapCellTicket {
@@ -33,10 +32,10 @@ namespace Data {
 		double capacity_modifier;
 	};
 
-	class MapCellTerrain {
+	class MapTerrain {
 	public:
-		static boost::shared_ptr<const MapCellTerrain> get(TerrainId terrain_id);
-		static boost::shared_ptr<const MapCellTerrain> require(TerrainId terrain_id);
+		static boost::shared_ptr<const MapTerrain> get(TerrainId terrain_id);
+		static boost::shared_ptr<const MapTerrain> require(TerrainId terrain_id);
 
 	public:
 		TerrainId terrain_id;
@@ -46,10 +45,10 @@ namespace Data {
 		bool buildable;
 	};
 
-	class MapCellOverlay {
+	class MapOverlay {
 	public:
-		static boost::shared_ptr<const MapCellOverlay> get(OverlayId overlay_id);
-		static boost::shared_ptr<const MapCellOverlay> require(OverlayId overlay_id);
+		static boost::shared_ptr<const MapOverlay> get(OverlayId overlay_id);
+		static boost::shared_ptr<const MapOverlay> require(OverlayId overlay_id);
 
 	public:
 		OverlayId overlay_id;

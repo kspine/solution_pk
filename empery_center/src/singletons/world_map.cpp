@@ -986,6 +986,10 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 		get_map_cells_by_rectangle(map_cells, view);
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 			const auto &map_cell = *it;
+			const auto owner_uuid = map_cell->get_owner_uuid();
+			if(!owner_uuid){
+				continue;
+			}
 			synchronize_map_cell_with_player(map_cell, session);
 		}
 
@@ -1121,6 +1125,10 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 		get_map_cells_by_rectangle(map_cells, view);
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 			const auto &map_cell = *it;
+			const auto owner_uuid = map_cell->get_owner_uuid();
+			if(!owner_uuid){
+				continue;
+			}
 			synchronize_map_cell_with_cluster(map_cell, cluster);
 		}
 
