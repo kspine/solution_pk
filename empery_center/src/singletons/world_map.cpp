@@ -474,6 +474,15 @@ boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
 	}
 	return it->map_cell;
 }
+boost::shared_ptr<MapCell> WorldMap::require_map_cell(Coord coord){
+	PROFILE_ME;
+
+	auto ret = get_map_cell(coord);
+	if(!ret){
+		DEBUG_THROW(Exception, sslit("Map cell not found"));
+	}
+	return ret;
+}
 void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 	PROFILE_ME;
 
@@ -491,7 +500,7 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 		DEBUG_THROW(Exception, sslit("Map cell already exists"));
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Inserting map cell: coord = ", coord);
+	LOG_EMPERY_CENTER_TRACE("Inserting map cell: coord = ", coord);
 	map_cell_map->insert(MapCellElement(map_cell));
 
 	const auto owner_uuid = map_cell->get_owner_uuid();
@@ -1058,6 +1067,11 @@ Rectangle WorldMap::get_cluster_scope(const boost::weak_ptr<ClusterSession> &clu
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
 	PROFILE_ME;
 
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
+		DEBUG_THROW(Exception, sslit("Map cell map not loaded"));
+	}
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
 		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
@@ -1071,6 +1085,22 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	}
 
 	const auto scope = get_cluster_scope_by_coord(coord);
+	LOG_EMPERY_CENTER_INFO("Initiating map cells for cluster server: scope = ", scope);
+	for(auto y = scope.bottom(); y != scope.top(); ++y){
+		for(auto x = scope.left(); x != scope.right(); ++x){
+			const auto coord = Coord(x, y);
+			const auto hint = map_cell_map->upper_bound<0>(coord);
+			if(hint != map_cell_map->begin<0>()){
+				const auto test = std::prev(hint);
+				if(test->coord == coord){
+					continue;
+				}
+			}
+			auto map_cell = boost::make_shared<MapCell>(coord);
+			map_cell_map->insert<0>(hint, MapCellElement(std::move(map_cell)));
+		}
+	}
+
 	LOG_EMPERY_CENTER_INFO("Setting up cluster server: scope = ", scope);
 	auto it = cluster_map->find<0>(scope.bottom_left());
 	if(it == cluster_map->end<0>()){

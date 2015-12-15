@@ -182,11 +182,9 @@ _producible:
 		return Response(Msg::ERR_BAD_LAND_PURCHASE_TICKET_TYPE) <<item_data->type.first;
 	}
 
-	auto map_cell = WorldMap::get_map_cell(coord);
-	if(map_cell){
-		if(map_cell->get_owner_uuid()){
-			return Response(Msg::ERR_MAP_CELL_ALREADY_HAS_AN_OWNER) <<map_cell->get_owner_uuid();
-		}
+	const auto map_cell = WorldMap::require_map_cell(coord);
+	if(map_cell->get_owner_uuid()){
+		return Response(Msg::ERR_MAP_CELL_ALREADY_HAS_AN_OWNER) <<map_cell->get_owner_uuid();
 	}
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
@@ -195,13 +193,7 @@ _producible:
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
-		[&]{
-			if(!map_cell){
-				map_cell = boost::make_shared<MapCell>(coord);
-				WorldMap::insert_map_cell(map_cell);
-			}
-			map_cell->set_owner(parent_object_uuid, resource_id, ticket_item_id);
-		});
+		[&]{ map_cell->set_owner(parent_object_uuid, resource_id, ticket_item_id); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}

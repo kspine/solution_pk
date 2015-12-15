@@ -107,7 +107,11 @@ MapObjectUuid MapCell::get_parent_object_uuid() const {
 AccountUuid MapCell::get_owner_uuid() const {
 	PROFILE_ME;
 
-	const auto parent_object = WorldMap::get_map_object(get_parent_object_uuid());
+	const auto parent_object_uuid = get_parent_object_uuid();
+	if(!parent_object_uuid){
+		return AccountUuid();
+	}
+	const auto parent_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!parent_object){
 		return AccountUuid();
 	}

@@ -2,6 +2,8 @@
 #define EMPERY_CENTER_DATA_MAP_CELL_HPP_
 
 #include "common.hpp"
+#include <array>
+#include <vector>
 
 namespace EmperyCenter {
 
@@ -11,9 +13,13 @@ namespace Data {
 		static boost::shared_ptr<const MapCellBasic> get(unsigned map_x, unsigned map_y);
 		static boost::shared_ptr<const MapCellBasic> require(unsigned map_x, unsigned map_y);
 
+		static void get_by_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::array<char, 32> &group);
+
 	public:
 		std::pair<unsigned, unsigned> map_coord;
 		TerrainId terrain_id;
+		OverlayId overlay_id;
+		std::array<char, 32> group;
 	};
 
 	class MapCellTicket {
@@ -38,6 +44,17 @@ namespace Data {
 		double best_production_rate; // 每毫秒产出资源。
 		double best_capacity;
 		bool buildable;
+	};
+
+	class MapCellOverlay {
+	public:
+		static boost::shared_ptr<const MapCellOverlay> get(OverlayId overlay_id);
+		static boost::shared_ptr<const MapCellOverlay> require(OverlayId overlay_id);
+
+	public:
+		OverlayId overlay_id;
+		ResourceId reward_resource_id;
+		boost::uint64_t reward_resource_amount;
 	};
 }
 

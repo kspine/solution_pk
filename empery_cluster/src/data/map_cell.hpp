@@ -2,6 +2,7 @@
 #define EMPERY_CLUSTER_DATA_MAP_CELL_HPP_
 
 #include "common.hpp"
+#include <array>
 
 namespace EmperyCluster {
 
@@ -14,6 +15,8 @@ namespace Data {
 	public:
 		std::pair<unsigned, unsigned> map_coord;
 		TerrainId terrain_id;
+		OverlayId overlay_id;
+		std::array<char, 32> group;
 	};
 
 	class MapCellTerrain {

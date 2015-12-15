@@ -84,9 +84,7 @@ protected:
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		if(message_id != Poseidon::Cbpp::ControlMessage::ID){
-			LOG_EMPERY_CENTER_DEBUG("Sending response: message_id = ", message_id, ", code = ", result.first, ", message = ", result.second);
-		}
+		LOG_EMPERY_CENTER_TRACE("Sending response: message_id = ", message_id, ", code = ", result.first, ", message = ", result.second);
 		if(result.first < 0){
 			parent->shutdown(result.first, result.second.c_str());
 		} else {
@@ -133,7 +131,7 @@ PlayerSession::~PlayerSession(){
 
 void PlayerSession::on_close(int err_code) noexcept {
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_DEBUG("Socket close: err_code = ", err_code, ", description = ", Poseidon::get_error_desc(err_code));
+	LOG_EMPERY_CENTER_TRACE("Socket close: err_code = ", err_code, ", description = ", Poseidon::get_error_desc(err_code));
 
 	try {
 		Poseidon::enqueue_async_job(virtual_weak_from_this<PlayerSession>(),

@@ -199,16 +199,17 @@ namespace IdTypes {
 	using ChatMessageSlotId   = GenericId<boost::uint32_t, 110008>;
 
 	using TerrainId           = GenericId<boost::uint32_t, 120001>;
-	using ResourceId          = GenericId<boost::uint32_t, 120002>;
-	using MapObjectTypeId     = GenericId<boost::uint32_t, 120003>;
-	using AttributeId         = GenericId<boost::uint32_t, 120004>;
-	using BuildingBaseId      = GenericId<boost::uint32_t, 120005>;
-	using BuildingId          = GenericId<boost::uint32_t, 120006>;
-	using TechId              = GenericId<boost::uint32_t, 120007>;
-	using ItemId              = GenericId<boost::uint32_t, 120008>;
-	using TradeId             = GenericId<boost::uint32_t, 120009>;
-	using RechargeId          = GenericId<boost::uint32_t, 120010>;
-	using ShopId              = GenericId<boost::uint32_t, 120011>;
+	using OverlayId           = GenericId<boost::uint32_t, 120002>;
+	using ResourceId          = GenericId<boost::uint32_t, 120003>;
+	using MapObjectTypeId     = GenericId<boost::uint32_t, 120004>;
+	using AttributeId         = GenericId<boost::uint32_t, 120005>;
+	using BuildingBaseId      = GenericId<boost::uint32_t, 120006>;
+	using BuildingId          = GenericId<boost::uint32_t, 120007>;
+	using TechId              = GenericId<boost::uint32_t, 120008>;
+	using ItemId              = GenericId<boost::uint32_t, 120009>;
+	using TradeId             = GenericId<boost::uint32_t, 120010>;
+	using RechargeId          = GenericId<boost::uint32_t, 120011>;
+	using ShopId              = GenericId<boost::uint32_t, 120012>;
 
 	using AccountUuid         = GenericUuid<210001>;
 	using MapObjectUuid       = GenericUuid<210002>;

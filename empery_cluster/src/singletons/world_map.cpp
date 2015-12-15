@@ -172,14 +172,14 @@ namespace {
 					PROFILE_ME;
 
 					for(auto it = init_servers.begin(); it != init_servers.end(); ++it){
-						if(!it->second.expired()){
+						auto cluster = it->second.lock();
+						if(cluster){
 							continue;
 						}
 						const auto num_x = it->first.first;
 						const auto num_y = it->first.second;
 						LOG_EMPERY_CLUSTER_INFO("Creating logical map server: num_x = ", num_x, ", num_y = ", num_y);
-
-						const auto cluster = ClusterClient::create(num_x, num_y);
+						cluster = ClusterClient::create(num_x, num_y);
 						it->second = cluster;
 					}
 				},
@@ -237,6 +237,15 @@ boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
 		return { };
 	}
 	return it->map_cell;
+}
+boost::shared_ptr<MapCell> WorldMap::require_map_cell(Coord coord){
+	PROFILE_ME;
+
+	auto ret = get_map_cell(coord);
+	if(!ret){
+		DEBUG_THROW(Exception, sslit("Map cell not found"));
+	}
+	return ret;
 }
 void WorldMap::replace_map_cell_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapCell> &map_cell){
 	PROFILE_ME;
@@ -564,7 +573,7 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Rect
 		DEBUG_THROW(Exception, sslit("Cluster already registered"));
 	}
 
-	LOG_EMPERY_CLUSTER_INFO("Setting up cluster client:  scope = ", scope);
+	LOG_EMPERY_CLUSTER_INFO("Setting up cluster client: scope = ", scope);
 	auto it = cluster_map->find<0>(scope.bottom_left());
 	if(it == cluster_map->end<0>()){
 		it = cluster_map->insert<0>(it, ClusterElement(scope, cluster));

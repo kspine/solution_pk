@@ -26,12 +26,16 @@ namespace {
 			Data::MapCellBasic elem = { };
 
 			Poseidon::JsonArray array;
-			csv.get(array, "coord");
+			csv.get(array, "xy");
 			const unsigned x = array.at(0).get<double>();
 			const unsigned y = array.at(1).get<double>();
 			elem.map_coord = std::make_pair(x, y);
 
-			csv.get(elem.terrain_id, "territory_id");
+			csv.get(elem.terrain_id, "property_id");
+			csv.get(elem.overlay_id, "remove_id");
+			std::string str;
+			csv.get(str,             "group_id");
+			str.copy(elem.group.data(), elem.group.size());
 
 			if(!basic_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapCellBasic: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);

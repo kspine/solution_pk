@@ -16,6 +16,7 @@ class ClusterClient;
 struct WorldMap {
 	// MapCell
 	static boost::shared_ptr<MapCell> get_map_cell(Coord coord);
+	static boost::shared_ptr<MapCell> require_map_cell(Coord coord);
 	static void replace_map_cell_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapCell> &map_cell);
 	// static void update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists = true);
 

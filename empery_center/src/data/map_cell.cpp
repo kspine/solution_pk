@@ -10,6 +10,7 @@ namespace EmperyCenter {
 namespace {
 	MULTI_INDEX_MAP(BasicMap, Data::MapCellBasic,
 		UNIQUE_MEMBER_INDEX(map_coord)
+		MULTI_MEMBER_INDEX(group)
 	)
 	boost::weak_ptr<const BasicMap> g_basic_map;
 	const char BASIC_FILE[] = "map";
@@ -26,6 +27,12 @@ namespace {
 	boost::weak_ptr<const TerrainMap> g_terrain_map;
 	const char TERRAIN_FILE[] = "Territory_product";
 
+	MULTI_INDEX_MAP(OverlayMap, Data::MapCellOverlay,
+		UNIQUE_MEMBER_INDEX(overlay_id)
+	)
+	boost::weak_ptr<const OverlayMap> g_overlay_map;
+	const char OVERLAY_FILE[] = "remove";
+
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(BASIC_FILE);
 		const auto basic_map = boost::make_shared<BasicMap>();
@@ -33,12 +40,16 @@ namespace {
 			Data::MapCellBasic elem = { };
 
 			Poseidon::JsonArray array;
-			csv.get(array, "coord");
+			csv.get(array, "xy");
 			const unsigned x = array.at(0).get<double>();
 			const unsigned y = array.at(1).get<double>();
 			elem.map_coord = std::make_pair(x, y);
 
-			csv.get(elem.terrain_id, "territory_id");
+			csv.get(elem.terrain_id, "property_id");
+			csv.get(elem.overlay_id, "remove_id");
+			std::string str;
+			csv.get(str,             "group_id");
+			str.copy(elem.group.data(), elem.group.size());
 
 			if(!basic_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellBasic: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);
@@ -47,7 +58,7 @@ namespace {
 		}
 		g_basic_map = basic_map;
 		handles.push(basic_map);
-		auto servlet = DataSession::create_servlet(BASIC_FILE, Data::encode_csv_as_json(csv, "coord"));
+		auto servlet = DataSession::create_servlet(BASIC_FILE, Data::encode_csv_as_json(csv, "xy"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TICKET_FILE);
@@ -92,6 +103,26 @@ namespace {
 		handles.push(terrain_map);
 		servlet = DataSession::create_servlet(TERRAIN_FILE, Data::encode_csv_as_json(csv, "territory_id"));
 		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(OVERLAY_FILE);
+		const auto overlay_map = boost::make_shared<OverlayMap>();
+		while(csv.fetch_row()){
+			Data::MapCellOverlay elem = { };
+
+			csv.get(elem.overlay_id,             "remove_id");
+
+			csv.get(elem.reward_resource_id,     "product");
+			csv.get(elem.reward_resource_amount, "number");
+
+			if(!overlay_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellOverlay: overlay_id = ", elem.overlay_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapCellOverlay"));
+			}
+		}
+		g_overlay_map = overlay_map;
+		handles.push(overlay_map);
+		servlet = DataSession::create_servlet(OVERLAY_FILE, Data::encode_csv_as_json(csv, "remove_id"));
+		handles.push(std::move(servlet));
 	}
 }
 
@@ -107,7 +138,7 @@ namespace Data {
 
 		const auto it = basic_map->find<0>(std::make_pair(map_x, map_y));
 		if(it == basic_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapCellterrain not found: map_x = ", map_x, ", map_y = ", map_y);
+			LOG_EMPERY_CENTER_DEBUG("MapCellBasic not found: map_x = ", map_x, ", map_y = ", map_y);
 			return { };
 		}
 		return boost::shared_ptr<const MapCellBasic>(basic_map, &*it);
@@ -170,6 +201,32 @@ namespace Data {
 		auto ret = get(terrain_id);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("MapCellTerrain not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapCellOverlay> MapCellOverlay::get(OverlayId overlay_id){
+		PROFILE_ME;
+
+		const auto overlay_map = g_overlay_map.lock();
+		if(!overlay_map){
+			LOG_EMPERY_CENTER_WARNING("MapCellOverlayMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = overlay_map->find<0>(overlay_id);
+		if(it == overlay_map->end<0>()){
+			LOG_EMPERY_CENTER_DEBUG("MapCellOverlay not found: overlay_id = ", overlay_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapCellOverlay>(overlay_map, &*it);
+	}
+	boost::shared_ptr<const MapCellOverlay> MapCellOverlay::require(OverlayId overlay_id){
+		PROFILE_ME;
+
+		auto ret = get(overlay_id);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("MapCellOverlay not found"));
 		}
 		return ret;
 	}

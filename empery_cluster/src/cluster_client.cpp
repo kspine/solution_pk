@@ -68,13 +68,16 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(boost::int64_t numerical_
 
 	auto client = boost::shared_ptr<ClusterClient>(new ClusterClient(*sock_addr, use_ssl, keep_alive));
 	client->go_resident();
-
-	const auto result = client->send_and_wait(Msg::KS_MapRegisterCluster(numerical_x, numerical_y));
-	if(result.first != 0){
-		LOG_EMPERY_CLUSTER_ERROR("Failed to register cluster server: code = ", result.first, ", message = ", result.second);
-		DEBUG_THROW(Exception, SharedNts(result.second));
+	try {
+		if(!client->send(Msg::KS_MapRegisterCluster(numerical_x, numerical_y))){
+			LOG_EMPERY_CLUSTER_ERROR("Failed to send data to cluster server!");
+			DEBUG_THROW(Exception, sslit("Failed to send data to cluster server"));
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
+		client->force_shutdown();
+		throw;
 	}
-	LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: numerical_x = ", numerical_x, ", numerical_y = ", numerical_y);
 
 	return client;
 }
@@ -164,7 +167,7 @@ void ClusterClient::on_sync_data_message_end(boost::uint64_t payload_size){
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		LOG_EMPERY_CLUSTER_DEBUG("Sending response to center server: message_id = ", message_id,
+		LOG_EMPERY_CLUSTER_TRACE("Sending response to center server: message_id = ", message_id,
 			", code = ", result.first, ", message = ", result.second);
 		Poseidon::Cbpp::Client::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
 		if(result.first < 0){

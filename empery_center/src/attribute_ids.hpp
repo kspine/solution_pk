@@ -8,7 +8,7 @@ namespace EmperyCenter {
 namespace AttributeIds {
 
 constexpr AttributeId
-	ID_SIGNING_IN           ( 2100020 );
+	ID_OVERLAY_RESOURCE_HARVESTED   ( 2500001 );
 
 }
 

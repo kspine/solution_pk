@@ -6,6 +6,7 @@
 #include "../msg/kill.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
+#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -44,7 +45,10 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	cluster->send(msg);
 
 	WorldMap::set_cluster(cluster, cluster_coord);
-	WorldMap::synchronize_cluster(cluster, cluster_scope);
+
+	Poseidon::enqueue_async_job([=]{
+		WorldMap::synchronize_cluster(cluster, cluster_scope);
+	});
 
 	return Response();
 }
