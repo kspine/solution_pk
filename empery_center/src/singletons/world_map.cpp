@@ -5,6 +5,7 @@
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/json.hpp>
 #include "player_session_map.hpp"
+#include "../msg/kill.hpp"
 #include "../data/global.hpp"
 #include "../data/map.hpp"
 #include "../map_cell.hpp"
@@ -1208,9 +1209,9 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	LOG_EMPERY_CENTER_INFO("Setting up cluster server: scope = ", scope);
 	const auto result = cluster_map->insert(ClusterElement(scope, cluster));
 	if(!result.second){
-		if(!result.first->cluster.expired()){
-			LOG_EMPERY_CENTER_WARNING("Cluster server conflict:  scope = ", scope);
-			DEBUG_THROW(Exception, sslit("Cluster server conflict"));
+		const auto old_cluster = result.first->cluster.lock();
+		if(old_cluster){
+			old_cluster->shutdown(Msg::KILL_CLUSTER_SERVER_CONFLICT, "");
 		}
 		cluster_map->replace(result.first, ClusterElement(scope, cluster));
 	}

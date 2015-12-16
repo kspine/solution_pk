@@ -25,16 +25,13 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	const auto cluster_coord = cluster_scope.bottom_left();
 	LOG_EMPERY_CENTER_DEBUG("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
 
-	const auto old_cluster = WorldMap::get_cluster(cluster_coord);
-	if(old_cluster){
-		LOG_EMPERY_CENTER_ERROR("Cluster server conflict: num_coord = ", num_coord, ", cluster_coord = ", cluster_coord);
-		return Response(Msg::KILL_CLUSTER_SERVER_CONFLICT) <<cluster_coord;
-	}
 	const auto old_scope = WorldMap::get_cluster_scope(cluster);
 	if((old_scope.width() != 0) || (old_scope.height() != 0)){
 		LOG_EMPERY_CENTER_ERROR("Cluster server already registered: num_coord = ", num_coord, ", cluster_coord = ", cluster_coord);
 		return Response(Msg::KILL_MAP_SERVER_ALREADY_REGISTERED);
 	}
+
+	WorldMap::set_cluster(cluster, cluster_coord);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_scope.left();
@@ -42,8 +39,6 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	msg.width     = cluster_scope.width();
 	msg.height    = cluster_scope.height();
 	cluster->send(msg);
-
-	WorldMap::set_cluster(cluster, cluster_coord);
 
 	WorldMap::synchronize_cluster(cluster, cluster_scope);
 
