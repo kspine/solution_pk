@@ -11,7 +11,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_BIGINT            (cluster_x)	\
 	FIELD_BIGINT            (cluster_y)	\
-	FIELD_STRING            (overlay_group)	\
+	FIELD_STRING            (overlay_group_name)	\
 	FIELD_INTEGER_UNSIGNED  (overlay_id)	\
 	FIELD_BIGINT            (x)	\
 	FIELD_BIGINT            (y)	\

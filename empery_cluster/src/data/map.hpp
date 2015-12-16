@@ -1,5 +1,5 @@
-#ifndef EMPERY_CLUSTER_DATA_MAP_CELL_HPP_
-#define EMPERY_CLUSTER_DATA_MAP_CELL_HPP_
+#ifndef EMPERY_CLUSTER_DATA_MAP_HPP_
+#define EMPERY_CLUSTER_DATA_MAP_HPP_
 
 #include "common.hpp"
 #include <array>

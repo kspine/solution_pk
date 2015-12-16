@@ -6,6 +6,7 @@
 #include "../../../empery_center/src/msg/ks_map.hpp"
 #include "../coord.hpp"
 #include "../map_cell.hpp"
+#include "../overlay.hpp"
 #include "../map_object.hpp"
 #include "../rectangle.hpp"
 #include "../cluster_client.hpp"

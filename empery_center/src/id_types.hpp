@@ -6,6 +6,7 @@
 #include <boost/cstdint.hpp>
 #include <poseidon/cxx_ver.hpp>
 #include <poseidon/uuid.hpp>
+#include <array>
 
 namespace EmperyCenter {
 
@@ -53,7 +54,7 @@ public:
 	}
 
 	constexpr explicit operator bool() const noexcept {
-		return get() != 0;
+		return *this == GenericId();
 	}
 
 	GenericId &operator+=(UnderlyingT rhs){
@@ -126,8 +127,8 @@ public:
 		: m_uuid(uuid)
 	{
 	}
-	explicit GenericUuid(const std::string &str)
-		: m_uuid(str.empty() ? Poseidon::Uuid() : Poseidon::Uuid(str))
+	explicit GenericUuid(const std::string &s)
+		: m_uuid(s.empty() ? Poseidon::Uuid() : Poseidon::Uuid(s))
 	{
 	}
 
@@ -167,7 +168,7 @@ public:
 	}
 
 	constexpr explicit operator bool() const noexcept {
-		return get() != Poseidon::Uuid();
+		return *this == GenericUuid();
 	}
 };
 
@@ -184,6 +185,88 @@ std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &uuid){
 	char str[37];
 	if(is >>std::setw(sizeof(str)) >>str){
 		uuid.from_string(reinterpret_cast<const char (&)[36]>(str));
+	}
+	return is;
+}
+
+template<std::size_t CHARS_T, int>
+class GenericName {
+private:
+	std::array<char, CHARS_T> m_name;
+
+public:
+	constexpr GenericName()
+		: m_name()
+	{
+	}
+	explicit constexpr GenericName(const std::array<char, CHARS_T> &name)
+		: m_name(name)
+	{
+	}
+	explicit GenericName(const std::string &str)
+		: m_name()
+	{
+		const auto len = str.copy(m_name.data(), m_name.size());
+		if(len < str.size()){
+			throw std::logic_error("String for a GenericName is too long");
+		}
+	}
+
+public:
+	constexpr const std::array<char, CHARS_T> &get() const {
+		return m_name;
+	}
+	void set(const std::array<char, CHARS_T> &name){
+		m_name = name;
+	}
+
+	std::string str() const {
+		if(m_name[0] == 0){
+			return { };
+		}
+		std::string s(m_name.data(), m_name.size());
+		s.resize(std::strlen(s.c_str()));
+		return std::move(s);
+	}
+
+public:
+	constexpr bool operator==(GenericName rhs) const {
+		return get() == rhs.get();
+	}
+	constexpr bool operator!=(GenericName rhs) const {
+		return get() != rhs.get();
+	}
+	constexpr bool operator<(GenericName rhs) const {
+		return get() < rhs.get();
+	}
+	constexpr bool operator>(GenericName rhs) const {
+		return get() > rhs.get();
+	}
+	constexpr bool operator<=(GenericName rhs) const {
+		return get() <= rhs.get();
+	}
+	constexpr bool operator>=(GenericName rhs) const {
+		return get() >= rhs.get();
+	}
+
+	constexpr explicit operator bool() const noexcept {
+		return *this == GenericName();
+	}
+};
+
+template<std::size_t CHARS_T, int MAGIC_T>
+std::ostream &operator<<(std::ostream &os, const GenericName<CHARS_T, MAGIC_T> &name){
+	char str[CHARS_T + 1];
+	reinterpret_cast<std::array<char, CHARS_T> &>(str) = name.get();
+	str[CHARS_T] = 0;
+	os <<str;
+	return os;
+}
+template<std::size_t CHARS_T, int MAGIC_T>
+std::istream &operator>>(std::istream &is, GenericName<CHARS_T, MAGIC_T> &name){
+	char str[CHARS_T + 1];
+	if(is >>std::setw(sizeof(str)) >>str){
+		name.set(reinterpret_cast<const std::array<char, CHARS_T> &>(str));
 	}
 	return is;
 }
@@ -216,6 +299,8 @@ namespace IdTypes {
 	using MailUuid            = GenericUuid<210003>;
 	using ChatMessageUuid     = GenericUuid<210004>;
 	using AnnouncementUuid    = GenericUuid<210005>;
+
+	using OverlayGroupName    = GenericName<32, 310001>;
 }
 
 using namespace IdTypes;

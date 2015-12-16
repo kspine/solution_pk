@@ -95,4 +95,9 @@ CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
 	return Response();
 }
 
+CLUSTER_SERVLET(Msg::SK_MapAddOverlay, cluster, req){
+
+	return Response();
+}
+
 }

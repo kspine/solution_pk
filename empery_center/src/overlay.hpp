@@ -20,13 +20,13 @@ private:
 	boost::shared_ptr<MySql::Center_Overlay> m_obj;
 
 public:
-	Overlay(Coord cluster_coord, std::string overlay_group, OverlayId overlay_id);
+	Overlay(Coord cluster_coord, OverlayGroupName overlay_group_name, OverlayId overlay_id);
 	explicit Overlay(boost::shared_ptr<MySql::Center_Overlay> obj);
 	~Overlay();
 
 public:
 	Coord get_cluster_coord() const;
-	const std::string &get_overlay_group() const;
+	OverlayGroupName get_overlay_group_name() const;
 	OverlayId get_overlay_id() const;
 
 	Coord get_coord() const;
@@ -35,6 +35,7 @@ public:
 
 	boost::uint64_t harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount);
 
+	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
 };

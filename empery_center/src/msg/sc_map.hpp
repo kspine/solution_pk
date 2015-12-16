@@ -79,7 +79,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
-	FIELD_STRING        (overlay_group)	\
+	FIELD_STRING        (overlay_group_name)	\
 	FIELD_VUINT         (overlay_id)	\
 	FIELD_VUINT         (resource_amount)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -89,7 +89,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
-	FIELD_STRING        (overlay_group)
+	FIELD_STRING        (overlay_group_name)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

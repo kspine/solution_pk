@@ -6,7 +6,7 @@
 #include "checked_arithmetic.hpp"
 #include "utilities.hpp"
 #include "map_cell.hpp"
-#include "data/map_cell.hpp"
+#include "data/map.hpp"
 #include "../../empery_center/src/map_object_type_ids.hpp"
 
 namespace EmperyCluster {

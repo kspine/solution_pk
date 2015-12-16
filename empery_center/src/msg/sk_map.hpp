@@ -68,20 +68,12 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
-	FIELD_STRING        (overlay_group)	\
+	FIELD_STRING        (overlay_group_name)	\
 	FIELD_VUINT         (overlay_id)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_VUINT         (resource_id)	\
 	FIELD_VUINT         (resource_amount)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    SK_MapRemoveOverlay
-#define MESSAGE_ID      32393
-#define MESSAGE_FIELDS  \
-	FIELD_VINT          (cluster_x)	\
-	FIELD_VINT          (cluster_y)	\
-	FIELD_STRING        (overlay_group)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

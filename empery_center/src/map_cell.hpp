@@ -54,6 +54,7 @@ public:
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 
+	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
 };

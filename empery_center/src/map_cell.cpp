@@ -231,11 +231,13 @@ void MapCell::set_attributes(const boost::container::flat_map<AttributeId, boost
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
+bool MapCell::is_virtually_removed() const {
+	return !get_parent_object_uuid();
+}
 void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	const auto parent_object_uuid = get_parent_object_uuid();
-	if(!parent_object_uuid){
+	if(is_virtually_removed()){
 		Msg::SC_MapCellRemoved msg;
 		msg.x                         = get_coord().x();
 		msg.y                         = get_coord().y();
@@ -249,7 +251,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		Msg::SC_MapCellInfo msg;
 		msg.x                         = get_coord().x();
 		msg.y                         = get_coord().y();
-		msg.parent_object_uuid        = parent_object_uuid.str();
+		msg.parent_object_uuid        = get_parent_object_uuid().str();
 		msg.owner_uuid                = owner_uuid.str();
 		msg.acceleration_card_applied = is_acceleration_card_applied();
 		msg.ticket_item_id            = get_ticket_item_id().get();
@@ -268,12 +270,10 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
 	PROFILE_ME;
 
-	const auto parent_object_uuid = get_parent_object_uuid();
-
 	Msg::SK_MapAddMapCell msg;
 	msg.x                  = get_coord().x();
 	msg.y                  = get_coord().y();
-	msg.parent_object_uuid = parent_object_uuid.str();
+	msg.parent_object_uuid = get_parent_object_uuid().str();
 	msg.owner_uuid         = get_owner_uuid().str();
 	msg.attributes.reserve(m_attributes.size());
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){

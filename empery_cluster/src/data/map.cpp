@@ -1,5 +1,5 @@
 #include "../precompiled.hpp"
-#include "map_cell.hpp"
+#include "map.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>

@@ -170,11 +170,13 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 	}
 }
 
+bool MapObject::is_virtually_removed() const {
+	return has_been_deleted();
+}
 void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	const bool deleted = has_been_deleted();
-	if(deleted){
+	if(is_virtually_removed()){
 		Msg::SC_MapObjectRemoved msg;
 		msg.object_uuid        = get_map_object_uuid().str();
 		session->send(msg);
@@ -205,8 +207,7 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
 	PROFILE_ME;
 
-	const bool deleted = has_been_deleted();
-	if(deleted){
+	if(has_been_deleted()){
 		Msg::SK_MapRemoveMapObject msg;
 		msg.map_object_uuid = get_map_object_uuid().str();
 		cluster->send(msg);

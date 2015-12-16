@@ -17,13 +17,12 @@
 
 namespace EmperyCenter {
 
-Overlay::Overlay(Coord cluster_coord, std::string overlay_group, OverlayId overlay_id)
+Overlay::Overlay(Coord cluster_coord, OverlayGroupName overlay_group_name, OverlayId overlay_id)
 	: m_obj([&]{
-		LOG_EMPERY_CENTER_DEBUG("Creating overlay: overlay_id = ", overlay_id);
 		std::vector<boost::shared_ptr<const Data::MapCellBasic>> cells_in_group;
-		Data::MapCellBasic::get_by_overlay_group(cells_in_group, overlay_group);
+		Data::MapCellBasic::get_by_overlay_group(cells_in_group, overlay_group_name);
 		if(cells_in_group.empty()){
-			LOG_EMPERY_CENTER_ERROR("No cells in overlay group? overlay_group = ", overlay_group);
+			LOG_EMPERY_CENTER_ERROR("No cells in overlay group? overlay_group_name = ", overlay_group_name);
 			DEBUG_THROW(Exception, sslit("No cells in overlay group"));
 		}
 		boost::uint64_t sum_x = 0, sum_y = 0;
@@ -37,7 +36,7 @@ Overlay::Overlay(Coord cluster_coord, std::string overlay_group, OverlayId overl
 
 		const auto overlay_data = Data::MapOverlay::require(overlay_id);
 
-		auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(), std::move(overlay_group),
+		auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(), overlay_group_name.str(),
 			overlay_id.get(), x, y, overlay_data->reward_resource_id.get(), overlay_data->reward_resource_amount);
 		obj->async_save(true);
 		return obj;
@@ -54,8 +53,8 @@ Overlay::~Overlay(){
 Coord Overlay::get_cluster_coord() const {
 	return Coord(m_obj->get_cluster_x(), m_obj->get_cluster_y());
 }
-const std::string &Overlay::get_overlay_group() const {
-	return m_obj->unlocked_get_overlay_group();
+OverlayGroupName Overlay::get_overlay_group_name() const {
+	return OverlayGroupName(m_obj->unlocked_get_overlay_group_name());
 }
 OverlayId Overlay::get_overlay_id() const {
 	return OverlayId(m_obj->get_overlay_id());
@@ -75,16 +74,16 @@ boost::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, boost:
 	PROFILE_ME;
 
 	const auto cluster_coord = get_cluster_coord();
-	const auto &overlay_group = get_overlay_group();
+	const auto &overlay_group_name = get_overlay_group_name();
 	const auto overlay_id = get_overlay_id();
 	const auto amount = std::min(get_resource_amount(), max_amount);
 	if(amount == 0){
-		LOG_EMPERY_CENTER_DEBUG("No resource can be harvested: cluster_coord = ", cluster_coord, ", overlay_group = ", overlay_group);
+		LOG_EMPERY_CENTER_DEBUG("No resource can be harvested: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 		return 0;
 	}
 	const auto overlay_data = Data::MapOverlay::require(overlay_id);
 	const auto resource_id = overlay_data->reward_resource_id;
-	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: cluster_coord = ", cluster_coord, ", overlay_group = ", overlay_group,
+	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,
 		", resource_id = ", resource_id, ", amount = ", amount);
 
 	std::vector<ResourceTransactionElement> transaction;
@@ -95,45 +94,38 @@ boost::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, boost:
 	return amount;
 }
 
+bool Overlay::is_virtually_removed() const {
+	return get_resource_amount() == 0;
+}
 void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	const auto resource_amount = get_resource_amount();
-	if(resource_amount == 0){
+	if(is_virtually_removed()){
 		Msg::SC_MapOverlayRemoved msg;
-		msg.cluster_x       = get_cluster_coord().x();
-		msg.cluster_y       = get_cluster_coord().y();
-		msg.overlay_group   = get_overlay_group();
+		msg.cluster_x          = get_cluster_coord().x();
+		msg.cluster_y          = get_cluster_coord().y();
+		msg.overlay_group_name = get_overlay_group_name().str();
 		session->send(msg);
 	} else {
 		Msg::SC_MapOverlayInfo msg;
-		msg.cluster_x       = get_cluster_coord().x();
-		msg.cluster_y       = get_cluster_coord().y();
-		msg.overlay_group   = get_overlay_group();
-		msg.overlay_id      = get_overlay_id().get();
-		msg.resource_amount = get_resource_amount();
+		msg.cluster_x          = get_cluster_coord().x();
+		msg.cluster_y          = get_cluster_coord().y();
+		msg.overlay_group_name = get_overlay_group_name().str();
+		msg.overlay_id         = get_overlay_id().get();
+		msg.resource_amount    = get_resource_amount();
 		session->send(msg);
 	}
 }
 void Overlay::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
 	PROFILE_ME;
 
-	const auto resource_amount = get_resource_amount();
-	if(resource_amount == 0){
-		Msg::SK_MapRemoveOverlay msg;
-		msg.cluster_x       = get_cluster_coord().x();
-		msg.cluster_y       = get_cluster_coord().y();
-		msg.overlay_group   = get_overlay_group();
-		cluster->send(msg);
-	} else {
-		Msg::SK_MapAddOverlay msg;
-		msg.cluster_x       = get_cluster_coord().x();
-		msg.cluster_y       = get_cluster_coord().y();
-		msg.overlay_group   = get_overlay_group();
-		msg.overlay_id      = get_overlay_id().get();
-		msg.resource_amount = get_resource_amount();
-		cluster->send(msg);
-	}
+	Msg::SK_MapAddOverlay msg;
+	msg.cluster_x          = get_cluster_coord().x();
+	msg.cluster_y          = get_cluster_coord().y();
+	msg.overlay_group_name = get_overlay_group_name().str();
+	msg.overlay_id         = get_overlay_id().get();
+	msg.resource_amount    = get_resource_amount();
+	cluster->send(msg);
 }
 
 }
