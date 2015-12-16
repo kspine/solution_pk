@@ -45,12 +45,13 @@ namespace {
 	struct OverlayElement {
 		boost::shared_ptr<Overlay> overlay;
 
-		std::pair<Coord, OverlayGroupName> cluster_coord_group_name;
+		std::pair<Coord, SharedNts> cluster_coord_group_name;
 		Coord coord;
 
 		explicit OverlayElement(boost::shared_ptr<Overlay> overlay_)
 			: overlay(std::move(overlay_))
-			, cluster_coord_group_name(overlay->get_cluster_coord(), overlay->get_overlay_group_name()), coord(overlay->get_coord())
+			, cluster_coord_group_name(overlay->get_cluster_coord(), SharedNts(overlay->get_overlay_group_name()))
+			, coord(overlay->get_coord())
 		{
 		}
 	};
@@ -584,7 +585,7 @@ _exit_while:
 	;
 }
 
-boost::shared_ptr<Overlay> WorldMap::get_overlay(Coord coord, OverlayGroupName overlay_group_name){
+boost::shared_ptr<Overlay> WorldMap::get_overlay(Coord coord, const std::string &overlay_group_name){
 	PROFILE_ME;
 
 	const auto overlay_map = g_overlay_map.lock();
@@ -594,14 +595,14 @@ boost::shared_ptr<Overlay> WorldMap::get_overlay(Coord coord, OverlayGroupName o
 	}
 
 	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
-	const auto it = overlay_map->find<0>(std::make_pair(cluster_coord, overlay_group_name));
+	const auto it = overlay_map->find<0>(std::make_pair(cluster_coord, SharedNts::view(overlay_group_name.c_str())));
 	if(it == overlay_map->end<0>()){
 		LOG_EMPERY_CENTER_TRACE("Overlay not found: coord = ", coord, ", overlay_group_name = ", overlay_group_name);
 		return { };
 	}
 	return it->overlay;
 }
-boost::shared_ptr<Overlay> WorldMap::require_overlay(Coord coord, OverlayGroupName overlay_group_name){
+boost::shared_ptr<Overlay> WorldMap::require_overlay(Coord coord, const std::string &overlay_group_name){
 	PROFILE_ME;
 
 	auto ret = get_overlay(coord, overlay_group_name);
@@ -620,7 +621,7 @@ void WorldMap::insert_overlay(const boost::shared_ptr<Overlay> &overlay){
 	}
 
 	const auto cluster_coord = overlay->get_cluster_coord();
-	const auto &overlay_group_name = overlay->get_overlay_group_name();
+	const auto overlay_group_name = overlay->get_overlay_group_name();
 	const auto coord = overlay->get_coord();
 
 	LOG_EMPERY_CENTER_TRACE("Inserting overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
@@ -645,10 +646,10 @@ void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool th
 	}
 
 	const auto cluster_coord = overlay->get_cluster_coord();
-	const auto &overlay_group_name = overlay->get_overlay_group_name();
+	const auto overlay_group_name = overlay->get_overlay_group_name();
 	const auto coord = overlay->get_coord();
 
-	const auto it = overlay_map->find<0>(std::make_pair(cluster_coord, overlay_group_name));
+	const auto it = overlay_map->find<0>(std::make_pair(cluster_coord, SharedNts::view(overlay_group_name.c_str())));
 	if(it == overlay_map->end<0>()){
 		LOG_EMPERY_CENTER_WARNING("Overlay not found: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 		if(throws_if_not_exists){
@@ -1181,7 +1182,7 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 
 	const auto scope = get_cluster_scope_by_coord(coord);
 	const auto cluster_coord = scope.bottom_left();
-	LOG_EMPERY_CENTER_INFO("Initiating map cells for cluster server: scope = ", scope);
+	LOG_EMPERY_CENTER_INFO("Initiating map for cluster server: scope = ", scope);
 
 	for(unsigned map_y = 0; map_y < scope.height(); ++map_y){
 		for(unsigned map_x = 0; map_x < scope.width(); ++map_x){
@@ -1194,7 +1195,7 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 			}
 
 			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
-			if(basic_data->overlay_group_name && basic_data->overlay_id){
+			if(!basic_data->overlay_group_name.empty() && basic_data->overlay_id){
 				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
 				if(!overlay){
 					overlay = boost::make_shared<Overlay>(cluster_coord, basic_data->overlay_group_name, basic_data->overlay_id);

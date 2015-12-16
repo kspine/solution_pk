@@ -149,7 +149,7 @@ namespace Data {
 		return ret;
 	}
 
-	void MapCellBasic::get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, OverlayGroupName overlay_group_name){
+	void MapCellBasic::get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group_name){
 		PROFILE_ME;
 
 		const auto basic_map = g_basic_map.lock();

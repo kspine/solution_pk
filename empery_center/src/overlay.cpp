@@ -17,7 +17,7 @@
 
 namespace EmperyCenter {
 
-Overlay::Overlay(Coord cluster_coord, OverlayGroupName overlay_group_name, OverlayId overlay_id)
+Overlay::Overlay(Coord cluster_coord, const std::string &overlay_group_name, OverlayId overlay_id)
 	: m_obj([&]{
 		std::vector<boost::shared_ptr<const Data::MapCellBasic>> cells_in_group;
 		Data::MapCellBasic::get_by_overlay_group(cells_in_group, overlay_group_name);
@@ -36,7 +36,7 @@ Overlay::Overlay(Coord cluster_coord, OverlayGroupName overlay_group_name, Overl
 
 		const auto overlay_data = Data::MapOverlay::require(overlay_id);
 
-		auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(), overlay_group_name.str(),
+		auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(), overlay_group_name,
 			overlay_id.get(), x, y, overlay_data->reward_resource_id.get(), overlay_data->reward_resource_amount);
 		obj->async_save(true);
 		return obj;
@@ -53,8 +53,8 @@ Overlay::~Overlay(){
 Coord Overlay::get_cluster_coord() const {
 	return Coord(m_obj->get_cluster_x(), m_obj->get_cluster_y());
 }
-OverlayGroupName Overlay::get_overlay_group_name() const {
-	return OverlayGroupName(m_obj->unlocked_get_overlay_group_name());
+const std::string &Overlay::get_overlay_group_name() const {
+	return m_obj->unlocked_get_overlay_group_name();
 }
 OverlayId Overlay::get_overlay_id() const {
 	return OverlayId(m_obj->get_overlay_id());
