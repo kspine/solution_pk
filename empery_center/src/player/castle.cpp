@@ -483,7 +483,12 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
 
 		map_cell->pump_status();
 
-		const auto max_amount = max_amounts.at(resource_id);
+		const auto rit = max_amounts.find(resource_id);
+		if(rit == max_amounts.end()){
+			LOG_EMPERY_CENTER_DEBUG("There is no warehouse? map_object_uuid = ", map_object_uuid);
+			continue;
+		}
+		const auto max_amount = rit->second;
 		const auto current_amount = castle->get_resource(resource_id).amount;
 		const auto amount_harvested = map_cell->harvest(castle, saturated_sub(max_amount, current_amount));
 		if(amount_harvested == 0){
