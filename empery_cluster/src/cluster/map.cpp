@@ -4,6 +4,7 @@
 #include "../../../empery_center/src/msg/err_map.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_cell.hpp"
+#include "../overlay.hpp"
 #include "../map_object.hpp"
 
 namespace EmperyCluster {
@@ -18,9 +19,9 @@ CLUSTER_SERVLET(Msg::SK_MapClusterRegistrationSucceeded, cluster, req){
 }
 
 CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
-	const auto coord              = Coord(req.x, req.y);
-	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
-	const auto owner_uuid         = AccountUuid(req.owner_uuid);
+	auto coord              = Coord(req.x, req.y);
+	auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
+	auto owner_uuid         = AccountUuid(req.owner_uuid);
 
 	boost::container::flat_map<AttributeId, boost::int64_t> attributes;
 	attributes.reserve(req.attributes.size());
@@ -96,6 +97,18 @@ CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
 }
 
 CLUSTER_SERVLET(Msg::SK_MapAddOverlay, cluster, req){
+	auto cluster_coord      = Coord(req.cluster_x, req.cluster_y);
+	auto overlay_group_name = std::move(req.overlay_group_name);
+	auto overlay_id         = OverlayId(req.overlay_id);
+	auto coord              = Coord(req.x, req.y);
+	auto resource_id        = ResourceId(req.resource_id);
+	auto resource_amount    = req.resource_amount;
+
+	LOG_EMPERY_CLUSTER_TRACE("Creating map overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,
+		", overlay_id = ", overlay_id, ", coord = ", coord, ", resource_id = ", resource_id, ", resource_amount = ", resource_amount);
+	const auto overlay = boost::make_shared<Overlay>(
+		cluster_coord, std::move(overlay_group_name), overlay_id, coord, resource_id, resource_amount);
+	WorldMap::replace_overlay_no_synchronize(cluster, overlay);
 
 	return Response();
 }

@@ -56,12 +56,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(OverlayMap, OverlayElement,
+	MULTI_INDEX_MAP(OverlayMapContainer, OverlayElement,
 		UNIQUE_MEMBER_INDEX(cluster_coord_group_name)
 		MULTI_MEMBER_INDEX(coord)
 	)
 
-	boost::weak_ptr<OverlayMap> g_overlay_map;
+	boost::weak_ptr<OverlayMapContainer> g_overlay_map;
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -208,7 +208,7 @@ namespace {
 		handles.push(map_cell_map);
 
 		// Overlay
-		const auto overlay_map = boost::make_shared<OverlayMap>();
+		const auto overlay_map = boost::make_shared<OverlayMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading overlays...");
 		conn->execute_sql("SELECT * FROM `Center_Overlay` WHERE `resource_amount` > 0");
 		while(conn->fetch_row()){

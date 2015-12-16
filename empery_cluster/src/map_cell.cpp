@@ -1,9 +1,5 @@
 #include "precompiled.hpp"
 #include "map_cell.hpp"
-#include <poseidon/singletons/timer_daemon.hpp>
-#include "cluster_client.hpp"
-#include "singletons/world_map.hpp"
-#include "checked_arithmetic.hpp"
 
 namespace EmperyCluster {
 
@@ -33,27 +29,5 @@ void MapCell::get_attributes(boost::container::flat_map<AttributeId, boost::int6
 		ret[it->first] = it->second;
 	}
 }
-/*void MapCell::set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers){
-	PROFILE_ME;
-
-	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
-		m_attributes.emplace(it->first, 0);
-	}
-
-	bool dirty = false;
-	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
-		auto &value = m_attributes.at(it->first);
-		if(value == it->second){
-			continue;
-		}
-		value = it->second;
-		++dirty;
-	}
-	if(!dirty){
-	    return;
-	}
-
-	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
-}*/
 
 }

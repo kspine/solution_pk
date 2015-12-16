@@ -36,7 +36,6 @@ public:
 
 	boost::int64_t get_attribute(AttributeId map_object_attr_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
-	// void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 };
 
 }

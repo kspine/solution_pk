@@ -20,7 +20,7 @@ private:
 	boost::shared_ptr<MySql::Center_Overlay> m_obj;
 
 public:
-	Overlay(Coord cluster_coord, const std::string &overlay_group_name, OverlayId overlay_id);
+	Overlay(Coord cluster_coord, std::string overlay_group_name, OverlayId overlay_id);
 	explicit Overlay(boost::shared_ptr<MySql::Center_Overlay> obj);
 	~Overlay();
 
