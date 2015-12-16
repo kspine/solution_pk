@@ -13,13 +13,32 @@
 #include "data/map.hpp"
 #include "singletons/account_map.hpp"
 #include "data/global.hpp"
+#include "data/map.hpp"
 
 namespace EmperyCenter {
 
-Overlay::Overlay(Coord cluster_coord, std::string overlay_group, OverlayId overlay_id, boost::uint64_t resource_amount)
+Overlay::Overlay(Coord cluster_coord, std::string overlay_group, OverlayId overlay_id)
 	: m_obj([&]{
-		auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(),
-			std::move(overlay_group), overlay_id.get(), resource_amount);
+		LOG_EMPERY_CENTER_DEBUG("Creating overlay: overlay_id = ", overlay_id);
+		std::vector<boost::shared_ptr<const Data::MapCellBasic>> cells_in_group;
+		Data::MapCellBasic::get_by_overlay_group(cells_in_group, overlay_group);
+		if(cells_in_group.empty()){
+			LOG_EMPERY_CENTER_ERROR("No cells in overlay group? overlay_group = ", overlay_group);
+			DEBUG_THROW(Exception, sslit("No cells in overlay group"));
+		}
+		boost::uint64_t sum_x = 0, sum_y = 0;
+		for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
+			const auto &basic_data = *it;
+			sum_x = checked_add(sum_x, static_cast<boost::uint64_t>(basic_data->map_coord.first));
+			sum_y = checked_add(sum_y, static_cast<boost::uint64_t>(basic_data->map_coord.second));
+		}
+		const auto x = cluster_coord.x() + static_cast<long>(sum_x / cells_in_group.size());
+		const auto y = cluster_coord.y() + static_cast<long>(sum_y / cells_in_group.size());
+
+		const auto overlay_data = Data::MapOverlay::require(overlay_id);
+
+		auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(), std::move(overlay_group),
+			overlay_id.get(), x, y, overlay_data->reward_resource_id.get(), overlay_data->reward_resource_amount);
 		obj->async_save(true);
 		return obj;
 	}())
@@ -42,14 +61,12 @@ OverlayId Overlay::get_overlay_id() const {
 	return OverlayId(m_obj->get_overlay_id());
 }
 
-std::string Overlay::get_overlay_unique_name() const {
-	PROFILE_ME;
-
-	std::ostringstream oss;
-	oss <<get_cluster_coord() <<',' <<get_overlay_group();
-	return oss.str();
+Coord Overlay::get_coord() const {
+	return Coord(m_obj->get_x(), m_obj->get_y());
 }
-
+ResourceId Overlay::get_resource_id() const {
+	return ResourceId(m_obj->get_resource_id());
+}
 boost::uint64_t Overlay::get_resource_amount() const {
 	return m_obj->get_resource_amount();
 }

@@ -256,15 +256,9 @@ void WorldMap::replace_map_cell_no_synchronize(const boost::shared_ptr<ClusterCl
 		DEBUG_THROW(Exception, sslit("Map cell map not loaded"));
 	}
 
-	const auto coord = map_cell->get_coord();
-
-	auto it = map_cell_map->find<0>(coord);
-	if(it == map_cell_map->end<0>()){
-		LOG_EMPERY_CLUSTER_TRACE("Creating new map cell: coord = ", coord);
-		it = map_cell_map->insert<0>(it, MapCellElement(map_cell, master));
-	} else {
-		LOG_EMPERY_CLUSTER_TRACE("Replacing existent map cell: coord = ", coord);
-		map_cell_map->replace<0>(it, MapCellElement(map_cell, master));
+	const auto result = map_cell_map->insert(MapCellElement(map_cell, master));
+	if(!result.second){
+		map_cell_map->replace(result.first, MapCellElement(map_cell, master));
 	}
 }
 
@@ -331,15 +325,9 @@ void WorldMap::replace_map_object_no_synchronize(const boost::shared_ptr<Cluster
 		DEBUG_THROW(Exception, sslit("Map object map not loaded"));
 	}
 
-	const auto map_object_uuid = map_object->get_map_object_uuid();
-
-	auto it = map_object_map->find<0>(map_object_uuid);
-	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CLUSTER_TRACE("Creating new map object: map_object_uuid = ", map_object_uuid);
-		it = map_object_map->insert<0>(it, MapObjectElement(map_object, master));
-	} else {
-		LOG_EMPERY_CLUSTER_TRACE("Replacing existent map object: map_object_uuid = ", map_object_uuid);
-		map_object_map->replace<0>(it, MapObjectElement(map_object, master));
+	const auto result = map_object_map->insert(MapObjectElement(map_object, master));
+	if(!result.second){
+		map_object_map->replace(result.first, MapObjectElement(map_object, master));
 	}
 }
 void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterClient> & /* master */, MapObjectUuid map_object_uuid) noexcept {
@@ -574,15 +562,13 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Rect
 	}
 
 	LOG_EMPERY_CLUSTER_INFO("Setting up cluster client: scope = ", scope);
-	auto it = cluster_map->find<0>(scope.bottom_left());
-	if(it == cluster_map->end<0>()){
-		it = cluster_map->insert<0>(it, ClusterElement(scope, cluster));
-	} else {
-		if(!it->cluster.expired()){
+	const auto result = cluster_map->insert(ClusterElement(scope, cluster));
+	if(!result.second){
+		if(!result.first->cluster.expired()){
 			LOG_EMPERY_CLUSTER_WARNING("Cluster server conflict:  scope = ", scope);
 			DEBUG_THROW(Exception, sslit("Cluster server conflict"));
 		}
-		cluster_map->set_key<0, 1>(it, cluster);
+		cluster_map->replace(result.first, ClusterElement(scope, cluster));
 	}
 }
 

@@ -161,14 +161,11 @@ void AnnouncementMap::insert(const boost::shared_ptr<Announcement> &announcement
 	const auto announcement_uuid = announcement->get_announcement_uuid();
 	const auto language_id = announcement->get_language_id();
 
-	const auto it = announcement_map->find<0>(std::make_pair(announcement_uuid, language_id));
-	if(it != announcement_map->end<0>()){
+	LOG_EMPERY_CENTER_DEBUG("Inserting announcement: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
+	if(!announcement_map->insert(AnnouncementElement(announcement)).second){
 		LOG_EMPERY_CENTER_WARNING("Announcement already exists: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
 		DEBUG_THROW(Exception, sslit("Announcement already exists"));
 	}
-
-	LOG_EMPERY_CENTER_DEBUG("Inserting announcement: announcement_uuid = ", announcement_uuid, ", language_id = ", language_id);
-	announcement_map->insert(AnnouncementElement(announcement));
 
 	synchronize_announcement_all(announcement);
 }

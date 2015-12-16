@@ -86,9 +86,7 @@ namespace {
 			csv.get(elem.terrain_id,       "territory_id");
 
 			csv.get(elem.best_resource_id, "production");
-			double rate = 0;
-			csv.get(rate,                  "output_perminute");
-			elem.best_production_rate = rate / 60000.0;
+			csv.get(elem.best_capacity,    "output_perminute");
 			csv.get(elem.best_capacity,    "resource_max");
 			csv.get(elem.buildable,        "construction");
 

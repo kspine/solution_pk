@@ -309,14 +309,13 @@ void MailBoxMap::insert_mail_data(boost::shared_ptr<MailData> mail_data){
 	const auto mail_uuid = mail_data->get_mail_uuid();
 	const auto language_id = mail_data->get_language_id();
 
-	auto it = mail_data_map->find<0>(std::make_pair(mail_uuid, language_id));
-	if(it != mail_data_map->end<0>()){
+	const auto result = mail_data_map->insert(MailDataElement(mail_uuid, language_id, 0));
+	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Mail data already exists: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 		DEBUG_THROW(Exception, sslit("Mail data already exists"));
 	}
-	it = mail_data_map->insert<0>(it, MailDataElement(mail_uuid, language_id, 0));
 
-	it->mail_data = std::move(mail_data);
+	result.first->mail_data = std::move(mail_data);
 }
 
 }

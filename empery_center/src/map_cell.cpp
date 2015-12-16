@@ -74,8 +74,12 @@ void MapCell::pump_status(){
 			production_rate *= acc_card_rate_modifier;
 			capacity        *= acc_card_capacity_modifier;
 		}
-		production_rate = std::max(production_rate, 0.0);
-		capacity        = std::max(capacity,        0.0);
+		if(production_rate < 0){
+			production_rate = 0;
+		}
+		if(capacity < 0){
+			capacity = 0;
+		}
 		LOG_EMPERY_CENTER_DEBUG("Checking map cell production: coord = ", get_coord(),
 			", terrain_id = ", terrain_id, ", acc_card_applied = ", acc_card_applied,
 			", ticket_item_id = ", ticket_item_id, ", production_resource_id = ", production_resource_id,
@@ -87,7 +91,7 @@ void MapCell::pump_status(){
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
 		const auto new_resource_amount = std::min(
 			saturated_add(old_resource_amount,
-				static_cast<boost::uint64_t>(std::round(production_duration * production_rate))),
+				static_cast<boost::uint64_t>(std::round(production_duration * production_rate / 60000.0))),
 			static_cast<boost::uint64_t>(std::round(capacity)));
 		LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
 			", terrain_id = ", terrain_id, ", new_resource_amount = ", new_resource_amount);

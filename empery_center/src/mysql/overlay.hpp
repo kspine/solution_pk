@@ -13,6 +13,9 @@ namespace MySql {
 	FIELD_BIGINT            (cluster_y)	\
 	FIELD_STRING            (overlay_group)	\
 	FIELD_INTEGER_UNSIGNED  (overlay_id)	\
+	FIELD_BIGINT            (x)	\
+	FIELD_BIGINT            (y)	\
+	FIELD_INTEGER_UNSIGNED  (resource_id)	\
 	FIELD_BIGINT_UNSIGNED   (resource_amount)
 #include <poseidon/mysql/object_generator.hpp>
 

@@ -236,12 +236,9 @@ namespace {
 			const auto expiry_time = saturated_add(now, cache_timeout);
 
 			const auto update_cache = [&](CacheType type){
-				auto elem = InfoCacheElement(expiry_time, account_uuid, session, type);
-				auto it = g_info_cache_map->find<1>(elem.key);
-				if(it == g_info_cache_map->end<1>()){
-					it = g_info_cache_map->insert<1>(it, std::move(elem));
-				} else {
-					g_info_cache_map->replace<1>(it, std::move(elem));
+				const auto result = g_info_cache_map->insert(InfoCacheElement(expiry_time, account_uuid, session, type));
+				if(!result.second){
+					g_info_cache_map->replace(result.first, InfoCacheElement(expiry_time, account_uuid, session, type));
 				}
 			};
 
@@ -333,17 +330,14 @@ void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::st
 
 	const auto account_uuid = account->get_account_uuid();
 
-	const auto it = g_account_map->find<0>(account_uuid);
-	if(it != g_account_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Account already exists: account_uuid = ", account_uuid);
-		DEBUG_THROW(Exception, sslit("Account already exists"));
-	}
-
 	const auto withdrawn = boost::make_shared<bool>(true);
 	Poseidon::async_raise_event(boost::make_shared<Events::AccountCreated>(account_uuid, remote_ip), withdrawn);
 
 	LOG_EMPERY_CENTER_DEBUG("Inserting account: account_uuid = ", account_uuid);
-	g_account_map->insert(AccountElement(account));
+	if(!g_account_map->insert(AccountElement(account)).second){
+		LOG_EMPERY_CENTER_WARNING("Account already exists: account_uuid = ", account_uuid);
+		DEBUG_THROW(Exception, sslit("Account already exists"));
+	}
 
 	*withdrawn = false;
 

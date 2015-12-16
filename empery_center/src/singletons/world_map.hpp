@@ -27,6 +27,12 @@ struct WorldMap {
 	static void get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
 
+	// Overlay
+	static boost::shared_ptr<Overlay> get_overlay(Coord coord, const std::string &overlay_group);
+	static boost::shared_ptr<Overlay> require_overlay(Coord coord, const std::string &overlay_group);
+	static void insert_overlay(const boost::shared_ptr<Overlay> &overlay);
+	static void update_overlay(const boost::shared_ptr<Overlay> &overlay, bool throws_if_not_exists = true);
+
 	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
 	static void insert_map_object(const boost::shared_ptr<MapObject> &map_object);

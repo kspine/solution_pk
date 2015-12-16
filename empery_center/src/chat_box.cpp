@@ -102,12 +102,11 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 	}
 
 	const auto chat_message_uuid = message->get_chat_message_uuid();
-	auto it = messages->find<0>(chat_message_uuid);
-	if(it != messages->end<0>()){
+	const auto result = messages->insert(MessageElement(message));
+	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Chat message exists: account_uuid = ", get_account_uuid(), ", chat_message_uuid = ", chat_message_uuid);
 		DEBUG_THROW(Exception, sslit("Chat message exists"));
 	}
-	it = messages->insert<0>(MessageElement(message)).first;
 
 	const auto channel_lower = messages->lower_bound<1>(std::make_pair(channel, 0));
 	auto channel_upper = messages->upper_bound<1>(std::make_pair(channel, UINT64_MAX));
