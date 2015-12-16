@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "data_session.hpp"
+#include <boost/container/flat_map.hpp>
 #include <poseidon/http/verbs.hpp>
 #include <poseidon/http/status_codes.hpp>
 #include <poseidon/http/exception.hpp>
@@ -14,7 +15,7 @@ namespace EmperyCenter {
 using SerializedData = DataSession::SerializedData;
 
 namespace {
-	std::map<std::string, boost::weak_ptr<const SerializedData>> g_servlet_map;
+	boost::container::flat_map<std::string, boost::weak_ptr<const SerializedData>> g_servlet_map;
 }
 
 DataSession::DataSession(Poseidon::UniqueFile socket, std::string prefix)
@@ -28,6 +29,12 @@ DataSession::~DataSession(){
 boost::shared_ptr<const SerializedData> DataSession::create_servlet(const std::string &name, const Poseidon::JsonArray &data){
 	PROFILE_ME;
 
+	auto &weak = g_servlet_map[name];
+	if(!weak.expired()){
+		LOG_EMPERY_CENTER_ERROR("Duplicate data HTTP servlet: name = ", name);
+		DEBUG_THROW(Exception, sslit("Duplicate data HTTP servlet"));
+	}
+
 	auto utf8_string = data.dump();
 	if(!Poseidon::is_valid_utf8_string(utf8_string)){
 		DEBUG_THROW(Exception, sslit("Invalid UTF-8 string"));
@@ -38,10 +45,7 @@ boost::shared_ptr<const SerializedData> DataSession::create_servlet(const std::s
 	auto servlet = boost::make_shared<SerializedData>();
 	servlet->utf8_string = std::move(utf8_string);
 	servlet->md5_entry = Poseidon::JsonElement(name).dump() + ':' + Poseidon::JsonElement(std::move(md5_as_hex)).dump();
-	if(!g_servlet_map.insert(std::make_pair(name, servlet)).second){
-		LOG_EMPERY_CENTER_ERROR("Duplicate data HTTP servlet: name = ", name);
-		DEBUG_THROW(Exception, sslit("Duplicate data HTTP servlet"));
-	}
+	weak = servlet;
 	return std::move(servlet);
 }
 boost::shared_ptr<const SerializedData> DataSession::get_servlet(const std::string &uri){

@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "cluster_session.hpp"
+#include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
 #include <poseidon/async_job.hpp>
@@ -14,21 +15,19 @@ using Result          = ClusterSession::Result;
 using ServletCallback = ClusterSession::ServletCallback;
 
 namespace {
-	std::map<unsigned, boost::weak_ptr<const ServletCallback> > g_servlet_map;
+	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback> > g_servlet_map;
 }
 
 boost::shared_ptr<const ServletCallback> ClusterSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
-	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
-	const auto result = g_servlet_map.insert(std::make_pair(message_id, servlet));
-	if(!result.second){
-		if(!result.first->second.expired()){
-			LOG_EMPERY_CENTER_ERROR("Duplicate cluster servlet: message_id = ", message_id);
-			DEBUG_THROW(Exception, sslit("Duplicate cluster servlet"));
-		}
-		result.first->second = servlet;
+	auto &weak = g_servlet_map[message_id];
+	if(!weak.expired()){
+		LOG_EMPERY_CENTER_ERROR("Duplicate cluster servlet: message_id = ", message_id);
+		DEBUG_THROW(Exception, sslit("Duplicate cluster servlet"));
 	}
+	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
+	weak = servlet;
 	return std::move(servlet);
 }
 boost::shared_ptr<const ServletCallback> ClusterSession::get_servlet(boost::uint16_t message_id){

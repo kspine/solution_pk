@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "player_session.hpp"
+#include <boost/container/flat_map.hpp>
 #include <poseidon/async_job.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/cbpp/control_codes.hpp>
@@ -21,7 +22,7 @@ namespace EmperyCenter {
 using ServletCallback = PlayerSession::ServletCallback;
 
 namespace {
-	std::map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
+	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
 class PlayerSession::WebSocketImpl : public Poseidon::WebSocket::Session {
@@ -96,13 +97,14 @@ protected:
 boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
-	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
-	auto &weak_servlet = g_servlet_map[message_id];
-	if(!weak_servlet.expired()){
+	auto &weak = g_servlet_map[message_id];
+	if(!weak.expired()){
 		LOG_EMPERY_CENTER_ERROR("Duplicate player servlet: message_id = ", message_id);
 		DEBUG_THROW(Exception, sslit("Duplicate player servlet"));
 	}
-	weak_servlet = servlet;
+
+	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
+	weak = servlet;
 	return std::move(servlet);
 }
 boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(boost::uint16_t message_id){

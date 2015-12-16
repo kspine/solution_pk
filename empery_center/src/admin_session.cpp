@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "admin_session.hpp"
+#include <boost/container/flat_map.hpp>
 #include <poseidon/http/verbs.hpp>
 #include <poseidon/http/status_codes.hpp>
 #include <poseidon/http/exception.hpp>
@@ -14,7 +15,7 @@ namespace EmperyCenter {
 using ServletCallback = AdminHttpSession::ServletCallback;
 
 namespace {
-	std::map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
+	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
 AdminHttpSession::AdminHttpSession(Poseidon::UniqueFile socket,
@@ -29,11 +30,13 @@ AdminHttpSession::~AdminHttpSession(){
 boost::shared_ptr<const ServletCallback> AdminHttpSession::create_servlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
-	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
-	if(!g_servlet_map.insert(std::make_pair(uri, servlet)).second){
+	auto &weak = g_servlet_map[uri];
+	if(!weak.expired()){
 		LOG_EMPERY_CENTER_ERROR("Duplicate admin HTTP servlet: uri = ", uri);
 		DEBUG_THROW(Exception, sslit("Duplicate admin HTTP servlet"));
 	}
+	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
+	weak = servlet;
 	return std::move(servlet);
 }
 boost::shared_ptr<const ServletCallback> AdminHttpSession::get_servlet(const std::string &uri){

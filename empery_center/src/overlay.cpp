@@ -84,13 +84,17 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	const auto resource_amount = get_resource_amount();
 	if(resource_amount == 0){
 		Msg::SC_MapOverlayRemoved msg;
-		msg.overlay_unique_name = get_overlay_unique_name();
+		msg.cluster_x       = get_cluster_coord().x();
+		msg.cluster_y       = get_cluster_coord().y();
+		msg.overlay_group   = get_overlay_group();
 		session->send(msg);
 	} else {
 		Msg::SC_MapOverlayInfo msg;
-		msg.overlay_unique_name = get_overlay_unique_name();
-		msg.overlay_id          = get_overlay_id().get();
-		msg.resource_amount     = get_resource_amount();
+		msg.cluster_x       = get_cluster_coord().x();
+		msg.cluster_y       = get_cluster_coord().y();
+		msg.overlay_group   = get_overlay_group();
+		msg.overlay_id      = get_overlay_id().get();
+		msg.resource_amount = get_resource_amount();
 		session->send(msg);
 	}
 }
@@ -100,13 +104,17 @@ void Overlay::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &
 	const auto resource_amount = get_resource_amount();
 	if(resource_amount == 0){
 		Msg::SK_MapRemoveOverlay msg;
-		msg.overlay_unique_name = get_overlay_unique_name();
+		msg.cluster_x       = get_cluster_coord().x();
+		msg.cluster_y       = get_cluster_coord().y();
+		msg.overlay_group   = get_overlay_group();
 		cluster->send(msg);
 	} else {
 		Msg::SK_MapAddOverlay msg;
-		msg.overlay_unique_name = get_overlay_unique_name();
-		msg.overlay_id          = get_overlay_id().get();
-		msg.resource_amount     = get_resource_amount();
+		msg.cluster_x       = get_cluster_coord().x();
+		msg.cluster_y       = get_cluster_coord().y();
+		msg.overlay_group   = get_overlay_group();
+		msg.overlay_id      = get_overlay_id().get();
+		msg.resource_amount = get_resource_amount();
 		cluster->send(msg);
 	}
 }
