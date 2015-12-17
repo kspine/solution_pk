@@ -10,12 +10,21 @@
 
 namespace EmperyCluster {
 
+class ClusterClient;
+
 class MapObject : public virtual Poseidon::VirtualSharedFromThis {
 public:
+	enum Action {
+		ACT_GUARD               = 0,
+		ACT_ATTACK              = 1,
+		ACT_DEPLOY_INTO_CASTLE  = 2,
+		ACT_HARVEST_OVERLAY     = 3,
+	};
+
 	struct Waypoint {
-		boost::uint64_t delay; // 毫秒
-		boost::int64_t  dx;    // 相对坐标 X
-		boost::int64_t  dy;    // 相对坐标 Y
+		boost::uint64_t delay;  // 毫秒
+		boost::int64_t dx;      // 相对坐标 X
+		boost::int64_t dy;      // 相对坐标 Y
 
 		Waypoint(boost::uint64_t delay_, boost::int64_t dx_, boost::int64_t dy_)
 			: delay(delay_), dx(dx_), dy(dy_)
@@ -27,6 +36,7 @@ private:
 	const MapObjectUuid m_map_object_uuid;
 	const MapObjectTypeId m_map_object_type_id;
 	const AccountUuid m_owner_uuid;
+	const boost::weak_ptr<ClusterClient> m_cluster;
 
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
@@ -36,16 +46,18 @@ private:
 	// 移动。
 	std::deque<Waypoint> m_waypoints;
 	unsigned m_blocked_retry_count;
-	// 战斗。
-	MapObjectUuid m_attack_target_uuid;
+	// 移动完毕后动作。
+	Action m_action;
+	std::string m_action_param;
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
-		Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes);
+		boost::weak_ptr<ClusterClient> cluster, Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes);
 	~MapObject();
 
 private:
-	unsigned is_blocked(Coord new_coord) const;
+	// <error_code, delay>
+	std::pair<long, boost::uint64_t> pump_action();
 
 public:
 	MapObjectUuid get_map_object_uuid() const {
@@ -57,6 +69,9 @@ public:
 	AccountUuid get_owner_uuid() const {
 		return m_owner_uuid;
 	}
+	boost::shared_ptr<ClusterClient> get_cluster() const {
+		return m_cluster.lock();
+	}
 
 	Coord get_coord() const;
 	void set_coord(Coord coord);
@@ -65,7 +80,7 @@ public:
 	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
 
-	void set_action(Coord from_coord, std::deque<Waypoint> waypoints, MapObjectUuid attack_target_uuid);
+	void set_action(Coord from_coord, std::deque<Waypoint> waypoints, Action action, std::string action_param);
 };
 
 }

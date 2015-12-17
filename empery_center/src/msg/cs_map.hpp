@@ -39,7 +39,8 @@ namespace Msg {
 		FIELD_VINT          (dx)	\
 		FIELD_VINT          (dy)	\
 	)	\
-	FIELD_STRING		(attack_target_uuid)
+	FIELD_VUINT         (action)	\
+	FIELD_STRING		(param)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_MapPurchaseMapCell
@@ -58,14 +59,14 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
-
+/*
 #define MESSAGE_NAME    CS_MapDeployImmigrants
 #define MESSAGE_ID      306
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_STRING        (castle_name)
 #include <poseidon/cbpp/message_generator.hpp>
-
+*/
 #define MESSAGE_NAME    CS_MapStopTroops
 #define MESSAGE_ID      307
 #define MESSAGE_FIELDS  \

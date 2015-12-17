@@ -213,8 +213,8 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account_uuid, session, req){
 
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 	modifiers.reserve(2);
-	modifiers[AccountAttributeIds::ID_LAST_SIGNED_IN_TIME]       = boost::lexical_cast<std::string>(signed_in.sequential_days + 1);
-	modifiers[AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS] = boost::lexical_cast<std::string>(signed_in.now);
+	modifiers[AccountAttributeIds::ID_LAST_SIGNED_IN_TIME]       = boost::lexical_cast<std::string>(signed_in.now);
+	modifiers[AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS] = boost::lexical_cast<std::string>(signed_in.sequential_days + 1);
 
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, 1, decltype(req)::ID);

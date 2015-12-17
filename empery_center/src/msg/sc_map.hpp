@@ -80,7 +80,6 @@ namespace Msg {
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
 	FIELD_STRING        (overlay_group_name)	\
-	FIELD_VUINT         (overlay_id)	\
 	FIELD_VUINT         (resource_amount)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -90,6 +89,14 @@ namespace Msg {
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
 	FIELD_STRING        (overlay_group_name)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_MapObjectStopped
+#define MESSAGE_ID      391
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (action)	\
+	FIELD_VINT          (error_code)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

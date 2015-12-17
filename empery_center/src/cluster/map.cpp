@@ -6,6 +6,11 @@
 #include "../msg/kill.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
+#include "../map_object_type_ids.hpp"
+#include "../utilities.hpp"
+#include "../data/map.hpp"
+#include "../data/global.hpp"
+#include "../castle.hpp"
 
 namespace EmperyCenter {
 
@@ -91,6 +96,91 @@ CLUSTER_SERVLET(Msg::KS_MapRemoveMapObject, cluster, req){
 	}
 
 	map_object->delete_from_game();
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapHarvestOverlayResource, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	if(map_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_IMMIGRANTS) <<map_object_type_id;
+	}
+
+	const auto castle_coord = map_object->get_coord();
+	std::vector<Coord> foundation;
+	get_castle_foundation(foundation, castle_coord);
+	for(auto it = foundation.begin(); it != foundation.end(); ++it){
+		const auto &coord = *it;
+		const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(coord);
+		const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+		const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+		LOG_EMPERY_CENTER_DEBUG("Castle foundation: coord = ", coord, ", cluster_scope = ", cluster_scope,
+			", map_x = ", map_x, ", map_y = ", map_y);
+		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+		const auto terrain_data = Data::MapTerrain::require(cell_data->terrain_id);
+		if(!terrain_data->buildable){
+			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
+		}
+	}
+	// 检测与其他城堡距离。
+	const auto min_distance  = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
+
+	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(castle_coord);
+	const auto coll_left     = std::max(castle_coord.x() - (min_distance - 1), cluster_scope.left());
+	const auto coll_bottom   = std::max(castle_coord.y() - (min_distance - 1), cluster_scope.bottom());
+	const auto coll_right    = std::min(castle_coord.x() + (min_distance + 2), cluster_scope.right());
+	const auto coll_top      = std::max(castle_coord.y() + (min_distance + 2), cluster_scope.top());
+	std::vector<boost::shared_ptr<MapObject>> coll_map_objects;
+	WorldMap::get_map_objects_by_rectangle(coll_map_objects, Rectangle(Coord(coll_left, coll_bottom), Coord(coll_right, coll_top)));
+	for(auto it = coll_map_objects.begin(); it != coll_map_objects.end(); ++it){
+		const auto &other_object = *it;
+		const auto other_object_type_id = other_object->get_map_object_type_id();
+		if(other_object_type_id != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		const auto other_coord = other_object->get_coord();
+		const auto other_object_uuid = other_object->get_map_object_uuid();
+		LOG_EMPERY_CENTER_DEBUG("Checking distance: other_coord = ", other_coord, ", other_object_uuid = ", other_object_uuid);
+		const auto distance = get_distance_of_coords(other_coord, castle_coord);
+		if(distance <= min_distance){
+			return Response(Msg::ERR_TOO_CLOSE_TO_ANOTHER_CASTLE) <<other_object_uuid;
+		}
+	}
+
+	const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
+	const auto owner_uuid = map_object->get_owner_uuid();
+	const auto castle = boost::make_shared<Castle>(castle_uuid,
+		owner_uuid, map_object->get_parent_object_uuid(), std::move(req.castle_name), castle_coord);
+	castle->pump_status();
+	WorldMap::insert_map_object(castle);
+	LOG_EMPERY_CENTER_INFO("Created castle: castle_uuid = ", castle_uuid, ", owner_uuid = ", owner_uuid);
+	map_object->delete_from_game(); // noexcept
 
 	return Response();
 }

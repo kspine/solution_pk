@@ -60,7 +60,8 @@ namespace Msg {
 		FIELD_VINT          (dx)	\
 		FIELD_VINT          (dy)	\
 	)	\
-	FIELD_STRING        (attack_target_uuid)
+	FIELD_VUINT         (action)	\
+	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SK_MapAddOverlay

@@ -96,7 +96,7 @@ void ClusterClient::on_close(int err_code) noexcept {
 	LOG_EMPERY_CLUSTER_INFO("Cluster client closed: err_code = ", err_code);
 
 	try {
-		Poseidon::enqueue_async_job(std::bind([&](const boost::shared_ptr<void> &){
+		Poseidon::enqueue_async_job(std::bind([this](const boost::shared_ptr<void> &){
 			for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
 				const auto &promise = it->second.promise;
 				if(!promise || promise->is_satisfied()){

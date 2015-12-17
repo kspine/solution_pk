@@ -61,7 +61,8 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 
 		LOG_EMPERY_CLUSTER_DEBUG("Creating map object: map_object_uuid = ", map_object_uuid,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", coord = ", coord);
-		map_object = boost::make_shared<MapObject>(map_object_uuid, map_object_type_id, owner_uuid, coord, std::move(attributes));
+		map_object = boost::make_shared<MapObject>(map_object_uuid,
+			map_object_type_id, owner_uuid, cluster, coord, std::move(attributes));
 		WorldMap::replace_map_object_no_synchronize(cluster, map_object);
 	}
 
@@ -79,7 +80,6 @@ CLUSTER_SERVLET(Msg::SK_MapRemoveMapObject, cluster, req){
 
 CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
 	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
-	const auto attack_target_uuid = MapObjectUuid(req.attack_target_uuid);
 
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
@@ -91,7 +91,7 @@ CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
 	for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
 		waypoints.emplace_back(it->delay, it->dx, it->dy);
 	}
-	map_object->set_action(from_coord, std::move(waypoints), attack_target_uuid);
+	map_object->set_action(from_coord, std::move(waypoints), static_cast<MapObject::Action>(req.action), std::move(req.param));
 
 	return Response();
 }
