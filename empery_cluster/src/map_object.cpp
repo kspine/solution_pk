@@ -274,6 +274,8 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 				m_waypoints.clear();
 				m_action = ACT_GUARD;
 				m_action_param.clear();
+
+				m_action_timer.reset();
 				break;
 			}
 			m_next_action_time = checked_add(m_next_action_time, result.second);
@@ -290,7 +292,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 
 	if(!waypoints.empty() || (action != ACT_GUARD)){
 		if(!m_action_timer){
-			auto timer = Poseidon::TimerDaemon::register_absolute_timer(now, 1000,
+			auto timer = Poseidon::TimerDaemon::register_absolute_timer(now, 200,
 				std::bind(timer_proc, virtual_weak_from_this<MapObject>(), std::placeholders::_2));
 			LOG_EMPERY_CLUSTER_DEBUG("Created action timer: map_object_uuid = ", get_map_object_uuid());
 			m_action_timer = std::move(timer);
