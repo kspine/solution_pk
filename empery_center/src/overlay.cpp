@@ -26,10 +26,13 @@ Overlay::Overlay(Coord cluster_coord, std::string overlay_group_name, OverlayId 
 			DEBUG_THROW(Exception, sslit("No cells in overlay group"));
 		}
 		boost::uint64_t sum_x = 0, sum_y = 0;
+		boost::uint64_t sum_resources = 0;
 		for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
 			const auto &basic_data = *it;
 			sum_x = checked_add(sum_x, static_cast<boost::uint64_t>(basic_data->map_coord.first));
 			sum_y = checked_add(sum_y, static_cast<boost::uint64_t>(basic_data->map_coord.second));
+			const auto overlay_data = Data::MapOverlay::require(basic_data->overlay_id);
+			sum_resources = checked_add(sum_resources, overlay_data->reward_resource_amount);
 		}
 		const auto x = cluster_coord.x() + static_cast<long>(sum_x / cells_in_group.size());
 		const auto y = cluster_coord.y() + static_cast<long>(sum_y / cells_in_group.size());
@@ -37,7 +40,7 @@ Overlay::Overlay(Coord cluster_coord, std::string overlay_group_name, OverlayId 
 		const auto overlay_data = Data::MapOverlay::require(overlay_id);
 
 		auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(), std::move(overlay_group_name),
-			overlay_id.get(), x, y, overlay_data->reward_resource_id.get(), overlay_data->reward_resource_amount);
+			overlay_id.get(), x, y, overlay_data->reward_resource_id.get(), sum_resources);
 		obj->async_save(true);
 		return obj;
 	}())
