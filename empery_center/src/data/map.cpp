@@ -57,7 +57,7 @@ namespace {
 		g_basic_map = basic_map;
 		handles.push(basic_map);
 		auto servlet = DataSession::create_servlet(BASIC_FILE, Data::encode_csv_as_json(csv, "xy"));
-		handles.push(std::move(servlet));
+		// handles.push(std::move(servlet)); // XXX
 
 		csv = Data::sync_load_data(TICKET_FILE);
 		const auto ticket_map = boost::make_shared<TicketMap>();
