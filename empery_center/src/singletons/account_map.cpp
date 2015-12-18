@@ -81,11 +81,12 @@ namespace {
 
 	boost::shared_ptr<AccountMapContainer> g_account_map;
 
-	enum CacheType {
-		CT_NICK,
-		CT_ATTRS,
-		CT_PRIV_ATTRS,
-		CT_ITEMS,
+	enum CacheType : boost::uint64_t {
+		CT_NONE       = 0x0000, // Silent the warning.
+		CT_NICK       = 0x0001,
+		CT_ATTRS      = 0x0002,
+		CT_PRIV_ATTRS = 0x0004,
+		CT_ITEMS      = 0x0008,
 	};
 
 	struct InfoCacheElement {
@@ -429,10 +430,10 @@ void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const
 	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, session,
-		(static_cast<boost::uint64_t>(wants_nick              ) << CT_NICK      ) |
-		(static_cast<boost::uint64_t>(wants_attributes        ) << CT_ATTRS     ) |
-		(static_cast<boost::uint64_t>(wants_private_attributes) << CT_PRIV_ATTRS) |
-		(static_cast<boost::uint64_t>(wants_items             ) << CT_ITEMS     ));
+		(wants_nick               ? CT_NICK       : CT_NONE) |
+		(wants_attributes         ? CT_ATTRS      : CT_NONE) |
+		(wants_private_attributes ? CT_PRIV_ATTRS : CT_NONE) |
+		(wants_items              ? CT_ITEMS      : CT_NONE));
 }
 void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
 	bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items) noexcept
@@ -455,10 +456,10 @@ void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid
 	};
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, session,
-		(static_cast<boost::uint64_t>(wants_nick               && is_miss(CT_NICK      )) << CT_NICK      ) |
-		(static_cast<boost::uint64_t>(wants_attributes         && is_miss(CT_ATTRS     )) << CT_ATTRS     ) |
-		(static_cast<boost::uint64_t>(wants_private_attributes && is_miss(CT_PRIV_ATTRS)) << CT_PRIV_ATTRS) |
-		(static_cast<boost::uint64_t>(wants_items              && is_miss(CT_ITEMS     )) << CT_ITEMS     ));
+		(wants_nick               && is_miss(CT_NICK      ) ? CT_NICK       : CT_NONE) |
+		(wants_attributes         && is_miss(CT_ATTRS     ) ? CT_ATTRS      : CT_NONE) |
+		(wants_private_attributes && is_miss(CT_PRIV_ATTRS) ? CT_PRIV_ATTRS : CT_NONE) |
+		(wants_items              && is_miss(CT_ITEMS     ) ? CT_ITEMS      : CT_NONE));
 }
 
 }
