@@ -133,7 +133,7 @@ PlayerSession::~PlayerSession(){
 
 void PlayerSession::on_close(int err_code) noexcept {
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Socket close: err_code = ", err_code, ", description = ", Poseidon::get_error_desc(err_code));
+	LOG_EMPERY_CENTER_INFO("Socket close: err_code = ", err_code, ", description = ", Poseidon::get_error_desc(err_code));
 
 	try {
 		Poseidon::enqueue_async_job(virtual_weak_from_this<PlayerSession>(),
