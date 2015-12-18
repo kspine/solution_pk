@@ -23,11 +23,8 @@ namespace {
 
 			csv.get(elem.map_object_type_id, "arm_id");
 
-			double speed = 0;
-			csv.get(speed,                   "speed");
-			if(speed > 0){
-				elem.ms_per_cell = std::round(1000.0 / speed);
-			}
+			csv.get(elem.speed,              "speed");
+			csv.get(elem.harvest_speed,      "collect_speed");
 
 			if(!map_object_type_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);

@@ -113,7 +113,7 @@ ACCOUNT_SERVLET("create", session, params){
 		boost::make_shared<Events::AccountCreated>(new_account_id, ip));
 
 	const auto init_gold_coin_array = Poseidon::explode<boost::uint64_t>(',',
-	                               get_config<std::string>("init_gold_coins_array", "100,50,50"));
+	                               get_config<std::string>("init_gold_coins_array"));
 	std::vector<ItemTransactionElement> transaction;
 	transaction.reserve(init_gold_coin_array.size());
 	auto add_gold_coins_to_whom = new_account_id;

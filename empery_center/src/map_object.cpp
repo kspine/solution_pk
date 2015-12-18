@@ -13,17 +13,20 @@ namespace EmperyCenter {
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
-	: m_obj([&]{
-		auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
-			owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), Poseidon::get_utc_time(), false);
-		obj->async_save(true);
-		return obj;
-	}())
+	: m_obj(
+		[&]{
+			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
+				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), Poseidon::get_utc_time(), false);
+			obj->async_save(true);
+			return obj;
+		}())
+	, m_harvest_remainder(0)
 {
 }
 MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
 	: m_obj(std::move(obj))
+	, m_harvest_remainder(0)
 {
 	for(auto it = attributes.begin(); it != attributes.end(); ++it){
 		m_attributes.emplace(AttributeId((*it)->get_attribute_id()), *it);

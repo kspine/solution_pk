@@ -13,7 +13,8 @@ namespace Data {
 
 	public:
 		MapObjectTypeId map_object_type_id;
-		boost::uint64_t ms_per_cell; // 移动速度，走每单位格子需要的毫秒数。为零不可移动。
+		double speed;
+		double harvest_speed;
 	};
 }
 

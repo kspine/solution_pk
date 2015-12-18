@@ -11,9 +11,7 @@ namespace Msg {
 #define MESSAGE_ID      32399
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (cluster_x)	\
-	FIELD_VINT          (cluster_y)	\
-	FIELD_VUINT         (width)	\
-	FIELD_VUINT         (height)
+	FIELD_VINT          (cluster_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SK_MapAddMapCell
@@ -71,8 +69,6 @@ namespace Msg {
 	FIELD_VINT          (cluster_y)	\
 	FIELD_STRING        (overlay_group_name)	\
 	FIELD_VUINT         (overlay_id)	\
-	FIELD_VINT          (x)	\
-	FIELD_VINT          (y)	\
 	FIELD_VUINT         (resource_id)	\
 	FIELD_VUINT         (resource_amount)
 #include <poseidon/cbpp/message_generator.hpp>

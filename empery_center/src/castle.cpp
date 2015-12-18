@@ -191,32 +191,33 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
 	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
 		owner_uuid, parent_object_uuid, std::move(name), coord)
-	, m_buildings([&]{
-		LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
-		boost::container::flat_map<BuildingBaseId, boost::shared_ptr<MySql::Center_CastleBuildingBase>> buildings;
-		std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
-		Data::CastleBuildingBase::get_init(init_buildings);
-		for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
-			const auto &building_data = *dit;
-			const auto &buildings_allowed = building_data->buildings_allowed;
-			if(buildings_allowed.empty()){
-				continue;
-			}
-			auto it = buildings_allowed.begin();
-			it += static_cast<std::ptrdiff_t>(Poseidon::rand32() % buildings_allowed.size());
-			const auto building_id = *it;
-			const auto init_level = building_data->init_level;
+	, m_buildings(
+		[&]{
+			LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
+			boost::container::flat_map<BuildingBaseId, boost::shared_ptr<MySql::Center_CastleBuildingBase>> buildings;
+			std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
+			Data::CastleBuildingBase::get_init(init_buildings);
+			for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
+				const auto &building_data = *dit;
+				const auto &buildings_allowed = building_data->buildings_allowed;
+				if(buildings_allowed.empty()){
+					continue;
+				}
+				auto it = buildings_allowed.begin();
+				it += static_cast<std::ptrdiff_t>(Poseidon::rand32() % buildings_allowed.size());
+				const auto building_id = *it;
+				const auto init_level = building_data->init_level;
 
-			const auto building_base_id = building_data->building_base_id;
-			LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
-				", building_base_id = ", building_base_id, ", building_id = ", building_id);
-			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-				get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
-			obj->async_save(true);
-			buildings.emplace(building_base_id, std::move(obj));
-		}
-		return buildings;
-	}())
+				const auto building_base_id = building_data->building_base_id;
+				LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
+					", building_base_id = ", building_base_id, ", building_id = ", building_id);
+				auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
+					get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
+				obj->async_save(true);
+				buildings.emplace(building_base_id, std::move(obj));
+			}
+			return buildings;
+		}())
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,

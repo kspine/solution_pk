@@ -9,13 +9,18 @@
 #include "map_cell.hpp"
 #include "data/map.hpp"
 #include "../../empery_center/src/msg/sc_map.hpp"
+#include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
+#include "../../empery_center/src/map_object_type_ids.hpp"
+#include "../../empery_center/src/cbpp_response.hpp"
 
 namespace EmperyCluster {
 
 namespace Msg {
 	using namespace ::EmperyCenter::Msg;
 }
+
+using Response = ::EmperyCenter::CbppResponse;
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	boost::weak_ptr<ClusterClient> cluster, Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes)
@@ -28,146 +33,156 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::~MapObject(){
 }
 
-std::pair<long, boost::uint64_t> MapObject::pump_action(){
+boost::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boost::uint64_t /* now */){
 	PROFILE_ME;
-/*
-	const auto owner_uuid = get_owner_uuid();
+
+	const auto map_object_uuid = get_map_object_uuid();
+	const auto owner_uuid      = get_owner_uuid();
+	const auto coord           = get_coord();
 
 	// 移动。
 	if(!m_waypoints.empty()){
-		const auto waypoint = m_waypoints.front();
-		const auto old_coord = get_coord();
-		const auto new_coord = Coord(old_coord.x() + waypoint.dx, old_coord.y() + waypoint.dy);
+		const auto waypoint  = m_waypoints.front();
+		const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
+		const auto delay     = waypoint.delay;
 
 		// 检测阻挡。
-		bool blocked = true, blocked_temporarily = false;
-		{
-			const auto new_map_cell = WorldMap::get_map_cell(new_coord);
-			if(new_map_cell){
-				const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
-				if(cell_owner_uuid && (owner_uuid != cell_owner_uuid)){
-					LOG_EMPERY_CLUSTER_DEBUG("Blocked by a cell owned by another player: cell_owner_uuid = ", cell_owner_uuid);
-					goto _done_block_checking;
-				}
+		const auto new_map_cell = WorldMap::get_map_cell(new_coord);
+		if(new_map_cell){
+			const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
+			if(cell_owner_uuid && (owner_uuid != cell_owner_uuid)){
+				LOG_EMPERY_CLUSTER_DEBUG("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
+				result = Response(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
+				return UINT64_MAX;
 			}
+		}
 
-			const auto new_cluster_and_scope = WorldMap::get_cluster_and_scope(new_coord);
-			const auto &new_cluster = new_cluster_and_scope.first;
-			if(!new_cluster){
-				LOG_EMPERY_CLUSTER_DEBUG("Lost connection to center server.");
-				goto _done_block_checking;
-			}
+		const auto new_cluster = WorldMap::get_cluster(new_coord);
+		if(!new_cluster){
+			LOG_EMPERY_CLUSTER_DEBUG("Lost connection to center server: new_coord = ", new_coord);
+			result = Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_coord;
+			return UINT64_MAX;
+		}
+		const auto new_scope = WorldMap::get_cluster_scope(new_coord);
+		const auto map_x = static_cast<unsigned>(new_coord.x() - new_scope.left());
+		const auto map_y = static_cast<unsigned>(new_coord.y() - new_scope.bottom());
+		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+		const auto terrain_id = cell_data->terrain_id;
+		const auto terrain_data = Data::MapCellTerrain::require(terrain_id);
+		if(!terrain_data->passable){
+			LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
+			result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
+			return UINT64_MAX;
+		}
 
-			const auto &new_scope = new_cluster_and_scope.second;
-			const auto map_x = static_cast<unsigned>(new_coord.x() - new_scope.left());
-			const auto map_y = static_cast<unsigned>(new_coord.y() - new_scope.bottom());
-			const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
-			const auto terrain_data = Data::MapCellTerrain::require(cell_data->terrain_id);
-			if(!terrain_data->passable){
-				LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_data->terrain_id);
-				goto _done_block_checking;
-			}
-
-			std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
-			WorldMap::get_map_objects_by_rectangle(adjacent_objects,
-				Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 3, new_coord.y() + 3)));
-			std::vector<Coord> foundation;
-			for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
-				const auto &other_object = *it;
-				const auto other_map_object_uuid = other_object->get_map_object_uuid();
-				const auto other_coord = other_object->get_coord();
-				if(new_coord == other_coord){
-					LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
-					blocked_temporarily = !other_object->m_waypoints.empty();
-					goto _done_block_checking;
-				}
-				if(other_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
-					goto _done_block_checking;
-				}
-				foundation.clear();
-				get_castle_foundation(foundation, other_coord);
-				for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
-					if(new_coord == *fit){
-						LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
-						goto _done_block_checking;
+		std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+		WorldMap::get_map_objects_by_rectangle(adjacent_objects,
+			Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 3, new_coord.y() + 3)));
+		std::vector<Coord> foundation;
+		for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
+			const auto &other_object = *it;
+			const auto other_map_object_uuid = other_object->get_map_object_uuid();
+			const auto other_coord = other_object->get_coord();
+			if(new_coord == other_coord){
+				LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
+				if(!other_object->m_waypoints.empty()){
+					const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
+					const auto retry_delay = get_config<boost::uint64_t>("blocked_path_retry_delay", 500);
+					LOG_EMPERY_CLUSTER_DEBUG("Should we retry? blocked_retry_count = ", m_blocked_retry_count,
+						", retry_max_count = ", retry_max_count, ", retry_delay = ", retry_delay);
+					if(m_blocked_retry_count < retry_max_count){
+						++m_blocked_retry_count;
+						return retry_delay;
 					}
-				}
-			}
-			blocked = false;
-		}
-	_done_block_checking:
-		if(blocked){
-			if(blocked_temporarily){
-				const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
-				LOG_EMPERY_CLUSTER_DEBUG("Path is blocked: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord,
-					", retry_max_count = ", retry_max_count, ", retry_count = ", m_blocked_retry_count);
-				if(m_blocked_retry_count >= retry_max_count){
 					LOG_EMPERY_CLUSTER_DEBUG("Give up the path.");
-					blocked_temporarily = false;
 				}
+				result = Response(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
+				return UINT64_MAX;
 			}
-			if(blocked_temporarily){
-				LOG_EMPERY_CLUSTER_DEBUG("Will retry later.");
-				const auto retry_delay = get_config<boost::uint64_t>("blocked_path_retry_delay", 500);
-				++m_blocked_retry_count;
-				return retry_delay;
-			}
-			// 永久阻挡。
-			const auto cluster_client = WorldMap::get_cluster(old_coord
-
-			m_waypoints.clear();
-			m_blocked_retry_count = 0;
-
-				
-				m_next_action_time = saturated_add(m_next_action_time, retry_delay);
-				continue;
-				}
-				if(blocked_result == BR_BLOCKED_PERMANENT){
-					m_waypoints.clear();
-					m_blocked_retry_count = 0;
-					continue;
-				}
-
-				LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
-				set_coord(new_coord);
-				m_waypoints.pop_front();
-				m_blocked_retry_count = 0;
-				m_next_action_time = saturated_add(m_next_action_time, waypoint.delay);
+			const auto other_object_type_id = other_object->get_map_object_type_id();
+			if(other_object_type_id != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
 				continue;
 			}
-
-			switch(m_action){
-			default:
-				LOG_EMPERY_CLUSTER_WARNING("Unknown action: action = ", static_cast<int>(m_action));
-				break;
+			foundation.clear();
+			get_castle_foundation(foundation, other_coord);
+			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
+				if(new_coord == *fit){
+					LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
+					result = Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
+					return UINT64_MAX;
+				}
 			}
-
-	if(m_attack_target_uuid){
-		const auto target = WorldMap::get_map_object(m_attack_target_uuid);
-		if(!target){
-			LOG_EMPERY_CLUSTER_DEBUG("Lost target: map_object_uuid = ", map_object_uuid, ", target_uuid = ", m_attack_target_uuid);
-			m_attack_target_uuid = { };
-			continue;
 		}
-		// TODO 战斗。
-		LOG_EMPERY_CLUSTER_FATAL("=== BATTLE ===");
-		m_attack_target_uuid = { };
-		m_next_action_time = saturated_add(m_next_action_time, (boost::uint64_t)1000);
-		continue;
+
+		LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
+		set_coord(new_coord);
+
+		m_waypoints.pop_front();
+		m_blocked_retry_count = 0;
+
+		return delay;
 	}
 
+	switch(m_action){
+		{
+#define ON_ACTION(action_)	\
+		}	\
+		break;	\
+	case (action_): {
 //=============================================================================
-
-			if(m_action == ACT_GUARD){
-				m_action_param.clear();
-
-				LOG_EMPERY_CLUSTER_DEBUG("Releasing action timer: map_object_uuid = ", map_object_uuid);
-				m_action_timer.reset();
-			}
+	ON_ACTION(ACT_GUARD){
+		// 无事可做。
+	}
+	ON_ACTION(ACT_ATTACK){
+		const auto target_object_uuid = MapObjectUuid(m_action_param);
+		const auto target_object = WorldMap::get_map_object(target_object_uuid);
+		if(!target_object){
 			break;
 		}
-*/
-	return { 5, 6 };
+		// TODO 战斗。
+	}
+	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){
+		const auto cluster = get_cluster();
+		if(!cluster){
+			break;
+		}
+		Msg::KS_MapDeployImmigrants sreq;
+		sreq.map_object_uuid = map_object_uuid.str();
+		sreq.castle_name     = m_action_param;
+		auto sresult = cluster->send_and_wait(sreq);
+		if(sresult.first != Msg::ST_OK){
+			LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+			result = std::move(sresult);
+			break;
+		}
+	}
+	ON_ACTION(ACT_HARVEST_OVERLAY){
+		const auto harvest_interval = get_config<boost::uint64_t>("harvest_interval", 1000);
+		const auto cluster = get_cluster();
+		if(!cluster){
+			break;
+		}
+		Msg::KS_MapHarvestOverlay sreq;
+		sreq.map_object_uuid = map_object_uuid.str();
+		sreq.interval        = harvest_interval;
+		auto sresult = cluster->send_and_wait(sreq);
+		if(sresult.first != Msg::ST_OK){
+			LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+			result = std::move(sresult);
+			break;
+		}
+		return harvest_interval;
+	}
+//=============================================================================
+#undef ON_ACTION
+		}
+		break;
+	default:
+		LOG_EMPERY_CLUSTER_WARNING("Unknown action: action = ", static_cast<unsigned>(m_action));
+		result = Response(Msg::ERR_UNKNOWN_MAP_OBJECT_ACTION) <<static_cast<unsigned>(m_action);
+		break;
+	}
+	return UINT64_MAX;
 }
 
 Coord MapObject::get_coord() const {
@@ -245,44 +260,55 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 				break;
 			}
 
-			std::pair<long, boost::uint64_t> result;
+			boost::uint64_t delay = UINT64_MAX;
+			std::pair<long, std::string> result;
 			try {
-				result = pump_action();
+				delay = pump_action(result, now);
 			} catch(std::exception &e){
-				LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
-				result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
+				LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
+				result.first = Msg::ERR_INVALID_ACTION_PARAM;
+				try {
+					result.second = e.what();
+				} catch(std::exception &e){
+					LOG_EMPERY_CLUSTER_ERROR("std::exception thrown: what = ", e.what());
+				}
 			}
-			if(result.first != Poseidon::Cbpp::ST_OK){
-				result.second = UINT64_MAX;
-			}
-			if(result.second == UINT64_MAX){
+			if(delay == UINT64_MAX){
+				auto old_action = m_action;
+				auto old_param  = std::move(m_action_param);
+
+				LOG_EMPERY_CLUSTER_DEBUG("Action stopped: map_object_uuid = ", map_object_uuid,
+					", error_code = ", result.first, ", error_message = ", result.second);
+				m_waypoints.clear();
+				m_action = ACT_GUARD;
+				m_action_param.clear();
+
+				LOG_EMPERY_CLUSTER_DEBUG("Releasing action timer: map_object_uuid = ", map_object_uuid);
+				m_action_timer.reset();
+
 				const auto cluster = get_cluster();
 				if(cluster){
 					try {
 						Msg::SC_MapObjectStopped msg;
 						msg.map_object_uuid = map_object_uuid.str();
-						msg.action          = static_cast<unsigned>(m_action);
+						msg.action          = old_action;
+						msg.param           = std::move(old_param);
 						msg.error_code      = result.first;
+						msg.error_message   = std::move(result.second);
 						cluster->send_notification(get_owner_uuid(), msg);
 					} catch(std::exception &e){
 						LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
 						cluster->shutdown(e.what());
 					}
 				}
-
-				LOG_EMPERY_CLUSTER_DEBUG("Action stopped: map_object_uuid = ", map_object_uuid, ", error_code = ", result.first);
-				m_waypoints.clear();
-				m_action = ACT_GUARD;
-				m_action_param.clear();
-
-				m_action_timer.reset();
 				break;
 			}
-			m_next_action_time = checked_add(m_next_action_time, result.second);
+			m_next_action_time = checked_add(m_next_action_time, delay);
 		}
 	};
 
 	m_waypoints.clear();
+	m_blocked_retry_count = 0;
 	m_action = ACT_GUARD;
 	m_action_param.clear();
 
@@ -296,6 +322,9 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 				std::bind(timer_proc, virtual_weak_from_this<MapObject>(), std::placeholders::_2));
 			LOG_EMPERY_CLUSTER_DEBUG("Created action timer: map_object_uuid = ", get_map_object_uuid());
 			m_action_timer = std::move(timer);
+		}
+		if(m_next_action_time < now){
+			m_next_action_time = now;
 		}
 	}
 

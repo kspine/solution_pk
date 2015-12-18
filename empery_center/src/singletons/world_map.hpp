@@ -28,8 +28,8 @@ struct WorldMap {
 	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
 
 	// Overlay
-	static boost::shared_ptr<Overlay> get_overlay(Coord coord, const std::string &overlay_group_name);
-	static boost::shared_ptr<Overlay> require_overlay(Coord coord, const std::string &overlay_group_name);
+	static boost::shared_ptr<Overlay> get_overlay(Coord cluster_coord, const std::string &overlay_group_name);
+	static boost::shared_ptr<Overlay> require_overlay(Coord cluster_coord, const std::string &overlay_group_name);
 	static void insert_overlay(const boost::shared_ptr<Overlay> &overlay);
 	static void update_overlay(const boost::shared_ptr<Overlay> &overlay, bool throws_if_not_exists = true);
 
@@ -52,11 +52,10 @@ struct WorldMap {
 	static void synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept;
 
 	// ClusterSession
-	static Rectangle get_cluster_scope_by_coord(Coord coord);
+	static Rectangle get_cluster_scope(Coord coord);
 
 	static boost::shared_ptr<ClusterSession> get_cluster(Coord coord);
-	static void get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterSession>>> &ret);
-	static Rectangle get_cluster_scope(const boost::weak_ptr<ClusterSession> &cluster); // 找不到则返回空的矩形。
+	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept;
 

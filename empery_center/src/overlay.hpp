@@ -29,7 +29,6 @@ public:
 	const std::string &get_overlay_group_name() const;
 	OverlayId get_overlay_id() const;
 
-	Coord get_coord() const;
 	ResourceId get_resource_id() const;
 	boost::uint64_t get_resource_amount() const;
 

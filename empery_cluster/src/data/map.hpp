@@ -12,11 +12,13 @@ namespace Data {
 		static boost::shared_ptr<const MapCellBasic> get(unsigned map_x, unsigned map_y);
 		static boost::shared_ptr<const MapCellBasic> require(unsigned map_x, unsigned map_y);
 
+		static void get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group_name);
+
 	public:
 		std::pair<unsigned, unsigned> map_coord;
 		TerrainId terrain_id;
 		OverlayId overlay_id;
-		std::array<char, 32> group;
+		std::string overlay_group_name;
 	};
 
 	class MapCellTerrain {

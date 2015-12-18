@@ -11,11 +11,13 @@
 #include "../data/map.hpp"
 #include "../data/global.hpp"
 #include "../castle.hpp"
+#include "../overlay.hpp"
+#include "../data/map_object_type.hpp"
 
 namespace EmperyCenter {
 
 CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
-	const auto center_rectangle = WorldMap::get_cluster_scope_by_coord(Coord(0, 0));
+	const auto center_rectangle = WorldMap::get_cluster_scope(Coord(0, 0));
 	const auto map_width  = static_cast<boost::uint32_t>(center_rectangle.width());
 	const auto map_height = static_cast<boost::uint32_t>(center_rectangle.height());
 
@@ -26,23 +28,15 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 		LOG_EMPERY_CENTER_WARNING("Invalid numerical coord: num_coord = ", num_coord, ", inf_x = ", inf_x, ", inf_y = ", inf_y);
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;
 	}
-	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
+	const auto cluster_scope = WorldMap::get_cluster_scope(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
 	const auto cluster_coord = cluster_scope.bottom_left();
 	LOG_EMPERY_CENTER_DEBUG("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
-
-	const auto old_scope = WorldMap::get_cluster_scope(cluster);
-	if((old_scope.width() != 0) || (old_scope.height() != 0)){
-		LOG_EMPERY_CENTER_ERROR("Cluster server already registered: num_coord = ", num_coord, ", cluster_coord = ", cluster_coord);
-		return Response(Msg::KILL_MAP_SERVER_ALREADY_REGISTERED);
-	}
 
 	WorldMap::set_cluster(cluster, cluster_coord);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
-	msg.cluster_x = cluster_scope.left();
-	msg.cluster_y = cluster_scope.bottom();
-	msg.width     = cluster_scope.width();
-	msg.height    = cluster_scope.height();
+	msg.cluster_x = cluster_coord.x();
+	msg.cluster_y = cluster_coord.y();
 	cluster->send(msg);
 
 	WorldMap::synchronize_cluster(cluster, cluster_scope);
@@ -100,7 +94,7 @@ CLUSTER_SERVLET(Msg::KS_MapRemoveMapObject, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::KS_MapHarvestOverlayResource, cluster, req){
+CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
@@ -111,7 +105,38 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlayResource, cluster, req){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
 
-	
+	const auto parent_object_uuid = map_object->get_parent_object_uuid();
+	const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+	if(!parent_castle){
+		return Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
+	}
+
+	const auto coord = map_object->get_coord();
+
+	std::vector<boost::shared_ptr<Overlay>> overlays;
+	WorldMap::get_overlays_by_rectangle(overlays, Rectangle(coord, 1, 1));
+	if(overlays.empty()){
+		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
+	}
+	const auto &overlay = overlays.front();
+	const auto resource_amount = overlay->get_resource_amount();
+	if(resource_amount == 0){
+		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
+	}
+
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto harvest_speed = map_object_type_data->harvest_speed;
+	if(harvest_speed <= 0){
+		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+	}
+	const auto harvest_amount = harvest_speed * req.interval / 60000.0 + map_object->get_harvest_remainder();
+	const auto rounded_amount = static_cast<boost::uint64_t>(harvest_amount);
+	const auto harvested_amount = overlay->harvest(parent_castle, rounded_amount);
+	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid,
+		", map_object_type_id = ", map_object_type_id, ", harvest_speed = ", harvest_speed, ", interval = ", req.interval,
+		", harvest_amount = ", harvest_amount, ", rounded_amount = ", rounded_amount, ", harvested_amount = ", harvested_amount);
+	map_object->set_harvest_remainder(std::fdim(harvest_amount, rounded_amount));
 
 	return Response();
 }
@@ -132,30 +157,39 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_IMMIGRANTS) <<map_object_type_id;
 	}
 
-	const auto castle_coord = map_object->get_coord();
+	const auto coord = map_object->get_coord();
 	std::vector<Coord> foundation;
-	get_castle_foundation(foundation, castle_coord);
+	get_castle_foundation(foundation, coord);
 	for(auto it = foundation.begin(); it != foundation.end(); ++it){
 		const auto &coord = *it;
-		const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(coord);
+		const auto cluster_scope = WorldMap::get_cluster_scope(coord);
 		const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
 		const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
 		LOG_EMPERY_CENTER_DEBUG("Castle foundation: coord = ", coord, ", cluster_scope = ", cluster_scope,
 			", map_x = ", map_x, ", map_y = ", map_y);
-		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
-		const auto terrain_data = Data::MapTerrain::require(cell_data->terrain_id);
+		const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
+		const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
 		if(!terrain_data->buildable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
+		}
+
+		std::vector<boost::shared_ptr<Overlay>> overlays;
+		WorldMap::get_overlays_by_rectangle(overlays, Rectangle(coord, 1, 1));
+		for(auto it = overlays.begin(); it != overlays.end(); ++it){
+			const auto &overlay = *it;
+			if(!overlay->is_virtually_removed()){
+				return Response(Msg::ERR_CANNOT_DEPLOY_ON_OVERLAY) <<coord;
+			}
 		}
 	}
 	// 检测与其他城堡距离。
 	const auto min_distance  = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
 
-	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(castle_coord);
-	const auto coll_left     = std::max(castle_coord.x() - (min_distance - 1), cluster_scope.left());
-	const auto coll_bottom   = std::max(castle_coord.y() - (min_distance - 1), cluster_scope.bottom());
-	const auto coll_right    = std::min(castle_coord.x() + (min_distance + 2), cluster_scope.right());
-	const auto coll_top      = std::max(castle_coord.y() + (min_distance + 2), cluster_scope.top());
+	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+	const auto coll_left     = std::max(coord.x() - (min_distance - 1), cluster_scope.left());
+	const auto coll_bottom   = std::max(coord.y() - (min_distance - 1), cluster_scope.bottom());
+	const auto coll_right    = std::min(coord.x() + (min_distance + 2), cluster_scope.right());
+	const auto coll_top      = std::max(coord.y() + (min_distance + 2), cluster_scope.top());
 	std::vector<boost::shared_ptr<MapObject>> coll_map_objects;
 	WorldMap::get_map_objects_by_rectangle(coll_map_objects, Rectangle(Coord(coll_left, coll_bottom), Coord(coll_right, coll_top)));
 	for(auto it = coll_map_objects.begin(); it != coll_map_objects.end(); ++it){
@@ -167,7 +201,7 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 		const auto other_coord = other_object->get_coord();
 		const auto other_object_uuid = other_object->get_map_object_uuid();
 		LOG_EMPERY_CENTER_DEBUG("Checking distance: other_coord = ", other_coord, ", other_object_uuid = ", other_object_uuid);
-		const auto distance = get_distance_of_coords(other_coord, castle_coord);
+		const auto distance = get_distance_of_coords(other_coord, coord);
 		if(distance <= min_distance){
 			return Response(Msg::ERR_TOO_CLOSE_TO_ANOTHER_CASTLE) <<other_object_uuid;
 		}
@@ -176,7 +210,7 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 	const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	const auto owner_uuid = map_object->get_owner_uuid();
 	const auto castle = boost::make_shared<Castle>(castle_uuid,
-		owner_uuid, map_object->get_parent_object_uuid(), std::move(req.castle_name), castle_coord);
+		owner_uuid, map_object->get_parent_object_uuid(), std::move(req.castle_name), coord);
 	castle->pump_status();
 	WorldMap::insert_map_object(castle);
 	LOG_EMPERY_CENTER_INFO("Created castle: castle_uuid = ", castle_uuid, ", owner_uuid = ", owner_uuid);

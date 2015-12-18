@@ -51,12 +51,13 @@ namespace {
 
 Announcement::Announcement(AnnouncementUuid announcement_uuid, LanguageId language_id, boost::uint64_t created_time,
 	boost::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
-	: m_obj([&]{
-		auto obj = boost::make_shared<MySql::Center_Announcement>(announcement_uuid.get(), language_id.get(), created_time,
-			expiry_time, period, encode_segments(segments));
-		obj->async_save(true);
-		return obj;
-	}())
+	: m_obj(
+		[&]{
+			auto obj = boost::make_shared<MySql::Center_Announcement>(announcement_uuid.get(), language_id.get(), created_time,
+				expiry_time, period, encode_segments(segments));
+			obj->async_save(true);
+			return obj;
+		}())
 	, m_segments(std::move(segments))
 {
 }

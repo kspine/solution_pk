@@ -22,6 +22,9 @@ private:
 	boost::container::flat_map<AttributeId,
 		boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
+	// 非持久化数据。
+	double m_harvest_remainder;
+
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
 		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord);
@@ -55,6 +58,13 @@ public:
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
+
+	double get_harvest_remainder() const {
+		return m_harvest_remainder;
+	}
+	void set_harvest_remainder(double remainder){
+		m_harvest_remainder = remainder;
+	}
 };
 
 inline void synchronize_map_object_with_player(const boost::shared_ptr<const MapObject> &map_object,

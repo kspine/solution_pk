@@ -10,10 +10,10 @@
 namespace EmperyCluster {
 
 CLUSTER_SERVLET(Msg::SK_MapClusterRegistrationSucceeded, cluster, req){
-	const auto scope = Rectangle(req.cluster_x, req.cluster_y, req.width, req.height);
-	LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: scope = ", scope);
+	const auto cluster_coord = Coord(req.cluster_x, req.cluster_y);
+	LOG_EMPERY_CLUSTER_INFO("Cluster server registered successfully: cluster_coord = ", cluster_coord);
 
-	WorldMap::set_cluster(cluster, scope);
+	WorldMap::set_cluster(cluster, cluster_coord);
 
 	return Response();
 }
@@ -100,14 +100,13 @@ CLUSTER_SERVLET(Msg::SK_MapAddOverlay, cluster, req){
 	auto cluster_coord      = Coord(req.cluster_x, req.cluster_y);
 	auto overlay_group_name = std::move(req.overlay_group_name);
 	auto overlay_id         = OverlayId(req.overlay_id);
-	auto coord              = Coord(req.x, req.y);
 	auto resource_id        = ResourceId(req.resource_id);
 	auto resource_amount    = req.resource_amount;
 
 	LOG_EMPERY_CLUSTER_TRACE("Creating map overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,
-		", overlay_id = ", overlay_id, ", coord = ", coord, ", resource_id = ", resource_id, ", resource_amount = ", resource_amount);
+		", overlay_id = ", overlay_id, ", resource_id = ", resource_id, ", resource_amount = ", resource_amount);
 	const auto overlay = boost::make_shared<Overlay>(
-		cluster_coord, std::move(overlay_group_name), overlay_id, coord, resource_id, resource_amount);
+		cluster_coord, std::move(overlay_group_name), overlay_id, resource_id, resource_amount);
 	WorldMap::replace_overlay_no_synchronize(cluster, overlay);
 
 	return Response();

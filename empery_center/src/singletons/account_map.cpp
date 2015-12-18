@@ -406,8 +406,7 @@ void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const
 	const auto now = Poseidon::get_fast_mono_clock();
 	const auto cache_timeout = get_config<boost::uint64_t>("account_info_cache_timeout", 0);
 
-	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(),
-		g_info_cache_map->upper_bound<0>(now));
+	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, session,
 		wants_nick, wants_attributes, wants_private_attributes, wants_items);
@@ -426,8 +425,7 @@ void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid
 	const auto now = Poseidon::get_fast_mono_clock();
 	const auto cache_timeout = get_config<boost::uint64_t>("account_info_cache_timeout", 0);
 
-	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(),
-		g_info_cache_map->upper_bound<0>(now));
+	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
 
 	const auto is_miss = [&](CacheType type){
 		return g_info_cache_map->find<1>(std::make_tuple(account_uuid, session, type)) == g_info_cache_map->end<1>();

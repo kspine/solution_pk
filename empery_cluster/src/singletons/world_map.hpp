@@ -5,6 +5,7 @@
 #include "../coord.hpp"
 #include "../rectangle.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/container/flat_map.hpp>
 #include <vector>
 
 namespace EmperyCluster {
@@ -39,11 +40,11 @@ struct WorldMap {
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
 	// ClusterClient
+	static Rectangle get_cluster_scope(Coord coord);
+
 	static boost::shared_ptr<ClusterClient> get_cluster(Coord coord);
-	static void get_all_clusters(std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterClient>>> &ret);
-	static Rectangle get_cluster_scope(const boost::weak_ptr<ClusterClient> &cluster); // 找不到则返回空的矩形。
-	static std::pair<boost::shared_ptr<ClusterClient>, Rectangle> get_cluster_and_scope(Coord coord);
-	static void set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Rectangle scope);
+	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterClient>> &ret);
+	static void set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Coord coord);
 
 private:
 	WorldMap() = delete;

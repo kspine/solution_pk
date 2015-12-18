@@ -96,7 +96,9 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (action)	\
-	FIELD_VINT          (error_code)
+	FIELD_STRING        (param)	\
+	FIELD_VINT          (error_code)	\
+	FIELD_STRING        (error_message)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

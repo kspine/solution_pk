@@ -56,8 +56,8 @@ public:
 	~MapObject();
 
 private:
-	// <error_code, delay>
-	std::pair<long, boost::uint64_t> pump_action();
+	// 返回下一个动作的延迟。如果返回 UINT64_MAX 则当前动作被取消。
+	boost::uint64_t pump_action(std::pair<long, std::string> &result, boost::uint64_t now);
 
 public:
 	MapObjectUuid get_map_object_uuid() const {

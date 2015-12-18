@@ -20,21 +20,22 @@
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
+#include "../overlay.hpp"
 
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
-	std::vector<std::pair<Rectangle, boost::shared_ptr<ClusterSession>>> clusters;
+	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
 	WorldMap::get_all_clusters(clusters);
-	const auto center_rectangle = WorldMap::get_cluster_scope_by_coord(Coord(0, 0));
+	const auto center_rectangle = WorldMap::get_cluster_scope(Coord(0, 0));
 
 	Msg::SC_MapWorldMapList msg;
 	msg.clusters.reserve(clusters.size());
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
 		msg.clusters.emplace_back();
 		auto &cluster = msg.clusters.back();
-		cluster.x = it->first.left();
-		cluster.y = it->first.bottom();
+		cluster.x = it->first.x();
+		cluster.y = it->first.y();
 	}
 	msg.cluster_width  = center_rectangle.width();
 	msg.cluster_height = center_rectangle.height();
@@ -66,10 +67,11 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
-	const auto ms_per_cell = map_object_type_data->ms_per_cell;
-	if(ms_per_cell == 0){
-		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_data->map_object_type_id;
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
 	}
+	const auto ms_per_cell = static_cast<boost::uint64_t>(std::round(1000 / speed));
 
 	auto from_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(from_coord);
@@ -151,8 +153,8 @@ _producible:
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
 	}
 	const auto coord = Coord(req.x, req.y);
-	const auto cell_cluster_scope   = WorldMap::get_cluster_scope_by_coord(coord);
-	const auto castle_cluster_scope = WorldMap::get_cluster_scope_by_coord(castle->get_coord());
+	const auto cell_cluster_scope   = WorldMap::get_cluster_scope(coord);
+	const auto castle_cluster_scope = WorldMap::get_cluster_scope(castle->get_coord());
 	if(cell_cluster_scope.bottom_left() != castle_cluster_scope.bottom_left()){
 		return Response(Msg::ERR_NOT_ON_THE_SAME_MAP_SERVER);
 	}
@@ -183,6 +185,15 @@ _producible:
 	const auto map_cell = WorldMap::require_map_cell(coord);
 	if(map_cell->get_owner_uuid()){
 		return Response(Msg::ERR_MAP_CELL_ALREADY_HAS_AN_OWNER) <<map_cell->get_owner_uuid();
+	}
+
+	std::vector<boost::shared_ptr<Overlay>> overlays;
+	WorldMap::get_overlays_by_rectangle(overlays, Rectangle(coord, 1, 1));
+	for(auto it = overlays.begin(); it != overlays.end(); ++it){
+		const auto &overlay = *it;
+		if(!overlay->is_virtually_removed()){
+			return Response(Msg::ERR_UNPURCHASABLE_WITH_OVERLAY) <<coord;
+		}
 	}
 
 	const auto item_box = ItemBoxMap::require(account_uuid);

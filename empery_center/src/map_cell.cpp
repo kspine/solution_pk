@@ -18,12 +18,13 @@
 namespace EmperyCenter {
 
 MapCell::MapCell(Coord coord)
-	: m_obj([&]{
-		auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(),
-			Poseidon::Uuid(), false, 0, 0, 0, 0);
-		obj->async_save(true);
-		return obj;
-	}())
+	: m_obj(
+		[&]{
+			auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(),
+				Poseidon::Uuid(), false, 0, 0, 0, 0);
+			obj->async_save(true);
+			return obj;
+		}())
 {
 }
 MapCell::MapCell(boost::shared_ptr<MySql::Center_MapCell> obj,
@@ -41,7 +42,7 @@ void MapCell::pump_status(){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
-	const auto cluster_scope = WorldMap::get_cluster_scope_by_coord(coord);
+	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
 	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
 	const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
 	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope,

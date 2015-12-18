@@ -50,12 +50,13 @@ namespace {
 MailData::MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
 	MailTypeId type, AccountUuid from_account_uuid, std::string subject, std::string body,
 	boost::container::flat_map<ItemId, boost::uint64_t> attachments)
-	: m_obj([&]{
-		auto obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(), created_time,
-			type.get(), from_account_uuid.get(), std::move(subject), std::move(body), encode_attachments(attachments));
-		obj->async_save(true);
-		return obj;
-	}())
+	: m_obj(
+		[&]{
+			auto obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(), created_time,
+				type.get(), from_account_uuid.get(), std::move(subject), std::move(body), encode_attachments(attachments));
+			obj->async_save(true);
+			return obj;
+		}())
 	, m_attachments(std::move(attachments))
 {
 }
