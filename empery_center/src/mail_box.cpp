@@ -68,7 +68,15 @@ void MailBox::pump_status(){
 	{
 		auto it = m_mails.begin();
 		while(it != m_mails.end()){
-			if(it->second->get_expiry_time() < utc_now){
+			bool erase_mail = true;
+			if(utc_now < it->second->get_expiry_time()){
+				erase_mail = false;
+			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_READ)){
+				erase_mail = false;
+			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_ATTACHMENTS_FETCHED)){
+				erase_mail = false;
+			}
+			if(erase_mail){
 				LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
 				it = m_mails.erase(it);
 			} else {
