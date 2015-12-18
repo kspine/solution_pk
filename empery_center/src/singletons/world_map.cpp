@@ -205,7 +205,7 @@ namespace {
 		// Overlay
 		const auto overlay_map = boost::make_shared<OverlayMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading overlays...");
-		conn->execute_sql("SELECT * FROM `Center_Overlay` WHERE `resource_amount` > 0");
+		conn->execute_sql("SELECT * FROM `Center_Overlay`");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_Overlay>();
 			obj->fetch(conn);

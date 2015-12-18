@@ -24,7 +24,7 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account_uuid, session, req){
 
 	const auto repeat_count = req.repeat_count;
 	if(repeat_count == 0){
-		return Response(Msg::ERR_ZERO_REPEAT_TIMES);
+		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
 	}
 	const auto recharge_id = RechargeId(req.recharge_id);
 	const auto recharge_data = Data::ItemRecharge::get(recharge_id);
@@ -49,7 +49,7 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account_uuid, session, req){
 
 	const auto repeat_count = req.repeat_count;
 	if(repeat_count == 0){
-		return Response(Msg::ERR_ZERO_REPEAT_TIMES);
+		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
 	}
 	const auto shop_id = ShopId(req.shop_id);
 	const auto shop_data = Data::ItemShop::get(shop_id);
@@ -57,6 +57,32 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account_uuid, session, req){
 		return Response(Msg::ERR_NO_SUCH_SHOP_ID) <<shop_id;
 	}
 	const auto trade_data = Data::ItemTrade::require(shop_data->trade_id);
+
+	std::vector<ItemTransactionElement> transaction;
+	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_ItemUseItem, account_uuid, session, req){
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	item_box->pump_status();
+
+	const auto repeat_count = req.repeat_count;
+	if(repeat_count == 0){
+		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
+	}
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::require(item_id);
+	const auto trade_id = item_data->use_as_trade_id;
+	if(!trade_id){
+		return Response(Msg::ERR_ITEM_NOT_USABLE) <<item_id;
+	}
+	const auto trade_data = Data::ItemTrade::require(trade_id);
 
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);

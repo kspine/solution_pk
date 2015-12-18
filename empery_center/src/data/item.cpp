@@ -45,18 +45,19 @@ namespace {
 		while(csv.fetch_row()){
 			Data::Item elem = { };
 
-			csv.get(elem.item_id,    "itemid");
+			csv.get(elem.item_id, "itemid");
 
 			unsigned category = Data::Item::CAT_UNKNOWN, type = 0;
-			csv.get(category,        "class");
-			csv.get(type,            "type");
+			csv.get(category,     "class");
+			csv.get(type,         "type");
 			elem.type = std::make_pair(static_cast<Data::Item::Category>(category), type);
-			csv.get(elem.value,      "value");
+			csv.get(elem.value,   "value");
 
-			csv.get(elem.init_count, "init_count");
+			csv.get(elem.use_as_trade_id, "canuse");
+			csv.get(elem.init_count,      "init_count");
 
 			std::string str;
-			csv.get(str,             "autoinc_type");
+			csv.get(str, "autoinc_type");
 			if(::strcasecmp(str.c_str(), "none") == 0){
 				elem.auto_inc_type = Data::Item::AIT_NONE;
 			} else if(::strcasecmp(str.c_str(), "hourly") == 0){

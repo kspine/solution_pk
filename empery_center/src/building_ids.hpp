@@ -23,7 +23,8 @@ constexpr BuildingId
 	ID_CIVILIAN_2           ( 1904002 ), // 民房
 	ID_CIVILIAN_3           ( 1904003 ), // 民房
 	ID_CIVILIAN_4           ( 1904004 ), // 民房
-	ID_CIVILIAN_5           ( 1904005 ); // 民房
+	ID_CIVILIAN_5           ( 1904005 ), // 民房
+ID_DUMMY_;
 
 }
 

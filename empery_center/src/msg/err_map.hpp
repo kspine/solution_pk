@@ -44,6 +44,7 @@ namespace Msg {
 		ERR_BLOCKED_BY_CASTLE               = 71333,
 		ERR_INVALID_ACTION_PARAM            = 71334,
 		ERR_MAP_OBJECT_PARENT_GONE          = 71335,
+		ERR_ACCELERATION_CARD_APPLIED       = 71336,
 	};
 }
 

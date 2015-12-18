@@ -47,6 +47,7 @@ namespace Data {
 		std::pair<Category, unsigned> type;
 		boost::uint64_t value;
 
+		TradeId use_as_trade_id;
 		boost::uint64_t init_count;
 
 		AutoIncType auto_inc_type;

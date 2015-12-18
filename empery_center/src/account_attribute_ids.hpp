@@ -24,7 +24,8 @@ constexpr AccountAttributeId
 
 	ID_LAST_CHAT_TIME_ADJACENT    ( 400 ),
 	ID_LAST_CHAT_TIME_TRADE       ( 401 ),
-	ID_LAST_CHAT_TIME_ALLIANCE    ( 402 );
+	ID_LAST_CHAT_TIME_ALLIANCE    ( 402 ),
+ID_DUMMY_;
 
 }
 

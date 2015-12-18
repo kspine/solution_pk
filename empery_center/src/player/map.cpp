@@ -18,6 +18,7 @@
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../transaction_element.hpp"
+#include "../item_ids.hpp"
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
 #include "../overlay.hpp"
@@ -222,7 +223,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 
 	const auto old_ticket_item_id = map_cell->get_ticket_item_id();
 	if(!old_ticket_item_id){
-		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL);
+		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<coord;
 	}
 	const auto old_ticket_data = Data::Item::require(old_ticket_item_id);
 	const auto new_ticket_data = Data::Item::get_by_type(old_ticket_data->type.first, old_ticket_data->type.second + 1);
@@ -233,10 +234,9 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
 
-	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_UPGRADE_TRADE_ID));
-	const auto trade_data = Data::ItemTrade::require(trade_id);
 	std::vector<ItemTransactionElement> transaction;
-	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_LAND_UPGRADE_TICKET, 1,
+		ReasonIds::ID_MAP_CELL_UPGRADE, coord.x(), coord.y(), old_ticket_item_id.get());
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
 		[&]{ map_cell->set_ticket_item_id(new_ticket_item_id); });
 	if(insuff_item_id){
@@ -284,6 +284,38 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account_uuid, session, req){
 		elem.map_object_uuid = map_object_uuid.str();
 	}
 	session->send(msg);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account_uuid, session, req){
+	const auto coord = Coord(req.x, req.y);
+	const auto map_cell = WorldMap::get_map_cell(coord);
+	if(!map_cell){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
+	}
+	if(map_cell->get_owner_uuid() != account_uuid){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
+	}
+
+	const auto ticket_item_id = map_cell->get_ticket_item_id();
+	if(!ticket_item_id){
+		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<coord;
+	}
+	if(map_cell->is_acceleration_card_applied()){
+		return Response(Msg::ERR_ACCELERATION_CARD_APPLIED) <<coord;
+	}
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCELERATION_CARD, 1,
+		ReasonIds::ID_MAP_CELL_UPGRADE, coord.x(), coord.y(), ticket_item_id.get());
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+		[&]{ map_cell->set_acceleration_card_applied(true); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
+	}
 
 	return Response();
 }

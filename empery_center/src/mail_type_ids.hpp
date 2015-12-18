@@ -8,7 +8,8 @@ namespace EmperyCenter {
 namespace MailTypeIds {
 
 constexpr MailTypeId
-	ID_NORMAL               ( 1 );
+	ID_NORMAL               ( 1 ),
+ID_DUMMY_;
 
 }
 
