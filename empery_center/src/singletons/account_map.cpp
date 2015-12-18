@@ -83,8 +83,8 @@ namespace {
 
 	enum CacheType {
 		CT_NICK,
-		CT_ATTRIBUTES,
-		CT_PRIVATE_ATTRIBUTES,
+		CT_ATTRS,
+		CT_PRIV_ATTRS,
 		CT_ITEMS,
 	};
 
@@ -183,38 +183,55 @@ namespace {
 	}
 
 	void synchronize_account_and_update_cache(boost::uint64_t now, boost::uint64_t cache_timeout,
-		const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session,
-		bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items)
-	{
+		const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session, boost::uint64_t flags) noexcept
+	try {
 		PROFILE_ME;
+
+		if(flags == 0){
+			return;
+		}
 
 		const auto account_uuid = account->get_account_uuid();
 
 		Msg::SC_AccountAttributes msg;
 		msg.account_uuid = account_uuid.str();
-		if(wants_nick){
+
+		// nick
+		if(flags & CT_NICK){
 			msg.nick = account->get_nick();
 		}
-		if(wants_attributes){
-			auto attribute_id_end = AccountAttributeIds::ID_PUBLIC_END;
-			if(wants_private_attributes){
-				attribute_id_end = AccountAttributeIds::ID_END;
+
+		// attributes
+		boost::container::flat_map<AccountAttributeId, std::string> attributes;
+		auto public_end = attributes.end();
+
+		const auto fetch_attributes = [&]{
+			if(attributes.empty()){
+				account->get_attributes(attributes);
+				msg.attributes.reserve(attributes.size());
+				public_end = attributes.upper_bound(AccountAttributeIds::ID_PUBLIC_END);
 			}
-
-			boost::container::flat_map<AccountAttributeId, std::string> attributes;
-			account->get_attributes(attributes);
-			const auto lower = attributes.begin();
-			const auto upper = attributes.lower_bound(attribute_id_end);
-
-			msg.attributes.reserve(static_cast<std::size_t>(std::distance(lower, upper)));
-			for(auto it = lower; it != upper; ++it){
+		};
+		const auto copy_attributes  = [&](decltype(attributes)::iterator begin, decltype(attributes)::iterator end){
+			for(auto it = begin; it != end; ++it){
 				msg.attributes.emplace_back();
 				auto &attribute = msg.attributes.back();
 				attribute.account_attribute_id = it->first.get();
 				attribute.value                = std::move(it->second);
 			}
+		};
+
+		if(flags & CT_ATTRS){
+			fetch_attributes();
+			copy_attributes(attributes.begin(), public_end);
 		}
-		if(wants_items){
+		if(flags & CT_PRIV_ATTRS){
+			fetch_attributes();
+			copy_attributes(public_end, attributes.end());
+		}
+
+		// items
+		if(flags & CT_ITEMS){
 			const auto item_box = ItemBoxMap::require(account_uuid);
 
 			std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
@@ -230,31 +247,34 @@ namespace {
 				item.item_count = info.count;
 			}
 		}
+
 		session->send(msg);
 
-		if(cache_timeout != 0){
-			const auto expiry_time = saturated_add(now, cache_timeout);
-
-			const auto update_cache = [&](CacheType type){
+		const auto update_cache = [&](CacheType type){
+			if(cache_timeout != 0){
+				const auto expiry_time = saturated_add(now, cache_timeout);
 				const auto result = g_info_cache_map->insert(InfoCacheElement(expiry_time, account_uuid, session, type));
 				if(!result.second){
 					g_info_cache_map->replace(result.first, InfoCacheElement(expiry_time, account_uuid, session, type));
 				}
-			};
+			}
+		};
 
-			if(wants_nick){
-				update_cache(CT_NICK);
-			}
-			if(wants_attributes){
-				update_cache(CT_ATTRIBUTES);
-			}
-			if(wants_private_attributes){
-				update_cache(CT_PRIVATE_ATTRIBUTES);
-			}
-			if(wants_items){
-				update_cache(CT_ITEMS);
-			}
+		if(flags & CT_NICK){
+			update_cache(CT_NICK);
 		}
+		if(flags & CT_ATTRS){
+			update_cache(CT_ATTRS);
+		}
+		if(flags & CT_PRIV_ATTRS){
+			update_cache(CT_PRIV_ATTRS);
+		}
+		if(flags & CT_ITEMS){
+			update_cache(CT_ITEMS);
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		session->shutdown(e.what());
 	}
 }
 
@@ -409,7 +429,10 @@ void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const
 	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, session,
-		wants_nick, wants_attributes, wants_private_attributes, wants_items);
+		(static_cast<boost::uint64_t>(wants_nick              ) << CT_NICK      ) |
+		(static_cast<boost::uint64_t>(wants_attributes        ) << CT_ATTRS     ) |
+		(static_cast<boost::uint64_t>(wants_private_attributes) << CT_PRIV_ATTRS) |
+		(static_cast<boost::uint64_t>(wants_items             ) << CT_ITEMS     ));
 }
 void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
 	bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items) noexcept
@@ -432,8 +455,10 @@ void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid
 	};
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, session,
-		wants_nick && is_miss(CT_NICK), wants_attributes && is_miss(CT_ATTRIBUTES),
-		wants_private_attributes && is_miss(CT_PRIVATE_ATTRIBUTES), wants_items && is_miss(CT_ITEMS));
+		(static_cast<boost::uint64_t>(wants_nick               && is_miss(CT_NICK      )) << CT_NICK      ) |
+		(static_cast<boost::uint64_t>(wants_attributes         && is_miss(CT_ATTRS     )) << CT_ATTRS     ) |
+		(static_cast<boost::uint64_t>(wants_private_attributes && is_miss(CT_PRIV_ATTRS)) << CT_PRIV_ATTRS) |
+		(static_cast<boost::uint64_t>(wants_items              && is_miss(CT_ITEMS     )) << CT_ITEMS     ));
 }
 
 }
