@@ -86,23 +86,6 @@ namespace {
 
 	boost::weak_ptr<MapObjectMapContainer> g_map_object_map;
 
-	struct MapSectorElement {
-		Coord sector_coord;
-
-		mutable boost::container::flat_set<boost::weak_ptr<MapObject>> map_objects;
-
-		explicit MapSectorElement(Coord sector_coord_)
-			: sector_coord(sector_coord_)
-		{
-		}
-	};
-
-	MULTI_INDEX_MAP(MapSectorMapContainer, MapSectorElement,
-		UNIQUE_MEMBER_INDEX(sector_coord)
-	)
-
-	boost::weak_ptr<MapSectorMapContainer> g_map_sector_map;
-
 	struct PlayerViewElement {
 		Rectangle view;
 
@@ -319,21 +302,6 @@ namespace {
 		handles.push(map_object_map);
 
 		// PlayerSession
-		const auto map_sector_map = boost::make_shared<MapSectorMapContainer>();
-		for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
-			auto map_object = it->map_object;
-
-			const auto coord = map_object->get_coord();
-			const auto sector_coord = get_sector_coord_from_world_coord(coord);
-			auto sector_it = map_sector_map->find<0>(sector_coord);
-			if(sector_it == map_sector_map->end<0>()){
-				sector_it = map_sector_map->insert<0>(sector_it, MapSectorElement(sector_coord));
-			}
-			sector_it->map_objects.insert(std::move(map_object));
-		}
-		g_map_sector_map = map_sector_map;
-		handles.push(map_sector_map);
-
 		const auto player_view_map = boost::make_shared<PlayerViewMapContainer>();
 		g_player_view_map = player_view_map;
 		handles.push(player_view_map);
@@ -754,11 +722,6 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		DEBUG_THROW(Exception, sslit("Map object map not loaded"));
 	}
-	const auto map_sector_map = g_map_sector_map.lock();
-	if(!map_sector_map){
-		LOG_EMPERY_CENTER_WARNING("Map sector map not loaded.");
-		DEBUG_THROW(Exception, sslit("Map sector map not loaded"));
-	}
 
 	const auto map_object_uuid = map_object->get_map_object_uuid();
 
@@ -766,24 +729,14 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 		LOG_EMPERY_CENTER_WARNING("Map object has been marked as deleted: map_object_uuid = ", map_object_uuid);
 		DEBUG_THROW(Exception, sslit("Map object has been marked as deleted"));
 	}
+	const auto new_coord = map_object->get_coord();
 
-	const auto new_coord        = map_object->get_coord();
-	const auto new_sector_coord = get_sector_coord_from_world_coord(new_coord);
-	const auto sector_result = map_sector_map->insert<0>(MapSectorElement(new_sector_coord));
-	if(sector_result.second){
-		LOG_EMPERY_CENTER_DEBUG("Created map sector: new_sector_coord = ", new_sector_coord);
-	}
-	const auto new_sector_it    = sector_result.first;
-	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
-
-	LOG_EMPERY_CENTER_DEBUG("Inserting map object: map_object_uuid = ", map_object_uuid,
-		", new_coord = ", new_coord, ", new_sector_coord = ", new_sector_coord);
+	LOG_EMPERY_CENTER_DEBUG("Inserting map object: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
 	const auto result = map_object_map->insert(MapObjectElement(map_object));
 	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Map object already exists: map_object_uuid = ", map_object_uuid);
 		DEBUG_THROW(Exception, sslit("Map object already exists"));
 	}
-	new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 
 	const auto owner_uuid = map_object->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);
@@ -808,14 +761,6 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		}
 		return;
 	}
-	const auto map_sector_map = g_map_sector_map.lock();
-	if(!map_sector_map){
-		LOG_EMPERY_CENTER_WARNING("Map sector map not loaded.");
-		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Map sector map not loaded"));
-		}
-		return;
-	}
 
 	const auto map_object_uuid = map_object->get_map_object_uuid();
 
@@ -835,33 +780,11 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		}
 		return;
 	}
-	const auto old_coord        = it->coord;
-	const auto old_sector_coord = get_sector_coord_from_world_coord(old_coord);
-	const auto old_sector_it    = map_sector_map->find<0>(old_sector_coord);
+	const auto old_coord = it->coord;
+	const auto new_coord = map_object->get_coord();
 
-	const auto new_coord        = map_object->get_coord();
-	const auto new_sector_coord = get_sector_coord_from_world_coord(new_coord);
-	const auto result = map_sector_map->insert<0>(MapSectorElement(new_sector_coord));
-	if(result.second){
-		LOG_EMPERY_CENTER_DEBUG("Created map sector: new_sector_coord = ", new_sector_coord);
-	}
-	const auto new_sector_it    = result.first;
-	new_sector_it->map_objects.reserve(new_sector_it->map_objects.size() + 1);
-
-	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid,
-		", old_coord = ", old_coord, ", new_coord = ", new_coord,
-		", old_sector_coord = ", old_sector_coord, ", new_sector_coord = ", new_sector_coord);
+	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord, ", new_coord = ", new_coord);
 	map_object_map->replace<0>(it, MapObjectElement(map_object));
-	if(old_sector_it != new_sector_it){
-		if(old_sector_it != map_sector_map->end<0>()){
-			old_sector_it->map_objects.erase(map_object); // noexcept
-			if(old_sector_it->map_objects.empty()){
-				map_sector_map->erase<0>(old_sector_it);
-				LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
-			}
-		}
-		new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
-	}
 
 	const auto owner_uuid = map_object->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);
@@ -883,33 +806,17 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
 		return;
 	}
-	const auto map_sector_map = g_map_sector_map.lock();
-	if(!map_sector_map){
-		LOG_EMPERY_CENTER_FATAL("Map sector map not loaded.");
-		std::abort();
-	}
 
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
 		LOG_EMPERY_CENTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
 		return;
 	}
-	const auto map_object       = it->map_object;
+	const auto map_object = it->map_object;
 
-	const auto old_coord        = it->coord;
-	const auto old_sector_coord = get_sector_coord_from_world_coord(old_coord);
-	const auto old_sector_it    = map_sector_map->find<0>(old_sector_coord);
-
-	LOG_EMPERY_CENTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid,
-		", old_coord = ", old_coord, ", old_sector_coord = ", old_sector_coord);
+	const auto old_coord = it->coord;
+	LOG_EMPERY_CENTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
 	map_object_map->erase<0>(it);
-	if(old_sector_it != map_sector_map->end<0>()){
-		old_sector_it->map_objects.erase(map_object); // noexcept
-		if(old_sector_it->map_objects.empty()){
-			map_sector_map->erase<0>(old_sector_it);
-			LOG_EMPERY_CENTER_DEBUG("Removed map sector: old_sector_coord = ", old_sector_coord);
-		}
-	}
 
 	const auto owner_uuid = map_object->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);
@@ -1043,11 +950,6 @@ void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<Playe
 void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
-	const auto map_sector_map = g_map_sector_map.lock();
-	if(!map_sector_map){
-		LOG_EMPERY_CENTER_WARNING("Map sector map not initialized.");
-		DEBUG_THROW(Exception, sslit("Map sector map not initialized"));
-	}
 	const auto player_view_map = g_player_view_map.lock();
 	if(!player_view_map){
 		LOG_EMPERY_CENTER_WARNING("Player view map not initialized.");
