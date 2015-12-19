@@ -104,7 +104,7 @@ boost::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boo
 				continue;
 			}
 			foundation.clear();
-			get_castle_foundation(foundation, other_coord);
+			get_castle_foundation(foundation, other_coord, false);
 			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
 				if(new_coord == *fit){
 					LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);

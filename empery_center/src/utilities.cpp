@@ -23,7 +23,7 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shar
 	std::vector<boost::shared_ptr<MapObject>> other_map_objects;
 
 	std::vector<Coord> foundation;
-	get_castle_foundation(foundation, coord);
+	get_castle_foundation(foundation, coord, true);
 	for(auto it = foundation.begin(); it != foundation.end(); ++it){
 		const auto &foundation_coord = *it;
 		const auto cluster_scope = WorldMap::get_cluster_scope(foundation_coord);

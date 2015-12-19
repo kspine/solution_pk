@@ -3,6 +3,7 @@
 #endif
 
 #include "log.hpp"
+#include <array>
 
 namespace EMPERY_CENTER_UTILITIES_NAMESPACE_ {
 
@@ -29,7 +30,7 @@ boost::uint64_t get_distance_of_coords(Coord lhs, Coord rhs){
 }
 
 namespace {
-	boost::array<boost::array<std::vector<Coord>, 2>, 64> g_surrounding_table;
+	std::array<std::array<std::vector<Coord>, 2>, 64> g_surrounding_table;
 
 	void generate_surrounding_coords(std::vector<Coord> &ret, Coord origin, boost::uint64_t radius, bool in_odd_row){
 		PROFILE_ME;
@@ -100,19 +101,29 @@ void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, boost::uint64
 	}
 }
 
-void get_castle_foundation(std::vector<Coord> &ret, Coord origin){
+void get_castle_foundation(std::vector<Coord> &ret, Coord origin, bool solid){
 	PROFILE_ME;
 
-	static constexpr boost::array<boost::array<Coord, 8>, 2> castle_foundation_table = {{
-		{{ {-1, 0}, {-1, -1}, {0, -1}, {1, -1}, {2, 0}, {1, 1}, {0, 1}, {-1, 1} }},
-		{{ {-1, 0}, { 0, -1}, {1, -1}, {2, -1}, {2, 0}, {2, 1}, {1, 1}, { 0, 1} }},
+	static constexpr std::array<std::array<std::pair<boost::int8_t, boost::int8_t>, 10>, 2> castle_foundation_table = {{
+		{{
+			{ 0, 0}, { 1, 0},
+			{-1, 0}, {-1,-1}, { 0,-1}, { 1,-1}, { 2, 0}, { 1, 1}, { 0, 1}, {-1, 1}
+		}}, {{
+			{ 0, 0}, { 1, 0},
+			{-1, 0}, { 0,-1}, { 1,-1}, { 2,-1}, { 2, 0}, { 2, 1}, { 1, 1}, { 0, 1}
+		}},
 	}};
+	static constexpr std::ptrdiff_t outline_offset = 2;
 
 	const bool in_odd_row = origin.y() & 1;
 	const auto &table = castle_foundation_table.at(in_odd_row);
-	ret.reserve(ret.size() + table.size());
-	for(auto it = table.begin(); it != table.end(); ++it){
-		ret.emplace_back(origin.x() + it->x(), origin.y() + it->y());
+	auto begin = table.begin();
+	if(!solid){
+		begin += outline_offset;
+	}
+	ret.reserve(ret.size() + static_cast<std::size_t>(table.end() - begin));
+	for(auto it = begin; it != table.end(); ++it){
+		ret.emplace_back(origin.x() + it->first, origin.y() + it->second);
 	}
 }
 

@@ -596,7 +596,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
 	}
 
 	std::vector<Coord> foundation;
-	get_castle_foundation(foundation, castle->get_coord());
+	get_castle_foundation(foundation, castle->get_coord(), false);
 	for(;;){
 		if(foundation.empty()){
 			return Response(Msg::ERR_NO_ROOM_FOR_NEW_UNIT);
