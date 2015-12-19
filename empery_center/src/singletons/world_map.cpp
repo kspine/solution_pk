@@ -500,10 +500,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord);
-	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
-	if(it->parent_object_uuid != parent_object_uuid){
-		map_cell_map->set_key<0, 1>(it, parent_object_uuid);
-	}
+	map_cell_map->replace<0>(it, MapCellElement(map_cell));
 
 	const auto owner_uuid = map_cell->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);
@@ -854,17 +851,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid,
 		", old_coord = ", old_coord, ", new_coord = ", new_coord,
 		", old_sector_coord = ", old_sector_coord, ", new_sector_coord = ", new_sector_coord);
-	if(it->coord != new_coord){
-		map_object_map->set_key<0, 1>(it, new_coord);
-	}
-	const auto owner_uuid = map_object->get_owner_uuid();
-	if(it->owner_uuid != owner_uuid){
-		map_object_map->set_key<0, 2>(it, owner_uuid);
-	}
-	const auto parent_object_uuid = map_object->get_parent_object_uuid();
-	if(it->parent_object_uuid != parent_object_uuid){
-		map_object_map->set_key<0, 3>(it, parent_object_uuid);
-	}
+	map_object_map->replace<0>(it, MapObjectElement(map_object));
 	if(old_sector_it != new_sector_it){
 		if(old_sector_it != map_sector_map->end<0>()){
 			old_sector_it->map_objects.erase(map_object); // noexcept
@@ -876,6 +863,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		new_sector_it->map_objects.insert(map_object); // 确保事先 reserve() 过。
 	}
 
+	const auto owner_uuid = map_object->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {

@@ -29,9 +29,9 @@ namespace {
 		Coord coord;
 		MapObjectUuid parent_object_uuid;
 
-		MapCellElement(boost::shared_ptr<MapCell> map_cell_, const boost::shared_ptr<ClusterClient> &master_)
+		MapCellElement(boost::shared_ptr<MapCell> map_cell_, boost::weak_ptr<ClusterClient> master_)
 			: map_cell(std::move(map_cell_))
-			, master(master_)
+			, master(std::move(master_))
 			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid())
 		{
 		}
@@ -51,9 +51,9 @@ namespace {
 		boost::weak_ptr<ClusterClient> master;
 		std::pair<Coord, SharedNts> cluster_coord_group_name;
 
-		OverlayElement(boost::shared_ptr<Overlay> overlay_, const boost::shared_ptr<ClusterClient> &master_)
+		OverlayElement(boost::shared_ptr<Overlay> overlay_, boost::weak_ptr<ClusterClient> master_)
 			: overlay(std::move(overlay_))
-			, master(master_)
+			, master(std::move(master_))
 			, cluster_coord_group_name(overlay->get_cluster_coord(), SharedNts(overlay->get_overlay_group_name()))
 		{
 		}
@@ -74,9 +74,9 @@ namespace {
 		Coord coord;
 		AccountUuid owner_uuid;
 
-		MapObjectElement(boost::shared_ptr<MapObject> map_object_, const boost::shared_ptr<ClusterClient> &master_)
+		MapObjectElement(boost::shared_ptr<MapObject> map_object_, boost::weak_ptr<ClusterClient> master_)
 			: map_object(std::move(map_object_))
-			, master(master_)
+			, master(std::move(master_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord()), owner_uuid(map_object->get_owner_uuid())
 		{
 		}
@@ -528,13 +528,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	} else {
 		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
 			", old_coord = ", old_coord, ", new_coord = ", new_coord);
-		if(it->coord != new_coord){
-			map_object_map->set_key<1, 2>(it, new_coord);
-		}
-		const auto owner_uuid = map_object->get_owner_uuid();
-		if(it->owner_uuid != owner_uuid){
-			map_object_map->set_key<1, 3>(it, owner_uuid);
-		}
+		map_object_map->replace<1>(it, MapObjectElement(map_object, it->master));
 	}
 
 	const auto old_cluster = get_cluster(old_coord);

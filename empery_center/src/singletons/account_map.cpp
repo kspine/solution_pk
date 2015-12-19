@@ -403,14 +403,7 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating account: account_uuid = ", account_uuid);
-	const auto platform_id_login_name_hash = std::make_pair(account->get_platform_id(), hash_string_nocase(account->get_login_name()));
-	if(it->platform_id_login_name_hash != platform_id_login_name_hash){
-		g_account_map->set_key<0, 1>(it, platform_id_login_name_hash);
-	}
-	const auto nick_hash = hash_string_nocase(account->get_nick());
-	if(it->nick_hash != nick_hash){
-		g_account_map->set_key<0, 2>(it, nick_hash);
-	}
+	g_account_map->replace<0>(it, AccountElement(account));
 }
 
 void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,

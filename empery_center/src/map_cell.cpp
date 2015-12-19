@@ -114,11 +114,11 @@ AccountUuid MapCell::get_owner_uuid() const {
 
 	const auto parent_object_uuid = get_parent_object_uuid();
 	if(!parent_object_uuid){
-		return AccountUuid();
+		return { };
 	}
 	const auto parent_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!parent_object){
-		return AccountUuid();
+		return { };
 	}
 	return parent_object->get_owner_uuid();
 }

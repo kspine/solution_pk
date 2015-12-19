@@ -328,7 +328,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 		}
 	}
 
-	return ItemId();
+	return { };
 }
 void ItemBox::commit_transaction(const std::vector<ItemTransactionElement> &transaction,
 	const boost::function<void ()> &callback)

@@ -860,7 +860,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 		}
 	}
 
-	return ResourceId();
+	return { };
 }
 void Castle::commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
