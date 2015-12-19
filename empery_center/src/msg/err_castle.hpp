@@ -37,6 +37,8 @@ namespace Msg {
 		ERR_NOT_TECH_UPGRADE_ITEM           = 71426,
 		ERR_NO_WAREHOUSE                    = 71427,
 		ERR_WAREHOUSE_FULL                  = 71428,
+		ERR_BUILDING_QUEUE_FULL             = 71429,
+		ERR_TECH_QUEUE_FULL                 = 71430,
 	};
 }
 

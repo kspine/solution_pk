@@ -461,6 +461,20 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 
 	check_building_mission(it->second, utc_now);
 }
+unsigned Castle::get_building_queue_size() const {
+	PROFILE_ME;
+
+	unsigned size = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto &obj = it->second;
+		const auto mission = Mission(obj->get_mission());
+		if(mission == MIS_NONE){
+			continue;
+		}
+		++size;
+	}
+	return size;
+}
 void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
@@ -680,6 +694,20 @@ void Castle::pump_tech_status(TechId tech_id){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	check_tech_mission(it->second, utc_now);
+}
+unsigned Castle::get_tech_queue_size() const {
+	PROFILE_ME;
+
+	unsigned size = 0;
+	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
+		const auto &obj = it->second;
+		const auto mission = Mission(obj->get_mission());
+		if(mission == MIS_NONE){
+			continue;
+		}
+		++size;
+	}
+	return size;
 }
 void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;

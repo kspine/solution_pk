@@ -85,6 +85,7 @@ public:
 	void speed_up_building_mission(BuildingBaseId building_base_id, boost::uint64_t delta_duration);
 
 	void pump_building_status(BuildingBaseId building_base_id);
+	unsigned get_building_queue_size() const;
 	void synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	unsigned get_level() const;
@@ -98,6 +99,7 @@ public:
 	void speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duration);
 
 	void pump_tech_status(TechId tech_id);
+	unsigned get_tech_queue_size() const;
 	void synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	ResourceInfo get_resource(ResourceId resource_id) const;

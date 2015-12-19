@@ -54,8 +54,16 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account_uuid, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	castle->pump_status();
+
+	const auto queue_size = castle->get_building_queue_size();
+	const auto max_queue_size = Data::Global::as_unsigned(Data::Global::SLOT_MAX_CONCURRENT_UPGRADING_BUILDING_COUNT);
+	if(queue_size >= max_queue_size){
+		return Response(Msg::ERR_BUILDING_QUEUE_FULL) <<max_queue_size;
+	}
+
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
-	castle->pump_building_status(building_base_id);
+	// castle->pump_building_status(building_base_id);
 
 	const auto info = castle->get_building_base(building_base_id);
 	if(info.mission != Castle::MIS_NONE){
@@ -155,8 +163,16 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account_uuid, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	castle->pump_status();
+
+	const auto queue_size = castle->get_building_queue_size();
+	const auto max_queue_size = Data::Global::as_unsigned(Data::Global::SLOT_MAX_CONCURRENT_UPGRADING_BUILDING_COUNT);
+	if(queue_size >= max_queue_size){
+		return Response(Msg::ERR_BUILDING_QUEUE_FULL) <<max_queue_size;
+	}
+
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
-	castle->pump_building_status(building_base_id);
+	// castle->pump_building_status(building_base_id);
 
 	const auto info = castle->get_building_base(building_base_id);
 	if(info.building_id == BuildingId()){
@@ -210,8 +226,16 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account_uuid, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	castle->pump_status();
+
+	const auto queue_size = castle->get_building_queue_size();
+	const auto max_queue_size = Data::Global::as_unsigned(Data::Global::SLOT_MAX_CONCURRENT_UPGRADING_BUILDING_COUNT);
+	if(queue_size >= max_queue_size){
+		return Response(Msg::ERR_BUILDING_QUEUE_FULL) <<max_queue_size;
+	}
+
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
-	castle->pump_building_status(building_base_id);
+	// castle->pump_building_status(building_base_id);
 
 	const auto info = castle->get_building_base(building_base_id);
 	if(info.building_id == BuildingId()){
@@ -296,8 +320,16 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account_uuid, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	castle->pump_status();
+
+	const auto queue_size = castle->get_tech_queue_size();
+	const auto max_queue_size = Data::Global::as_unsigned(Data::Global::SLOT_MAX_CONCURRENT_UPGRADING_TECH_COUNT);
+	if(queue_size >= max_queue_size){
+		return Response(Msg::ERR_TECH_QUEUE_FULL) <<max_queue_size;
+	}
+
 	const auto tech_id = TechId(req.tech_id);
-	castle->pump_tech_status(tech_id);
+	// castle->pump_tech_status(tech_id);
 
 	const auto info = castle->get_tech(tech_id);
 	if(info.mission != Castle::MIS_NONE){
