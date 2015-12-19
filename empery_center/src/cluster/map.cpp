@@ -9,7 +9,6 @@
 #include "../map_object_type_ids.hpp"
 #include "../utilities.hpp"
 #include "../data/map.hpp"
-#include "../data/global.hpp"
 #include "../castle.hpp"
 #include "../overlay.hpp"
 #include "../data/map_object_type.hpp"
@@ -158,53 +157,9 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 	}
 
 	const auto coord = map_object->get_coord();
-	std::vector<Coord> foundation;
-	get_castle_foundation(foundation, coord);
-	for(auto it = foundation.begin(); it != foundation.end(); ++it){
-		const auto &coord = *it;
-		const auto cluster_scope = WorldMap::get_cluster_scope(coord);
-		const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
-		const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
-		LOG_EMPERY_CENTER_DEBUG("Castle foundation: coord = ", coord, ", cluster_scope = ", cluster_scope,
-			", map_x = ", map_x, ", map_y = ", map_y);
-		const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
-		const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
-		if(!terrain_data->buildable){
-			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<coord;
-		}
-
-		std::vector<boost::shared_ptr<Overlay>> overlays;
-		WorldMap::get_overlays_by_rectangle(overlays, Rectangle(coord, 1, 1));
-		for(auto it = overlays.begin(); it != overlays.end(); ++it){
-			const auto &overlay = *it;
-			if(!overlay->is_virtually_removed()){
-				return Response(Msg::ERR_CANNOT_DEPLOY_ON_OVERLAY) <<coord;
-			}
-		}
-	}
-	// 检测与其他城堡距离。
-	const auto min_distance  = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
-
-	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
-	const auto coll_left     = std::max(coord.x() - (min_distance - 1), cluster_scope.left());
-	const auto coll_bottom   = std::max(coord.y() - (min_distance - 1), cluster_scope.bottom());
-	const auto coll_right    = std::min(coord.x() + (min_distance + 2), cluster_scope.right());
-	const auto coll_top      = std::max(coord.y() + (min_distance + 2), cluster_scope.top());
-	std::vector<boost::shared_ptr<MapObject>> coll_map_objects;
-	WorldMap::get_map_objects_by_rectangle(coll_map_objects, Rectangle(Coord(coll_left, coll_bottom), Coord(coll_right, coll_top)));
-	for(auto it = coll_map_objects.begin(); it != coll_map_objects.end(); ++it){
-		const auto &other_object = *it;
-		const auto other_object_type_id = other_object->get_map_object_type_id();
-		if(other_object_type_id != MapObjectTypeIds::ID_CASTLE){
-			continue;
-		}
-		const auto other_coord = other_object->get_coord();
-		const auto other_object_uuid = other_object->get_map_object_uuid();
-		LOG_EMPERY_CENTER_DEBUG("Checking distance: other_coord = ", other_coord, ", other_object_uuid = ", other_object_uuid);
-		const auto distance = get_distance_of_coords(other_coord, coord);
-		if(distance <= min_distance){
-			return Response(Msg::ERR_TOO_CLOSE_TO_ANOTHER_CASTLE) <<other_object_uuid;
-		}
+	auto result = can_deploy_castle_at(coord, map_object);
+	if(result.first != 0){
+		return std::move(result);
 	}
 
 	const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
