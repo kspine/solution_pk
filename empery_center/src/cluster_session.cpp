@@ -113,7 +113,7 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		LOG_EMPERY_CENTER_TRACE("Sending response to cluster server: message_id = ", message_id,
+		LOG_EMPERY_CENTER_DEBUG("Sending response to cluster server: message_id = ", message_id,
 			", code = ", result.first, ", message = ", result.second);
 		Poseidon::Cbpp::Session::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
 		if(result.first < 0){

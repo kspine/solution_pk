@@ -166,7 +166,7 @@ void ClusterClient::on_sync_data_message_end(boost::uint64_t payload_size){
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
-		LOG_EMPERY_CLUSTER_TRACE("Sending response to center server: message_id = ", message_id,
+		LOG_EMPERY_CLUSTER_DEBUG("Sending response to center server: message_id = ", message_id,
 			", code = ", result.first, ", message = ", result.second);
 		Poseidon::Cbpp::Client::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
 		if(result.first < 0){

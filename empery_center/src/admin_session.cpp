@@ -103,7 +103,7 @@ void AdminHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_he
 	}
 	root[sslit("err_code")] = result.first;
 	root[sslit("err_msg")] = std::move(result.second);
-	LOG_EMPERY_CENTER_TRACE("Sending response: ", root.dump());
+	LOG_EMPERY_CENTER_DEBUG("Sending response: ", root.dump());
 	Poseidon::OptionalMap headers;
 	headers.set(sslit("Content-Type"), "application/json");
 	headers.set(sslit("Access-Control-Allow-Origin"), "*");
