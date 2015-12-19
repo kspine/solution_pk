@@ -59,7 +59,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 			attributes.emplace(AttributeId(it->attribute_id), it->value);
 		}
 
-		LOG_EMPERY_CLUSTER_DEBUG("Creating map object: map_object_uuid = ", map_object_uuid,
+		LOG_EMPERY_CLUSTER_TRACE("Creating map object: map_object_uuid = ", map_object_uuid,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", coord = ", coord);
 		map_object = boost::make_shared<MapObject>(map_object_uuid,
 			map_object_type_id, owner_uuid, cluster, coord, std::move(attributes));

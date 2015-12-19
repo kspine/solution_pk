@@ -584,8 +584,8 @@ void WorldMap::insert_overlay(const boost::shared_ptr<Overlay> &overlay){
 	std::vector<boost::shared_ptr<const Data::MapCellBasic>> basic_data_elements;
 	Data::MapCellBasic::get_by_overlay_group(basic_data_elements, overlay_group_name);
 	if(basic_data_elements.empty()){
-		LOG_EMPERY_CENTER_ERROR("Overlay not found: overlay_group_name = ", overlay_group_name);
-		DEBUG_THROW(Exception, sslit("Overlay not found"));
+		LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", overlay_group_name);
+		DEBUG_THROW(Exception, sslit("Overlay group not found"));
 	}
 	boost::uint64_t sum_x = 0, sum_y = 0;
 	for(auto it = basic_data_elements.begin(); it != basic_data_elements.end(); ++it){
@@ -623,9 +623,9 @@ void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool th
 	std::vector<boost::shared_ptr<const Data::MapCellBasic>> basic_data_elements;
 	Data::MapCellBasic::get_by_overlay_group(basic_data_elements, overlay_group_name);
 	if(basic_data_elements.empty()){
-		LOG_EMPERY_CENTER_ERROR("Overlay not found: overlay_group_name = ", overlay_group_name);
+		LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", overlay_group_name);
 		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Overlay not found"));
+			DEBUG_THROW(Exception, sslit("Overlay group not found"));
 		}
 		return;
 	}
@@ -709,7 +709,7 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CENTER_TRACE("Map object not found: map_object_uuid = ", map_object_uuid);
 		return { };
 	}
 	return it->map_object;

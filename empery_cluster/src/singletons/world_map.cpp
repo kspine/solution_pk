@@ -438,7 +438,7 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 
 	const auto it = map_object_map->find<1>(map_object_uuid);
 	if(it == map_object_map->end<1>()){
-		LOG_EMPERY_CLUSTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CLUSTER_TRACE("Map object not found: map_object_uuid = ", map_object_uuid);
 		return { };
 	}
 	if(it->master.expired()){
@@ -472,7 +472,7 @@ void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterCli
 
 	const auto it = map_object_map->find<1>(map_object_uuid);
 	if(it == map_object_map->end<1>()){
-		LOG_EMPERY_CLUSTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CLUSTER_TRACE("Map object not found: map_object_uuid = ", map_object_uuid);
 		return;
 	}
 	const auto map_object = it->map_object;
