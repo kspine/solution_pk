@@ -203,8 +203,12 @@ void PlayerSessionMap::async_begin_gc() noexcept {
 		return;
 	}
 
-	const auto gc_delay = get_config<boost::uint64_t>("player_session_gc_delay", 5000);
-	Poseidon::TimerDaemon::set_time(timer, gc_delay);
+	try {
+		const auto gc_delay = get_config<boost::uint64_t>("player_session_gc_delay", 5000);
+		Poseidon::TimerDaemon::set_time(timer, gc_delay);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
 }
 
 void PlayerSessionMap::get_all(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret){
