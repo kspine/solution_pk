@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "player_session_map.hpp"
+#include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/ip_port.hpp>
@@ -33,31 +34,63 @@ namespace {
 
 	boost::shared_ptr<PlayerSessionMapContainer> g_session_map;
 
-	class SessionMapGuard {
-	private:
-		boost::shared_ptr<PlayerSessionMapContainer> m_session_map;
+	using SessionIterator = typename std::decay<decltype(g_session_map->begin<1>())>::type;
 
-	public:
-		explicit SessionMapGuard(boost::shared_ptr<PlayerSessionMapContainer> session_map)
-			: m_session_map(std::move(session_map))
-		{
+	SessionIterator really_erase_session(SessionIterator it, boost::uint64_t now, boost::uint64_t utc_now){
+		PROFILE_ME;
+
+		const auto account         = it->account;
+		const auto account_uuid    = account->get_account_uuid();
+		const auto online_duration = now - it->online_since;
+		const auto next = g_session_map->erase<1>(it);
+
+		try {
+			LOG_EMPERY_CENTER_INFO("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
+			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
 		}
-		~SessionMapGuard(){
-			for(auto it = m_session_map->begin(); it != m_session_map->end(); ++it){
-				const auto session = it->weak_session.lock();
-				if(!session){
-					continue;
-				}
-				session->shutdown(Msg::KILL_SHUTDOWN, "The server is being shut down");
+
+		try {
+			boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+			modifiers[AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME] = boost::lexical_cast<std::string>(utc_now);
+			account->set_attributes(std::move(modifiers));
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
+		}
+
+		return next;
+	}
+
+	boost::weak_ptr<Poseidon::TimerItem> g_gc_timer;
+
+	void gc_timer_proc(boost::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Session gc timer: now = ", now);
+
+		const auto utc_now = Poseidon::get_utc_time();
+
+		auto it = g_session_map->begin<1>();
+		while(it != g_session_map->end<1>()){
+			const auto session = it->weak_session.lock();
+			if(session){
+				++it;
+				continue;
 			}
+			it = really_erase_session(it, now, utc_now);
 		}
-	};
+	}
 
 	MODULE_RAII_PRIORITY(handles, 8000){
 		const auto session_map = boost::make_shared<PlayerSessionMapContainer>();
 		g_session_map = session_map;
 		handles.push(session_map);
-		handles.push(boost::make_shared<SessionMapGuard>(session_map));
+
+		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
+			std::bind(&gc_timer_proc, std::placeholders::_2));
+		g_gc_timer = timer;
+		handles.push(timer);
 	}
 }
 
@@ -147,37 +180,31 @@ void PlayerSessionMap::add(const boost::shared_ptr<Account> &account, const boos
 void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept {
 	PROFILE_ME;
 
+	const auto session = weak_session.lock();
+	if(session){
+		session->shutdown(Msg::KILL_OPERATOR_COMMAND, "");
+	}
+
 	const auto it = g_session_map->find<1>(weak_session);
 	if(it == g_session_map->end<1>()){
 		return;
 	}
 
-	const auto session = weak_session.lock();
-	if(session){
-		session->shutdown(Msg::KILL_OPERATOR_COMMAND, { });
-	}
-
 	const auto now     = Poseidon::get_fast_mono_clock();
 	const auto utc_now = Poseidon::get_utc_time();
+	really_erase_session(it, now, utc_now);
+}
+void PlayerSessionMap::async_begin_gc() noexcept {
+	PROFILE_ME;
 
-	const auto account         = it->account;
-	const auto account_uuid    = account->get_account_uuid();
-	const auto online_duration = now - it->online_since;
-	g_session_map->erase<1>(it);
-
-	try {
-		LOG_EMPERY_CENTER_INFO("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
-		Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
-
-		boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-		modifiers[AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME] = boost::lexical_cast<std::string>(utc_now);
-		account->set_attributes(std::move(modifiers));
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
-		if(session){
-			session->shutdown(e.what());
-		}
+	const auto timer = g_gc_timer.lock();
+	if(!timer){
+		LOG_EMPERY_CENTER_DEBUG("GC timer has been destroyed.");
+		return;
 	}
+
+	const auto gc_delay = get_config<boost::uint64_t>("player_session_gc_delay", 5000);
+	Poseidon::TimerDaemon::set_time(timer, gc_delay);
 }
 
 void PlayerSessionMap::get_all(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret){

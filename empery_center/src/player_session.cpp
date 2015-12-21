@@ -1,7 +1,6 @@
 #include "precompiled.hpp"
 #include "player_session.hpp"
 #include <boost/container/flat_map.hpp>
-#include <poseidon/async_job.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/cbpp/control_codes.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
@@ -137,12 +136,7 @@ void PlayerSession::on_close(int err_code) noexcept {
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_INFO("Socket close: err_code = ", err_code, ", description = ", Poseidon::get_error_desc(err_code));
 
-	try {
-		Poseidon::enqueue_async_job(virtual_weak_from_this<PlayerSession>(),
-			boost::bind(&PlayerSessionMap::remove, virtual_weak_from_this<PlayerSession>()));
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-	}
+	PlayerSessionMap::async_begin_gc();
 
 	Poseidon::Http::Session::on_close(err_code);
 }

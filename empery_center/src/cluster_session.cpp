@@ -3,7 +3,7 @@
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
-#include <poseidon/async_job.hpp>
+#include <poseidon/atomic.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
 #include "singletons/player_session_map.hpp"
@@ -59,29 +59,28 @@ void ClusterSession::on_close(int err_code) noexcept {
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_INFO("Cluster session closed: err_code = ", err_code);
 
-	try {
-		Poseidon::enqueue_async_job(std::bind([this](const boost::shared_ptr<void> &){
-			for(auto it = m_requests.begin(); it != m_requests.end(); ++it){
-				const auto &promise = it->second.promise;
-				if(!promise || promise->is_satisfied()){
-					continue;
-				}
-				try {
-					try {
-						DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
-					} catch(Poseidon::Exception &e){
-						promise->set_exception(boost::copy_exception(e));
-					} catch(std::exception &e){
-						promise->set_exception(boost::copy_exception(e));
-					}
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-				}
+	{
+		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+
+		const auto requests = std::move(m_requests);
+		m_requests.clear();
+		for(auto it = requests.begin(); it != requests.end(); ++it){
+			const auto &promise = it->second.promise;
+			if(!promise || promise->is_satisfied()){
+				continue;
 			}
-			m_requests.clear();
-		}, shared_from_this()));
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			try {
+				try {
+					DEBUG_THROW(Exception, sslit("Lost connection to cluster server"));
+				} catch(Poseidon::Exception &e){
+					promise->set_exception(boost::copy_exception(e));
+				} catch(std::exception &e){
+					promise->set_exception(boost::copy_exception(e));
+				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		}
 	}
 
 	Poseidon::Cbpp::Session::on_close(err_code);
@@ -125,16 +124,19 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 	} else if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(std::move(payload));
 		LOG_EMPERY_CENTER_TRACE("Received response from cluster server: code = ", packed.code, ", message = ", packed.message);
-		const auto it = m_requests.find(packed.serial);
-		if(it != m_requests.end()){
-			const auto elem = std::move(it->second);
-			m_requests.erase(it);
+		{
+			const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+			const auto it = m_requests.find(packed.serial);
+			if(it != m_requests.end()){
+				const auto elem = std::move(it->second);
+				m_requests.erase(it);
 
-			if(elem.result){
-				*elem.result = std::make_pair(packed.code, std::move(packed.message));
-			}
-			if(elem.promise){
-				elem.promise->set_success();
+				if(elem.result){
+					*elem.result = std::make_pair(packed.code, std::move(packed.message));
+				}
+				if(elem.promise){
+					elem.promise->set_success();
+				}
 			}
 		}
 	} else if(message_id == Msg::G_PackedAccountNotification::ID){
@@ -162,7 +164,7 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 bool ClusterSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
-	const auto serial = ++m_serial;
+	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
 	return Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()));
 }
 void ClusterSession::shutdown(const char *message) noexcept {
@@ -191,9 +193,12 @@ Result ClusterSession::send_and_wait(boost::uint16_t message_id, Poseidon::Strea
 
 	Result ret;
 
-	const auto serial = ++m_serial;
+	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
-	m_requests.insert(std::make_pair(serial, RequestElement(&ret, promise)));
+	{
+		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+		m_requests.emplace(serial, RequestElement(&ret, promise));
+	}
 	try {
 		if(!Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()))){
 			DEBUG_THROW(Exception, sslit("Could not send data to cluster server"));
@@ -201,10 +206,14 @@ Result ClusterSession::send_and_wait(boost::uint16_t message_id, Poseidon::Strea
 		Poseidon::JobDispatcher::yield(promise);
 		promise->check_and_rethrow();
 	} catch(...){
+		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
 		m_requests.erase(serial);
 		throw;
 	}
-	m_requests.erase(serial);
+	{
+		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+		m_requests.erase(serial);
+	}
 
 	return ret;
 }

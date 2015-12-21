@@ -3,9 +3,10 @@
 
 #include <poseidon/cbpp/session.hpp>
 #include <poseidon/fwd.hpp>
+#include <poseidon/mutex.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/function.hpp>
-#include <map>
+#include <boost/container/flat_map.hpp>
 #include <utility>
 
 namespace EmperyCenter {
@@ -33,8 +34,9 @@ private:
 	};
 
 private:
-	boost::uint64_t m_serial;
-	std::multimap<boost::uint64_t, RequestElement> m_requests;
+	volatile boost::uint64_t m_serial;
+	mutable Poseidon::Mutex m_request_mutex;
+	boost::container::flat_multimap<boost::uint64_t, RequestElement> m_requests;
 
 public:
 	explicit ClusterSession(Poseidon::UniqueFile socket);
