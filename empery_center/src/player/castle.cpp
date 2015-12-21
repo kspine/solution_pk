@@ -517,7 +517,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
 
 		const auto rit = max_amounts.find(resource_id);
 		if(rit == max_amounts.end()){
-			LOG_EMPERY_CENTER_DEBUG("There is no warehouse? map_object_uuid = ", map_object_uuid);
+			LOG_EMPERY_CENTER_DEBUG("There is no warehouse? map_object_uuid = ", map_object_uuid, ", resource_id = ", resource_id);
 			continue;
 		}
 		const auto max_amount = rit->second;

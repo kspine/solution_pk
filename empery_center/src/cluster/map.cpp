@@ -105,8 +105,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	}
 
 	const auto parent_object_uuid = map_object->get_parent_object_uuid();
-	const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
-	if(!parent_castle){
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+	if(!castle){
 		return Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
 	}
 
@@ -122,6 +122,18 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	if(resource_amount == 0){
 		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
 	}
+	const auto resource_id = overlay->get_resource_id();
+
+	boost::uint64_t capacity_remaining = 0;
+	const auto max_amounts = castle->get_max_resource_amounts();
+	const auto rit = max_amounts.find(resource_id);
+	if(rit == max_amounts.end()){
+		LOG_EMPERY_CENTER_DEBUG("There is no warehouse? map_object_uuid = ", map_object_uuid, ", resource_id = ", resource_id);
+	} else {
+		const auto max_amount = rit->second;
+		const auto current_amount = castle->get_resource(resource_id).amount;
+		capacity_remaining = saturated_sub(max_amount, current_amount);
+	}
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
@@ -131,11 +143,13 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	}
 	const auto harvest_amount = harvest_speed * req.interval / 60000.0 + map_object->get_harvest_remainder();
 	const auto rounded_amount = static_cast<boost::uint64_t>(harvest_amount);
-	const auto harvested_amount = overlay->harvest(parent_castle, rounded_amount);
+	const auto remainder = std::fdim(harvest_amount, rounded_amount);
+
+	const auto harvested_amount = overlay->harvest(castle, std::min(capacity_remaining, rounded_amount));
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid,
 		", map_object_type_id = ", map_object_type_id, ", harvest_speed = ", harvest_speed, ", interval = ", req.interval,
 		", harvest_amount = ", harvest_amount, ", rounded_amount = ", rounded_amount, ", harvested_amount = ", harvested_amount);
-	map_object->set_harvest_remainder(std::fdim(harvest_amount, rounded_amount));
+	map_object->set_harvest_remainder(remainder); // noexcept
 
 	return Response();
 }
