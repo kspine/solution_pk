@@ -508,10 +508,10 @@ unsigned Castle::get_level() const {
 	}
 	return level;
 }
-boost::container::flat_map<ResourceId, boost::uint64_t> Castle::get_max_resource_amounts() const {
+boost::uint64_t Castle::get_max_resource_amount(ResourceId resource_id) const {
 	PROFILE_ME;
 
-	boost::container::flat_map<ResourceId, boost::uint64_t> max_amounts;
+	boost::uint64_t max_amount = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
 		if(building_id != BuildingIds::ID_WAREHOUSE){
@@ -519,13 +519,13 @@ boost::container::flat_map<ResourceId, boost::uint64_t> Castle::get_max_resource
 		}
 		const unsigned current_level = it->second->get_building_level();
 		const auto data = Data::CastleUpgradeWarehouse::require(current_level);
-		max_amounts.reserve(data->max_resource_amounts.size());
-		for(auto it = data->max_resource_amounts.begin(); it != data->max_resource_amounts.end(); ++it){
-			auto &val = max_amounts[it->first];
-			val = saturated_add(val, it->second);
+		const auto mait = data->max_resource_amounts.find(resource_id);
+		if(mait == data->max_resource_amounts.end()){
+			continue;
 		}
+		max_amount = saturated_add(max_amount, mait->second);
 	}
-	return max_amounts;
+	return max_amount;
 }
 
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {

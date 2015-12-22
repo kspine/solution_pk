@@ -506,23 +506,13 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
 		return Response(Msg::ERR_CASTLE_HAS_NO_MAP_CELL) <<map_object_uuid;
 	}
 
-	const auto max_amounts = castle->get_max_resource_amounts();
-
 	bool harvested_some = false;
 	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 		const auto &map_cell = *it;
 		const auto resource_id = map_cell->get_production_resource_id();
-
 		map_cell->pump_status();
 
-		const auto rit = max_amounts.find(resource_id);
-		if(rit == max_amounts.end()){
-			LOG_EMPERY_CENTER_DEBUG("There is no warehouse? map_object_uuid = ", map_object_uuid, ", resource_id = ", resource_id);
-			continue;
-		}
-		const auto max_amount = rit->second;
-		const auto current_amount = castle->get_resource(resource_id).amount;
-		const auto amount_harvested = map_cell->harvest(castle, saturated_sub(max_amount, current_amount));
+		const auto amount_harvested = map_cell->harvest(castle, UINT64_MAX, false);
 		if(amount_harvested == 0){
 			LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
 				", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);

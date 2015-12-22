@@ -32,7 +32,7 @@ public:
 	ResourceId get_resource_id() const;
 	boost::uint64_t get_resource_amount() const;
 
-	boost::uint64_t harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount);
+	boost::uint64_t harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated);
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

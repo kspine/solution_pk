@@ -169,7 +169,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-boost::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount){
+boost::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
@@ -180,20 +180,39 @@ boost::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost:
 	}
 
 	const auto resource_id = get_production_resource_id();
-	const auto amount = std::min(get_resource_amount(), max_amount);
-	if(!resource_id || (amount == 0)){
-		LOG_EMPERY_CENTER_DEBUG("No resource have been produced: coord = ", coord);
+	if(!resource_id){
+		LOG_EMPERY_CENTER_DEBUG("No production resource id: coord = ", coord);
 		return 0;
 	}
-	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", castle_uuid = ", castle->get_map_object_uuid(),
-		", ticket_item_id = ", ticket_item_id, ", resource_id = ", resource_id, ", amount = ", amount);
+	auto amount_avail = get_resource_amount();
+	if(amount_avail > max_amount){
+		amount_avail = max_amount;
+	}
+	if(amount_avail == 0){
+		LOG_EMPERY_CENTER_DEBUG("Zero amount specified: coord = ", coord);
+		return 0;
+	}
+
+	auto amount_to_add = amount_avail;
+	const auto max_amount_to_add = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
+	if(amount_to_add > max_amount_to_add){
+		amount_to_add = max_amount_to_add;
+	}
+	auto amount_to_remove = amount_avail;
+	if(!saturated){
+		amount_to_remove = amount_to_add;
+	}
+	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord,
+		", castle_uuid = ", castle->get_map_object_uuid(), ", ticket_item_id = ", ticket_item_id,
+		", resource_id = ", resource_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
 	std::vector<ResourceTransactionElement> transaction;
-	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
+	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add,
 		ReasonIds::ID_HARVEST_MAP_CELL, coord.x(), coord.y(), ticket_item_id.get());
 	castle->commit_resource_transaction(transaction,
-		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount)); });
-	return amount;
+		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove)); });
+
+	return amount_to_remove;
 }
 
 boost::int64_t MapCell::get_attribute(AttributeId attribute_id) const {

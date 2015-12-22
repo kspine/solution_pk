@@ -67,31 +67,49 @@ boost::uint64_t Overlay::get_resource_amount() const {
 	return m_obj->get_resource_amount();
 }
 
-boost::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount){
+boost::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
 	PROFILE_ME;
 
 	const auto cluster_coord = get_cluster_coord();
 	const auto &overlay_group_name = get_overlay_group_name();
 	const auto overlay_id = get_overlay_id();
-	const auto amount = std::min(get_resource_amount(), max_amount);
-	if(amount == 0){
-		LOG_EMPERY_CENTER_DEBUG("No resource can be harvested: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
-		return 0;
-	}
+
 	const auto overlay_data = Data::MapOverlay::require(overlay_id);
 	const auto resource_id = overlay_data->reward_resource_id;
+	if(!resource_id){
+		LOG_EMPERY_CENTER_DEBUG("No reward resource id: overlay_group_name = ", overlay_group_name, ", resource_id = ", resource_id);
+		return 0;
+	}
+	auto amount_avail = get_resource_amount();
+	if(amount_avail > max_amount){
+		amount_avail = max_amount;
+	}
+	if(amount_avail == 0){
+		LOG_EMPERY_CENTER_DEBUG("Zero amount specified: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
+		return 0;
+	}
+
+	auto amount_to_add = amount_avail;
+	const auto max_amount_to_add = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
+	if(amount_to_add > max_amount_to_add){
+		amount_to_add = max_amount_to_add;
+	}
+	auto amount_to_remove = amount_avail;
+	if(!saturated){
+		amount_to_remove = amount_to_add;
+	}
 	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,
-		", resource_id = ", resource_id, ", amount = ", amount);
+		", resource_id = ", resource_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
 	std::vector<ResourceTransactionElement> transaction;
-	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
+	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add,
 		ReasonIds::ID_HARVEST_OVERLAY, cluster_coord.x(), cluster_coord.y(), overlay_id.get());
 	castle->commit_resource_transaction(transaction,
-		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount)); });
+		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove)); });
 
 	WorldMap::update_overlay(virtual_shared_from_this<Overlay>(), false);
 
-	return amount;
+	return amount_to_remove;
 }
 
 bool Overlay::is_virtually_removed() const {

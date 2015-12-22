@@ -122,18 +122,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	if(resource_amount == 0){
 		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
 	}
-	const auto resource_id = overlay->get_resource_id();
-
-	boost::uint64_t capacity_remaining = 0;
-	const auto max_amounts = castle->get_max_resource_amounts();
-	const auto rit = max_amounts.find(resource_id);
-	if(rit == max_amounts.end()){
-		LOG_EMPERY_CENTER_DEBUG("There is no warehouse? map_object_uuid = ", map_object_uuid, ", resource_id = ", resource_id);
-	} else {
-		const auto max_amount = rit->second;
-		const auto current_amount = castle->get_resource(resource_id).amount;
-		capacity_remaining = saturated_sub(max_amount, current_amount);
-	}
+//	const auto resource_id = overlay->get_resource_id();
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
@@ -145,11 +134,15 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	const auto rounded_amount = static_cast<boost::uint64_t>(harvest_amount);
 	const auto remainder = std::fdim(harvest_amount, rounded_amount);
 
-	const auto harvested_amount = overlay->harvest(castle, std::min(capacity_remaining, rounded_amount));
+	const auto harvested_amount = overlay->harvest(castle, rounded_amount, true);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid,
 		", map_object_type_id = ", map_object_type_id, ", harvest_speed = ", harvest_speed, ", interval = ", req.interval,
 		", harvest_amount = ", harvest_amount, ", rounded_amount = ", rounded_amount, ", harvested_amount = ", harvested_amount);
 	map_object->set_harvest_remainder(remainder); // noexcept
+
+	if(harvested_amount == 0){
+		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
+	}
 
 	return Response();
 }
