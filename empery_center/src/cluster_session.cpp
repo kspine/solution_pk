@@ -55,6 +55,15 @@ ClusterSession::~ClusterSession(){
 	LOG_EMPERY_CENTER_INFO("Cluster session destructor: this = ", (void *)this);
 }
 
+void ClusterSession::on_connect(){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_INFO("Cluster session connected: remote = ", get_remote_info());
+
+	const auto initial_timeout = get_config<boost::uint64_t>("cluster_session_initial_timeout", 30000);
+	set_timeout(initial_timeout);
+
+	Poseidon::Cbpp::Session::on_connect();
+}
 void ClusterSession::on_close(int err_code) noexcept {
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_INFO("Cluster session closed: err_code = ", err_code);

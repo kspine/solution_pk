@@ -86,9 +86,10 @@ ClusterClient::ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, 
 	, m_message_id(0), m_payload()
 	, m_serial(0)
 {
-	LOG_EMPERY_CLUSTER_INFO("Creating cluster client: remote = ", Poseidon::get_ip_port_from_sock_addr(sock_addr));
+	LOG_EMPERY_CLUSTER_INFO("Cluster client constructor: this = ", (void *)this);
 }
 ClusterClient::~ClusterClient(){
+	LOG_EMPERY_CLUSTER_INFO("Cluster client destructor: this = ", (void *)this);
 }
 
 void ClusterClient::on_close(int err_code) noexcept {

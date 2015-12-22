@@ -43,6 +43,7 @@ public:
 	~ClusterSession();
 
 protected:
+	void on_connect() override;
 	void on_close(int err_code) noexcept override;
 
 	void on_sync_data_message(boost::uint16_t message_id, Poseidon::StreamBuffer payload) override;
