@@ -131,8 +131,8 @@ namespace {
 		return Coord(coord.x() & -32, coord.y() & -32);
 	}
 	inline Coord get_cluster_coord_from_world_coord(Coord coord){
-		const auto mask_x = (coord.x() >= 0) ? 0 : -1;
-		const auto mask_y = (coord.y() >= 0) ? 0 : -1;
+		const auto mask_x = coord.x() >> 63;
+		const auto mask_y = coord.y() >> 63;
 
 		const auto cluster_x = ((coord.x() ^ mask_x) / g_map_width  ^ mask_x) * g_map_width;
 		const auto cluster_y = ((coord.y() ^ mask_y) / g_map_height ^ mask_y) * g_map_height;
