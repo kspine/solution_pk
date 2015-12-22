@@ -29,6 +29,8 @@ ADMIN_SERVLET("account/create", root, session, params){
 		account->set_login_token(login_token, login_token_expiry_time);
 	}
 
+	root[sslit("account_uuid")] = account_uuid.str();
+
 	return Response();
 }
 
