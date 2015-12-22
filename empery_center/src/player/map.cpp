@@ -77,7 +77,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	auto from_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(from_coord);
 	if(!cluster){
-		LOG_EMPERY_CENTER_WARNING("No cluster server available: from_coord = ", from_coord);
+		LOG_EMPERY_CENTER_DEBUG("No cluster server available: from_coord = ", from_coord);
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<from_coord;
 	}
 
