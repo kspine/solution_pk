@@ -63,12 +63,13 @@ namespace {
 		AccountUuid account_uuid;
 		std::pair<PlatformId, std::size_t> platform_id_login_name_hash;
 		std::size_t nick_hash;
+		AccountUuid referrer_uuid;
 
 		explicit AccountElement(boost::shared_ptr<Account> account_)
 			: account(std::move(account_))
 			, account_uuid(account->get_account_uuid())
 			, platform_id_login_name_hash(account->get_platform_id(), hash_string_nocase(account->get_login_name()))
-			, nick_hash(hash_string_nocase(account->get_nick()))
+			, nick_hash(hash_string_nocase(account->get_nick())), referrer_uuid(account->get_referrer_uuid())
 		{
 		}
 	};
@@ -77,6 +78,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(platform_id_login_name_hash)
 		MULTI_MEMBER_INDEX(nick_hash)
+		MULTI_MEMBER_INDEX(referrer_uuid)
 	)
 
 	boost::shared_ptr<AccountMapContainer> g_account_map;
@@ -173,8 +175,8 @@ namespace {
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 					const auto utc_now = Poseidon::get_utc_time();
 					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid);
-					account = boost::make_shared<Account>(account_uuid, platform_id, login_name, utc_now,
-						login_name, 0);
+					account = boost::make_shared<Account>(account_uuid, platform_id, login_name,
+						AccountUuid(), utc_now, login_name, 0);
 					AccountMap::insert(account, remote_ip);
 				}
 				account->set_login_token(login_token, expiry_time);
@@ -342,6 +344,15 @@ void AccountMap::get_by_nick(std::vector<boost::shared_ptr<Account>> &ret, const
 		if(!are_strings_equal_nocase(nick, it->account->get_nick())){
 			continue;
 		}
+		ret.emplace_back(it->account);
+	}
+}
+void AccountMap::get_by_referrer(std::vector<boost::shared_ptr<Account>> &ret, AccountUuid referrer_uuid){
+	PROFILE_ME;
+
+	const auto range = g_account_map->equal_range<3>(referrer_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->account);
 	}
 }

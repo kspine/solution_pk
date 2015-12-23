@@ -28,8 +28,8 @@ private:
 		boost::shared_ptr<MySql::Center_AccountAttribute>> m_attributes;
 
 public:
-	Account(AccountUuid account_uuid, PlatformId platformId, std::string login_name, boost::uint64_t created_time,
-		std::string nick, boost::uint64_t flags);
+	Account(AccountUuid account_uuid, PlatformId platformId, std::string login_name,
+		AccountUuid referrer_uuid, boost::uint64_t created_time, std::string nick, boost::uint64_t flags);
 	Account(boost::shared_ptr<MySql::Center_Account> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> &attributes);
 	~Account();
@@ -38,6 +38,9 @@ public:
 	AccountUuid get_account_uuid() const;
 	PlatformId get_platform_id() const;
 	const std::string &get_login_name() const;
+
+	AccountUuid get_referrer_uuid() const;
+	void set_referrer_uuid(AccountUuid account_uuid);
 
 	const std::string &get_nick() const;
 	void set_nick(std::string nick);

@@ -21,6 +21,7 @@ struct AccountMap {
 
 	static void get_all(std::vector<boost::shared_ptr<Account>> &ret);
 	static void get_by_nick(std::vector<boost::shared_ptr<Account>> &ret, const std::string &nick);
+	static void get_by_referrer(std::vector<boost::shared_ptr<Account>> &ret, AccountUuid referrer_uuid);
 
 	static void insert(const boost::shared_ptr<Account> &account, const std::string &remote_ip);
 	static void update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists = true);
