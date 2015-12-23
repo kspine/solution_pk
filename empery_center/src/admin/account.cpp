@@ -19,6 +19,13 @@ ADMIN_SERVLET("account/create", root, session, params){
 		return Response(Msg::ERR_DUPLICATE_PLATFORM_LOGIN_NAME) <<login_name;
 	}
 
+	if(referrer_uuid){
+		const auto referrer = AccountMap::get(referrer_uuid);
+		if(!referrer){
+			return Response(Msg::ERR_NO_SUCH_REFERRER) <<referrer_uuid;
+		}
+	}
+
 	const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
 	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, utc_now, login_name, 0);

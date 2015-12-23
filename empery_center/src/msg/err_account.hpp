@@ -23,6 +23,7 @@ namespace Msg {
 		ERR_NO_SUCH_SIGN_IN_REWARD          = 71212,
 		ERR_ALREADY_SIGNED_IN               = 71213,
 		ERR_DUPLICATE_PLATFORM_LOGIN_NAME   = 71214,
+		ERR_NO_SUCH_REFERRER                = 71215,
 	};
 }
 
