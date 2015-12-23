@@ -87,8 +87,7 @@ namespace {
 
 MailData::MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
 	MailTypeId type, AccountUuid from_account_uuid, std::string subject,
-	std::vector<std::pair<ChatMessageSlotId, std::string>> segments,
-	boost::container::flat_map<ItemId, boost::uint64_t> attachments)
+	std::vector<std::pair<ChatMessageSlotId, std::string>> segments, boost::container::flat_map<ItemId, boost::uint64_t> attachments)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MailData>(

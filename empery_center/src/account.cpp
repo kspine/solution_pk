@@ -9,11 +9,11 @@
 namespace EmperyCenter {
 
 Account::Account(AccountUuid account_uuid, PlatformId platformId, std::string login_name,
-	AccountUuid referrer_uuid, boost::uint64_t created_time, std::string nick, boost::uint64_t flags)
+	AccountUuid referrer_uuid, unsigned promotion_level, boost::uint64_t created_time, std::string nick, boost::uint64_t flags)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Account>(account_uuid.get(), platformId.get(), std::move(login_name),
-				referrer_uuid.get(), created_time, std::move(nick), flags, std::string(), 0, 0);
+				referrer_uuid.get(), promotion_level, created_time, std::move(nick), flags, std::string(), 0, 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -47,6 +47,17 @@ void Account::set_referrer_uuid(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	m_obj->set_referrer_uuid(account_uuid.get());
+
+	AccountMap::update(virtual_shared_from_this<Account>(), false);
+}
+
+unsigned Account::get_promotion_level() const {
+	return m_obj->get_promotion_level();
+}
+void Account::set_promotion_level(unsigned promotion_level){
+	PROFILE_ME;
+
+	m_obj->set_promotion_level(promotion_level);
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }

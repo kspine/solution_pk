@@ -13,6 +13,7 @@ ADMIN_SERVLET("account/create", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
 	const auto referrer_uuid = AccountUuid(params.at("referrer_uuid"));
+	const auto promotion_level = boost::lexical_cast<unsigned>(params.at("promotion_level"));
 
 	auto account = AccountMap::get_by_login_name(platform_id, login_name);
 	if(account){
@@ -28,7 +29,7 @@ ADMIN_SERVLET("account/create", root, session, params){
 
 	const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
-	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, utc_now, login_name, 0);
+	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name, 0);
 	AccountMap::insert(account, session->get_remote_info().ip.get());
 
 	const auto &login_token = params.get("login_token");

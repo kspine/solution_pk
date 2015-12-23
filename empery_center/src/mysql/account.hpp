@@ -13,6 +13,7 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (platform_id)	\
 	FIELD_STRING            (login_name)	\
 	FIELD_UUID              (referrer_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (promotion_level)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_STRING            (nick)	\
 	FIELD_BIGINT_UNSIGNED   (flags)	\

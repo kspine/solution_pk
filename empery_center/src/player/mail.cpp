@@ -65,6 +65,8 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 		segments.emplace_back(slot, std::move(it->value));
 	}
 
+	boost::container::flat_map<ItemId, boost::uint64_t> attachments;
+
 	const auto to_mail_box = MailBoxMap::require(to_account_uuid);
 	to_mail_box->pump_status();
 
@@ -76,20 +78,9 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-		MailTypeIds::ID_NORMAL, account_uuid, std::move(req.subject),
-		std::move(segments), boost::container::flat_map<ItemId, boost::uint64_t>());
+		MailTypeIds::ID_NORMAL, account_uuid, std::move(req.subject), std::move(segments), std::move(attachments));
 	MailBoxMap::insert_mail_data(mail_data);
 	to_mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration), 0);
-
-	const auto to_session = PlayerSessionMap::get(to_account_uuid);
-	if(to_session){
-		try {
-			to_session->send(Msg::SC_MailNewMailReceived(mail_uuid.str()));
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			to_session->shutdown(e.what());
-		}
-	}
 
 	return Response();
 }

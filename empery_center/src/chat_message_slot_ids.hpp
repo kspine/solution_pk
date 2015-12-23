@@ -8,9 +8,11 @@ namespace EmperyCenter {
 namespace ChatMessageSlotIds {
 
 constexpr ChatMessageSlotId
-	ID_TEXT                 ( 1 ),
-	ID_SMILEY               ( 2 ),
-	ID_VOICE                ( 3 ),
+	ID_TEXT                 (     1 ),
+	ID_SMILEY               (     2 ),
+	ID_VOICE                (     3 ),
+
+	ID_TAXER                ( 86201 ),
 ID_DUMMY_;
 
 }

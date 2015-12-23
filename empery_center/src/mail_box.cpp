@@ -140,9 +140,13 @@ void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
-			Msg::SC_MailChanged msg;
-			fill_mail_message(msg, obj, utc_now);
-			session->send(msg);
+			Msg::SC_MailChanged cmsg;
+			fill_mail_message(cmsg, obj, utc_now);
+			session->send(cmsg);
+
+			Msg::SC_MailNewMailReceived rmsg;
+			rmsg.mail_uuid = mail_uuid.str();
+			session->send(rmsg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());

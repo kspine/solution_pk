@@ -176,7 +176,7 @@ namespace {
 					const auto utc_now = Poseidon::get_utc_time();
 					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid);
 					account = boost::make_shared<Account>(account_uuid, platform_id, login_name,
-						AccountUuid(), utc_now, login_name, 0);
+						AccountUuid(), 0, utc_now, login_name, 0);
 					AccountMap::insert(account, remote_ip);
 				}
 				account->set_login_token(login_token, expiry_time);
