@@ -107,8 +107,7 @@ PLAYER_SERVLET(Msg::CS_ChatGetMessages, account_uuid, session, req){
 	for(auto it = req.chat_messages.begin(); it != req.chat_messages.end(); ++it){
 		const auto chat_message_uuid = ChatMessageUuid(it->chat_message_uuid);
 
-		msg.chat_messages.emplace_back();
-		auto &chat_message = msg.chat_messages.back();
+		auto &chat_message = *msg.chat_messages.emplace(msg.chat_messages.end());
 		chat_message.chat_message_uuid = chat_message_uuid.str();
 		chat_message.error_code = Msg::ERR_NO_SUCH_CHAT_MESSAGE;
 

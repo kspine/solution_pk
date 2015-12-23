@@ -20,11 +20,13 @@ class MailData : public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const boost::shared_ptr<MySql::Center_MailData> m_obj;
 
+	std::vector<std::pair<ChatMessageSlotId, std::string>> m_segments;
 	boost::container::flat_map<ItemId, boost::uint64_t> m_attachments;
 
 public:
 	MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
-		MailTypeId type, AccountUuid from_account_uuid, std::string subject, std::string body,
+		MailTypeId type, AccountUuid from_account_uuid, std::string subject,
+		std::vector<std::pair<ChatMessageSlotId, std::string>> segments,
 		boost::container::flat_map<ItemId, boost::uint64_t> attachments);
 	explicit MailData(boost::shared_ptr<MySql::Center_MailData> obj);
 	~MailData();
@@ -43,8 +45,8 @@ public:
 	const std::string &get_subject() const;
 	void set_subject(std::string subject);
 
-	const std::string &get_body() const;
-	void set_body(std::string body);
+	const std::vector<std::pair<ChatMessageSlotId, std::string>> &get_segments() const;
+	void set_segments(std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
 
 	const boost::container::flat_map<ItemId, boost::uint64_t> &get_attachments() const;
 	void set_attachments(boost::container::flat_map<ItemId, boost::uint64_t> attachments);

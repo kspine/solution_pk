@@ -23,7 +23,7 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (type)	\
 	FIELD_UUID              (from_account_uuid)	\
 	FIELD_STRING            (subject)	\
-	FIELD_STRING            (body)	\
+	FIELD_STRING            (segments)	\
 	FIELD_STRING            (attachments)
 #include <poseidon/mysql/object_generator.hpp>
 

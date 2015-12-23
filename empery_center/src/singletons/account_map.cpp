@@ -217,8 +217,7 @@ namespace {
 		};
 		const auto copy_attributes  = [&](decltype(attributes)::iterator begin, decltype(attributes)::iterator end){
 			for(auto it = begin; it != end; ++it){
-				msg.attributes.emplace_back();
-				auto &attribute = msg.attributes.back();
+				auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 				attribute.account_attribute_id = it->first.get();
 				attribute.value                = std::move(it->second);
 			}
@@ -244,8 +243,7 @@ namespace {
 				const auto &item_data = *it;
 				auto info = item_box->get(item_data->item_id);
 
-				msg.public_items.emplace_back();
-				auto &item = msg.public_items.back();
+				auto &item = *msg.public_items.emplace(msg.public_items.end());
 				item.item_id    = info.item_id.get();
 				item.item_count = info.count;
 			}

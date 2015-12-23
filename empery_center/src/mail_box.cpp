@@ -118,7 +118,7 @@ void MailBox::get_all(std::vector<MailBox::MailInfo> &ret) const {
 	}
 }
 
-void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time){
+void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time, boost::uint64_t flags){
 	PROFILE_ME;
 
 	const auto mail_uuid = mail_data->get_mail_uuid();
@@ -130,7 +130,6 @@ void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	boost::uint64_t flags = 0;
 	if(mail_data->get_attachments().empty()){
 		Poseidon::add_flags(flags, FL_ATTACHMENTS_FETCHED);
 	}

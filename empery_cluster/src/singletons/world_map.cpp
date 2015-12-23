@@ -245,8 +245,7 @@ namespace {
 		msg.y               = map_object->get_coord().y();
 		msg.attributes.reserve(attributes.size());
 		for(auto it = attributes.begin(); it != attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
+			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second;
 		}

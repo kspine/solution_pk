@@ -145,8 +145,7 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 			for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
 				const auto &obj = m_attributes.at(it->first);
 
-				msg.attributes.emplace_back();
-				auto &attribute = msg.attributes.back();
+				auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 				attribute.account_attribute_id = obj->get_account_attribute_id();
 				attribute.value                = obj->unlocked_get_value();
 			}

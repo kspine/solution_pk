@@ -35,8 +35,7 @@ void ChatMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 	msg.from_account_uuid   = from_account_uuid.str();
 	msg.segments.reserve(m_segments.size());
 	for(auto it = m_segments.begin(); it != m_segments.end(); ++it){
-		msg.segments.emplace_back();
-		auto &segment = msg.segments.back();
+		auto &segment = *msg.segments.emplace(msg.segments.end());
 		segment.slot   = it->first.get();
 		segment.value  = it->second;
 	}

@@ -280,8 +280,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		msg.resource_amount           = get_resource_amount();
 		msg.attributes.reserve(m_attributes.size());
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
+			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second->get_value();
 		}
@@ -298,8 +297,7 @@ void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &
 	msg.owner_uuid         = get_owner_uuid().str();
 	msg.attributes.reserve(m_attributes.size());
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-		msg.attributes.emplace_back();
-		auto &attribute = msg.attributes.back();
+		auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 		attribute.attribute_id = it->first.get();
 		attribute.value        = it->second->get_value();
 	}

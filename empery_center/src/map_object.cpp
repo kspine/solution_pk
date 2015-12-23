@@ -199,8 +199,7 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 		msg.y                  = get_coord().y();
 		msg.attributes.reserve(m_attributes.size());
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
+			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second->get_value();
 		}
@@ -223,8 +222,7 @@ void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession>
 		msg.y                  = get_coord().y();
 		msg.attributes.reserve(m_attributes.size());
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
-			msg.attributes.emplace_back();
-			auto &attribute = msg.attributes.back();
+			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second->get_value();
 		}

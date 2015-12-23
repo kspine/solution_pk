@@ -10,6 +10,44 @@
 namespace EmperyCenter {
 
 namespace {
+	std::string encode_segments(const std::vector<std::pair<ChatMessageSlotId, std::string>> &segments){
+		PROFILE_ME;
+
+		if(segments.empty()){
+			return { };
+		}
+		Poseidon::JsonArray root;
+		for(auto it = segments.begin(); it != segments.end(); ++it){
+			const auto slot = it->first;
+			const auto &value = it->second;
+			Poseidon::JsonArray elem;
+			elem.emplace_back(slot.get());
+			elem.emplace_back(value);
+			root.emplace_back(std::move(elem));
+		}
+		std::ostringstream oss;
+		root.dump(oss);
+		return oss.str();
+	}
+	std::vector<std::pair<ChatMessageSlotId, std::string>> decode_segments(const std::string &str){
+		PROFILE_ME;
+
+		std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+		if(str.empty()){
+			return segments;
+		}
+		std::istringstream iss(str);
+		auto root = Poseidon::JsonParser::parse_array(iss);
+		segments.reserve(root.size());
+		for(auto it = root.begin(); it != root.end(); ++it){
+			auto elem = it->get<Poseidon::JsonArray>();
+			auto slot = ChatMessageSlotId(elem.at(0).get<double>());
+			auto value = std::move(elem.at(1)).get<std::string>();
+			segments.emplace_back(slot, std::move(value));
+		}
+		return segments;
+	}
+
 	std::string encode_attachments(const boost::container::flat_map<ItemId, boost::uint64_t> &attachments){
 		PROFILE_ME;
 
@@ -48,21 +86,23 @@ namespace {
 }
 
 MailData::MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
-	MailTypeId type, AccountUuid from_account_uuid, std::string subject, std::string body,
+	MailTypeId type, AccountUuid from_account_uuid, std::string subject,
+	std::vector<std::pair<ChatMessageSlotId, std::string>> segments,
 	boost::container::flat_map<ItemId, boost::uint64_t> attachments)
 	: m_obj(
 		[&]{
-			auto obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(), created_time,
-				type.get(), from_account_uuid.get(), std::move(subject), std::move(body), encode_attachments(attachments));
+			auto obj = boost::make_shared<MySql::Center_MailData>(
+				mail_uuid.get(), language_id.get(), created_time, type.get(), from_account_uuid.get(), std::move(subject),
+				encode_segments(segments), encode_attachments(attachments));
 			obj->async_save(true);
 			return obj;
 		}())
-	, m_attachments(std::move(attachments))
+	, m_segments(std::move(segments)), m_attachments(std::move(attachments))
 {
 }
 MailData::MailData(boost::shared_ptr<MySql::Center_MailData> obj)
 	: m_obj(std::move(obj))
-	, m_attachments(decode_attachments(m_obj->unlocked_get_attachments()))
+	, m_segments(decode_segments(m_obj->unlocked_get_segments())), m_attachments(decode_attachments(m_obj->unlocked_get_attachments()))
 {
 }
 MailData::~MailData(){
@@ -99,11 +139,15 @@ void MailData::set_subject(std::string subject){
 	m_obj->set_subject(std::move(subject));
 }
 
-const std::string &MailData::get_body() const {
-	return m_obj->unlocked_get_body();
+const std::vector<std::pair<ChatMessageSlotId, std::string>> &MailData::get_segments() const {
+	return m_segments;
 }
-void MailData::set_body(std::string body){
-	m_obj->set_body(std::move(body));
+void MailData::set_segments(std::vector<std::pair<ChatMessageSlotId, std::string>> segments){
+	PROFILE_ME;
+
+	auto str = encode_segments(segments);
+	m_segments = std::move(segments);
+	m_obj->set_segments(std::move(str));
 }
 
 const boost::container::flat_map<ItemId, boost::uint64_t> &MailData::get_attachments() const {
@@ -132,11 +176,15 @@ void MailData::synchronize_with_player(const boost::shared_ptr<PlayerSession> &s
 	msg.type              = get_type().get();
 	msg.from_account_uuid = from_account_uuid.str();
 	msg.subject           = get_subject();
-	msg.body              = get_body();
+	msg.segments.reserve(m_segments.size());
+	for(auto it = m_segments.begin(); it != m_segments.end(); ++it){
+		auto &segment = *msg.segments.emplace(msg.segments.end());
+		segment.slot  = it->first.get();
+		segment.value = it->second;
+	}
 	msg.attachments.reserve(m_attachments.size());
 	for(auto it = m_attachments.begin(); it != m_attachments.end(); ++it){
-		msg.attachments.emplace_back();
-		auto &attachment = msg.attachments.back();
+		auto &attachment = *msg.attachments.emplace(msg.attachments.end());
 		attachment.item_id    = it->first.get();
 		attachment.item_count = it->second;
 	}

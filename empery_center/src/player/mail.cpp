@@ -4,6 +4,7 @@
 #include "../msg/cs_mail.hpp"
 #include "../msg/sc_mail.hpp"
 #include "../msg/err_mail.hpp"
+#include "../msg/err_chat.hpp"
 #include "../singletons/mail_box_map.hpp"
 #include "../mail_box.hpp"
 #include "../mail_data.hpp"
@@ -13,6 +14,7 @@
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
 #include "../mail_type_ids.hpp"
+#include "../chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -53,20 +55,31 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<to_account_uuid;
 	}
 
+	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+	segments.reserve(req.segments.size());
+	for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
+		const auto slot = ChatMessageSlotId(it->slot);
+		if((slot != ChatMessageSlotIds::ID_TEXT) && (slot != ChatMessageSlotIds::ID_SMILEY)){
+			return Response(Msg::ERR_INVALID_CHAT_MESSAGE_SLOT) <<slot;
+		}
+		segments.emplace_back(slot, std::move(it->value));
+	}
+
 	const auto to_mail_box = MailBoxMap::require(to_account_uuid);
 	to_mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 	const auto language_id = LanguageId(req.language_id);
 
-	const auto expiry_duration = checked_mul(Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION), (boost::uint64_t)60000);
+	const auto default_mail_expiry_duration = Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
+	const auto expiry_duration = checked_mul(default_mail_expiry_duration, (boost::uint64_t)60000);
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-		MailTypeIds::ID_NORMAL, account_uuid, std::move(req.subject), std::move(req.body),
-		boost::container::flat_map<ItemId, boost::uint64_t>());
+		MailTypeIds::ID_NORMAL, account_uuid, std::move(req.subject),
+		std::move(segments), boost::container::flat_map<ItemId, boost::uint64_t>());
 	MailBoxMap::insert_mail_data(mail_data);
-	to_mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration));
+	to_mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration), 0);
 
 	const auto to_session = PlayerSessionMap::get(to_account_uuid);
 	if(to_session){

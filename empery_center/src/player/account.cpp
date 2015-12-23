@@ -166,8 +166,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account_uuid, session, req){
 	for(auto it = req.accounts.begin(); it != req.accounts.end(); ++it){
 		const auto other_account_uuid = AccountUuid(it->account_uuid);
 
-		msg.accounts.emplace_back();
-		auto &account = msg.accounts.back();
+		auto &account = *msg.accounts.emplace(msg.accounts.end());
 		account.account_uuid = std::move(it->account_uuid);
 		account.error_code = Msg::ERR_NO_SUCH_ACCOUNT;
 

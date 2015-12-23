@@ -52,7 +52,7 @@ public:
 	MailInfo get(MailUuid mail_uuid) const;
 	void get_all(std::vector<MailInfo> &ret) const;
 
-	void insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time);
+	void insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time, boost::uint64_t flags);
 	void update(MailInfo info, bool throws_if_not_exists = true);
 	bool remove(MailUuid mail_uuid) noexcept;
 

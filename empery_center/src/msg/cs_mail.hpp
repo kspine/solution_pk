@@ -26,7 +26,10 @@ namespace Msg {
 	FIELD_STRING        (to_account_uuid)	\
 	FIELD_VUINT         (type)	\
 	FIELD_STRING        (subject)	\
-	FIELD_STRING        (body)	\
+	FIELD_ARRAY         (segments,	\
+		FIELD_VUINT         (slot)	\
+		FIELD_STRING        (value)	\
+	)	\
 	FIELD_VUINT         (language_id)
 #include <poseidon/cbpp/message_generator.hpp>
 

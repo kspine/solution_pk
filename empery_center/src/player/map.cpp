@@ -33,8 +33,7 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
 	Msg::SC_MapWorldMapList msg;
 	msg.clusters.reserve(clusters.size());
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
-		msg.clusters.emplace_back();
-		auto &cluster = msg.clusters.back();
+		auto &cluster = *msg.clusters.emplace(msg.clusters.end());
 		cluster.x = it->first.x();
 		cluster.y = it->first.y();
 	}
@@ -110,8 +109,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 		}
 		last_coord = next_coord;
 
-		kreq.waypoints.emplace_back();
-		auto &waypoint = kreq.waypoints.back();
+		auto &waypoint = *kreq.waypoints.emplace(kreq.waypoints.end());
 		waypoint.delay = ms_per_cell;
 		waypoint.dx    = step.dx;
 		waypoint.dy    = step.dy;
@@ -279,8 +277,7 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account_uuid, session, req){
 			continue;
 		}
 
-		msg.map_objects.emplace_back();
-		auto &elem = msg.map_objects.back();
+		auto &elem = *req.map_objects.emplace(req.map_objects.end());
 		elem.map_object_uuid = map_object_uuid.str();
 	}
 	session->send(msg);
