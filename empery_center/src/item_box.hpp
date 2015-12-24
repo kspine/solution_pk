@@ -50,9 +50,9 @@ public:
 	void get_all(std::vector<ItemInfo> &ret) const;
 
 	ItemId commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction,
-		const boost::function<void ()> &callback = boost::function<void ()>());
+		const boost::function<void ()> &callback = boost::function<void ()>(), bool notax = false);
 	void commit_transaction(const std::vector<ItemTransactionElement> &transaction,
-		const boost::function<void ()> &callback = boost::function<void ()>());
+		const boost::function<void ()> &callback = boost::function<void ()>(), bool notax = false);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

@@ -17,8 +17,6 @@ class MapObject;
 
 extern std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shared_ptr<MapObject> &excluding_map_object);
 
-extern void accumulate_promotion_bonus(AccountUuid account_uuid, boost::uint64_t amount);
-
 }
 
 #endif
