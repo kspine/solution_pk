@@ -196,21 +196,18 @@ namespace {
 		LOG_EMPERY_CLUSTER_INFO("Loading logical map servers...");
 		const auto init_logical_map_servers = get_config_v<std::string>("init_logical_map_server");
 		for(auto it = init_logical_map_servers.begin(); it != init_logical_map_servers.end(); ++it){
-			const auto &str = *it;
-			std::istringstream iss(str);
-			boost::int64_t num_x, num_y;
-			char comma;
-			if(!(iss >>num_x >>comma >>num_y) || (comma != ',')){
-				LOG_EMPERY_CLUSTER_ERROR("Invalid init_logical_map_server string: ", str);
-				DEBUG_THROW(Exception, sslit("Invalid init_logical_map_server string"));
-			}
+			const auto temp_array = boost::lexical_cast<Poseidon::JsonArray>(*it);
+
+			const auto num_x = static_cast<boost::int64_t>(temp_array.at(0).get<double>());
+			const auto num_y = static_cast<boost::int64_t>(temp_array.at(1).get<double>());
+
 			if(!init_servers.emplace(std::make_pair(num_x, num_y), boost::weak_ptr<ClusterClient>()).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate init_logical_map_server entry: num_x = ", num_x, ", num_y = ", num_y);
 				DEBUG_THROW(Exception, sslit("Duplicate init_logical_map_server entry"));
 			}
 			LOG_EMPERY_CLUSTER_DEBUG("> Logical server: num_x = ", num_x, ", num_y = ", num_y);
 		}
-		const auto client_timer_interval = get_config<boost::uint64_t>("cluster_client_reconnect_delay", 10000);
+		const auto client_timer_interval = get_config<boost::uint64_t>("cluster_client_reconnect_delay", 5000);
 		timer = Poseidon::TimerDaemon::register_timer(0, client_timer_interval,
 			std::bind(
 				[](InitServerMap &init_servers){
@@ -218,14 +215,14 @@ namespace {
 
 					for(auto it = init_servers.begin(); it != init_servers.end(); ++it){
 						auto cluster = it->second.lock();
-						if(cluster){
-							continue;
+						if(!cluster){
+							const auto num_x = it->first.first;
+							const auto num_y = it->first.second;
+							LOG_EMPERY_CLUSTER_INFO("Creating logical map server: num_x = ", num_x, ", num_y = ", num_y);
+							cluster = ClusterClient::create(num_x, num_y);
+							it->second = cluster;
+							break; // 每次只连一个。
 						}
-						const auto num_x = it->first.first;
-						const auto num_y = it->first.second;
-						LOG_EMPERY_CLUSTER_INFO("Creating logical map server: num_x = ", num_x, ", num_y = ", num_y);
-						cluster = ClusterClient::create(num_x, num_y);
-						it->second = cluster;
 					}
 				},
 				std::move(init_servers))
