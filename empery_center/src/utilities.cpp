@@ -11,6 +11,7 @@
 #include "data/global.hpp"
 #include "data/map.hpp"
 #include "map_object.hpp"
+#include "map_cell.hpp"
 #include "overlay.hpp"
 #include "singletons/world_map.hpp"
 #include "msg/err_map.hpp"
@@ -38,6 +39,15 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shar
 		const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
 		if(!terrain_data->buildable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<foundation_coord;
+		}
+
+		std::vector<boost::shared_ptr<MapCell>> map_cells;
+		WorldMap::get_map_cells_by_rectangle(map_cells, Rectangle(foundation_coord, 1, 1));
+		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+			const auto &map_cell = *it;
+			if(!map_cell->is_virtually_removed()){
+				return Response(Msg::ERR_CANNOT_DEPLOY_ON_TERRITORY) <<foundation_coord;
+			}
 		}
 
 		std::vector<boost::shared_ptr<Overlay>> overlays;
