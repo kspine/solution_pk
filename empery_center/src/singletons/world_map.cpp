@@ -19,6 +19,7 @@
 #include "../castle.hpp"
 #include "../player_session.hpp"
 #include "../cluster_session.hpp"
+#include "../utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -113,6 +114,8 @@ namespace {
 	struct ClusterElement {
 		Coord cluster_coord;
 		boost::weak_ptr<ClusterSession> cluster;
+
+		mutable std::vector<Coord> cached_start_points;
 
 		ClusterElement(Coord cluster_coord_, boost::weak_ptr<ClusterSession> cluster_)
 			: cluster_coord(cluster_coord_), cluster(std::move(cluster_))
@@ -1155,6 +1158,91 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		cluster->shutdown(e.what());
 	}
+}
+
+boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
+	const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint)
+{
+	PROFILE_ME;
+
+	const auto cluster_map = g_cluster_map.lock();
+	if(!cluster_map){
+		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
+		return { };
+	}
+
+	const auto cluster_coord = get_cluster_coord_from_world_coord(coord_hint);
+	const auto it = cluster_map->find<0>(cluster_coord);
+	if(it == cluster_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Cluster not found: coord_hint = ", coord_hint, ", cluster_coord = ", cluster_coord);
+		return { };
+	}
+
+	auto &cached_start_points = it->cached_start_points;
+	bool should_retry = true;
+_retry:
+	while(!cached_start_points.empty()){
+		const auto it = cached_start_points.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, cached_start_points.size()));
+		const auto coord = *it;
+		LOG_EMPERY_CENTER_DEBUG("Try creating init castle: coord = ", coord);
+
+		boost::shared_ptr<Castle> castle;
+		const auto result = can_deploy_castle_at(coord, { });
+		if(result.first == 0){
+			castle = factory(coord);
+			assert(castle);
+			insert_map_object(castle);
+		}
+		cached_start_points.erase(it);
+
+		if(castle){
+			LOG_EMPERY_CENTER_DEBUG("Init castle created successfully: map_object_uuid = ", castle->get_map_object_uuid(),
+				", owner_uuid = ", castle->get_owner_uuid(), ", coord = ", coord);
+			return std::move(castle);
+		}
+	}
+	LOG_EMPERY_CENTER_DEBUG("We have run out of start points: cluster_coord = ", cluster_coord);
+	if(should_retry){
+		std::vector<boost::shared_ptr<const Data::MapStartPoint>> start_points;
+		Data::MapStartPoint::get_all(start_points);
+		cached_start_points.clear();
+		cached_start_points.reserve(start_points.size());
+		for(auto it = start_points.begin(); it != start_points.end(); ++it){
+			const auto &start_point_data = *it;
+			cached_start_points.emplace_back(cluster_coord.x() + start_point_data->map_coord.first,
+			                                cluster_coord.y() + start_point_data->map_coord.second);
+		}
+		LOG_EMPERY_CENTER_DEBUG("Retrying: cluster_coord = ", cluster_coord, ", start_point_count = ", cached_start_points.size());
+		should_retry = false;
+		goto _retry;
+	}
+	return { };
+}
+boost::shared_ptr<Castle> WorldMap::create_init_castle(
+	const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint)
+{
+	PROFILE_ME;
+
+	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+	get_all_clusters(clusters);
+
+	const auto cluster_coord_hint = get_cluster_coord_from_world_coord(coord_hint);
+	auto it = clusters.find(cluster_coord_hint);
+	if(it != clusters.end()){
+		goto _use_hint;
+	}
+	while(!clusters.empty()){
+		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, clusters.size()));
+_use_hint:
+		auto castle = create_init_castle_restricted(factory, it->first);
+		if(castle){
+			LOG_EMPERY_CENTER_INFO("Init castle created successfully: map_object_uuid = ", castle->get_map_object_uuid(),
+				", owner_uuid = ", castle->get_owner_uuid(), ", coord = ", castle->get_coord());
+			return std::move(castle);
+		}
+		clusters.erase(it);
+	}
+	return { };
 }
 
 }

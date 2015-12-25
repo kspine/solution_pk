@@ -6,6 +6,7 @@
 #include "../rectangle.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/container/flat_map.hpp>
+#include <boost/function.hpp>
 #include <vector>
 
 namespace EmperyCenter {
@@ -15,6 +16,7 @@ class Overlay;
 class MapObject;
 class ClusterSession;
 class PlayerSession;
+class Castle;
 
 struct WorldMap {
 	// MapCell
@@ -58,6 +60,14 @@ struct WorldMap {
 	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept;
+
+	// 出生点
+	// 限定在指定小地图内。
+	static boost::shared_ptr<Castle> create_init_castle_restricted(
+		const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint);
+	// 如果指定小地图放满，就放别处。
+	static boost::shared_ptr<Castle> create_init_castle(
+		const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint);
 
 private:
 	WorldMap() = delete;

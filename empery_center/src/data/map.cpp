@@ -270,6 +270,47 @@ namespace Data {
 		}
 		return ret;
 	}
+
+	boost::shared_ptr<const MapStartPoint> MapStartPoint::get(StartPointId start_point_id){
+		PROFILE_ME;
+
+		const auto start_point_map = g_start_point_map.lock();
+		if(!start_point_map){
+			LOG_EMPERY_CENTER_WARNING("MapStartPointMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = start_point_map->find<0>(start_point_id);
+		if(it == start_point_map->end<0>()){
+			LOG_EMPERY_CENTER_DEBUG("MapStartPoint not found: start_point_id = ", start_point_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapStartPoint>(start_point_map, &*it);
+	}
+	boost::shared_ptr<const MapStartPoint> MapStartPoint::require(StartPointId start_point_id){
+		PROFILE_ME;
+
+		auto ret = get(start_point_id);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("MapStartPoint not found"));
+		}
+		return ret;
+	}
+
+	void MapStartPoint::get_all(std::vector<boost::shared_ptr<const MapStartPoint>> &ret){
+		PROFILE_ME;
+
+		const auto start_point_map = g_start_point_map.lock();
+		if(!start_point_map){
+			LOG_EMPERY_CENTER_WARNING("MapStartPointMap has not been loaded.");
+			return;
+		}
+
+		ret.reserve(ret.size() + start_point_map->size());
+		for(auto it = start_point_map->begin<1>(); it != start_point_map->end<1>(); ++it){
+			ret.emplace_back(start_point_map, &*it);
+		}
+	}
 }
 
 }

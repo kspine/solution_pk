@@ -373,10 +373,15 @@ void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::st
 
 // FIXME remove this
 for(int i = 0; i < 1; ++i){
-	auto map_object_uuid = MapObjectUuid(Poseidon::Uuid::random());
-	auto coord = Coord((boost::int32_t)Poseidon::rand32(0, 400) - 200,
-                   	(boost::int32_t)Poseidon::rand32(0, 400) - 200);
-	auto castle = boost::make_shared<Castle>(map_object_uuid, account_uuid, MapObjectUuid(), "aaa", coord);
+	const auto castle = WorldMap::create_init_castle(
+		[&](Coord coord){
+			return boost::make_shared<Castle>(MapObjectUuid(Poseidon::Uuid::random()),
+				account_uuid, MapObjectUuid(), "aaa", coord);
+		},
+		Coord(-1, 0));
+	if(!castle){
+		DEBUG_THROW(Exception, sslit("failed to place init castle!"));
+	}
 
 	std::vector<ResourceTransactionElement> rsrc;
 	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 500000000000, ReasonId(0), 0, 0, 0);
@@ -392,8 +397,6 @@ for(int i = 0; i < 1; ++i){
 	castle->create_building_mission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 	castle->create_building_mission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
 	castle->create_building_mission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-
-	WorldMap::insert_map_object(castle);
 }
 // end FIXME
 }
