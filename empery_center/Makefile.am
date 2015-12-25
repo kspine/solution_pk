@@ -27,6 +27,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/mail_box_map.cpp	\
 	src/singletons/chat_box_map.cpp	\
 	src/singletons/announcement_map.cpp	\
+	src/singletons/activation_code_map.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -63,4 +64,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/chat_message.cpp	\
 	src/announcement.cpp	\
 	src/overlay.cpp	\
+	src/activation_code.cpp	\
 	src/mmain.cpp

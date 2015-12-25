@@ -18,13 +18,13 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -44,13 +44,13 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -118,13 +118,13 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -153,13 +153,13 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -216,13 +216,13 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -256,13 +256,13 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -276,7 +276,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account_uuid, session,
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_BUILDING_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
@@ -293,13 +293,13 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account_uuid, session,
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleQueryIndividualBuildingInfo, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleQueryIndividualBuildingInfo, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -310,13 +310,13 @@ PLAYER_SERVLET(Msg::CS_CastleQueryIndividualBuildingInfo, account_uuid, session,
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -388,13 +388,13 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -422,13 +422,13 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -442,7 +442,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account_uuid, session, req
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_TECH_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
@@ -459,13 +459,13 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account_uuid, session, req
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -476,9 +476,9 @@ PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, account_uuid, session, req
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account_uuid, session, /* req */){
+PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account, session, /* req */){
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
+	WorldMap::get_map_objects_by_owner(map_objects, account->get_account_uuid());
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
 		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
@@ -490,13 +490,13 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account_uuid, session, /* req */
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -528,13 +528,13 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -552,13 +552,13 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -602,7 +602,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
 	}
 	const auto &coord = foundation.front();
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	std::vector<ItemTransactionElement> transaction;
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_IMMIGRANT_CREATION_TRADE_ID));
@@ -612,10 +612,10 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
 		[&]{
 			const auto immigrants_uuid = MapObjectUuid(Poseidon::Uuid::random());
 			const auto immigrants = boost::make_shared<MapObject>(immigrants_uuid, MapObjectTypeIds::ID_IMMIGRANTS,
-				account_uuid, map_object_uuid, std::string(), coord);
+				account->get_account_uuid(), map_object_uuid, std::string(), coord);
 			immigrants->pump_status();
 			WorldMap::insert_map_object(immigrants);
-			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid, ", account_uuid = ", account_uuid);
+			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid, ", account_uuid = ", account->get_account_uuid());
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
@@ -624,13 +624,13 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -654,7 +654,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account_uuid, session, req)
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto count_to_consume = std::min<boost::uint64_t>(req.count,
@@ -671,13 +671,13 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account_uuid, session, req)
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
-	if(castle->get_owner_uuid() != account_uuid){
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
@@ -701,7 +701,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account_uuid, session, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto count_to_consume = std::min<boost::uint64_t>(req.count,

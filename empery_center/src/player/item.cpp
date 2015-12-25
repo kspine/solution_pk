@@ -10,16 +10,16 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_ItemGetAllItems, account_uuid, session, /* req */){
-	const auto item_box = ItemBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_ItemGetAllItems, account, session, /* req */){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	item_box->pump_status();
 	item_box->synchronize_with_player(session);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account_uuid, session, req){
-	const auto item_box = ItemBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	item_box->pump_status();
 
 	const auto repeat_count = req.repeat_count;
@@ -43,8 +43,8 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account_uuid, session, req){
-	const auto item_box = ItemBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	item_box->pump_status();
 
 	const auto repeat_count = req.repeat_count;
@@ -68,8 +68,8 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_ItemUseItem, account_uuid, session, req){
-	const auto item_box = ItemBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_ItemUseItem, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	item_box->pump_status();
 
 	const auto repeat_count = req.repeat_count;

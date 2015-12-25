@@ -8,7 +8,7 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_AnnouncementGetAnnouncements, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_AnnouncementGetAnnouncements, account, session, req){
 	const auto language_id = LanguageId(req.language_id);
 
 	std::vector<boost::shared_ptr<Announcement>> announcements;

@@ -25,7 +25,7 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
+PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account, session, /* req */){
 	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
 	WorldMap::get_all_clusters(clusters);
 	const auto center_rectangle = WorldMap::get_cluster_scope(Coord(0, 0));
@@ -44,25 +44,25 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account_uuid, session, /* req */){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapSetView, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapSetView, account, session, req){
 	session->set_view(Rectangle(req.x, req.y, req.width, req.height));
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapRefreshView, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapRefreshView, account, session, req){
 	WorldMap::synchronize_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
 	}
-	if(map_object->get_owner_uuid() != account_uuid){
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
@@ -125,7 +125,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	const auto resource_id = ResourceId(req.resource_id);
 
 	const auto &producible_resources = Data::Global::as_array(Data::Global::SLOT_PRODUCIBLE_RESOURCES);
@@ -143,7 +143,7 @@ _producible:
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<parent_object_uuid;
 	}
-	if(map_object->get_owner_uuid() != account_uuid){
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
@@ -195,7 +195,7 @@ _producible:
 		}
 	}
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
@@ -209,13 +209,13 @@ _producible:
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
 	}
-	if(map_cell->get_owner_uuid() != account_uuid){
+	if(map_cell->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
 	}
 
@@ -230,7 +230,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 	}
 	const auto new_ticket_item_id = new_ticket_data->item_id;
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_LAND_UPGRADE_TICKET, 1,
@@ -244,7 +244,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapStopTroops, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 	Msg::SC_MapStopTroopsRet msg;
 	msg.map_objects.reserve(req.map_objects.size());
 	for(auto it = req.map_objects.begin(); it != req.map_objects.end(); ++it){
@@ -254,7 +254,7 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account_uuid, session, req){
 			LOG_EMPERY_CENTER_DEBUG("No such map object: map_object_uuid = ", map_object_uuid);
 			continue;
 		}
-		if(map_object->get_owner_uuid() != account_uuid){
+		if(map_object->get_owner_uuid() != account->get_account_uuid()){
 			LOG_EMPERY_CENTER_DEBUG("Not your object: map_object_uuid = ", map_object_uuid);
 			continue;
 		}
@@ -285,13 +285,13 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
 	}
-	if(map_cell->get_owner_uuid() != account_uuid){
+	if(map_cell->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
 	}
 
@@ -303,7 +303,7 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account_uuid, session, req){
 		return Response(Msg::ERR_ACCELERATION_CARD_APPLIED) <<coord;
 	}
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCELERATION_CARD, 1,

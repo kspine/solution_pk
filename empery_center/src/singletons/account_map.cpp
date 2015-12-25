@@ -14,6 +14,7 @@
 #include "item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../data/item.hpp"
+#include "../utilities.hpp"
 
 #include "../castle.hpp" // FIXME remove this
 #include "../transaction_element.hpp" // FIXME remove this
@@ -23,40 +24,6 @@
 namespace EmperyCenter {
 
 namespace {
-	inline std::size_t hash_string_nocase(const std::string &str) noexcept {
-		// http://www.isthe.com/chongo/tech/comp/fnv/
-		std::size_t hash;
-		if(sizeof(std::size_t) < 8){
-			hash = 2166136261u;
-			for(auto it = str.begin(); it != str.end(); ++it){
-				const auto ch = std::toupper(*it);
-				hash ^= static_cast<unsigned char>(ch);
-				hash *= 16777619u;
-			}
-		} else {
-			hash = 14695981039346656037u;
-			for(auto it = str.begin(); it != str.end(); ++it){
-				const auto ch = std::toupper(*it);
-				hash ^= static_cast<unsigned char>(ch);
-				hash *= 1099511628211u;
-			}
-		}
-		return hash;
-	}
-	inline bool are_strings_equal_nocase(const std::string &lhs, const std::string &rhs) noexcept {
-		if(lhs.size() != rhs.size()){
-			return false;
-		}
-		for(std::size_t i = 0; i < lhs.size(); ++i){
-			const auto ch1 = std::toupper(lhs[i]);
-			const auto ch2 = std::toupper(rhs[i]);
-			if(ch1 != ch2){
-				return false;
-			}
-		}
-		return true;
-	}
-
 	struct AccountElement {
 		boost::shared_ptr<Account> account;
 
@@ -306,7 +273,7 @@ boost::shared_ptr<Account> AccountMap::get_by_login_name(PlatformId platform_id,
 	const auto key = std::make_pair(platform_id, hash_string_nocase(login_name));
 	const auto range = g_account_map->equal_range<1>(key);
 	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(login_name, it->account->get_login_name())){
+		if(are_strings_equal_nocase(it->account->get_login_name(), login_name)){
 			return it->account;
 		}
 	}
@@ -339,7 +306,7 @@ void AccountMap::get_by_nick(std::vector<boost::shared_ptr<Account>> &ret, const
 	const auto range = g_account_map->equal_range<2>(key);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
-		if(!are_strings_equal_nocase(nick, it->account->get_nick())){
+		if(!are_strings_equal_nocase(it->account->get_nick(), nick)){
 			continue;
 		}
 		ret.emplace_back(it->account);

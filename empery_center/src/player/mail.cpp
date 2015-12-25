@@ -18,16 +18,16 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_MailGetAllMails, account_uuid, session, /* req */){
-	const auto mail_box = MailBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_MailGetAllMails, account, session, /* req */){
+	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 	mail_box->synchronize_with_player(session);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MailGetMailData, account_uuid, session, req){
-	const auto mail_box = MailBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_MailGetMailData, account, session, req){
+	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(req.mail_uuid);
@@ -47,7 +47,7 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 	const auto to_account_uuid = AccountUuid(req.to_account_uuid);
 
 	const auto to_account = AccountMap::get(to_account_uuid);
@@ -67,7 +67,7 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 
 	boost::container::flat_map<ItemId, boost::uint64_t> attachments;
 
-	const auto to_mail_box = MailBoxMap::require(to_account_uuid);
+	const auto to_mail_box = MailBoxMap::require(to_account->get_account_uuid());
 	to_mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
@@ -78,15 +78,15 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account_uuid, session, req){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-		MailTypeIds::ID_NORMAL, account_uuid, std::move(req.subject), std::move(segments), std::move(attachments));
+		MailTypeIds::ID_NORMAL, account->get_account_uuid(), std::move(req.subject), std::move(segments), std::move(attachments));
 	MailBoxMap::insert_mail_data(mail_data);
 	to_mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration), 0);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account_uuid, session, req){
-	const auto mail_box = MailBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account, session, req){
+	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(req.mail_uuid);
@@ -101,8 +101,8 @@ PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account_uuid, session, req){
-	const auto mail_box = MailBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
+	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(req.mail_uuid);
@@ -114,13 +114,13 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account_uuid, session, req){
 		return Response(Msg::ERR_ATTACHMENTS_FETCHED) <<mail_uuid;
 	}
 
-	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto language_id = LanguageId(req.language_id);
 	const auto mail_data = MailBoxMap::require_mail_data(mail_uuid, language_id);
 
 	const auto &attachments = mail_data->get_attachments();
-	LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", account_uuid,
+	LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", account->get_account_uuid(),
 		", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 
 	const auto mail_uuid_tail = Poseidon::load_be(reinterpret_cast<const boost::uint64_t *>(mail_uuid.get().end())[-1]);
@@ -137,8 +137,8 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MailDelete, account_uuid, session, req){
-	const auto mail_box = MailBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_MailDelete, account, session, req){
+	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(req.mail_uuid);

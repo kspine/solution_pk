@@ -16,7 +16,7 @@
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 	// TODO quiet
 
 	const auto channel     = ChatChannelId(req.channel);
@@ -34,8 +34,6 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 		}
 		segments.emplace_back(slot, std::move(it->value));
 	}
-
-	const auto account = AccountMap::require(account_uuid);
 
 	boost::uint64_t last_chat_time;
 	boost::uint64_t min_seconds;
@@ -63,7 +61,7 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 
 	const auto chat_message_uuid = ChatMessageUuid(Poseidon::Uuid::random());
 	const auto message = boost::make_shared<ChatMessage>(
-		chat_message_uuid, channel, type, language_id, utc_now, account_uuid, std::move(segments));
+		chat_message_uuid, channel, type, language_id, utc_now, account->get_account_uuid(), std::move(segments));
 
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 	modifiers[AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE] = boost::lexical_cast<std::string>(utc_now);
@@ -72,7 +70,7 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 	if(channel == ChatChannelIds::ID_ADJACENT){
 		const auto view = session->get_view();
 		if((view.width() == 0) || (view.height() == 0)){
-			LOG_EMPERY_CENTER_DEBUG("View is null: account_uuid = ", account_uuid);
+			LOG_EMPERY_CENTER_DEBUG("View is null: account_uuid = ", account->get_account_uuid());
 		} else {
 			const auto center_x = view.left()   + static_cast<boost::int64_t>(view.width() / 2);
 			const auto center_y = view.bottom() + static_cast<boost::int64_t>(view.height() / 2);
@@ -81,8 +79,8 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 			for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){
 				const auto &other_session = *it;
 				try {
-					const auto other_account_uuid = PlayerSessionMap::require_account_uuid(other_session);
-					const auto other_chat_box = ChatBoxMap::require(other_account_uuid);
+					const auto other_account = PlayerSessionMap::require_account(other_session);
+					const auto other_chat_box = ChatBoxMap::require(other_account->get_account_uuid());
 					other_chat_box->insert(message);
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -97,8 +95,8 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_ChatGetMessages, account_uuid, session, req){
-	const auto chat_box = ChatBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_ChatGetMessages, account, session, req){
+	const auto chat_box = ChatBoxMap::require(account->get_account_uuid());
 
 	Msg::SC_ChatGetMessagesRet msg;
 	msg.chat_messages.reserve(req.chat_messages.size());

@@ -12,6 +12,7 @@
 #include <sstream>
 #include "../singletons/account_map.hpp"
 #include "../singletons/player_session_map.hpp"
+#include "../account.hpp"
 #include "../player_session.hpp"
 #include "../msg/err_account.hpp"
 #include "../log.hpp"
@@ -27,9 +28,9 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 	namespace {	\
 		namespace Impl_ {	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
-				const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
+				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &, MsgType_);	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_) (	\
-				const ::boost::shared_ptr<PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
+				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 			{	\
 				PROFILE_ME;	\
 				MsgType_ msg_(::std::move(payload_));	\
@@ -46,23 +47,24 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		MsgType_ req_arg_	\
 		)	\
 
-#define PLAYER_SERVLET(MsgType_, account_uuid_arg_, session_arg_, req_arg_)	\
+#define PLAYER_SERVLET(MsgType_, account_arg_, session_arg_, req_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
-				const ::EmperyCenter::AccountUuid &, const ::boost::shared_ptr<PlayerSession> &, MsgType_);	\
+				const ::boost::shared_ptr< ::EmperyCenter::Account> &,	\
+				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &, MsgType_);	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Entry_) (	\
-				const ::boost::shared_ptr<PlayerSession> &session_, const ::Poseidon::StreamBuffer &payload_)	\
+				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &session_, const ::Poseidon::StreamBuffer &payload_)	\
 			{	\
 				PROFILE_ME;	\
-				const auto account_uuid_ = ::EmperyCenter::PlayerSessionMap::get_account_uuid(session_);	\
-				if(!account_uuid_){	\
+				const auto account_ = ::EmperyCenter::PlayerSessionMap::get_account(session_);	\
+				if(!account_){	\
 					return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::ERR_NOT_LOGGED_IN);	\
 				}	\
 				MsgType_ msg_(payload_);	\
-				LOG_EMPERY_CENTER_TRACE("Received request from account ", account_uuid_, " on ",	\
+				LOG_EMPERY_CENTER_TRACE("Received request from account ", account_, " on ",	\
 					session_->get_remote_info(), ": ", msg_);	\
-				return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (account_uuid_, session_, ::std::move(msg_));	\
+				return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (account_, session_, ::std::move(msg_));	\
 			}	\
 		}	\
 	}	\
@@ -70,8 +72,8 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		handles_.push(PlayerSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
-		const ::EmperyCenter::AccountUuid & account_uuid_arg_ __attribute__((__unused__)),	\
-		const ::boost::shared_ptr<PlayerSession> & session_arg_ __attribute__((__unused__)),	\
+		const ::boost::shared_ptr< ::EmperyCenter::Account> & account_arg_ __attribute__((__unused__)),	\
+		const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> & session_arg_ __attribute__((__unused__)),	\
 		MsgType_ req_arg_	\
 		)	\
 

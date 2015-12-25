@@ -111,19 +111,19 @@ boost::shared_ptr<PlayerSession> PlayerSessionMap::get(AccountUuid account_uuid)
 	return session;
 }
 
-AccountUuid PlayerSessionMap::get_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session){
+boost::shared_ptr<Account> PlayerSessionMap::get_account(const boost::weak_ptr<PlayerSession> &weak_session){
 	PROFILE_ME;
 
 	const auto it = g_session_map->find<1>(weak_session);
 	if(it == g_session_map->end<1>()){
 		return { };
 	}
-	return it->account_uuid;
+	return it->account;
 }
-AccountUuid PlayerSessionMap::require_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session){
+boost::shared_ptr<Account> PlayerSessionMap::require_account(const boost::weak_ptr<PlayerSession> &weak_session){
 	PROFILE_ME;
 
-	auto ret = get_account_uuid(weak_session);
+	auto ret = get_account(weak_session);
 	if(!ret){
 		DEBUG_THROW(Exception, sslit("Session not found"));
 	}

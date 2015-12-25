@@ -70,9 +70,9 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	const auto &login_token = req.login_token;
 	LOG_EMPERY_CENTER_INFO("Account login: platform_id = ", platform_id, ", login_name = ", login_name, ", login_token = ", login_token);
 
-	const auto old_account_uuid = PlayerSessionMap::get_account_uuid(session);
-	if(old_account_uuid){
-		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account_uuid;
+	const auto old_account = PlayerSessionMap::get_account(session);
+	if(old_account){
+		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account->get_account_uuid();
 	}
 
 	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
@@ -105,7 +105,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
 	const auto account_attribute_id = AccountAttributeId(req.account_attribute_id);
 	auto &value = req.value;
 
@@ -116,8 +116,6 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account_uuid, session, req){
 		return Response(Msg::ERR_ATTR_TOO_LONG) <<Account::MAX_ATTRIBUTE_LEN;
 	}
 
-	const auto account = AccountMap::require(account_uuid);
-
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 	modifiers[account_attribute_id] = std::move(value);
 	account->set_attributes(modifiers);
@@ -125,21 +123,19 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_AccountSetNick, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
 	auto &nick = req.nick;
 
 	if(nick.size() > Account::MAX_NICK_LEN){
 		return Response(Msg::ERR_NICK_TOO_LONG) <<Account::MAX_NICK_LEN;
 	}
 
-	const auto account = AccountMap::require(account_uuid);
-
 	account->set_nick(std::move(nick));
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_AccountFindByNick, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_AccountFindByNick, account, session, req){
 	auto &nick = req.nick;
 
 	std::vector<boost::shared_ptr<Account>> accounts;
@@ -154,7 +150,7 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, account_uuid, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account_uuid, session, req){
+PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
 	enum {
 		FL_NICK           = 0x0001,
 		FL_ATTRIBUTES     = 0x0002,
@@ -166,9 +162,9 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account_uuid, session, req){
 	for(auto it = req.accounts.begin(); it != req.accounts.end(); ++it){
 		const auto other_account_uuid = AccountUuid(it->account_uuid);
 
-		auto &account = *msg.accounts.emplace(msg.accounts.end());
-		account.account_uuid = std::move(it->account_uuid);
-		account.error_code = Msg::ERR_NO_SUCH_ACCOUNT;
+		auto &elem = *msg.accounts.emplace(msg.accounts.end());
+		elem.account_uuid = std::move(it->account_uuid);
+		elem.error_code   = Msg::ERR_NO_SUCH_ACCOUNT;
 
 		const auto &other_account = AccountMap::get(other_account_uuid);
 		if(other_account){
@@ -176,25 +172,23 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account_uuid, session, req){
 		}
 		const bool wants_nick               = Poseidon::has_any_flags_of(it->detail_flags, FL_NICK);
 		const bool wants_attributes         = Poseidon::has_any_flags_of(it->detail_flags, FL_ATTRIBUTES);
-		const bool wants_private_attributes = wants_attributes && (other_account_uuid == account_uuid);
+		const bool wants_private_attributes = wants_attributes && (other_account_uuid == account->get_account_uuid());
 		const bool wants_items              = Poseidon::has_any_flags_of(it->detail_flags, FL_ITEMS);
 		AccountMap::synchronize_account_with_player(other_account_uuid, session,
 			wants_nick, wants_attributes, wants_private_attributes, wants_items);
-		account.error_code = Msg::ST_OK;
+		elem.error_code = Msg::ST_OK;
 	}
 	session->send(msg);
 
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_AccountSignIn, account_uuid, session, req){
-	const auto item_box = ItemBoxMap::require(account_uuid);
+PLAYER_SERVLET(Msg::CS_AccountSignIn, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	item_box->pump_status();
 
-	const auto account = AccountMap::require(account_uuid);
-
 	const auto signed_in = get_signed_in(account);
-	LOG_EMPERY_CENTER_DEBUG("Retrieved signed-in info: account_uuid = ", account_uuid,
+	LOG_EMPERY_CENTER_DEBUG("Retrieved signed-in info: account_uuid = ", account->get_account_uuid(),
 		", last_signed_in_time = ", signed_in.last_signed_in_time, ", last_signed_in_day = ", signed_in.last_signed_in_day,
 		", today = ", signed_in.today, ", sequential_days = ", signed_in.sequential_days);
 
@@ -220,7 +214,7 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account_uuid, session, req){
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
 		[&]{ account->set_attributes(std::move(modifiers)); });
 	if(insuff_item_id){
-		LOG_EMPERY_CENTER_DEBUG("Insufficient item: account_uuid = ", account_uuid, ", insuff_item_id = ", insuff_item_id);
+		LOG_EMPERY_CENTER_DEBUG("Insufficient item: insuff_item_id = ", insuff_item_id);
 		return Response(Msg::ERR_ALREADY_SIGNED_IN);
 	}
 
