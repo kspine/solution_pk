@@ -263,7 +263,7 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 				// 创建一个空的。
 				obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(),
 					0, 0, Poseidon::Uuid(), std::string(), std::string(), std::string());
-				// obj->async_save(true); // 不需要。
+				obj->enable_auto_saving(); // obj->async_save(true);
 			} else {
 				const auto &base = it->sink->front();
 				obj = boost::dynamic_pointer_cast<MySql::Center_MailData>(base);
@@ -273,8 +273,8 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 				}
 				obj->disable_auto_saving();
 				obj->set_language_id(language_id.get());
+				obj->enable_auto_saving();
 			}
-			obj->enable_auto_saving();
 			auto mail_data = boost::make_shared<MailData>(std::move(obj));
 
 			it->promise   = { };

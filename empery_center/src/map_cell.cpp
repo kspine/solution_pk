@@ -22,8 +22,7 @@ MapCell::MapCell(Coord coord)
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(),
 				Poseidon::Uuid(), false, 0, 0, 0, 0);
-			// obj->async_save(true);
-			obj->enable_auto_saving();
+			obj->enable_auto_saving(); // obj->async_save(true);
 			return obj;
 		}())
 {
