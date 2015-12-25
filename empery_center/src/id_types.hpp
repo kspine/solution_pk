@@ -210,6 +210,7 @@ namespace IdTypes {
 	using TradeId             = GenericId<boost::uint32_t, 120010>;
 	using RechargeId          = GenericId<boost::uint32_t, 120011>;
 	using ShopId              = GenericId<boost::uint32_t, 120012>;
+	using StartPointId        = GenericId<boost::uint32_t, 120013>;
 
 	using AccountUuid         = GenericUuid<210001>;
 	using MapObjectUuid       = GenericUuid<210002>;

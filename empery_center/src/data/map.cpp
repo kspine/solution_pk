@@ -33,6 +33,13 @@ namespace {
 	boost::weak_ptr<const OverlayMap> g_overlay_map;
 	const char OVERLAY_FILE[] = "remove";
 
+	MULTI_INDEX_MAP(StartPointMap, Data::MapStartPoint,
+		UNIQUE_MEMBER_INDEX(start_point_id)
+		UNIQUE_MEMBER_INDEX(map_coord)
+	)
+	boost::weak_ptr<const StartPointMap> g_start_point_map;
+	const char START_POINT_FILE[] = "birth_point";
+
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(BASIC_FILE);
 		const auto basic_map = boost::make_shared<BasicMap>();
@@ -56,8 +63,8 @@ namespace {
 		}
 		g_basic_map = basic_map;
 		handles.push(basic_map);
-		auto servlet = DataSession::create_servlet(BASIC_FILE, Data::encode_csv_as_json(csv, "xy"));
-		// handles.push(std::move(servlet)); // XXX
+		// servlet = DataSession::create_servlet(BASIC_FILE, Data::encode_csv_as_json(csv, "xy"));
+		// handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TICKET_FILE);
 		const auto ticket_map = boost::make_shared<TicketMap>();
@@ -75,7 +82,7 @@ namespace {
 		}
 		g_ticket_map = ticket_map;
 		handles.push(ticket_map);
-		servlet = DataSession::create_servlet(TICKET_FILE, Data::encode_csv_as_json(csv, "territory_certificate"));
+		auto servlet = DataSession::create_servlet(TICKET_FILE, Data::encode_csv_as_json(csv, "territory_certificate"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TERRAIN_FILE);
@@ -119,6 +126,27 @@ namespace {
 		handles.push(overlay_map);
 		servlet = DataSession::create_servlet(OVERLAY_FILE, Data::encode_csv_as_json(csv, "remove_id"));
 		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(START_POINT_FILE);
+		const auto start_point_map = boost::make_shared<StartPointMap>();
+		while(csv.fetch_row()){
+			Data::MapStartPoint elem = { };
+
+			csv.get(elem.start_point_id,   "birth_point_id");
+
+			csv.get(elem.map_coord.first,  "x");
+			csv.get(elem.map_coord.second, "y");
+
+			if(!start_point_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapStartPoint: start_point_id = ", elem.start_point_id,
+					", map_x = ", elem.map_coord.first, ", map_y = ", elem.map_coord.second);
+				DEBUG_THROW(Exception, sslit("Duplicate MapStartPoint"));
+			}
+		}
+		g_start_point_map = start_point_map;
+		handles.push(start_point_map);
+		// servlet = DataSession::create_servlet(START_POINT_FILE, Data::encode_csv_as_json(csv, "birth_point_id"));
+		// handles.push(std::move(servlet));
 	}
 }
 

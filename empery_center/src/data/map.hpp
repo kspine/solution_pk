@@ -55,6 +55,18 @@ namespace Data {
 		ResourceId reward_resource_id;
 		boost::uint64_t reward_resource_amount;
 	};
+
+	class MapStartPoint {
+	public:
+		static boost::shared_ptr<const MapStartPoint> get(StartPointId start_point_id);
+		static boost::shared_ptr<const MapStartPoint> require(StartPointId start_point_id);
+
+		static void get_all(std::vector<boost::shared_ptr<const MapStartPoint>> &ret);
+
+	public:
+		StartPointId start_point_id;
+		std::pair<unsigned, unsigned> map_coord;
+	};
 }
 
 }

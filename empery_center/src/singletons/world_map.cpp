@@ -237,7 +237,6 @@ namespace {
 			std::vector<boost::shared_ptr<MySql::Center_CastleTech>> techs;
 			std::vector<boost::shared_ptr<MySql::Center_CastleResource>> resources;
 		};
-		const TempCastleElement empty_castle = { };
 		std::map<Poseidon::Uuid, TempCastleElement> temp_castle_map;
 
 		LOG_EMPERY_CENTER_INFO("Loading castle building bases...");
@@ -247,13 +246,9 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
-			const auto it = temp_map_object_map.find(map_object_uuid);
-			if(it == temp_map_object_map.end()){
-				continue;
-			}
 			temp_castle_map[map_object_uuid].buildings.emplace_back(std::move(obj));
 		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", temp_castle_map.size(), " castle(s).");
+		LOG_EMPERY_CENTER_INFO("Done loading castle buildings.");
 
 		LOG_EMPERY_CENTER_INFO("Loading castle tech...");
 		conn->execute_sql("SELECT * FROM `Center_CastleTech`");
@@ -277,21 +272,17 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading castle resources.");
 
+		LOG_EMPERY_CENTER_INFO("Loaded ", temp_castle_map.size(), " castle(s).");
+
 		const auto map_object_map = boost::make_shared<MapObjectMapContainer>();
 		for(auto it = temp_map_object_map.begin(); it != temp_map_object_map.end(); ++it){
 			boost::shared_ptr<MapObject> map_object;
 
 			const auto map_object_type_id = MapObjectTypeId(it->second.obj->get_map_object_type_id());
 			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-				const TempCastleElement *elem;
-				const auto cit = temp_castle_map.find(it->first);
-				if(cit == temp_castle_map.end()){
-					elem = &empty_castle;
-				} else {
-					elem = &cit->second;
-				}
+				const auto &castle_meta = temp_castle_map.at(it->first);
 				map_object = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
-					elem->buildings, elem->techs, elem->resources);
+					castle_meta.buildings, castle_meta.techs, castle_meta.resources);
 			} else {
 				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
 			}
