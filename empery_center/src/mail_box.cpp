@@ -71,6 +71,8 @@ void MailBox::pump_status(){
 			bool erase_mail = true;
 			if(utc_now < it->second->get_expiry_time()){
 				erase_mail = false;
+			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_SYSTEM)){
+				erase_mail = false;
 			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_READ)){
 				erase_mail = false;
 			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_ATTACHMENTS_FETCHED)){
