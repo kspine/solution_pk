@@ -13,6 +13,7 @@ namespace Msg {
 	FIELD_ARRAY         (clusters,	\
 		FIELD_VINT          (x)	\
 		FIELD_VINT          (y)	\
+		FIELD_STRING        (name)	\
 	)	\
 	FIELD_VUINT         (cluster_width)	\
 	FIELD_VUINT         (cluster_height)

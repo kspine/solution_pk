@@ -111,6 +111,77 @@ namespace {
 
 	boost::weak_ptr<ClusterMapContainer> g_cluster_map;
 
+	void gc_timer_proc(boost::uint64_t /* now */){
+		PROFILE_ME;
+
+		const auto map_cell_map = g_map_cell_map.lock();
+		if(map_cell_map){
+			auto it = map_cell_map->begin<0>();
+			while(it != map_cell_map->end<0>()){
+				const auto prev = it;
+				it = map_cell_map->upper_bound<0>(prev->master);
+
+				if(prev->master.expired()){
+					LOG_EMPERY_CLUSTER_WARNING("Master is gone! Removing ", std::distance(prev, it), " map cell(s).");
+					map_cell_map->erase<0>(prev, it);
+				}
+			}
+		}
+
+		const auto map_object_map = g_map_object_map.lock();
+		if(map_object_map){
+			auto it = map_object_map->begin<0>();
+			while(it != map_object_map->end<0>()){
+				const auto prev = it;
+				it = map_object_map->upper_bound<0>(prev->master);
+
+				if(prev->master.expired()){
+					LOG_EMPERY_CLUSTER_WARNING("Master is gone! Removing ", std::distance(prev, it), " map object(s).");
+					map_object_map->erase<0>(prev, it);
+				}
+			}
+		}
+	}
+
+	struct InitServerElement {
+		std::pair<boost::int64_t, boost::int64_t> num_coord;
+		std::string name;
+
+		mutable boost::weak_ptr<ClusterClient> cluster;
+
+		InitServerElement(boost::int64_t num_x_, boost::int64_t num_y_, std::string name_)
+			: num_coord(num_x_, num_y_), name(std::move(name_))
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(InitServerMap, InitServerElement,
+		UNIQUE_MEMBER_INDEX(num_coord)
+		MULTI_MEMBER_INDEX(name)
+	)
+
+	boost::weak_ptr<InitServerMap> g_init_server_map;
+
+	void cluster_server_reconnect_timer_proc(boost::uint64_t /* now */){
+		PROFILE_ME;
+
+		const auto init_server_map = g_init_server_map.lock();
+		if(init_server_map){
+			for(auto it = init_server_map->begin(); it != init_server_map->end(); ++it){
+				auto cluster = it->cluster.lock();
+				if(!cluster){
+					const auto num_x = it->num_coord.first;
+					const auto num_y = it->num_coord.second;
+					const auto &name = it->name;
+					LOG_EMPERY_CLUSTER_INFO("Creating cluster client: num_x = ", num_x, ", num_y = ", num_y, ", name = ", name);
+					cluster = ClusterClient::create(num_x, num_y, name);
+					it->cluster = cluster;
+					break; // 每次只连一个。
+				}
+			}
+		}
+	}
+
 	inline Coord get_cluster_coord_from_world_coord(Coord coord){
 		const auto mask_x = (coord.x() >= 0) ? 0 : -1;
 		const auto mask_y = (coord.y() >= 0) ? 0 : -1;
@@ -145,88 +216,29 @@ namespace {
 
 		const auto gc_timer_interval = get_config<boost::uint64_t>("world_map_gc_timer_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_timer_interval,
-			std::bind(
-				[](const boost::weak_ptr<MapCellMapContainer> &map_cell_weak,
-					const boost::weak_ptr<MapObjectMapContainer> &map_object_weak,
-					const boost::weak_ptr<ClusterMapContainer> &cluster_weak)
-				{
-					PROFILE_ME;
-
-					const auto cluster_map = cluster_weak.lock();
-					if(!cluster_map){
-						return;
-					}
-
-					const auto map_cell_map = map_cell_weak.lock();
-					if(map_cell_map){
-						auto it = map_cell_map->begin<0>();
-						while(it != map_cell_map->end<0>()){
-							const auto prev = it;
-							it = map_cell_map->upper_bound<0>(prev->master);
-
-							if(prev->master.expired()){
-								LOG_EMPERY_CLUSTER_WARNING("Master is gone! Removing ", std::distance(prev, it), " map cell(s).");
-								map_cell_map->erase<0>(prev, it);
-							}
-						}
-					}
-
-					const auto map_object_map = map_object_weak.lock();
-					if(map_object_map){
-						auto it = map_object_map->begin<0>();
-						while(it != map_object_map->end<0>()){
-							const auto prev = it;
-							it = map_object_map->upper_bound<0>(prev->master);
-
-							if(prev->master.expired()){
-								LOG_EMPERY_CLUSTER_WARNING("Master is gone! Removing ", std::distance(prev, it), " map object(s).");
-								map_object_map->erase<0>(prev, it);
-							}
-						}
-					}
-				},
-				boost::weak_ptr<MapCellMapContainer>(map_cell_map),
-				boost::weak_ptr<MapObjectMapContainer>(map_object_map),
-				boost::weak_ptr<ClusterMapContainer>(cluster_map))
-			);
+			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(std::move(timer));
 
-		using InitServerMap = boost::container::flat_map<std::pair<boost::int64_t, boost::int64_t>, boost::weak_ptr<ClusterClient>>;
-		InitServerMap init_servers;
+		const auto init_server_map = boost::make_shared<InitServerMap>();
 		LOG_EMPERY_CLUSTER_INFO("Loading logical map servers...");
 		const auto init_logical_map_servers = get_config_v<std::string>("init_logical_map_server");
 		for(auto it = init_logical_map_servers.begin(); it != init_logical_map_servers.end(); ++it){
 			const auto temp_array = boost::lexical_cast<Poseidon::JsonArray>(*it);
-
 			const auto num_x = static_cast<boost::int64_t>(temp_array.at(0).get<double>());
 			const auto num_y = static_cast<boost::int64_t>(temp_array.at(1).get<double>());
-
-			if(!init_servers.emplace(std::make_pair(num_x, num_y), boost::weak_ptr<ClusterClient>()).second){
-				LOG_EMPERY_CLUSTER_ERROR("Duplicate init_logical_map_server entry: num_x = ", num_x, ", num_y = ", num_y);
-				DEBUG_THROW(Exception, sslit("Duplicate init_logical_map_server entry"));
+			const auto &name = temp_array.at(2).get<std::string>();
+			if(!init_server_map->insert(InitServerElement(num_x, num_y, name)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Map server conflict: num_x = ", num_x, ", num_y = ", num_y, ", name = ", name);
+				DEBUG_THROW(Exception, sslit("Map server conflict"));
 			}
-			LOG_EMPERY_CLUSTER_DEBUG("> Logical server: num_x = ", num_x, ", num_y = ", num_y);
+			LOG_EMPERY_CLUSTER_DEBUG("> Init map server: num_x = ", num_x, ", num_y = ", num_y);
 		}
+		g_init_server_map = init_server_map;
+		handles.push(std::move(init_server_map));
+
 		const auto client_timer_interval = get_config<boost::uint64_t>("cluster_client_reconnect_delay", 5000);
 		timer = Poseidon::TimerDaemon::register_timer(0, client_timer_interval,
-			std::bind(
-				[](InitServerMap &init_servers){
-					PROFILE_ME;
-
-					for(auto it = init_servers.begin(); it != init_servers.end(); ++it){
-						auto cluster = it->second.lock();
-						if(!cluster){
-							const auto num_x = it->first.first;
-							const auto num_y = it->first.second;
-							LOG_EMPERY_CLUSTER_INFO("Creating logical map server: num_x = ", num_x, ", num_y = ", num_y);
-							cluster = ClusterClient::create(num_x, num_y);
-							it->second = cluster;
-							break; // 每次只连一个。
-						}
-					}
-				},
-				std::move(init_servers))
-			);
+			std::bind(&cluster_server_reconnect_timer_proc, std::placeholders::_2));
 		handles.push(std::move(timer));
 	}
 
