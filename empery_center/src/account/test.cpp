@@ -82,7 +82,7 @@ ACCOUNT_SERVLET("test/renewal_token", root, session, params){
 
 ACCOUNT_SERVLET("test/activate", root, session, params){
 	const auto &login_name = params.at("loginName");
-	const auto &code       = params.at("activationCode");
+//	const auto &code       = params.at("activationCode");
 
 	const auto account = AccountMap::get_by_login_name(TEST_PLATFORM_ID, login_name);
 	if(!account){
@@ -91,13 +91,13 @@ ACCOUNT_SERVLET("test/activate", root, session, params){
 	if(account->has_been_activated()){
 		return Response(Msg::ERR_ACCOUNT_ALREADY_ACTIVATED);
 	}
-	const auto activation_code = ActivationCodeMap::get(code);
-	if(!activation_code || activation_code->is_virtually_removed()){
-		return Response(Msg::ERR_ACTIVATION_CODE_DELETED);
-	}
+//	const auto activation_code = ActivationCodeMap::get(code);
+//	if(!activation_code || activation_code->is_virtually_removed()){
+//		return Response(Msg::ERR_ACTIVATION_CODE_DELETED);
+//	}
 
 	account->activate();
-	activation_code->set_used_by_account(account->get_account_uuid());
+//	activation_code->set_used_by_account(account->get_account_uuid());
 
 	return Response();
 }
