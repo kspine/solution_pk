@@ -31,7 +31,7 @@ public:
 	AccountUuid get_used_by_account() const;
 	void set_used_by_account(AccountUuid account_uuid);
 
-	void delete_from_game() noexcept;
+	bool is_virtually_removed() const;
 };
 
 }

@@ -14,6 +14,7 @@ struct ActivationCodeMap {
 
 	static void insert(const boost::shared_ptr<ActivationCode> &activation_code);
 	static void update(const boost::shared_ptr<ActivationCode> &activation_code, bool throws_if_not_exists = true);
+	static void remove(const std::string &code) noexcept;
 
 private:
 	ActivationCodeMap() = delete;

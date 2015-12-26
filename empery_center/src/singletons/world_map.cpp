@@ -280,7 +280,6 @@ namespace {
 		const auto map_object_map = boost::make_shared<MapObjectMapContainer>();
 		for(auto it = temp_map_object_map.begin(); it != temp_map_object_map.end(); ++it){
 			boost::shared_ptr<MapObject> map_object;
-
 			const auto map_object_type_id = MapObjectTypeId(it->second.obj->get_map_object_type_id());
 			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
 				const auto &castle_meta = temp_castle_map.at(it->first);
@@ -289,7 +288,9 @@ namespace {
 			} else {
 				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
 			}
-
+			if(map_object->is_virtually_removed()){
+				continue;
+			}
 			map_object_map->insert(MapObjectElement(std::move(map_object)));
 		}
 		g_map_object_map = map_object_map;
@@ -778,7 +779,11 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto new_coord = map_object->get_coord();
 
 	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord, ", new_coord = ", new_coord);
-	map_object_map->replace<0>(it, MapObjectElement(map_object));
+	if(map_object->is_virtually_removed()){
+		map_object_map->erase<0>(it);
+	} else {
+		map_object_map->replace<0>(it, MapObjectElement(map_object));
+	}
 
 	const auto owner_uuid = map_object->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);

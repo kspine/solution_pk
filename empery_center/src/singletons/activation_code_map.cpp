@@ -60,15 +60,14 @@ namespace {
 		const auto activation_code_map = boost::make_shared<ActivationCodeMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading activation codes...");
 		conn->execute_sql("SELECT * FROM `Center_ActivationCode`");
-		const auto utc_now = Poseidon::get_utc_time();
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_ActivationCode>();
 			obj->fetch(conn);
-			if(obj->get_expiry_time() < utc_now){
-				continue;
-			}
 			obj->enable_auto_saving();
 			auto activation_code = boost::make_shared<ActivationCode>(std::move(obj));
+			if(activation_code->is_virtually_removed()){
+				continue;
+			}
 			activation_code_map->insert(ActivationCodeElement(std::move(activation_code)));
 		}
 		g_activation_code_map = activation_code_map;
@@ -157,8 +156,37 @@ void ActivationCodeMap::update(const boost::shared_ptr<ActivationCode> &activati
 		return;
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Updating Activation code: code = ", code);
-	activation_code_map->replace<0>(acit, ActivationCodeElement(activation_code));
+	LOG_EMPERY_CENTER_DEBUG("Updating activation code: code = ", code);
+	if(activation_code->is_virtually_removed()){
+		activation_code_map->erase<0>(acit);
+	} else {
+		activation_code_map->replace<0>(acit, ActivationCodeElement(activation_code));
+	}
+}
+void ActivationCodeMap::remove(const std::string &code) noexcept {
+	PROFILE_ME;
+
+	const auto activation_code_map = g_activation_code_map.lock();
+	if(!activation_code_map){
+		LOG_EMPERY_CENTER_WARNING("Activation code map not loaded.");
+		return;
+	}
+
+	const auto range = activation_code_map->equal_range<0>(hash_string_nocase(code));
+	auto acit = range.second;
+	for(auto it = range.first; it != range.second; ++it){
+		if(are_strings_equal_nocase(it->activation_code->get_code(), code)){
+			acit = it;
+			break;
+		}
+	}
+	if(acit == range.second){
+		LOG_EMPERY_CENTER_WARNING("Activation code not found: code = ", code);
+		return;
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Removing activation code: code = ", code);
+	activation_code_map->erase<0>(acit);
 }
 
 }

@@ -9,7 +9,7 @@
 
 namespace EmperyCenter {
 
-ADMIN_SERVLET("account/create", root, session, params){
+ADMIN_SERVLET("account/add", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
 	const auto referrer_uuid = AccountUuid(params.at("referrer_uuid"));

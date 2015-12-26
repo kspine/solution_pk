@@ -47,6 +47,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/castle.cpp	\
 	src/admin/announcement.cpp	\
 	src/admin/mail.cpp	\
+	src/admin/activation_code.cpp	\
 	src/cluster/map.cpp	\
 	src/utilities.cpp	\
 	src/player_session.cpp	\

@@ -47,8 +47,15 @@ void ActivationCode::set_used_by_account(AccountUuid account_uuid){
 	ActivationCodeMap::update(virtual_shared_from_this<ActivationCode>(), false);
 }
 
-void ActivationCode::delete_from_game() noexcept {
-	set_expiry_time(0);
+bool ActivationCode::is_virtually_removed() const {
+	if(get_used_by_account()){
+		return true;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	if(get_expiry_time() <= utc_now){
+		return true;
+	}
+	return false;
 }
 
 }

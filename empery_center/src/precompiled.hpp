@@ -19,6 +19,10 @@
 #include "log.hpp"
 #include "checked_arithmetic.hpp"
 
+#include <array>
+#include <type_traits>
+#include <typeinfo>
+
 namespace EmperyCenter {
 
 using Poseidon::Exception;
