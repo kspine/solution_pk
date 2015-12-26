@@ -23,7 +23,7 @@ ADMIN_SERVLET("account/add", root, session, params){
 	if(referrer_uuid){
 		const auto referrer = AccountMap::get(referrer_uuid);
 		if(!referrer){
-			return Response(Msg::ERR_NO_SUCH_REFERRER) <<referrer_uuid;
+			return Response(Msg::ERR_NO_SUCH_REFERRER_UUID) <<referrer_uuid;
 		}
 	}
 

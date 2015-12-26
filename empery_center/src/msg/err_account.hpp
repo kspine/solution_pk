@@ -28,6 +28,7 @@ namespace Msg {
 		ERR_ACTIVATE_YOUR_ACCOUNT           = 71217,
 		ERR_ACCOUNT_ALREADY_ACTIVATED       = 71218,
 		ERR_INVALID_PASSWORD                = 71219,
+		ERR_NO_SUCH_REFERRER_UUID           = 71220,
 	};
 }
 
