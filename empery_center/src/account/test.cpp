@@ -11,7 +11,7 @@ namespace EmperyCenter {
 
 constexpr auto TEST_PLATFORM_ID = PlatformId(7801);
 
-ACCOUNT_SERVLET("promotion/check_login", root, session, params){
+ACCOUNT_SERVLET("test/check_login", root, session, params){
 	const auto &login_name = params.at("loginName");
 	const auto &password   = params.at("password");
 	const auto &token      = params.at("token");
@@ -49,7 +49,7 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 	return Response();
 }
 
-ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
+ACCOUNT_SERVLET("test/renewal_token", root, session, params){
 	const auto &login_name = params.at("loginName");
 	const auto &old_token  = params.at("oldToken");
 	const auto &token      = params.at("token");
@@ -80,7 +80,7 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 	return Response();
 }
 
-ACCOUNT_SERVLET("promotion/activate", root, session, params){
+ACCOUNT_SERVLET("test/activate", root, session, params){
 	const auto &login_name = params.at("loginName");
 	const auto &code       = params.at("activationCode");
 
