@@ -29,7 +29,7 @@ ADMIN_SERVLET("account/add", root, session, params){
 
 	const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
-	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name, 0);
+	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name);
 	AccountMap::insert(account, session->get_remote_info().ip.get());
 
 	const auto &login_token = params.get("login_token");

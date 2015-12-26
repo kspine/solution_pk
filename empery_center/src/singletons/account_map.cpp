@@ -2,7 +2,6 @@
 #include "account_map.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
-#include <poseidon/singletons/event_dispatcher.hpp>
 #include <tuple>
 #include "player_session_map.hpp"
 #include "../mysql/account.hpp"
@@ -15,11 +14,6 @@
 #include "../item_box.hpp"
 #include "../data/item.hpp"
 #include "../utilities.hpp"
-
-#include "../castle.hpp" // FIXME remove this
-#include "../transaction_element.hpp" // FIXME remove this
-#include "world_map.hpp" // FIXME remove this
-#include "../map_object_type_ids.hpp" // FIXME remove this
 
 namespace EmperyCenter {
 
@@ -124,32 +118,6 @@ namespace {
 		const auto info_cache_map = boost::make_shared<InfoCacheContainer>();
 		g_info_cache_map = info_cache_map;
 		handles.push(info_cache_map);
-
-		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountSetToken>(
-			[](const boost::shared_ptr<Events::AccountSetToken> &event){
-				PROFILE_ME;
-
-				const auto &platform_id = event->platform_id;
-				const auto &login_name  = event->login_name;
-				const auto &login_token = event->login_token;
-				const auto &expiry_time = event->expiry_time;
-				const auto &remote_ip   = event->remote_ip;
-				LOG_EMPERY_CENTER_INFO("Set token: platform_id = ", platform_id, ", login_name = ", login_name,
-					", login_token = ", login_token, ", expiry_time = ", expiry_time, ", remote_ip = ", remote_ip);
-
-				auto account = AccountMap::get_by_login_name(platform_id, login_name);
-				if(!account){
-					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
-					const auto utc_now = Poseidon::get_utc_time();
-					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid);
-					account = boost::make_shared<Account>(account_uuid, platform_id, login_name,
-						AccountUuid(), 0, utc_now, login_name, 0);
-					AccountMap::insert(account, remote_ip);
-				}
-				account->set_login_token(login_token, expiry_time);
-			});
-		LOG_EMPERY_CENTER_DEBUG("Created AccountSetToken listener");
-		handles.push(listener);
 	}
 
 	void synchronize_account_and_update_cache(boost::uint64_t now, boost::uint64_t cache_timeout,
@@ -337,35 +305,6 @@ void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::st
 	}
 
 	*withdrawn = false;
-
-// FIXME remove this
-for(int i = 0; i < 1; ++i){
-	const auto castle = WorldMap::create_init_castle(
-		[&](Coord coord){
-			return boost::make_shared<Castle>(MapObjectUuid(Poseidon::Uuid::random()),
-				account_uuid, MapObjectUuid(), "aaa", coord);
-		},
-		Coord(-1, 0));
-	if(!castle){
-		DEBUG_THROW(Exception, sslit("failed to place init castle!"));
-	}
-
-	std::vector<ResourceTransactionElement> rsrc;
-	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101001), 500000000000, ReasonId(0), 0, 0, 0);
-	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101002), 500000000000, ReasonId(0), 0, 0, 0);
-	rsrc.emplace_back(ResourceTransactionElement::OP_ADD, ResourceId(1101003), 500000000000, ReasonId(0), 0, 0, 0);
-	castle->commit_resource_transaction(rsrc);
-
-	castle->create_building_mission(BuildingBaseId(2),  Castle::MIS_CONSTRUCT, BuildingId(1902001));
-	castle->create_building_mission(BuildingBaseId(3),  Castle::MIS_CONSTRUCT, BuildingId(1902002));
-	castle->create_building_mission(BuildingBaseId(4),  Castle::MIS_CONSTRUCT, BuildingId(1902003));
-	castle->create_building_mission(BuildingBaseId(5),  Castle::MIS_CONSTRUCT, BuildingId(1902004));
-	castle->create_building_mission(BuildingBaseId(11), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-	castle->create_building_mission(BuildingBaseId(12), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-	castle->create_building_mission(BuildingBaseId(13), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-	castle->create_building_mission(BuildingBaseId(14), Castle::MIS_CONSTRUCT, BuildingId(1904001));
-}
-// end FIXME
 }
 void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists){
 	PROFILE_ME;

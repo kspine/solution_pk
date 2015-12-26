@@ -2,9 +2,9 @@
 #include <poseidon/tcp_server_base.hpp>
 #include <poseidon/http/authorization.hpp>
 #include <poseidon/singletons/epoll_daemon.hpp>
-#include "../account_http_session.hpp"
+#include "../account_session.hpp"
 
-namespace EmperyGateWestwalk {
+namespace EmperyCenter {
 
 namespace {
 	class AccountHttpServer : public Poseidon::TcpServerBase {
@@ -16,8 +16,9 @@ namespace {
 		AccountHttpServer(const Poseidon::IpPort &bind_addr, const std::string &cert, const std::string &private_key,
 			std::vector<std::string> auth_info, std::string path)
 			: Poseidon::TcpServerBase(bind_addr, cert.c_str(), private_key.c_str())
-			, m_auth_info(auth_info.empty() ? boost::shared_ptr<Poseidon::Http::AuthInfo>()
-				: Poseidon::Http::create_auth_info(std::move(auth_info))), m_path(std::move(path))
+			, m_auth_info(auth_info.empty() ? boost::shared_ptr<const Poseidon::Http::AuthInfo>()
+			                                : Poseidon::Http::create_auth_info(std::move(auth_info)))
+			, m_path(std::move(path))
 		{
 		}
 
@@ -29,15 +30,15 @@ namespace {
 }
 
 MODULE_RAII_PRIORITY(handles, 9000){
-	auto bind = get_config<std::string> ("account_http_server_bind", "0.0.0.0");
-	auto port = get_config<unsigned>    ("account_http_server_port", 13206);
-	auto cert = get_config<std::string> ("account_http_server_certificate");
-	auto pkey = get_config<std::string> ("account_http_server_private_key");
-	auto auth = get_config_v<std::string>("account_http_server_auth_user_pass");
-	auto path = get_config<std::string> ("account_http_server_path", "/empery_gate_westwalk/account");
+	auto bind = get_config<std::string>   ("account_http_server_bind", "0.0.0.0");
+	auto port = get_config<unsigned>      ("account_http_server_port", 13215);
+	auto cert = get_config<std::string>   ("account_http_server_certificate");
+	auto pkey = get_config<std::string>   ("account_http_server_private_key");
+	auto auth = get_config_v<std::string> ("account_http_server_auth_user_pass");
+	auto path = get_config<std::string>   ("account_http_server_path", "/empery/account");
 
-	const Poseidon::IpPort bind_addr(SharedNts(bind), port);
-	LOG_EMPERY_GATE_WESTWALK_INFO("Creating account HTTP server on ", bind_addr, path);
+	const auto bind_addr = Poseidon::IpPort(SharedNts(bind), port);
+	LOG_EMPERY_CENTER_INFO("Creating account HTTP server on ", bind_addr, path);
 	const auto server = boost::make_shared<AccountHttpServer>(bind_addr, cert, pkey, std::move(auth), std::move(path));
 	Poseidon::EpollDaemon::register_server(server);
 	handles.push(server);

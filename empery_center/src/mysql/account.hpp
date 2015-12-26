@@ -16,7 +16,7 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (promotion_level)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_STRING            (nick)	\
-	FIELD_BIGINT_UNSIGNED   (flags)	\
+	FIELD_TINYINT_UNSIGNED  (activated)	\
 	FIELD_STRING            (login_token)	\
 	FIELD_DATETIME          (login_token_expiry_time)	\
 	FIELD_DATETIME          (banned_until)

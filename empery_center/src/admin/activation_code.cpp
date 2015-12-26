@@ -7,23 +7,22 @@
 
 namespace EmperyCenter {
 
+namespace {
+	unsigned s_auto_inc = Poseidon::rand32();
+}
+
 ADMIN_SERVLET("activation_code/random", root, session, params){
 	const auto expiry_duration = boost::lexical_cast<boost::uint64_t>(params.at("expiry_duration"));
 
-	static unsigned s_auto_inc = 0;
-
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto auto_inc = ++s_auto_inc;
 
-	std::array<char, 11> str;
-	auto it = str.rbegin();
-	*(it++) = static_cast<int>(auto_inc % 26) + 'a';
-	boost::uint64_t val = utc_now;
-	for(unsigned i = 0; i < 10; ++i){
-		*(it++) = static_cast<int>(val % 26) + 'a';
-		val /= 26;
+	std::string code;
+	code.resize(11);
+	auto seed = utc_now + 22695477ull * s_auto_inc;
+	for(auto it = code.rbegin(); it != code.rend(); ++it){
+		*it = static_cast<int>(seed % 26) + 'a';
+		seed /= 26;
 	}
-	auto code = std::string(str.data(), str.size());
 	auto expiry_time = saturated_add(utc_now, expiry_duration);
 
 	const auto activation_code = boost::make_shared<ActivationCode>(code, utc_now, expiry_time);

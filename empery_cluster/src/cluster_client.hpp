@@ -17,7 +17,7 @@ public:
 	using Result = std::pair<Poseidon::Cbpp::StatusCode, std::string>;
 
 	using ServletCallback = boost::function<
-		Result (const boost::shared_ptr<ClusterClient> &client, Poseidon::StreamBuffer req)>;
+		Result (const boost::shared_ptr<ClusterClient> &, Poseidon::StreamBuffer)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(boost::uint16_t message_id, ServletCallback callback);

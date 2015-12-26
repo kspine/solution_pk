@@ -5,15 +5,18 @@
 #include "msg/sc_account.hpp"
 #include "player_session.hpp"
 #include "singletons/player_session_map.hpp"
+#include "castle.hpp"
+#include "singletons/world_map.hpp"
+#include "map_object_type_ids.hpp"
 
 namespace EmperyCenter {
 
 Account::Account(AccountUuid account_uuid, PlatformId platformId, std::string login_name,
-	AccountUuid referrer_uuid, unsigned promotion_level, boost::uint64_t created_time, std::string nick, boost::uint64_t flags)
+	AccountUuid referrer_uuid, unsigned promotion_level, boost::uint64_t created_time, std::string nick)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Account>(account_uuid.get(), platformId.get(), std::move(login_name),
-				referrer_uuid.get(), promotion_level, created_time, std::move(nick), flags, std::string(), 0, 0);
+				referrer_uuid.get(), promotion_level, created_time, std::move(nick), false, std::string(), 0, 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -87,11 +90,42 @@ void Account::set_nick(std::string nick){
 	}
 }
 
-boost::uint64_t Account::get_flags() const {
-	return m_obj->get_flags();
+bool Account::has_been_activated() const {
+	return m_obj->get_activated();
 }
-void Account::set_flags(boost::uint64_t flags){
-	m_obj->set_flags(flags);
+void Account::activate(){
+	PROFILE_ME;
+
+	if(has_been_activated()){
+		return;
+	}
+
+	boost::shared_ptr<Castle> castle;
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_map_objects_by_owner(map_objects, get_account_uuid());
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		const auto test_castle = boost::dynamic_pointer_cast<Castle>(map_object);
+		if(test_castle){
+			castle = std::move(test_castle);
+			break;
+		}
+	}
+	if(!castle){
+		castle = WorldMap::create_init_castle(
+			[&](Coord coord){
+				return boost::make_shared<Castle>(MapObjectUuid(Poseidon::Uuid::random()),
+					get_account_uuid(), MapObjectUuid(), get_nick(), coord);
+			},
+			Coord(-1,0) // TODO init map
+		);
+		if(!castle){
+			LOG_EMPERY_CENTER_WARNING("Failed to create initial castle! account_uuid = ", get_account_uuid());
+			DEBUG_THROW(Exception, sslit("Failed to create initial castle"));
+		}
+	}
+
+	m_obj->set_activated(true);
 }
 
 const std::string &Account::get_login_token() const {

@@ -14,14 +14,6 @@ namespace MySql {
 }
 
 class Account : public virtual Poseidon::VirtualSharedFromThis {
-public:
-	enum {
-		FL_ROBOT            = 0x0001,
-
-		MAX_NICK_LEN        =  255,
-		MAX_ATTRIBUTE_LEN   = 4096,
-	};
-
 private:
 	boost::shared_ptr<MySql::Center_Account> m_obj;
 	boost::container::flat_map<AccountAttributeId,
@@ -29,7 +21,7 @@ private:
 
 public:
 	Account(AccountUuid account_uuid, PlatformId platformId, std::string login_name,
-		AccountUuid referrer_uuid, unsigned promotion_level, boost::uint64_t created_time, std::string nick, boost::uint64_t flags);
+		AccountUuid referrer_uuid, unsigned promotion_level, boost::uint64_t created_time, std::string nick);
 	Account(boost::shared_ptr<MySql::Center_Account> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> &attributes);
 	~Account();
@@ -48,8 +40,8 @@ public:
 	const std::string &get_nick() const;
 	void set_nick(std::string nick);
 
-	boost::uint64_t get_flags() const;
-	void set_flags(boost::uint64_t flags);
+	bool has_been_activated() const;
+	void activate();
 
 	const std::string &get_login_token() const;
 	boost::uint64_t get_login_token_expiry_time() const;

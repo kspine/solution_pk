@@ -1,17 +1,17 @@
-#ifndef EMPERY_GATE_WESTWALK_ACCOUNT_HTTP_SESSION_HPP_
-#define EMPERY_GATE_WESTWALK_ACCOUNT_HTTP_SESSION_HPP_
+#ifndef EMPERY_CENTER_ACCOUNT_HTTP_SESSION_HPP_
+#define EMPERY_CENTER_ACCOUNT_HTTP_SESSION_HPP_
 
 #include <boost/function.hpp>
 #include <poseidon/http/session.hpp>
 #include <poseidon/http/authorization.hpp>
 #include <poseidon/fwd.hpp>
 
-namespace EmperyGateWestwalk {
+namespace EmperyCenter {
 
 class AccountHttpSession : public Poseidon::Http::Session {
 public:
 	using ServletCallback = boost::function<
-		Poseidon::JsonObject (const boost::shared_ptr<AccountHttpSession> &session, Poseidon::OptionalMap params)>;
+		 std::pair<long, std::string> (Poseidon::JsonObject &, const boost::shared_ptr<AccountHttpSession> &, Poseidon::OptionalMap)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(const std::string &uri, ServletCallback callback);
@@ -29,6 +29,7 @@ public:
 protected:
 	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatch_request(
 		Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity) override;
+
 	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 };
 

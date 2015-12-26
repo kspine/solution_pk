@@ -79,6 +79,9 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
 	}
+	if(!account->has_been_activated()){
+		return Response(Msg::ERR_ACTIVATE_YOUR_ACCOUNT) <<login_name;
+	}
 	const auto utc_now = Poseidon::get_utc_time();
 	if(utc_now >= account->get_login_token_expiry_time()){
 		return Response(Msg::ERR_TOKEN_EXPIRED) <<login_name;
@@ -106,14 +109,16 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
+	constexpr std::size_t MAX_ATTRIBUTE_LEN = 4096;
+
 	const auto account_attribute_id = AccountAttributeId(req.account_attribute_id);
 	auto &value = req.value;
 
 	if(account_attribute_id >= AccountAttributeIds::ID_CUSTOM_END){
 		return Response(Msg::ERR_ATTR_NOT_SETTABLE) <<account_attribute_id;
 	}
-	if(value.size() > Account::MAX_ATTRIBUTE_LEN){
-		return Response(Msg::ERR_ATTR_TOO_LONG) <<Account::MAX_ATTRIBUTE_LEN;
+	if(value.size() > MAX_ATTRIBUTE_LEN){
+		return Response(Msg::ERR_ATTR_TOO_LONG) <<MAX_ATTRIBUTE_LEN;
 	}
 
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
@@ -124,10 +129,12 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
+	constexpr std::size_t MAX_NICK_LEN = 255;
+
 	auto &nick = req.nick;
 
-	if(nick.size() > Account::MAX_NICK_LEN){
-		return Response(Msg::ERR_NICK_TOO_LONG) <<Account::MAX_NICK_LEN;
+	if(nick.size() > MAX_NICK_LEN){
+		return Response(Msg::ERR_NICK_TOO_LONG) <<MAX_NICK_LEN;
 	}
 
 	account->set_nick(std::move(nick));
@@ -151,11 +158,9 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
-	enum {
-		FL_NICK           = 0x0001,
-		FL_ATTRIBUTES     = 0x0002,
-		FL_ITEMS          = 0x0004,
-	};
+	constexpr boost::uint64_t FL_NICK       = 0x0001;
+	constexpr boost::uint64_t FL_ATTRIBUTES = 0x0002;
+	constexpr boost::uint64_t FL_ITEMS      = 0x0004;
 
 	Msg::SC_AccountQueryAttributesRet msg;
 	msg.accounts.reserve(req.accounts.size());

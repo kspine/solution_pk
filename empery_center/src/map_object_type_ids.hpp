@@ -10,8 +10,7 @@ namespace MapObjectTypeIds {
 constexpr MapObjectTypeId
 	ID_CASTLE               ( 1205001 ),
 	ID_DEFENSE_TOWER        ( 1206001 ),
-	ID_IMMIGRANTS           ( 1207001 ),
-ID_DUMMY_;
+	ID_IMMIGRANTS           ( 1207001 );
 
 }
 
