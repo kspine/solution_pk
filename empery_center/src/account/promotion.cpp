@@ -22,7 +22,7 @@
 
 namespace EmperyCenter {
 
-constexpr auto PROMOTION_PLATFORM_ID = PlatformId(7800);
+constexpr auto PROMOTION_PLATFORM_ID = PlatformId(8500);
 
 namespace {
 	class SimpleHttpClient : public Poseidon::Http::Client {

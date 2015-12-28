@@ -2,6 +2,7 @@
 #define EMPERY_CENTER_PLAYER_SESSION_HPP_
 
 #include <string>
+#include <deque>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/cstdint.hpp>
@@ -9,7 +10,6 @@
 #include <poseidon/ip_port.hpp>
 #include <poseidon/stream_buffer.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/http/session.hpp>
 #include "rectangle.hpp"
 
@@ -26,9 +26,12 @@ public:
 
 private:
 	class WebSocketImpl;
+	class QueueImpl;
 
 private:
 	const std::string m_path;
+
+	std::deque<std::pair<unsigned, Poseidon::StreamBuffer>> m_send_queue;
 
 	Rectangle m_view;
 
@@ -46,14 +49,11 @@ protected:
 
 public:
 	bool send(boost::uint16_t message_id, Poseidon::StreamBuffer payload);
-
 	template<class MessageT>
 	bool send(const MessageT &msg){
 		return send(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
-	bool send_control(boost::uint16_t message_id, int status_code, std::string reason){
-		return send(Poseidon::Cbpp::ControlMessage(message_id, static_cast<int>(status_code), std::move(reason)));
-	}
+	bool send_control(boost::uint16_t message_id, int status_code, std::string reason);
 	bool send_control(boost::uint16_t message_id, int status_code){
 		return send_control(message_id, status_code, std::string());
 	}

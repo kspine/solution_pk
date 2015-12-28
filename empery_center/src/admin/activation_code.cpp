@@ -18,7 +18,7 @@ ADMIN_SERVLET("activation_code/random", root, session, params){
 
 	std::string code;
 	code.resize(11);
-	auto seed = utc_now + 22695477ull * s_auto_inc;
+	auto seed = utc_now + 6364136223846793005ull * s_auto_inc;
 	for(auto it = code.rbegin(); it != code.rend(); ++it){
 		*it = static_cast<int>(seed % 26) + 'a';
 		seed /= 26;

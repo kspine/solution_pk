@@ -1,6 +1,7 @@
 #include "precompiled.hpp"
 #include "player_session.hpp"
 #include <boost/container/flat_map.hpp>
+#include <poseidon/job_base.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/cbpp/control_codes.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
@@ -12,8 +13,10 @@
 #include <poseidon/websocket/status_codes.hpp>
 #include <poseidon/websocket/exception.hpp>
 #include <poseidon/websocket/handshake.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include "singletons/player_session_map.hpp"
 #include "msg/kill.hpp"
+#include "msg/sc_packed.hpp"
 #include "singletons/world_map.hpp"
 
 namespace EmperyCenter {
@@ -94,7 +97,66 @@ protected:
 		}
 	}
 };
+/*
+class PlayerSession::QueueImpl : public Poseidon::JobBase {
+private:
+	const boost::weak_ptr<PlayerSession> m_session;
 
+public:
+	explicit QueueImpl(const boost::shared_ptr<PlayerSession> &session)
+		: m_session(session)
+	{
+	}
+
+public:
+	boost::weak_ptr<const void> get_category() const final {
+		return m_session;
+	}
+	void perform() final {
+		PROFILE_ME;
+
+		const auto session = m_session.lock();
+		if(!session){
+			return;
+		}
+
+		if(session->m_send_queue.empty()){
+			return;
+		}
+		const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(session->get_upgraded_session());
+		if(!impl){
+			LOG_EMPERY_CENTER_WARNING("WebSocket session comes out of thin air?");
+			return;
+		}
+
+		Msg::SC_PackedRequest msg;
+		msg.messages.reserve(session->m_send_queue.size());
+		for(auto it = session->m_send_queue.begin(); it != session->m_send_queue.end(); ++it){
+			auto &message = *msg.messages.emplace(msg.messages.end());
+			message.message_id = it->first;
+			message.payload    = it->second.dump();
+		}
+		Poseidon::StreamBuffer whole;
+		auto wit = Poseidon::StreamBuffer::WriteIterator(whole);
+		Poseidon::vuint50_to_binary(msg.ID, wit);
+		whole.splice(Poseidon::StreamBuffer(msg));
+		impl->send(
+		
+		impl->send(
+			
+			
+			SC_PackedRequest
+		Poseidon::StreamBuffer whole;
+		auto wit = Poseidon::StreamBuffer::WriteIterator(whole);
+		Poseidon::vuint50_to_binary(message_id, wit);
+		whole.splice(payload);
+		return impl->send(std::move(whole), true);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+};
+*/
 boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
@@ -174,6 +236,9 @@ void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders /* request_he
 	DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 }
 
+namespace {
+}
+
 bool PlayerSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
@@ -188,6 +253,19 @@ bool PlayerSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer payl
 	Poseidon::vuint50_to_binary(message_id, wit);
 	whole.splice(payload);
 	return impl->send(std::move(whole), true);
+/*
+	if(m_send_queue.empty()){
+		Poseidon::JobDispatcher::enqueue(
+			boost::make_shared<QueueImpl>(virtual_shared_from_this<PlayerSession>()),
+			{ }, { });
+	}
+	m_send_queue.emplace_back(message_id, std::move(payload));
+	return true;*/
+}
+bool PlayerSession::send_control(boost::uint16_t message_id, int status_code, std::string reason){
+	PROFILE_ME;
+
+	return send(Poseidon::Cbpp::ControlMessage(message_id, static_cast<int>(status_code), std::move(reason)));
 }
 
 void PlayerSession::shutdown(const char *message) noexcept {
