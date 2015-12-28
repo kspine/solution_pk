@@ -192,16 +192,15 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 	const auto promotion_response_object = get_json_from_promotion_server("checkLoginBacktrace", std::move(get_params));
 	LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", promotion_response_object.dump());
 	const auto error_code = static_cast<int>(promotion_response_object.at(sslit("errorCode")).get<double>());
-	switch(error_code){
-	case 0:
-		break;
-	case EmperyPromotion::Msg::ERR_NO_SUCH_ACCOUNT:
-		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
-	case EmperyPromotion::Msg::ERR_INVALID_PASSWORD:
-		return Response(Msg::ERR_INVALID_PASSWORD) <<login_name;
-	case EmperyPromotion::Msg::ERR_ACCOUNT_BANNED:
-		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
-	default:
+	if(error_code != Msg::ST_OK){
+		switch(error_code){
+		case EmperyPromotion::Msg::ERR_NO_SUCH_ACCOUNT:
+			return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
+		case EmperyPromotion::Msg::ERR_INVALID_PASSWORD:
+			return Response(Msg::ERR_INVALID_PASSWORD) <<login_name;
+		case EmperyPromotion::Msg::ERR_ACCOUNT_BANNED:
+			return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
+		}
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name; // XXX
 	};
 
