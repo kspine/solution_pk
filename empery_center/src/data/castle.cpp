@@ -374,7 +374,7 @@ namespace {
 			Data::CastleInitResource elem = { };
 
 			csv.get(elem.resource_id, "material_id");
-			csv.get(elem.init_amount, "init_amount");
+			csv.get(elem.init_amount, "number");
 			csv.get(elem.producible,  "producible");
 
 			if(!init_resource_map->insert(std::move(elem)).second){
