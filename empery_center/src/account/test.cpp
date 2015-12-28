@@ -9,7 +9,7 @@
 
 namespace EmperyCenter {
 
-constexpr auto TEST_PLATFORM_ID = PlatformId(7801);
+constexpr auto TEST_PLATFORM_ID = PlatformId(7800);
 
 ACCOUNT_SERVLET("test/check_login", root, session, params){
 	const auto &login_name = params.at("loginName");

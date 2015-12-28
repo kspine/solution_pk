@@ -7,13 +7,18 @@
 #include <poseidon/http/client.hpp>
 #include <poseidon/http/status_codes.hpp>
 #include <poseidon/http/exception.hpp>
+#include <poseidon/http/utilities.hpp>
 #include <poseidon/json.hpp>
+#include <poseidon/csv_parser.hpp>
+#include <poseidon/async_job.hpp>
+#include <boost/container/flat_map.hpp>
 #include "../msg/err_account.hpp"
 #include "../singletons/account_map.hpp"
 #include "../account.hpp"
 #include "../checked_arithmetic.hpp"
 #include "../singletons/activation_code_map.hpp"
 #include "../activation_code.hpp"
+#include "../../../empery_promotion/src/msg/err_account.hpp"
 
 namespace EmperyCenter {
 
@@ -41,12 +46,20 @@ namespace {
 		void on_close(int err_code) noexcept override {
 			PROFILE_ME;
 
-			if(!m_promise->is_satisfied()){
-				try {
-					m_promise->set_exception(boost::copy_exception(std::runtime_error("Lost connection to remote server")));
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-				}
+			try {
+				Poseidon::enqueue_async_job(
+					boost::weak_ptr<void>(virtual_weak_from_this<SimpleHttpClient>()),
+					std::bind(
+						[](const boost::shared_ptr<Poseidon::JobPromise> &promise){
+							if(!promise->is_satisfied()){
+								promise->set_exception(boost::copy_exception(std::runtime_error("Lost connection to remote server")));
+							}
+						},
+						m_promise
+					)
+				);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
 
 			Poseidon::Http::Client::on_close(err_code);
@@ -77,7 +90,7 @@ namespace {
 		}
 
 	public:
-		void send(std::string uri, Poseidon::OptionalMap get_params){
+		void send(std::string uri, Poseidon::OptionalMap get_params, Poseidon::OptionalMap headers){
 			PROFILE_ME;
 
 			Poseidon::Http::RequestHeaders req_headers;
@@ -85,7 +98,7 @@ namespace {
 			req_headers.uri        = std::move(uri);
 			req_headers.version    = 10001;
 			req_headers.get_params = std::move(get_params);
-			req_headers.headers.set(sslit("Connection"), "Close");
+			req_headers.headers    = std::move(headers);
 			if(!Poseidon::Http::Client::send(std::move(req_headers))){
 				LOG_EMPERY_CENTER_WARNING("Failed to send data to remote server!");
 				DEBUG_THROW(Exception, sslit("Failed to send data to remote server"));
@@ -106,12 +119,33 @@ namespace {
 	std::string g_server_auth    = "";
 	std::string g_server_path    = "";
 
+	boost::container::flat_map<std::string, unsigned> g_level_config;
+
 	MODULE_RAII_PRIORITY(/* handles */, 1000){
 		get_config(g_server_host,    "promotion_server_host");
 		get_config(g_server_port,    "promotion_server_port");
 		get_config(g_server_use_ssl, "account_http_server_use_ssl");
 		get_config(g_server_auth,    "promotion_server_auth_user_pass");
 		get_config(g_server_path,    "promotion_server_path");
+
+		Poseidon::CsvParser csv;
+
+		boost::container::flat_map<std::string, unsigned> level_config;
+		level_config.reserve(20);
+		csv.load("empery_promotion_levels.csv");
+		while(csv.fetch_row()){
+			std::string key;
+			unsigned level;
+
+			csv.get(key,   "level");
+			csv.get(level, "displayLevel");
+
+			if(!level_config.emplace(std::move(key), level).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate promotion level: key = ", key);
+				DEBUG_THROW(Exception, sslit("Duplicate promotion level"));
+			}
+		}
+		g_level_config = std::move(level_config);
 	}
 
 	Poseidon::JsonObject get_json_from_promotion_server(const char *name, Poseidon::OptionalMap get_params){
@@ -119,17 +153,24 @@ namespace {
 
 		const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 		{
-			auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_server_host, g_server_port);
+			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_server_host, g_server_port);
 			Poseidon::JobDispatcher::yield(promise);
 			promise->check_and_rethrow();
 		}
 
 		boost::shared_ptr<SimpleHttpClient> client;
 		{
-			auto promise = boost::make_shared<Poseidon::JobPromise>();
-			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_server_use_ssl, std::move(promise));
+			const auto promise = boost::make_shared<Poseidon::JobPromise>();
+			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_server_use_ssl, promise);
 			client->go_resident();
-			client->send(g_server_path + "/" + name, std::move(get_params));
+
+			Poseidon::OptionalMap headers;
+			headers.set(sslit("Host"), g_server_host);
+			headers.set(sslit("Connection"), "Close");
+			if(!g_server_auth.empty()){
+				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_server_auth));
+			}
+			client->send(g_server_path + "/" + name, std::move(get_params), std::move(headers));
 			Poseidon::JobDispatcher::yield(promise);
 			promise->check_and_rethrow();
 		}
@@ -148,64 +189,63 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 	get_params.set(sslit("loginName"), login_name);
 	get_params.set(sslit("password"),  password);
 	get_params.set(sslit("ip"),        session->get_remote_info().ip.get());
-	auto promotion_response_object = get_json_from_promotion_server("checkLogin", std::move(get_params));
+	const auto promotion_response_object = get_json_from_promotion_server("checkLoginBacktrace", std::move(get_params));
 	LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", promotion_response_object.dump());
-	auto error_code = static_cast<int>(promotion_response_object.at(sslit("errorCode")).get<double>());
-	if(error_code != 0){
+	const auto error_code = static_cast<int>(promotion_response_object.at(sslit("errorCode")).get<double>());
+	switch(error_code){
+	case 0:
+		break;
+	case EmperyPromotion::Msg::ERR_NO_SUCH_ACCOUNT:
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
-	}
+	case EmperyPromotion::Msg::ERR_INVALID_PASSWORD:
+		return Response(Msg::ERR_INVALID_PASSWORD) <<login_name;
+	case EmperyPromotion::Msg::ERR_ACCOUNT_BANNED:
+		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
+	default:
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name; // XXX
+	};
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	AccountUuid referrer_uuid;
-/*	std::deque<std::pair<std::string, unsigned>> referrers;
-	referrers.emplace_back(login_name, 0);
-	for(;;){
-		const auto &cur_login_name = referrers.back().first;
-		LOG_EMPERY_CENTER_DEBUG("Looking for referrer: cur_login_name = ", cur_login_name);
+	std::deque<std::pair<std::string, unsigned>> accounts;
+	{
+		const auto level_str = promotion_response_object.at(sslit("level")).get<std::string>();
+		const unsigned level = g_level_config.at(level_str);
+		accounts.emplace_back(login_name, level);
 
-		get_params.clear();
-		get_params.set(sslit("loginName"), cur_login_name);
-		promotion_response_object = get_json_from_promotion_server("queryAccountAttributes", std::move(get_params));
-		LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", promotion_response_object.dump());
-		error_code = static_cast<int>(promotion_response_object.at(sslit("errorCode")).get<double>());
-		if(error_code != 0){
-			break;
+		const auto &referrers_array = promotion_response_object.at(sslit("referrers")).get<Poseidon::JsonArray>();
+		for(auto it = referrers_array.begin(); it != referrers_array.end(); ++it){
+			auto &elem = it->get<Poseidon::JsonObject>();
+
+			auto &referrer_login_name = elem.at(sslit("loginName")).get<std::string>();
+			const auto &referrer_level_str = elem.at(sslit("level")).get<std::string>();
+			const unsigned referrer_level = g_level_config.at(referrer_level_str);
+			accounts.emplace_back(std::move(referrer_login_name), referrer_level);
 		}
-		const auto &referrer_login_name = promotion_response_object.at(sslit("referrerLoginName")).get<std::string>();
-		const auto &raw_level = promotion_response_object.at(sslit("level")).get<std::string>();
-		
-		const auto cur_referrer = AccountMap::get_by_login_name(PROMOTION_PLATFORM_ID, cur_login_name);
-		if(cur_referrer){
-			// 我们不在这里创建账号。如果第一个推荐人有账号，就假定向上的其余推荐人一定有。
-			top_referrer_uuid = cur_referrer->get_account_uuid();
-			break;
-		}
-		// 加入待创建列表。
-		referrers.emplace_back(cur_login_name);
 	}
-	// 逆序创建这些账号。
+
 	boost::shared_ptr<Account> account;
-	for(auto it = referrers.rbegin(); it != referrers.rend(); ++it){
-		const auto &cur_login_name = *it;
-		const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
-		LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid, ", cur_login_name = ", cur_login_name);
-		account = boost::make_shared<Account>(account_uuid, PROMOTION_PLATFORM_ID, cur_login_name,
-			top_referrer_uuid, 
+	AccountUuid referrer_uuid;
+	{
+		for(auto it = accounts.rbegin(); it != accounts.rend(); ++it){
+			const auto &cur_login_name = it->first;
+			const auto cur_level = it->second;
+			LOG_EMPERY_CENTER_DEBUG("Updating account: cur_login_name = ", cur_login_name, ", cur_level = ", cur_level);
+			account = AccountMap::get_by_login_name(PROMOTION_PLATFORM_ID, cur_login_name);
+			if(!account){
+				const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
+				LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid, ", cur_login_name = ", cur_login_name);
+				account = boost::make_shared<Account>(account_uuid, PROMOTION_PLATFORM_ID, cur_login_name,
+					referrer_uuid, cur_level, utc_now, cur_login_name);
+				AccountMap::insert(account, session->get_remote_info().ip.get()); // XXX use real ip
+			} else {
+				account->set_promotion_level(cur_level);
+			}
+			referrer_uuid = account->get_account_uuid();
+		}
 	}
+	assert(account);
 
-	assert(!referrers.empty());
-
-	boost::
-*/
-	auto account = AccountMap::get_by_login_name(PROMOTION_PLATFORM_ID, login_name);
-	if(!account){
-		const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
-		LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid, ", login_name = ", login_name);
-		account = boost::make_shared<Account>(account_uuid, PROMOTION_PLATFORM_ID, login_name,
-			referrer_uuid, 19, utc_now, login_name);
-		AccountMap::insert(account, session->get_remote_info().ip.get());
-	}
 	if(utc_now < account->get_banned_until()){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
