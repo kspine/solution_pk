@@ -34,7 +34,7 @@ ADMIN_SERVLET("account/add", root, session, params){
 
 	const auto &login_token = params.get("login_token");
 	if(!login_token.empty()){
-		const auto login_token_expiry_time = boost::lexical_cast<boost::uint64_t>(params.at("login_token_expiry_time"));
+		const auto login_token_expiry_time = boost::lexical_cast<std::uint64_t>(params.at("login_token_expiry_time"));
 		account->set_login_token(login_token, login_token_expiry_time);
 	}
 
@@ -46,7 +46,7 @@ ADMIN_SERVLET("account/add", root, session, params){
 ADMIN_SERVLET("account/set_token", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 	const auto &login_token = params.at("login_token");
-	const auto login_token_expiry_time = boost::lexical_cast<boost::uint64_t>(params.at("login_token_expiry_time"));
+	const auto login_token_expiry_time = boost::lexical_cast<std::uint64_t>(params.at("login_token_expiry_time"));
 
 	const auto account = AccountMap::get(account_uuid);
 	if(!account){
@@ -60,7 +60,7 @@ ADMIN_SERVLET("account/set_token", root, session, params){
 
 ADMIN_SERVLET("account/ban", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
-	const auto banned_until = boost::lexical_cast<boost::uint64_t>(params.at("banned_until"));
+	const auto banned_until = boost::lexical_cast<std::uint64_t>(params.at("banned_until"));
 
 	const auto account = AccountMap::get(account_uuid);
 	if(!account){

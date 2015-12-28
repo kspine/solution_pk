@@ -47,8 +47,8 @@ ADMIN_SERVLET("announcement/get_all", root, session, /* params */){
 
 ADMIN_SERVLET("announcement/insert", root, session, params){
 	const auto language_id = boost::lexical_cast<LanguageId>     (params.at("language_id"));
-	const auto expiry_time = boost::lexical_cast<boost::uint64_t>(params.at("expiry_time"));
-	const auto period      = boost::lexical_cast<boost::uint64_t>(params.at("period"));
+	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
+	const auto period      = boost::lexical_cast<std::uint64_t>(params.at("period"));
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	std::istringstream iss(params.at("segments"));
@@ -79,8 +79,8 @@ ADMIN_SERVLET("announcement/update", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid <<',' <<language_id;
 	}
 
-	const auto expiry_time = boost::lexical_cast<boost::uint64_t>(params.at("expiry_time"));
-	const auto period      = boost::lexical_cast<boost::uint64_t>(params.at("period"));
+	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
+	const auto period      = boost::lexical_cast<std::uint64_t>(params.at("period"));
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	std::istringstream iss(params.at("segments"));

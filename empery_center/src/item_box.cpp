@@ -100,11 +100,11 @@ namespace {
 		g_level_bonus_extra_array = std::move(temp_vec);
 	}
 
-	void accumulate_promotion_bonus(AccountUuid account_uuid, boost::uint64_t amount){
+	void accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t amount){
 		PROFILE_ME;
 
 		const auto send_mail_nothrow = [](const boost::shared_ptr<Account> &referrer, MailTypeId mail_type_id,
-			boost::uint64_t amount_to_add, const boost::shared_ptr<Account> &taxer) noexcept
+			std::uint64_t amount_to_add, const boost::shared_ptr<Account> &taxer) noexcept
 		{
 			try {
 				const auto referrer_uuid = referrer->get_account_uuid();
@@ -114,15 +114,16 @@ namespace {
 				const auto language_id = LanguageId(); // neutral
 
 				const auto default_mail_expiry_duration = Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
-				const auto expiry_duration = checked_mul(default_mail_expiry_duration, (boost::uint64_t)60000);
+				const auto expiry_duration = checked_mul(default_mail_expiry_duration, (std::uint64_t)60000);
 				const auto utc_now = Poseidon::get_utc_time();
 
 				const auto taxer_uuid = taxer->get_account_uuid();
 
 				std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
-				segments.emplace_back(ChatMessageSlotIds::ID_TAXER, taxer_uuid.str());
+				segments.emplace_back(ChatMessageSlotIds::ID_TAXER,      taxer_uuid.str());
+				segments.emplace_back(ChatMessageSlotIds::ID_TAX_AMOUNT, boost::lexical_cast<std::string>(amount_to_add));
 
-				boost::container::flat_map<ItemId, boost::uint64_t> attachments;
+				boost::container::flat_map<ItemId, std::uint64_t> attachments;
 				attachments.emplace(ItemIds::ID_GOLD, amount_to_add);
 
 				const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
@@ -140,7 +141,7 @@ namespace {
 
 		const auto account = AccountMap::require(account_uuid);
 
-		const auto dividend_total         = static_cast<boost::uint64_t>(amount * g_bonus_ratio);
+		const auto dividend_total         = static_cast<std::uint64_t>(amount * g_bonus_ratio);
 		const auto income_tax_ratio_total = std::accumulate(g_income_tax_array.begin(), g_income_tax_array.end(), 0.0);
 
 		std::vector<boost::shared_ptr<Account>> referrers;
@@ -153,7 +154,7 @@ namespace {
 			}
 		}
 
-		boost::uint64_t dividend_accumulated = 0;
+		std::uint64_t dividend_accumulated = 0;
 
 		for(auto it = referrers.begin(); it != referrers.end(); ++it){
 			const auto &referrer = *it;
@@ -183,7 +184,7 @@ namespace {
 			dividend_accumulated = my_max_dividend;
 
 			// 扣除个税即使没有上家（视为被系统回收）。
-			const auto tax_total = static_cast<boost::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
+			const auto tax_total = static_cast<std::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
 			Poseidon::enqueue_async_job(
 				std::bind(send_mail_nothrow, referrer, MailTypeIds::ID_LEVEL_BONUS, my_dividend - tax_total, account),
 				{ }, withdrawn);
@@ -195,7 +196,7 @@ namespace {
 					if(next_referrer->get_promotion_level() <= 1){
 						continue;
 					}
-					const auto tax_amount = static_cast<boost::uint64_t>(std::round(my_dividend * (*tit)));
+					const auto tax_amount = static_cast<std::uint64_t>(std::round(my_dividend * (*tit)));
 					Poseidon::enqueue_async_job(
 						std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_INCOME_TAX, tax_amount, account),
 						{ }, withdrawn);
@@ -210,7 +211,7 @@ namespace {
 					if(next_referrer->get_promotion_level() != g_level_bonus_array.size()){
 						continue;
 					}
-					const auto extra_amount = static_cast<boost::uint64_t>(std::round(dividend_total * (*eit)));
+					const auto extra_amount = static_cast<std::uint64_t>(std::round(dividend_total * (*eit)));
 					Poseidon::enqueue_async_job(
 						std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_LEVEL_BONUS_EXTRA, extra_amount, account),
 						{ }, withdrawn);
@@ -244,7 +245,7 @@ void ItemBox::pump_status(){
 	std::vector<ItemTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 	Data::Item::get_auto_inc(items_to_check);
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t> new_timestamps;
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, std::uint64_t> new_timestamps;
 	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
 		const auto &item_data = *dit;
 		auto it = m_items.find(item_data->item_id);
@@ -255,22 +256,22 @@ void ItemBox::pump_status(){
 		}
 		const auto &obj = it->second;
 
-		boost::uint64_t auto_inc_period, auto_inc_offset;
+		std::uint64_t auto_inc_period, auto_inc_offset;
 		switch(item_data->auto_inc_type){
 		case Data::Item::AIT_HOURLY:
 			auto_inc_period = 3600 * 1000;
-			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (boost::uint64_t)60000);
+			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
 			break;
 		case Data::Item::AIT_DAILY:
 			auto_inc_period = 24 * 3600 * 1000;
-			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (boost::uint64_t)60000);
+			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
 			break;
 		case Data::Item::AIT_WEEKLY:
 			auto_inc_period = 7 * 24 * 3600 * 1000;
-			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (boost::uint64_t)60000) + 3 * 24 * 3600 * 1000; // 注意 1970-01-01 是星期四。
+			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000) + 3 * 24 * 3600 * 1000; // 注意 1970-01-01 是星期四。
 			break;
 		case Data::Item::AIT_PERIODIC:
-			auto_inc_period = checked_mul(item_data->auto_inc_offset, (boost::uint64_t)60000);
+			auto_inc_period = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
 			auto_inc_offset = utc_now + 1; // 当前时间永远是区间中的最后一秒。
 			break;
 		default:
@@ -298,7 +299,7 @@ void ItemBox::pump_status(){
 
 		if(item_data->auto_inc_step >= 0){
 			if(old_count < item_data->auto_inc_bound){
-				const auto count_to_add = saturated_mul(static_cast<boost::uint64_t>(item_data->auto_inc_step), interval_count);
+				const auto count_to_add = saturated_mul(static_cast<std::uint64_t>(item_data->auto_inc_step), interval_count);
 				const auto new_count = std::min(saturated_add(old_count, count_to_add), item_data->auto_inc_bound);
 				LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
 				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, new_count - old_count,
@@ -307,7 +308,7 @@ void ItemBox::pump_status(){
 		} else {
 			if(old_count > item_data->auto_inc_bound){
 				LOG_EMPERY_CENTER_TRACE("> Removing items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
-				const auto count_to_remove = saturated_mul(static_cast<boost::uint64_t>(-(item_data->auto_inc_step)), interval_count);
+				const auto count_to_remove = saturated_mul(static_cast<std::uint64_t>(-(item_data->auto_inc_step)), interval_count);
 				const auto new_count = std::max(saturated_sub(old_count, count_to_remove), item_data->auto_inc_bound);
 				LOG_EMPERY_CENTER_TRACE("> Removing items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
 				transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_data->item_id, old_count - new_count,
@@ -378,8 +379,8 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 	const auto account_uuid = get_account_uuid();
 
 	boost::shared_ptr<bool> withdrawn;
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, boost::uint64_t /* new_count */> temp_result_map;
-	boost::uint64_t taxing_amount = 0;
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, std::uint64_t /* new_count */> temp_result_map;
+	std::uint64_t taxing_amount = 0;
 
 	for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
 		const auto operation   = tit->m_operation;

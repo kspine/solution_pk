@@ -46,14 +46,14 @@ public:
 	Coord get_coord() const;
 	void set_coord(Coord coord) noexcept;
 
-	boost::uint64_t get_created_time() const;
+	std::uint64_t get_created_time() const;
 
 	bool has_been_deleted() const;
 	void delete_from_game() noexcept;
 
-	boost::int64_t get_attribute(AttributeId attribute_id) const;
-	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
-	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
+	std::int64_t get_attribute(AttributeId attribute_id) const;
+	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
+	void set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers);
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

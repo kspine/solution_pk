@@ -12,7 +12,7 @@ namespace {
 }
 
 ADMIN_SERVLET("activation_code/random", root, session, params){
-	const auto expiry_time = boost::lexical_cast<boost::uint64_t>(params.at("expiry_time"));
+	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
 
 	const auto utc_now = Poseidon::get_utc_time();
 

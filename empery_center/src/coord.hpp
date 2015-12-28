@@ -1,27 +1,27 @@
 #ifndef EMPERY_CENTER_COORD_HPP_
 #define EMPERY_CENTER_COORD_HPP_
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <iosfwd>
 
 namespace EmperyCenter {
 
 class Coord {
 private:
-	boost::int64_t m_x;
-	boost::int64_t m_y;
+	std::int64_t m_x;
+	std::int64_t m_y;
 
 public:
-	constexpr Coord(boost::int64_t x, boost::int64_t y) noexcept
+	constexpr Coord(std::int64_t x, boost::int64_t y) noexcept
 		: m_x(x), m_y(y)
 	{
 	}
 
 public:
-	constexpr boost::int64_t x() const noexcept {
+	constexpr std::int64_t x() const noexcept {
 		return m_x;
 	}
-	constexpr boost::int64_t y() const noexcept {
+	constexpr std::int64_t y() const noexcept {
 		return m_y;
 	}
 

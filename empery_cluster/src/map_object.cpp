@@ -23,7 +23,7 @@ namespace Msg {
 using Response = ::EmperyCenter::CbppResponse;
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
-	boost::weak_ptr<ClusterClient> cluster, Coord coord, boost::container::flat_map<AttributeId, boost::int64_t> attributes)
+	boost::weak_ptr<ClusterClient> cluster, Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes)
 	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id), m_owner_uuid(owner_uuid)
 	, m_cluster(std::move(cluster)), m_coord(coord), m_attributes(std::move(attributes))
 	, m_next_action_time(0), m_blocked_retry_count(0)
@@ -33,7 +33,7 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::~MapObject(){
 }
 
-boost::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boost::uint64_t /* now */){
+std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boost::uint64_t /* now */){
 	PROFILE_ME;
 
 	const auto map_object_uuid = get_map_object_uuid();
@@ -87,7 +87,7 @@ boost::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boo
 				LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
 				if(!other_object->m_waypoints.empty()){
 					const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
-					const auto retry_delay = get_config<boost::uint64_t>("blocked_path_retry_delay", 500);
+					const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
 					LOG_EMPERY_CLUSTER_DEBUG("Should we retry? blocked_retry_count = ", m_blocked_retry_count,
 						", retry_max_count = ", retry_max_count, ", retry_delay = ", retry_delay);
 					if(m_blocked_retry_count < retry_max_count){
@@ -157,7 +157,7 @@ boost::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boo
 		}
 	}
 	ON_ACTION(ACT_HARVEST_OVERLAY){
-		const auto harvest_interval = get_config<boost::uint64_t>("harvest_interval", 1000);
+		const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
 		const auto cluster = get_cluster();
 		if(!cluster){
 			break;
@@ -199,7 +199,7 @@ void MapObject::set_coord(Coord coord){
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
 
-boost::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
+std::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
 	PROFILE_ME;
 
 	const auto it = m_attributes.find(map_object_attr_id);
@@ -208,7 +208,7 @@ boost::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
 	}
 	return it->second;
 }
-void MapObject::get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const {
+void MapObject::get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_attributes.size());
@@ -216,7 +216,7 @@ void MapObject::get_attributes(boost::container::flat_map<AttributeId, boost::in
 		ret[it->first] = it->second;
 	}
 }
-void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers){
+void MapObject::set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers){
 	PROFILE_ME;
 
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
@@ -242,7 +242,7 @@ void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boo
 void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, MapObject::Action action, std::string action_param){
 	PROFILE_ME;
 
-	const auto timer_proc = [this](const boost::weak_ptr<MapObject> &weak, boost::uint64_t now){
+	const auto timer_proc = [this](const boost::weak_ptr<MapObject> &weak, std::uint64_t now){
 		PROFILE_ME;
 
 		const auto shared = weak.lock();
@@ -260,7 +260,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 				break;
 			}
 
-			boost::uint64_t delay = UINT64_MAX;
+			std::uint64_t delay = UINT64_MAX;
 			std::pair<long, std::string> result;
 			try {
 				delay = pump_action(result, now);

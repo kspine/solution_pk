@@ -43,7 +43,7 @@ namespace {
 		get_config(g_promotion_server_path,    "promotion_http_server_path");
 	}
 
-	void bump_end_time(boost::uint64_t utc_now){
+	void bump_end_time(std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto game_end_time = GlobalStatus::get(GlobalStatus::SLOT_GAME_END_TIME);
@@ -89,7 +89,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	}
 
 	std::string nick;
-	boost::uint64_t gold_coins = 0, account_balance = 0;
+	std::uint64_t gold_coins = 0, account_balance = 0;
 	{
 		Poseidon::OptionalMap params;
 		params.set(sslit("loginName"), login_name);
@@ -144,8 +144,8 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingGoldCoins, login_name, session, /* req */)
 */
 	auto nick = PlayerSessionMap::get_nick(session);
 
-	const auto gold_coins_cost   = get_config<boost::uint64_t>("bid_gold_coins_cost",   2);
-	const auto gold_coins_reward = get_config<boost::uint64_t>("bid_gold_coins_reward", 1);
+	const auto gold_coins_cost   = get_config<std::uint64_t>("bid_gold_coins_cost",   2);
+	const auto gold_coins_reward = get_config<std::uint64_t>("bid_gold_coins_reward", 1);
 
 	const auto gold_coins_in_pot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
 	const auto account_balance_in_pot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
@@ -177,8 +177,8 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingGoldCoins, login_name, session, /* req */)
 	BidRecordMap::append(login_name, std::move(nick), gold_coins_cost, 0);
 	invalidate_auction_status();
 
-	const auto gold_coins = static_cast<boost::uint64_t>(root.at(sslit("goldCoins")).get<double>());
-	const auto account_balance = static_cast<boost::uint64_t>(root.at(sslit("accountBalance")).get<double>());
+	const auto gold_coins = static_cast<std::uint64_t>(root.at(sslit("goldCoins")).get<double>());
+	const auto account_balance = static_cast<std::uint64_t>(root.at(sslit("accountBalance")).get<double>());
 	session->send(Msg::SC_AccountAccountBalance(gold_coins, account_balance));
 
 	return Response();
@@ -199,8 +199,8 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingAccountBalance, login_name, session, /* re
 */
 	auto nick = PlayerSessionMap::get_nick(session);
 
-	const auto account_balance_cost   = get_config<boost::uint64_t>("bid_account_balance_cost",   200);
-	const auto account_balance_reward = get_config<boost::uint64_t>("bid_account_balance_reward", 100);
+	const auto account_balance_cost   = get_config<std::uint64_t>("bid_account_balance_cost",   200);
+	const auto account_balance_reward = get_config<std::uint64_t>("bid_account_balance_reward", 100);
 
 	const auto gold_coins_in_pot      = GlobalStatus::get(GlobalStatus::SLOT_GOLD_COINS_IN_POT);
 	const auto account_balance_in_pot = GlobalStatus::get(GlobalStatus::SLOT_ACCOUNT_BALANCE_IN_POT);
@@ -232,8 +232,8 @@ PLAYER_SERVLET(Msg::CS_AccountBidUsingAccountBalance, login_name, session, /* re
 	BidRecordMap::append(login_name, std::move(nick), 0, account_balance_cost);
 	invalidate_auction_status();
 
-	const auto gold_coins = static_cast<boost::uint64_t>(root.at(sslit("goldCoins")).get<double>());
-	const auto account_balance = static_cast<boost::uint64_t>(root.at(sslit("accountBalance")).get<double>());
+	const auto gold_coins = static_cast<std::uint64_t>(root.at(sslit("goldCoins")).get<double>());
+	const auto account_balance = static_cast<std::uint64_t>(root.at(sslit("accountBalance")).get<double>());
 	session->send(Msg::SC_AccountAccountBalance(gold_coins, account_balance));
 
 	return Response();

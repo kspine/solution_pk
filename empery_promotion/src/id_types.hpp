@@ -2,7 +2,7 @@
 #define EMPERY_PROMOTION_ID_TYPES_HPP_
 
 #include <iosfwd>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <poseidon/cxx_ver.hpp>
 
 namespace EmperyPromotion {
@@ -106,9 +106,9 @@ std::istream &operator>>(std::istream &is, GenericId<UnderlyingT, MAGIC_T> &id){
 	return is;
 }
 
-using ItemId        = GenericId<boost::uint32_t, 10000>;
+using ItemId        = GenericId<std::uint32_t, 10000>;
 
-using AccountId     = GenericId<boost::uint64_t, 20000>;
+using AccountId     = GenericId<std::uint64_t, 20000>;
 
 }
 

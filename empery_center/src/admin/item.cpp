@@ -42,10 +42,10 @@ ADMIN_SERVLET("item/add", root, session, params){
 	}
 
 	const auto item_id      = boost::lexical_cast<ItemId>         (params.at("item_id"));
-	const auto count_to_add = boost::lexical_cast<boost::uint64_t>(params.at("count_to_add"));
-	const auto param1       = boost::lexical_cast<boost::uint64_t>(params.at("param1"));
-	const auto param2       = boost::lexical_cast<boost::uint64_t>(params.at("param2"));
-	const auto param3       = boost::lexical_cast<boost::uint64_t>(params.at("param3"));
+	const auto count_to_add = boost::lexical_cast<std::uint64_t>(params.at("count_to_add"));
+	const auto param1       = boost::lexical_cast<std::uint64_t>(params.at("param1"));
+	const auto param2       = boost::lexical_cast<std::uint64_t>(params.at("param2"));
+	const auto param3       = boost::lexical_cast<std::uint64_t>(params.at("param3"));
 
 	std::vector<ItemTransactionElement> transaction;
 	const auto operation = ItemTransactionElement::OP_ADD;
@@ -65,11 +65,11 @@ ADMIN_SERVLET("item/remove", root, session, params){
 	}
 
 	const auto item_id         = boost::lexical_cast<ItemId>         (params.at("item_id"));
-	const auto count_to_remove = boost::lexical_cast<boost::uint64_t>(params.at("count_to_remove"));
+	const auto count_to_remove = boost::lexical_cast<std::uint64_t>(params.at("count_to_remove"));
 	const auto saturated       = !params.get("saturated").empty();
-	const auto param1          = boost::lexical_cast<boost::uint64_t>(params.at("param1"));
-	const auto param2          = boost::lexical_cast<boost::uint64_t>(params.at("param2"));
-	const auto param3          = boost::lexical_cast<boost::uint64_t>(params.at("param3"));
+	const auto param1          = boost::lexical_cast<std::uint64_t>(params.at("param1"));
+	const auto param2          = boost::lexical_cast<std::uint64_t>(params.at("param2"));
+	const auto param3          = boost::lexical_cast<std::uint64_t>(params.at("param3"));
 
 	std::vector<ItemTransactionElement> transaction;
 	const auto operation = saturated ? ItemTransactionElement::OP_REMOVE_SATURATED : ItemTransactionElement::OP_REMOVE;

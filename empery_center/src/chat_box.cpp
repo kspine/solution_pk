@@ -16,7 +16,7 @@ namespace {
 		boost::shared_ptr<ChatMessage> message;
 
 		ChatMessageUuid chat_message_uuid;
-		std::pair<ChatChannelId, boost::uint64_t> channel_time;
+		std::pair<ChatChannelId, std::uint64_t> channel_time;
 
 		explicit MessageElement(boost::shared_ptr<ChatMessage> message_)
 			: message(std::move(message_))
@@ -79,7 +79,7 @@ void ChatBox::get_all(std::vector<boost::shared_ptr<ChatMessage>> &ret) const {
 void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 	PROFILE_ME;
 
-	boost::uint64_t max_count_in_channel = 0;
+	std::uint64_t max_count_in_channel = 0;
 	const auto channel = message->get_channel();
 	if(channel == ChatChannelIds::ID_ADJACENT){
 		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_ADJACENT_CHANNEL);

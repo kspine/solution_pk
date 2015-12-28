@@ -18,11 +18,11 @@ namespace EmperyCenter {
 
 namespace {
 	struct SequentialSignInInfo {
-		boost::uint64_t last_signed_in_time;
-		boost::uint64_t last_signed_in_day;
-		boost::uint64_t now;
-		boost::uint64_t today;
-		boost::uint64_t sequential_days;
+		std::uint64_t last_signed_in_time;
+		std::uint64_t last_signed_in_day;
+		std::uint64_t now;
+		std::uint64_t today;
+		std::uint64_t sequential_days;
 	};
 
 	SequentialSignInInfo get_signed_in(const boost::shared_ptr<Account> &account){
@@ -38,12 +38,12 @@ namespace {
 
 		const auto utc_now = Poseidon::get_utc_time();
 
-		const auto last_signed_in_time = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_LAST_SIGNED_IN_TIME);
+		const auto last_signed_in_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_SIGNED_IN_TIME);
 		const auto last_signed_day = saturated_sub(last_signed_in_time, auto_inc_offset) / 86400000;
 		const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
 		LOG_EMPERY_CENTER_DEBUG("Checking sign-in date: last_signed_day = ", last_signed_day, ", today = ", today);
 
-		boost::uint64_t sequential_days = 0;
+		std::uint64_t sequential_days = 0;
 		if(saturated_sub(today, last_signed_day) > 1){
 			LOG_EMPERY_CENTER_DEBUG("Broken sign-in sequence: account_uuid = ", account->get_account_uuid());
 
@@ -51,7 +51,7 @@ namespace {
 			modifiers[AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS] = { };
 			account->set_attributes(modifiers);
 		} else {
-			sequential_days = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS);
+			sequential_days = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS);
 		}
 
 		SequentialSignInInfo info;
@@ -158,9 +158,9 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
-	constexpr boost::uint64_t FL_NICK       = 0x0001;
-	constexpr boost::uint64_t FL_ATTRIBUTES = 0x0002;
-	constexpr boost::uint64_t FL_ITEMS      = 0x0004;
+	constexpr std::uint64_t FL_NICK       = 0x0001;
+	constexpr std::uint64_t FL_ATTRIBUTES = 0x0002;
+	constexpr std::uint64_t FL_ITEMS      = 0x0004;
 
 	Msg::SC_AccountQueryAttributesRet msg;
 	msg.accounts.reserve(req.accounts.size());

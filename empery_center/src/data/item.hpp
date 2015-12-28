@@ -20,15 +20,17 @@ namespace Data {
 		};
 
 		enum Category {
-			CAT_UNKNOWN               = 0, //
-			CAT_UPGRADE_TURBO         = 1, // 建造加速，训练加速，研究加速
-			CAT_SIGNING_IN            = 2, // 签到专用
-			CAT_RESOURCE              = 3, // 粮食，木头，石头
-			CAT_GIFT_BOX              = 4, // 礼包
-			CAT_LAND_PURCHASE_TICKET  = 5, // 土地购买券专用
-			CAT_LAND_UPGRADE_TICKET   = 6, // 土地升级券专用
-			CAT_RARE_RESOURCE         = 7, // 铁矿，赤铜
-			CAT_CURRENCY              = 8, // 黄金，钻石
+			CAT_UNKNOWN               =  0, //
+			CAT_UPGRADE_TURBO         =  1, // 建造加速，训练加速，研究加速
+			CAT_SIGNING_IN            =  2, // 签到专用
+			CAT_RESOURCE              =  3, // 粮食，木头，石头
+			CAT_GIFT_BOX              =  4, // 礼包
+			CAT_LAND_PURCHASE_TICKET  =  5, // 土地购买券专用
+			CAT_LAND_UPGRADE_TICKET   =  6, // 土地升级券专用
+			CAT_RARE_RESOURCE         =  7, // 铁矿，赤铜
+			CAT_CURRENCY              =  8, // 黄金，钻石
+			CAT_ACCELERATION_CARD     =  9, // 效率卡
+			CAT_RESOURCE_BOX          = 10, // 资源包
 		};
 
 	public:
@@ -45,15 +47,15 @@ namespace Data {
 	public:
 		ItemId item_id;
 		std::pair<Category, unsigned> type;
-		boost::uint64_t value;
+		std::uint64_t value;
 
 		TradeId use_as_trade_id;
-		boost::uint64_t init_count;
+		std::uint64_t init_count;
 
 		AutoIncType auto_inc_type;
-		boost::uint64_t auto_inc_offset;
-		boost::int64_t auto_inc_step;
-		boost::uint64_t auto_inc_bound;
+		std::uint64_t auto_inc_offset;
+		std::int64_t auto_inc_step;
+		std::uint64_t auto_inc_bound;
 
 		bool is_public;
 	};
@@ -65,8 +67,8 @@ namespace Data {
 
 	public:
 		TradeId trade_id;
-		boost::container::flat_map<ItemId, boost::uint64_t> items_consumed;
-		boost::container::flat_map<ItemId, boost::uint64_t> items_produced;
+		boost::container::flat_map<ItemId, std::uint64_t> items_consumed;
+		boost::container::flat_map<ItemId, std::uint64_t> items_produced;
 	};
 
 	class ItemRecharge {
@@ -90,8 +92,8 @@ namespace Data {
 	};
 
 	extern void unpack_item_trade(std::vector<ItemTransactionElement> &transaction,
-		const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
-		boost::int64_t param1);
+		const boost::shared_ptr<const ItemTrade> &trade_data, std::uint64_t repeat_count,
+		std::int64_t param1);
 }
 
 }

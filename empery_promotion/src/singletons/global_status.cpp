@@ -55,7 +55,7 @@ namespace {
 	}
 }
 
-boost::uint64_t GlobalStatus::get(unsigned slot){
+std::uint64_t GlobalStatus::get(unsigned slot){
 	PROFILE_ME;
 
 	const auto it = g_status_map->find(slot);
@@ -65,7 +65,7 @@ boost::uint64_t GlobalStatus::get(unsigned slot){
 	}
 	return it->second->get_value();
 }
-boost::uint64_t GlobalStatus::set(unsigned slot, boost::uint64_t new_value){
+std::uint64_t GlobalStatus::set(unsigned slot, boost::uint64_t new_value){
 	PROFILE_ME;
 
 	auto it = g_status_map->find(slot);
@@ -78,7 +78,7 @@ boost::uint64_t GlobalStatus::set(unsigned slot, boost::uint64_t new_value){
 	it->second->set_value(new_value);
 	return old_value;
 }
-boost::uint64_t GlobalStatus::fetch_add(unsigned slot, boost::uint64_t delta_value){
+std::uint64_t GlobalStatus::fetch_add(unsigned slot, boost::uint64_t delta_value){
 	PROFILE_ME;
 
 	auto it = g_status_map->find(slot);
@@ -119,7 +119,7 @@ void GlobalStatus::check_daily_reset(){
 
 		const auto first_balancing_time     = Poseidon::scan_time(
 	                                        get_config<std::string>("first_balancing_time").c_str());
-		const auto acc_card_unit_price_begin  = get_config<boost::uint64_t>("acc_card_unit_price_begin", 40000);
+		const auto acc_card_unit_price_begin  = get_config<std::uint64_t>("acc_card_unit_price_begin", 40000);
 
 		auto root_user_name = get_config<std::string>("init_root_username", "root");
 		auto root_nick     = get_config<std::string>("init_root_nick",     "root");
@@ -169,9 +169,9 @@ void GlobalStatus::check_daily_reset(){
 			const auto delta_days = this_day - last_day;
 			LOG_EMPERY_PROMOTION_INFO("Daily reset: delta_days = ", delta_days);
 
-			const auto acc_card_unit_price_increment = get_config<boost::uint64_t>("acc_card_unit_price_increment", 100);
-			const auto acc_card_unit_price_begin     = get_config<boost::uint64_t>("acc_card_unit_price_begin",     40000);
-			const auto acc_card_unit_price_end       = get_config<boost::uint64_t>("acc_card_unit_price_end",       50000);
+			const auto acc_card_unit_price_increment = get_config<std::uint64_t>("acc_card_unit_price_increment", 100);
+			const auto acc_card_unit_price_begin     = get_config<std::uint64_t>("acc_card_unit_price_begin",     40000);
+			const auto acc_card_unit_price_end       = get_config<std::uint64_t>("acc_card_unit_price_end",       50000);
 
 			auto new_acc_card_unit_price = acc_card_unit_price_obj->get_value();
 			const auto delta_price = checked_mul(acc_card_unit_price_increment, delta_days);

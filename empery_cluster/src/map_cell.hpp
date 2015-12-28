@@ -15,11 +15,11 @@ private:
 
 	MapObjectUuid m_parent_object_uuid;
 	AccountUuid m_owner_uuid;
-	boost::container::flat_map<AttributeId, boost::int64_t> m_attributes;
+	boost::container::flat_map<AttributeId, std::int64_t> m_attributes;
 
 public:
 	MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,
-		boost::container::flat_map<AttributeId, boost::int64_t> attributes);
+		boost::container::flat_map<AttributeId, std::int64_t> attributes);
 	~MapCell();
 
 public:
@@ -34,8 +34,8 @@ public:
 		return m_owner_uuid;
 	}
 
-	boost::int64_t get_attribute(AttributeId map_object_attr_id) const;
-	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
+	std::int64_t get_attribute(AttributeId map_object_attr_id) const;
+	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 };
 
 }

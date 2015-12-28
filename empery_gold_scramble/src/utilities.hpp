@@ -1,7 +1,7 @@
 #ifndef EMPERY_GOLD_SCRAMBLE_UTILITIES_HPP_
 #define EMPERY_GOLD_SCRAMBLE_UTILITIES_HPP_
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 namespace EmperyGoldScramble {
 

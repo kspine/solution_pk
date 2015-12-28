@@ -14,7 +14,7 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("commitWithdrawal", session, params){
 	const auto &serial = params.at("serial");
-	const auto amount = boost::lexical_cast<boost::uint64_t>(params.at("amount"));
+	const auto amount = boost::lexical_cast<std::uint64_t>(params.at("amount"));
 
 	Poseidon::JsonObject ret;
 

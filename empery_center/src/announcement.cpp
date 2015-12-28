@@ -50,8 +50,8 @@ namespace {
 	}
 }
 
-Announcement::Announcement(AnnouncementUuid announcement_uuid, LanguageId language_id, boost::uint64_t created_time,
-	boost::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
+Announcement::Announcement(AnnouncementUuid announcement_uuid, LanguageId language_id, std::uint64_t created_time,
+	std::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Announcement>(announcement_uuid.get(), language_id.get(), created_time,
@@ -76,21 +76,21 @@ AnnouncementUuid Announcement::get_announcement_uuid() const {
 LanguageId Announcement::get_language_id() const {
 	return LanguageId(m_obj->get_language_id());
 }
-boost::uint64_t Announcement::get_created_time() const {
+std::uint64_t Announcement::get_created_time() const {
 	return m_obj->get_created_time();
 }
 
-boost::uint64_t Announcement::get_expiry_time() const {
+std::uint64_t Announcement::get_expiry_time() const {
 	return m_obj->get_expiry_time();
 }
-boost::uint64_t Announcement::get_period() const {
+std::uint64_t Announcement::get_period() const {
 	return m_obj->get_period();
 }
 const std::vector<std::pair<ChatMessageSlotId, std::string>> &Announcement::get_segments() const {
 	return m_segments;
 }
 
-void Announcement::modify(boost::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments){
+void Announcement::modify(std::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments){
 	PROFILE_ME;
 
 	auto str = encode_segments(segments);

@@ -12,7 +12,8 @@ constexpr ChatMessageSlotId
 	ID_SMILEY               (     2 ),
 	ID_VOICE                (     3 ),
 
-	ID_TAXER                ( 86201 );
+	ID_TAXER                ( 86201 ),
+	ID_TAX_AMOUNT           ( 86202 );
 
 }
 

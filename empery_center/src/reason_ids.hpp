@@ -18,6 +18,8 @@ constexpr ReasonId
 	ID_HARVEST_OVERLAY              ( 672006 ), // 世界坐标 X          世界坐标 Y          覆盖图 id
 	ID_SPEED_UP_BUILDING_UPGRADE    ( 672007 ), // 建筑 ID             等级                0
 	ID_SPEED_UP_TECH_UPGRADE        ( 672008 ), // 科技 ID             等级                0
+	ID_UNPACK_INTO_CASTLE           ( 672009 ), // 城堡 UUID 最后      道具 ID             重复次数
+	                                            // 64 位（大端序）
 
 	ID_INIT_ITEMS                   ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT               ( 673002 ), // 自增长类型          自增长偏移          0

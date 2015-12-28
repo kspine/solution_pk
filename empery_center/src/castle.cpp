@@ -66,7 +66,7 @@ namespace {
 	}
 
 	void fill_building_message(Msg::SC_CastleBuildingBase &msg, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj,
-		boost::uint64_t utc_now)
+		std::uint64_t utc_now)
 	{
 		PROFILE_ME;
 
@@ -81,7 +81,7 @@ namespace {
 		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), utc_now);
 	}
 	void fill_tech_message(Msg::SC_CastleTech &msg, const boost::shared_ptr<MySql::Center_CastleTech> &obj,
-		boost::uint64_t utc_now)
+		std::uint64_t utc_now)
 	{
 		PROFILE_ME;
 
@@ -102,7 +102,7 @@ namespace {
 		msg.amount          = obj->get_amount();
 	}
 
-	void check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, boost::uint64_t utc_now){
+	void check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto mission = Castle::Mission(obj->get_mission());
@@ -144,7 +144,7 @@ namespace {
 		obj->set_mission_time_begin(0);
 		obj->set_mission_time_end(0);
 	}
-	void check_tech_mission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, boost::uint64_t utc_now){
+	void check_tech_mission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto mission = Castle::Mission(obj->get_mission());
@@ -337,13 +337,13 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 		DEBUG_THROW(Exception, sslit("Building mission conflict"));
 	}
 
-	boost::uint64_t duration;
+	std::uint64_t duration;
 	switch(mission){
 	case MIS_CONSTRUCT:
 		{
 			const auto building_data = Data::CastleBuilding::require(building_id);
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
-			duration = checked_mul(upgrade_data->upgrade_duration, (boost::uint64_t)60000);
+			duration = checked_mul(upgrade_data->upgrade_duration, (std::uint64_t)60000);
 		}
 		obj->set_building_id(building_id.get());
 		obj->set_building_level(0);
@@ -354,7 +354,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 			const unsigned level = obj->get_building_level();
 			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level + 1);
-			duration = checked_mul(upgrade_data->upgrade_duration, (boost::uint64_t)60000);
+			duration = checked_mul(upgrade_data->upgrade_duration, (std::uint64_t)60000);
 		}
 		break;
 
@@ -363,7 +363,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 			const unsigned level = obj->get_building_level();
 			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level);
-			duration = checked_mul(upgrade_data->destruct_duration, (boost::uint64_t)60000);
+			duration = checked_mul(upgrade_data->destruct_duration, (std::uint64_t)60000);
 		}
 		break;
 
@@ -430,7 +430,7 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 		}
 	}
 }
-void Castle::speed_up_building_mission(BuildingBaseId building_base_id, boost::uint64_t delta_duration){
+void Castle::speed_up_building_mission(BuildingBaseId building_base_id, std::uint64_t delta_duration){
 	PROFILE_ME;
 
 	const auto it = m_buildings.find(building_base_id);
@@ -524,10 +524,10 @@ unsigned Castle::get_level() const {
 	}
 	return level;
 }
-boost::uint64_t Castle::get_max_resource_amount(ResourceId resource_id) const {
+std::uint64_t Castle::get_max_resource_amount(ResourceId resource_id) const {
 	PROFILE_ME;
 
-	boost::uint64_t max_amount = 0;
+	std::uint64_t max_amount = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
 		if(building_id != BuildingIds::ID_WAREHOUSE){
@@ -585,7 +585,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 		DEBUG_THROW(Exception, sslit("Tech mission conflict"));
 	}
 
-	boost::uint64_t duration;
+	std::uint64_t duration;
 	switch(mission){
 //	case MIS_CONSTRUCT:
 //		break;
@@ -594,7 +594,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 		{
 			const unsigned level = obj->get_tech_level();
 			const auto tech_data = Data::CastleTech::require(TechId(obj->get_tech_id()), level + 1);
-			duration = checked_mul(tech_data->upgrade_duration, (boost::uint64_t)60000);
+			duration = checked_mul(tech_data->upgrade_duration, (std::uint64_t)60000);
 		}
 		break;
 
@@ -664,7 +664,7 @@ void Castle::cancel_tech_mission(TechId tech_id){
 		}
 	}
 }
-void Castle::speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duration){
+void Castle::speed_up_tech_mission(TechId tech_id, std::uint64_t delta_duration){
 	PROFILE_ME;
 
 	const auto it = m_techs.find(tech_id);
@@ -772,7 +772,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 	const FlagGuard transaction_guard(m_locked_by_transaction);
 
 	boost::shared_ptr<bool> withdrawn;
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, boost::uint64_t /* new_count */> temp_result_map;
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t /* new_count */> temp_result_map;
 
     for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
 		const auto operation    = tit->m_operation;

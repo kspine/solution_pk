@@ -25,7 +25,7 @@ ACCOUNT_SERVLET("findByPhoneNumber", session, params){
 		account[sslit("phoneNumber")] = std::move(info.phone_number);
 		account[sslit("nick")] = std::move(info.nick);
 		account[sslit("flags")] = info.flags;
-		account[sslit("createdTime")] = static_cast<boost::uint64_t>(info.created_time);
+		account[sslit("createdTime")] = static_cast<std::uint64_t>(info.created_time);
 		account[sslit("createdIp")] = std::move(info.created_ip);
 		accounts.emplace_back(std::move(account));
 	}

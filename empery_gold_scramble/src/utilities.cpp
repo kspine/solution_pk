@@ -14,12 +14,12 @@
 namespace EmperyGoldScramble {
 
 namespace {
-	boost::uint64_t get_number_of_winners(){
+	std::uint64_t get_number_of_winners(){
 		PROFILE_ME;
 
 		const auto player_count = BidRecordMap::get_size();
 		const auto percent_winners = GlobalStatus::get(GlobalStatus::SLOT_PERCENT_WINNERS);
-		auto count = static_cast<boost::uint64_t>(std::ceil(percent_winners / 100.0 * player_count - 0.001));
+		auto count = static_cast<std::uint64_t>(std::ceil(percent_winners / 100.0 * player_count - 0.001));
 		if(count > player_count){
 			count = player_count;
 		}
@@ -86,9 +86,9 @@ namespace {
 
 	Msg::SC_AccountLastLog g_last_log_msg;
 
-	void commit_game_reward(const std::string &login_name, const std::string &nick, boost::uint64_t game_auto_id,
-		boost::uint64_t gold_coins, boost::uint64_t account_balance,
-		boost::uint64_t game_begin_time, boost::uint64_t gold_coins_in_pot, boost::uint64_t account_balance_in_pot)
+	void commit_game_reward(const std::string &login_name, const std::string &nick, std::uint64_t game_auto_id,
+		std::uint64_t gold_coins, boost::uint64_t account_balance,
+		std::uint64_t game_begin_time, boost::uint64_t gold_coins_in_pot, boost::uint64_t account_balance_in_pot)
 	{
 		PROFILE_ME;
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Commit game reward: login_name = ", login_name, ", game_auto_id = ", game_auto_id,
@@ -135,8 +135,8 @@ namespace {
 				std::istringstream iss(response.entity.dump());
 				auto root = Poseidon::JsonParser::parse_object(iss);
 				LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Promotion server response: ", root.dump());
-				const auto gold_coins = static_cast<boost::uint64_t>(root.at(sslit("goldCoins")).get<double>());
-				const auto account_balance = static_cast<boost::uint64_t>(root.at(sslit("accountBalance")).get<double>());
+				const auto gold_coins = static_cast<std::uint64_t>(root.at(sslit("goldCoins")).get<double>());
+				const auto account_balance = static_cast<std::uint64_t>(root.at(sslit("accountBalance")).get<double>());
 				session->send(Msg::SC_AccountAccountBalance(gold_coins, account_balance));
 			} catch(std::exception &e){
 				LOG_EMPERY_GOLD_SCRAMBLE_WARNING("std::exception thrown: what = ", e.what());
@@ -186,8 +186,8 @@ namespace {
 		if(number_of_winners > 0){
 			const auto game_auto_id = GlobalStatus::get(GlobalStatus::SLOT_GAME_AUTO_ID);
 			try {
-				const auto gold_coins_per_person = static_cast<boost::uint64_t>(gold_coins_in_pot / number_of_winners);
-				const auto account_balance_per_person = static_cast<boost::uint64_t>(account_balance_in_pot / 100 / number_of_winners) * 100;
+				const auto gold_coins_per_person = static_cast<std::uint64_t>(gold_coins_in_pot / number_of_winners);
+				const auto account_balance_per_person = static_cast<std::uint64_t>(account_balance_in_pot / 100 / number_of_winners) * 100;
 
 				auto it = records.begin();
 				while(it != records.end() - 1){
@@ -220,17 +220,17 @@ namespace {
 
 		const auto game_start_o_clock    = get_config<unsigned>       ("game_start_o_clock",    2);
 		const auto game_end_o_clock      = get_config<unsigned>       ("game_end_o_clock",      12);
-		const auto minimum_game_duration = get_config<boost::uint64_t>("minimum_game_duration", 1800000);
-		const auto next_game_delay       = get_config<boost::uint64_t>("next_game_delay",       300000);
+		const auto minimum_game_duration = get_config<std::uint64_t>("minimum_game_duration", 1800000);
+		const auto next_game_delay       = get_config<std::uint64_t>("next_game_delay",       300000);
 
-		const auto init_gold_coins_in_pot      = get_config<boost::uint64_t>("init_gold_coins_in_pot",      500);
-		const auto init_account_balance_in_pot = get_config<boost::uint64_t>("init_account_balance_in_pot", 50000);
+		const auto init_gold_coins_in_pot      = get_config<std::uint64_t>("init_gold_coins_in_pot",      500);
+		const auto init_account_balance_in_pot = get_config<std::uint64_t>("init_account_balance_in_pot", 50000);
 
 		const auto percent_winners_low  = get_config<unsigned>("percent_winners_low",  1);
 		const auto percent_winners_high = get_config<unsigned>("percent_winners_high", 5);
 
 		auto dt = Poseidon::break_down_time(utc_now);
-		boost::uint64_t next_game_begin_time;
+		std::uint64_t next_game_begin_time;
 		if(dt.hr < game_start_o_clock){
 			// 设为当天开始时间。
 			dt.hr = game_start_o_clock;

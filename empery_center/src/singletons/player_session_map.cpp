@@ -15,7 +15,7 @@ namespace EmperyCenter {
 namespace {
 	struct SessionElement {
 		boost::shared_ptr<Account> account;
-		boost::uint64_t online_since;
+		std::uint64_t online_since;
 
 		AccountUuid account_uuid;
 		boost::weak_ptr<PlayerSession> weak_session;
@@ -36,7 +36,7 @@ namespace {
 
 	using SessionIterator = typename std::decay<decltype(g_session_map->begin<1>())>::type;
 
-	SessionIterator really_erase_session(SessionIterator it, boost::uint64_t now, boost::uint64_t utc_now){
+	SessionIterator really_erase_session(SessionIterator it, std::uint64_t now, boost::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto account         = it->account;
@@ -64,7 +64,7 @@ namespace {
 
 	boost::weak_ptr<Poseidon::TimerItem> g_gc_timer;
 
-	void gc_timer_proc(boost::uint64_t now){
+	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Session gc timer: now = ", now);
 
@@ -86,7 +86,7 @@ namespace {
 		g_session_map = session_map;
 		handles.push(session_map);
 
-		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		g_gc_timer = timer;
@@ -204,7 +204,7 @@ void PlayerSessionMap::async_begin_gc() noexcept {
 	}
 
 	try {
-		const auto gc_delay = get_config<boost::uint64_t>("player_session_gc_delay", 5000);
+		const auto gc_delay = get_config<std::uint64_t>("player_session_gc_delay", 5000);
 		Poseidon::TimerDaemon::set_time(timer, gc_delay);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

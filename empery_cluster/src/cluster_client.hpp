@@ -4,7 +4,7 @@
 #include <poseidon/cbpp/client.hpp>
 #include <poseidon/fwd.hpp>
 #include <poseidon/mutex.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/function.hpp>
 #include <boost/container/flat_map.hpp>
 #include <utility>
@@ -20,10 +20,10 @@ public:
 		Result (const boost::shared_ptr<ClusterClient> &, Poseidon::StreamBuffer)>;
 
 public:
-	static boost::shared_ptr<const ServletCallback> create_servlet(boost::uint16_t message_id, ServletCallback callback);
-	static boost::shared_ptr<const ServletCallback> get_servlet(boost::uint16_t message_id);
+	static boost::shared_ptr<const ServletCallback> create_servlet(std::uint16_t message_id, ServletCallback callback);
+	static boost::shared_ptr<const ServletCallback> get_servlet(std::uint16_t message_id);
 
-	static boost::shared_ptr<ClusterClient> create(boost::int64_t numerical_x, boost::int64_t numerical_y, std::string name);
+	static boost::shared_ptr<ClusterClient> create(std::int64_t numerical_x, boost::int64_t numerical_y, std::string name);
 
 private:
 	struct RequestElement {
@@ -40,12 +40,12 @@ private:
 	unsigned m_message_id;
 	Poseidon::StreamBuffer m_payload;
 
-	volatile boost::uint64_t m_serial;
+	volatile std::uint64_t m_serial;
 	mutable Poseidon::Mutex m_request_mutex;
-	boost::container::flat_multimap<boost::uint64_t, RequestElement> m_requests;
+	boost::container::flat_multimap<std::uint64_t, RequestElement> m_requests;
 
 private:
-	ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, boost::uint64_t keep_alive_interval);
+	ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval);
 
 public:
 	~ClusterClient();
@@ -53,17 +53,17 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	void on_sync_data_message_header(boost::uint16_t message_id, boost::uint64_t payload_size) override;
-	void on_sync_data_message_payload(boost::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
-	void on_sync_data_message_end(boost::uint64_t payload_size) override;
+	void on_sync_data_message_header(std::uint16_t message_id, boost::uint64_t payload_size) override;
+	void on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
+	void on_sync_data_message_end(std::uint64_t payload_size) override;
 
 public:
-	bool send(boost::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send(std::uint16_t message_id, Poseidon::StreamBuffer body);
 	void shutdown(const char *message) noexcept;
 	void shutdown(int code, const char *message) noexcept;
 
 	// 警告：不能在 servlet 中调用，否则会造成死锁。
-	Result send_and_wait(boost::uint16_t message_id, Poseidon::StreamBuffer body);
+	Result send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
@@ -74,7 +74,7 @@ public:
 		return send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 
-	bool send_notification(AccountUuid account_uuid, boost::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send_notification(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
 	bool send_notification(AccountUuid account_uuid, const MsgT &msg){

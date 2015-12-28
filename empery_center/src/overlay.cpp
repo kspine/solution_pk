@@ -28,7 +28,7 @@ Overlay::Overlay(Coord cluster_coord, std::string overlay_group_name, OverlayId 
 				LOG_EMPERY_CENTER_ERROR("No cells in overlay group? overlay_group_name = ", overlay_group_name);
 				DEBUG_THROW(Exception, sslit("No cells in overlay group"));
 			}
-			boost::uint64_t sum_resources = 0;
+			std::uint64_t sum_resources = 0;
 			for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
 				const auto &basic_data = *it;
 				const auto overlay_data = Data::MapOverlay::require(basic_data->overlay_id);
@@ -62,11 +62,11 @@ OverlayId Overlay::get_overlay_id() const {
 ResourceId Overlay::get_resource_id() const {
 	return ResourceId(m_obj->get_resource_id());
 }
-boost::uint64_t Overlay::get_resource_amount() const {
+std::uint64_t Overlay::get_resource_amount() const {
 	return m_obj->get_resource_amount();
 }
 
-boost::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
+std::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
 	PROFILE_ME;
 
 	const auto cluster_coord = get_cluster_coord();

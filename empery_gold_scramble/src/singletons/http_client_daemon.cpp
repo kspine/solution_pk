@@ -190,7 +190,7 @@ namespace {
 		}
 
 		void on_response_headers(Poseidon::Http::ResponseHeaders response_headers,
-			std::string /* transfer_encoding */, boost::uint64_t /* content_length */) override
+			std::string /* transfer_encoding */, std::uint64_t /* content_length */) override
 		{
 			PROFILE_ME;
 			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Response headers received: status_code = ", response_headers.status_code);
@@ -198,13 +198,13 @@ namespace {
 			m_response.status_code = response_headers.status_code;
 			m_response.content_type = response_headers.headers.get("Content-Type");
 		}
-		void on_response_entity(boost::uint64_t entity_offset, bool /* is_chunked */, Poseidon::StreamBuffer entity) override {
+		void on_response_entity(std::uint64_t entity_offset, bool /* is_chunked */, Poseidon::StreamBuffer entity) override {
 			PROFILE_ME;
 			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Entity received: entity_offset = ", entity_offset, ", entity_size = ", entity.size());
 
 			m_response.entity.splice(entity);
 		}
-		bool on_response_end(boost::uint64_t content_length, bool /* is_chunked */, Poseidon::OptionalMap /* headers */) override {
+		bool on_response_end(std::uint64_t content_length, bool /* is_chunked */, Poseidon::OptionalMap /* headers */) override {
 			PROFILE_ME;
 			LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Entity terminated: content_length = ", content_length);
 

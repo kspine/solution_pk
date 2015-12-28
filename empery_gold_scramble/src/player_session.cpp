@@ -50,7 +50,7 @@ protected:
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
 			auto read = Poseidon::StreamBuffer::ReadIterator(payload);
-			boost::uint64_t message_id64;
+			std::uint64_t message_id64;
 			if(!Poseidon::vuint50_from_binary(message_id64, read, payload.size())){
 				LOG_EMPERY_GOLD_SCRAMBLE_WARNING("Packet too small");
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
@@ -97,7 +97,7 @@ protected:
 	}
 };
 
-boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(std::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
 	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
@@ -109,7 +109,7 @@ boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(boost::ui
 	weak_servlet = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(boost::uint16_t message_id){
+boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(std::uint16_t message_id){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(message_id);
@@ -234,7 +234,7 @@ void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders request_heade
 	Poseidon::Http::Session::send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
 }
 
-bool PlayerSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer payload){
+bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
 	const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(get_upgraded_session());

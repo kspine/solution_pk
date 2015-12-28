@@ -42,17 +42,17 @@ public:
 
 	ItemId get_ticket_item_id() const;
 	ResourceId get_production_resource_id() const;
-	boost::uint64_t get_last_production_time() const;
-	boost::uint64_t get_resource_amount() const;
+	std::uint64_t get_last_production_time() const;
+	std::uint64_t get_resource_amount() const;
 
 	void set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
 	void set_ticket_item_id(ItemId ticket_item_id);
 
-	boost::uint64_t harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated);
+	std::uint64_t harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated);
 
-	boost::int64_t get_attribute(AttributeId attribute_id) const;
-	void get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const;
-	void set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers);
+	std::int64_t get_attribute(AttributeId attribute_id) const;
+	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
+	void set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers);
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

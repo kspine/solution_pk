@@ -52,11 +52,11 @@ namespace Data {
 
 	public:
 		unsigned building_level;
-		boost::uint64_t upgrade_duration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgrade_cost;
+		std::uint64_t upgrade_duration;
+		boost::container::flat_map<ResourceId, std::uint64_t> upgrade_cost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
-		boost::uint64_t prosperity_points;
-		boost::uint64_t destruct_duration;
+		std::uint64_t prosperity_points;
+		std::uint64_t destruct_duration;
 	};
 
 	class CastleUpgradePrimary : public CastleUpgradeAbstract {
@@ -65,9 +65,9 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradePrimary> require(unsigned building_level);
 
 	public:
-		boost::uint64_t max_map_cell_count;
-		boost::uint64_t max_map_cell_distance;
-		boost::uint64_t max_immigrant_group_count;
+		std::uint64_t max_map_cell_count;
+		std::uint64_t max_map_cell_distance;
+		std::uint64_t max_immigrant_group_count;
 	};
 
 	class CastleUpgradeBarracks : public CastleUpgradeAbstract {
@@ -94,7 +94,7 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeCivilian> require(unsigned building_level);
 
 	public:
-		boost::uint64_t max_population;
+		std::uint64_t max_population;
 	};
 
 	class CastleUpgradeWarehouse : public CastleUpgradeAbstract {
@@ -103,7 +103,7 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeWarehouse> require(unsigned building_level);
 
 	public:
-		boost::container::flat_map<ResourceId, boost::uint64_t> max_resource_amounts;
+		boost::container::flat_map<ResourceId, std::uint64_t> max_resource_amounts;
 	};
 
 	class CastleUpgradeCitadelWall : public CastleUpgradeAbstract {
@@ -112,8 +112,8 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeCitadelWall> require(unsigned building_level);
 
 	public:
-		boost::uint64_t strength;
-		boost::uint64_t armor;
+		std::uint64_t strength;
+		std::uint64_t armor;
 	};
 
 	class CastleUpgradeDefenseTower : public CastleUpgradeAbstract {
@@ -122,7 +122,7 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeDefenseTower> require(unsigned building_level);
 
 	public:
-		boost::uint64_t firepower;
+		std::uint64_t firepower;
 	};
 
 	class CastleTech {
@@ -132,8 +132,8 @@ namespace Data {
 
 	public:
 		std::pair<TechId, unsigned> tech_id_level;
-		boost::uint64_t upgrade_duration;
-		boost::container::flat_map<ResourceId, boost::uint64_t> upgrade_cost;
+		std::uint64_t upgrade_duration;
+		boost::container::flat_map<ResourceId, std::uint64_t> upgrade_cost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		boost::container::flat_map<BuildingId, unsigned> display_prerequisite;
 		boost::container::flat_map<AttributeId, double> attributes;
@@ -148,7 +148,7 @@ namespace Data {
 
 	public:
 		ResourceId resource_id;
-		boost::uint64_t init_amount;
+		std::uint64_t init_amount;
 		bool producible;
 	};
 }

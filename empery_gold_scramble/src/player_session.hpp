@@ -4,7 +4,7 @@
 #include <string>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <poseidon/fwd.hpp>
 #include <poseidon/cxx_util.hpp>
 #include <poseidon/ip_port.hpp>
@@ -24,8 +24,8 @@ public:
 		Poseidon::JsonObject (const boost::shared_ptr<PlayerSession> &session, const Poseidon::OptionalMap &params)>;
 
 public:
-	static boost::shared_ptr<const ServletCallback> create_servlet(boost::uint16_t message_id, ServletCallback callback);
-	static boost::shared_ptr<const ServletCallback> get_servlet(boost::uint16_t message_id);
+	static boost::shared_ptr<const ServletCallback> create_servlet(std::uint16_t message_id, ServletCallback callback);
+	static boost::shared_ptr<const ServletCallback> get_servlet(std::uint16_t message_id);
 
 	static boost::shared_ptr<const HttpServletCallback> create_http_servlet(const std::string &uri, HttpServletCallback callback);
 	static boost::shared_ptr<const HttpServletCallback> get_http_servlet(const std::string &uri);
@@ -49,7 +49,7 @@ protected:
 	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 
 public:
-	bool send(boost::uint16_t message_id, Poseidon::StreamBuffer payload);
+	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<class MessageT>
 	bool send(const MessageT &msg){
@@ -58,10 +58,10 @@ public:
 		}
 		return send(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
-	bool send_control(boost::uint16_t message_id, int status_code, std::string reason){
+	bool send_control(std::uint16_t message_id, int status_code, std::string reason){
 		return send(Poseidon::Cbpp::ControlMessage(message_id, static_cast<int>(status_code), std::move(reason)));
 	}
-	bool send_control(boost::uint16_t message_id, int status_code){
+	bool send_control(std::uint16_t message_id, int status_code){
 		return send_control(message_id, status_code, std::string());
 	}
 

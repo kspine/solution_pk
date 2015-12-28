@@ -12,7 +12,7 @@ namespace EmperyPromotion {
 ACCOUNT_SERVLET("removeAccountItems", session, params){
 	const auto &login_name = params.at("loginName");
 	const auto item_id = boost::lexical_cast<ItemId>(params.at("itemId"));
-	const auto count_to_remove = boost::lexical_cast<boost::uint64_t>(params.at("countToRemove"));
+	const auto count_to_remove = boost::lexical_cast<std::uint64_t>(params.at("countToRemove"));
 	const auto &saturated = params.get("saturated");
 	const auto &remarks = params.get("remarks");
 

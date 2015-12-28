@@ -11,7 +11,7 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("transfer", session, params){
 	const auto &login_name = params.at("loginName");
-	const auto delta_balance = boost::lexical_cast<boost::uint64_t>(params.at("deltaBalance"));
+	const auto delta_balance = boost::lexical_cast<std::uint64_t>(params.at("deltaBalance"));
 	const auto &deal_password = params.at("dealPassword");
 	const auto &to_login_name = params.at("toLoginName");
 	const auto &remarks = params.get("remarks");

@@ -10,7 +10,7 @@ namespace EmperyPromotion {
 ACCOUNT_SERVLET("upgrade", session, params){
 	const auto &payer_login_name = params.at("payerLoginName");
 	const auto &login_name = params.at("loginName");
-	const auto new_level = boost::lexical_cast<boost::uint64_t>(params.at("newLevel"));
+	const auto new_level = boost::lexical_cast<std::uint64_t>(params.at("newLevel"));
 	const auto &deal_password = params.at("dealPassword");
 	const auto &remarks = params.get("remarks");
 	const auto &additional_cards_str = params.get("additionalCards");
@@ -54,9 +54,9 @@ ACCOUNT_SERVLET("upgrade", session, params){
 		return ret;
 	}
 
-	boost::uint64_t additional_cards = 0;
+	std::uint64_t additional_cards = 0;
 	if(!additional_cards_str.empty()){
-		additional_cards = boost::lexical_cast<boost::uint64_t>(additional_cards_str);
+		additional_cards = boost::lexical_cast<std::uint64_t>(additional_cards_str);
 	}
 
 	const auto result = try_upgrade_account(info.account_id, payer_info.account_id, false, promotion_data, remarks, additional_cards);

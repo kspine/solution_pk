@@ -98,7 +98,7 @@ void MapObject::set_coord(Coord coord) noexcept {
 	}
 }
 
-boost::uint64_t MapObject::get_created_time() const {
+std::uint64_t MapObject::get_created_time() const {
 	return m_obj->get_created_time();
 }
 
@@ -116,7 +116,7 @@ void MapObject::delete_from_game() noexcept {
 	WorldMap::remove_map_object(get_map_object_uuid());
 }
 
-boost::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
+std::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
 	PROFILE_ME;
 
 	const auto it = m_attributes.find(attribute_id);
@@ -125,7 +125,7 @@ boost::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
 	}
 	return it->second->get_value();
 }
-void MapObject::get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const {
+void MapObject::get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_attributes.size());
@@ -133,7 +133,7 @@ void MapObject::get_attributes(boost::container::flat_map<AttributeId, boost::in
 		ret[it->first] = it->second->get_value();
 	}
 }
-void MapObject::set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers){
+void MapObject::set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers){
 	PROFILE_ME;
 
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){

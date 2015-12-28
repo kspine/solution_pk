@@ -25,7 +25,7 @@ ACCOUNT_SERVLET("getEconomySummary", session, /* params */){
 	std::vector<boost::shared_ptr<MySql::EconomySummary>> objs;
 	MySql::EconomySummary::batch_load(objs, "SELECT `item_id`, SUM(`count`) AS `count` FROM `Promotion_Item` GROUP BY `item_id`");
 
-	const auto get_total_item_count = [&](ItemId item_id) -> boost::uint64_t {
+	const auto get_total_item_count = [&](ItemId item_id) -> std::uint64_t {
 		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
 			if(obj->get_item_id() == item_id.get()){

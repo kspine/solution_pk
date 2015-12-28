@@ -19,7 +19,7 @@ ACCOUNT_SERVLET("create", session, params){
 	const auto &deal_password = params.get("dealPassword");
 	const auto &login_name = params.at("loginName");
 	const auto &nick = params.at("nick");
-	const auto level = boost::lexical_cast<boost::uint64_t>(params.at("level"));
+	const auto level = boost::lexical_cast<std::uint64_t>(params.at("level"));
 	const auto &gender = params.at("gender");
 	const auto &country = params.at("country");
 	const auto &password = params.at("password");
@@ -112,7 +112,7 @@ ACCOUNT_SERVLET("create", session, params){
 	Poseidon::async_raise_event(
 		boost::make_shared<Events::AccountCreated>(new_account_id, ip));
 
-	const auto init_gold_coin_array = Poseidon::explode<boost::uint64_t>(',',
+	const auto init_gold_coin_array = Poseidon::explode<std::uint64_t>(',',
 	                               get_config<std::string>("init_gold_coins_array"));
 	std::vector<ItemTransactionElement> transaction;
 	transaction.reserve(init_gold_coin_array.size());
@@ -129,9 +129,9 @@ ACCOUNT_SERVLET("create", session, params){
 	}
 	ItemMap::commit_transaction(transaction.data(), transaction.size());
 
-	boost::uint64_t additional_cards = 0;
+	std::uint64_t additional_cards = 0;
 	if(!additional_cards_str.empty()){
-		additional_cards = boost::lexical_cast<boost::uint64_t>(additional_cards_str);
+		additional_cards = boost::lexical_cast<std::uint64_t>(additional_cards_str);
 	}
 
 	if(promotion_data){

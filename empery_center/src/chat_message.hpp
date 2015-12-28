@@ -4,7 +4,7 @@
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/cxx_util.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <vector>
 #include <string>
 #include "id_types.hpp"
@@ -20,14 +20,14 @@ private:
 	const ChatChannelId m_channel;
 	const ChatMessageTypeId m_type;
 	const LanguageId m_language_id;
-	const boost::uint64_t m_created_time;
+	const std::uint64_t m_created_time;
 
 	AccountUuid m_from_account_uuid;
 	std::vector<std::pair<ChatMessageSlotId, std::string>> m_segments;
 
 public:
 	ChatMessage(ChatMessageUuid chat_message_uuid,
-		ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id, boost::uint64_t created_time,
+		ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id, std::uint64_t created_time,
 		AccountUuid from_account_uuid, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
 	~ChatMessage();
 
@@ -45,7 +45,7 @@ public:
 	LanguageId get_language_id() const {
 		return m_language_id;
 	}
-	boost::uint64_t get_created_time() const {
+	std::uint64_t get_created_time() const {
 		return m_created_time;
 	}
 

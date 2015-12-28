@@ -5,7 +5,7 @@
 
 namespace EmperyCenter {
 
-ActivationCode::ActivationCode(std::string code, boost::uint64_t created_time, boost::uint64_t expiry_time)
+ActivationCode::ActivationCode(std::string code, std::uint64_t created_time, boost::uint64_t expiry_time)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_ActivationCode>(
@@ -25,14 +25,14 @@ ActivationCode::~ActivationCode(){
 const std::string &ActivationCode::get_code() const {
 	return m_obj->unlocked_get_code();
 }
-boost::uint64_t ActivationCode::get_created_time() const {
+std::uint64_t ActivationCode::get_created_time() const {
 	return m_obj->get_created_time();
 }
 
-boost::uint64_t ActivationCode::get_expiry_time() const {
+std::uint64_t ActivationCode::get_expiry_time() const {
 	return m_obj->get_expiry_time();
 }
-void ActivationCode::set_expiry_time(boost::uint64_t expiry_time){
+void ActivationCode::set_expiry_time(std::uint64_t expiry_time){
 	m_obj->set_expiry_time(expiry_time);
 
 	ActivationCodeMap::update(virtual_shared_from_this<ActivationCode>(), false);

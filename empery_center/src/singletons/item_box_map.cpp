@@ -13,7 +13,7 @@ namespace EmperyCenter {
 namespace {
 	struct ItemBoxElement {
 		AccountUuid account_uuid;
-		boost::uint64_t unload_time;
+		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
 		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
@@ -21,7 +21,7 @@ namespace {
 		mutable boost::shared_ptr<ItemBox> item_box;
 		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
 
-		ItemBoxElement(AccountUuid account_uuid_, boost::uint64_t unload_time_)
+		ItemBoxElement(AccountUuid account_uuid_, std::uint64_t unload_time_)
 			: account_uuid(account_uuid_), unload_time(unload_time_)
 		{
 		}
@@ -34,7 +34,7 @@ namespace {
 
 	boost::weak_ptr<ItemBoxMapContainer> g_item_box_map;
 
-	void gc_timer_proc(boost::uint64_t now){
+	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Item box gc timer: now = ", now);
 
@@ -65,7 +65,7 @@ namespace {
 		g_item_box_map = item_box_map;
 		handles.push(item_box_map);
 
-		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
@@ -120,7 +120,7 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 			auto item_box = boost::make_shared<ItemBox>(account_uuid, objs);
 			item_box->check_init_items();
 
-			const auto item_box_refresh_interval = get_config<boost::uint64_t>("item_box_refresh_interval", 60000);
+			const auto item_box_refresh_interval = get_config<std::uint64_t>("item_box_refresh_interval", 60000);
 			auto timer = Poseidon::TimerDaemon::register_timer(0, item_box_refresh_interval,
 				std::bind([](const boost::weak_ptr<ItemBox> &weak){
 					PROFILE_ME;
@@ -142,7 +142,7 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
-	const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 	item_box_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
 
 	return it->item_box;

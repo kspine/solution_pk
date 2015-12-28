@@ -5,7 +5,7 @@
 #include <deque>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <poseidon/cxx_util.hpp>
 #include <poseidon/ip_port.hpp>
 #include <poseidon/stream_buffer.hpp>
@@ -21,8 +21,8 @@ public:
 		std::pair<long, std::string> (const boost::shared_ptr<PlayerSession> &, Poseidon::StreamBuffer)>;
 
 public:
-	static boost::shared_ptr<const ServletCallback> create_servlet(boost::uint16_t message_id, ServletCallback callback);
-	static boost::shared_ptr<const ServletCallback> get_servlet(boost::uint16_t message_id);
+	static boost::shared_ptr<const ServletCallback> create_servlet(std::uint16_t message_id, ServletCallback callback);
+	static boost::shared_ptr<const ServletCallback> get_servlet(std::uint16_t message_id);
 
 private:
 	class WebSocketImpl;
@@ -48,13 +48,13 @@ protected:
 	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 
 public:
-	bool send(boost::uint16_t message_id, Poseidon::StreamBuffer payload);
+	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 	template<class MessageT>
 	bool send(const MessageT &msg){
 		return send(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
-	bool send_control(boost::uint16_t message_id, int status_code, std::string reason);
-	bool send_control(boost::uint16_t message_id, int status_code){
+	bool send_control(std::uint16_t message_id, int status_code, std::string reason);
+	bool send_control(std::uint16_t message_id, int status_code){
 		return send_control(message_id, status_code, std::string());
 	}
 

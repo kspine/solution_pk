@@ -19,7 +19,7 @@ ACCOUNT_SERVLET("queryAccountItems", session, params){
 	}
 
 	Poseidon::JsonObject items;
-	boost::container::flat_map<ItemId, boost::uint64_t> item_map;
+	boost::container::flat_map<ItemId, std::uint64_t> item_map;
 	ItemMap::get_all_by_account_id(item_map, info.account_id);
 	for(auto it = item_map.begin(); it != item_map.end(); ++it){
 		char str[256];

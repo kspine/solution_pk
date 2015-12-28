@@ -72,8 +72,8 @@ namespace {
 	boost::shared_ptr<AccountAttributeMapContainer> g_attribute_map;
 
 	struct SubordinateInfoCacheElement {
-		boost::uint64_t max_level;
-		boost::uint64_t subordinate_count;
+		std::uint64_t max_level;
+		std::uint64_t subordinate_count;
 	};
 
 	MODULE_RAII_PRIORITY(handles, 5000){
@@ -219,10 +219,10 @@ AccountMap::AccountInfo AccountMap::require(AccountId account_id){
 	return info;
 }
 
-boost::uint64_t AccountMap::get_count(){
+std::uint64_t AccountMap::get_count(){
 	return g_account_map->size();
 }
-void AccountMap::get_all(std::vector<AccountMap::AccountInfo> &ret, boost::uint64_t begin, boost::uint64_t max){
+void AccountMap::get_all(std::vector<AccountMap::AccountInfo> &ret, std::uint64_t begin, boost::uint64_t max){
 	PROFILE_ME;
 
 	const auto size = g_account_map->size();
@@ -236,7 +236,7 @@ void AccountMap::get_all(std::vector<AccountMap::AccountInfo> &ret, boost::uint6
 	ret.reserve(ret.size() + count);
 	auto it = g_account_map->begin();
 	std::advance(it, static_cast<std::ptrdiff_t>(begin));
-	for(boost::uint64_t i = 0; i < count; ++it, ++i){
+	for(std::uint64_t i = 0; i < count; ++it, ++i){
 		AccountInfo info;
 		fill_account_info(info, it->obj);
 		ret.push_back(std::move(info));
@@ -379,7 +379,7 @@ void AccountMap::set_deal_password(AccountId account_id, const std::string &deal
 
 	it->obj->set_deal_password_hash(get_password_hash(deal_password));
 }
-void AccountMap::set_level(AccountId account_id, boost::uint64_t level){
+void AccountMap::set_level(AccountId account_id, std::uint64_t level){
 	PROFILE_ME;
 
 	const auto it = g_account_map->find<0>(account_id);
@@ -395,7 +395,7 @@ void AccountMap::set_level(AccountId account_id, boost::uint64_t level){
 	it->obj->set_level(level);
 
 	for(auto current_it = it; current_it != g_account_map->end<0>(); current_it = g_account_map->find<0>(current_it->referrer_id)){
-		boost::uint64_t new_max_level = 0;
+		std::uint64_t new_max_level = 0;
 		const auto range = g_account_map->equal_range<4>(current_it->account_id);
 		for(auto subord_it = range.first; subord_it != range.second; ++subord_it){
 			const auto max_level = subord_it->obj->get_max_level();
@@ -416,7 +416,7 @@ void AccountMap::set_level(AccountId account_id, boost::uint64_t level){
 		current_it->obj->set_max_level(new_max_level);
 	}
 }
-void AccountMap::set_flags(AccountId account_id, boost::uint64_t flags){
+void AccountMap::set_flags(AccountId account_id, std::uint64_t flags){
 	PROFILE_ME;
 
 	const auto it = g_account_map->find<0>(account_id);
@@ -431,7 +431,7 @@ void AccountMap::set_flags(AccountId account_id, boost::uint64_t flags){
 
 	it->obj->set_flags(flags);
 }
-void AccountMap::set_banned_until(AccountId account_id, boost::uint64_t banned_until){
+void AccountMap::set_banned_until(AccountId account_id, std::uint64_t banned_until){
 	PROFILE_ME;
 
 	const auto it = g_account_map->find<0>(account_id);
@@ -446,7 +446,7 @@ void AccountMap::set_banned_until(AccountId account_id, boost::uint64_t banned_u
 
 	it->obj->set_banned_until(banned_until);
 }
-void AccountMap::accumulate_performance(AccountId account_id, boost::uint64_t amount){
+void AccountMap::accumulate_performance(AccountId account_id, std::uint64_t amount){
 	PROFILE_ME;
 
 	const auto it = g_account_map->find<0>(account_id);
@@ -468,7 +468,7 @@ void AccountMap::accumulate_performance(AccountId account_id, boost::uint64_t am
 }
 
 AccountId AccountMap::create(std::string login_name, std::string phone_number, std::string nick,
-	const std::string &password, const std::string &deal_password, AccountId referrer_id, boost::uint64_t flags, std::string created_ip)
+	const std::string &password, const std::string &deal_password, AccountId referrer_id, std::uint64_t flags, std::string created_ip)
 {
 	PROFILE_ME;
 

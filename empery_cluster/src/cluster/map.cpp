@@ -23,7 +23,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
 	auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 	auto owner_uuid         = AccountUuid(req.owner_uuid);
 
-	boost::container::flat_map<AttributeId, boost::int64_t> attributes;
+	boost::container::flat_map<AttributeId, std::int64_t> attributes;
 	attributes.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
 		attributes.emplace(AttributeId(it->attribute_id), it->value);
@@ -53,7 +53,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 		const auto owner_uuid         = AccountUuid(req.owner_uuid);
 		const auto coord              = Coord(req.x, req.y);
 
-		boost::container::flat_map<AttributeId, boost::int64_t> attributes;
+		boost::container::flat_map<AttributeId, std::int64_t> attributes;
 		attributes.reserve(req.attributes.size());
 		for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
 			attributes.emplace(AttributeId(it->attribute_id), it->value);

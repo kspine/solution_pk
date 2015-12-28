@@ -46,7 +46,7 @@ MODULE_RAII_PRIORITY(handles, 1000){
 }
 
 namespace Data {
-	boost::shared_ptr<const Promotion> Promotion::get(boost::uint64_t level){
+	boost::shared_ptr<const Promotion> Promotion::get(std::uint64_t level){
 		auto map = g_map.lock();
 		if(!map){
 			LOG_EMPERY_PROMOTION_ERROR("Promotion data has not been loaded.");
@@ -60,7 +60,7 @@ namespace Data {
 		--it;
 		return boost::shared_ptr<const Promotion>(std::move(map), &*it);
 	}
-	boost::shared_ptr<const Promotion> Promotion::require(boost::uint64_t level){
+	boost::shared_ptr<const Promotion> Promotion::require(std::uint64_t level){
 		auto ret = get(level);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("Promotion element not found"));
@@ -81,7 +81,7 @@ namespace Data {
 		}
 		return boost::shared_ptr<const Promotion>(std::move(map), &*it);
 	}
-	boost::shared_ptr<const Promotion> Promotion::get_next(boost::uint64_t level){
+	boost::shared_ptr<const Promotion> Promotion::get_next(std::uint64_t level){
 		auto map = g_map.lock();
 		if(!map){
 			LOG_EMPERY_PROMOTION_ERROR("Promotion data has not been loaded.");

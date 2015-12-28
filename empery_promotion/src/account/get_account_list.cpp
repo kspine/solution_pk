@@ -41,9 +41,9 @@ ACCOUNT_SERVLET("getAccountList", session, params){
 	oss <<"FROM `Promotion_Account` WHERE 1=1 ";
 	if(!time_begin.empty()){
 		char str[256];
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_begin), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
 		oss <<"AND '" <<str <<"' <= `created_time` ";
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_end), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_end), false);
 		oss <<"AND `created_time` < '" <<str <<"' ";
 	}
 	if(!login_name.empty()){
@@ -54,10 +54,10 @@ ACCOUNT_SERVLET("getAccountList", session, params){
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){
-				auto num_begin = boost::lexical_cast<boost::uint64_t>(begin);
+				auto num_begin = boost::lexical_cast<std::uint64_t>(begin);
 				oss <<num_begin <<", ";
 			}
-			auto num_count = boost::lexical_cast<boost::uint64_t>(count);
+			auto num_count = boost::lexical_cast<std::uint64_t>(count);
 			oss <<num_count;
 		}
 		MySql::Promotion_Account::batch_load(objs, oss.str());
@@ -74,7 +74,7 @@ ACCOUNT_SERVLET("getAccountList", session, params){
 			auto referrer_info = AccountMap::get(info.referrer_id);
 
 			Poseidon::JsonObject items;
-			boost::container::flat_map<ItemId, boost::uint64_t> item_map;
+			boost::container::flat_map<ItemId, std::uint64_t> item_map;
 			ItemMap::get_all_by_account_id(item_map, info.account_id);
 			for(auto it = item_map.begin(); it != item_map.end(); ++it){
 				char str[256];

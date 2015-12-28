@@ -21,7 +21,7 @@ private:
 
 public:
 	Account(AccountUuid account_uuid, PlatformId platformId, std::string login_name,
-		AccountUuid referrer_uuid, unsigned promotion_level, boost::uint64_t created_time, std::string nick);
+		AccountUuid referrer_uuid, unsigned promotion_level, std::uint64_t created_time, std::string nick);
 	Account(boost::shared_ptr<MySql::Center_Account> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> &attributes);
 	~Account();
@@ -44,11 +44,11 @@ public:
 	void activate();
 
 	const std::string &get_login_token() const;
-	boost::uint64_t get_login_token_expiry_time() const;
-	void set_login_token(std::string login_token, boost::uint64_t login_token_expiry_time);
+	std::uint64_t get_login_token_expiry_time() const;
+	void set_login_token(std::string login_token, std::uint64_t login_token_expiry_time);
 
-	boost::uint64_t get_banned_until() const;
-	void set_banned_until(boost::uint64_t banned_until);
+	std::uint64_t get_banned_until() const;
+	void set_banned_until(std::uint64_t banned_until);
 
 	const std::string &get_attribute(AccountAttributeId account_attribute_id) const;
 	void get_attributes(boost::container::flat_map<AccountAttributeId, std::string> &ret) const;

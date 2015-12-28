@@ -9,7 +9,7 @@
 namespace EmperyCenter {
 
 ChatMessage::ChatMessage(ChatMessageUuid chat_message_uuid,
-	ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id, boost::uint64_t created_time,
+	ChatChannelId channel, ChatMessageTypeId type, LanguageId language_id, std::uint64_t created_time,
 	AccountUuid from_account_uuid, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
 	: m_chat_message_uuid(chat_message_uuid)
 	, m_channel(channel), m_type(type), m_language_id(language_id), m_created_time(created_time)

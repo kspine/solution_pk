@@ -18,7 +18,7 @@ namespace {
 		info.flags       = obj->get_flags();
 	}
 
-	void fill_mail_message(Msg::SC_MailChanged &msg, const boost::shared_ptr<MySql::Center_Mail> &obj, boost::uint64_t utc_now){
+	void fill_mail_message(Msg::SC_MailChanged &msg, const boost::shared_ptr<MySql::Center_Mail> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		msg.mail_uuid       = obj->get_mail_uuid().to_string();
@@ -120,7 +120,7 @@ void MailBox::get_all(std::vector<MailBox::MailInfo> &ret) const {
 	}
 }
 
-void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, boost::uint64_t expiry_time, boost::uint64_t flags){
+void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, std::uint64_t expiry_time, boost::uint64_t flags){
 	PROFILE_ME;
 
 	const auto mail_uuid = mail_data->get_mail_uuid();

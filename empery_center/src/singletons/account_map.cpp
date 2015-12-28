@@ -44,7 +44,7 @@ namespace {
 
 	boost::shared_ptr<AccountMapContainer> g_account_map;
 
-	enum CacheType : boost::uint64_t {
+	enum CacheType : std::uint64_t {
 		CT_NONE       = 0x0000, // Silent the warning.
 		CT_NICK       = 0x0001,
 		CT_ATTRS      = 0x0002,
@@ -53,10 +53,10 @@ namespace {
 	};
 
 	struct InfoCacheElement {
-		boost::uint64_t expiry_time;
+		std::uint64_t expiry_time;
 		std::tuple<AccountUuid, boost::weak_ptr<PlayerSession>, CacheType> key;
 
-		InfoCacheElement(boost::uint64_t expiry_time_,
+		InfoCacheElement(std::uint64_t expiry_time_,
 			AccountUuid account_uuid_, const boost::shared_ptr<PlayerSession> &session_, CacheType type_)
 			: expiry_time(expiry_time_), key(account_uuid_, session_, type_)
 		{
@@ -120,8 +120,8 @@ namespace {
 		handles.push(info_cache_map);
 	}
 
-	void synchronize_account_and_update_cache(boost::uint64_t now, boost::uint64_t cache_timeout,
-		const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session, boost::uint64_t flags) noexcept
+	void synchronize_account_and_update_cache(std::uint64_t now, boost::uint64_t cache_timeout,
+		const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags) noexcept
 	try {
 		PROFILE_ME;
 
@@ -336,7 +336,7 @@ void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
-	const auto cache_timeout = get_config<boost::uint64_t>("account_info_cache_timeout", 0);
+	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
 
 	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
 
@@ -358,7 +358,7 @@ void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
-	const auto cache_timeout = get_config<boost::uint64_t>("account_info_cache_timeout", 0);
+	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
 
 	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
 

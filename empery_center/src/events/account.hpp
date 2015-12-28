@@ -29,9 +29,9 @@ namespace Events {
 
 	struct AccountLoggedOut : public Poseidon::EventBase<340103> {
 		AccountUuid account_uuid;
-		boost::uint64_t online_duration;
+		std::uint64_t online_duration;
 
-		AccountLoggedOut(AccountUuid account_uuid_, boost::uint64_t online_duration_)
+		AccountLoggedOut(AccountUuid account_uuid_, std::uint64_t online_duration_)
 			: account_uuid(account_uuid_), online_duration(online_duration_)
 		{
 		}

@@ -34,23 +34,23 @@ public:
 		BuildingId building_id;
 		unsigned building_level;
 		Mission mission;
-		boost::uint64_t mission_duration;
-		boost::uint64_t mission_time_begin;
-		boost::uint64_t mission_time_end;
+		std::uint64_t mission_duration;
+		std::uint64_t mission_time_begin;
+		std::uint64_t mission_time_end;
 	};
 
 	struct TechInfo {
 		TechId tech_id;
 		unsigned tech_level;
 		Mission mission;
-		boost::uint64_t mission_duration;
-		boost::uint64_t mission_time_begin;
-		boost::uint64_t mission_time_end;
+		std::uint64_t mission_duration;
+		std::uint64_t mission_time_begin;
+		std::uint64_t mission_time_end;
 	};
 
 	struct ResourceInfo {
 		ResourceId resource_id;
-		boost::uint64_t amount;
+		std::uint64_t amount;
 	};
 
 private:
@@ -82,7 +82,7 @@ public:
 	// 如果指定地基上有任务会抛出异常。
 	void create_building_mission(BuildingBaseId building_base_id, Mission mission, BuildingId building_id = BuildingId());
 	void cancel_building_mission(BuildingBaseId building_base_id);
-	void speed_up_building_mission(BuildingBaseId building_base_id, boost::uint64_t delta_duration);
+	void speed_up_building_mission(BuildingBaseId building_base_id, std::uint64_t delta_duration);
 
 	void pump_building_status(BuildingBaseId building_base_id);
 	unsigned get_building_queue_size() const;
@@ -90,14 +90,14 @@ public:
 
 	// 各个建筑的独立接口。
 	unsigned get_level() const; // 领主府
-	boost::uint64_t get_max_resource_amount(ResourceId resource_id) const; // 仓库
+	std::uint64_t get_max_resource_amount(ResourceId resource_id) const; // 仓库
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
 	// 同上。
 	void create_tech_mission(TechId tech_id, Mission mission);
 	void cancel_tech_mission(TechId tech_id);
-	void speed_up_tech_mission(TechId tech_id, boost::uint64_t delta_duration);
+	void speed_up_tech_mission(TechId tech_id, std::uint64_t delta_duration);
 
 	void pump_tech_status(TechId tech_id);
 	unsigned get_tech_queue_size() const;

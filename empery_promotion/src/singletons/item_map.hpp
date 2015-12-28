@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <boost/container/flat_map.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include "../id_types.hpp"
 
 namespace EmperyPromotion {
@@ -11,9 +11,9 @@ namespace EmperyPromotion {
 class ItemTransactionElement;
 
 struct ItemMap {
-	static boost::uint64_t get_count(AccountId account_id, ItemId item_id);
-	static void get_all_by_account_id(boost::container::flat_map<ItemId, boost::uint64_t> &ret, AccountId account_id);
-	static void get_all_by_item_id(boost::container::flat_map<AccountId, boost::uint64_t> &ret, ItemId item_id);
+	static std::uint64_t get_count(AccountId account_id, ItemId item_id);
+	static void get_all_by_account_id(boost::container::flat_map<ItemId, std::uint64_t> &ret, AccountId account_id);
+	static void get_all_by_item_id(boost::container::flat_map<AccountId, std::uint64_t> &ret, ItemId item_id);
 
 	static void commit_transaction(const ItemTransactionElement *elements, std::size_t count);
 	// 返回不足的道具数量。

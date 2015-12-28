@@ -11,8 +11,8 @@ namespace {
 	struct DataStorage {
 		std::string str;
 
-		mutable std::pair<bool, boost::int64_t>       i64;
-		mutable std::pair<bool, boost::uint64_t>      u64;
+		mutable std::pair<bool, std::int64_t>       i64;
+		mutable std::pair<bool, std::uint64_t>      u64;
 		mutable std::pair<bool, double>               dbl;
 		mutable std::pair<bool, Poseidon::JsonArray>  arr;
 		mutable std::pair<bool, Poseidon::JsonObject> obj;
@@ -61,7 +61,7 @@ namespace Data {
 		}
 		return it->second.str;
 	}
-	boost::int64_t Global::as_signed(Slot slot){
+	std::int64_t Global::as_signed(Slot slot){
 		PROFILE_ME;
 
 		const auto global_map = g_global_map.lock();
@@ -76,13 +76,13 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.i64.first){
-			const auto val = boost::lexical_cast<boost::int64_t>(it->second.str);
+			const auto val = boost::lexical_cast<std::int64_t>(it->second.str);
 			it->second.i64.second = val;
 			it->second.i64.first = true;
 		}
 		return it->second.i64.second;
 	}
-	boost::uint64_t Global::as_unsigned(Slot slot){
+	std::uint64_t Global::as_unsigned(Slot slot){
 		PROFILE_ME;
 
 		const auto global_map = g_global_map.lock();
@@ -97,7 +97,7 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.u64.first){
-			const auto val = boost::lexical_cast<boost::uint64_t>(it->second.str);
+			const auto val = boost::lexical_cast<std::uint64_t>(it->second.str);
 			it->second.u64.second = val;
 			it->second.u64.first = true;
 		}

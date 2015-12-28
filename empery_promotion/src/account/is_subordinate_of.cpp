@@ -25,7 +25,7 @@ ACCOUNT_SERVLET("isSubordinateOf", session, params){
 	}
 
 	auto current_referrer_id = info.referrer_id;
-	boost::uint64_t depth = 1;
+	std::uint64_t depth = 1;
 	for(;;){
 		if(!current_referrer_id){
 			ret[sslit("errorCode")] = (int)Msg::ERR_NOT_SUBORDINATE;
@@ -41,12 +41,12 @@ ACCOUNT_SERVLET("isSubordinateOf", session, params){
 
 	const auto referrer_id = referrer_info.account_id;
 
-	boost::uint64_t max_visible_subord_depth;
+	std::uint64_t max_visible_subord_depth;
 	const auto &str = AccountMap::get_attribute(referrer_id, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
 	if(str.empty()){
-		max_visible_subord_depth = get_config<boost::uint64_t>("default_max_visible_subord_depth", 2);
+		max_visible_subord_depth = get_config<std::uint64_t>("default_max_visible_subord_depth", 2);
 	} else {
-		max_visible_subord_depth = boost::lexical_cast<boost::uint64_t>(str);
+		max_visible_subord_depth = boost::lexical_cast<std::uint64_t>(str);
 	}
 
 	const bool can_view_account_performance = AccountMap::cast_attribute<bool>(referrer_id, AccountMap::ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE);

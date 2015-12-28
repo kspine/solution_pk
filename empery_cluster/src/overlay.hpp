@@ -15,11 +15,11 @@ private:
 	const OverlayId m_overlay_id;
 
 	ResourceId m_resource_id;
-	boost::uint64_t m_resource_amount;
+	std::uint64_t m_resource_amount;
 
 public:
 	Overlay(Coord cluster_coord, std::string overlay_group_name, OverlayId overlay_id,
-		ResourceId resource_id, boost::uint64_t resource_amount);
+		ResourceId resource_id, std::uint64_t resource_amount);
 	~Overlay();
 
 public:
@@ -36,7 +36,7 @@ public:
 	ResourceId get_resource_id() const {
 		return m_resource_id;
 	}
-	boost::uint64_t get_resource_amount() const {
+	std::uint64_t get_resource_amount() const {
 		return m_resource_amount;
 	}
 };

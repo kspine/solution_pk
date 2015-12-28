@@ -17,30 +17,30 @@ public:
 		       (tr.y() >= bl.y()) ? tr.y() : bl.y())
 	{
 	}
-	constexpr Rectangle(boost::int64_t l, boost::int64_t b, boost::uint64_t w, boost::uint64_t h) noexcept
+	constexpr Rectangle(std::int64_t l, boost::int64_t b, std::uint64_t w, boost::uint64_t h) noexcept
 		: Rectangle(
 			Coord(l, b),
-			Coord(static_cast<boost::int64_t>(static_cast<boost::uint64_t>(l) + w),
-			      static_cast<boost::int64_t>(static_cast<boost::uint64_t>(b) + h))
+			Coord(static_cast<std::int64_t>(static_cast<std::uint64_t>(l) + w),
+			      static_cast<std::int64_t>(static_cast<std::uint64_t>(b) + h))
 			)
 	{
 	}
-	constexpr Rectangle(const Coord &bl, boost::uint64_t w, boost::uint64_t h) noexcept
+	constexpr Rectangle(const Coord &bl, std::uint64_t w, boost::uint64_t h) noexcept
 		: Rectangle(bl.x(), bl.y(), w, h)
 	{
 	}
 
 public:
-	constexpr boost::int64_t left() const noexcept {
+	constexpr std::int64_t left() const noexcept {
 		return m_bl.x();
 	}
-	constexpr boost::int64_t bottom() const noexcept {
+	constexpr std::int64_t bottom() const noexcept {
 		return m_bl.y();
 	}
-	constexpr boost::int64_t right() const noexcept {
+	constexpr std::int64_t right() const noexcept {
 		return m_tr.x();
 	}
-	constexpr boost::int64_t top() const noexcept {
+	constexpr std::int64_t top() const noexcept {
 		return m_tr.y();
 	}
 
@@ -57,11 +57,11 @@ public:
 		return Coord(left(), top());
 	}
 
-	constexpr boost::uint64_t width() const noexcept {
-		return static_cast<boost::uint64_t>(right() - left());
+	constexpr std::uint64_t width() const noexcept {
+		return static_cast<std::uint64_t>(right() - left());
 	}
-	constexpr boost::uint64_t height() const noexcept {
-		return static_cast<boost::uint64_t>(top() - bottom());
+	constexpr std::uint64_t height() const noexcept {
+		return static_cast<std::uint64_t>(top() - bottom());
 	}
 
 	constexpr bool hit_test(const Coord &coord) const noexcept {

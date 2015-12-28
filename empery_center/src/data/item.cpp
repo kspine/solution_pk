@@ -100,7 +100,7 @@ namespace {
 			elem.items_consumed.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				const auto item_id = boost::lexical_cast<ItemId>(it->first);
-				const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
 				if(!elem.items_consumed.emplace(item_id, count).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate item amount: item_id = ", item_id);
 					DEBUG_THROW(Exception, sslit("Duplicate item amount"));
@@ -112,7 +112,7 @@ namespace {
 			elem.items_produced.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				const auto item_id = boost::lexical_cast<ItemId>(it->first);
-				const auto count = static_cast<boost::uint64_t>(it->second.get<double>());
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
 				if(!elem.items_produced.emplace(item_id, count).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate item amount: item_id = ", item_id);
 					DEBUG_THROW(Exception, sslit("Duplicate item amount"));
@@ -348,8 +348,8 @@ namespace Data {
 	}
 
 	void unpack_item_trade(std::vector<ItemTransactionElement> &transaction,
-		const boost::shared_ptr<const ItemTrade> &trade_data, boost::uint64_t repeat_count,
-		boost::int64_t param1)
+		const boost::shared_ptr<const ItemTrade> &trade_data, std::uint64_t repeat_count,
+		std::int64_t param1)
 	{
 		PROFILE_ME;
 

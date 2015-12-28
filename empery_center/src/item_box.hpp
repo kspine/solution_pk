@@ -22,7 +22,7 @@ class ItemBox : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct ItemInfo {
 		ItemId item_id;
-		boost::uint64_t count;
+		std::uint64_t count;
 	};
 
 private:

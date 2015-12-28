@@ -52,7 +52,7 @@ protected:
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
 			auto read = Poseidon::StreamBuffer::ReadIterator(payload);
-			boost::uint64_t message_id64;
+			std::uint64_t message_id64;
 			if(!Poseidon::vuint50_from_binary(message_id64, read, payload.size())){
 				LOG_EMPERY_CENTER_WARNING("Packet too small");
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
@@ -130,7 +130,7 @@ public:
 			return;
 		}
 
-		LOG_EMPERY_CENTER_DEBUG("Pumping queued messages: queue_size = ", queue.size());
+		LOG_EMPERY_CENTER_TRACE("Pumping queued messages: queue_size = ", queue.size());
 
 		try {
 			Poseidon::StreamBuffer contents;
@@ -164,7 +164,7 @@ public:
 	}
 };
 
-boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(std::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[message_id];
@@ -177,7 +177,7 @@ boost::shared_ptr<const ServletCallback> PlayerSession::create_servlet(boost::ui
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(boost::uint16_t message_id){
+boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(std::uint16_t message_id){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(message_id);
@@ -246,7 +246,7 @@ void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders /* request_he
 namespace {
 }
 
-bool PlayerSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer payload){
+bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 /*
 	const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(get_upgraded_session());
@@ -269,7 +269,7 @@ bool PlayerSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer payl
 	m_send_queue.emplace_back(message_id, std::move(payload));
 	return true;
 }
-bool PlayerSession::send_control(boost::uint16_t message_id, int status_code, std::string reason){
+bool PlayerSession::send_control(std::uint16_t message_id, int status_code, std::string reason){
 	PROFILE_ME;
 
 	return send(Poseidon::Cbpp::ControlMessage(message_id, static_cast<int>(status_code), std::move(reason)));

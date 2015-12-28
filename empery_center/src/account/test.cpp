@@ -39,7 +39,7 @@ ACCOUNT_SERVLET("test/check_login", root, session, params){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
 
-	const auto token_expiry_duration = get_config<boost::uint64_t>("account_token_expiry_duration", 0);
+	const auto token_expiry_duration = get_config<std::uint64_t>("account_token_expiry_duration", 0);
 
 	account->set_login_token(token, saturated_add(utc_now, token_expiry_duration));
 
@@ -71,7 +71,7 @@ ACCOUNT_SERVLET("test/renewal_token", root, session, params){
 		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
 	}
 
-	const auto token_expiry_duration = get_config<boost::uint64_t>("account_token_expiry_duration", 0);
+	const auto token_expiry_duration = get_config<std::uint64_t>("account_token_expiry_duration", 0);
 
 	account->set_login_token(token, saturated_add(utc_now, token_expiry_duration));
 

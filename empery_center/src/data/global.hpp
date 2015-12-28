@@ -38,8 +38,8 @@ namespace Data {
 
 	public:
 		static const std::string &as_string(Slot slot);
-		static boost::int64_t as_signed(Slot slot);
-		static boost::uint64_t as_unsigned(Slot slot);
+		static std::int64_t as_signed(Slot slot);
+		static std::uint64_t as_unsigned(Slot slot);
 		static double as_double(Slot slot);
 		static const Poseidon::JsonArray &as_array(Slot slot);
 		static const Poseidon::JsonObject &as_object(Slot slot);

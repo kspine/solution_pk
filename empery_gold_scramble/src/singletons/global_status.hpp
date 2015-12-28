@@ -2,7 +2,7 @@
 #define EMPERY_GOLD_SCRAMBLE_SINGLETONS_GLOBAL_STATUS_HPP_
 
 #include <cstddef>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 namespace EmperyGoldScramble {
 
@@ -19,10 +19,10 @@ struct GlobalStatus {
 		SLOT_RECORD_AUTO_ID             = 72,
 	};
 
-	static boost::uint64_t get(unsigned slot);
-	static boost::uint64_t exchange(unsigned slot, boost::uint64_t new_value);
-	static boost::uint64_t fetch_add(unsigned slot, boost::uint64_t delta_value);
-	static boost::uint64_t fetch_sub(unsigned slot, boost::uint64_t delta_value);
+	static std::uint64_t get(unsigned slot);
+	static std::uint64_t exchange(unsigned slot, boost::uint64_t new_value);
+	static std::uint64_t fetch_add(unsigned slot, boost::uint64_t delta_value);
+	static std::uint64_t fetch_sub(unsigned slot, boost::uint64_t delta_value);
 
 private:
 	GlobalStatus() = delete;

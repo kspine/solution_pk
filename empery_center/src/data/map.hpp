@@ -53,7 +53,7 @@ namespace Data {
 	public:
 		OverlayId overlay_id;
 		ResourceId reward_resource_id;
-		boost::uint64_t reward_resource_amount;
+		std::uint64_t reward_resource_amount;
 	};
 
 	class MapStartPoint {

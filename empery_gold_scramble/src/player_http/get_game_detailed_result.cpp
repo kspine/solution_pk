@@ -18,7 +18,7 @@ namespace MySql {
 }
 
 PLAYER_HTTP_SERVLET("getGameDetailedResult", session, params){
-	const auto game_auto_id = boost::lexical_cast<boost::uint64_t>(params.at("gameAutoId"));
+	const auto game_auto_id = boost::lexical_cast<std::uint64_t>(params.at("gameAutoId"));
 
 	Poseidon::JsonObject ret;
 

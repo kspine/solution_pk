@@ -41,9 +41,9 @@ ACCOUNT_SERVLET("getWithdrawalRequests", session, params){
 	oss <<"FROM `Promotion_WdSlip` WHERE 1=1 ";
 	if(!time_begin.empty()){
 		char str[256];
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_begin), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
 		oss <<"AND '" <<str <<"' <= `created_time` ";
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_end), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_end), false);
 		oss <<"AND `created_time` < '" <<str <<"' ";
 	}
 	if(!login_name.empty()){
@@ -54,10 +54,10 @@ ACCOUNT_SERVLET("getWithdrawalRequests", session, params){
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){
-				auto num_begin = boost::lexical_cast<boost::uint64_t>(begin);
+				auto num_begin = boost::lexical_cast<std::uint64_t>(begin);
 				oss <<num_begin <<", ";
 			}
-			auto num_count = boost::lexical_cast<boost::uint64_t>(count);
+			auto num_count = boost::lexical_cast<std::uint64_t>(count);
 			oss <<num_count;
 		}
 		MySql::Promotion_WdSlip::batch_load(objs, oss.str());

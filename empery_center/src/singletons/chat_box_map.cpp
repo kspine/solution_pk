@@ -10,11 +10,11 @@ namespace EmperyCenter {
 namespace {
 	struct ChatBoxElement {
 		AccountUuid account_uuid;
-		boost::uint64_t unload_time;
+		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<ChatBox> chat_box;
 
-		ChatBoxElement(AccountUuid account_uuid_, boost::uint64_t unload_time_)
+		ChatBoxElement(AccountUuid account_uuid_, std::uint64_t unload_time_)
 			: account_uuid(account_uuid_), unload_time(unload_time_)
 		{
 		}
@@ -27,7 +27,7 @@ namespace {
 
 	boost::weak_ptr<ChatBoxMapContainer> g_chat_box_map;
 
-	void gc_timer_proc(boost::uint64_t now){
+	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Chat box gc timer: now = ", now);
 
@@ -57,7 +57,7 @@ namespace {
 		g_chat_box_map = chat_box_map;
 		handles.push(chat_box_map);
 
-		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
@@ -88,7 +88,7 @@ boost::shared_ptr<ChatBox> ChatBoxMap::get(AccountUuid account_uuid){
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
-	const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 	chat_box_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
 
 	return it->chat_box;

@@ -91,8 +91,8 @@ namespace {
 
 	boost::weak_ptr<MapObjectMapContainer> g_map_object_map;
 
-	boost::uint32_t g_map_width  = 270;
-	boost::uint32_t g_map_height = 240;
+	std::uint32_t g_map_width  = 270;
+	std::uint32_t g_map_height = 240;
 
 	struct ClusterElement {
 		Coord cluster_coord;
@@ -111,7 +111,7 @@ namespace {
 
 	boost::weak_ptr<ClusterMapContainer> g_cluster_map;
 
-	void gc_timer_proc(boost::uint64_t /* now */){
+	void gc_timer_proc(std::uint64_t /* now */){
 		PROFILE_ME;
 
 		const auto map_cell_map = g_map_cell_map.lock();
@@ -144,12 +144,12 @@ namespace {
 	}
 
 	struct InitServerElement {
-		std::pair<boost::int64_t, boost::int64_t> num_coord;
+		std::pair<std::int64_t, boost::int64_t> num_coord;
 		std::string name;
 
 		mutable boost::weak_ptr<ClusterClient> cluster;
 
-		InitServerElement(boost::int64_t num_x_, boost::int64_t num_y_, std::string name_)
+		InitServerElement(std::int64_t num_x_, boost::int64_t num_y_, std::string name_)
 			: num_coord(num_x_, num_y_), name(std::move(name_))
 		{
 		}
@@ -162,7 +162,7 @@ namespace {
 
 	boost::weak_ptr<InitServerMap> g_init_server_map;
 
-	void cluster_server_reconnect_timer_proc(boost::uint64_t /* now */){
+	void cluster_server_reconnect_timer_proc(std::uint64_t /* now */){
 		PROFILE_ME;
 
 		const auto init_server_map = g_init_server_map.lock();
@@ -214,7 +214,7 @@ namespace {
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 
-		const auto gc_timer_interval = get_config<boost::uint64_t>("world_map_gc_timer_interval", 300000);
+		const auto gc_timer_interval = get_config<std::uint64_t>("world_map_gc_timer_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_timer_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(std::move(timer));
@@ -224,8 +224,8 @@ namespace {
 		const auto init_logical_map_servers = get_config_v<std::string>("init_logical_map_server");
 		for(auto it = init_logical_map_servers.begin(); it != init_logical_map_servers.end(); ++it){
 			const auto temp_array = boost::lexical_cast<Poseidon::JsonArray>(*it);
-			const auto num_x = static_cast<boost::int64_t>(temp_array.at(0).get<double>());
-			const auto num_y = static_cast<boost::int64_t>(temp_array.at(1).get<double>());
+			const auto num_x = static_cast<std::int64_t>(temp_array.at(0).get<double>());
+			const auto num_y = static_cast<std::int64_t>(temp_array.at(1).get<double>());
 			const auto &name = temp_array.at(2).get<std::string>();
 			if(!init_server_map->insert(InitServerElement(num_x, num_y, name)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Map server conflict: num_x = ", num_x, ", num_y = ", num_y, ", name = ", name);
@@ -236,7 +236,7 @@ namespace {
 		g_init_server_map = init_server_map;
 		handles.push(std::move(init_server_map));
 
-		const auto client_timer_interval = get_config<boost::uint64_t>("cluster_client_reconnect_delay", 5000);
+		const auto client_timer_interval = get_config<std::uint64_t>("cluster_client_reconnect_delay", 5000);
 		timer = Poseidon::TimerDaemon::register_timer(0, client_timer_interval,
 			std::bind(&cluster_server_reconnect_timer_proc, std::placeholders::_2));
 		handles.push(std::move(timer));
@@ -245,7 +245,7 @@ namespace {
 	void notify_cluster_map_object_updated(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<ClusterClient> &cluster){
 		PROFILE_ME;
 
-		boost::container::flat_map<AttributeId, boost::int64_t> attributes;
+		boost::container::flat_map<AttributeId, std::int64_t> attributes;
 		map_object->get_attributes(attributes);
 
 		Msg::KS_MapUpdateMapObject msg;

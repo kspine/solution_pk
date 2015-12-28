@@ -65,7 +65,7 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 		segments.emplace_back(slot, std::move(it->value));
 	}
 
-	boost::container::flat_map<ItemId, boost::uint64_t> attachments;
+	boost::container::flat_map<ItemId, std::uint64_t> attachments;
 
 	const auto to_mail_box = MailBoxMap::require(to_account->get_account_uuid());
 	to_mail_box->pump_status();
@@ -74,7 +74,7 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 	const auto language_id = LanguageId(req.language_id);
 
 	const auto default_mail_expiry_duration = Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
-	const auto expiry_duration = checked_mul(default_mail_expiry_duration, (boost::uint64_t)60000);
+	const auto expiry_duration = checked_mul(default_mail_expiry_duration, (std::uint64_t)60000);
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
@@ -123,7 +123,7 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 	LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", account->get_account_uuid(),
 		", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 
-	const auto mail_uuid_tail = Poseidon::load_be(reinterpret_cast<const boost::uint64_t *>(mail_uuid.get().end())[-1]);
+	const auto mail_uuid_tail = Poseidon::load_be(reinterpret_cast<const std::uint64_t *>(mail_uuid.get().end())[-1]);
 	std::vector<ItemTransactionElement> transaction;
 	transaction.reserve(attachments.size());
 	for(auto it = attachments.begin(); it != attachments.end(); ++it){

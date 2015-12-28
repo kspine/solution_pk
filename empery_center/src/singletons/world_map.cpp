@@ -108,8 +108,8 @@ namespace {
 
 	boost::weak_ptr<PlayerViewMapContainer> g_player_view_map;
 
-	boost::uint32_t g_map_width  = 270;
-	boost::uint32_t g_map_height = 240;
+	std::uint32_t g_map_width  = 270;
+	std::uint32_t g_map_height = 240;
 
 	struct ClusterElement {
 		Coord cluster_coord;
@@ -582,14 +582,14 @@ void WorldMap::insert_overlay(const boost::shared_ptr<Overlay> &overlay){
 		LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", overlay_group_name);
 		DEBUG_THROW(Exception, sslit("Overlay group not found"));
 	}
-	boost::uint64_t sum_x = 0, sum_y = 0;
+	std::uint64_t sum_x = 0, sum_y = 0;
 	for(auto it = basic_data_elements.begin(); it != basic_data_elements.end(); ++it){
 		const auto &basic_data = *it;
 		sum_x += basic_data->map_coord.first;
 		sum_y += basic_data->map_coord.second;
 	}
-	const auto coord = Coord(cluster_coord.x() + static_cast<boost::int64_t>(sum_x / basic_data_elements.size()),
-	                         cluster_coord.y() + static_cast<boost::int64_t>(sum_y / basic_data_elements.size()));
+	const auto coord = Coord(cluster_coord.x() + static_cast<std::int64_t>(sum_x / basic_data_elements.size()),
+	                         cluster_coord.y() + static_cast<std::int64_t>(sum_y / basic_data_elements.size()));
 
 	LOG_EMPERY_CENTER_TRACE("Inserting overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 	const auto result = overlay_map->insert(OverlayElement(overlay));
@@ -624,14 +624,14 @@ void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool th
 		}
 		return;
 	}
-	boost::uint64_t sum_x = 0, sum_y = 0;
+	std::uint64_t sum_x = 0, sum_y = 0;
 	for(auto it = basic_data_elements.begin(); it != basic_data_elements.end(); ++it){
 		const auto &basic_data = *it;
 		sum_x += basic_data->map_coord.first;
 		sum_y += basic_data->map_coord.second;
 	}
-	const auto coord = Coord(cluster_coord.x() + static_cast<boost::int64_t>(sum_x / basic_data_elements.size()),
-	                         cluster_coord.y() + static_cast<boost::int64_t>(sum_y / basic_data_elements.size()));
+	const auto coord = Coord(cluster_coord.x() + static_cast<std::int64_t>(sum_x / basic_data_elements.size()),
+	                         cluster_coord.y() + static_cast<std::int64_t>(sum_y / basic_data_elements.size()));
 
 	const auto it = overlay_map->find<0>(std::make_pair(cluster_coord, SharedNts::view(overlay_group_name.c_str())));
 	if(it == overlay_map->end<0>()){

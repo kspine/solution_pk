@@ -27,7 +27,7 @@ ACCOUNT_SERVLET("deactivate", session, params){
 		return ret;
 	}
 
-	const auto init_gold_coin_array = Poseidon::explode<boost::uint64_t>(',',
+	const auto init_gold_coin_array = Poseidon::explode<std::uint64_t>(',',
 	                               get_config<std::string>("init_gold_coins_array", "100,50,50"));
 
 	std::vector<ItemTransactionElement> transaction;
@@ -50,7 +50,7 @@ ACCOUNT_SERVLET("deactivate", session, params){
 	Poseidon::add_flags(info.flags, AccountMap::FL_DEACTIVATED);
 	AccountMap::set_flags(info.account_id, info.flags);
 
-	AccountMap::set_banned_until(info.account_id, (boost::uint64_t)-1);
+	AccountMap::set_banned_until(info.account_id, (std::uint64_t)-1);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

@@ -11,7 +11,7 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("createBill", session, params){
 	const auto &login_name = params.at("loginName");
-	const auto amount = boost::lexical_cast<boost::uint64_t>(params.at("amount"));
+	const auto amount = boost::lexical_cast<std::uint64_t>(params.at("amount"));
 	const auto &remarks = params.get("remarks");
 
 	Poseidon::JsonObject ret;

@@ -18,7 +18,7 @@ ACCOUNT_SERVLET("queryAccountPerformance", session, params){
 		return ret;
 	}
 
-	boost::container::flat_map<ItemId, boost::uint64_t> performance_map, current_map;
+	boost::container::flat_map<ItemId, std::uint64_t> performance_map, current_map;
 
 	std::deque<AccountMap::AccountInfo> queue;
 	std::vector<AccountMap::AccountInfo> temp_accounts;

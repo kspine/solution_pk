@@ -14,7 +14,7 @@
 namespace EmperyPromotion {
 
 namespace {
-	volatile boost::uint32_t g_auto_id = 0;
+	volatile std::uint32_t g_auto_id = 0;
 }
 
 MODULE_RAII_PRIORITY(handles, 9000){

@@ -68,15 +68,15 @@ ACCOUNT_SERVLET("getBothBalanceHistory", session, params){
 	oss_out <<"FROM `Promotion_OutcomeBalanceHistory` WHERE 1=1 ";
 	if(!time_begin.empty()){
 		char str[256];
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_begin), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
 		oss_in  <<"AND '" <<str <<"' <= `timestamp` ";
 		oss_out <<"AND '" <<str <<"' <= `timestamp` ";
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<boost::uint64_t>(time_end), false);
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_end), false);
 		oss_in  <<"AND `timestamp` < '" <<str <<"' ";
 		oss_out <<"AND `timestamp` < '" <<str <<"' ";
 	}
 	if(!reason.empty()){
-		auto enum_reason = boost::lexical_cast<boost::uint32_t>(reason);
+		auto enum_reason = boost::lexical_cast<std::uint32_t>(reason);
 		oss_in  <<"AND `reason` = " <<enum_reason <<" ";
 		oss_out <<"AND `reason` = " <<enum_reason <<" ";
 	}
@@ -91,10 +91,10 @@ ACCOUNT_SERVLET("getBothBalanceHistory", session, params){
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){
-				auto num_begin = boost::lexical_cast<boost::uint64_t>(begin);
+				auto num_begin = boost::lexical_cast<std::uint64_t>(begin);
 				oss <<num_begin <<", ";
 			}
-			auto num_count = boost::lexical_cast<boost::uint64_t>(count);
+			auto num_count = boost::lexical_cast<std::uint64_t>(count);
 			oss <<num_count;
 		}
 		MySql::BothBalanceHistoryResult::batch_load(objs, oss.str());
@@ -125,8 +125,8 @@ ACCOUNT_SERVLET("getBothBalanceHistory", session, params){
 	} else {
 		std::vector<boost::shared_ptr<MySql::BothSumRows>> results;
 		MySql::BothSumRows::batch_load(results, oss.str());
-		boost::int64_t sum = 0;
-		boost::uint64_t rows = 0;
+		std::int64_t sum = 0;
+		std::uint64_t rows = 0;
 		for(auto it = results.begin(); it != results.end(); ++it){
 			const auto &obj = *it;
 			sum  += obj->get_sum();

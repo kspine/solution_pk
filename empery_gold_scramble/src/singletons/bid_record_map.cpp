@@ -11,7 +11,7 @@ namespace {
 	struct RecordElement {
 		boost::shared_ptr<MySql::GoldScramble_BidHistory> obj;
 
-		boost::uint64_t record_auto_id;
+		std::uint64_t record_auto_id;
 		std::string login_name;
 
 		explicit RecordElement(boost::shared_ptr<MySql::GoldScramble_BidHistory> obj_)
@@ -53,7 +53,7 @@ namespace {
 	}
 }
 
-void BidRecordMap::append(std::string login_name, std::string nick, boost::uint64_t gold_coins, boost::uint64_t account_balance){
+void BidRecordMap::append(std::string login_name, std::string nick, std::uint64_t gold_coins, boost::uint64_t account_balance){
 	PROFILE_ME;
 
 	auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>(

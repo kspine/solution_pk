@@ -15,7 +15,7 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("buyMoreCards", session, params){
 	const auto &login_name = params.at("loginName");
-	const auto cards_to_buy = boost::lexical_cast<boost::uint64_t>(params.at("cardsToBuy"));
+	const auto cards_to_buy = boost::lexical_cast<std::uint64_t>(params.at("cardsToBuy"));
 	const auto &deal_password = params.at("dealPassword");
 	const auto &remarks = params.get("remarks");
 
@@ -48,7 +48,7 @@ ACCOUNT_SERVLET("buyMoreCards", session, params){
 	}
 
 	const double original_unit_price = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
-	const boost::uint64_t card_unit_price = std::ceil(original_unit_price * discount - 0.001);
+	const std::uint64_t card_unit_price = std::ceil(original_unit_price * discount - 0.001);
 	const auto balance_to_consume = checked_mul(card_unit_price, cards_to_buy);
 	ret[sslit("balanceToConsume")] = balance_to_consume;
 

@@ -72,7 +72,7 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shar
 		}
 	}
 	// 检测与其他城堡距离。
-	const auto min_distance  = (boost::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
+	const auto min_distance  = (std::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
 
 	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
 	const auto other_left     = std::max(coord.x() - (min_distance - 1), cluster_scope.left());

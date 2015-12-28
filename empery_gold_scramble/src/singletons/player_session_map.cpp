@@ -14,7 +14,7 @@ namespace {
 		std::string nick;
 		boost::weak_ptr<PlayerSession> weak_session;
 
-		boost::uint64_t online_since;
+		std::uint64_t online_since;
 
 		SessionElement(const std::string &login_name_, const std::string &nick_, boost::weak_ptr<PlayerSession> weak_session_)
 			: login_name(std::move(login_name_)), nick(std::move(nick_)), weak_session(std::move(weak_session_))

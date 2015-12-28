@@ -38,7 +38,7 @@ namespace {
 				continue;
 			}
 
-			boost::container::flat_map<boost::uint64_t, boost::uint64_t> subordinate_level_counts;
+			boost::container::flat_map<std::uint64_t, boost::uint64_t> subordinate_level_counts;
 			subordinate_level_counts.reserve(32);
 			{
 				std::vector<AccountMap::AccountInfo> subordinates;
@@ -77,8 +77,8 @@ namespace {
 	}
 }
 
-std::pair<bool, boost::uint64_t> try_upgrade_account(AccountId account_id, AccountId payer_id, bool is_creating_account,
-	const boost::shared_ptr<const Data::Promotion> &promotion_data, const std::string &remarks, boost::uint64_t additional_cards)
+std::pair<bool, std::uint64_t> try_upgrade_account(AccountId account_id, AccountId payer_id, bool is_creating_account,
+	const boost::shared_ptr<const Data::Promotion> &promotion_data, const std::string &remarks, std::uint64_t additional_cards)
 {
 	PROFILE_ME;
 	LOG_EMPERY_PROMOTION_INFO("Upgrading account: account_id = ", account_id, ", level = ", promotion_data->level);
@@ -88,10 +88,10 @@ std::pair<bool, boost::uint64_t> try_upgrade_account(AccountId account_id, Accou
 	auto info = AccountMap::require(account_id);
 
 	const double original_unit_price = GlobalStatus::get(GlobalStatus::SLOT_ACC_CARD_UNIT_PRICE);
-	const boost::uint64_t card_unit_price = std::ceil(original_unit_price * promotion_data->immediate_discount - 0.001);
-	boost::uint64_t balance_to_consume = 0;
+	const std::uint64_t card_unit_price = std::ceil(original_unit_price * promotion_data->immediate_discount - 0.001);
+	std::uint64_t balance_to_consume = 0;
 	if(card_unit_price != 0){
-		const auto min_cards_to_buy = static_cast<boost::uint64_t>(
+		const auto min_cards_to_buy = static_cast<std::uint64_t>(
 			std::ceil(static_cast<double>(promotion_data->immediate_price) / card_unit_price - 0.001));
 		const auto cards_to_buy = checked_add(min_cards_to_buy, additional_cards);
 		balance_to_consume = checked_mul(card_unit_price, cards_to_buy);
@@ -144,8 +144,8 @@ namespace {
 		g_extra_tax_ratio_array = std::move(ratio_array);
 	}
 
-	void really_accumulate_balance_bonus(AccountId account_id, AccountId payer_id, boost::uint64_t amount,
-		AccountId virtual_referrer_id, boost::uint64_t upgrade_to_level)
+	void really_accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uint64_t amount,
+		AccountId virtual_referrer_id, std::uint64_t upgrade_to_level)
 	{
 		PROFILE_ME;
 		LOG_EMPERY_PROMOTION_INFO("Balance bonus: account_id = ", account_id, ", payer_id = ", payer_id, ", amount = ", amount,
@@ -163,10 +163,10 @@ namespace {
 			referrers.emplace_back(current_id, Data::Promotion::get(referrer_info.level));
 		}
 
-		const auto dividend_total = static_cast<boost::uint64_t>(amount * g_bonus_ratio);
+		const auto dividend_total = static_cast<std::uint64_t>(amount * g_bonus_ratio);
 		const auto income_tax_ratio_total = std::accumulate(g_income_tax_ratio_array.begin(), g_income_tax_ratio_array.end(), 0.0);
 
-		boost::uint64_t dividend_accumulated = 0;
+		std::uint64_t dividend_accumulated = 0;
 		while(!referrers.empty()){
 			const auto referrer_id = referrers.front().first;
 			const auto referrer_promotion_data = std::move(referrers.front().second);
@@ -206,7 +206,7 @@ namespace {
 						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
 						continue;
 					}
-					const auto extra = static_cast<boost::uint64_t>(std::round(dividend_total * g_extra_tax_ratio_array.at(generation)));
+					const auto extra = static_cast<std::uint64_t>(std::round(dividend_total * g_extra_tax_ratio_array.at(generation)));
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
@@ -215,7 +215,7 @@ namespace {
 			}
 
 			// 扣除个税即使没有上家（视为被系统回收）。
-			const auto tax_total = static_cast<boost::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
+			const auto tax_total = static_cast<std::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
 			transaction.emplace_back(referrer_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax_total,
 				Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
 
@@ -227,7 +227,7 @@ namespace {
 				if(first_promotion_data && (it->second->level <= first_promotion_data->level)){
 					continue;
 				}
-				const auto tax = static_cast<boost::uint64_t>(std::round(my_dividend * g_income_tax_ratio_array.at(generation)));
+				const auto tax = static_cast<std::uint64_t>(std::round(my_dividend * g_income_tax_ratio_array.at(generation)));
 				LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
 				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
 					Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
@@ -250,7 +250,7 @@ void commit_first_balance_bonus(){
 		for(auto it = vec.begin(); it != vec.end(); ++it){
 			auto parts = Poseidon::explode<std::string>(',', *it, 2);
 			auto login_name = std::move(parts.at(0));
-			auto level = boost::lexical_cast<boost::uint64_t>(parts.at(1));
+			auto level = boost::lexical_cast<std::uint64_t>(parts.at(1));
 			auto promotion_data = Data::Promotion::get(level);
 			if(!promotion_data){
 				LOG_EMPERY_PROMOTION_ERROR("Level not found: level = ", level);
@@ -306,7 +306,7 @@ void commit_first_balance_bonus(){
 		}
 
 		try {
-			boost::uint64_t new_level;
+			std::uint64_t new_level;
 			const auto it = tout_accounts.find(info.login_name);
 			if(it != tout_accounts.end()){
 				new_level = it->second->level;
@@ -325,7 +325,7 @@ void commit_first_balance_bonus(){
 				const auto obj = std::move(queue_it->second.front());
 				queue_it->second.pop_front();
 
-				boost::uint64_t new_level;
+				std::uint64_t new_level;
 				if(obj->get_reason() == Events::ItemChanged::R_UPGRADE_ACCOUNT){
 					new_level = obj->get_param3();
 				} else if(obj->get_reason() == Events::ItemChanged::R_CREATE_ACCOUNT){
@@ -358,7 +358,7 @@ void commit_first_balance_bonus(){
 		}
 	}
 }
-void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, boost::uint64_t amount, boost::uint64_t upgrade_to_level){
+void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uint64_t amount, boost::uint64_t upgrade_to_level){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();

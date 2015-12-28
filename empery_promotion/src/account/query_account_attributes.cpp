@@ -23,12 +23,12 @@ ACCOUNT_SERVLET("queryAccountAttributes", session, params){
 		referrer_nick = std::move(referrer_info.nick);
 	}
 
-	boost::uint64_t max_visible_subord_depth;
+	std::uint64_t max_visible_subord_depth;
 	const auto &str = AccountMap::get_attribute(info.account_id, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH);
 	if(str.empty()){
-		max_visible_subord_depth = get_config<boost::uint64_t>("default_max_visible_subord_depth", 2);
+		max_visible_subord_depth = get_config<std::uint64_t>("default_max_visible_subord_depth", 2);
 	} else {
-		max_visible_subord_depth = boost::lexical_cast<boost::uint64_t>(str);
+		max_visible_subord_depth = boost::lexical_cast<std::uint64_t>(str);
 	}
 
 	ret[sslit("phoneNumber")] = std::move(info.phone_number);
@@ -37,8 +37,8 @@ ACCOUNT_SERVLET("queryAccountAttributes", session, params){
 	ret[sslit("referrerLoginName")] = std::move(referrer_login_name);
 	ret[sslit("referrerNick")] = std::move(referrer_nick);
 	ret[sslit("flags")] = info.flags;
-	ret[sslit("bannedUntil")] = static_cast<boost::int64_t>(info.banned_until);
-	ret[sslit("createdTime")] = static_cast<boost::uint64_t>(info.created_time);
+	ret[sslit("bannedUntil")] = static_cast<std::int64_t>(info.banned_until);
+	ret[sslit("createdTime")] = static_cast<std::uint64_t>(info.created_time);
 	ret[sslit("createdIp")] = std::move(info.created_ip);
 	ret[sslit("gender")] = AccountMap::get_attribute(info.account_id, AccountMap::ATTR_GENDER);
 	ret[sslit("country")] = AccountMap::get_attribute(info.account_id, AccountMap::ATTR_COUNTRY);

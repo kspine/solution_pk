@@ -19,6 +19,7 @@
 #include "log.hpp"
 #include "checked_arithmetic.hpp"
 
+#include <cstdint>
 #include <array>
 #include <type_traits>
 #include <typeinfo>

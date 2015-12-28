@@ -2,7 +2,7 @@
 #define EMPERY_PROMOTION_SINGLETONS_GLOBAL_STATUS_HPP_
 
 #include <cstddef>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 namespace EmperyPromotion {
 
@@ -17,9 +17,9 @@ struct GlobalStatus {
 		SLOT_FIRST_BALANCING_DONE       = 1002,
 	};
 
-	static boost::uint64_t get(unsigned slot);
-	static boost::uint64_t set(unsigned slot, boost::uint64_t new_value);
-	static boost::uint64_t fetch_add(unsigned slot, boost::uint64_t delta_value);
+	static std::uint64_t get(unsigned slot);
+	static std::uint64_t set(unsigned slot, boost::uint64_t new_value);
+	static std::uint64_t fetch_add(unsigned slot, boost::uint64_t delta_value);
 
 	static void check_daily_reset();
 

@@ -50,7 +50,7 @@ namespace {
 	}
 }
 
-boost::uint64_t ItemMap::get_count(AccountId account_id, ItemId item_id){
+std::uint64_t ItemMap::get_count(AccountId account_id, ItemId item_id){
 	PROFILE_ME;
 
 	const auto item_map = g_item_map.lock();
@@ -65,7 +65,7 @@ boost::uint64_t ItemMap::get_count(AccountId account_id, ItemId item_id){
 	}
 	return it->obj->get_count();
 }
-void ItemMap::get_all_by_account_id(boost::container::flat_map<ItemId, boost::uint64_t> &ret, AccountId account_id){
+void ItemMap::get_all_by_account_id(boost::container::flat_map<ItemId, std::uint64_t> &ret, AccountId account_id){
 	PROFILE_ME;
 
 	const auto item_map = g_item_map.lock();
@@ -80,7 +80,7 @@ void ItemMap::get_all_by_account_id(boost::container::flat_map<ItemId, boost::ui
 		ret[it->item_id] = it->obj->get_count();
 	}
 }
-void ItemMap::get_all_by_item_id(boost::container::flat_map<AccountId, boost::uint64_t> &ret, ItemId item_id){
+void ItemMap::get_all_by_item_id(boost::container::flat_map<AccountId, std::uint64_t> &ret, ItemId item_id){
 	PROFILE_ME;
 
 	const auto item_map = g_item_map.lock();
@@ -101,8 +101,8 @@ namespace {
 		boost::shared_ptr<MySql::Promotion_Item> obj;
 		AccountId account_id;
 
-		boost::uint64_t old_count;
-		mutable boost::uint64_t new_count;
+		std::uint64_t old_count;
+		mutable std::uint64_t new_count;
 
 		explicit TempResultElement(boost::shared_ptr<MySql::Promotion_Item> obj_)
 			: obj(std::move(obj_))

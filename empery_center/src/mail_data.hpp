@@ -21,19 +21,19 @@ private:
 	const boost::shared_ptr<MySql::Center_MailData> m_obj;
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> m_segments;
-	boost::container::flat_map<ItemId, boost::uint64_t> m_attachments;
+	boost::container::flat_map<ItemId, std::uint64_t> m_attachments;
 
 public:
-	MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
+	MailData(MailUuid mail_uuid, LanguageId language_id, std::uint64_t created_time,
 		MailTypeId type, AccountUuid from_account_uuid, std::string subject,
-		std::vector<std::pair<ChatMessageSlotId, std::string>> segments, boost::container::flat_map<ItemId, boost::uint64_t> attachments);
+		std::vector<std::pair<ChatMessageSlotId, std::string>> segments, boost::container::flat_map<ItemId, std::uint64_t> attachments);
 	explicit MailData(boost::shared_ptr<MySql::Center_MailData> obj);
 	~MailData();
 
 public:
 	MailUuid get_mail_uuid() const;
 	LanguageId get_language_id() const;
-	boost::uint64_t get_created_time() const;
+	std::uint64_t get_created_time() const;
 
 	MailTypeId get_type() const;
 	void set_type(MailTypeId type);
@@ -47,8 +47,8 @@ public:
 	const std::vector<std::pair<ChatMessageSlotId, std::string>> &get_segments() const;
 	void set_segments(std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
 
-	const boost::container::flat_map<ItemId, boost::uint64_t> &get_attachments() const;
-	void set_attachments(boost::container::flat_map<ItemId, boost::uint64_t> attachments);
+	const boost::container::flat_map<ItemId, std::uint64_t> &get_attachments() const;
+	void set_attachments(boost::container::flat_map<ItemId, std::uint64_t> attachments);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

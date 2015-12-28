@@ -66,18 +66,18 @@ namespace {
 		}
 
 		void on_sync_response_headers(Poseidon::Http::ResponseHeaders response_headers,
-			std::string /* transfer_encoding */, boost::uint64_t /* content_length */) override
+			std::string /* transfer_encoding */, std::uint64_t /* content_length */) override
 		{
 			PROFILE_ME;
 
 			m_headers = std::move(response_headers);
 		}
-		void on_sync_response_entity(boost::uint64_t /* entity_offset */, bool /* is_chunked */, Poseidon::StreamBuffer entity) override {
+		void on_sync_response_entity(std::uint64_t /* entity_offset */, bool /* is_chunked */, Poseidon::StreamBuffer entity) override {
 			PROFILE_ME;
 
 			m_entity.splice(entity);
 		}
-		void on_sync_response_end(boost::uint64_t /* content_length */, bool /* is_chunked */, Poseidon::OptionalMap /* headers */) override {
+		void on_sync_response_end(std::uint64_t /* content_length */, bool /* is_chunked */, Poseidon::OptionalMap /* headers */) override {
 			PROFILE_ME;
 
 			LOG_EMPERY_CENTER_DEBUG("Received response from remote server: status_code = ", m_headers.status_code, ", entity = ", m_entity.dump());
@@ -249,7 +249,7 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
 
-	const auto token_expiry_duration = get_config<boost::uint64_t>("account_token_expiry_duration", 0);
+	const auto token_expiry_duration = get_config<std::uint64_t>("account_token_expiry_duration", 0);
 
 	account->set_login_token(token, saturated_add(utc_now, token_expiry_duration));
 
@@ -281,7 +281,7 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
 	}
 
-	const auto token_expiry_duration = get_config<boost::uint64_t>("account_token_expiry_duration", 0);
+	const auto token_expiry_duration = get_config<std::uint64_t>("account_token_expiry_duration", 0);
 
 	account->set_login_token(token, saturated_add(utc_now, token_expiry_duration));
 

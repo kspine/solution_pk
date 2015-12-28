@@ -15,7 +15,7 @@ namespace EmperyCenter {
 namespace {
 	struct MailBoxElement {
 		AccountUuid account_uuid;
-		boost::uint64_t unload_time;
+		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
 		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
@@ -23,7 +23,7 @@ namespace {
 		mutable boost::shared_ptr<MailBox> mail_box;
 		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
 
-		MailBoxElement(AccountUuid account_uuid_, boost::uint64_t unload_time_)
+		MailBoxElement(AccountUuid account_uuid_, std::uint64_t unload_time_)
 			: account_uuid(account_uuid_), unload_time(unload_time_)
 		{
 		}
@@ -38,7 +38,7 @@ namespace {
 
 	struct MailDataElement {
 		std::pair<MailUuid, LanguageId> pkey;
-		boost::uint64_t unload_time;
+		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
 		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
@@ -46,7 +46,7 @@ namespace {
 		mutable boost::shared_ptr<MySql::Center_MailData> mail_data_obj;
 		mutable boost::shared_ptr<MailData> mail_data;
 
-		MailDataElement(MailUuid mail_uuid_, LanguageId language_id_, boost::uint64_t unload_time_)
+		MailDataElement(MailUuid mail_uuid_, LanguageId language_id_, std::uint64_t unload_time_)
 			: pkey(mail_uuid_, language_id_), unload_time(unload_time_)
 		{
 		}
@@ -59,7 +59,7 @@ namespace {
 
 	boost::weak_ptr<MailDataMapContainer> g_mail_data_map;
 
-	void gc_timer_proc(boost::uint64_t now){
+	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Mail box gc timer: now = ", now);
 
@@ -115,7 +115,7 @@ namespace {
 		g_mail_data_map = mail_data_map;
 		handles.push(mail_data_map);
 
-		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
@@ -171,7 +171,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 			}
 			auto mail_box = boost::make_shared<MailBox>(account_uuid, objs);
 
-			const auto mail_box_refresh_interval = get_config<boost::uint64_t>("mail_box_refresh_interval", 60000);
+			const auto mail_box_refresh_interval = get_config<std::uint64_t>("mail_box_refresh_interval", 60000);
 			auto timer = Poseidon::TimerDaemon::register_timer(0, mail_box_refresh_interval,
 				std::bind([](const boost::weak_ptr<MailBox> &weak){
 					PROFILE_ME;
@@ -193,7 +193,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
-	const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 	mail_box_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
 
 	return it->mail_box;
@@ -286,7 +286,7 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 	}
 
 	const auto now = Poseidon::get_fast_mono_clock();
-	const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 	mail_data_map->set_key<0, 1>(it, saturated_add(now, gc_interval));
 
 	return it->mail_data;

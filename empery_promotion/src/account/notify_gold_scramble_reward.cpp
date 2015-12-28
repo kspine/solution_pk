@@ -11,11 +11,11 @@ namespace EmperyPromotion {
 
 ACCOUNT_SERVLET("notifyGoldScrambleReward", session, params){
 	const auto &login_name = params.at("loginName");
-	const auto gold_coins = boost::lexical_cast<boost::uint64_t>(params.at("goldCoins"));
-	const auto account_balance = boost::lexical_cast<boost::uint64_t>(params.at("accountBalance"));
-	const auto game_begin_time = boost::lexical_cast<boost::uint64_t>(params.at("gameBeginTime"));
-	const auto gold_coins_in_pot = boost::lexical_cast<boost::uint64_t>(params.at("goldCoinsInPot"));
-	const auto account_balance_in_pot = boost::lexical_cast<boost::uint64_t>(params.at("accountBalanceInPot"));
+	const auto gold_coins = boost::lexical_cast<std::uint64_t>(params.at("goldCoins"));
+	const auto account_balance = boost::lexical_cast<std::uint64_t>(params.at("accountBalance"));
+	const auto game_begin_time = boost::lexical_cast<std::uint64_t>(params.at("gameBeginTime"));
+	const auto gold_coins_in_pot = boost::lexical_cast<std::uint64_t>(params.at("goldCoinsInPot"));
+	const auto account_balance_in_pot = boost::lexical_cast<std::uint64_t>(params.at("accountBalanceInPot"));
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);

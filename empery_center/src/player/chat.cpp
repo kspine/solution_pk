@@ -35,22 +35,22 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 		segments.emplace_back(slot, std::move(it->value));
 	}
 
-	boost::uint64_t last_chat_time;
-	boost::uint64_t min_seconds;
+	std::uint64_t last_chat_time;
+	std::uint64_t min_seconds;
 	if(channel == ChatChannelIds::ID_ADJACENT){
-		last_chat_time = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ADJACENT);
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ADJACENT);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_ADJACENT_CHANNEL);
 	} else if(channel == ChatChannelIds::ID_TRADE){
-		last_chat_time = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_TRADE);
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_TRADE);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_TRADE_CHANNEL);
 	} else if(channel == ChatChannelIds::ID_ALLIANCE){
-		last_chat_time = account->cast_attribute<boost::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_ALLIANCE_CHANNEL);
 	} else {
 		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
 	const auto milliseconds_remaining = saturated_sub(
-		saturated_mul<boost::uint64_t>(min_seconds, 1000), saturated_sub(utc_now, last_chat_time));
+		saturated_mul<std::uint64_t>(min_seconds, 1000), saturated_sub(utc_now, last_chat_time));
 	if(milliseconds_remaining != 0){
 		return Response(Msg::ERR_CHAT_FLOOD) <<milliseconds_remaining;
 	}
@@ -72,8 +72,8 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 		if((view.width() == 0) || (view.height() == 0)){
 			LOG_EMPERY_CENTER_DEBUG("View is null: account_uuid = ", account->get_account_uuid());
 		} else {
-			const auto center_x = view.left()   + static_cast<boost::int64_t>(view.width() / 2);
-			const auto center_y = view.bottom() + static_cast<boost::int64_t>(view.height() / 2);
+			const auto center_x = view.left()   + static_cast<std::int64_t>(view.width() / 2);
+			const auto center_y = view.bottom() + static_cast<std::int64_t>(view.height() / 2);
 			std::vector<boost::shared_ptr<PlayerSession>> other_sessions;
 			WorldMap::get_players_viewing_rectangle(other_sessions, Rectangle(center_x, center_y, 1, 1));
 			for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){

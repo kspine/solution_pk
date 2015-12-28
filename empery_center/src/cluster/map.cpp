@@ -17,12 +17,12 @@ namespace EmperyCenter {
 
 CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	const auto center_rectangle = WorldMap::get_cluster_scope(Coord(0, 0));
-	const auto map_width  = static_cast<boost::uint32_t>(center_rectangle.width());
-	const auto map_height = static_cast<boost::uint32_t>(center_rectangle.height());
+	const auto map_width  = static_cast<std::uint32_t>(center_rectangle.width());
+	const auto map_height = static_cast<std::uint32_t>(center_rectangle.height());
 
 	const auto num_coord = Coord(req.numerical_x, req.numerical_y);
-	const auto inf_x = static_cast<boost::int64_t>(INT64_MAX / map_width);
-	const auto inf_y = static_cast<boost::int64_t>(INT64_MAX / map_height);
+	const auto inf_x = static_cast<std::int64_t>(INT64_MAX / map_width);
+	const auto inf_y = static_cast<std::int64_t>(INT64_MAX / map_height);
 	if((num_coord.x() <= -inf_x) || (inf_x <= num_coord.x()) || (num_coord.y() <= -inf_y) || (inf_y <= num_coord.y())){
 		LOG_EMPERY_CENTER_WARNING("Invalid numerical coord: num_coord = ", num_coord, ", inf_x = ", inf_x, ", inf_y = ", inf_y);
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;
@@ -55,7 +55,7 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 	}
 
 
-	boost::container::flat_map<AttributeId, boost::int64_t> modifiers;
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
 		modifiers.emplace(AttributeId(it->attribute_id), it->value);
@@ -131,7 +131,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
 	const auto harvest_amount = harvest_speed * req.interval / 60000.0 + map_object->get_harvest_remainder();
-	const auto rounded_amount = static_cast<boost::uint64_t>(harvest_amount);
+	const auto rounded_amount = static_cast<std::uint64_t>(harvest_amount);
 	const auto remainder = std::fdim(harvest_amount, rounded_amount);
 
 	const auto harvested_amount = overlay->harvest(castle, rounded_amount, true);

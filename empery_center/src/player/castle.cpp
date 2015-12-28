@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include <poseidon/endian.hpp>
 #include "../msg/cs_castle.hpp"
 #include "../msg/err_castle.hpp"
 #include "../singletons/world_map.hpp"
@@ -143,7 +144,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account, session, req){
 		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
 		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
+				it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
 				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.building_id.get(), info.building_level, 0);
 		}
 	}
@@ -281,7 +282,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_BUILDING_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
-	const auto trade_count = static_cast<boost::uint64_t>(std::ceil(time_remaining / 60000.0));
+	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0));
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
@@ -412,7 +413,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
 		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<boost::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
+				it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
 				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.tech_id.get(), info.tech_level, 0);
 		}
 	}
@@ -447,7 +448,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_TECH_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
-	const auto trade_count = static_cast<boost::uint64_t>(std::ceil(time_remaining / 60000.0));
+	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0));
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
@@ -650,14 +651,14 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 3)){
 		return Response(Msg::ERR_NOT_BUILDING_UPGRADE_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (boost::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
-	const auto count_to_consume = std::min<boost::uint64_t>(req.count,
+	const auto count_to_consume = std::min<std::uint64_t>(req.count,
 		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
@@ -697,20 +698,59 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 4)){
 		return Response(Msg::ERR_NOT_TECH_UPGRADE_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (boost::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
-	const auto count_to_consume = std::min<boost::uint64_t>(req.count,
+	const auto count_to_consume = std::min<std::uint64_t>(req.count,
 		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
 		ReasonIds::ID_SPEED_UP_TECH_UPGRADE, info.tech_id.get(), info.tech_level, 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
 		[&]{ castle->speed_up_tech_mission(tech_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::require(item_id);
+	if(item_data->type.first != Data::Item::CAT_RESOURCE_BOX){
+		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_RESOURCE_BOX;
+	}
+	const auto resource_id = ResourceId(item_data->type.second);
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	const auto map_object_uuid_tail = Poseidon::load_be(reinterpret_cast<const std::uint64_t *>(map_object_uuid.get().end())[-1]);
+
+	const auto count_to_consume = req.repeat_count;
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
+		ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_tail, item_id.get(), static_cast<std::int64_t>(count_to_consume));
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+		[&]{
+			std::vector<ResourceTransactionElement> res_transaction;
+			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, checked_mul(count_to_consume, item_data->value),
+				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_tail, item_id.get(), static_cast<std::int64_t>(count_to_consume));
+			castle->commit_resource_transaction(res_transaction);
+		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}

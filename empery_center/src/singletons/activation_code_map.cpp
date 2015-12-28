@@ -14,7 +14,7 @@ namespace {
 		boost::shared_ptr<ActivationCode> activation_code;
 
 		std::size_t code_hash;
-		boost::uint64_t expiry_time;
+		std::uint64_t expiry_time;
 
 		explicit ActivationCodeElement(boost::shared_ptr<ActivationCode> activation_code_)
 			: activation_code(std::move(activation_code_))
@@ -31,7 +31,7 @@ namespace {
 
 	boost::weak_ptr<ActivationCodeMapContainer> g_activation_code_map;
 
-	void gc_timer_proc(boost::uint64_t now){
+	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Activation code gc timer: now = ", now);
 
@@ -73,7 +73,7 @@ namespace {
 		g_activation_code_map = activation_code_map;
 		handles.push(activation_code_map);
 
-		const auto gc_interval = get_config<boost::uint64_t>("object_gc_interval", 300000);
+		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);

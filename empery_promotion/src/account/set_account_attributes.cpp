@@ -52,7 +52,7 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		}
 	}
 	if(!level.empty()){
-		const auto num = boost::lexical_cast<boost::uint64_t>(level);
+		const auto num = boost::lexical_cast<std::uint64_t>(level);
 		if(num == 0){
 			level = "0";
 		} else {
@@ -66,7 +66,7 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		}
 	}
 	if(!max_visible_subord_depth.empty()){
-		const auto depth = boost::lexical_cast<boost::uint64_t>(max_visible_subord_depth);
+		const auto depth = boost::lexical_cast<std::uint64_t>(max_visible_subord_depth);
 		max_visible_subord_depth = boost::lexical_cast<std::string>(depth);
 	}
 	if(!can_view_account_performance.empty()){
@@ -90,7 +90,7 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		AccountMap::set_deal_password(info.account_id, std::move(deal_password));
 	}
 	if(!banned_until.empty()){
-		AccountMap::set_banned_until(info.account_id, boost::lexical_cast<boost::uint64_t>(banned_until));
+		AccountMap::set_banned_until(info.account_id, boost::lexical_cast<std::uint64_t>(banned_until));
 	}
 
 	if(!gender.empty()){
@@ -115,7 +115,7 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_REMARKS, std::move(remarks));
 	}
 	if(!level.empty()){
-		AccountMap::set_level(info.account_id, boost::lexical_cast<boost::uint64_t>(level));
+		AccountMap::set_level(info.account_id, boost::lexical_cast<std::uint64_t>(level));
 	}
 	if(!max_visible_subord_depth.empty()){
 		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_MAX_VISIBLE_SUBORD_DEPTH, std::move(max_visible_subord_depth));

@@ -92,8 +92,8 @@ void MapCell::pump_status(){
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
 		const auto new_resource_amount = std::min(
 			saturated_add(old_resource_amount,
-				static_cast<boost::uint64_t>(std::round(production_duration * production_rate / 60000.0))),
-			static_cast<boost::uint64_t>(std::round(capacity)));
+				static_cast<std::uint64_t>(std::round(production_duration * production_rate / 60000.0))),
+			static_cast<std::uint64_t>(std::round(capacity)));
 		LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
 			", terrain_id = ", terrain_id, ", new_resource_amount = ", new_resource_amount);
 
@@ -136,10 +136,10 @@ ItemId MapCell::get_ticket_item_id() const {
 ResourceId MapCell::get_production_resource_id() const {
 	return ResourceId(m_obj->get_production_resource_id());
 }
-boost::uint64_t MapCell::get_last_production_time() const {
+std::uint64_t MapCell::get_last_production_time() const {
 	return m_obj->get_last_production_time();
 }
-boost::uint64_t MapCell::get_resource_amount() const {
+std::uint64_t MapCell::get_resource_amount() const {
 	return m_obj->get_resource_amount();
 }
 
@@ -168,7 +168,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-boost::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
+std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
@@ -214,7 +214,7 @@ boost::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost:
 	return amount_to_remove;
 }
 
-boost::int64_t MapCell::get_attribute(AttributeId attribute_id) const {
+std::int64_t MapCell::get_attribute(AttributeId attribute_id) const {
 	PROFILE_ME;
 
 	const auto it = m_attributes.find(attribute_id);
@@ -223,7 +223,7 @@ boost::int64_t MapCell::get_attribute(AttributeId attribute_id) const {
 	}
 	return it->second->get_value();
 }
-void MapCell::get_attributes(boost::container::flat_map<AttributeId, boost::int64_t> &ret) const {
+void MapCell::get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_attributes.size());
@@ -231,7 +231,7 @@ void MapCell::get_attributes(boost::container::flat_map<AttributeId, boost::int6
 		ret[it->first] = it->second->get_value();
 	}
 }
-void MapCell::set_attributes(const boost::container::flat_map<AttributeId, boost::int64_t> &modifiers){
+void MapCell::set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers){
 	PROFILE_ME;
 
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){

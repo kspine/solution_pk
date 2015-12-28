@@ -70,7 +70,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
 	}
-	const auto ms_per_cell = static_cast<boost::uint64_t>(std::round(1000 / speed));
+	const auto ms_per_cell = static_cast<std::uint64_t>(std::round(1000 / speed));
 
 	auto from_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(from_coord);

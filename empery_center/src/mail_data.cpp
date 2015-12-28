@@ -49,7 +49,7 @@ namespace {
 		return segments;
 	}
 
-	std::string encode_attachments(const boost::container::flat_map<ItemId, boost::uint64_t> &attachments){
+	std::string encode_attachments(const boost::container::flat_map<ItemId, std::uint64_t> &attachments){
 		PROFILE_ME;
 
 		if(attachments.empty()){
@@ -67,10 +67,10 @@ namespace {
 		root.dump(oss);
 		return oss.str();
 	}
-	boost::container::flat_map<ItemId, boost::uint64_t> decode_attachments(const std::string &str){
+	boost::container::flat_map<ItemId, std::uint64_t> decode_attachments(const std::string &str){
 		PROFILE_ME;
 
-		boost::container::flat_map<ItemId, boost::uint64_t> attachments;
+		boost::container::flat_map<ItemId, std::uint64_t> attachments;
 		if(str.empty()){
 			return attachments;
 		}
@@ -79,16 +79,16 @@ namespace {
 		attachments.reserve(root.size());
 		for(auto it = root.begin(); it != root.end(); ++it){
 			auto item_id = boost::lexical_cast<ItemId>(it->first);
-			auto item_count = static_cast<boost::uint64_t>(it->second.get<double>());
+			auto item_count = static_cast<std::uint64_t>(it->second.get<double>());
 			attachments[item_id] = item_count;
 		}
 		return attachments;
 	}
 }
 
-MailData::MailData(MailUuid mail_uuid, LanguageId language_id, boost::uint64_t created_time,
+MailData::MailData(MailUuid mail_uuid, LanguageId language_id, std::uint64_t created_time,
 	MailTypeId type, AccountUuid from_account_uuid, std::string subject,
-	std::vector<std::pair<ChatMessageSlotId, std::string>> segments, boost::container::flat_map<ItemId, boost::uint64_t> attachments)
+	std::vector<std::pair<ChatMessageSlotId, std::string>> segments, boost::container::flat_map<ItemId, std::uint64_t> attachments)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MailData>(
@@ -114,7 +114,7 @@ MailUuid MailData::get_mail_uuid() const {
 LanguageId MailData::get_language_id() const {
 	return LanguageId(m_obj->get_language_id());
 }
-boost::uint64_t MailData::get_created_time() const {
+std::uint64_t MailData::get_created_time() const {
 	return m_obj->get_created_time();
 }
 
@@ -150,10 +150,10 @@ void MailData::set_segments(std::vector<std::pair<ChatMessageSlotId, std::string
 	m_obj->set_segments(std::move(str));
 }
 
-const boost::container::flat_map<ItemId, boost::uint64_t> &MailData::get_attachments() const {
+const boost::container::flat_map<ItemId, std::uint64_t> &MailData::get_attachments() const {
 	return m_attachments;
 }
-void MailData::set_attachments(boost::container::flat_map<ItemId, boost::uint64_t> attachments){
+void MailData::set_attachments(boost::container::flat_map<ItemId, std::uint64_t> attachments){
 	PROFILE_ME;
 
 	auto str = encode_attachments(attachments);

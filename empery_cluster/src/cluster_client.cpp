@@ -23,7 +23,7 @@ namespace {
 	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-boost::shared_ptr<const ServletCallback> ClusterClient::create_servlet(boost::uint16_t message_id, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> ClusterClient::create_servlet(std::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[message_id];
@@ -35,7 +35,7 @@ boost::shared_ptr<const ServletCallback> ClusterClient::create_servlet(boost::ui
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> ClusterClient::get_servlet(boost::uint16_t message_id){
+boost::shared_ptr<const ServletCallback> ClusterClient::get_servlet(std::uint16_t message_id){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(message_id);
@@ -50,13 +50,13 @@ boost::shared_ptr<const ServletCallback> ClusterClient::get_servlet(boost::uint1
 	return servlet;
 }
 
-boost::shared_ptr<ClusterClient> ClusterClient::create(boost::int64_t numerical_x, boost::int64_t numerical_y, std::string name){
+boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x, boost::int64_t numerical_y, std::string name){
 	PROFILE_ME;
 
 	const auto host       = get_config<std::string>    ("cluster_cbpp_client_connect",      "127.0.0.1");
 	const auto port       = get_config<unsigned>       ("cluster_cbpp_client_port",         13217);
 	const auto use_ssl    = get_config<bool>           ("cluster_cbpp_client_use_ssl",      false);
-	const auto keep_alive = get_config<boost::uint64_t>("cluster_cbpp_keep_alive_interval", 15000);
+	const auto keep_alive = get_config<std::uint64_t>("cluster_cbpp_keep_alive_interval", 15000);
 
 	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 
@@ -85,7 +85,7 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(boost::int64_t numerical_
 	return client;
 }
 
-ClusterClient::ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, boost::uint64_t keep_alive_interval)
+ClusterClient::ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)
 	: Poseidon::Cbpp::Client(sock_addr, use_ssl, keep_alive_interval)
 	, m_message_id(0), m_payload()
 	, m_serial(0)
@@ -127,20 +127,20 @@ void ClusterClient::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Client::on_close(err_code);
 }
 
-void ClusterClient::on_sync_data_message_header(boost::uint16_t message_id, boost::uint64_t payload_size){
+void ClusterClient::on_sync_data_message_header(std::uint16_t message_id, boost::uint64_t payload_size){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Message header: message_id = ", message_id, ", payload_size = ", payload_size);
 
 	m_message_id = message_id;
 	m_payload.clear();
 }
-void ClusterClient::on_sync_data_message_payload(boost::uint64_t payload_offset, Poseidon::StreamBuffer payload){
+void ClusterClient::on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Message payload: payload_offset = ", payload_offset, ", payload_size = ", payload.size());
 
 	m_payload.splice(payload);
 }
-void ClusterClient::on_sync_data_message_end(boost::uint64_t payload_size){
+void ClusterClient::on_sync_data_message_end(std::uint64_t payload_size){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Message end: payload_size = ", payload_size);
 
@@ -203,7 +203,7 @@ void ClusterClient::on_sync_data_message_end(boost::uint64_t payload_size){
 	}
 }
 
-bool ClusterClient::send(boost::uint16_t message_id, Poseidon::StreamBuffer body){
+bool ClusterClient::send(std::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
 	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
@@ -231,7 +231,7 @@ void ClusterClient::shutdown(int code, const char *message) noexcept {
 	}
 }
 
-Result ClusterClient::send_and_wait(boost::uint16_t message_id, Poseidon::StreamBuffer body){
+Result ClusterClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
 	Result ret;
@@ -261,7 +261,7 @@ Result ClusterClient::send_and_wait(boost::uint16_t message_id, Poseidon::Stream
 	return ret;
 }
 
-bool ClusterClient::send_notification(AccountUuid account_uuid, boost::uint16_t message_id, Poseidon::StreamBuffer body){
+bool ClusterClient::send_notification(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
 	return Poseidon::Cbpp::Client::send(Msg::G_PackedAccountNotification(account_uuid.str(), message_id, body.dump()));

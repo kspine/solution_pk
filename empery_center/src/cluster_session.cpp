@@ -18,7 +18,7 @@ namespace {
 	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback> > g_servlet_map;
 }
 
-boost::shared_ptr<const ServletCallback> ClusterSession::create_servlet(boost::uint16_t message_id, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> ClusterSession::create_servlet(std::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[message_id];
@@ -30,7 +30,7 @@ boost::shared_ptr<const ServletCallback> ClusterSession::create_servlet(boost::u
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> ClusterSession::get_servlet(boost::uint16_t message_id){
+boost::shared_ptr<const ServletCallback> ClusterSession::get_servlet(std::uint16_t message_id){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(message_id);
@@ -59,7 +59,7 @@ void ClusterSession::on_connect(){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_INFO("Cluster session connected: remote = ", get_remote_info());
 
-	const auto initial_timeout = get_config<boost::uint64_t>("cluster_session_initial_timeout", 30000);
+	const auto initial_timeout = get_config<std::uint64_t>("cluster_session_initial_timeout", 30000);
 	set_timeout(initial_timeout);
 
 	Poseidon::Cbpp::Session::on_connect();
@@ -95,7 +95,7 @@ void ClusterSession::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Session::on_close(err_code);
 }
 
-void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::StreamBuffer payload){
+void ClusterSession::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_TRACE("Received data message from cluster server: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", size = ", payload.size());
@@ -170,7 +170,7 @@ void ClusterSession::on_sync_data_message(boost::uint16_t message_id, Poseidon::
 	}
 }
 
-bool ClusterSession::send(boost::uint16_t message_id, Poseidon::StreamBuffer body){
+bool ClusterSession::send(std::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
 	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
@@ -197,7 +197,7 @@ void ClusterSession::shutdown(int code, const char *message) noexcept {
 	}
 }
 
-Result ClusterSession::send_and_wait(boost::uint16_t message_id, Poseidon::StreamBuffer body){
+Result ClusterSession::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
 	Result ret;
