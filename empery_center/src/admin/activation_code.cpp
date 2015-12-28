@@ -12,18 +12,17 @@ namespace {
 }
 
 ADMIN_SERVLET("activation_code/random", root, session, params){
-	const auto expiry_duration = boost::lexical_cast<boost::uint64_t>(params.at("expiry_duration"));
+	const auto expiry_time = boost::lexical_cast<boost::uint64_t>(params.at("expiry_time"));
 
 	const auto utc_now = Poseidon::get_utc_time();
 
 	std::string code;
 	code.resize(11);
-	auto seed = utc_now + 6364136223846793005ull * s_auto_inc;
+	auto seed = utc_now + 6364136223846793005ull * (++s_auto_inc);
 	for(auto it = code.rbegin(); it != code.rend(); ++it){
 		*it = static_cast<int>(seed % 26) + 'a';
 		seed /= 26;
 	}
-	auto expiry_time = saturated_add(utc_now, expiry_duration);
 
 	const auto activation_code = boost::make_shared<ActivationCode>(code, utc_now, expiry_time);
 	ActivationCodeMap::insert(activation_code);

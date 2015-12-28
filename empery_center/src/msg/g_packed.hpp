@@ -1,5 +1,5 @@
-#ifndef EMPERY_CENTER_MSG_G_PACKED_REQUEST_HPP_
-#define EMPERY_CENTER_MSG_G_PACKED_REQUEST_HPP_
+#ifndef EMPERY_CENTER_MSG_G_PACKED_HPP_
+#define EMPERY_CENTER_MSG_G_PACKED_HPP_
 
 #include <poseidon/cbpp/message_base.hpp>
 
