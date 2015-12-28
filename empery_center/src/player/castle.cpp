@@ -507,22 +507,23 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 		return Response(Msg::ERR_CASTLE_HAS_NO_MAP_CELL) <<map_object_uuid;
 	}
 
-	bool harvested_some = false;
+	bool warehouse_full = true;
 	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 		const auto &map_cell = *it;
 		const auto resource_id = map_cell->get_production_resource_id();
 		map_cell->pump_status();
 
-		const auto amount_harvested = map_cell->harvest(castle, UINT64_MAX, false);
-		if(amount_harvested == 0){
-			LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
-				", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);
-			continue;
+		if(map_cell->get_resource_amount() != 0){
+			const auto amount_harvested = map_cell->harvest(castle, UINT64_MAX, false);
+			if(amount_harvested == 0){
+				LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
+					", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);
+				continue;
+			}
 		}
-
-		harvested_some = true;
+		warehouse_full = false;
 	}
-	if(!harvested_some){
+	if(warehouse_full){
 		return Response(Msg::ERR_WAREHOUSE_FULL);
 	}
 
