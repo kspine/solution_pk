@@ -57,6 +57,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/remove_account_items.cpp	\
 	src/account/notify_gold_scramble_bid.cpp	\
 	src/account/notify_gold_scramble_reward.cpp	\
+	src/account/check_login_backtrace.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\
