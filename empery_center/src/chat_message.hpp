@@ -70,6 +70,9 @@ inline void synchronize_chat_message_with_player(const boost::shared_ptr<ChatMes
 	chat_message->synchronize_with_player(session);
 }
 
+extern void presend_chat_message_segments(const std::vector<std::pair<ChatMessageSlotId, std::string>> &segments,
+	const boost::shared_ptr<PlayerSession> &session);
+
 }
 
 #endif

@@ -1,6 +1,5 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
-#include <poseidon/json.hpp>
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
@@ -128,15 +127,10 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	const auto resource_id = ResourceId(req.resource_id);
 
-	const auto &producible_resources = Data::Global::as_array(Data::Global::SLOT_PRODUCIBLE_RESOURCES);
-	for(auto it = producible_resources.begin(); it != producible_resources.end(); ++it){
-		if(resource_id == ResourceId(it->get<double>())){
-			goto _producible;
-		}
+	const auto init_resource_data = Data::CastleInitResource::get(resource_id);
+	if(!init_resource_data || !init_resource_data->producible){
+		return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
 	}
-	return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
-_producible:
-	;
 
 	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);

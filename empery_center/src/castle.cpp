@@ -193,8 +193,8 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 		owner_uuid, parent_object_uuid, std::move(name), coord)
 	, m_buildings(
 		[&]{
-			LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
 			boost::container::flat_map<BuildingBaseId, boost::shared_ptr<MySql::Center_CastleBuildingBase>> buildings;
+			LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
 			std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
 			Data::CastleBuildingBase::get_init(init_buildings);
 			for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
@@ -217,6 +217,22 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 				buildings.emplace(building_base_id, std::move(obj));
 			}
 			return buildings;
+		}())
+	, m_resources(
+		[&]{
+		 	boost::container::flat_map<ResourceId, boost::shared_ptr<MySql::Center_CastleResource>> resources;
+			LOG_EMPERY_CENTER_DEBUG("Checking for init resources: owner_uuid = ", get_owner_uuid());
+			std::vector<boost::shared_ptr<const Data::CastleInitResource>> init_resources;
+			Data::CastleInitResource::get_all(init_resources);
+			for(auto dit = init_resources.begin(); dit != init_resources.end(); ++dit){
+				const auto &init_resource_data = *dit;
+				const auto resource_id = init_resource_data->resource_id;
+				auto obj = boost::make_shared<MySql::Center_CastleResource>(
+					get_map_object_uuid().get(), resource_id.get(), init_resource_data->init_amount);
+				obj->async_save(true);
+				resources.emplace(resource_id, std::move(obj));
+			}
+			return resources;
 		}())
 {
 }

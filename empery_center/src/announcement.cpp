@@ -6,6 +6,7 @@
 #include "msg/sc_announcement.hpp"
 #include "singletons/announcement_map.hpp"
 #include "checked_arithmetic.hpp"
+#include "chat_message.hpp"
 
 namespace EmperyCenter {
 
@@ -120,6 +121,8 @@ void Announcement::synchronize_with_player(const boost::shared_ptr<PlayerSession
 		msg.announcement_uuid = get_announcement_uuid().str();
 		session->send(msg);
 	} else {
+		presend_chat_message_segments(m_segments, session);
+
 		Msg::SC_AnnouncementReceived msg;
 		msg.announcement_uuid = get_announcement_uuid().str();
 		msg.language_id       = get_language_id().get();

@@ -6,6 +6,7 @@
 #include "msg/sc_mail.hpp"
 #include "singletons/player_session_map.hpp"
 #include "singletons/account_map.hpp"
+#include "chat_message.hpp"
 
 namespace EmperyCenter {
 
@@ -167,6 +168,8 @@ void MailData::synchronize_with_player(const boost::shared_ptr<PlayerSession> &s
 	if(from_account_uuid){
 		AccountMap::cached_synchronize_account_with_player(from_account_uuid, session);
 	}
+
+	presend_chat_message_segments(m_segments, session);
 
 	Msg::SC_MailData msg;
 	msg.mail_uuid         = get_mail_uuid().str();

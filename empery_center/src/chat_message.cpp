@@ -4,6 +4,7 @@
 #include "msg/sc_chat.hpp"
 #include "singletons/player_session_map.hpp"
 #include "singletons/account_map.hpp"
+#include "chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -26,6 +27,8 @@ void ChatMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 		AccountMap::cached_synchronize_account_with_player(from_account_uuid, session);
 	}
 
+	presend_chat_message_segments(m_segments, session);
+
 	Msg::SC_ChatMessageData msg;
 	msg.chat_message_uuid   = get_chat_message_uuid().str();
 	msg.channel             = get_channel().get();
@@ -40,6 +43,21 @@ void ChatMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 		segment.value  = it->second;
 	}
 	session->send(msg);
+}
+
+void presend_chat_message_segments(const std::vector<std::pair<ChatMessageSlotId, std::string>> &segments,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	PROFILE_ME;
+
+	for(auto it = segments.begin(); it != segments.end(); ++it){
+		const auto slot_id = it->first;
+		const auto &value = it->second;
+
+		if(slot_id == ChatMessageSlotIds::ID_TAXER){
+			AccountMap::cached_synchronize_account_with_player(AccountUuid(value), session);
+		}
+	}
 }
 
 }

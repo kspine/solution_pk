@@ -138,6 +138,19 @@ namespace Data {
 		boost::container::flat_map<BuildingId, unsigned> display_prerequisite;
 		boost::container::flat_map<AttributeId, double> attributes;
 	};
+
+	class CastleInitResource {
+	public:
+		static boost::shared_ptr<const CastleInitResource> get(ResourceId resource_id);
+		static boost::shared_ptr<const CastleInitResource> require(ResourceId resource_id);
+
+		static void get_all(std::vector<boost::shared_ptr<const CastleInitResource>> &ret);
+
+	public:
+		ResourceId resource_id;
+		boost::uint64_t init_amount;
+		bool producible;
+	};
 }
 
 }
