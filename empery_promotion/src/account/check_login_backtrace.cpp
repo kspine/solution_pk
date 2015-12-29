@@ -18,15 +18,18 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
 	}
+
+	int error_code = (int)Msg::ST_OK;
+	std::string error_message;
 	if(AccountMap::get_password_hash(password) != info.password_hash){
-		ret[sslit("errorCode")] = (int)Msg::ERR_INVALID_PASSWORD;
-		ret[sslit("errorMessage")] = "Password is incorrect";
-		return ret;
-	}
-	if((info.banned_until != 0) && (Poseidon::get_utc_time() < info.banned_until)){
-		ret[sslit("errorCode")] = (int)Msg::ERR_ACCOUNT_BANNED;
-		ret[sslit("errorMessage")] = "Account is banned";
-		return ret;
+		error_code = (int)Msg::ERR_INVALID_PASSWORD;
+		error_message = "Password is incorrect";
+	} else if((info.banned_until != 0) && (Poseidon::get_utc_time() < info.banned_until)){
+		error_code = (int)Msg::ERR_ACCOUNT_BANNED;
+		error_message = "Account is banned";
+	} else {
+		error_code = (int)Msg::ST_OK;
+		error_message = "No error";
 	}
 
 	Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedIn>(
@@ -48,8 +51,8 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 	}
 	ret[sslit("referrers")] = std::move(referrers);
 
-	ret[sslit("errorCode")] = (int)Msg::ST_OK;
-	ret[sslit("errorMessage")] = "No error";
+	ret[sslit("errorCode")] = error_code;
+	ret[sslit("errorMessage")] = std::move(error_message);
 	return ret;
 }
 
