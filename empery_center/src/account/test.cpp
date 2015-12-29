@@ -116,6 +116,9 @@ ACCOUNT_SERVLET("test/regain", root, session, params){
 	// send verification code
 	LOG_EMPERY_CENTER_FATAL("Send verification code: login_name = ", login_name, ", verification_code = ", verification_code);
 
+	root[sslit("verificationCodeExpiryDuration")] = expiry_duration;
+	root[sslit("verificationCodeCoolDown")]       = cooldown_duration;
+
 	return Response();
 }
 

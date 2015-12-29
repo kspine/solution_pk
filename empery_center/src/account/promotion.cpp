@@ -538,8 +538,8 @@ ACCOUNT_SERVLET("promotion/regain", root, session, params){
 
 	send_verification_code(login_name, verification_code, expiry_duration);
 
-	root[sslit("verificationCodeExpiryDuration")] = expiry_time;
-	root[sslit("verificationCodeCoolDown")]       = cooldown;
+	root[sslit("verificationCodeExpiryDuration")] = expiry_duration;
+	root[sslit("verificationCodeCoolDown")]       = cooldown_duration;
 
 	return Response();
 }
