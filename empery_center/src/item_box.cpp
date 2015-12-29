@@ -145,13 +145,11 @@ namespace {
 		const auto income_tax_ratio_total = std::accumulate(g_income_tax_array.begin(), g_income_tax_array.end(), 0.0);
 
 		std::vector<boost::shared_ptr<Account>> referrers;
-		{
-			auto referrer = AccountMap::get(account->get_referrer_uuid());
-			while(referrer){
-				auto next_referrer = AccountMap::get(referrer->get_referrer_uuid());
-				referrers.emplace_back(std::move(referrer));
-				referrer = std::move(next_referrer);
-			}
+		auto referrer_uuid = account->get_referrer_uuid();
+		while(referrer_uuid){
+			auto referrer = AccountMap::require(referrer_uuid);
+			referrer_uuid = referrer->get_referrer_uuid();
+			referrers.emplace_back(std::move(referrer));
 		}
 
 		std::uint64_t dividend_accumulated = 0;

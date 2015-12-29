@@ -12,17 +12,20 @@
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/async_job.hpp>
 #include <boost/container/flat_map.hpp>
+#include <iconv.h>
 #include "../msg/err_account.hpp"
+#include "../../../empery_promotion/src/msg/err_account.hpp"
 #include "../singletons/account_map.hpp"
 #include "../account.hpp"
 #include "../checked_arithmetic.hpp"
 #include "../singletons/activation_code_map.hpp"
 #include "../activation_code.hpp"
-#include "../../../empery_promotion/src/msg/err_account.hpp"
+#include "../account_attribute_ids.hpp"
+#include "../checked_arithmetic.hpp"
 
 namespace EmperyCenter {
 
-constexpr auto PROMOTION_PLATFORM_ID = PlatformId(8500);
+constexpr auto PLATFORM_ID = PlatformId(8500);
 
 namespace {
 	class SimpleHttpClient : public Poseidon::Http::Client {
@@ -116,15 +119,23 @@ namespace {
 	std::string g_server_host    = "localhost";
 	unsigned    g_server_port    = 6121;
 	bool        g_server_use_ssl = false;
-	std::string g_server_auth    = "";
-	std::string g_server_path    = "";
+	std::string g_server_auth    = { };
+	std::string g_server_path    = { };
 
 	boost::container::flat_map<std::string, unsigned> g_level_config;
+
+	std::string g_sms_host       = "localhost";
+	unsigned    g_sms_port       = 80;
+	bool        g_sms_use_ssl    = false;
+	std::string g_sms_auth       = { };
+	std::string g_sms_uri        = "/";
+	std::string g_sms_message    = "code = $(code), minutes = $(minutes)";
+	std::string g_sms_charset    = "UTF-8";
 
 	MODULE_RAII_PRIORITY(/* handles */, 1000){
 		get_config(g_server_host,    "promotion_server_host");
 		get_config(g_server_port,    "promotion_server_port");
-		get_config(g_server_use_ssl, "account_http_server_use_ssl");
+		get_config(g_server_use_ssl, "promotion_server_use_ssl");
 		get_config(g_server_auth,    "promotion_server_auth_user_pass");
 		get_config(g_server_path,    "promotion_server_path");
 
@@ -146,6 +157,14 @@ namespace {
 			}
 		}
 		g_level_config = std::move(level_config);
+
+		get_config(g_sms_host,       "promotion_sms_host");
+		get_config(g_sms_port,       "promotion_sms_port");
+		get_config(g_sms_use_ssl,    "promotion_sms_use_ssl");
+		get_config(g_sms_auth,       "promotion_sms_auth_user_pass");
+		get_config(g_sms_uri,        "promotion_sms_uri");
+		get_config(g_sms_message,    "promotion_sms_message");
+		get_config(g_sms_charset,    "promotion_sms_charset");
 	}
 
 	int check_login_backtrace(boost::shared_ptr<Account> &new_account,
@@ -197,7 +216,8 @@ namespace {
 				error_code = Msg::ERR_ACCOUNT_BANNED;
 				break;
 			default:
-				error_code = Msg::ERR_NO_SUCH_ACCOUNT; // XXX
+				LOG_EMPERY_CENTER_WARNING("Unexpected error code from promotion server: error_code = ", error_code);
+				error_code = Msg::ERR_NO_SUCH_ACCOUNT;
 				break;
 			}
 		}
@@ -209,12 +229,12 @@ namespace {
 
 			const auto create_or_update_account = [&](const std::string &cur_login_name, unsigned cur_level){
 				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name, ", cur_level = ", cur_level);
-				auto account = AccountMap::get_by_login_name(PROMOTION_PLATFORM_ID, cur_login_name);
+				auto account = AccountMap::get_by_login_name(PLATFORM_ID, cur_login_name);
 				if(!account){
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 					const auto utc_now = Poseidon::get_utc_time();
 					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid, ", cur_login_name = ", cur_login_name);
-					account = boost::make_shared<Account>(account_uuid, PROMOTION_PLATFORM_ID, cur_login_name,
+					account = boost::make_shared<Account>(account_uuid, PLATFORM_ID, cur_login_name,
 						referrer_uuid, cur_level, utc_now, cur_login_name);
 					AccountMap::insert(account, ip); // XXX use real ip
 				} else {
@@ -237,6 +257,186 @@ namespace {
 			const auto level_str = response_object.at(sslit("level")).get<std::string>();
 			const unsigned level = g_level_config.at(level_str);
 			new_account = create_or_update_account(login_name, level);
+		}
+		return error_code;
+	}
+
+	struct IconvCloer {
+		::iconv_t operator()() const noexcept {
+			return (::iconv_t)-1;
+		}
+		void operator()(::iconv_t cd) const noexcept {
+			const auto ret = ::iconv_close(cd);
+			if(ret != 0){
+				const int err_code = errno;
+				LOG_EMPERY_CENTER_FATAL("::iconv_close() failed: err_code = ", err_code);
+				std::abort();
+			}
+		}
+	};
+
+	void send_verification_code(const std::string &login_name, const std::string &verification_code, std::uint64_t expiry_duration){
+		PROFILE_ME;
+
+		auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
+		{
+			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_server_host, g_server_port);
+			Poseidon::JobDispatcher::yield(promise);
+			promise->check_and_rethrow();
+		}
+
+		boost::shared_ptr<SimpleHttpClient> client;
+		{
+			const auto promise = boost::make_shared<Poseidon::JobPromise>();
+			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_server_use_ssl, promise);
+			client->go_resident();
+
+			Poseidon::OptionalMap get_params;
+			get_params.set(sslit("loginName"), login_name);
+
+			Poseidon::OptionalMap headers;
+			headers.set(sslit("Host"), g_server_host);
+			headers.set(sslit("Connection"), "Close");
+			if(!g_server_auth.empty()){
+				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_server_auth));
+			}
+			client->send(g_server_path + "/queryAccountAttributes", std::move(get_params), std::move(headers));
+			Poseidon::JobDispatcher::yield(promise);
+			promise->check_and_rethrow();
+		}
+		std::istringstream iss(client->get_entity().dump());
+		auto response_object = Poseidon::JsonParser::parse_object(iss);
+		LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", response_object.dump());
+		auto error_code = static_cast<int>(response_object.at(sslit("errorCode")).get<double>());
+		if(error_code != Msg::ST_OK){
+			LOG_EMPERY_CENTER_WARNING("Error resposne from promotion server: ", response_object.dump());
+			return;
+		}
+		auto phone_number = std::move(response_object.at(sslit("phoneNumber")).get<std::string>());
+		{
+			auto wit = phone_number.begin();
+			for(auto rit = wit; rit != phone_number.end(); ++rit){
+				if((*rit < '0') || ('9' < *rit)){
+					continue;
+				}
+				*wit = *rit;
+				++wit;
+			}
+			phone_number.erase(wit, phone_number.end());
+		}
+		LOG_EMPERY_CENTER_DEBUG("Got phone number: login_name = ", login_name, ", phone_number = ", phone_number);
+
+		auto utf8_message = g_sms_message;
+		auto pos = utf8_message.find("$(code)");
+		if(pos != std::string::npos){
+			utf8_message.replace(pos, sizeof("$(code)") - 1, verification_code);
+		}
+		pos = utf8_message.find("$(minutes)");
+		if(pos != std::string::npos){
+			char str[256];
+			unsigned len = (unsigned)std::sprintf(str, "%.f", std::ceil(expiry_duration / 60000.0));
+			utf8_message.replace(pos, sizeof("$(minutes)") - 1, str, len);
+		}
+		LOG_EMPERY_CENTER_DEBUG("Generated message: utf8_message = ", utf8_message);
+
+		const Poseidon::UniqueHandle<IconvCloer> cd(::iconv_open(g_sms_charset.c_str(), "UTF-8"));
+		if(!cd){
+			const int err_code = errno;
+			LOG_EMPERY_CENTER_ERROR("::iconv_open() failed: err_code = ", err_code);
+			return;
+		}
+		std::string message(4096, '*');
+		char *inbuf = &utf8_message[0];
+		std::size_t inbytes = utf8_message.size();
+		char *outbuf = &message[0];
+		std::size_t outbyes = message.size();
+		const auto characters = ::iconv(cd.get(), &inbuf, &inbytes, &outbuf, &outbyes);
+		if(characters == (std::size_t)-1){
+			const int err_code = errno;
+			LOG_EMPERY_CENTER_ERROR("::iconv() failed: err_code = ", err_code);
+			return;
+		}
+		message.erase(message.begin() + (outbuf - &message[0]), message.end());
+		LOG_EMPERY_CENTER_DEBUG("Converted message: message = ", message);
+
+		sock_addr = boost::make_shared<Poseidon::SockAddr>();
+		{
+			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_sms_host, g_sms_port);
+			Poseidon::JobDispatcher::yield(promise);
+			promise->check_and_rethrow();
+		}
+
+		{
+			const auto promise = boost::make_shared<Poseidon::JobPromise>();
+			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_sms_use_ssl, promise);
+			client->go_resident();
+
+			auto uri = g_sms_uri;
+			pos = uri.find("$(phone)");
+			if(pos != std::string::npos){
+				uri.replace(pos, sizeof("$(phone)") - 1, Poseidon::Http::url_encode(phone_number));
+			}
+			pos = uri.find("$(message)");
+			if(pos != std::string::npos){
+				uri.replace(pos, sizeof("$(message)") - 1, Poseidon::Http::url_encode(message));
+			}
+
+			Poseidon::OptionalMap headers;
+			headers.set(sslit("Host"), g_sms_host);
+			headers.set(sslit("Connection"), "Close");
+			if(!g_sms_auth.empty()){
+				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_sms_auth));
+			}
+			client->send(std::move(uri), { }, std::move(headers));
+			Poseidon::JobDispatcher::yield(promise);
+			promise->check_and_rethrow();
+		}
+	}
+
+	int set_password(const std::string &login_name, const std::string &password){
+		PROFILE_ME;
+
+		const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
+		{
+			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_server_host, g_server_port);
+			Poseidon::JobDispatcher::yield(promise);
+			promise->check_and_rethrow();
+		}
+
+		boost::shared_ptr<SimpleHttpClient> client;
+		{
+			const auto promise = boost::make_shared<Poseidon::JobPromise>();
+			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_server_use_ssl, promise);
+			client->go_resident();
+
+			Poseidon::OptionalMap get_params;
+			get_params.set(sslit("loginName"), login_name);
+			get_params.set(sslit("password"),  password);
+
+			Poseidon::OptionalMap headers;
+			headers.set(sslit("Host"), g_server_host);
+			headers.set(sslit("Connection"), "Close");
+			if(!g_server_auth.empty()){
+				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_server_auth));
+			}
+			client->send(g_server_path + "/setAccountAttributes", std::move(get_params), std::move(headers));
+			Poseidon::JobDispatcher::yield(promise);
+			promise->check_and_rethrow();
+		}
+		std::istringstream iss(client->get_entity().dump());
+		auto response_object = Poseidon::JsonParser::parse_object(iss);
+		LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", response_object.dump());
+		auto error_code = static_cast<int>(response_object.at(sslit("errorCode")).get<double>());
+		if(error_code != Msg::ST_OK){
+			switch(error_code){
+			case EmperyPromotion::Msg::ERR_NO_SUCH_ACCOUNT:
+				error_code = Msg::ERR_NO_SUCH_ACCOUNT;
+				break;
+			default:
+				LOG_EMPERY_CENTER_WARNING("Unexpected error code from promotion server: error_code = ", error_code);
+				error_code = Msg::ERR_NO_SUCH_ACCOUNT;
+				break;
+			}
 		}
 		return error_code;
 	}
@@ -305,11 +505,75 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 	return Response();
 }
 
+ACCOUNT_SERVLET("promotion/regain", root, session, params){
+	const auto &login_name = params.at("loginName");
+
+	const auto account = AccountMap::get_by_login_name(PLATFORM_ID, login_name);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto old_cooldown = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN);
+	if(utc_now < old_cooldown){
+		return Response(Msg::ERR_VERIFICATION_CODE_FLOOD);
+	}
+
+	char str[64];
+	unsigned len = (unsigned)std::sprintf(str, "%06u", (unsigned)(Poseidon::rand64() % 1000000));
+	auto verification_code = std::string(str + len - 6, str + len);
+	LOG_EMPERY_CENTER_DEBUG("Generated verification code: login_name = ", login_name, ", verification_code = ", verification_code);
+
+	const auto expiry_duration = get_config<std::uint64_t>("promotion_verification_code_expiry_duration", 900000);
+	auto expiry_time = boost::lexical_cast<std::string>(saturated_add(utc_now, expiry_duration));
+
+	const auto cooldown_duration = get_config<std::uint64_t>("promotion_verification_code_cooldown_duration", 120000);
+	auto cooldown = boost::lexical_cast<std::string>(saturated_add(utc_now, cooldown_duration));
+
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers.reserve(3);
+	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE,             verification_code);
+	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE_EXPIRY_TIME, expiry_time);
+	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN,    std::move(cooldown));
+	account->set_attributes(std::move(modifiers));
+
+	send_verification_code(login_name, verification_code, expiry_duration);
+
+	return Response();
+}
+
+ACCOUNT_SERVLET("promotion/reset_password", root, session, params){
+	const auto &login_name        = params.at("loginName");
+	const auto &verification_code = params.at("verificationCode");
+	const auto &new_password      = params.at("newPassword");
+
+	const auto account = AccountMap::get_by_login_name(PLATFORM_ID, login_name);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIFICATION_CODE_EXPIRY_TIME);
+	if(utc_now >= expiry_time){
+		return Response(Msg::ERR_VERIFICATION_CODE_EXPIRED);
+	}
+	const auto &code_expected = account->get_attribute(AccountAttributeIds::ID_VERIFICATION_CODE);
+	if(verification_code != code_expected){
+		LOG_EMPERY_CENTER_DEBUG("Unexpected verification code: expecting ", code_expected, ", got ", verification_code);
+		return Response(Msg::ERR_VERIFICATION_CODE_INCORRECT);
+	}
+
+	const int error_code = set_password(login_name, new_password);
+	if(error_code != Msg::ST_OK){
+		return Response(error_code) <<login_name;
+	}
+
+	return Response();
+}
+
 ACCOUNT_SERVLET("promotion/activate", root, session, params){
 	const auto &login_name = params.at("loginName");
 	const auto &code       = params.at("activationCode");
 
-	const auto account = AccountMap::get_by_login_name(PROMOTION_PLATFORM_ID, login_name);
+	const auto account = AccountMap::get_by_login_name(PLATFORM_ID, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
