@@ -514,8 +514,8 @@ ACCOUNT_SERVLET("promotion/regain", root, session, params){
 	}
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto old_cooldown = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN);
-	if(utc_now < old_cooldown){
-		return Response(Msg::ERR_VERIFICATION_CODE_FLOOD);
+	if(old_cooldown > utc_now){
+		return Response(Msg::ERR_VERIFICATION_CODE_FLOOD) <<(old_cooldown - utc_now);
 	}
 
 	char str[64];
@@ -555,7 +555,7 @@ ACCOUNT_SERVLET("promotion/reset_password", root, session, params){
 	}
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIFICATION_CODE_EXPIRY_TIME);
-	if(utc_now >= expiry_time){
+	if(expiry_time <= utc_now){
 		return Response(Msg::ERR_VERIFICATION_CODE_EXPIRED);
 	}
 	const auto &code_expected = account->get_attribute(AccountAttributeIds::ID_VERIFICATION_CODE);
