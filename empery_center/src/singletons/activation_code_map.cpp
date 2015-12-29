@@ -70,6 +70,7 @@ namespace {
 			}
 			activation_code_map->insert(ActivationCodeElement(std::move(activation_code)));
 		}
+		LOG_EMPERY_CENTER_INFO("Loaded ", activation_code_map->size(), " activation code(s).");
 		g_activation_code_map = activation_code_map;
 		handles.push(activation_code_map);
 
