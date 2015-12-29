@@ -47,6 +47,8 @@ namespace Msg {
 		ERR_ACCELERATION_CARD_APPLIED       = 71336,
 		ERR_CANNOT_DEPLOY_ON_TROOPS         = 71337,
 		ERR_CANNOT_DEPLOY_ON_TERRITORY      = 71338,
+		ERR_NOT_AT_MAP_EDGE                 = 71339,
+		ERR_SWITCHED_CLUSTER                = 71340,
 	};
 }
 

@@ -87,8 +87,8 @@ namespace {
 	Msg::SC_AccountLastLog g_last_log_msg;
 
 	void commit_game_reward(const std::string &login_name, const std::string &nick, std::uint64_t game_auto_id,
-		std::uint64_t gold_coins, boost::uint64_t account_balance,
-		std::uint64_t game_begin_time, boost::uint64_t gold_coins_in_pot, boost::uint64_t account_balance_in_pot)
+		std::uint64_t gold_coins, std::uint64_t account_balance,
+		std::uint64_t game_begin_time, std::uint64_t gold_coins_in_pot, std::uint64_t account_balance_in_pot)
 	{
 		PROFILE_ME;
 		LOG_EMPERY_GOLD_SCRAMBLE_INFO("Commit game reward: login_name = ", login_name, ", game_auto_id = ", game_auto_id,

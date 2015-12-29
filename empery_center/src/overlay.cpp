@@ -66,7 +66,7 @@ std::uint64_t Overlay::get_resource_amount() const {
 	return m_obj->get_resource_amount();
 }
 
-std::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
+std::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, std::uint64_t max_amount, bool saturated){
 	PROFILE_ME;
 
 	const auto cluster_coord = get_cluster_coord();

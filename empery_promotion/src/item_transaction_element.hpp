@@ -39,7 +39,7 @@ public:
 	{
 	}
 	ItemTransactionElement(AccountId account_id, Operation operation, ItemId item_id, std::uint64_t delta_count,
-		Events::ItemChanged::Reason reason, std::uint64_t param1, boost::uint64_t param2, boost::uint64_t param3, std::string remarks)
+		Events::ItemChanged::Reason reason, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3, std::string remarks)
 		: m_account_id(account_id), m_operation(operation), m_item_id(item_id), m_delta_count(delta_count)
 		, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3), m_remarks(std::move(remarks))
 	{

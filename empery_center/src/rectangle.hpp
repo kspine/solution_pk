@@ -17,7 +17,7 @@ public:
 		       (tr.y() >= bl.y()) ? tr.y() : bl.y())
 	{
 	}
-	constexpr Rectangle(std::int64_t l, boost::int64_t b, std::uint64_t w, boost::uint64_t h) noexcept
+	constexpr Rectangle(std::int64_t l, std::int64_t b, std::uint64_t w, std::uint64_t h) noexcept
 		: Rectangle(
 			Coord(l, b),
 			Coord(static_cast<std::int64_t>(static_cast<std::uint64_t>(l) + w),
@@ -25,7 +25,7 @@ public:
 			)
 	{
 	}
-	constexpr Rectangle(const Coord &bl, std::uint64_t w, boost::uint64_t h) noexcept
+	constexpr Rectangle(const Coord &bl, std::uint64_t w, std::uint64_t h) noexcept
 		: Rectangle(bl.x(), bl.y(), w, h)
 	{
 	}

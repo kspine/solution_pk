@@ -96,6 +96,7 @@ namespace {
 			csv.get(elem.best_production_rate, "output_perminute");
 			csv.get(elem.best_capacity,        "resource_max");
 			csv.get(elem.buildable,            "construction");
+			csv.get(elem.passable,             "mobile");
 
 			if(!terrain_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapTerrain: terrain_id = ", elem.terrain_id);

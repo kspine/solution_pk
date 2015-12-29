@@ -120,7 +120,7 @@ namespace {
 		handles.push(info_cache_map);
 	}
 
-	void synchronize_account_and_update_cache(std::uint64_t now, boost::uint64_t cache_timeout,
+	void synchronize_account_and_update_cache(std::uint64_t now, std::uint64_t cache_timeout,
 		const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags) noexcept
 	try {
 		PROFILE_ME;

@@ -21,6 +21,7 @@
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
 #include "../overlay.hpp"
+#include "../map_object_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -70,19 +71,20 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
 	}
+
 	const auto ms_per_cell = static_cast<std::uint64_t>(std::round(1000 / speed));
 
-	auto from_coord = map_object->get_coord();
-	const auto cluster = WorldMap::get_cluster(from_coord);
+	auto old_coord = map_object->get_coord();
+	const auto cluster = WorldMap::get_cluster(old_coord);
 	if(!cluster){
-		LOG_EMPERY_CENTER_DEBUG("No cluster server available: from_coord = ", from_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<from_coord;
+		LOG_EMPERY_CENTER_DEBUG("No cluster server available: old_coord = ", old_coord);
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
 
 	Msg::SK_MapSetAction kreq;
 	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-	kreq.x = from_coord.x();
-	kreq.y = from_coord.y();
+	kreq.x = old_coord.x();
+	kreq.y = old_coord.y();
 	// 撤销当前的路径。
 	auto kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
@@ -90,11 +92,11 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return std::move(kresult);
 	}
 	// 重新计算坐标。
-	from_coord = map_object->get_coord();
-	kreq.x = from_coord.x();
-	kreq.y = from_coord.y();
+	old_coord = map_object->get_coord();
+	kreq.x = old_coord.x();
+	kreq.y = old_coord.y();
 	kreq.waypoints.reserve(req.waypoints.size());
-	auto last_coord = from_coord;
+	auto last_coord = old_coord;
 	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
 		const auto &step = req.waypoints.at(i);
 		if((step.dx < -1) || (step.dx > 1) || (step.dy < -1) || (step.dy > 1)){
@@ -253,17 +255,17 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 			continue;
 		}
 
-		const auto from_coord = map_object->get_coord();
-		const auto cluster = WorldMap::get_cluster(from_coord);
+		const auto old_coord = map_object->get_coord();
+		const auto cluster = WorldMap::get_cluster(old_coord);
 		if(!cluster){
-			LOG_EMPERY_CENTER_WARNING("No cluster server available: from_coord = ", from_coord);
+			LOG_EMPERY_CENTER_WARNING("No cluster server available: old_coord = ", old_coord);
 			continue;
 		}
 
 		Msg::SK_MapSetAction kreq;
 		kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-		kreq.x = from_coord.x();
-		kreq.y = from_coord.y();
+		kreq.x = old_coord.x();
+		kreq.y = old_coord.y();
 		// 撤销当前的路径。
 		const auto kresult = cluster->send_and_wait(kreq);
 		if(kresult.first != Msg::ST_OK){
@@ -307,6 +309,181 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
+	}
+
+	auto old_coord = map_object->get_coord();
+	const auto old_cluster = WorldMap::get_cluster(old_coord);
+	if(!old_cluster){
+		LOG_EMPERY_CENTER_DEBUG("No cluster server available: old_coord = ", old_coord);
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+	}
+
+	Msg::SK_MapSetAction kreq;
+	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
+	kreq.x = old_coord.x();
+	kreq.y = old_coord.y();
+	// 撤销当前的路径。
+	auto kresult = old_cluster->send_and_wait(kreq);
+	if(kresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+		return std::move(kresult);
+	}
+	// 重新计算坐标。
+	old_coord = map_object->get_coord();
+	const auto old_cluster_scope = WorldMap::get_cluster_scope(old_coord);
+
+	const auto border_thickness  = static_cast<unsigned>(Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS));
+	const auto bypassable_blocks = static_cast<unsigned>(Data::Global::as_unsigned(Data::Global::SLOT_MAP_SWITCH_MAX_BYPASSABLE_BLOCKS));
+
+	const auto old_cluster_coord = old_cluster_scope.bottom_left();
+	const auto old_map_x = static_cast<unsigned>(old_coord.x() - old_cluster_coord.x());
+	const auto old_map_y = static_cast<unsigned>(old_coord.y() - old_cluster_coord.y());
+
+	auto new_cluster_coord = old_cluster_coord;
+	auto new_map_x = old_map_x;
+	auto new_map_y = old_map_y;
+
+	int bypass_dx = 0;
+	int bypass_dy = 0;
+	{
+		const auto direction = req.direction % 4;
+		LOG_EMPERY_CENTER_DEBUG("Checking map border: old_coord = ", old_coord, ", direction = ", direction);
+		switch(direction){
+		case 0:  // x+
+			if(old_map_x != old_cluster_scope.width() - border_thickness){
+				LOG_EMPERY_CENTER_DEBUG("> Not at right edge.");
+				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
+			}
+			new_cluster_coord = Coord(old_cluster_coord.x() + static_cast<std::int64_t>(old_cluster_scope.width()),
+			                         old_cluster_coord.y());
+			new_map_x = border_thickness;
+			bypass_dx = 1;
+			break;
+		case 1:  // y+
+			if(old_map_y != old_cluster_scope.height() - border_thickness){
+				LOG_EMPERY_CENTER_DEBUG("> Not at top edge.");
+				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
+			}
+			new_cluster_coord = Coord(old_cluster_coord.x(),
+			                         old_cluster_coord.y() + static_cast<std::int64_t>(old_cluster_scope.height()));
+			new_map_y = border_thickness;
+			bypass_dy = 1;
+			break;
+		case 2:  // x-
+			if(old_map_x != border_thickness){
+				LOG_EMPERY_CENTER_DEBUG("> Not at left edge.");
+				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
+			}
+			new_cluster_coord = Coord(old_cluster_coord.x() - static_cast<std::int64_t>(old_cluster_scope.width()),
+			                         old_cluster_coord.y());
+			new_map_x = old_cluster_scope.width() - border_thickness;
+			bypass_dx = -1;
+			break;
+		default: // y-
+			if(old_map_y != border_thickness){
+				LOG_EMPERY_CENTER_DEBUG("> Not at bottom edge.");
+				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
+			}
+			new_cluster_coord = Coord(old_cluster_coord.x(),
+			                         old_cluster_coord.y() - static_cast<std::int64_t>(old_cluster_scope.height()));
+			new_map_y = old_cluster_scope.height() - border_thickness;
+			bypass_dy = -1;
+			break;
+		}
+	}
+
+	const auto new_cluster = WorldMap::get_cluster(new_cluster_coord);
+	if(!new_cluster){
+		LOG_EMPERY_CENTER_DEBUG("No cluster server available: new_cluster_coord = ", new_cluster_coord);
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_cluster_coord;
+	}
+
+	auto new_coord = Coord(new_cluster_coord.x() + new_map_x, new_cluster_coord.y() + new_map_y);
+
+	unsigned bypass_count = 0;
+	std::pair<long, std::string> result;
+	for(;;){
+		{
+			const auto new_map_cell = WorldMap::get_map_cell(new_coord);
+			if(new_map_cell){
+				const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
+				if(cell_owner_uuid && (account->get_account_uuid() != cell_owner_uuid)){
+					LOG_EMPERY_CENTER_DEBUG("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
+					result = Response(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
+					goto _retry;
+				}
+			}
+
+			const auto cell_data = Data::MapCellBasic::require(new_map_x, new_map_y);
+			const auto terrain_id = cell_data->terrain_id;
+			const auto terrain_data = Data::MapTerrain::require(terrain_id);
+			if(!terrain_data->passable){
+				LOG_EMPERY_CENTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
+				result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
+				goto _retry;
+			}
+
+			std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+			WorldMap::get_map_objects_by_rectangle(adjacent_objects,
+				Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 4, new_coord.y() + 4)));
+			std::vector<Coord> foundation;
+			for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
+				const auto &other_object = *it;
+				const auto other_map_object_uuid = other_object->get_map_object_uuid();
+				const auto other_coord = other_object->get_coord();
+				if(new_coord == other_coord){
+					LOG_EMPERY_CENTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
+					result = Response(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
+					goto _retry;
+				}
+				const auto other_object_type_id = other_object->get_map_object_type_id();
+				if(other_object_type_id != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
+					continue;
+				}
+				foundation.clear();
+				get_castle_foundation(foundation, other_coord, false);
+				for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
+					if(new_coord == *fit){
+						LOG_EMPERY_CENTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
+						result = Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
+						goto _retry;
+					}
+				}
+			}
+		}
+		break;
+
+	_retry:
+		if(bypass_count >= bypassable_blocks){
+			LOG_EMPERY_CENTER_DEBUG("Max bypass block count exceeded. Give up.");
+			return std::move(result);
+		}
+		++bypass_count;
+		new_coord = Coord(new_coord.x() + bypass_dx, new_coord.y() + bypass_dy);
+		LOG_EMPERY_CENTER_DEBUG("Trying next point: new_coord = ", new_coord);
+	}
+
+	map_object->set_coord(new_coord);
+
+	session->send(Msg::SC_MapObjectStopped(map_object_uuid.str(), 0, std::string(), Msg::ERR_SWITCHED_CLUSTER, std::string()));
 
 	return Response();
 }

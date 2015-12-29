@@ -72,13 +72,13 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shar
 		}
 	}
 	// 检测与其他城堡距离。
-	const auto min_distance  = (std::uint32_t)Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES);
+	const auto min_distance  = static_cast<std::uint32_t>(Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES));
 
 	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
-	const auto other_left     = std::max(coord.x() - (min_distance - 1), cluster_scope.left());
-	const auto other_bottom   = std::max(coord.y() - (min_distance - 1), cluster_scope.bottom());
-	const auto other_right    = std::min(coord.x() + (min_distance + 2), cluster_scope.right());
-	const auto other_top      = std::min(coord.y() + (min_distance + 2), cluster_scope.top());
+	const auto other_left    = std::max(coord.x() - (min_distance - 1), cluster_scope.left());
+	const auto other_bottom  = std::max(coord.y() - (min_distance - 1), cluster_scope.bottom());
+	const auto other_right   = std::min(coord.x() + (min_distance + 2), cluster_scope.right());
+	const auto other_top     = std::min(coord.y() + (min_distance + 2), cluster_scope.top());
 	other_map_objects.clear();
 	WorldMap::get_map_objects_by_rectangle(other_map_objects, Rectangle(Coord(other_left, other_bottom), Coord(other_right, other_top)));
 	for(auto it = other_map_objects.begin(); it != other_map_objects.end(); ++it){

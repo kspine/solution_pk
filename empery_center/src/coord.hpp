@@ -12,7 +12,7 @@ private:
 	std::int64_t m_y;
 
 public:
-	constexpr Coord(std::int64_t x, boost::int64_t y) noexcept
+	constexpr Coord(std::int64_t x, std::int64_t y) noexcept
 		: m_x(x), m_y(y)
 	{
 	}

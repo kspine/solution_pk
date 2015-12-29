@@ -21,10 +21,10 @@ namespace Data {
 		std::string overlay_group_name;
 	};
 
-	class MapCellTerrain {
+	class MapTerrain {
 	public:
-		static boost::shared_ptr<const MapCellTerrain> get(TerrainId terrain_id);
-		static boost::shared_ptr<const MapCellTerrain> require(TerrainId terrain_id);
+		static boost::shared_ptr<const MapTerrain> get(TerrainId terrain_id);
+		static boost::shared_ptr<const MapTerrain> require(TerrainId terrain_id);
 
 	public:
 		TerrainId terrain_id;

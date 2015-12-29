@@ -23,7 +23,7 @@ public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(std::uint16_t message_id, ServletCallback callback);
 	static boost::shared_ptr<const ServletCallback> get_servlet(std::uint16_t message_id);
 
-	static boost::shared_ptr<ClusterClient> create(std::int64_t numerical_x, boost::int64_t numerical_y, std::string name);
+	static boost::shared_ptr<ClusterClient> create(std::int64_t numerical_x, std::int64_t numerical_y, std::string name);
 
 private:
 	struct RequestElement {
@@ -53,7 +53,7 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	void on_sync_data_message_header(std::uint16_t message_id, boost::uint64_t payload_size) override;
+	void on_sync_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
 	void on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
 	void on_sync_data_message_end(std::uint64_t payload_size) override;
 

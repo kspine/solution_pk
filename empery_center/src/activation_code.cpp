@@ -5,7 +5,7 @@
 
 namespace EmperyCenter {
 
-ActivationCode::ActivationCode(std::string code, std::uint64_t created_time, boost::uint64_t expiry_time)
+ActivationCode::ActivationCode(std::string code, std::uint64_t created_time, std::uint64_t expiry_time)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_ActivationCode>(

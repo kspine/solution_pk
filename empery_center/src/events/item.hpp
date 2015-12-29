@@ -19,8 +19,8 @@ namespace Events {
 		std::int64_t param3;
 
 		ItemChanged(AccountUuid account_uuid_,
-			ItemId item_id_, std::uint64_t old_count_, boost::uint64_t new_count_,
-			ReasonId reason_, std::int64_t param1_, boost::int64_t param2_, boost::int64_t param3_)
+			ItemId item_id_, std::uint64_t old_count_, std::uint64_t new_count_,
+			ReasonId reason_, std::int64_t param1_, std::int64_t param2_, std::int64_t param3_)
 			: account_uuid(account_uuid_)
 			, item_id(item_id_), old_count(old_count_), new_count(new_count_)
 			, reason(reason_), param1(param1_), param2(param2_), param3(param3_)

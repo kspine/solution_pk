@@ -26,7 +26,7 @@ public:
 		std::int64_t dx;      // 相对坐标 X
 		std::int64_t dy;      // 相对坐标 Y
 
-		Waypoint(std::uint64_t delay_, std::int64_t dx_, boost::int64_t dy_)
+		Waypoint(std::uint64_t delay_, std::int64_t dx_, std::int64_t dy_)
 			: delay(delay_), dx(dx_), dy(dy_)
 		{
 		}
@@ -57,7 +57,7 @@ public:
 
 private:
 	// 返回下一个动作的延迟。如果返回 UINT64_MAX 则当前动作被取消。
-	std::uint64_t pump_action(std::pair<long, std::string> &result, boost::uint64_t now);
+	std::uint64_t pump_action(std::pair<long, std::string> &result, std::uint64_t now);
 
 public:
 	MapObjectUuid get_map_object_uuid() const {

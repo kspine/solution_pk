@@ -51,7 +51,7 @@ namespace {
 }
 
 Announcement::Announcement(AnnouncementUuid announcement_uuid, LanguageId language_id, std::uint64_t created_time,
-	std::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
+	std::uint64_t expiry_time, std::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Announcement>(announcement_uuid.get(), language_id.get(), created_time,
@@ -90,7 +90,7 @@ const std::vector<std::pair<ChatMessageSlotId, std::string>> &Announcement::get_
 	return m_segments;
 }
 
-void Announcement::modify(std::uint64_t expiry_time, boost::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments){
+void Announcement::modify(std::uint64_t expiry_time, std::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments){
 	PROFILE_ME;
 
 	auto str = encode_segments(segments);

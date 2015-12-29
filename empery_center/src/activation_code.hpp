@@ -17,7 +17,7 @@ private:
 	const boost::shared_ptr<MySql::Center_ActivationCode> m_obj;
 
 public:
-	ActivationCode(std::string code, std::uint64_t created_time, boost::uint64_t expiry_time);
+	ActivationCode(std::string code, std::uint64_t created_time, std::uint64_t expiry_time);
 	explicit ActivationCode(boost::shared_ptr<MySql::Center_ActivationCode> obj);
 	~ActivationCode();
 

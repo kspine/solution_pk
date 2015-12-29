@@ -38,8 +38,8 @@ namespace Events {
 		std::uint64_t param3;
 		std::string remarks;
 
-		ItemChanged(AccountId account_id_, ItemId item_id_, std::uint64_t old_count_, boost::uint64_t new_count_,
-			Reason reason_, std::uint64_t param1_, boost::uint64_t param2_, boost::uint64_t param3_, std::string remarks_)
+		ItemChanged(AccountId account_id_, ItemId item_id_, std::uint64_t old_count_, std::uint64_t new_count_,
+			Reason reason_, std::uint64_t param1_, std::uint64_t param2_, std::uint64_t param3_, std::string remarks_)
 			: account_id(account_id_), item_id(item_id_), old_count(old_count_), new_count(new_count_)
 			, reason(reason_), param1(param1_), param2(param2_), param3(param3_), remarks(std::move(remarks_))
 		{

@@ -14,7 +14,7 @@ namespace {
 	boost::weak_ptr<const BasicMap> g_basic_map;
 	const char BASIC_FILE[] = "map";
 
-	MULTI_INDEX_MAP(TerrainMap, Data::MapCellTerrain,
+	MULTI_INDEX_MAP(TerrainMap, Data::MapTerrain,
 		UNIQUE_MEMBER_INDEX(terrain_id)
 	)
 	boost::weak_ptr<const TerrainMap> g_terrain_map;
@@ -47,15 +47,15 @@ namespace {
 		csv = Data::sync_load_data(TERRAIN_FILE);
 		const auto terrain_map = boost::make_shared<TerrainMap>();
 		while(csv.fetch_row()){
-			Data::MapCellTerrain elem = { };
+			Data::MapTerrain elem = { };
 
 			csv.get(elem.terrain_id,       "territory_id");
 
 			csv.get(elem.passable,         "mobile");
 
 			if(!terrain_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapCellTerrain: terrain_id = ", elem.terrain_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapCellTerrain"));
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapTerrain: terrain_id = ", elem.terrain_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapTerrain"));
 			}
 		}
 		g_terrain_map = terrain_map;
@@ -106,28 +106,28 @@ namespace Data {
 		}
 	}
 
-	boost::shared_ptr<const MapCellTerrain> MapCellTerrain::get(TerrainId terrain_id){
+	boost::shared_ptr<const MapTerrain> MapTerrain::get(TerrainId terrain_id){
 		PROFILE_ME;
 
 		const auto terrain_map = g_terrain_map.lock();
 		if(!terrain_map){
-			LOG_EMPERY_CLUSTER_WARNING("MapCellTerrainMap has not been loaded.");
+			LOG_EMPERY_CLUSTER_WARNING("MapTerrainMap has not been loaded.");
 			return { };
 		}
 
 		const auto it = terrain_map->find<0>(terrain_id);
 		if(it == terrain_map->end<0>()){
-			LOG_EMPERY_CLUSTER_DEBUG("MapCellTerrain not found: terrain_id = ", terrain_id);
+			LOG_EMPERY_CLUSTER_DEBUG("MapTerrain not found: terrain_id = ", terrain_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapCellTerrain>(terrain_map, &*it);
+		return boost::shared_ptr<const MapTerrain>(terrain_map, &*it);
 	}
-	boost::shared_ptr<const MapCellTerrain> MapCellTerrain::require(TerrainId terrain_id){
+	boost::shared_ptr<const MapTerrain> MapTerrain::require(TerrainId terrain_id){
 		PROFILE_ME;
 
 		auto ret = get(terrain_id);
 		if(!ret){
-			DEBUG_THROW(Exception, sslit("MapCellTerrain not found"));
+			DEBUG_THROW(Exception, sslit("MapTerrain not found"));
 		}
 		return ret;
 	}

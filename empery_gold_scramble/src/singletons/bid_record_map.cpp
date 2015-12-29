@@ -53,7 +53,7 @@ namespace {
 	}
 }
 
-void BidRecordMap::append(std::string login_name, std::string nick, std::uint64_t gold_coins, boost::uint64_t account_balance){
+void BidRecordMap::append(std::string login_name, std::string nick, std::uint64_t gold_coins, std::uint64_t account_balance){
 	PROFILE_ME;
 
 	auto obj = boost::make_shared<MySql::GoldScramble_BidHistory>(

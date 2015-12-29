@@ -43,6 +43,7 @@ namespace Data {
 		double best_production_rate; // 每分钟产出资源。
 		double best_capacity;
 		bool buildable;
+		bool passable;
 	};
 
 	class MapOverlay {

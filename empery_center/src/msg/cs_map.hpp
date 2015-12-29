@@ -82,6 +82,13 @@ namespace Msg {
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapJumpToAnotherCluster
+#define MESSAGE_ID      309
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (direction)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -65,7 +65,7 @@ std::uint64_t GlobalStatus::get(unsigned slot){
 	}
 	return it->second->get_value();
 }
-std::uint64_t GlobalStatus::set(unsigned slot, boost::uint64_t new_value){
+std::uint64_t GlobalStatus::set(unsigned slot, std::uint64_t new_value){
 	PROFILE_ME;
 
 	auto it = g_status_map->find(slot);
@@ -78,7 +78,7 @@ std::uint64_t GlobalStatus::set(unsigned slot, boost::uint64_t new_value){
 	it->second->set_value(new_value);
 	return old_value;
 }
-std::uint64_t GlobalStatus::fetch_add(unsigned slot, boost::uint64_t delta_value){
+std::uint64_t GlobalStatus::fetch_add(unsigned slot, std::uint64_t delta_value){
 	PROFILE_ME;
 
 	auto it = g_status_map->find(slot);

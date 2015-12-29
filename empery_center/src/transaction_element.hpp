@@ -29,7 +29,7 @@ private:
 
 public:
 	TransactionElement(Operation operation, SomeIdT some_id, std::uint64_t delta_count,
-		ReasonId reason, std::int64_t param1, boost::int64_t param2, boost::int64_t param3)
+		ReasonId reason, std::int64_t param1, std::int64_t param2, std::int64_t param3)
 		: m_operation(operation), m_some_id(some_id), m_delta_count(delta_count)
 		, m_reason(reason), m_param1(param1), m_param2(param2), m_param3(param3)
 	{

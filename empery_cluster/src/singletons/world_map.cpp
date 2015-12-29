@@ -144,12 +144,12 @@ namespace {
 	}
 
 	struct InitServerElement {
-		std::pair<std::int64_t, boost::int64_t> num_coord;
+		std::pair<std::int64_t, std::int64_t> num_coord;
 		std::string name;
 
 		mutable boost::weak_ptr<ClusterClient> cluster;
 
-		InitServerElement(std::int64_t num_x_, boost::int64_t num_y_, std::string name_)
+		InitServerElement(std::int64_t num_x_, std::int64_t num_y_, std::string name_)
 			: num_coord(num_x_, num_y_), name(std::move(name_))
 		{
 		}

@@ -168,7 +168,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, boost::uint64_t max_amount, bool saturated){
+std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, std::uint64_t max_amount, bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();

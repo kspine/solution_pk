@@ -50,7 +50,7 @@ boost::shared_ptr<const ServletCallback> ClusterClient::get_servlet(std::uint16_
 	return servlet;
 }
 
-boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x, boost::int64_t numerical_y, std::string name){
+boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x, std::int64_t numerical_y, std::string name){
 	PROFILE_ME;
 
 	const auto host       = get_config<std::string>    ("cluster_cbpp_client_connect",      "127.0.0.1");
@@ -127,7 +127,7 @@ void ClusterClient::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Client::on_close(err_code);
 }
 
-void ClusterClient::on_sync_data_message_header(std::uint16_t message_id, boost::uint64_t payload_size){
+void ClusterClient::on_sync_data_message_header(std::uint16_t message_id, std::uint64_t payload_size){
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_TRACE("Message header: message_id = ", message_id, ", payload_size = ", payload_size);
 

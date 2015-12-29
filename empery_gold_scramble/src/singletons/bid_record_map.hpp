@@ -17,7 +17,7 @@ struct BidRecordMap {
 		std::uint64_t account_balance;
 	};
 
-	static void append(std::string login_name, std::string nick, std::uint64_t gold_coins, boost::uint64_t account_balance);
+	static void append(std::string login_name, std::string nick, std::uint64_t gold_coins, std::uint64_t account_balance);
 	static std::size_t get_size();
 	static void get_all(std::vector<Record> &ret, std::size_t limit);
 	static void clear() noexcept;

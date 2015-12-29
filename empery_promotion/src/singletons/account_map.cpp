@@ -222,7 +222,7 @@ AccountMap::AccountInfo AccountMap::require(AccountId account_id){
 std::uint64_t AccountMap::get_count(){
 	return g_account_map->size();
 }
-void AccountMap::get_all(std::vector<AccountMap::AccountInfo> &ret, std::uint64_t begin, boost::uint64_t max){
+void AccountMap::get_all(std::vector<AccountMap::AccountInfo> &ret, std::uint64_t begin, std::uint64_t max){
 	PROFILE_ME;
 
 	const auto size = g_account_map->size();

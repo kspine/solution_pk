@@ -53,7 +53,7 @@ struct AccountMap {
 	static AccountInfo require(AccountId account_id);
 
 	static std::uint64_t get_count();
-	static void get_all(std::vector<AccountInfo> &ret, std::uint64_t begin = 0, boost::uint64_t max = (boost::uint64_t)-1);
+	static void get_all(std::vector<AccountInfo> &ret, std::uint64_t begin = 0, std::uint64_t max = (std::uint64_t)-1);
 
 	static AccountInfo get_by_login_name(const std::string &login_name);
 

@@ -38,7 +38,7 @@ namespace {
 				continue;
 			}
 
-			boost::container::flat_map<std::uint64_t, boost::uint64_t> subordinate_level_counts;
+			boost::container::flat_map<std::uint64_t, std::uint64_t> subordinate_level_counts;
 			subordinate_level_counts.reserve(32);
 			{
 				std::vector<AccountMap::AccountInfo> subordinates;
@@ -358,7 +358,7 @@ void commit_first_balance_bonus(){
 		}
 	}
 }
-void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uint64_t amount, boost::uint64_t upgrade_to_level){
+void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uint64_t amount, std::uint64_t upgrade_to_level){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();

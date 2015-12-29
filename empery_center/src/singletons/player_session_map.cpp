@@ -36,7 +36,7 @@ namespace {
 
 	using SessionIterator = typename std::decay<decltype(g_session_map->begin<1>())>::type;
 
-	SessionIterator really_erase_session(SessionIterator it, std::uint64_t now, boost::uint64_t utc_now){
+	SessionIterator really_erase_session(SessionIterator it, std::uint64_t now, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto account         = it->account;

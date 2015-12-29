@@ -33,7 +33,7 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::~MapObject(){
 }
 
-std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boost::uint64_t /* now */){
+std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::uint64_t /* now */){
 	PROFILE_ME;
 
 	const auto map_object_uuid = get_map_object_uuid();
@@ -63,12 +63,13 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boost
 			result = Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_coord;
 			return UINT64_MAX;
 		}
-		const auto new_scope = WorldMap::get_cluster_scope(new_coord);
-		const auto map_x = static_cast<unsigned>(new_coord.x() - new_scope.left());
-		const auto map_y = static_cast<unsigned>(new_coord.y() - new_scope.bottom());
+
+		const auto new_cluster_scope = WorldMap::get_cluster_scope(new_coord);
+		const auto map_x = static_cast<unsigned>(new_coord.x() - new_cluster_scope.left());
+		const auto map_y = static_cast<unsigned>(new_coord.y() - new_cluster_scope.bottom());
 		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
 		const auto terrain_id = cell_data->terrain_id;
-		const auto terrain_data = Data::MapCellTerrain::require(terrain_id);
+		const auto terrain_data = Data::MapTerrain::require(terrain_id);
 		if(!terrain_data->passable){
 			LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
 			result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
@@ -77,7 +78,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, boost
 
 		std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
 		WorldMap::get_map_objects_by_rectangle(adjacent_objects,
-			Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 3, new_coord.y() + 3)));
+			Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 4, new_coord.y() + 4)));
 		std::vector<Coord> foundation;
 		for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
 			const auto &other_object = *it;
