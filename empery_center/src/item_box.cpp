@@ -196,7 +196,7 @@ namespace {
 					}
 					const auto tax_amount = static_cast<std::uint64_t>(std::round(my_dividend * (*tit)));
 					Poseidon::enqueue_async_job(
-						std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_INCOME_TAX, tax_amount, account),
+						std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_INCOME_TAX, tax_amount, referrer),
 						{ }, withdrawn);
 					++tit;
 				}
@@ -211,7 +211,7 @@ namespace {
 					}
 					const auto extra_amount = static_cast<std::uint64_t>(std::round(dividend_total * (*eit)));
 					Poseidon::enqueue_async_job(
-						std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_LEVEL_BONUS_EXTRA, extra_amount, account),
+						std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_LEVEL_BONUS_EXTRA, extra_amount, referrer),
 						{ }, withdrawn);
 					++eit;
 				}
