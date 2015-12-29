@@ -533,10 +533,13 @@ ACCOUNT_SERVLET("promotion/regain", root, session, params){
 	modifiers.reserve(3);
 	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE,             verification_code);
 	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE_EXPIRY_TIME, expiry_time);
-	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN,    std::move(cooldown));
+	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN,    cooldown);
 	account->set_attributes(std::move(modifiers));
 
 	send_verification_code(login_name, verification_code, expiry_duration);
+
+	root[sslit("verificationCodeExpiryDuration")] = expiry_time;
+	root[sslit("verificationCodeCoolDown")]       = cooldown;
 
 	return Response();
 }
