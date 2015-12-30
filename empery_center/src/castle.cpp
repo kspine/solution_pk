@@ -199,13 +199,17 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 			Data::CastleBuildingBase::get_init(init_buildings);
 			for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
 				const auto &building_data = *dit;
-				const auto &buildings_allowed = building_data->buildings_allowed;
+				auto buildings_allowed = building_data->buildings_allowed;
+				for(auto tit = buildings.begin(); tit != buildings.end(); ++tit){
+					const auto &obj = tit->second;
+					const auto building_id = BuildingId(obj->get_building_id());
+					buildings_allowed.erase(building_id);
+				}
 				if(buildings_allowed.empty()){
 					continue;
 				}
-				auto it = buildings_allowed.begin();
-				it += static_cast<std::ptrdiff_t>(Poseidon::rand32() % buildings_allowed.size());
-				const auto building_id = *it;
+				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % buildings_allowed.size());
+				const auto building_id = buildings_allowed.begin()[index];
 				const auto init_level = building_data->init_level;
 
 				const auto building_base_id = building_data->building_base_id;
