@@ -34,6 +34,13 @@ namespace Msg {
 	FIELD_VUINT         (repeat_count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ItemBuyAccelerationCards
+#define MESSAGE_ID      504
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (use_gold)	\
+	FIELD_VUINT         (repeat_count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

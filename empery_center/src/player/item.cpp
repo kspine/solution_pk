@@ -7,6 +7,9 @@
 #include "../item_box.hpp"
 #include "../data/item.hpp"
 #include "../transaction_element.hpp"
+#include "../item_ids.hpp"
+#include "../reason_ids.hpp"
+#include "../data/global.hpp"
 
 namespace EmperyCenter {
 
@@ -86,6 +89,33 @@ PLAYER_SERVLET(Msg::CS_ItemUseItem, account, session, req){
 
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	item_box->pump_status();
+
+	const auto repeat_count = req.repeat_count;
+	if(repeat_count == 0){
+		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
+	}
+	auto item_id = ItemIds::ID_DIAMONDS;
+	if(req.use_gold != 0){
+		item_id = ItemIds::ID_GOLD;
+	}
+
+	const auto unit_price = Data::Global::as_unsigned(Data::Global::SLOT_ACCELERATION_CARD_UNIT_PRICE);
+	const auto items_consumed = checked_mul(repeat_count, unit_price);
+
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, items_consumed,
+		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;

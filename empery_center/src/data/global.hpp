@@ -36,6 +36,7 @@ namespace Data {
 			SLOT_MAX_CONCURRENT_UPGRADING_TECH_COUNT        = 100024,
 			SLOT_MAP_BORDER_THICKNESS                       = 100025,
 			SLOT_MAP_SWITCH_MAX_BYPASSABLE_BLOCKS           = 100026,
+			SLOT_ACCELERATION_CARD_UNIT_PRICE               = 100027,
 		};
 
 	public:

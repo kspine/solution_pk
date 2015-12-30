@@ -30,19 +30,18 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account, session, req){
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
-	const auto mail_uuid = MailUuid(req.mail_uuid);
-	auto info = mail_box->get(mail_uuid);
-	if(info.expiry_time == 0){
-		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
-	}
-	const auto language_id = LanguageId(req.language_id);
-	const auto mail_data = MailBoxMap::get_mail_data(mail_uuid, language_id);
-	if(!mail_data){
-		LOG_EMPERY_CENTER_DEBUG("Mail data not found: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
-		return Response(Msg::ERR_NO_SUCH_LANGUAGE_ID) <<mail_uuid;
-	}
+	for(auto it = req.mails.begin(); it != req.mails.end(); ++it){
+		const auto mail_uuid = MailUuid(it->mail_uuid);
 
-	synchronize_mail_data_with_player(mail_data, session);
+		const auto language_id = LanguageId(it->language_id);
+		const auto mail_data = MailBoxMap::get_mail_data(mail_uuid, language_id);
+		if(!mail_data){
+			LOG_EMPERY_CENTER_DEBUG("Mail data not found: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+			continue;
+		}
+
+		synchronize_mail_data_with_player(mail_data, session);
+	}
 
 	return Response();
 }

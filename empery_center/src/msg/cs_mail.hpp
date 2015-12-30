@@ -16,8 +16,10 @@ namespace Msg {
 #define MESSAGE_NAME    CS_MailGetMailData
 #define MESSAGE_ID      601
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (mail_uuid)	\
-	FIELD_VUINT         (language_id)
+	FIELD_ARRAY         (mails,	\
+		FIELD_STRING        (mail_uuid)	\
+		FIELD_VUINT         (language_id)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_MailWriteToAccount
