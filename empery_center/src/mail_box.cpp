@@ -193,7 +193,7 @@ bool MailBox::remove(MailUuid mail_uuid) noexcept {
 		return false;
 	}
 	const auto obj = std::move(it->second);
-	m_mails.erase(it);
+	// m_mails.erase(it);
 
 	// const auto utc_now = Poseidon::get_utc_time();
 
