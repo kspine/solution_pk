@@ -192,10 +192,12 @@ bool MailBox::remove(MailUuid mail_uuid) noexcept {
 	if(it == m_mails.end()){
 		return false;
 	}
-	const auto obj = std::move(it->second);
+	// 为系统邮件保留一个标记，这里使用懒惰删除策略，因此不在这里删除，而在 pump_status() 里删除。
+	const auto &obj = it->second;
+	// const auto obj = std::move(it->second);
 	// m_mails.erase(it);
 
-	// const auto utc_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
 
 	obj->set_expiry_time(0);
 
@@ -203,8 +205,7 @@ bool MailBox::remove(MailUuid mail_uuid) noexcept {
 	if(session){
 		try {
 			Msg::SC_MailChanged msg;
-			// fill_mail_message(msg, obj, utc_now);
-			msg.mail_uuid = mail_uuid.str();
+			fill_mail_message(msg, obj, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
