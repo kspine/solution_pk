@@ -199,17 +199,40 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 			Data::CastleBuildingBase::get_init(init_buildings);
 			for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
 				const auto &building_data = *dit;
-				auto buildings_allowed = building_data->buildings_allowed;
+
+				const auto &buildings_allowed = building_data->buildings_allowed;
+				boost::container::flat_map<BuildingId, unsigned> random_buildings;
+				random_buildings.reserve(buildings_allowed.size());
+				for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
+					const auto building_id = *it;
+					random_buildings.emplace(building_id, 0);
+				}
 				for(auto tit = buildings.begin(); tit != buildings.end(); ++tit){
 					const auto &obj = tit->second;
 					const auto building_id = BuildingId(obj->get_building_id());
-					buildings_allowed.erase(building_id);
+					const auto it = random_buildings.find(building_id);
+					if(it == random_buildings.end()){
+						continue;
+					}
+					it->second += 1;
 				}
-				if(buildings_allowed.empty()){
+				auto it = random_buildings.begin();
+				while(it != random_buildings.end()){
+					const auto random_building_data = Data::CastleBuilding::require(it->first);
+					if(it->second >= random_building_data->build_limit){
+						LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
+							", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
+						it = random_buildings.erase(it);
+					} else {
+						++it;
+					}
+				}
+				if(random_buildings.empty()){
 					continue;
 				}
-				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % buildings_allowed.size());
-				const auto building_id = buildings_allowed.begin()[index];
+				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
+				it = random_buildings.begin() + index;
+				const auto building_id = it->first;
 				const auto init_level = building_data->init_level;
 
 				const auto building_base_id = building_data->building_base_id;
