@@ -68,22 +68,24 @@ void MailBox::pump_status(){
 	{
 		auto it = m_mails.begin();
 		while(it != m_mails.end()){
-			bool erase_mail = true;
-			if(utc_now < it->second->get_expiry_time()){
-				erase_mail = false;
-			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_SYSTEM)){
-				erase_mail = false;
-			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_READ)){
-				erase_mail = false;
-			} else if(Poseidon::has_none_flags_of(it->second->get_flags(), FL_ATTACHMENTS_FETCHED)){
-				erase_mail = false;
+			const auto &obj = it->second;
+			if(Poseidon::has_any_flags_of(obj->get_flags(), FL_SYSTEM)){
+				goto _dont_erase;
 			}
-			if(erase_mail){
-				LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
-				it = m_mails.erase(it);
-			} else {
-				++it;
+			if(utc_now < obj->get_expiry_time()){
+				goto _dont_erase;
 			}
+			if(Poseidon::has_none_flags_of(obj->get_flags(), FL_READ)){
+				goto _dont_erase;
+			}
+			if(Poseidon::has_none_flags_of(obj->get_flags(), FL_ATTACHMENTS_FETCHED)){
+				goto _dont_erase;
+			}
+			LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
+			it = m_mails.erase(it);
+			continue;
+		_dont_erase:
+			++it;
 		}
 	}
 }
@@ -192,10 +194,11 @@ bool MailBox::remove(MailUuid mail_uuid) noexcept {
 	if(it == m_mails.end()){
 		return false;
 	}
-	// 为系统邮件保留一个标记，这里使用懒惰删除策略，因此不在这里删除，而在 pump_status() 里删除。
-	const auto &obj = it->second;
-	// const auto obj = std::move(it->second);
-	// m_mails.erase(it);
+	const auto obj = it->second;
+	// 为系统邮件保留一个标记。
+	if(Poseidon::has_none_flags_of(obj->get_flags(), FL_SYSTEM)){
+		m_mails.erase(it);
+	}
 
 	const auto utc_now = Poseidon::get_utc_time();
 
