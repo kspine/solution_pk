@@ -453,6 +453,7 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 		return Response(error_code) <<login_name;
 	}
 	if(!account){
+		LOG_EMPERY_CENTER_ERROR("Null account pointer! login_name = ", login_name);
 		DEBUG_THROW(Exception, sslit("Null account pointer"));
 	}
 	const auto utc_now = Poseidon::get_utc_time();
@@ -481,6 +482,7 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 		return Response(error_code) <<login_name;
 	}
 	if(!account){
+		LOG_EMPERY_CENTER_ERROR("Null account pointer! login_name = ", login_name);
 		DEBUG_THROW(Exception, sslit("Null account pointer"));
 	}
 	if(old_token.empty()){
@@ -508,9 +510,14 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 ACCOUNT_SERVLET("promotion/regain", root, session, params){
 	const auto &login_name = params.at("loginName");
 
-	const auto account = AccountMap::get_by_login_name(PLATFORM_ID, login_name);
+	boost::shared_ptr<Account> account;
+	const auto error_code = check_login_backtrace(account, login_name, std::string(), session->get_remote_info().ip.get());
+	if((error_code != Msg::ST_OK) && (error_code != Msg::ERR_INVALID_PASSWORD)){
+		return Response(error_code) <<login_name;
+	}
 	if(!account){
-		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
+		LOG_EMPERY_CENTER_ERROR("Null account pointer! login_name = ", login_name);
+		DEBUG_THROW(Exception, sslit("Null account pointer"));
 	}
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto old_cooldown = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN);
