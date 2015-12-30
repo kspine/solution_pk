@@ -116,7 +116,7 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, items_consumed,
 		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, { }, true); // 不计算税收。
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
