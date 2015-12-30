@@ -225,6 +225,10 @@ void MailBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_mails.begin(); it != m_mails.end(); ++it){
+		const auto &obj = it->second;
+		if(utc_now >= obj->get_expiry_time()){
+			continue;
+		}
 		Msg::SC_MailChanged msg;
 		fill_mail_message(msg, it->second, utc_now);
 		session->send(msg);
