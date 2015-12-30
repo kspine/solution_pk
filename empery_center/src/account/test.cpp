@@ -9,6 +9,8 @@
 #include "../account_attribute_ids.hpp"
 #include "../checked_arithmetic.hpp"
 
+#if 0
+
 namespace EmperyCenter {
 
 constexpr auto PLATFORM_ID = PlatformId(7800);
@@ -174,3 +176,5 @@ ACCOUNT_SERVLET("test/activate", root, session, params){
 }
 
 }
+
+#endif
