@@ -368,7 +368,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 		LOG_EMPERY_CENTER_DEBUG("Checking map border: old_coord = ", old_coord, ", direction = ", direction);
 		switch(direction){
 		case 0:  // x+
-			if(old_map_x != old_cluster_scope.width() - border_thickness){
+			if(old_map_x != old_cluster_scope.width() - border_thickness - 1){
 				LOG_EMPERY_CENTER_DEBUG("> Not at right edge.");
 				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
 			}
@@ -378,7 +378,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 			bypass_dx = 1;
 			break;
 		case 1:  // y+
-			if(old_map_y != old_cluster_scope.height() - border_thickness){
+			if(old_map_y != old_cluster_scope.height() - border_thickness - 1){
 				LOG_EMPERY_CENTER_DEBUG("> Not at top edge.");
 				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
 			}
@@ -394,7 +394,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 			}
 			new_cluster_coord = Coord(old_cluster_coord.x() - static_cast<std::int64_t>(old_cluster_scope.width()),
 			                         old_cluster_coord.y());
-			new_map_x = old_cluster_scope.width() - border_thickness;
+			new_map_x = old_cluster_scope.width() - border_thickness - 1;
 			bypass_dx = -1;
 			break;
 		default: // y-
@@ -404,7 +404,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 			}
 			new_cluster_coord = Coord(old_cluster_coord.x(),
 			                         old_cluster_coord.y() - static_cast<std::int64_t>(old_cluster_scope.height()));
-			new_map_y = old_cluster_scope.height() - border_thickness;
+			new_map_y = old_cluster_scope.height() - border_thickness - 1;
 			bypass_dy = -1;
 			break;
 		}
