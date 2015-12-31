@@ -36,6 +36,7 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 		info.account_id, ip));
 
 	ret[sslit("level")] = boost::lexical_cast<std::string>(info.level);
+	ret[sslit("nick")] = std::move(info.nick);
 
 	Poseidon::JsonArray referrers;
 	auto referrer_id = info.referrer_id;
@@ -45,6 +46,7 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 		Poseidon::JsonObject elem;
 		elem[sslit("loginName")] = std::move(referrer_info.login_name);
 		elem[sslit("level")] = boost::lexical_cast<std::string>(referrer_info.level);
+		elem[sslit("nick")] = std::move(referrer_info.nick);
 		referrers.emplace_back(std::move(elem));
 
 		referrer_id = referrer_info.referrer_id;

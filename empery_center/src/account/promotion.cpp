@@ -227,15 +227,19 @@ namespace {
 
 			AccountUuid referrer_uuid;
 
-			const auto create_or_update_account = [&](const std::string &cur_login_name, unsigned cur_level){
-				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name, ", cur_level = ", cur_level);
+			const auto create_or_update_account = [&](
+				const std::string &cur_login_name, unsigned cur_level, const std::string &cur_nick)
+			{
+				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
+					", cur_level = ", cur_level, ", cur_nick = ", cur_nick);
 				auto account = AccountMap::get_by_login_name(PLATFORM_ID, cur_login_name);
 				if(!account){
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 					const auto utc_now = Poseidon::get_utc_time();
-					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid, ", cur_login_name = ", cur_login_name);
+					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid,
+						", cur_login_name = ", cur_login_name);
 					account = boost::make_shared<Account>(account_uuid, PLATFORM_ID, cur_login_name,
-						referrer_uuid, cur_level, utc_now, cur_login_name);
+						referrer_uuid, cur_level, utc_now, cur_nick);
 					AccountMap::insert(account, ip); // XXX use real ip
 				} else {
 					account->set_promotion_level(cur_level);
@@ -250,13 +254,15 @@ namespace {
 				const auto &referrer_login_name = elem.at(sslit("loginName")).get<std::string>();
 				const auto &referrer_level_str = elem.at(sslit("level")).get<std::string>();
 				const unsigned referrer_level = g_level_config.at(referrer_level_str);
+				const auto &referrer_nick = elem.at(sslit("nick")).get<std::string>();
 
-				create_or_update_account(referrer_login_name, referrer_level);
+				create_or_update_account(referrer_login_name, referrer_level, referrer_nick);
 			}
 
-			const auto level_str = response_object.at(sslit("level")).get<std::string>();
+			const auto &level_str = response_object.at(sslit("level")).get<std::string>();
 			const unsigned level = g_level_config.at(level_str);
-			new_account = create_or_update_account(login_name, level);
+			const auto &nick = response_object.at(sslit("nick")).get<std::string>();
+			new_account = create_or_update_account(login_name, level, nick);
 		}
 		return error_code;
 	}
