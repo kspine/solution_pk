@@ -1236,9 +1236,11 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle(
 	if(it != clusters.end()){
 		goto _use_hint;
 	}
+	LOG_EMPERY_CENTER_DEBUG("Number of cluster servers: ", clusters.size());
 	while(!clusters.empty()){
 		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, clusters.size()));
 _use_hint:
+		LOG_EMPERY_CENTER_DEBUG("Trying cluster server: cluster_coord = ", it->first);
 		auto castle = create_init_castle_restricted(factory, it->first);
 		if(castle){
 			LOG_EMPERY_CENTER_INFO("Init castle created successfully: map_object_uuid = ", castle->get_map_object_uuid(),
