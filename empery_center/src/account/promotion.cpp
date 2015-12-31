@@ -25,8 +25,6 @@
 
 namespace EmperyCenter {
 
-constexpr auto PLATFORM_ID = PlatformId(8500);
-
 namespace {
 	class SimpleHttpClient : public Poseidon::Http::Client {
 	private:
@@ -116,6 +114,8 @@ namespace {
 		}
 	};
 
+	PlatformId  g_platform_id    = PlatformId(8500);
+
 	std::string g_server_host    = "localhost";
 	unsigned    g_server_port    = 6121;
 	bool        g_server_use_ssl = false;
@@ -133,6 +133,8 @@ namespace {
 	std::string g_sms_charset    = "UTF-8";
 
 	MODULE_RAII_PRIORITY(/* handles */, 1000){
+		get_config(g_platform_id,    "promotion_platform_id");
+
 		get_config(g_server_host,    "promotion_server_host");
 		get_config(g_server_port,    "promotion_server_port");
 		get_config(g_server_use_ssl, "promotion_server_use_ssl");
@@ -232,13 +234,13 @@ namespace {
 			{
 				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
 					", cur_level = ", cur_level, ", cur_nick = ", cur_nick);
-				auto account = AccountMap::get_by_login_name(PLATFORM_ID, cur_login_name);
+				auto account = AccountMap::get_by_login_name(g_platform_id, cur_login_name);
 				if(!account){
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 					const auto utc_now = Poseidon::get_utc_time();
 					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid,
 						", cur_login_name = ", cur_login_name);
-					account = boost::make_shared<Account>(account_uuid, PLATFORM_ID, cur_login_name,
+					account = boost::make_shared<Account>(account_uuid, g_platform_id, cur_login_name,
 						referrer_uuid, cur_level, utc_now, cur_nick);
 					AccountMap::insert(account, ip); // XXX use real ip
 				} else {
@@ -562,7 +564,7 @@ ACCOUNT_SERVLET("promotion/reset_password", root, session, params){
 	const auto &verification_code = params.at("verificationCode");
 	const auto &new_password      = params.at("newPassword");
 
-	const auto account = AccountMap::get_by_login_name(PLATFORM_ID, login_name);
+	const auto account = AccountMap::get_by_login_name(g_platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -589,7 +591,7 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 	const auto &login_name = params.at("loginName");
 	const auto &code       = params.at("activationCode");
 
-	const auto account = AccountMap::get_by_login_name(PLATFORM_ID, login_name);
+	const auto account = AccountMap::get_by_login_name(g_platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}

@@ -13,7 +13,13 @@
 
 namespace EmperyCenter {
 
-constexpr auto PLATFORM_ID = PlatformId(7800);
+namespace {
+	PlatformId  g_platform_id    = PlatformId(7800);
+
+	MODULE_RAII_PRIORITY(/* handles */, 1000){
+		get_config(g_platform_id,    "test_platform_id");
+	}
+}
 
 ACCOUNT_SERVLET("test/check_login", root, session, params){
 	const auto &login_name = params.at("loginName");
