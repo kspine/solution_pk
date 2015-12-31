@@ -9,7 +9,7 @@
 #include "../account_attribute_ids.hpp"
 #include "../checked_arithmetic.hpp"
 
-#if 1
+#if 0
 
 namespace EmperyCenter {
 
