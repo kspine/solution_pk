@@ -915,35 +915,40 @@ void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<Playe
 		return;
 	}
 
+	boost::container::flat_set<boost::shared_ptr<PlayerSession>> temp;
+
 	auto temp_sector_coord = get_sector_coord_from_world_coord(Coord(rectangle.left(), rectangle.bottom()));
-	const auto x_begin = temp_sector_coord.x();
-	const auto y_begin = temp_sector_coord.y();
+	const auto sector_x_begin = temp_sector_coord.x();
+	const auto sector_y_begin = temp_sector_coord.y();
 
 	temp_sector_coord = get_sector_coord_from_world_coord(Coord(rectangle.right() - 1, rectangle.top() - 1));
-	const auto x_end = temp_sector_coord.x() + 1;
-	const auto y_end = temp_sector_coord.y() + 1;
+	const auto sector_x_end = temp_sector_coord.x() + 1;
+	const auto sector_y_end = temp_sector_coord.y() + 1;
 
-	for(auto y = y_begin; y < y_end; ++y){
-		for(auto x = x_begin; x < x_end; ++x){
-			const auto sector_coord = Coord(x, y);
+	for(auto sector_y = sector_y_begin; sector_y < sector_y_end; ++sector_y){
+		for(auto sector_x = sector_x_begin; sector_x < sector_x_end; ++sector_x){
+			const auto sector_coord = Coord(sector_x, sector_y);
 			const auto range = player_view_map->equal_range<1>(sector_coord);
-			ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-			auto view_it = range.first;
-			while(view_it != range.second){
-				auto session = view_it->session.lock();
+			temp.reserve(temp.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+			for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
+				auto session = it->session.lock();
 				if(!session){
-					view_it = player_view_map->erase<1>(view_it);
+					player_view_map->erase<1>(it);
 					continue;
 				}
-				const auto &view = view_it->view;
+				const auto &view = it->view;
 				if((view.left() < rectangle.right()) && (rectangle.left() < view.right()) &&
 					(view.bottom() < rectangle.top()) && (rectangle.bottom() < view.top()))
 				{
-					ret.emplace_back(std::move(session));
+					temp.emplace(std::move(session));
 				}
-				++view_it;
 			}
 		}
+	}
+
+	ret.reserve(ret.size() + temp.size());
+	for(auto it = temp.begin(); it != temp.end(); ++it){
+		ret.emplace_back(*it);
 	}
 }
 void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &session){
