@@ -58,7 +58,11 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AccountHttpSession::predi
 	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
 {
 	Poseidon::OptionalMap headers;
-	headers.set(sslit("Access-Control-Allow-Origin"), "*");
+	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
+	headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
+	if(request_headers.verb == Poseidon::Http::V_OPTIONS){
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_OK, std::move(headers));
+	}
 	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 
 	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
