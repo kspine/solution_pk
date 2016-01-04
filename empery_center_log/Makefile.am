@@ -16,8 +16,9 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-center-log.la
 
 lib_libposeidon_empery_center_log_la_SOURCES = \
-	src/singletons/account_created.cpp	\
-	src/singletons/account_logged_in.cpp	\
-	src/singletons/item_changed.cpp	\
-	src/singletons/resource_changed.cpp	\
+	src/handlers/account_created.cpp	\
+	src/handlers/account_logged_in.cpp	\
+	src/handlers/account_logged_out.cpp	\
+	src/handlers/item_changed.cpp	\
+	src/handlers/resource_changed.cpp	\
 	src/mmain.cpp
