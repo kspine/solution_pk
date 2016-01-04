@@ -10,6 +10,8 @@
 #include "../item_ids.hpp"
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
+#include "../singletons/simple_http_client_daemon.hpp"
+#include <poseidon/singletons/job_dispatcher.hpp>
 
 namespace EmperyCenter {
 
@@ -97,6 +99,22 @@ PLAYER_SERVLET(Msg::CS_ItemUseItem, account, session, req){
 	return Response();
 }
 
+namespace {
+	std::string g_promotion_host    = "localhost";
+	unsigned    g_promotion_port    = 6121;
+	bool        g_promotion_use_ssl = false;
+	std::string g_promotion_auth    = { };
+	std::string g_promotion_path    = { };
+
+	MODULE_RAII_PRIORITY(/* handles */, 1000){
+		get_config(g_promotion_host,    "promotion_server_host");
+		get_config(g_promotion_port,    "promotion_server_port");
+		get_config(g_promotion_use_ssl, "promotion_server_use_ssl");
+		get_config(g_promotion_auth,    "promotion_server_auth_user_pass");
+		get_config(g_promotion_path,    "promotion_server_path");
+	}
+}
+
 PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	item_box->pump_status();
@@ -111,15 +129,34 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 	}
 
 	const auto unit_price = Data::Global::as_unsigned(Data::Global::SLOT_ACCELERATION_CARD_UNIT_PRICE);
-	const auto items_consumed = checked_mul(repeat_count, unit_price);
+	const auto currency_consumed = checked_mul(repeat_count, unit_price);
+
+	boost::shared_ptr<const Poseidon::JobPromise> promise;
+	boost::shared_ptr<Poseidon::StreamBuffer> entity;
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, items_consumed,
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, currency_consumed,
 		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, { }, true); // 不计算税收。
+	transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, repeat_count,
+		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+		[&]{
+			Poseidon::OptionalMap get_params;
+			get_params.set(sslit("loginName"),        account->get_login_name());
+			get_params.set(sslit("currencyConsumed"), boost::lexical_cast<std::string>(currency_consumed));
+			get_params.set(sslit("cardsBought"),      boost::lexical_cast<std::string>(repeat_count));
+
+			entity = boost::make_shared<Poseidon::StreamBuffer>();
+			promise = SimpleHttpClientDaemon::async_request(entity, g_promotion_host, g_promotion_port, g_promotion_use_ssl,
+				Poseidon::Http::V_GET, g_promotion_path + "/", std::move(get_params), g_promotion_auth);
+		}, true); // 不计算税收。
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
+
+	Poseidon::JobDispatcher::yield(promise); // 等待……
+	// promise->check_and_rethrow(); // 但是忽略所有错误。
+	LOG_EMPERY_CENTER_INFO("Received response from promotion server: entity = ", entity->dump());
 
 	return Response();
 }

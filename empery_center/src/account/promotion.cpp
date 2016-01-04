@@ -1,21 +1,14 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
-#include <poseidon/singletons/dns_daemon.hpp>
-#include <poseidon/singletons/job_dispatcher.hpp>
-#include <poseidon/sock_addr.hpp>
-#include <poseidon/job_promise.hpp>
-#include <poseidon/http/client.hpp>
-#include <poseidon/http/status_codes.hpp>
-#include <poseidon/http/exception.hpp>
-#include <poseidon/http/utilities.hpp>
 #include <poseidon/json.hpp>
 #include <poseidon/csv_parser.hpp>
-#include <poseidon/async_job.hpp>
+#include <poseidon/http/utilities.hpp>
 #include <boost/container/flat_map.hpp>
 #include <iconv.h>
 #include "../msg/err_account.hpp"
 #include "../../../empery_promotion/src/msg/err_account.hpp"
 #include "../singletons/account_map.hpp"
+#include "../singletons/simple_http_client_daemon.hpp"
 #include "../account.hpp"
 #include "../checked_arithmetic.hpp"
 #include "../singletons/activation_code_map.hpp"
@@ -26,94 +19,6 @@
 namespace EmperyCenter {
 
 namespace {
-	class SimpleHttpClient : public Poseidon::Http::Client {
-	private:
-		const boost::shared_ptr<Poseidon::JobPromise> m_promise;
-
-		Poseidon::Http::ResponseHeaders m_headers;
-		Poseidon::StreamBuffer m_entity;
-
-	public:
-		SimpleHttpClient(const Poseidon::SockAddr &addr, bool use_ssl, boost::shared_ptr<Poseidon::JobPromise> promise)
-			: Poseidon::Http::Client(addr, use_ssl)
-			, m_promise(std::move(promise))
-			, m_headers(), m_entity()
-		{
-		}
-		~SimpleHttpClient(){
-		}
-
-	protected:
-		void on_close(int err_code) noexcept override {
-			PROFILE_ME;
-
-			try {
-				Poseidon::enqueue_async_job(
-					boost::weak_ptr<void>(virtual_weak_from_this<SimpleHttpClient>()),
-					std::bind(
-						[](const boost::shared_ptr<Poseidon::JobPromise> &promise){
-							if(!promise->is_satisfied()){
-								promise->set_exception(boost::copy_exception(std::runtime_error("Lost connection to remote server")));
-							}
-						},
-						m_promise
-					)
-				);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-			}
-
-			Poseidon::Http::Client::on_close(err_code);
-		}
-
-		void on_sync_response_headers(Poseidon::Http::ResponseHeaders response_headers,
-			std::string /* transfer_encoding */, std::uint64_t /* content_length */) override
-		{
-			PROFILE_ME;
-
-			m_headers = std::move(response_headers);
-		}
-		void on_sync_response_entity(std::uint64_t /* entity_offset */, bool /* is_chunked */, Poseidon::StreamBuffer entity) override {
-			PROFILE_ME;
-
-			m_entity.splice(entity);
-		}
-		void on_sync_response_end(std::uint64_t /* content_length */, bool /* is_chunked */, Poseidon::OptionalMap /* headers */) override {
-			PROFILE_ME;
-
-			LOG_EMPERY_CENTER_DEBUG("Received response from remote server: status_code = ", m_headers.status_code, ", entity = ", m_entity.dump());
-			if(m_headers.status_code / 100 == 2){
-				m_promise->set_success();
-			} else {
-				LOG_EMPERY_CENTER_ERROR("Received error response from remote server: status_code = ", m_headers.status_code);
-				m_promise->set_exception(boost::copy_exception(std::runtime_error("Error response from remote server")));
-			}
-		}
-
-	public:
-		void send(std::string uri, Poseidon::OptionalMap get_params, Poseidon::OptionalMap headers){
-			PROFILE_ME;
-
-			Poseidon::Http::RequestHeaders req_headers;
-			req_headers.verb       = Poseidon::Http::V_GET;
-			req_headers.uri        = std::move(uri);
-			req_headers.version    = 10001;
-			req_headers.get_params = std::move(get_params);
-			req_headers.headers    = std::move(headers);
-			if(!Poseidon::Http::Client::send(std::move(req_headers))){
-				LOG_EMPERY_CENTER_WARNING("Failed to send data to remote server!");
-				DEBUG_THROW(Exception, sslit("Failed to send data to remote server"));
-			}
-		}
-
-		const Poseidon::StreamBuffer &get_entity() const {
-			return m_entity;
-		}
-		Poseidon::StreamBuffer &get_entity(){
-			return m_entity;
-		}
-	};
-
 	PlatformId  g_platform_id    = PlatformId(8500);
 
 	std::string g_server_host    = "localhost";
@@ -174,35 +79,13 @@ namespace {
 	{
 		PROFILE_ME;
 
-		const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
-		{
-			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_server_host, g_server_port);
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
-		}
-
-		boost::shared_ptr<SimpleHttpClient> client;
-		{
-			const auto promise = boost::make_shared<Poseidon::JobPromise>();
-			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_server_use_ssl, promise);
-			client->go_resident();
-
-			Poseidon::OptionalMap get_params;
-			get_params.set(sslit("loginName"), login_name);
-			get_params.set(sslit("password"),  password);
-			get_params.set(sslit("ip"),        ip);
-
-			Poseidon::OptionalMap headers;
-			headers.set(sslit("Host"), g_server_host);
-			headers.set(sslit("Connection"), "Close");
-			if(!g_server_auth.empty()){
-				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_server_auth));
-			}
-			client->send(g_server_path + "/checkLoginBacktrace", std::move(get_params), std::move(headers));
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
-		}
-		std::istringstream iss(client->get_entity().dump());
+		Poseidon::OptionalMap get_params;
+		get_params.set(sslit("loginName"), login_name);
+		get_params.set(sslit("password"),  password);
+		get_params.set(sslit("ip"),        ip);
+		auto entity = SimpleHttpClientDaemon::sync_request(g_server_host, g_server_port, g_server_use_ssl,
+			Poseidon::Http::V_GET, g_server_path + "/checkLoginBacktrace", std::move(get_params), g_server_auth);
+		std::istringstream iss(entity.dump());
 		auto response_object = Poseidon::JsonParser::parse_object(iss);
 		LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", response_object.dump());
 		auto error_code = static_cast<int>(response_object.at(sslit("errorCode")).get<double>());
@@ -286,33 +169,11 @@ namespace {
 	void send_verification_code(const std::string &login_name, const std::string &verification_code, std::uint64_t expiry_duration){
 		PROFILE_ME;
 
-		auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
-		{
-			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_server_host, g_server_port);
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
-		}
-
-		boost::shared_ptr<SimpleHttpClient> client;
-		{
-			const auto promise = boost::make_shared<Poseidon::JobPromise>();
-			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_server_use_ssl, promise);
-			client->go_resident();
-
-			Poseidon::OptionalMap get_params;
-			get_params.set(sslit("loginName"), login_name);
-
-			Poseidon::OptionalMap headers;
-			headers.set(sslit("Host"), g_server_host);
-			headers.set(sslit("Connection"), "Close");
-			if(!g_server_auth.empty()){
-				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_server_auth));
-			}
-			client->send(g_server_path + "/queryAccountAttributes", std::move(get_params), std::move(headers));
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
-		}
-		std::istringstream iss(client->get_entity().dump());
+		Poseidon::OptionalMap get_params;
+		get_params.set(sslit("loginName"), login_name);
+		auto entity = SimpleHttpClientDaemon::sync_request(g_server_host, g_server_port, g_server_use_ssl,
+			Poseidon::Http::V_GET, g_server_path + "/queryAccountAttributes", std::move(get_params), g_server_auth);
+		std::istringstream iss(entity.dump());
 		auto response_object = Poseidon::JsonParser::parse_object(iss);
 		LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", response_object.dump());
 		auto error_code = static_cast<int>(response_object.at(sslit("errorCode")).get<double>());
@@ -367,71 +228,29 @@ namespace {
 		message.erase(message.begin() + (outbuf - &message[0]), message.end());
 		LOG_EMPERY_CENTER_DEBUG("Converted message: message = ", message);
 
-		sock_addr = boost::make_shared<Poseidon::SockAddr>();
-		{
-			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_sms_host, g_sms_port);
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
+		auto uri = g_sms_uri;
+		pos = uri.find("$(phone)");
+		if(pos != std::string::npos){
+			uri.replace(pos, sizeof("$(phone)") - 1, Poseidon::Http::url_encode(phone_number));
+		}
+		pos = uri.find("$(message)");
+		if(pos != std::string::npos){
+			uri.replace(pos, sizeof("$(message)") - 1, Poseidon::Http::url_encode(message));
 		}
 
-		{
-			const auto promise = boost::make_shared<Poseidon::JobPromise>();
-			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_sms_use_ssl, promise);
-			client->go_resident();
-
-			auto uri = g_sms_uri;
-			pos = uri.find("$(phone)");
-			if(pos != std::string::npos){
-				uri.replace(pos, sizeof("$(phone)") - 1, Poseidon::Http::url_encode(phone_number));
-			}
-			pos = uri.find("$(message)");
-			if(pos != std::string::npos){
-				uri.replace(pos, sizeof("$(message)") - 1, Poseidon::Http::url_encode(message));
-			}
-
-			Poseidon::OptionalMap headers;
-			headers.set(sslit("Host"), g_sms_host);
-			headers.set(sslit("Connection"), "Close");
-			if(!g_sms_auth.empty()){
-				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_sms_auth));
-			}
-			client->send(std::move(uri), { }, std::move(headers));
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
-		}
+		SimpleHttpClientDaemon::sync_request(g_sms_host, g_sms_port, g_sms_use_ssl,
+			Poseidon::Http::V_GET, std::move(uri), { }, g_sms_auth);
 	}
 
 	int set_password(const std::string &login_name, const std::string &password){
 		PROFILE_ME;
 
-		const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
-		{
-			const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, g_server_host, g_server_port);
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
-		}
-
-		boost::shared_ptr<SimpleHttpClient> client;
-		{
-			const auto promise = boost::make_shared<Poseidon::JobPromise>();
-			client = boost::make_shared<SimpleHttpClient>(*sock_addr, g_server_use_ssl, promise);
-			client->go_resident();
-
-			Poseidon::OptionalMap get_params;
-			get_params.set(sslit("loginName"), login_name);
-			get_params.set(sslit("password"),  password);
-
-			Poseidon::OptionalMap headers;
-			headers.set(sslit("Host"), g_server_host);
-			headers.set(sslit("Connection"), "Close");
-			if(!g_server_auth.empty()){
-				headers.set(sslit("Authorization"), "Basic " + Poseidon::Http::base64_encode(g_server_auth));
-			}
-			client->send(g_server_path + "/setAccountAttributes", std::move(get_params), std::move(headers));
-			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
-		}
-		std::istringstream iss(client->get_entity().dump());
+		Poseidon::OptionalMap get_params;
+		get_params.set(sslit("loginName"), login_name);
+		get_params.set(sslit("password"),  password);
+		auto entity = SimpleHttpClientDaemon::sync_request(g_server_host, g_server_port, g_server_use_ssl,
+			Poseidon::Http::V_GET, g_server_path + "/queryAccountAttributes", std::move(get_params), g_server_auth);
+		std::istringstream iss(entity.dump());
 		auto response_object = Poseidon::JsonParser::parse_object(iss);
 		LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", response_object.dump());
 		auto error_code = static_cast<int>(response_object.at(sslit("errorCode")).get<double>());

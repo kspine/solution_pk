@@ -29,6 +29,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/chat_box_map.cpp	\
 	src/singletons/announcement_map.cpp	\
 	src/singletons/activation_code_map.cpp	\
+	src/singletons/simple_http_client_daemon.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\

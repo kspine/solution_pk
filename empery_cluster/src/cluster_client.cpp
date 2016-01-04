@@ -60,7 +60,7 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x,
 
 	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 
-	const auto promise = Poseidon::DnsDaemon::async_lookup(sock_addr, host, port);
+	const auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
 	Poseidon::JobDispatcher::yield(promise);
 	promise->check_and_rethrow();
 	LOG_EMPERY_CLUSTER_DEBUG("DNS lookup succeeded: host = ", host, ", ip = ", Poseidon::get_ip_port_from_sock_addr(*sock_addr).ip);
