@@ -57,13 +57,12 @@ boost::shared_ptr<const ServletCallback> AccountHttpSession::get_servlet(const s
 boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AccountHttpSession::predispatch_request(
 	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
 {
-	Poseidon::OptionalMap headers;
-	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
-	headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
-	if(request_headers.verb == Poseidon::Http::V_OPTIONS){
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_OK, std::move(headers));
+	if(request_headers.verb != Poseidon::Http::V_OPTIONS){
+		Poseidon::OptionalMap headers;
+		headers.set(sslit("Access-Control-Allow-Origin"),  "*");
+		headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
+		check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 	}
-	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 
 	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
 }
@@ -72,6 +71,14 @@ void AccountHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_
 	PROFILE_ME;
 	LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted account HTTP request from ", get_remote_info());
+
+	Poseidon::OptionalMap headers;
+	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
+	headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
+	if(request_headers.verb == Poseidon::Http::V_OPTIONS){
+		send(Poseidon::Http::ST_OK, std::move(headers));
+		return;
+	}
 
 	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){
@@ -108,9 +115,7 @@ void AccountHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_
 	root[sslit("err_code")] = result.first;
 	root[sslit("err_msg")] = std::move(result.second);
 	LOG_EMPERY_CENTER_DEBUG("Sending response: ", root.dump());
-	Poseidon::OptionalMap headers;
 	headers.set(sslit("Content-Type"), "application/json");
-	headers.set(sslit("Access-Control-Allow-Origin"), "*");
 	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(root.dump()));
 }
 
