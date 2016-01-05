@@ -125,7 +125,7 @@ namespace {
 
 	MULTI_INDEX_MAP(ClusterMapContainer, ClusterElement,
 		UNIQUE_MEMBER_INDEX(cluster_coord)
-		MULTI_MEMBER_INDEX(cluster)
+		UNIQUE_MEMBER_INDEX(cluster)
 	)
 
 	boost::weak_ptr<ClusterMapContainer> g_cluster_map;
