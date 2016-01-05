@@ -405,31 +405,38 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 		return cards_sold >= cards_to_sell;
 	};
 
-	for(auto it = queue.begin(); it != queue.end(); ++it){
-		const auto card_count = ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS);
-		LOG_EMPERY_PROMOTION_DEBUG("> Path upward: account_id = ", it->account_id, ", card_count = ", card_count);
-		if(try_buy_and_update(it->account_id, card_count)){
+	for(auto qit = queue.begin(); qit != queue.end(); ++qit){
+		const auto card_count = ItemMap::get_count(qit->account_id, ItemIds::ID_ACCELERATION_CARDS);
+		LOG_EMPERY_PROMOTION_DEBUG("> Path upward: account_id = ", qit->account_id, ", card_count = ", card_count);
+		if(try_buy_and_update(qit->account_id, card_count)){
 			goto _end;
 		}
 	}
-	while(!queue.empty()){
+	for(auto qit = queue.begin(); qit != queue.end(); ++qit){
+		LOG_EMPERY_PROMOTION_DEBUG("Unpacking: account_id = ", qit->account_id);
 		std::vector<AccountMap::AccountInfo> subordinates;
-		AccountMap::get_by_referrer_id(subordinates, queue.begin()->account_id);
-		std::sort(subordinates.begin(), subordinates.end(),
-			[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){
-				return lhs.created_time < rhs.created_time;
-			});
-		for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
-			const auto card_count = ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS);
-			LOG_EMPERY_PROMOTION_DEBUG("> Path downward: account_id = ", it->account_id, ", card_count = ", card_count);
-			if(try_buy_and_update(it->account_id, card_count)){
-				goto _end;
-			}
-		}
+		AccountMap::get_by_referrer_id(subordinates, qit->account_id);
+		while(!subordinates.empty()){
+			std::sort(subordinates.begin(), subordinates.end(),
+				[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){
+					return lhs.created_time < rhs.created_time;
+				});
 
-		queue.pop_front();
-		std::copy(std::make_move_iterator(subordinates.rbegin()), std::make_move_iterator(subordinates.rend()),
-			std::front_inserter(queue));
+			for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+				const auto card_count = ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS);
+				LOG_EMPERY_PROMOTION_DEBUG("> Path downward: account_id = ", it->account_id, ", card_count = ", card_count);
+				if(try_buy_and_update(it->account_id, card_count)){
+					goto _end;
+				}
+			}
+
+			std::vector<AccountMap::AccountInfo> new_subordinates;
+			for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+				LOG_EMPERY_PROMOTION_DEBUG("Unpacking: account_id = ", it->account_id);
+				AccountMap::get_by_referrer_id(new_subordinates, it->account_id);
+			}
+			subordinates.swap(new_subordinates);
+		}
 	}
 
 _end:
