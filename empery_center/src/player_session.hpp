@@ -11,6 +11,7 @@
 #include <poseidon/stream_buffer.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/http/session.hpp>
+#include <poseidon/mutex.hpp>
 #include "rectangle.hpp"
 
 namespace EmperyCenter {
@@ -31,6 +32,7 @@ private:
 private:
 	const std::string m_path;
 
+	mutable Poseidon::Mutex m_send_queue_mutex;
 	std::deque<std::pair<unsigned, Poseidon::StreamBuffer>> m_send_queue;
 
 	Rectangle m_view;

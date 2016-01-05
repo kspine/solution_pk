@@ -120,6 +120,8 @@ public:
 			return;
 		}
 
+		const Poseidon::Mutex::UniqueLock lock(session->m_send_queue_mutex);
+
 		auto &queue = session->m_send_queue;
 		if(queue.empty()){
 			return;
@@ -261,6 +263,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 	whole.splice(payload);
 	return impl->send(std::move(whole), true);
 */
+	const Poseidon::Mutex::UniqueLock lock(m_send_queue_mutex);
 	if(m_send_queue.empty()){
 		Poseidon::JobDispatcher::enqueue(
 			boost::make_shared<QueueImpl>(virtual_shared_from_this<PlayerSession>()),
