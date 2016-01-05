@@ -193,10 +193,30 @@ namespace {
 			transaction.emplace_back(referrer_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, my_dividend,
 				Events::ItemChanged::R_BALANCE_BONUS, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
 
-			unsigned generation;
+			// 扣除个税即使没有上家（视为被系统回收）。
+			const auto tax_total = static_cast<std::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
+			transaction.emplace_back(referrer_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax_total,
+				Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
+
+			{
+				unsigned generation = 0;
+				for(auto it = referrers.begin(); (generation < g_income_tax_ratio_array.size()) && (it != referrers.end()); ++it){
+					if(!(it->second)){
+						continue;
+					}
+					if(first_promotion_data && (it->second->level <= first_promotion_data->level)){
+						continue;
+					}
+					const auto tax = static_cast<std::uint64_t>(std::round(my_dividend * g_income_tax_ratio_array.at(generation)));
+					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
+					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
+						Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
+					++generation;
+				}
+			}
 
 			if(referrer_promotion_data && referrer_promotion_data->tax_extra){
-				generation = 0;
+				unsigned generation = 0;
 				for(auto it = referrers.begin(); (generation < g_extra_tax_ratio_array.size()) && (it != referrers.end()); ++it){
 					if(!(it->second)){
 						continue;
@@ -212,26 +232,6 @@ namespace {
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
 					++generation;
 				}
-			}
-
-			// 扣除个税即使没有上家（视为被系统回收）。
-			const auto tax_total = static_cast<std::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
-			transaction.emplace_back(referrer_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax_total,
-				Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
-
-			generation = 0;
-			for(auto it = referrers.begin(); (generation < g_income_tax_ratio_array.size()) && (it != referrers.end()); ++it){
-				if(!(it->second)){
-					continue;
-				}
-				if(first_promotion_data && (it->second->level <= first_promotion_data->level)){
-					continue;
-				}
-				const auto tax = static_cast<std::uint64_t>(std::round(my_dividend * g_income_tax_ratio_array.at(generation)));
-				LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
-				transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
-					Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
-				++generation;
 			}
 		}
 
