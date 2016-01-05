@@ -395,37 +395,44 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 
 	const auto try_buy_and_update = [&](AccountId account_id, std::uint64_t card_count){
 		const auto cards_to_sell_this_time = std::min(cards_to_sell - cards_sold, card_count);
-		cards_sold += cards_to_sell_this_time;
-
 		transaction.emplace_back(account_id, ItemTransactionElement::OP_REMOVE,
 			ItemIds::ID_ACCELERATION_CARDS, cards_to_sell_this_time,
 			Events::ItemChanged::R_SELL_CARDS, buyer_id.get(), 0, 0, std::string());
 		transaction.emplace_back(account_id, ItemTransactionElement::OP_ADD,
 			ItemIds::ID_ACCOUNT_BALANCE, checked_mul(cards_to_sell_this_time, unit_price),
 			Events::ItemChanged::R_SELL_CARDS, buyer_id.get(), 0, 0, std::string());
+		cards_sold += cards_to_sell_this_time;
+		return cards_sold >= cards_to_sell;
 	};
 
-	for(auto it = queue.begin(); (it != queue.end()) && (cards_sold < cards_to_sell); ++it){
+	for(auto it = queue.begin(); it != queue.end(); ++it){
 		const auto card_count = ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS);
 		LOG_EMPERY_PROMOTION_DEBUG("> Path upward: account_id = ", it->account_id, ", card_count = ", card_count);
-		try_buy_and_update(it->account_id, card_count);
+		if(try_buy_and_update(it->account_id, card_count)){
+			goto _end;
+		}
 	}
-	std::vector<AccountMap::AccountInfo> subordinates;
-	for(auto it = queue.begin(); (it != queue.end()) && (cards_sold < cards_to_sell); ++it){
-		subordinates.clear();
-		AccountMap::get_by_referrer_id(subordinates, it->account_id);
+	while(!queue.empty()){
+		std::vector<AccountMap::AccountInfo> subordinates;
+		AccountMap::get_by_referrer_id(subordinates, queue.begin()->account_id);
 		std::sort(subordinates.begin(), subordinates.end(),
 			[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){
 				return lhs.created_time < rhs.created_time;
 			});
-
-		for(auto sit = subordinates.begin(); (sit != subordinates.end()) && (cards_sold < cards_to_sell); ++sit){
-			const auto card_count = ItemMap::get_count(sit->account_id, ItemIds::ID_ACCELERATION_CARDS);
-			LOG_EMPERY_PROMOTION_DEBUG("> Path downward: account_id = ", sit->account_id, ", card_count = ", card_count);
-			try_buy_and_update(sit->account_id, card_count);
+		for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+			const auto card_count = ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS);
+			LOG_EMPERY_PROMOTION_DEBUG("> Path downward: account_id = ", it->account_id, ", card_count = ", card_count);
+			if(try_buy_and_update(it->account_id, card_count)){
+				goto _end;
+			}
 		}
+
+		queue.pop_front();
+		std::copy(std::make_move_iterator(subordinates.rbegin()), std::make_move_iterator(subordinates.rend()),
+			std::front_inserter(queue));
 	}
 
+_end:
 	ItemMap::commit_transaction(transaction.data(), transaction.size());
 	return cards_sold;
 }
