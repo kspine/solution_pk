@@ -107,7 +107,7 @@ boost::shared_ptr<const Poseidon::JobPromise> SimpleHttpClientDaemon::async_requ
 		promise->check_and_rethrow();
 	}
 
-	const auto promise = boost::make_shared<Poseidon::JobPromise>();
+	auto promise = boost::make_shared<Poseidon::JobPromise>();
 	const auto client = boost::make_shared<SimpleHttpClient>(*sock_addr, use_ssl, promise, std::move(ret));
 	client->go_resident();
 
@@ -129,7 +129,7 @@ boost::shared_ptr<const Poseidon::JobPromise> SimpleHttpClientDaemon::async_requ
 		DEBUG_THROW(Exception, sslit("Failed to send data to remote server"));
 	}
 
-	return boost::shared_ptr<const Poseidon::JobPromise>(client, promise.get());
+	return std::move(promise);
 }
 
 }
