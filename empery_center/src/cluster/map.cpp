@@ -32,6 +32,7 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	LOG_EMPERY_CENTER_DEBUG("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
 
 	WorldMap::set_cluster(cluster, cluster_coord);
+	cluster->set_name(std::move(req.name));
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();

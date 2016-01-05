@@ -36,6 +36,7 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account, session, /* req */){
 		auto &cluster = *msg.clusters.emplace(msg.clusters.end());
 		cluster.x = it->first.x();
 		cluster.y = it->first.y();
+		cluster.name = it->second->get_name();
 	}
 	msg.cluster_width  = center_rectangle.width();
 	msg.cluster_height = center_rectangle.height();

@@ -38,6 +38,8 @@ private:
 	mutable Poseidon::Mutex m_request_mutex;
 	boost::container::flat_multimap<std::uint64_t, RequestElement> m_requests;
 
+	std::string m_name;
+
 public:
 	explicit ClusterSession(Poseidon::UniqueFile socket);
 	~ClusterSession();
@@ -63,6 +65,13 @@ public:
 	template<typename MsgT>
 	Result send_and_wait(const MsgT &msg){
 		return send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
+	}
+
+	const std::string &get_name() const {
+		return m_name;
+	}
+	void set_name(std::string name){
+		m_name.swap(name);
 	}
 };
 
