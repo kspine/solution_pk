@@ -373,6 +373,63 @@ void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uin
 		info.referrer_id, upgrade_to_level);
 }
 
+std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell){
+	PROFILE_ME;
+
+	std::deque<AccountMap::AccountInfo> queue;
+	auto info = AccountMap::require(buyer_id);
+	for(;;){
+		const auto referrer_id = info.referrer_id;
+		queue.emplace_back(std::move(info));
+		if(!referrer_id){
+			break;
+		}
+		info = AccountMap::require(referrer_id);
+	}
+
+	LOG_EMPERY_PROMOTION_DEBUG("Sell acceleration cards: buyer_id = ", buyer_id,
+		", unit_price = ", unit_price, ", cards_to_sell = ", cards_to_sell);
+
+	std::vector<ItemTransactionElement> transaction;
+	std::uint64_t cards_sold = 0;
+
+	const auto try_buy_and_update = [&](AccountId account_id, std::uint64_t card_count){
+		const auto cards_to_sell_this_time = std::min(cards_to_sell - cards_sold, card_count);
+		cards_sold += cards_to_sell_this_time;
+
+		transaction.emplace_back(account_id, ItemTransactionElement::OP_REMOVE,
+			ItemIds::ID_ACCELERATION_CARDS, cards_to_sell_this_time,
+			Events::ItemChanged::R_SELL_CARDS, buyer_id.get(), 0, 0, std::string());
+		transaction.emplace_back(account_id, ItemTransactionElement::OP_ADD,
+			ItemIds::ID_ACCOUNT_BALANCE, checked_mul(cards_to_sell_this_time, unit_price),
+			Events::ItemChanged::R_SELL_CARDS, buyer_id.get(), 0, 0, std::string());
+	};
+
+	for(auto it = queue.begin(); (it != queue.end()) && (cards_sold < cards_to_sell); ++it){
+		const auto card_count = ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS);
+		LOG_EMPERY_PROMOTION_DEBUG("> Path upward: account_id = ", it->account_id, ", card_count = ", card_count);
+		try_buy_and_update(it->account_id, card_count);
+	}
+	std::vector<AccountMap::AccountInfo> subordinates;
+	for(auto it = queue.begin(); (it != queue.end()) && (cards_sold < cards_to_sell); ++it){
+		subordinates.clear();
+		AccountMap::get_by_referrer_id(subordinates, it->account_id);
+		std::sort(subordinates.begin(), subordinates.end(),
+			[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){
+				return lhs.created_time < rhs.created_time;
+			});
+
+		for(auto sit = subordinates.begin(); (sit != subordinates.end()) && (cards_sold < cards_to_sell); ++sit){
+			const auto card_count = ItemMap::get_count(sit->account_id, ItemIds::ID_ACCELERATION_CARDS);
+			LOG_EMPERY_PROMOTION_DEBUG("> Path downward: account_id = ", sit->account_id, ", card_count = ", card_count);
+			try_buy_and_update(sit->account_id, card_count);
+		}
+	}
+
+	ItemMap::commit_transaction(transaction.data(), transaction.size());
+	return cards_sold;
+}
+
 std::string generate_bill_serial(const std::string &prefix){
 	PROFILE_ME;
 

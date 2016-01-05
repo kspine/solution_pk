@@ -81,6 +81,9 @@ MODULE_RAII_PRIORITY(handles, 9000){
 					PUT_NUMBER(param2)
 					PUT_NUMBER(param3)
 					break;
+				case Events::ItemChanged::R_SELL_CARDS:
+					PUT_ACCOUNT(param1)
+					break;
 				default:
 					LOG_EMPERY_PROMOTION_WARNING("Unknown reason: ", (unsigned)event->reason, ", param1 = ", event->param1,
 						", param2 = ", event->param2, ", param3 = ", event->param3, ", remarks = ", event->remarks);

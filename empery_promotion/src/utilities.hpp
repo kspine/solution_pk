@@ -20,6 +20,8 @@ extern std::pair<bool, std::uint64_t> try_upgrade_account(AccountId account_id, 
 extern void commit_first_balance_bonus();
 extern void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uint64_t amount, std::uint64_t upgrade_to_level);
 
+extern std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell);
+
 extern std::string generate_bill_serial(const std::string &prefix);
 
 }

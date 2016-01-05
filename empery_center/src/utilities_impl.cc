@@ -42,7 +42,7 @@ bool are_strings_equal_nocase(const std::string &lhs, const std::string &rhs) no
 	return true;
 }
 
-boost::uint64_t get_distance_of_coords(Coord lhs, Coord rhs){
+std::uint64_t get_distance_of_coords(Coord lhs, Coord rhs){
 	PROFILE_ME;
 
 	// 求 rhs 所在点的 60°（斜率 2，截距 b1）和 120°（斜率 -2，截距 b2）的两条直线的截距。
@@ -59,7 +59,7 @@ boost::uint64_t get_distance_of_coords(Coord lhs, Coord rhs){
 	b2 -= lhs_in_odd_row;
 	const auto x1 = (lhs.y() - b1) / 2;
 	const auto x2 = (b2 - lhs.y()) / 2;
-	return static_cast<boost::uint64_t>(std::max({
+	return static_cast<std::uint64_t>(std::max({
 		std::abs(x1 - lhs.x()), std::abs(x2 - lhs.x()), std::abs(rhs.y() - lhs.y())
 		}));
 }
@@ -67,7 +67,7 @@ boost::uint64_t get_distance_of_coords(Coord lhs, Coord rhs){
 namespace {
 	std::array<std::array<std::vector<Coord>, 2>, 64> g_surrounding_table;
 
-	void generate_surrounding_coords(std::vector<Coord> &ret, Coord origin, boost::uint64_t radius, bool in_odd_row){
+	void generate_surrounding_coords(std::vector<Coord> &ret, Coord origin, std::uint64_t radius, bool in_odd_row){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_DEBUG("Generating surrounding coords: radius = ", radius);
 
@@ -76,30 +76,30 @@ namespace {
 		ret.reserve(ret.size() + radius * 6);
 		auto current = Coord(origin.x() - static_cast<boost::int64_t>(radius), origin.y());
 		int dx = in_odd_row;
-		for(boost::uint64_t i = 0; i < radius; ++i){
+		for(std::uint64_t i = 0; i < radius; ++i){
 			ret.emplace_back(current);
 			current = Coord(current.x() + dx, current.y() + 1);
 			dx ^= 1;
 		}
-		for(boost::uint64_t i = 0; i < radius; ++i){
+		for(std::uint64_t i = 0; i < radius; ++i){
 			ret.emplace_back(current);
 			current = Coord(current.x() + 1, current.y());
 		}
-		for(boost::uint64_t i = 0; i < radius; ++i){
+		for(std::uint64_t i = 0; i < radius; ++i){
 			ret.emplace_back(current);
 			current = Coord(current.x() + dx, current.y() - 1);
 			dx ^= 1;
 		}
-		for(boost::uint64_t i = 0; i < radius; ++i){
+		for(std::uint64_t i = 0; i < radius; ++i){
 			ret.emplace_back(current);
 			dx ^= 1;
 			current = Coord(current.x() - dx, current.y() - 1);
 		}
-		for(boost::uint64_t i = 0; i < radius; ++i){
+		for(std::uint64_t i = 0; i < radius; ++i){
 			ret.emplace_back(current);
 			current = Coord(current.x() - 1, current.y());
 		}
-		for(boost::uint64_t i = 0; i < radius; ++i){
+		for(std::uint64_t i = 0; i < radius; ++i){
 			ret.emplace_back(current);
 			dx ^= 1;
 			current = Coord(current.x() - dx, current.y() + 1);
@@ -107,7 +107,7 @@ namespace {
 	}
 }
 
-void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, boost::uint64_t radius){
+void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, std::uint64_t radius){
 	PROFILE_ME;
 
 	if(radius == 0){

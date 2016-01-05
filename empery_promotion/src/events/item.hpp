@@ -25,6 +25,7 @@ namespace Events {
 			R_GOLD_SCRAMBLE_BID     = 201013, // 起始时间       奖池内金币      奖池内余额
 			R_GOLD_SCRAMBLE_REWARD  = 201014, // 起始时间       奖池内金币      奖池内余额
 			R_ROLLBACK_WITHDRAWAL   = 201015, // 提款账号       0               0
+			R_SELL_CARDS            = 201016, // 买卡账号       0               0
 		};
 
 		AccountId account_id;
