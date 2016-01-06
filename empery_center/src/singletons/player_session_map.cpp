@@ -204,7 +204,7 @@ void PlayerSessionMap::async_begin_gc() noexcept {
 	}
 
 	try {
-		const auto gc_delay = get_config<std::uint64_t>("player_session_gc_delay", 5000);
+		const auto gc_delay = get_config<std::uint64_t>("player_session_gc_delay", 1000);
 		Poseidon::TimerDaemon::set_time(timer, gc_delay);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
