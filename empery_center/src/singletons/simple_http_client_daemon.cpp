@@ -33,8 +33,16 @@ namespace {
 		void on_read_hup() noexcept {
 			PROFILE_ME;
 
-			if(Poseidon::Http::ClientReader::is_content_till_eof()){
-				Poseidon::Http::ClientReader::terminate_content();
+			try {
+				if(Poseidon::Http::ClientReader::is_content_till_eof()){
+					Poseidon::Http::ClientReader::terminate_content();
+				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				force_shutdown();
+			} catch(...){
+				LOG_EMPERY_CENTER_WARNING("Unknown exception thrown");
+				force_shutdown();
 			}
 
 			Poseidon::TcpClientBase::on_read_hup();
