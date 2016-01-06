@@ -36,11 +36,13 @@ namespace {
 
 			try {
 				Poseidon::enqueue_async_job(
-					virtual_weak_from_this<SimpleHttpClient>(),
+					virtual_weak_from_this<Poseidon::Http::Client>(),
 					std::bind(
 						[](const boost::shared_ptr<Poseidon::JobPromise> &promise, int err_code){
 							if(!promise->is_satisfied()){
-								promise->set_exception(boost::copy_exception(Poseidon::SystemException(__FILE__, __LINE__, err_code)));
+								promise->set_exception(boost::copy_exception(
+									Poseidon::SystemException(__FILE__, __LINE__, err_code)
+									));
 							}
 						},
 						m_promise, err_code)
