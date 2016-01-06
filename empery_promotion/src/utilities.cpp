@@ -416,6 +416,15 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 		LOG_EMPERY_PROMOTION_DEBUG("Unpacking: account_id = ", qit->account_id);
 		std::vector<AccountMap::AccountInfo> subordinates;
 		AccountMap::get_by_referrer_id(subordinates, qit->account_id);
+		if(qit != queue.begin()){
+			const auto excluded_account_id = qit[-1].account_id;
+			for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+				if(it->account_id == excluded_account_id){
+					subordinates.erase(it);
+					break;
+				}
+			}
+		}
 		while(!subordinates.empty()){
 			std::sort(subordinates.begin(), subordinates.end(),
 				[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){
@@ -463,3 +472,4 @@ std::string generate_bill_serial(const std::string &prefix){
 }
 
 }
+ 
