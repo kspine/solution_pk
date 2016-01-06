@@ -9,6 +9,7 @@
 #include <poseidon/http/utilities.hpp>
 #include <poseidon/http/exception.hpp>
 #include <poseidon/async_job.hpp>
+#include <poseidon/system_exception.hpp>
 
 namespace EmperyCenter {
 
@@ -35,15 +36,13 @@ namespace {
 
 			try {
 				Poseidon::enqueue_async_job(
-					boost::weak_ptr<void>(virtual_weak_from_this<SimpleHttpClient>()),
-					std::bind(
-						[](const boost::shared_ptr<Poseidon::JobPromise> &promise){
-							if(!promise->is_satisfied()){
-								promise->set_exception(boost::copy_exception(std::runtime_error("Lost connection to remote server")));
-							}
-						},
-						m_promise
-					)
+					virtual_weak_from_this<SimpleHttpClient>(),
+					[=]{
+						if(!m_promise->is_satisfied()){
+							m_promise->set_exception(boost::copy_exception(
+								Poseidon::SystemException(__FILE__, __LINE__, err_code)));
+						}
+					}
 				);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
