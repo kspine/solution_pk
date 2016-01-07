@@ -20,6 +20,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/cluster_cbpp_server.cpp	\
 	src/singletons/data_http_server.cpp	\
 	src/singletons/admin_http_server.cpp	\
+	src/singletons/auction_http_server.cpp	\
 	src/singletons/account_http_server.cpp	\
 	src/singletons/account_map.cpp	\
 	src/singletons/player_session_map.cpp	\
@@ -30,6 +31,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/announcement_map.cpp	\
 	src/singletons/activation_code_map.cpp	\
 	src/singletons/simple_http_client_daemon.cpp	\
+	src/singletons/auction_center_map.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -50,6 +52,9 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/announcement.cpp	\
 	src/admin/mail.cpp	\
 	src/admin/activation_code.cpp	\
+	src/auction/account.cpp	\
+	src/auction/castle.cpp	\
+	src/auction/trade.cpp	\
 	src/account/promotion.cpp	\
 	src/account/test.cpp	\
 	src/cluster/map.cpp	\
@@ -58,6 +63,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/cluster_session.cpp	\
 	src/data_session.cpp	\
 	src/admin_session.cpp	\
+	src/auction_session.cpp	\
 	src/account_session.cpp	\
 	src/account.cpp	\
 	src/map_cell.cpp	\
@@ -71,4 +77,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/announcement.cpp	\
 	src/overlay.cpp	\
 	src/activation_code.cpp	\
+	src/auction_center.cpp	\
 	src/mmain.cpp

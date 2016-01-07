@@ -139,17 +139,22 @@ namespace Data {
 		boost::container::flat_map<AttributeId, double> attributes;
 	};
 
-	class CastleInitResource {
+	class CastleResource {
 	public:
-		static boost::shared_ptr<const CastleInitResource> get(ResourceId resource_id);
-		static boost::shared_ptr<const CastleInitResource> require(ResourceId resource_id);
+		static boost::shared_ptr<const CastleResource> get(ResourceId resource_id);
+		static boost::shared_ptr<const CastleResource> require(ResourceId resource_id);
 
-		static void get_all(std::vector<boost::shared_ptr<const CastleInitResource>> &ret);
+		static boost::shared_ptr<const CastleResource> get_by_locked_resource_id(ResourceId resource_id);
+		static boost::shared_ptr<const CastleResource> require_by_locked_resource_id(ResourceId resource_id);
+
+		static void get_all(std::vector<boost::shared_ptr<const CastleResource>> &ret);
 
 	public:
 		ResourceId resource_id;
 		std::uint64_t init_amount;
 		bool producible;
+		ResourceId locked_resource_id;
+		ItemId undeployed_item_id;
 	};
 }
 

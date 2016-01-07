@@ -249,13 +249,13 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 		[&]{
 		 	boost::container::flat_map<ResourceId, boost::shared_ptr<MySql::Center_CastleResource>> resources;
 			LOG_EMPERY_CENTER_DEBUG("Checking for init resources: owner_uuid = ", get_owner_uuid());
-			std::vector<boost::shared_ptr<const Data::CastleInitResource>> init_resources;
-			Data::CastleInitResource::get_all(init_resources);
-			for(auto dit = init_resources.begin(); dit != init_resources.end(); ++dit){
-				const auto &init_resource_data = *dit;
-				const auto resource_id = init_resource_data->resource_id;
+			std::vector<boost::shared_ptr<const Data::CastleResource>> resource_data_all;
+			Data::CastleResource::get_all(resource_data_all);
+			for(auto dit = resource_data_all.begin(); dit != resource_data_all.end(); ++dit){
+				const auto &resource_data = *dit;
+				const auto resource_id = resource_data->resource_id;
 				auto obj = boost::make_shared<MySql::Center_CastleResource>(
-					get_map_object_uuid().get(), resource_id.get(), init_resource_data->init_amount);
+					get_map_object_uuid().get(), resource_id.get(), resource_data->init_amount);
 				obj->async_save(true);
 				resources.emplace(resource_id, std::move(obj));
 			}

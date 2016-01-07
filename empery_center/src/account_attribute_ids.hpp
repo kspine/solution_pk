@@ -23,7 +23,7 @@ constexpr AccountAttributeId
 	//
 	ID_LAST_SIGNED_IN_TIME            ( 302 ),
 	ID_SEQUENTIAL_SIGNED_IN_DAYS      ( 303 ),
-	ID_AUCTION_CENTER_AVAILABLE       ( 304 ),
+	ID_AUCTION_CENTER_ENABLED         ( 304 ),
 
 	ID_LAST_CHAT_TIME_ADJACENT        ( 400 ),
 	ID_LAST_CHAT_TIME_TRADE           ( 401 ),

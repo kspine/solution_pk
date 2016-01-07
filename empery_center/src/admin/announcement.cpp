@@ -7,15 +7,14 @@
 namespace EmperyCenter {
 
 namespace {
-	Poseidon::JsonObject get_announcement_as_json(const boost::shared_ptr<Announcement> &announcement){
+	void fill_announcement_object(Poseidon::JsonObject &object, const boost::shared_ptr<Announcement> &announcement){
 		PROFILE_ME;
 
-		Poseidon::JsonObject root;
-		root[sslit("announcement_uuid")] = announcement->get_announcement_uuid().str();
-		root[sslit("language_id")]       = announcement->get_language_id().get();
-		root[sslit("created_time")]      = announcement->get_created_time();
-		root[sslit("expiry_time")]       = announcement->get_expiry_time();
-		root[sslit("period")]            = announcement->get_period();
+		object[sslit("announcement_uuid")] = announcement->get_announcement_uuid().str();
+		object[sslit("language_id")]       = announcement->get_language_id().get();
+		object[sslit("created_time")]      = announcement->get_created_time();
+		object[sslit("expiry_time")]       = announcement->get_expiry_time();
+		object[sslit("period")]            = announcement->get_period();
 
 		const auto &segments = announcement->get_segments();
 		Poseidon::JsonArray temp_array;
@@ -25,10 +24,24 @@ namespace {
 			elem.emplace_back(it->second);
 			temp_array.emplace_back(std::move(elem));
 		}
-		root[sslit("segments")] = std::move(temp_array);
-
-		return root;
+		object[sslit("segments")] = std::move(temp_array);
 	}
+}
+
+ADMIN_SERVLET("announcement/get", root, session, params){
+	const auto announcement_uuid = AnnouncementUuid(params.at("announcement_uuid"));
+	const auto language_id       = boost::lexical_cast<LanguageId>(params.at("language_id"));
+
+	const auto announcement = AnnouncementMap::get(announcement_uuid, language_id);
+	if(!announcement){
+		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid <<',' <<language_id;
+	}
+
+	Poseidon::JsonObject object;
+	fill_announcement_object(object, announcement);
+	root[sslit("announcement")] = std::move(object);
+
+	return Response();
 }
 
 ADMIN_SERVLET("announcement/get_all", root, session, /* params */){
@@ -37,8 +50,9 @@ ADMIN_SERVLET("announcement/get_all", root, session, /* params */){
 
 	Poseidon::JsonArray temp_array;
 	for(auto it = announcements.begin(); it != announcements.end(); ++it){
-		const auto &announcement = *it;
-		temp_array.emplace_back(get_announcement_as_json(announcement));
+		Poseidon::JsonObject object;
+		fill_announcement_object(object, *it);
+		temp_array.emplace_back(std::move(object));
 	}
 	root[sslit("announcements")] = std::move(temp_array);
 

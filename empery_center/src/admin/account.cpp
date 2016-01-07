@@ -65,7 +65,7 @@ ADMIN_SERVLET("account/get_by_login_name", root, session, params){
 	return Response();
 }
 
-ADMIN_SERVLET("account/add", root, session, params){
+ADMIN_SERVLET("account/insert", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
 	const auto referrer_uuid = AccountUuid(params.at("referrer_uuid"));
@@ -99,21 +99,6 @@ ADMIN_SERVLET("account/add", root, session, params){
 	return Response();
 }
 
-ADMIN_SERVLET("account/set_token", root, session, params){
-	const auto account_uuid = AccountUuid(params.at("account_uuid"));
-	const auto &login_token = params.at("login_token");
-	const auto login_token_expiry_time = boost::lexical_cast<std::uint64_t>(params.at("login_token_expiry_time"));
-
-	const auto account = AccountMap::get(account_uuid);
-	if(!account){
-		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
-	}
-
-	account->set_login_token(login_token, login_token_expiry_time);
-
-	return Response();
-}
-
 ADMIN_SERVLET("account/ban", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 	const auto banned_until = boost::lexical_cast<std::uint64_t>(params.at("banned_until"));
@@ -127,6 +112,8 @@ ADMIN_SERVLET("account/ban", root, session, params){
 
 	const auto utc_now = Poseidon::get_utc_time();
 	if(utc_now < banned_until){
+		account->set_login_token({ }, 0);
+
 		const auto session = PlayerSessionMap::get(account_uuid);
 		if(session){
 			session->shutdown(Msg::KILL_OPERATOR_COMMAND, "");

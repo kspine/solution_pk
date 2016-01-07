@@ -130,8 +130,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	const auto resource_id = ResourceId(req.resource_id);
 
-	const auto init_resource_data = Data::CastleInitResource::get(resource_id);
-	if(!init_resource_data || !init_resource_data->producible){
+	const auto resource_data = Data::CastleResource::get(resource_id);
+	if(!resource_data || !resource_data->producible){
 		return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
 	}
 

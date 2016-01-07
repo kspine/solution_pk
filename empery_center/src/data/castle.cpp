@@ -55,11 +55,12 @@ namespace {
 	boost::weak_ptr<const CastleTechMap> g_tech_map;
 	const char TECH_FILE[] = "City_College_tech";
 
-	MULTI_INDEX_MAP(CastleInitResourceMap, Data::CastleInitResource,
+	MULTI_INDEX_MAP(CastleResourceMap, Data::CastleResource,
 		UNIQUE_MEMBER_INDEX(resource_id)
+		UNIQUE_MEMBER_INDEX(locked_resource_id)
 	)
-	boost::weak_ptr<const CastleInitResourceMap> g_init_resource_map;
-	const char INIT_RESOURCE_FILE[] = "initial_material";
+	boost::weak_ptr<const CastleResourceMap> g_resource_map;
+	const char RESOURCE_FILE[] = "initial_material";
 
 	template<typename ElementT>
 	void read_upgrade_element(ElementT &elem, const Poseidon::CsvParser &csv){
@@ -368,23 +369,26 @@ namespace {
 		servlet = DataSession::create_servlet(TECH_FILE, Data::encode_csv_as_json(csv, "tech_id_level"));
 		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(INIT_RESOURCE_FILE);
-		const auto init_resource_map = boost::make_shared<CastleInitResourceMap>();
+		csv = Data::sync_load_data(RESOURCE_FILE);
+		const auto resource_map = boost::make_shared<CastleResourceMap>();
 		while(csv.fetch_row()){
-			Data::CastleInitResource elem = { };
+			Data::CastleResource elem = { };
 
-			csv.get(elem.resource_id, "material_id");
-			csv.get(elem.init_amount, "number");
-			csv.get(elem.producible,  "producible");
+			csv.get(elem.resource_id,        "material_id");
+			csv.get(elem.init_amount,        "number");
+			csv.get(elem.producible,         "producible");
+			csv.get(elem.locked_resource_id, "lock_material_id");
+//			csv.get(elem.undeployed_item_id, "");
 
-			if(!init_resource_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate initial resource: resource_id = ", elem.resource_id);
+			if(!resource_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate initial resource: resource_id = ", elem.resource_id,
+					", locked_resource_id = ", elem.locked_resource_id);
 				DEBUG_THROW(Exception, sslit("Duplicate initial resource"));
 			}
 		}
-		g_init_resource_map = init_resource_map;
-		handles.push(init_resource_map);
-		servlet = DataSession::create_servlet(INIT_RESOURCE_FILE, Data::encode_csv_as_json(csv, "material_id"));
+		g_resource_map = resource_map;
+		handles.push(resource_map);
+		servlet = DataSession::create_servlet(RESOURCE_FILE, Data::encode_csv_as_json(csv, "material_id"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -701,44 +705,70 @@ namespace Data {
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleInitResource> CastleInitResource::get(ResourceId resource_id){
+	boost::shared_ptr<const CastleResource> CastleResource::get(ResourceId resource_id){
 		PROFILE_ME;
 
-		const auto init_resource_map = g_init_resource_map.lock();
-		if(!init_resource_map){
-			LOG_EMPERY_CENTER_WARNING("CastleInitResourceMap has not been loaded.");
+		const auto resource_map = g_resource_map.lock();
+		if(!resource_map){
+			LOG_EMPERY_CENTER_WARNING("CastleResourceMap has not been loaded.");
 			return { };
 		}
 
-		const auto it = init_resource_map->find<0>(resource_id);
-		if(it == init_resource_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleInitResource not found: resource_id = ", resource_id);
+		const auto it = resource_map->find<0>(resource_id);
+		if(it == resource_map->end<0>()){
+			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: resource_id = ", resource_id);
 			return { };
 		}
-		return boost::shared_ptr<const CastleInitResource>(init_resource_map, &*it);
+		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
 	}
-	boost::shared_ptr<const CastleInitResource> CastleInitResource::require(ResourceId resource_id){
+	boost::shared_ptr<const CastleResource> CastleResource::require(ResourceId resource_id){
 		PROFILE_ME;
 
 		auto ret = get(resource_id);
 		if(!ret){
-			DEBUG_THROW(Exception, sslit("CastleInitResource not found"));
+			DEBUG_THROW(Exception, sslit("CastleResource not found"));
 		}
 		return ret;
 	}
 
-	void CastleInitResource::get_all(std::vector<boost::shared_ptr<const CastleInitResource>> &ret){
+	boost::shared_ptr<const CastleResource> CastleResource::get_by_locked_resource_id(ResourceId resource_id){
 		PROFILE_ME;
 
-		const auto init_resource_map = g_init_resource_map.lock();
-		if(!init_resource_map){
-			LOG_EMPERY_CENTER_WARNING("CastleInitResourceMap has not been loaded.");
+		const auto resource_map = g_resource_map.lock();
+		if(!resource_map){
+			LOG_EMPERY_CENTER_WARNING("CastleResourceMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = resource_map->find<1>(resource_id);
+		if(it == resource_map->end<1>()){
+			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: resource_id = ", resource_id);
+			return { };
+		}
+		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
+	}
+	boost::shared_ptr<const CastleResource> CastleResource::require_by_locked_resource_id(ResourceId resource_id){
+		PROFILE_ME;
+
+		auto ret = get_by_locked_resource_id(resource_id);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("CastleResource not found"));
+		}
+		return ret;
+	}
+
+	void CastleResource::get_all(std::vector<boost::shared_ptr<const CastleResource>> &ret){
+		PROFILE_ME;
+
+		const auto resource_map = g_resource_map.lock();
+		if(!resource_map){
+			LOG_EMPERY_CENTER_WARNING("CastleResourceMap has not been loaded.");
 			return;
 		}
 
-		ret.reserve(ret.size() + init_resource_map->size());
-		for(auto it = init_resource_map->begin<0>(); it != init_resource_map->end<0>(); ++it){
-			ret.emplace_back(init_resource_map, &*it);
+		ret.reserve(ret.size() + resource_map->size());
+		for(auto it = resource_map->begin<0>(); it != resource_map->end<0>(); ++it){
+			ret.emplace_back(resource_map, &*it);
 		}
 	}
 }
