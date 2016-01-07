@@ -132,10 +132,10 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 				}, boost::weak_ptr<ItemBox>(item_box))
 			);
 
-			it->promise  = { };
-			it->sink     = { };
+			it->promise.reset();
+			it->sink.reset();
 			it->item_box = std::move(item_box);
-			it->timer    = std::move(timer);
+			it->timer = std::move(timer);
 		}
 
 		assert(it->item_box);

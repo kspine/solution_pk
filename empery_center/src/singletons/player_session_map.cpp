@@ -151,7 +151,7 @@ void PlayerSessionMap::add(const boost::shared_ptr<Account> &account, const boos
 				boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 				modifiers.reserve(2);
 				modifiers[AccountAttributeIds::ID_LAST_LOGGED_IN_TIME]  = boost::lexical_cast<std::string>(utc_now);
-				modifiers[AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME] = { };
+				modifiers[AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME] = std::string();
 				account->set_attributes(std::move(modifiers));
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: account_uuid = ", account_uuid, ", what = ", e.what());

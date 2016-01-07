@@ -378,7 +378,7 @@ namespace {
 			csv.get(elem.init_amount,        "number");
 			csv.get(elem.producible,         "producible");
 			csv.get(elem.locked_resource_id, "lock_material_id");
-//			csv.get(elem.undeployed_item_id, "");
+			csv.get(elem.undeployed_item_id, "item_id");
 
 			if(!resource_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate initial resource: resource_id = ", elem.resource_id,

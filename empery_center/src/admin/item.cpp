@@ -59,7 +59,7 @@ ADMIN_SERVLET("item/remove", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 	const auto item_id         = boost::lexical_cast<ItemId>       (params.at("item_id"));
 	const auto count_to_remove = boost::lexical_cast<std::uint64_t>(params.at("count_to_remove"));
-	const auto saturated       = !params.get("saturated").empty();
+	const auto saturated       = params.get("saturated").empty() == false;
 	const auto param1          = boost::lexical_cast<std::uint64_t>(params.at("param1"));
 	const auto param2          = boost::lexical_cast<std::uint64_t>(params.at("param2"));
 	const auto param3          = boost::lexical_cast<std::uint64_t>(params.at("param3"));

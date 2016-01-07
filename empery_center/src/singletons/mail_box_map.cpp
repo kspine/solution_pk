@@ -183,10 +183,10 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 				}, boost::weak_ptr<MailBox>(mail_box))
 			);
 
-			it->promise  = { };
-			it->sink     = { };
+			it->promise.reset();
+			it->sink.reset();
 			it->mail_box = std::move(mail_box);
-			it->timer    = std::move(timer);
+			it->timer = std::move(timer);
 		}
 
 		assert(it->mail_box);
@@ -277,8 +277,8 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 			}
 			auto mail_data = boost::make_shared<MailData>(std::move(obj));
 
-			it->promise   = { };
-			it->sink      = { };
+			it->promise.reset();
+			it->sink.reset();
 			it->mail_data = std::move(mail_data);
 		}
 

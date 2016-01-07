@@ -48,7 +48,7 @@ namespace {
 			LOG_EMPERY_CENTER_DEBUG("Broken sign-in sequence: account_uuid = ", account->get_account_uuid());
 
 			boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-			modifiers[AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS] = { };
+			modifiers[AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS] = std::string();
 			account->set_attributes(modifiers);
 		} else {
 			sequential_days = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS);
