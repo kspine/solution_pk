@@ -30,11 +30,10 @@ namespace {
 
 ADMIN_SERVLET("announcement/get", root, session, params){
 	const auto announcement_uuid = AnnouncementUuid(params.at("announcement_uuid"));
-	const auto language_id       = boost::lexical_cast<LanguageId>(params.at("language_id"));
 
-	const auto announcement = AnnouncementMap::get(announcement_uuid, language_id);
+	const auto announcement = AnnouncementMap::get(announcement_uuid);
 	if(!announcement){
-		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid <<',' <<language_id;
+		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid;
 	}
 
 	Poseidon::JsonObject object;
@@ -60,7 +59,7 @@ ADMIN_SERVLET("announcement/get_all", root, session, /* params */){
 }
 
 ADMIN_SERVLET("announcement/insert", root, session, params){
-	const auto language_id = boost::lexical_cast<LanguageId>     (params.at("language_id"));
+	const auto language_id = boost::lexical_cast<LanguageId>(params.at("language_id"));
 	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
 	const auto period      = boost::lexical_cast<std::uint64_t>(params.at("period"));
 
@@ -81,16 +80,17 @@ ADMIN_SERVLET("announcement/insert", root, session, params){
 		announcement_uuid, language_id, utc_now, expiry_time, period, std::move(segments));
 	AnnouncementMap::insert(announcement);
 
+	root[sslit("announcement_uuid")] = announcement_uuid.str();
+
 	return Response();
 }
 
 ADMIN_SERVLET("announcement/update", root, session, params){
 	const auto announcement_uuid = AnnouncementUuid(params.at("announcement_uuid"));
-	const auto language_id       = boost::lexical_cast<LanguageId>(params.at("language_id"));
 
-	const auto announcement = AnnouncementMap::get(announcement_uuid, language_id);
+	const auto announcement = AnnouncementMap::get(announcement_uuid);
 	if(!announcement){
-		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid <<',' <<language_id;
+		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid;
 	}
 
 	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
@@ -114,11 +114,10 @@ ADMIN_SERVLET("announcement/update", root, session, params){
 
 ADMIN_SERVLET("announcement/remove", root, session, params){
 	const auto announcement_uuid = AnnouncementUuid(params.at("announcement_uuid"));
-	const auto language_id       = boost::lexical_cast<LanguageId>(params.at("language_id"));
 
-	const auto announcement = AnnouncementMap::get(announcement_uuid, language_id);
+	const auto announcement = AnnouncementMap::get(announcement_uuid);
 	if(!announcement){
-		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid <<',' <<language_id;
+		return Response(Msg::ERR_NO_SUCH_ANNOUNCEMENT) <<announcement_uuid;
 	}
 
 	announcement->delete_from_game();

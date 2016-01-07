@@ -107,7 +107,7 @@ void Announcement::delete_from_game() noexcept {
 
 	m_obj->set_expiry_time(0);
 
-	AnnouncementMap::remove(get_announcement_uuid(), get_language_id());
+	AnnouncementMap::remove(get_announcement_uuid());
 }
 
 void Announcement::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
