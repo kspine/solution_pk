@@ -90,6 +90,10 @@ void Account::set_nick(std::string nick){
 	}
 }
 
+std::uint64_t Account::get_created_time() const {
+	return m_obj->get_created_time();
+}
+
 bool Account::has_been_activated() const {
 	return m_obj->get_activated();
 }

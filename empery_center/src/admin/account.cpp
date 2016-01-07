@@ -19,6 +19,7 @@ namespace {
 
 		object[sslit("referrer_uuid")]     = account->get_referrer_uuid().str();
 		object[sslit("promotion_level")]   = account->get_promotion_level();
+		object[sslit("created_time")]      = account->get_created_time();
 		object[sslit("nick")]              = account->get_nick();
 		object[sslit("activated")]         = account->has_been_activated();
 		object[sslit("banned_until")]      = account->get_banned_until();

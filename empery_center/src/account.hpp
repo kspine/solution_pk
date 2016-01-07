@@ -37,6 +37,8 @@ public:
 	unsigned get_promotion_level() const;
 	void set_promotion_level(unsigned promotion_level);
 
+	std::uint64_t get_created_time() const;
+
 	const std::string &get_nick() const;
 	void set_nick(std::string nick);
 
