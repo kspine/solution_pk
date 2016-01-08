@@ -28,6 +28,7 @@ constexpr AccountAttributeId
 	ID_LAST_CHAT_TIME_ADJACENT        ( 400 ),
 	ID_LAST_CHAT_TIME_TRADE           ( 401 ),
 	ID_LAST_CHAT_TIME_ALLIANCE        ( 402 ),
+	ID_GOLD_PAYMENT_ENABLED           ( 403 ),
 
 	ID_VERIFICATION_CODE              ( 500 ),
 	ID_VERIFICATION_CODE_EXPIRY_TIME  ( 501 ),

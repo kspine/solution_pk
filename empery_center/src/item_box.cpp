@@ -20,6 +20,7 @@
 #include "item_ids.hpp"
 #include "mail_type_ids.hpp"
 #include "chat_message_slot_ids.hpp"
+#include "account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -383,6 +384,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 	const FlagGuard transaction_guard(m_locked_by_transaction);
 
 	const auto account_uuid = get_account_uuid();
+	const auto account = AccountMap::require(account_uuid);
 
 	boost::shared_ptr<bool> withdrawn;
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, std::uint64_t /* new_count */> temp_result_map;
@@ -507,6 +509,17 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 	}
 	if(withdrawn){
 		*withdrawn = false;
+	}
+
+	const auto gold_payment_enabled = account->cast_attribute<bool>(AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED);
+	if(!gold_payment_enabled){
+		try {
+			boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+			modifiers[AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED] = "1";
+			account->set_attributes(std::move(modifiers));
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
 	}
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
