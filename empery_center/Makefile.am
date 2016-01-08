@@ -32,6 +32,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/activation_code_map.cpp	\
 	src/singletons/simple_http_client_daemon.cpp	\
 	src/singletons/auction_center_map.cpp	\
+	src/singletons/payment_transaction_map.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -79,4 +80,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/activation_code.cpp	\
 	src/auction_center.cpp	\
 	src/auction_transfer_request.cpp	\
+	src/payment_transaction.cpp	\
 	src/mmain.cpp

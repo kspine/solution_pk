@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_ACCOUNT_HPP_
 #define EMPERY_CENTER_ACCOUNT_HPP_
 
+#include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/lexical_cast.hpp>
@@ -13,7 +14,7 @@ namespace MySql {
 	class Center_AccountAttribute;
 }
 
-class Account : public virtual Poseidon::VirtualSharedFromThis {
+class Account : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	boost::shared_ptr<MySql::Center_Account> m_obj;
 	boost::container::flat_map<AccountAttributeId,

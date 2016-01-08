@@ -1,8 +1,8 @@
 #ifndef EMPERY_CENTER_CHAT_MESSAGE_HPP_
 #define EMPERY_CENTER_CHAT_MESSAGE_HPP_
 
-#include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/cxx_util.hpp>
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
 #include <cstdint>
 #include <vector>
@@ -13,7 +13,7 @@ namespace EmperyCenter {
 
 class PlayerSession;
 
-class ChatMessage : public virtual Poseidon::VirtualSharedFromThis {
+class ChatMessage : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const ChatMessageUuid m_chat_message_uuid;
 

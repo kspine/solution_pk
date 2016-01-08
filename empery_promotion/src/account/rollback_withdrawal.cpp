@@ -20,7 +20,7 @@ ACCOUNT_SERVLET("rollbackWithdrawal", session, params){
 
 	std::vector<boost::shared_ptr<MySql::Promotion_WdSlip>> objs;
 	std::ostringstream oss;
-	oss <<"SELECT * FROM `Promotion_WdSlip` WHERE `serial` = '" <<Poseidon::MySql::StringEscaper(serial) <<"' LIMIT 0, 1";
+	oss <<"SELECT * FROM `Promotion_WdSlip` WHERE `serial` = " <<Poseidon::MySql::StringEscaper(serial) <<" LIMIT 0, 1";
 	MySql::Promotion_WdSlip::batch_load(objs, oss.str());
 	if(objs.empty()){
 		ret[sslit("errorCode")] = (int)Msg::ERR_W_D_SLIP_NOT_FOUND;

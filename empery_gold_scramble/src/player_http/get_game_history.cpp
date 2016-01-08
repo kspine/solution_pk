@@ -49,10 +49,10 @@ PLAYER_HTTP_SERVLET("getGameHistory", session, params){
 		oss <<"AND `timestamp` < '" <<str <<"' ";
 	}
 	if(!login_name.empty()){
-		oss <<"AND `login_name` = '" <<Poseidon::MySql::StringEscaper(login_name) <<"' ";
+		oss <<"AND `login_name` = " <<Poseidon::MySql::StringEscaper(login_name) <<" ";
 	}
 	if(!nick.empty()){
-		oss <<"AND `nick` = '" <<Poseidon::MySql::StringEscaper(nick) <<"' ";
+		oss <<"AND `nick` = " <<Poseidon::MySql::StringEscaper(nick) <<" ";
 	}
 	oss <<"ORDER BY `record_auto_id` DESC ";
 	if(!count.empty()){

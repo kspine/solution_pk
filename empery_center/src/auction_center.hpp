@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_AUCTION_CENTER_HPP_
 #define EMPERY_CENTER_AUCTION_CENTER_HPP_
 
+#include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <vector>
@@ -14,7 +15,7 @@ namespace MySql {
 	class Center_AuctionTransferRequestItem;
 }
 
-class AuctionCenter : public virtual Poseidon::VirtualSharedFromThis {
+class AuctionCenter : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	struct TransferRequest {
 		boost::shared_ptr<MySql::Center_AuctionTransferRequest> obj;

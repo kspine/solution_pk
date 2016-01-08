@@ -48,6 +48,8 @@ void ActivationCode::set_used_by_account(AccountUuid account_uuid){
 }
 
 bool ActivationCode::is_virtually_removed() const {
+	PROFILE_ME;
+
 	if(get_used_by_account()){
 		return true;
 	}

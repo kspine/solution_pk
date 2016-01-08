@@ -12,7 +12,7 @@ ACCOUNT_SERVLET("queryBillState", session, params){
 	Poseidon::JsonObject ret;
 	std::vector<boost::shared_ptr<MySql::Promotion_Bill>> objs;
 	std::ostringstream oss;
-	oss <<"SELECT * FROM `Promotion_Bill` WHERE `serial` = '" <<Poseidon::MySql::StringEscaper(serial) <<"' LIMIT 1";
+	oss <<"SELECT * FROM `Promotion_Bill` WHERE `serial` = " <<Poseidon::MySql::StringEscaper(serial) <<" LIMIT 1";
 	MySql::Promotion_Bill::batch_load(objs, oss.str());
 	if(objs.empty()){
 		LOG_EMPERY_PROMOTION_DEBUG("No rows returned");

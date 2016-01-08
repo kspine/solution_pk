@@ -1,8 +1,8 @@
 #ifndef EMPERY_CENTER_ANNOUNCEMENT_HPP_
 #define EMPERY_CENTER_ANNOUNCEMENT_HPP_
 
-#include <poseidon/virtual_shared_from_this.hpp>
 #include <poseidon/cxx_util.hpp>
+#include <poseidon/virtual_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
 #include <cstdint>
 #include <vector>
@@ -17,7 +17,7 @@ namespace MySql {
 
 class PlayerSession;
 
-class Announcement : public virtual Poseidon::VirtualSharedFromThis {
+class Announcement : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const boost::shared_ptr<MySql::Center_Announcement> m_obj;
 

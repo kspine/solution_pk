@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_CHAT_BOX_HPP_
 #define EMPERY_CENTER_CHAT_BOX_HPP_
 
+#include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <vector>
@@ -13,7 +14,7 @@ namespace EmperyCenter {
 class ChatMessage;
 class PlayerSession;
 
-class ChatBox : public virtual Poseidon::VirtualSharedFromThis {
+class ChatBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const AccountUuid m_account_uuid;
 

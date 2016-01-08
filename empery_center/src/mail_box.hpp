@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_MAIL_BOX_HPP_
 #define EMPERY_CENTER_MAIL_BOX_HPP_
 
+#include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <vector>
@@ -17,7 +18,7 @@ namespace MySql {
 class MailData;
 class PlayerSession;
 
-class MailBox : public virtual Poseidon::VirtualSharedFromThis {
+class MailBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum : std::uint64_t {
 		FL_SYSTEM               = 0x0001,

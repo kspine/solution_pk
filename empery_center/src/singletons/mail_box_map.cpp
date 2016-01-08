@@ -121,7 +121,7 @@ namespace {
 		handles.push(timer);
 	}
 
-	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("15104D25-DC80-0008-F3E5-6B1D016998D5");
+	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("10000000-0000-0000-C000-F00000000001");
 }
 
 boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){

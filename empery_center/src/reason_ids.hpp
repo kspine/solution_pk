@@ -27,6 +27,7 @@ constexpr ReasonId
 	ID_TRADE_REQUEST                ( 673003 ), // 客户端请求 ID       交易 ID             重复次数
 	ID_MAIL_ATTACHMENTS             ( 673004 ), // 邮件 UUID 最后      语言 ID             0
 	                                            // 64 位（大端序）
+	ID_PAYMENT                      ( 673005 ), // 0                   0                   0
 
 	ID_MAP_CELL_PURCHASE            ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE             ( 674002 ), // 世界坐标 X          世界坐标 Y          0

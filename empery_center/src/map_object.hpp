@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_MAP_OBJECT_HPP_
 #define EMPERY_CENTER_MAP_OBJECT_HPP_
 
+#include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <boost/container/flat_map.hpp>
 #include "id_types.hpp"
@@ -16,7 +17,7 @@ namespace MySql {
 class PlayerSession;
 class ClusterSession;
 
-class MapObject : public virtual Poseidon::VirtualSharedFromThis {
+class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	boost::shared_ptr<MySql::Center_MapObject> m_obj;
 	boost::container::flat_map<AttributeId,

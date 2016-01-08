@@ -1,6 +1,7 @@
 #ifndef EMPERY_CENTER_OVERLAY_HPP_
 #define EMPERY_CENTER_OVERLAY_HPP_
 
+#include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include "id_types.hpp"
 #include "coord.hpp"
@@ -15,7 +16,7 @@ class Castle;
 class PlayerSession;
 class ClusterSession;
 
-class Overlay : public virtual Poseidon::VirtualSharedFromThis {
+class Overlay : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	boost::shared_ptr<MySql::Center_Overlay> m_obj;
 

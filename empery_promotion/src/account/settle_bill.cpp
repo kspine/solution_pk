@@ -20,7 +20,7 @@ ACCOUNT_SERVLET("settleBill", session, params){
 
 	std::vector<boost::shared_ptr<MySql::Promotion_Bill>> objs;
 	std::ostringstream oss;
-	oss <<"SELECT * FROM `Promotion_Bill` WHERE `serial` = '" <<Poseidon::MySql::StringEscaper(serial) <<"' LIMIT 0, 1";
+	oss <<"SELECT * FROM `Promotion_Bill` WHERE `serial` = " <<Poseidon::MySql::StringEscaper(serial) <<" LIMIT 0, 1";
 	MySql::Promotion_Bill::batch_load(objs, oss.str());
 	if(objs.empty()){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_BILL;
