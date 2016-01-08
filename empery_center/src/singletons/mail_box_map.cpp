@@ -144,7 +144,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
 			std::ostringstream oss;
 			const auto utc_now = Poseidon::get_utc_time();
-			oss <<"SELECT * FROM `Center_Mail` WHERE WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now)
+			oss <<"SELECT * FROM `Center_Mail` WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now)
 			    <<"  AND `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
 				&MySql::Center_Mail::create, "Center_Mail", oss.str());
