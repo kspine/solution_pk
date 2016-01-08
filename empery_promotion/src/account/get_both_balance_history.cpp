@@ -69,11 +69,11 @@ ACCOUNT_SERVLET("getBothBalanceHistory", session, params){
 	if(!time_begin.empty()){
 		char str[256];
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
-		oss_in  <<"AND '" <<str <<"' <= `timestamp` ";
-		oss_out <<"AND '" <<str <<"' <= `timestamp` ";
+		oss_in  <<"AND " <<Poseidon::MySql::StringEscaper(str) <<" <= `timestamp` ";
+		oss_out <<"AND " <<Poseidon::MySql::StringEscaper(str) <<" <= `timestamp` ";
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_end), false);
-		oss_in  <<"AND `timestamp` < '" <<str <<"' ";
-		oss_out <<"AND `timestamp` < '" <<str <<"' ";
+		oss_in  <<"AND `timestamp` < " <<Poseidon::MySql::StringEscaper(str) <<" ";
+		oss_out <<"AND `timestamp` < " <<Poseidon::MySql::StringEscaper(str) <<" ";
 	}
 	if(!reason.empty()){
 		auto enum_reason = boost::lexical_cast<std::uint32_t>(reason);

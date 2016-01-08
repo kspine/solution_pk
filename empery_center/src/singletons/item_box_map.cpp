@@ -91,7 +91,7 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 		if(!it->promise){
 			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
 			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_Item` WHERE `account_uuid` = '" <<account_uuid <<"'";
+			oss <<"SELECT * FROM `Center_Item` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
 				&MySql::Center_Item::create, "Center_Item", oss.str());
 			it->promise = std::move(promise);

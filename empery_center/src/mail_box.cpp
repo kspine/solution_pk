@@ -1,6 +1,5 @@
 #include "precompiled.hpp"
 #include "mail_box.hpp"
-#include "mail_data.hpp"
 #include "msg/sc_mail.hpp"
 #include "mysql/mail.hpp"
 #include "singletons/mail_box_map.hpp"
@@ -13,17 +12,36 @@ namespace {
 	void fill_mail_info(MailBox::MailInfo &info, const boost::shared_ptr<MySql::Center_Mail> &obj){
 		PROFILE_ME;
 
-		info.mail_uuid   = MailUuid(obj->get_mail_uuid());
-		info.expiry_time = obj->get_expiry_time();
-		info.flags       = obj->get_flags();
+		info.mail_uuid           = MailUuid(obj->get_mail_uuid());
+		info.expiry_time         = obj->get_expiry_time();
+		info.system              = obj->get_system();
+		info.read                = obj->get_read();
+		info.attachments_fetched = obj->get_attachments_fetched();
 	}
 
 	void fill_mail_message(Msg::SC_MailChanged &msg, const boost::shared_ptr<MySql::Center_Mail> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
+		enum {
+			FL_SYSTEM               = 0x0001,
+			FL_READ                 = 0x0010,
+			FL_ATTACHMENTS_FETCHED  = 0x0020,
+		};
+
+		std::uint64_t flags = 0;
+		if(obj->get_system()){
+			flags |= FL_SYSTEM;
+		}
+		if(obj->get_read()){
+			flags |= FL_READ;
+		}
+		if(obj->get_attachments_fetched()){
+			flags |= FL_ATTACHMENTS_FETCHED;
+		}
+
 		msg.mail_uuid       = obj->get_mail_uuid().to_string();
 		msg.expiry_duration = saturated_sub(obj->get_expiry_time(), utc_now);
-		msg.flags           = obj->get_flags();
+		msg.flags           = flags;
 	}
 }
 
@@ -49,7 +67,8 @@ void MailBox::pump_status(){
 		LOG_EMPERY_CENTER_TRACE("Checking for system mails: account_uuid = ", get_account_uuid());
 
 		for(auto it = global_mail_box->m_mails.begin(); it != global_mail_box->m_mails.end(); ++it){
-			if(it->second->get_expiry_time() < utc_now){
+			const auto &src = it->second;
+			if(src->get_expiry_time() < utc_now){
 				continue;
 			}
 			const auto my_it = m_mails.find(it->first);
@@ -58,7 +77,7 @@ void MailBox::pump_status(){
 			}
 			LOG_EMPERY_CENTER_DEBUG("> Creating system mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
 			auto obj = boost::make_shared<MySql::Center_Mail>(it->first.get(), get_account_uuid().get(),
-				it->second->get_expiry_time(), it->second->get_flags());
+				src->get_expiry_time(), src->get_system(), src->get_read(), src->get_attachments_fetched());
 			obj->enable_auto_saving(); // obj->save_and_wait(false);
 			m_mails.emplace(it->first, std::move(obj));
 		}
@@ -69,23 +88,12 @@ void MailBox::pump_status(){
 		auto it = m_mails.begin();
 		while(it != m_mails.end()){
 			const auto &obj = it->second;
-			if(Poseidon::has_any_flags_of(obj->get_flags(), FL_SYSTEM)){
-				goto _dont_erase;
+			if(obj->get_system() || (utc_now < obj->get_expiry_time()) || !obj->get_read() || !obj->get_attachments_fetched()){
+				++it;
+			} else {
+				LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
+				it = m_mails.erase(it);
 			}
-			if(utc_now < obj->get_expiry_time()){
-				goto _dont_erase;
-			}
-			if(Poseidon::has_none_flags_of(obj->get_flags(), FL_READ)){
-				goto _dont_erase;
-			}
-			if(Poseidon::has_none_flags_of(obj->get_flags(), FL_ATTACHMENTS_FETCHED)){
-				goto _dont_erase;
-			}
-			LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
-			it = m_mails.erase(it);
-			continue;
-		_dont_erase:
-			++it;
 		}
 	}
 }
@@ -122,10 +130,10 @@ void MailBox::get_all(std::vector<MailBox::MailInfo> &ret) const {
 	}
 }
 
-void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, std::uint64_t expiry_time, std::uint64_t flags){
+void MailBox::insert(MailInfo info){
 	PROFILE_ME;
 
-	const auto mail_uuid = mail_data->get_mail_uuid();
+	const auto mail_uuid = info.mail_uuid;
 	const auto it = m_mails.find(mail_uuid);
 	if(it != m_mails.end()){
 		LOG_EMPERY_CENTER_WARNING("Mail exists: account_uuid = ", get_account_uuid(), ", mail_uuid = ", mail_uuid);
@@ -134,10 +142,8 @@ void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, std::uint64_t
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	if(mail_data->get_attachments().empty()){
-		Poseidon::add_flags(flags, FL_ATTACHMENTS_FETCHED);
-	}
-	const auto obj = boost::make_shared<MySql::Center_Mail>(mail_uuid.get(), get_account_uuid().get(), expiry_time, flags);
+	const auto obj = boost::make_shared<MySql::Center_Mail>(mail_uuid.get(), get_account_uuid().get(),
+		info.expiry_time, info.system, info.read, info.attachments_fetched);
 	obj->save_and_wait(false);
 	m_mails.emplace(mail_uuid, obj);
 
@@ -173,7 +179,9 @@ void MailBox::update(MailInfo info, bool throws_if_not_exists){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	obj->set_expiry_time(info.expiry_time);
-	obj->set_flags(info.flags);
+	obj->set_system(info.system);
+	obj->set_read(info.read);
+	obj->set_attachments_fetched(info.attachments_fetched);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
@@ -196,7 +204,7 @@ bool MailBox::remove(MailUuid mail_uuid) noexcept {
 	}
 	const auto obj = it->second;
 	// 为系统邮件保留一个标记。
-	if(Poseidon::has_none_flags_of(obj->get_flags(), FL_SYSTEM)){
+	if(!obj->get_system()){
 		m_mails.erase(it);
 	}
 

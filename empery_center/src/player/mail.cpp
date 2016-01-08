@@ -33,13 +33,26 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account, session, req){
 	for(auto it = req.mails.begin(); it != req.mails.end(); ++it){
 		const auto mail_uuid = MailUuid(it->mail_uuid);
 
-		const auto language_id = LanguageId(it->language_id);
-		const auto mail_data = MailBoxMap::get_mail_data(mail_uuid, language_id);
-		if(!mail_data){
-			LOG_EMPERY_CENTER_DEBUG("Mail data not found: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+		auto info = mail_box->get(mail_uuid);
+		if(info.expiry_time == 0){
 			continue;
 		}
 
+		const auto language_id = LanguageId(it->language_id);
+		const auto mail_data = MailBoxMap::get_mail_data(mail_uuid, language_id);
+		if(!mail_data){
+			LOG_EMPERY_CENTER_ERROR("Mail data not found: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+			continue;
+		}
+
+		if(mail_data->get_attachments().empty()){
+			if(info.attachments_fetched){
+				LOG_EMPERY_CENTER_DEBUG("Mail has no attachments. Lazy update: account_uuid = ", account->get_account_uuid(),
+					", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+				info.attachments_fetched = true;
+				mail_box->update(std::move(info));
+			}
+		}
 		synchronize_mail_data_with_player(mail_data, session);
 	}
 
@@ -79,7 +92,11 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
 		MailTypeIds::ID_NORMAL, account->get_account_uuid(), std::move(req.subject), std::move(segments), std::move(attachments));
 	MailBoxMap::insert_mail_data(mail_data);
-	to_mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration), 0);
+
+	MailBox::MailInfo mail_info = { };
+	mail_info.mail_uuid   = mail_uuid;
+	mail_info.expiry_time = saturated_add(utc_now, expiry_duration);
+	to_mail_box->insert(std::move(mail_info));
 
 	return Response();
 }
@@ -94,7 +111,7 @@ PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account, session, req){
 		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
 	}
 
-	Poseidon::add_flags(info.flags, MailBox::FL_READ);
+	info.read = true;
 	mail_box->update(std::move(info));
 
 	return Response();
@@ -109,7 +126,7 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 	if(info.expiry_time == 0){
 		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
 	}
-	if(Poseidon::has_any_flags_of(info.flags, MailBox::FL_ATTACHMENTS_FETCHED)){
+	if(info.attachments_fetched){
 		return Response(Msg::ERR_ATTACHMENTS_FETCHED) <<mail_uuid;
 	}
 
@@ -129,9 +146,11 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 		transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
 			ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), 0);
 	}
-	Poseidon::add_flags(info.flags, MailBox::FL_ATTACHMENTS_FETCHED);
 	item_box->commit_transaction(transaction,
-		[&]{ mail_box->update(std::move(info)); });
+		[&]{
+			info.attachments_fetched = true;
+			mail_box->update(std::move(info));
+		});
 
 	return Response();
 }
@@ -145,10 +164,10 @@ PLAYER_SERVLET(Msg::CS_MailDelete, account, session, req){
 	if(info.expiry_time == 0){
 		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
 	}
-	if(Poseidon::has_none_flags_of(info.flags, MailBox::FL_READ)){
+	if(!info.read){
 		return Response(Msg::ERR_MAIL_IS_UNREAD) <<mail_uuid;
 	}
-	if(Poseidon::has_none_flags_of(info.flags, MailBox::FL_ATTACHMENTS_FETCHED)){
+	if(!info.attachments_fetched){
 		return Response(Msg::ERR_MAIL_HAS_ATTACHMENTS) <<mail_uuid;
 	}
 

@@ -12,7 +12,9 @@ namespace MySql {
 	FIELD_UUID              (mail_uuid)	\
 	FIELD_UUID              (account_uuid)	\
 	FIELD_DATETIME          (expiry_time)	\
-	FIELD_BIGINT_UNSIGNED   (flags)
+	FIELD_TINYINT_UNSIGNED  (system)	\
+	FIELD_TINYINT_UNSIGNED  (read)	\
+	FIELD_TINYINT_UNSIGNED  (attachments_fetched)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MailData

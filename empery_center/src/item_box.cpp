@@ -138,7 +138,12 @@ namespace {
 				const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
 					mail_type_id, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
 				MailBoxMap::insert_mail_data(mail_data);
-				mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration), MailBox::FL_SYSTEM);
+
+				MailBox::MailInfo mail_info = { };
+				mail_info.mail_uuid   = mail_uuid;
+				mail_info.expiry_time = saturated_add(utc_now, expiry_duration);
+				mail_info.system      = true;
+				mail_box->insert(std::move(mail_info));
 				LOG_EMPERY_CENTER_DEBUG("Promotion bonus mail sent: referrer_uuid = ", referrer_uuid,
 					", mail_type_id = ", mail_type_id, ", taxer_uuid = ", taxer_uuid, ", item_count = ", item_count);
 			} catch(std::exception &e){

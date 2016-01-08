@@ -42,9 +42,9 @@ ACCOUNT_SERVLET("getWithdrawalRequests", session, params){
 	if(!time_begin.empty()){
 		char str[256];
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
-		oss <<"AND '" <<str <<"' <= `created_time` ";
+		oss <<"AND " <<Poseidon::MySql::StringEscaper(str) <<" <= `created_time` ";
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_end), false);
-		oss <<"AND `created_time` < '" <<str <<"' ";
+		oss <<"AND `created_time` < " <<Poseidon::MySql::StringEscaper(str) <<" ";
 	}
 	if(!login_name.empty()){
 		oss <<"AND `account_id` = " <<account_id <<" ";

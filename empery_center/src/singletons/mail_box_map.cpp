@@ -143,7 +143,9 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		if(!it->promise){
 			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
 			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_Mail` WHERE `account_uuid` = '" <<account_uuid <<"'";
+			const auto utc_now = Poseidon::get_utc_time();
+			oss <<"SELECT * FROM `Center_Mail` WHERE WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now)
+			    <<"  AND `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
 				&MySql::Center_Mail::create, "Center_Mail", oss.str());
 			it->promise = std::move(promise);
@@ -240,8 +242,8 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_MailData` WHERE "
-			    <<"  (`mail_uuid` = '" <<mail_uuid <<"' AND `language_id` = " <<language_id <<") OR "
-			    <<"    (`mail_uuid` = '" <<mail_uuid <<"' AND `language_id` = 0) "
+			    <<"  (`mail_uuid` = " <<Poseidon::MySql::UuidFormatter(mail_uuid.get()) <<" AND `language_id` = " <<language_id <<") OR "
+			    <<"    (`mail_uuid` = " <<Poseidon::MySql::UuidFormatter(mail_uuid.get()) <<" AND `language_id` = 0) "
 			    <<"  ORDER BY `language_id` DESC LIMIT 1";
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
 				&MySql::Center_MailData::create, "Center_MailData", oss.str());

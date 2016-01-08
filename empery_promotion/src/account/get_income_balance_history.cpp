@@ -42,9 +42,9 @@ ACCOUNT_SERVLET("getIncomeBalanceHistory", session, params){
 	if(!time_begin.empty()){
 		char str[256];
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
-		oss <<"AND '" <<str <<"' <= `timestamp` ";
+		oss <<"AND " <<Poseidon::MySql::StringEscaper(str) <<" <= `timestamp` ";
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_end), false);
-		oss <<"AND `timestamp` < '" <<str <<"' ";
+		oss <<"AND `timestamp` < " <<Poseidon::MySql::StringEscaper(str) <<" ";
 	}
 	if(!reason.empty()){
 		auto enum_reason = boost::lexical_cast<std::uint32_t>(reason);

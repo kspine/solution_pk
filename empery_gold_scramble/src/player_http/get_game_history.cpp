@@ -44,9 +44,9 @@ PLAYER_HTTP_SERVLET("getGameHistory", session, params){
 	if(!time_begin.empty()){
 		char str[256];
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
-		oss <<"AND '" <<str <<"' <= `timestamp` ";
+		oss <<"AND " <<Poseidon::MySql::StringEscaper(str) <<" <= `timestamp` ";
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_end), false);
-		oss <<"AND `timestamp` < '" <<str <<"' ";
+		oss <<"AND `timestamp` < " <<Poseidon::MySql::StringEscaper(str) <<" ";
 	}
 	if(!login_name.empty()){
 		oss <<"AND `login_name` = " <<Poseidon::MySql::StringEscaper(login_name) <<" ";

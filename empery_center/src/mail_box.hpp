@@ -20,16 +20,12 @@ class PlayerSession;
 
 class MailBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
-	enum : std::uint64_t {
-		FL_SYSTEM               = 0x0001,
-		FL_READ                 = 0x0010,
-		FL_ATTACHMENTS_FETCHED  = 0x0020,
-	};
-
 	struct MailInfo {
 		MailUuid mail_uuid;
 		std::uint64_t expiry_time;
-		std::uint64_t flags;
+		bool system;
+		bool read;
+		bool attachments_fetched;
 	};
 
 private:
@@ -53,7 +49,7 @@ public:
 	MailInfo get(MailUuid mail_uuid) const;
 	void get_all(std::vector<MailInfo> &ret) const;
 
-	void insert(const boost::shared_ptr<MailData> &mail_data, std::uint64_t expiry_time, std::uint64_t flags);
+	void insert(MailInfo info);
 	void update(MailInfo info, bool throws_if_not_exists = true);
 	bool remove(MailUuid mail_uuid) noexcept;
 
