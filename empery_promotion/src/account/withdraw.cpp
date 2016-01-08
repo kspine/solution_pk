@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include "../mmain.hpp"
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
 #include "../singletons/item_map.hpp"

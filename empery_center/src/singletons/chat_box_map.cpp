@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "chat_box_map.hpp"
+#include "../mmain.hpp"
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>

@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include "../mmain.hpp"
 #include <poseidon/string.hpp>
 #include "../singletons/account_map.hpp"
 #include "../singletons/item_map.hpp"

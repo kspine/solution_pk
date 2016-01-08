@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "global_status.hpp"
+#include "../mmain.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>

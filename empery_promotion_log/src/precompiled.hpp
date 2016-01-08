@@ -23,8 +23,6 @@ namespace EmperyPromotionLog {
 using Poseidon::Exception;
 using Poseidon::SharedNts;
 
-DECLARE_MODULE_CONFIG(get_config, get_config_v)
-
 using Poseidon::sslit;
 
 }

@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "activation_code_map.hpp"
+#include "../mmain.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>

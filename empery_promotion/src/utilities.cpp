@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "utilities.hpp"
+#include "mmain.hpp"
 #include "singletons/account_map.hpp"
 #include "singletons/item_map.hpp"
 #include "singletons/global_status.hpp"

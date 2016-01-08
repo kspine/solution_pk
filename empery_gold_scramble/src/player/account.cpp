@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include "../mmain.hpp"
 #include <poseidon/json.hpp>
 #include "../msg/cs_account.hpp"
 #include "../msg/sc_account.hpp"

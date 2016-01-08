@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "map_object.hpp"
+#include "mmain.hpp"
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
 #include "cluster_client.hpp"

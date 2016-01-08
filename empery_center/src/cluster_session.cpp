@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "cluster_session.hpp"
+#include "mmain.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>

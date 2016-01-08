@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "account_map.hpp"
+#include "../mmain.hpp"
 #include <string.h>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
