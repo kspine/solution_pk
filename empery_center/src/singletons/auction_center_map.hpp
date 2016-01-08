@@ -7,6 +7,7 @@
 namespace EmperyCenter {
 
 class AuctionCenter;
+class AuctionTransferRequest;
 
 struct AuctionCenterMap {
 	static boost::shared_ptr<AuctionCenter> get(AccountUuid account_uuid);

@@ -8,6 +8,30 @@
 namespace EmperyCenter {
 
 namespace {
+	void fill_activation_code_object(Poseidon::JsonObject &object, const boost::shared_ptr<ActivationCode> &activation_code){
+		PROFILE_ME;
+
+		object[sslit("code")]        = activation_code->get_code();
+		object[sslit("expiry_time")] = activation_code->get_expiry_time();
+	}
+}
+
+ADMIN_SERVLET("activation_code/get_all", root, session, /* params */){
+	std::vector<boost::shared_ptr<ActivationCode>> activation_codes;
+	ActivationCodeMap::get_all(activation_codes);
+
+	Poseidon::JsonArray temp_array;
+	for(auto it = activation_codes.begin(); it != activation_codes.end(); ++it){
+		Poseidon::JsonObject object;
+		fill_activation_code_object(object, *it);
+		temp_array.emplace_back(std::move(object));
+	}
+	root[sslit("activation_codes")] = std::move(temp_array);
+
+	return Response();
+}
+
+namespace {
 	unsigned s_auto_inc = Poseidon::rand32();
 }
 

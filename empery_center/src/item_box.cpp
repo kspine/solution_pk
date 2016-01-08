@@ -106,6 +106,11 @@ namespace {
 		const auto send_mail_nothrow = [](const boost::shared_ptr<Account> &referrer, MailTypeId mail_type_id,
 			std::uint64_t amount_to_add, const boost::shared_ptr<Account> &taxer) noexcept
 		{
+			const auto item_count = amount_to_add / 2; // 金币或黄金的数量。
+			if(item_count == 0){
+				return;
+			}
+
 			try {
 				const auto referrer_uuid = referrer->get_account_uuid();
 				const auto mail_box = MailBoxMap::require(referrer_uuid);
@@ -120,18 +125,21 @@ namespace {
 				const auto taxer_uuid = taxer->get_account_uuid();
 
 				std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+				segments.reserve(2);
 				segments.emplace_back(ChatMessageSlotIds::ID_TAXER,      taxer_uuid.str());
-				segments.emplace_back(ChatMessageSlotIds::ID_TAX_AMOUNT, boost::lexical_cast<std::string>(amount_to_add));
+				segments.emplace_back(ChatMessageSlotIds::ID_TAX_AMOUNT, boost::lexical_cast<std::string>(item_count));
 
 				boost::container::flat_map<ItemId, std::uint64_t> attachments;
-				attachments.emplace(ItemIds::ID_GOLD, amount_to_add);
+				attachments.reserve(2);
+				attachments.emplace(ItemIds::ID_GOLD,       item_count);
+				attachments.emplace(ItemIds::ID_GOLD_COINS, item_count);
 
 				const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
 					mail_type_id, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
 				MailBoxMap::insert_mail_data(mail_data);
 				mail_box->insert(mail_data, saturated_add(utc_now, expiry_duration), MailBox::FL_SYSTEM);
 				LOG_EMPERY_CENTER_DEBUG("Promotion bonus mail sent: referrer_uuid = ", referrer_uuid,
-					", mail_type_id = ", mail_type_id, ", taxer_uuid = ", taxer_uuid, ", amount_to_add = ", amount_to_add);
+					", mail_type_id = ", mail_type_id, ", taxer_uuid = ", taxer_uuid, ", item_count = ", item_count);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}

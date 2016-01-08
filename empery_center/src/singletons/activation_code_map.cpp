@@ -109,6 +109,21 @@ boost::shared_ptr<ActivationCode> ActivationCodeMap::require(const std::string &
 	return ret;
 }
 
+void ActivationCodeMap::get_all(std::vector<boost::shared_ptr<ActivationCode>> &ret){
+	PROFILE_ME;
+
+	const auto activation_code_map = g_activation_code_map.lock();
+	if(!activation_code_map){
+		LOG_EMPERY_CENTER_WARNING("Activation code map not loaded.");
+		return;
+	}
+
+	ret.reserve(ret.size() + activation_code_map->size());
+	for(auto it = activation_code_map->begin(); it != activation_code_map->end(); ++it){
+		ret.emplace_back(it->activation_code);
+	}
+}
+
 void ActivationCodeMap::insert(const boost::shared_ptr<ActivationCode> &activation_code){
 	PROFILE_ME;
 

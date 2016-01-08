@@ -20,6 +20,11 @@ private:
 		boost::shared_ptr<MySql::Center_AuctionTransferRequest> obj;
 		boost::container::flat_map<ItemId,
 			boost::shared_ptr<MySql::Center_AuctionTransferRequestItem>> items;
+
+		explicit TransferRequest(boost::shared_ptr<MySql::Center_AuctionTransferRequest> obj_)
+			: obj(std::move(obj_))
+		{
+		}
 	};
 
 public:
