@@ -1,12 +1,6 @@
 #include "precompiled.hpp"
-#include "utilities.hpp"
-
-#define EMPERY_CENTER_UTILITIES_NAMESPACE_  EmperyCenter
-#include "utilities_impl.cc"
-
-#include <poseidon/json.hpp>
-#include <poseidon/string.hpp>
-#include <poseidon/async_job.hpp>
+#include "castle_utilities.hpp"
+#include "map_utilities.hpp"
 #include "cbpp_response.hpp"
 #include "data/global.hpp"
 #include "data/map.hpp"

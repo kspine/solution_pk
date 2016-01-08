@@ -5,7 +5,7 @@
 #include <poseidon/singletons/timer_daemon.hpp>
 #include "../payment_transaction.hpp"
 #include "../mysql/payment_transaction.hpp"
-#include "../utilities.hpp"
+#include "../string_utilities.hpp"
 
 namespace EmperyCenter {
 

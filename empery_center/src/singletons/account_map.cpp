@@ -13,7 +13,7 @@
 #include "item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../data/item.hpp"
-#include "../utilities.hpp"
+#include "../string_utilities.hpp"
 
 namespace EmperyCenter {
 

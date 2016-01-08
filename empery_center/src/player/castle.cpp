@@ -15,7 +15,7 @@
 #include "../item_box.hpp"
 #include "../data/item.hpp"
 #include "../msg/err_item.hpp"
-#include "../utilities.hpp"
+#include "../map_utilities.hpp"
 
 namespace EmperyCenter {
 

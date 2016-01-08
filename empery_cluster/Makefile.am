@@ -21,7 +21,7 @@ lib_libposeidon_empery_cluster_la_SOURCES = \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/map.cpp	\
-	src/utilities.cpp	\
+	src/map_utilities.cpp	\
 	src/cluster_client.cpp	\
 	src/map_cell.cpp	\
 	src/overlay.cpp	\

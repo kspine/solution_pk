@@ -4,7 +4,7 @@
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
 #include "../singletons/world_map.hpp"
-#include "../utilities.hpp"
+#include "../map_utilities.hpp"
 #include "../map_object.hpp"
 #include "../cluster_session.hpp"
 #include "../msg/sk_map.hpp"

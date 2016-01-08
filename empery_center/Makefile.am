@@ -59,7 +59,9 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/account/promotion.cpp	\
 	src/account/test.cpp	\
 	src/cluster/map.cpp	\
-	src/utilities.cpp	\
+	src/string_utilities.cpp	\
+	src/map_utilities.cpp	\
+	src/castle_utilities.cpp	\
 	src/player_session.cpp	\
 	src/cluster_session.cpp	\
 	src/data_session.cpp	\

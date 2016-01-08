@@ -5,7 +5,7 @@
 #include "cluster_client.hpp"
 #include "singletons/world_map.hpp"
 #include "checked_arithmetic.hpp"
-#include "utilities.hpp"
+#include "map_utilities.hpp"
 #include "map_cell.hpp"
 #include "data/map.hpp"
 #include "../../empery_center/src/msg/sc_map.hpp"

@@ -5,7 +5,7 @@
 #include <poseidon/singletons/timer_daemon.hpp>
 #include "../activation_code.hpp"
 #include "../mysql/activation_code.hpp"
-#include "../utilities.hpp"
+#include "../string_utilities.hpp"
 
 namespace EmperyCenter {
 

@@ -19,7 +19,7 @@
 #include "../castle.hpp"
 #include "../player_session.hpp"
 #include "../cluster_session.hpp"
-#include "../utilities.hpp"
+#include "../castle_utilities.hpp"
 
 namespace EmperyCenter {
 
