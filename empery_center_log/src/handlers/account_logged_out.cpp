@@ -12,7 +12,7 @@ MODULE_RAII_PRIORITY(handles, 5000){
 		[](const boost::shared_ptr<Events::AccountLoggedOut> &event){
 			const auto obj = boost::make_shared<MySql::CenterLog_AccountLoggedOut>(Poseidon::get_utc_time(),
 				event->account_uuid.get(), event->online_duration);
-			obj->async_save(true);
+			obj->async_save(false);
 		});
 	LOG_EMPERY_CENTER_LOG_DEBUG("Created AccountLoggedOut listener");
 	handles.push(std::move(listener));

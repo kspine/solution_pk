@@ -94,7 +94,7 @@ MailData::MailData(MailUuid mail_uuid, LanguageId language_id, std::uint64_t cre
 			auto obj = boost::make_shared<MySql::Center_MailData>(
 				mail_uuid.get(), language_id.get(), created_time, type.get(), from_account_uuid.get(), std::move(subject),
 				encode_segments(segments), encode_attachments(attachments));
-			obj->async_save(true);
+			obj->save_and_wait(false);
 			return obj;
 		}())
 	, m_segments(std::move(segments)), m_attachments(std::move(attachments))

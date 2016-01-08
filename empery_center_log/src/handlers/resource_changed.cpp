@@ -14,7 +14,7 @@ MODULE_RAII_PRIORITY(handles, 5000){
 				event->map_object_uuid.get(), event->owner_uuid.get(), event->resource_id.get(), event->old_amount, event->new_amount,
 				static_cast<std::int64_t>(event->new_amount - event->old_amount),
 				event->reason.get(), event->param1, event->param2, event->param3);
-			obj->async_save(true);
+			obj->async_save(false);
 		});
 	LOG_EMPERY_CENTER_LOG_DEBUG("Created ResourceChanged listener");
 	handles.push(std::move(listener));

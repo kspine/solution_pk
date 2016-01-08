@@ -16,7 +16,7 @@ PaymentTransaction::PaymentTransaction(std::string serial, AccountUuid account_u
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>(std::move(serial), account_uuid.get(),
 				created_time, expiry_time, amount, std::move(remarks), false, false, std::string());
-			obj->async_save(true);
+			obj->save_and_wait(false);
 			return obj;
 		}())
 {

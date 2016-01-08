@@ -59,7 +59,7 @@ void MailBox::pump_status(){
 			LOG_EMPERY_CENTER_DEBUG("> Creating system mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
 			auto obj = boost::make_shared<MySql::Center_Mail>(it->first.get(), get_account_uuid().get(),
 				it->second->get_expiry_time(), it->second->get_flags());
-			obj->enable_auto_saving(); // obj->async_save(true);
+			obj->enable_auto_saving(); // obj->save_and_wait(false);
 			m_mails.emplace(it->first, std::move(obj));
 		}
 	}
@@ -138,7 +138,7 @@ void MailBox::insert(const boost::shared_ptr<MailData> &mail_data, std::uint64_t
 		Poseidon::add_flags(flags, FL_ATTACHMENTS_FETCHED);
 	}
 	const auto obj = boost::make_shared<MySql::Center_Mail>(mail_uuid.get(), get_account_uuid().get(), expiry_time, flags);
-	obj->async_save(true);
+	obj->save_and_wait(false);
 	m_mails.emplace(mail_uuid, obj);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());

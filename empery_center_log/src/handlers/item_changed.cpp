@@ -14,7 +14,7 @@ MODULE_RAII_PRIORITY(handles, 5000){
 				event->account_uuid.get(), event->item_id.get(), event->old_count, event->new_count,
 				static_cast<std::int64_t>(event->new_count - event->old_count),
 				event->reason.get(), event->param1, event->param2, event->param3);
-			obj->async_save(true);
+			obj->async_save(false);
 		});
 	LOG_EMPERY_CENTER_LOG_DEBUG("Created ItemChanged listener");
 	handles.push(std::move(listener));
