@@ -390,6 +390,8 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, std::uint64_t /* new_count */> temp_result_map;
 	std::uint64_t taxing_amount = 0;
 
+	bool shall_enable_gold_payment = false;
+
 	for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
 		const auto operation   = tit->m_operation;
 		const auto item_id     = tit->m_some_id;
@@ -424,6 +426,10 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 				const auto old_count = temp_it->second;
 				temp_it->second = checked_add(old_count, delta_count);
 				const auto new_count = temp_it->second;
+
+				if((item_id == ItemIds::ID_GOLD) && (new_count > 0)){
+					shall_enable_gold_payment = true;
+				}
 
 				LOG_EMPERY_CENTER_DEBUG("@ Item transaction: add: account_uuid = ", account_uuid,
 					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
@@ -511,14 +517,17 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 		*withdrawn = false;
 	}
 
-	const auto gold_payment_enabled = account->cast_attribute<bool>(AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED);
-	if(!gold_payment_enabled){
-		try {
-			boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-			modifiers[AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED] = "1";
-			account->set_attributes(std::move(modifiers));
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	if(shall_enable_gold_payment){
+		const auto gold_payment_enabled = account->cast_attribute<bool>(AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED);
+		if(!gold_payment_enabled){
+			try {
+				boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+				modifiers[AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED] = "1";
+				account->set_attributes(std::move(modifiers));
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+			LOG_EMPERY_CENTER_INFO("Gold payment enabled: account_uuid = ", get_account_uuid());
 		}
 	}
 
