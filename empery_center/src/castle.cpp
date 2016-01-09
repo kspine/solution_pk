@@ -289,6 +289,8 @@ Castle::~Castle(){
 void Castle::pump_status(){
 	PROFILE_ME;
 
+	MapObject::pump_status();
+
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
@@ -297,6 +299,11 @@ void Castle::pump_status(){
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 		check_tech_mission(it->second, utc_now);
 	}
+}
+void Castle::recalculate_attributes(){
+	PROFILE_ME;
+
+	MapObject::recalculate_attributes();
 }
 
 Castle::BuildingBaseInfo Castle::get_building_base(BuildingBaseId building_base_id) const {

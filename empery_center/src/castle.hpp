@@ -74,6 +74,7 @@ public:
 
 public:
 	void pump_status() override;
+	void recalculate_attributes() override;
 
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
 	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;

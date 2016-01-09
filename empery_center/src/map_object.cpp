@@ -40,6 +40,11 @@ void MapObject::pump_status(){
 
 	// 无事可做。
 }
+void MapObject::recalculate_attributes(){
+	PROFILE_ME;
+
+	// 无事可做。
+}
 
 MapObjectUuid MapObject::get_map_object_uuid() const {
 	return MapObjectUuid(m_obj->unlocked_get_map_object_uuid());
