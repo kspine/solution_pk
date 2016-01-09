@@ -69,6 +69,7 @@ void PaymentTransaction::settle(std::string operation_remarks){
 		ReasonIds::ID_PAYMENT, 0, 0, 0);
 	item_box->commit_transaction(transaction,
 		[&]{
+			m_obj->set_expiry_time(0);
 			m_obj->set_settled(true);
 			m_obj->set_operation_remarks(std::move(operation_remarks));
 		});
@@ -84,6 +85,7 @@ void PaymentTransaction::cancel(std::string operation_remarks){
 		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
 	}
 
+	m_obj->set_expiry_time(0);
 	m_obj->set_cancelled(true);
 	m_obj->set_operation_remarks(std::move(operation_remarks));
 

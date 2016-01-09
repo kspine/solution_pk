@@ -62,8 +62,7 @@ namespace {
 		LOG_EMPERY_CENTER_INFO("Loading payment transactions...");
 		std::ostringstream oss;
 		const auto utc_now = Poseidon::get_utc_time();
-		oss <<"SELECT * FROM `Center_PaymentTransaction` WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now)
-		    <<"  AND `settled` = FALSE AND `cancelled` = FALSE ";
+		oss <<"SELECT * FROM `Center_PaymentTransaction` WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now);
 		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>();
