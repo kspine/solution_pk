@@ -15,11 +15,13 @@ namespace {
 		boost::shared_ptr<PaymentTransaction> payment_transaction;
 
 		std::size_t serial_hash;
+		std::pair<AccountUuid, std::uint64_t> account_uuid_created_time;
 		std::uint64_t expiry_time;
 
 		explicit PaymentTransactionElement(boost::shared_ptr<PaymentTransaction> payment_transaction_)
 			: payment_transaction(std::move(payment_transaction_))
 			, serial_hash(hash_string_nocase(payment_transaction->get_serial()))
+			, account_uuid_created_time(payment_transaction->get_account_uuid(), payment_transaction->get_created_time())
 			, expiry_time(payment_transaction->get_expiry_time())
 		{
 		}
@@ -27,6 +29,7 @@ namespace {
 
 	MULTI_INDEX_MAP(PaymentTransactionMapContainer, PaymentTransactionElement,
 		MULTI_MEMBER_INDEX(serial_hash)
+		MULTI_MEMBER_INDEX(account_uuid_created_time)
 		MULTI_MEMBER_INDEX(expiry_time)
 	)
 
@@ -41,8 +44,8 @@ namespace {
 		const auto payment_transaction_map = g_payment_transaction_map.lock();
 		if(payment_transaction_map){
 			for(;;){
-				const auto it = payment_transaction_map->begin<1>();
-				if(it == payment_transaction_map->end<1>()){
+				const auto it = payment_transaction_map->begin<2>();
+				if(it == payment_transaction_map->end<2>()){
 					break;
 				}
 				if(utc_now < it->expiry_time){
@@ -50,7 +53,7 @@ namespace {
 				}
 
 				LOG_EMPERY_CENTER_INFO("Reclaiming payment transaction: serial = ", it->payment_transaction->get_serial());
-				payment_transaction_map->erase<1>(it);
+				payment_transaction_map->erase<2>(it);
 			}
 		}
 	}
@@ -69,7 +72,7 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto payment_transaction = boost::make_shared<PaymentTransaction>(std::move(obj));
-			if(payment_transaction->is_virtually_removed()){
+			if(payment_transaction->get_expiry_time() < utc_now){
 				continue;
 			}
 			payment_transaction_map->insert(PaymentTransactionElement(std::move(payment_transaction)));
@@ -127,6 +130,22 @@ void PaymentTransactionMap::get_all(std::vector<boost::shared_ptr<PaymentTransac
 		ret.emplace_back(it->payment_transaction);
 	}
 }
+void PaymentTransactionMap::get_by_account(std::vector<boost::shared_ptr<PaymentTransaction>> &ret, AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto payment_transaction_map = g_payment_transaction_map.lock();
+	if(!payment_transaction_map){
+		LOG_EMPERY_CENTER_WARNING("Payment transaction map not loaded.");
+		return;
+	}
+
+	const auto lower = payment_transaction_map->lower_bound<1>(std::make_pair(account_uuid, (std::uint64_t)0));
+	const auto upper = payment_transaction_map->upper_bound<1>(std::make_pair(account_uuid, (std::uint64_t)-1));
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(lower, upper)));
+	for(auto it = lower; it != upper; ++it){
+		ret.emplace_back(it->payment_transaction);
+	}
+}
 
 void PaymentTransactionMap::insert(const boost::shared_ptr<PaymentTransaction> &payment_transaction){
 	PROFILE_ME;
@@ -177,7 +196,8 @@ void PaymentTransactionMap::update(const boost::shared_ptr<PaymentTransaction> &
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating payment transaction: serial = ", serial);
-	if(payment_transaction->is_virtually_removed()){
+	const auto utc_now = Poseidon::get_utc_time();
+	if(payment_transaction->get_expiry_time() < utc_now){
 		payment_transaction_map->erase<0>(acit);
 	} else {
 		payment_transaction_map->replace<0>(acit, PaymentTransactionElement(payment_transaction));

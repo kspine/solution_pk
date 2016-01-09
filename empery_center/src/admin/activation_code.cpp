@@ -31,28 +31,17 @@ ADMIN_SERVLET("activation_code/get_all", root, session, /* params */){
 	return Response();
 }
 
-namespace {
-	unsigned s_auto_inc = Poseidon::rand32();
-}
-
 ADMIN_SERVLET("activation_code/random", root, session, params){
 	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
 
+	auto code = ActivationCode::random_code();
 	const auto utc_now = Poseidon::get_utc_time();
-
-	std::string code;
-	code.resize(11);
-	auto seed = utc_now + 6364136223846793005ull * (++s_auto_inc);
-	for(auto it = code.rbegin(); it != code.rend(); ++it){
-		*it = static_cast<int>(seed % 26) + 'a';
-		seed /= 26;
-	}
-
-	const auto activation_code = boost::make_shared<ActivationCode>(code, utc_now, expiry_time);
+	const auto activation_code = boost::make_shared<ActivationCode>(std::move(code), utc_now, expiry_time);
 	ActivationCodeMap::insert(activation_code);
 
-	root[sslit("code")]        = std::move(code);
-	root[sslit("expiry_time")] = expiry_time;
+	Poseidon::JsonObject object;
+	fill_activation_code_object(object, activation_code);
+	root[sslit("activation_code")] = std::move(object);
 
 	return Response();
 }

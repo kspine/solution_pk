@@ -13,6 +13,9 @@ namespace MySql {
 }
 
 class ActivationCode : public virtual Poseidon::VirtualSharedFromThis {
+public:
+	static std::string random_code();
+
 private:
 	const boost::shared_ptr<MySql::Center_ActivationCode> m_obj;
 

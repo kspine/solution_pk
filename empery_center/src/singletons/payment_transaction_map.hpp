@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include "../id_types.hpp"
 
 namespace EmperyCenter {
 
@@ -14,6 +15,7 @@ struct PaymentTransactionMap {
 	static boost::shared_ptr<PaymentTransaction> require(const std::string &code);
 
 	static void get_all(std::vector<boost::shared_ptr<PaymentTransaction>> &ret);
+	static void get_by_account(std::vector<boost::shared_ptr<PaymentTransaction>> &ret, AccountUuid account_uuid);
 
 	static void insert(const boost::shared_ptr<PaymentTransaction> &payment_transaction);
 	static void update(const boost::shared_ptr<PaymentTransaction> &payment_transaction, bool throws_if_not_exists = true);

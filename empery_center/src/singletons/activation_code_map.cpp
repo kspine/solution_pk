@@ -69,7 +69,7 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto activation_code = boost::make_shared<ActivationCode>(std::move(obj));
-			if(activation_code->is_virtually_removed()){
+			if(activation_code->get_expiry_time() < utc_now){
 				continue;
 			}
 			activation_code_map->insert(ActivationCodeElement(std::move(activation_code)));
@@ -177,7 +177,8 @@ void ActivationCodeMap::update(const boost::shared_ptr<ActivationCode> &activati
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating activation code: code = ", code);
-	if(activation_code->is_virtually_removed()){
+	const auto utc_now = Poseidon::get_utc_time();
+	if(activation_code->get_expiry_time() < utc_now){
 		activation_code_map->erase<0>(acit);
 	} else {
 		activation_code_map->replace<0>(acit, ActivationCodeElement(activation_code));

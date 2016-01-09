@@ -5,6 +5,24 @@
 
 namespace EmperyCenter {
 
+namespace {
+	std::uint64_t g_auto_inc = Poseidon::get_utc_time();
+}
+
+std::string ActivationCode::random_code(){
+	PROFILE_ME;
+
+	std::string code;
+	code.resize(11);
+	auto seed = 6364136223846793005ull * (++g_auto_inc);
+	for(auto it = code.rbegin(); it != code.rend(); ++it){
+		*it = static_cast<int>(seed % 26) + 'a';
+		seed /= 26;
+	}
+
+	return code;
+}
+
 ActivationCode::ActivationCode(std::string code, std::uint64_t created_time, std::uint64_t expiry_time)
 	: m_obj(
 		[&]{

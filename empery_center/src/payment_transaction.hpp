@@ -15,12 +15,15 @@ namespace MySql {
 }
 
 class PaymentTransaction : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+public:
+	static std::string random_serial();
+
 private:
 	const boost::shared_ptr<MySql::Center_PaymentTransaction> m_obj;
 
 public:
-	PaymentTransaction(std::string serial, AccountUuid account_uuid,
-		std::uint64_t created_time, std::uint64_t expiry_time, std::uint64_t amount, std::string remarks);
+	PaymentTransaction(std::string serial, AccountUuid account_uuid, std::uint64_t created_time, std::uint64_t expiry_time,
+		ItemId item_id, std::uint64_t amount, std::string remarks);
 	explicit PaymentTransaction(boost::shared_ptr<MySql::Center_PaymentTransaction> obj);
 	~PaymentTransaction();
 
@@ -29,9 +32,11 @@ public:
 	AccountUuid get_account_uuid() const;
 	std::uint64_t get_created_time() const;
 	std::uint64_t get_expiry_time() const;
+
+	ItemId get_item_id() const;
 	std::uint64_t get_amount() const;
 
-	bool has_been_settled() const;
+	bool has_been_committed() const;
 	bool has_been_cancelled() const;
 	const std::string &get_operation_remarks() const;
 	void settle(std::string operation_remarks);

@@ -25,7 +25,7 @@ constexpr ReasonId
 	ID_INIT_ITEMS                   ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT               ( 673002 ), // 自增长类型          自增长偏移          0
 	ID_TRADE_REQUEST                ( 673003 ), // 客户端请求 ID       交易 ID             重复次数
-	ID_MAIL_ATTACHMENTS             ( 673004 ), // 邮件 UUID 最后      语言 ID             0
+	ID_MAIL_ATTACHMENTS             ( 673004 ), // 邮件 UUID 最后      语言 ID             邮件类型
 	                                            // 64 位（大端序）
 	ID_PAYMENT                      ( 673005 ), // 0                   0                   0
 

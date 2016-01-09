@@ -144,7 +144,7 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 	transaction.reserve(attachments.size());
 	for(auto it = attachments.begin(); it != attachments.end(); ++it){
 		transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
-			ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), 0);
+			ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), mail_data->get_type().get());
 	}
 	item_box->commit_transaction(transaction,
 		[&]{

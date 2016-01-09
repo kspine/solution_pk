@@ -7,6 +7,13 @@ namespace EmperyCenter {
 
 namespace MySql {
 
+#define MYSQL_OBJECT_NAME   Center_AuctionItem
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (item_id)	\
+	FIELD_BIGINT_UNSIGNED   (item_count)
+#include <poseidon/mysql/object_generator.hpp>
+
 #define MYSQL_OBJECT_NAME   Center_AuctionTransferRequest
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (account_uuid)	\
@@ -23,8 +30,7 @@ namespace MySql {
 	FIELD_BIGINT_UNSIGNED   (resource_amount_locked)	\
 	FIELD_BIGINT_UNSIGNED   (resource_amount_fee)	\
 	FIELD_INTEGER_UNSIGNED  (item_id)	\
-	FIELD_BIGINT_UNSIGNED   (item_count)	\
-	FIELD_TINYINT_UNSIGNED  (deleted)
+	FIELD_BIGINT_UNSIGNED   (item_count)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

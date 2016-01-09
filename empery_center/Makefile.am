@@ -22,6 +22,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/admin_http_server.cpp	\
 	src/singletons/auction_http_server.cpp	\
 	src/singletons/account_http_server.cpp	\
+	src/singletons/payment_http_server.cpp	\
 	src/singletons/account_map.cpp	\
 	src/singletons/player_session_map.cpp	\
 	src/singletons/world_map.cpp	\
@@ -58,6 +59,8 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/auction/trade.cpp	\
 	src/account/promotion.cpp	\
 	src/account/test.cpp	\
+	src/payment/create_bill.cpp	\
+	src/payment/promotion_callback.cpp	\
 	src/cluster/map.cpp	\
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
@@ -68,6 +71,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin_session.cpp	\
 	src/auction_session.cpp	\
 	src/account_session.cpp	\
+	src/payment_session.cpp	\
 	src/account.cpp	\
 	src/map_cell.cpp	\
 	src/map_object.cpp	\
