@@ -11,7 +11,7 @@
 #include <poseidon/time.hpp>
 #include <poseidon/random.hpp>
 #include <poseidon/flags.hpp>
-#include <poseidon/module_config.hpp>
+#include <poseidon/module_raii.hpp>
 #include <poseidon/mutex.hpp>
 #include <poseidon/condition_variable.hpp>
 #include <poseidon/uuid.hpp>
