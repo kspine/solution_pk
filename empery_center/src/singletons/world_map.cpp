@@ -210,7 +210,7 @@ namespace {
 		std::map<Poseidon::Uuid, TempMapObjectElement> temp_map_object_map;
 
 		LOG_EMPERY_CENTER_INFO("Loading map objects...");
-		conn->execute_sql("SELECT * FROM `Center_MapObject` WHERE `deleted` = FALSE");
+		conn->execute_sql("SELECT * FROM `Center_MapObject` WHERE `deleted` = 0");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapObject>();
 			obj->fetch(conn);
