@@ -127,11 +127,6 @@ bool PaymentTransaction::is_virtually_removed() const {
 		LOG_EMPERY_CENTER_DEBUG("Payment transaction cancelled: serial = ", get_serial());
 		return true;
 	}
-	const auto utc_now = Poseidon::get_utc_time();
-	if(get_expiry_time() <= utc_now){
-		LOG_EMPERY_CENTER_DEBUG("Payment transaction expired: serial = ", get_serial());
-		return true;
-	}
 	return false;
 }
 

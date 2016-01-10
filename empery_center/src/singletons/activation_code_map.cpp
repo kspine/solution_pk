@@ -48,8 +48,9 @@ namespace {
 				if(utc_now < it->expiry_time){
 					break;
 				}
+				const auto &activation_code = it->activation_code;
 
-				LOG_EMPERY_CENTER_INFO("Reclaiming activation code: code = ", it->activation_code->get_code());
+				LOG_EMPERY_CENTER_INFO("Reclaiming activation code: code = ", activation_code->get_code());
 				activation_code_map->erase<1>(it);
 			}
 		}
@@ -69,9 +70,6 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto activation_code = boost::make_shared<ActivationCode>(std::move(obj));
-			if(activation_code->get_expiry_time() < utc_now){
-				continue;
-			}
 			activation_code_map->insert(ActivationCodeElement(std::move(activation_code)));
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", activation_code_map->size(), " activation code(s).");

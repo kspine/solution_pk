@@ -19,7 +19,8 @@ namespace MySql {
 	FIELD_UUID              (account_uuid)	\
 	FIELD_UUID              (map_object_uuid)	\
 	FIELD_DATETIME          (created_time)	\
-	FIELD_DATETIME          (due_time)
+	FIELD_DATETIME          (due_time)	\
+	FIELD_TINYINT_UNSIGNED  (deleted)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_AuctionTransferRequestItem

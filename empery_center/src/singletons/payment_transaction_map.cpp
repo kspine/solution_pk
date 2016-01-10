@@ -51,8 +51,12 @@ namespace {
 				if(utc_now < it->expiry_time){
 					break;
 				}
+				const auto &payment_transaction = it->payment_transaction;
 
-				LOG_EMPERY_CENTER_INFO("Reclaiming payment transaction: serial = ", it->payment_transaction->get_serial());
+				LOG_EMPERY_CENTER_INFO("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
+				if(!payment_transaction->is_virtually_removed()){
+					payment_transaction->cancel("Bill expired");
+				}
 				payment_transaction_map->erase<2>(it);
 			}
 		}
@@ -63,18 +67,12 @@ namespace {
 
 		const auto payment_transaction_map = boost::make_shared<PaymentTransactionMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading payment transactions...");
-		std::ostringstream oss;
-		const auto utc_now = Poseidon::get_utc_time();
-		oss <<"SELECT * FROM `Center_PaymentTransaction` WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now);
-		conn->execute_sql(oss.str());
+		conn->execute_sql("SELECT * FROM `Center_PaymentTransaction` WHERE `comitted` = 0 AND `cancelled` = 0");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>();
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto payment_transaction = boost::make_shared<PaymentTransaction>(std::move(obj));
-			if(payment_transaction->get_expiry_time() < utc_now){
-				continue;
-			}
 			payment_transaction_map->insert(PaymentTransactionElement(std::move(payment_transaction)));
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", payment_transaction_map->size(), " payment transaction(s).");
