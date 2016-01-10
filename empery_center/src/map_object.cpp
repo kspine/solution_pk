@@ -138,7 +138,7 @@ void MapObject::get_attributes(boost::container::flat_map<AttributeId, std::int6
 		ret[it->first] = it->second->get_value();
 	}
 }
-void MapObject::set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers){
+void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers){
 	PROFILE_ME;
 
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){

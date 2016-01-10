@@ -483,7 +483,7 @@ namespace Data {
 		case CastleBuilding::T_DEFENSE_TOWER:
 			return CastleUpgradeDefenseTower::get(building_level);
 		default:
-			LOG_EMPERY_CENTER_WARNING("Unknown building type: type = ", static_cast<unsigned>(type));
+			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", static_cast<unsigned>(type));
 			return { };
 		}
 	}

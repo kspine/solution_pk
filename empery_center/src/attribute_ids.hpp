@@ -8,7 +8,11 @@ namespace EmperyCenter {
 namespace AttributeIds {
 
 constexpr AttributeId
-	ID_OVERLAY_RESOURCE_HARVESTED   ( 2500001 );
+	ID_PROSPERITY_POINTS            ( 2500001 ),
+	//
+	ID_GRAIN_PRODUCTION_TURBO       ( 2500003 ),
+	ID_WOOD_PRODUCTION_TURBO        ( 2500004 ),
+	ID_STONE_PRODUCTION_TURBO       ( 2500005 );
 
 }
 

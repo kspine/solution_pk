@@ -14,6 +14,8 @@
 #include "data/map.hpp"
 #include "singletons/account_map.hpp"
 #include "data/global.hpp"
+#include "attribute_ids.hpp"
+#include "resource_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -56,25 +58,48 @@ void MapCell::pump_status(){
 	const auto ticket_item_id = get_ticket_item_id();
 	const auto production_resource_id = get_production_resource_id();
 	if(ticket_item_id && production_resource_id){
-		const auto non_best_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_PRODUCTION_RATE_MODIFIER);
-		const auto non_best_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_CAPACITY_MODIFIER);
-		const auto acc_card_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_PRODUCTION_RATE_MODIFIER);
-		const auto acc_card_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_CAPACITY_MODIFIER);
+		const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(get_parent_object_uuid()));
+		if(!castle){
+			LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
+			DEBUG_THROW(Exception, sslit("No parent castle"));
+		}
 
 		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
 		const auto production_data = Data::MapTerrain::require(terrain_id);
 		double production_rate     = production_data->best_production_rate;
 		double capacity            = production_data->best_capacity;
+
 		if(production_resource_id != production_data->best_resource_id){
+			const auto non_best_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_PRODUCTION_RATE_MODIFIER);
+			const auto non_best_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_CAPACITY_MODIFIER);
+
 			production_rate *= non_best_rate_modifier;
 			capacity        *= non_best_capacity_modifier;
 		}
+
 		production_rate *= ticket_data->production_rate_modifier;
 		capacity        *= ticket_data->capacity_modifier;
+
 		if(acc_card_applied){
+			const auto acc_card_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_PRODUCTION_RATE_MODIFIER);
+			const auto acc_card_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_CAPACITY_MODIFIER);
+
 			production_rate *= acc_card_rate_modifier;
 			capacity        *= acc_card_capacity_modifier;
 		}
+
+		double turbo = 0.0;
+		if(production_resource_id == ResourceIds::ID_GRAIN){
+			turbo = castle->get_attribute(AttributeIds::ID_GRAIN_PRODUCTION_TURBO) / 1000.0;
+		} else if(production_resource_id == ResourceIds::ID_WOOD){
+			turbo = castle->get_attribute(AttributeIds::ID_WOOD_PRODUCTION_TURBO) / 1000.0;
+		} else if(production_resource_id == ResourceIds::ID_STONE){
+			turbo = castle->get_attribute(AttributeIds::ID_STONE_PRODUCTION_TURBO) / 1000.0;
+		} else {
+			LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
+		}
+		production_rate *= (1 + turbo);
+
 		if(production_rate < 0){
 			production_rate = 0;
 		}
@@ -168,13 +193,19 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, std::uint64_t max_amount, bool saturated){
+std::uint64_t MapCell::harvest(std::uint64_t max_amount, bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
 	const auto ticket_item_id = get_ticket_item_id();
 	if(!ticket_item_id){
 		LOG_EMPERY_CENTER_DEBUG("No ticket on map cell: coord = ", coord);
+		return 0;
+	}
+
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(get_parent_object_uuid()));
+	if(!castle){
+		LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
 		return 0;
 	}
 
