@@ -67,6 +67,7 @@ ACCOUNT_SERVLET("upgrade", session, params){
 		return ret;
 	}
 	accumulate_balance_bonus(info.account_id, info.account_id, result.second, promotion_data->level);
+	check_auto_upgradeable(info.referrer_id);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

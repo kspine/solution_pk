@@ -22,60 +22,6 @@ namespace {
 			return ::strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
 		}
 	};
-
-	void check_auto_upgradeable(AccountId init_account_id){
-		PROFILE_ME;
-
-		auto next_account_id = init_account_id;
-		while(next_account_id){
-			const auto account_id = next_account_id;
-			const auto info = AccountMap::require(account_id);
-			next_account_id = info.referrer_id;
-
-			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: account_id = ", account_id, ", level = ", info.level);
-			const auto old_promotion_data = Data::Promotion::get(info.level);
-			if(!old_promotion_data){
-				LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero.");
-				continue;
-			}
-
-			boost::container::flat_map<std::uint64_t, std::uint64_t> subordinate_level_counts;
-			subordinate_level_counts.reserve(32);
-			{
-				std::vector<AccountMap::AccountInfo> subordinates;
-				AccountMap::get_by_referrer_id(subordinates, account_id);
-				for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
-					LOG_EMPERY_PROMOTION_DEBUG("> > Subordinate: account_id = ", it->account_id, ", max_level = ", it->max_level);
-					++subordinate_level_counts[it->max_level];
-				}
-			}
-			auto new_promotion_data = old_promotion_data;
-			for(;;){
-				std::size_t count = 0;
-				for(auto it = subordinate_level_counts.lower_bound(new_promotion_data->level); it != subordinate_level_counts.end(); ++it){
-					count += it->second;
-				}
-				LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", new_promotion_data->level,
-					", count = ", count, ", auto_upgrade_count = ", new_promotion_data->auto_upgrade_count);
-				if(count < new_promotion_data->auto_upgrade_count){
-					LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
-					break;
-				}
-				auto promotion_data = Data::Promotion::get_next(new_promotion_data->level);
-				if(!promotion_data || (promotion_data == new_promotion_data)){
-					LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
-					break;
-				}
-				new_promotion_data = std::move(promotion_data);
-			}
-			if(new_promotion_data == old_promotion_data){
-				LOG_EMPERY_PROMOTION_DEBUG("Not auto upgradeable: account_id = ", account_id);
-			} else {
-				LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: account_id = ", account_id, ", level = ", new_promotion_data->level);
-				AccountMap::set_level(account_id, new_promotion_data->level);
-			}
-		}
-	}
 }
 
 std::pair<bool, std::uint64_t> try_upgrade_account(AccountId account_id, AccountId payer_id, bool is_creating_account,
@@ -120,9 +66,63 @@ std::pair<bool, std::uint64_t> try_upgrade_account(AccountId account_id, Account
 	if(info.level < level){
 		AccountMap::set_level(account_id, level);
 	}
-	check_auto_upgradeable(info.referrer_id);
+	// 放别处算。
+	// check_auto_upgradeable(info.referrer_id);
 
 	return std::make_pair(true, balance_to_consume);
+}
+void check_auto_upgradeable(AccountId init_account_id){
+	PROFILE_ME;
+
+	auto next_account_id = init_account_id;
+	while(next_account_id){
+		const auto account_id = next_account_id;
+		const auto info = AccountMap::require(account_id);
+		next_account_id = info.referrer_id;
+
+		LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: account_id = ", account_id, ", level = ", info.level);
+		const auto old_promotion_data = Data::Promotion::get(info.level);
+		if(!old_promotion_data){
+			LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero.");
+			continue;
+		}
+
+		boost::container::flat_map<std::uint64_t, std::uint64_t> subordinate_level_counts;
+		subordinate_level_counts.reserve(32);
+		{
+			std::vector<AccountMap::AccountInfo> subordinates;
+			AccountMap::get_by_referrer_id(subordinates, account_id);
+			for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+				LOG_EMPERY_PROMOTION_DEBUG("> > Subordinate: account_id = ", it->account_id, ", max_level = ", it->max_level);
+				++subordinate_level_counts[it->max_level];
+			}
+		}
+		auto new_promotion_data = old_promotion_data;
+		for(;;){
+			std::size_t count = 0;
+			for(auto it = subordinate_level_counts.lower_bound(new_promotion_data->level); it != subordinate_level_counts.end(); ++it){
+				count += it->second;
+			}
+			LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", new_promotion_data->level,
+				", count = ", count, ", auto_upgrade_count = ", new_promotion_data->auto_upgrade_count);
+			if(count < new_promotion_data->auto_upgrade_count){
+				LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
+				break;
+			}
+			auto promotion_data = Data::Promotion::get_next(new_promotion_data->level);
+			if(!promotion_data || (promotion_data == new_promotion_data)){
+				LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
+				break;
+			}
+			new_promotion_data = std::move(promotion_data);
+		}
+		if(new_promotion_data == old_promotion_data){
+			LOG_EMPERY_PROMOTION_DEBUG("Not auto upgradeable: account_id = ", account_id);
+		} else {
+			LOG_EMPERY_PROMOTION_DEBUG("Auto upgrading: account_id = ", account_id, ", level = ", new_promotion_data->level);
+			AccountMap::set_level(account_id, new_promotion_data->level);
+		}
+	}
 }
 
 namespace {
@@ -473,4 +473,3 @@ std::string generate_bill_serial(const std::string &prefix){
 }
 
 }
- 

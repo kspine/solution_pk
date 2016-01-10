@@ -16,6 +16,7 @@ namespace Data {
 // <succeeded, balance_to_consume>
 extern std::pair<bool, std::uint64_t> try_upgrade_account(AccountId account_id, AccountId payer_id, bool is_creating_account,
 	const boost::shared_ptr<const Data::Promotion> &promotion_data, const std::string &remarks, std::uint64_t additional_cards);
+extern void check_auto_upgradeable(AccountId init_account_id);
 
 extern void commit_first_balance_bonus();
 extern void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uint64_t amount, std::uint64_t upgrade_to_level);
