@@ -67,7 +67,7 @@ namespace {
 
 		const auto payment_transaction_map = boost::make_shared<PaymentTransactionMapContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading payment transactions...");
-		conn->execute_sql("SELECT * FROM `Center_PaymentTransaction` WHERE `comitted` = 0 AND `cancelled` = 0");
+		conn->execute_sql("SELECT * FROM `Center_PaymentTransaction` WHERE `committed` = 0 AND `cancelled` = 0");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>();
 			obj->fetch(conn);

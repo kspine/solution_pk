@@ -24,7 +24,7 @@ private:
 		boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 	// 非持久化数据。
-	double m_harvest_remainder;
+	double m_harvest_remainder = 0;
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,

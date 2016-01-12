@@ -8,8 +8,9 @@ namespace EmperyCenter {
 template<typename FriendT, typename SomeIdT>
 class TransactionElement;
 
-using ItemTransactionElement     = TransactionElement<class ItemBox, ItemId>;
-using ResourceTransactionElement = TransactionElement<class Castle,  ResourceId>;
+using ItemTransactionElement     = TransactionElement<class ItemBox,       ItemId>;
+using ResourceTransactionElement = TransactionElement<class Castle,        ResourceId>;
+using AuctionTransactionElement  = TransactionElement<class AuctionCenter, ItemId>;
 
 }
 

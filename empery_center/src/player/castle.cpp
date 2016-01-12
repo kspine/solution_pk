@@ -285,7 +285,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0));
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{ castle->speed_up_building_mission(building_base_id, UINT64_MAX); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
@@ -451,7 +451,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0));
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{ castle->speed_up_tech_mission(tech_id, UINT64_MAX); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
@@ -609,7 +609,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_IMMIGRANT_CREATION_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
 			const auto immigrants_uuid = MapObjectUuid(Poseidon::Uuid::random());
 			const auto immigrants = boost::make_shared<MapObject>(immigrants_uuid, MapObjectTypeIds::ID_IMMIGRANTS,
@@ -663,7 +663,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
 		ReasonIds::ID_SPEED_UP_BUILDING_UPGRADE, info.building_id.get(), info.building_level, 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{ castle->speed_up_building_mission(building_base_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
@@ -710,7 +710,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
 		ReasonIds::ID_SPEED_UP_TECH_UPGRADE, info.tech_id.get(), info.tech_level, 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{ castle->speed_up_tech_mission(tech_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
@@ -744,7 +744,7 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
 		ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_tail, item_id.get(), static_cast<std::int64_t>(count_to_consume));
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
 			std::vector<ResourceTransactionElement> res_transaction;
 			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, checked_mul(count_to_consume, item_data->value),

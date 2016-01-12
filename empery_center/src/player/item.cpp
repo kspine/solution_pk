@@ -41,7 +41,7 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromRecharge, account, session, req){
 
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
@@ -66,7 +66,7 @@ PLAYER_SERVLET(Msg::CS_ItemTradeFromShop, account, session, req){
 
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
@@ -92,7 +92,7 @@ PLAYER_SERVLET(Msg::CS_ItemUseItem, account, session, req){
 
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, repeat_count, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
@@ -139,7 +139,7 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
 	transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, repeat_count,
 		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
 			Poseidon::OptionalMap get_params;
 			get_params.set(sslit("loginName"),   account->get_login_name());
@@ -149,7 +149,7 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 			entity = boost::make_shared<Poseidon::StreamBuffer>();
 			promise = SimpleHttpClientDaemon::async_request(entity, g_promotion_host, g_promotion_port, g_promotion_use_ssl,
 				Poseidon::Http::V_GET, g_promotion_path + "/sellAccelerationCards", std::move(get_params), g_promotion_auth);
-		}, true); // 不计算税收。
+		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}

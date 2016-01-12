@@ -28,6 +28,9 @@ constexpr ReasonId
 	ID_MAIL_ATTACHMENTS             ( 673004 ), // 邮件 UUID 最后      语言 ID             邮件类型
 	                                            // 64 位（大端序）
 	ID_PAYMENT                      ( 673005 ), // 0                   0                   0
+	ID_AUCTION_TRANSFER_LOCK        ( 673006 ), // 0                   0                   0
+	ID_AUCTION_TRANSFER_COMMIT      ( 673007 ), // 0                   0                   0
+	ID_AUCTION_TRANSFER_UNLOCK      ( 673008 ), // 0                   0                   0
 
 	ID_MAP_CELL_PURCHASE            ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE             ( 674002 ), // 世界坐标 X          世界坐标 Y          0

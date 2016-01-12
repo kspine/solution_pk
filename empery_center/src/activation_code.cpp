@@ -28,7 +28,7 @@ ActivationCode::ActivationCode(std::string code, std::uint64_t created_time, std
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_ActivationCode>(
 				std::move(code), created_time, expiry_time, Poseidon::Uuid());
-			obj->save_and_wait(false);
+			obj->async_save(true);
 			return obj;
 		}())
 {

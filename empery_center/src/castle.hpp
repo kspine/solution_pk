@@ -106,6 +106,8 @@ public:
 
 	ResourceInfo get_resource(ResourceId resource_id) const;
 	void get_all_resources(std::vector<ResourceInfo> &ret) const;
+
+	__attribute__((__warn_unused_result__))
 	ResourceId commit_resource_transaction_nothrow(const std::vector<ResourceTransactionElement> &transaction,
 		const boost::function<void ()> &callback = boost::function<void ()>());
 	void commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,

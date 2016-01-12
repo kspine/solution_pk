@@ -50,10 +50,11 @@ public:
 	ItemInfo get(ItemId item_id) const;
 	void get_all(std::vector<ItemInfo> &ret) const;
 
-	ItemId commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction,
-		const boost::function<void ()> &callback = boost::function<void ()>(), bool notax = false);
-	void commit_transaction(const std::vector<ItemTransactionElement> &transaction,
-		const boost::function<void ()> &callback = boost::function<void ()>(), bool notax = false);
+	__attribute__((__warn_unused_result__))
+	ItemId commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction, bool tax,
+		const boost::function<void ()> &callback = boost::function<void ()>());
+	void commit_transaction(const std::vector<ItemTransactionElement> &transaction, bool tax,
+		const boost::function<void ()> &callback = boost::function<void ()>());
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

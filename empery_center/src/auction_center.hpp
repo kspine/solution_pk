@@ -6,31 +6,32 @@
 #include <cstddef>
 #include <vector>
 #include <boost/container/flat_map.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 #include "id_types.hpp"
+#include "transaction_element_fwd.hpp"
 
 namespace EmperyCenter {
 
 namespace MySql {
-	class Center_AuctionTransferRequest;
-	class Center_AuctionTransferRequestItem;
+	class Center_AuctionTransfer;
 }
 
 class AuctionCenter : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
-private:
-	struct TransferRequest {
-		boost::shared_ptr<MySql::Center_AuctionTransferRequest> obj;
-		boost::container::flat_map<ItemId,
-			boost::shared_ptr<MySql::Center_AuctionTransferRequestItem>> items;
-
-		explicit TransferRequest(boost::shared_ptr<MySql::Center_AuctionTransferRequest> obj_)
-			: obj(std::move(obj_))
-		{
-		}
+public:
+	struct ItemInfo {
+		ItemId item_id;
+		std::uint64_t count;
 	};
 
-public:
-	struct TransferRequestInfo {
+	struct TransferInfo {
 		MapObjectUuid map_object_uuid;
+		ItemId item_id;
+		std::uint64_t item_count_locked;
+		std::uint64_t item_count_fee;
+		ResourceId resource_id;
+		std::uint64_t resource_amount_locked;
+		std::uint64_t resource_amount_fee;
 		std::uint64_t created_time;
 		std::uint64_t due_time;
 	};
@@ -38,13 +39,17 @@ public:
 private:
 	const AccountUuid m_account_uuid;
 
+	boost::container::flat_map<ItemId,
+		boost::shared_ptr<MySql::Center_AuctionTransfer>> m_items;
+	bool m_locked_by_transaction = false;
+
 	boost::container::flat_map<MapObjectUuid,
-		TransferRequest> m_transfer_requests;
+		boost::container::flat_map<ItemId,
+			boost::shared_ptr<MySql::Center_AuctionTransfer>>> m_transfers;
 
 public:
 	AuctionCenter(AccountUuid account_uuid,
-		const std::vector<boost::shared_ptr<MySql::Center_AuctionTransferRequest>> &transfer_requests,
-		const std::vector<boost::shared_ptr<MySql::Center_AuctionTransferRequestItem>> &transfer_request_items);
+		const std::vector<boost::shared_ptr<MySql::Center_AuctionTransfer>> &items);
 	~AuctionCenter();
 
 public:
@@ -54,11 +59,19 @@ public:
 		return m_account_uuid;
 	}
 
-	TransferRequestInfo get_transfer_request(MapObjectUuid map_object_uuid) const;
-	void get_all_transfer_requests(std::vector<TransferRequestInfo> &ret) const;
-	void insert_transfer_request(MapObjectUuid map_object_uuid, std::uint64_t due_time,
-		const boost::container::flat_map<ItemId, std::uint64_t> &resources, const boost::container::flat_map<ItemId, std::uint64_t> &items);
-	void remove_transfer_request(MapObjectUuid map_object_uuid) noexcept;
+	ItemInfo get_item(ItemId item_id) const;
+	void get_all_items(std::vector<ItemInfo> &ret) const;
+
+	__attribute__((__warn_unused_result__))
+	ItemId commit_item_transaction_nothrow(const std::vector<AuctionTransactionElement> &transaction,
+		const boost::function<void ()> &callback = boost::function<void ()>());
+	void commit_item_transaction(const std::vector<AuctionTransactionElement> &transaction,
+		const boost::function<void ()> &callback = boost::function<void ()>());
+
+	void get_transfer(std::vector<TransferInfo> &ret, MapObjectUuid map_object_uuid) const;
+	bool begin_transfer(MapObjectUuid map_object_uuid, const boost::container::flat_map<ItemId, std::uint64_t> &items);
+	bool commit_transfer(MapObjectUuid map_object_uuid);
+	void cancel_transfer(MapObjectUuid map_object_uuid, bool refund_fee);
 };
 
 }

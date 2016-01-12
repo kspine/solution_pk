@@ -17,7 +17,7 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
 				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), Poseidon::get_utc_time(), false);
-			obj->save_and_wait(false);
+			obj->async_save(true);
 			return obj;
 		}())
 	, m_harvest_remainder(0)
@@ -26,7 +26,6 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
 	: m_obj(std::move(obj))
-	, m_harvest_remainder(0)
 {
 	for(auto it = attributes.begin(); it != attributes.end(); ++it){
 		m_attributes.emplace(AttributeId((*it)->get_attribute_id()), *it);
@@ -146,7 +145,7 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 		if(obj_it == m_attributes.end()){
 			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(
 				get_map_object_uuid().get(), it->first.get(), 0);
-			obj->enable_auto_saving(); // obj->save_and_wait(false);
+			obj->enable_auto_saving(); // obj->async_save(true);
 			m_attributes.emplace(it->first, std::move(obj));
 		}
 	}

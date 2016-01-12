@@ -57,7 +57,7 @@ namespace {
 
 	MULTI_INDEX_MAP(CastleResourceMap, Data::CastleResource,
 		UNIQUE_MEMBER_INDEX(resource_id)
-		UNIQUE_MEMBER_INDEX(locked_resource_id)
+		MULTI_MEMBER_INDEX(locked_resource_id)
 	)
 	boost::weak_ptr<const CastleResourceMap> g_resource_map;
 	const char RESOURCE_FILE[] = "initial_material";
@@ -731,7 +731,7 @@ namespace Data {
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleResource> CastleResource::get_by_locked_resource_id(ResourceId resource_id){
+	boost::shared_ptr<const CastleResource> CastleResource::get_by_locked_resource_id(ResourceId locked_resource_id){
 		PROFILE_ME;
 
 		const auto resource_map = g_resource_map.lock();
@@ -740,17 +740,17 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = resource_map->find<1>(resource_id);
+		const auto it = resource_map->find<1>(locked_resource_id);
 		if(it == resource_map->end<1>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: resource_id = ", resource_id);
+			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: locked_resource_id = ", locked_resource_id);
 			return { };
 		}
 		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
 	}
-	boost::shared_ptr<const CastleResource> CastleResource::require_by_locked_resource_id(ResourceId resource_id){
+	boost::shared_ptr<const CastleResource> CastleResource::require_by_locked_resource_id(ResourceId locked_resource_id){
 		PROFILE_ME;
 
-		auto ret = get_by_locked_resource_id(resource_id);
+		auto ret = get_by_locked_resource_id(locked_resource_id);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleResource not found"));
 		}

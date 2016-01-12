@@ -85,6 +85,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/overlay.cpp	\
 	src/activation_code.cpp	\
 	src/auction_center.cpp	\
-	src/auction_transfer_request.cpp	\
 	src/payment_transaction.cpp	\
 	src/mmain.cpp

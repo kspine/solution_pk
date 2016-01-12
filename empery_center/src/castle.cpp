@@ -1,5 +1,6 @@
 #include "precompiled.hpp"
 #include "castle.hpp"
+#include "flag_guard.hpp"
 #include "transaction_element.hpp"
 #include "map_object.hpp"
 #include "map_object_type_ids.hpp"
@@ -16,29 +17,6 @@
 namespace EmperyCenter {
 
 namespace {
-	class FlagGuard {
-	private:
-		bool &m_locked;
-
-	public:
-		explicit FlagGuard(bool &locked)
-			: m_locked(locked)
-		{
-			if(m_locked){
-				DEBUG_THROW(Exception, sslit("Transaction locked"));
-			}
-			m_locked = true;
-		}
-		~FlagGuard(){
-			if(!m_locked){
-				assert(false);
-			}
-			m_locked = false;
-		}
-
-		FlagGuard(const FlagGuard &) = delete;
-	};
-
 	void fill_building_base_info(Castle::BuildingBaseInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
 		PROFILE_ME;
 
@@ -197,77 +175,68 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
 	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
 		owner_uuid, parent_object_uuid, std::move(name), coord)
-	, m_buildings(
-		[&]{
-			boost::container::flat_map<BuildingBaseId, boost::shared_ptr<MySql::Center_CastleBuildingBase>> buildings;
-			LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
-			std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
-			Data::CastleBuildingBase::get_init(init_buildings);
-			for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
-				const auto &building_data = *dit;
-
-				const auto &buildings_allowed = building_data->buildings_allowed;
-				boost::container::flat_map<BuildingId, unsigned> random_buildings;
-				random_buildings.reserve(buildings_allowed.size());
-				for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
-					const auto building_id = *it;
-					random_buildings.emplace(building_id, 0);
-				}
-				for(auto tit = buildings.begin(); tit != buildings.end(); ++tit){
-					const auto &obj = tit->second;
-					const auto building_id = BuildingId(obj->get_building_id());
-					const auto it = random_buildings.find(building_id);
-					if(it == random_buildings.end()){
-						continue;
-					}
-					it->second += 1;
-				}
-				auto it = random_buildings.begin();
-				while(it != random_buildings.end()){
-					const auto random_building_data = Data::CastleBuilding::require(it->first);
-					if(it->second >= random_building_data->build_limit){
-						LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
-							", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
-						it = random_buildings.erase(it);
-					} else {
-						++it;
-					}
-				}
-				if(random_buildings.empty()){
-					continue;
-				}
-				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
-				it = random_buildings.begin() + index;
-				const auto building_id = it->first;
-				const auto init_level = building_data->init_level;
-
-				const auto building_base_id = building_data->building_base_id;
-				LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
-					", building_base_id = ", building_base_id, ", building_id = ", building_id);
-				auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-					get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
-				obj->save_and_wait(false);
-				buildings.emplace(building_base_id, std::move(obj));
-			}
-			return buildings;
-		}())
-	, m_resources(
-		[&]{
-		 	boost::container::flat_map<ResourceId, boost::shared_ptr<MySql::Center_CastleResource>> resources;
-			LOG_EMPERY_CENTER_DEBUG("Checking for init resources: owner_uuid = ", get_owner_uuid());
-			std::vector<boost::shared_ptr<const Data::CastleResource>> resource_data_all;
-			Data::CastleResource::get_all(resource_data_all);
-			for(auto dit = resource_data_all.begin(); dit != resource_data_all.end(); ++dit){
-				const auto &resource_data = *dit;
-				const auto resource_id = resource_data->resource_id;
-				auto obj = boost::make_shared<MySql::Center_CastleResource>(
-					get_map_object_uuid().get(), resource_id.get(), resource_data->init_amount);
-				obj->save_and_wait(false);
-				resources.emplace(resource_id, std::move(obj));
-			}
-			return resources;
-		}())
 {
+	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
+	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
+	Data::CastleBuildingBase::get_init(init_buildings);
+	for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
+		const auto &building_data = *dit;
+
+		const auto &buildings_allowed = building_data->buildings_allowed;
+		boost::container::flat_map<BuildingId, unsigned> random_buildings;
+		random_buildings.reserve(buildings_allowed.size());
+		for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
+			const auto building_id = *it;
+			random_buildings.emplace(building_id, 0);
+		}
+		for(auto tit = m_buildings.begin(); tit != m_buildings.end(); ++tit){
+			const auto &obj = tit->second;
+			const auto building_id = BuildingId(obj->get_building_id());
+			const auto it = random_buildings.find(building_id);
+			if(it == random_buildings.end()){
+				continue;
+			}
+			it->second += 1;
+		}
+		auto it = random_buildings.begin();
+		while(it != random_buildings.end()){
+			const auto random_building_data = Data::CastleBuilding::require(it->first);
+			if(it->second >= random_building_data->build_limit){
+				LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
+					", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
+				it = random_buildings.erase(it);
+			} else {
+				++it;
+			}
+		}
+		if(random_buildings.empty()){
+			continue;
+		}
+		const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
+		it = random_buildings.begin() + index;
+		const auto building_id = it->first;
+		const auto init_level = building_data->init_level;
+
+		const auto building_base_id = building_data->building_base_id;
+		LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id, ", building_id = ", building_id);
+		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
+			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
+		obj->async_save(true);
+		m_buildings.emplace(building_base_id, std::move(obj));
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Checking for init resources: owner_uuid = ", get_owner_uuid());
+	std::vector<boost::shared_ptr<const Data::CastleResource>> resource_data_all;
+	Data::CastleResource::get_all(resource_data_all);
+	for(auto dit = resource_data_all.begin(); dit != resource_data_all.end(); ++dit){
+		const auto &resource_data = *dit;
+		const auto resource_id = resource_data->resource_id;
+		auto obj = boost::make_shared<MySql::Center_CastleResource>(
+			get_map_object_uuid().get(), resource_id.get(), resource_data->init_amount);
+		obj->async_save(true);
+		m_resources.emplace(resource_id, std::move(obj));
+	}
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
@@ -419,7 +388,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	if(it == m_buildings.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
 			get_map_object_uuid().get(), building_base_id.get(), 0, 0, MIS_NONE, 0, 0, 0);
-		obj->save_and_wait(false);
+		obj->async_save(true);
 		it = m_buildings.emplace(building_base_id, obj).first;
 	}
 	const auto &obj = it->second;
@@ -673,7 +642,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 	if(it == m_techs.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleTech>(
 			get_map_object_uuid().get(), tech_id.get(), 0, MIS_NONE, 0, 0, 0);
-		obj->save_and_wait(false);
+		obj->async_save(true);
 		it = m_techs.emplace(tech_id, obj).first;
 	}
 	const auto &obj = it->second;
@@ -868,6 +837,7 @@ void Castle::get_all_resources(std::vector<Castle::ResourceInfo> &ret) const {
 		ret.emplace_back(std::move(info));
 	}
 }
+
 ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<ResourceTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
@@ -904,7 +874,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 					if(it == m_resources.end()){
 						obj = boost::make_shared<MySql::Center_CastleResource>(
 							get_map_object_uuid().get(), resource_id.get(), 0);
-						obj->enable_auto_saving(); // obj->save_and_wait(false);
+						obj->enable_auto_saving(); // obj->async_save(true);
 						m_resources.emplace(resource_id, obj);
 					} else {
 						obj = it->second;

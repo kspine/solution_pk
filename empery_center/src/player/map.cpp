@@ -197,7 +197,7 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{ map_cell->set_owner(parent_object_uuid, resource_id, ticket_item_id); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
@@ -232,7 +232,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_LAND_UPGRADE_TICKET, 1,
 		ReasonIds::ID_MAP_CELL_UPGRADE, coord.x(), coord.y(), old_ticket_item_id.get());
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{ map_cell->set_ticket_item_id(new_ticket_item_id); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
@@ -305,7 +305,7 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCELERATION_CARD, 1,
 		ReasonIds::ID_MAP_CELL_UPGRADE, coord.x(), coord.y(), ticket_item_id.get());
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction,
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{ map_cell->set_acceleration_card_applied(true); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;

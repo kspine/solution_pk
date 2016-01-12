@@ -50,7 +50,7 @@ ADMIN_SERVLET("item/add", root, session, params){
 	const auto operation = ItemTransactionElement::OP_ADD;
 	transaction.emplace_back(operation, item_id, count_to_add,
 		ReasonIds::ID_ADMIN_OPERATION, param1, param2, param3);
-	item_box->commit_transaction(transaction, { }, true);
+	item_box->commit_transaction(transaction, false);
 
 	return Response();
 }
@@ -73,7 +73,7 @@ ADMIN_SERVLET("item/remove", root, session, params){
 	const auto operation = saturated ? ItemTransactionElement::OP_REMOVE_SATURATED : ItemTransactionElement::OP_REMOVE;
 	transaction.emplace_back(operation, item_id, count_to_remove,
 		ReasonIds::ID_ADMIN_OPERATION, param1, param2, param3);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, { }, true);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}

@@ -11,7 +11,7 @@
 namespace EmperyCenter {
 
 namespace {
-	unsigned g_auto_inc = 0;
+	std::uint64_t g_auto_inc = Poseidon::get_utc_time();
 }
 
 std::string PaymentTransaction::random_serial(){
@@ -21,7 +21,8 @@ std::string PaymentTransaction::random_serial(){
 	const auto dt = Poseidon::break_down_time(utc_now);
 
 	char str[64];
-	unsigned len = (unsigned)std::sprintf(str, "%04u%02u%02u%02u%02u%02u%06u", dt.yr, dt.mon, dt.day, dt.hr, dt.min, dt.sec, ++g_auto_inc);
+	unsigned len = (unsigned)std::sprintf(str, "%04u%02u%02u%02u%02u%02u%06u",
+		dt.yr, dt.mon, dt.day, dt.hr, dt.min, dt.sec, (unsigned)(++g_auto_inc % 1000000));
 	return std::string(str, len);
 }
 
@@ -31,7 +32,7 @@ PaymentTransaction::PaymentTransaction(std::string serial, AccountUuid account_u
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>(std::move(serial), account_uuid.get(), created_time, expiry_time,
 				item_id.get(), amount, std::move(remarks), false, false, std::string());
-			obj->save_and_wait(false);
+			obj->async_save(true);
 			return obj;
 		}())
 {
@@ -86,7 +87,7 @@ void PaymentTransaction::settle(std::string operation_remarks){
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_ADD, get_item_id(), get_amount(),
 		ReasonIds::ID_PAYMENT, 0, 0, 0);
-	item_box->commit_transaction(transaction,
+	item_box->commit_transaction(transaction, false,
 		[&]{
 			m_obj->set_committed(true);
 			m_obj->set_operation_remarks(std::move(operation_remarks));
@@ -120,11 +121,9 @@ bool PaymentTransaction::is_virtually_removed() const {
 	PROFILE_ME;
 
 	if(has_been_committed()){
-		LOG_EMPERY_CENTER_DEBUG("Payment transaction committed: serial = ", get_serial());
 		return true;
 	}
 	if(has_been_cancelled()){
-		LOG_EMPERY_CENTER_DEBUG("Payment transaction cancelled: serial = ", get_serial());
 		return true;
 	}
 	return false;

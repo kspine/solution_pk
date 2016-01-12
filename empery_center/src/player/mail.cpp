@@ -146,7 +146,7 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 		transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
 			ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), mail_data->get_type().get());
 	}
-	item_box->commit_transaction(transaction,
+	item_box->commit_transaction(transaction, false,
 		[&]{
 			info.attachments_fetched = true;
 			mail_box->update(std::move(info));

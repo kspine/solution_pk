@@ -4,6 +4,7 @@
 #include <poseidon/json.hpp>
 #include <poseidon/string.hpp>
 #include <poseidon/async_job.hpp>
+#include "flag_guard.hpp"
 #include "transaction_element.hpp"
 #include "msg/sc_item.hpp"
 #include "mysql/item.hpp"
@@ -26,29 +27,6 @@
 namespace EmperyCenter {
 
 namespace {
-	class FlagGuard {
-	private:
-		bool &m_locked;
-
-	public:
-		explicit FlagGuard(bool &locked)
-			: m_locked(locked)
-		{
-			if(m_locked){
-				DEBUG_THROW(Exception, sslit("Transaction locked"));
-			}
-			m_locked = true;
-		}
-		~FlagGuard(){
-			if(!m_locked){
-				assert(false);
-			}
-			m_locked = false;
-		}
-
-		FlagGuard(const FlagGuard &) = delete;
-	};
-
 	void fill_item_info(ItemBox::ItemInfo &info, const boost::shared_ptr<MySql::Center_Item> &obj){
 		PROFILE_ME;
 
@@ -264,7 +242,7 @@ void ItemBox::pump_status(){
 		auto it = m_items.find(item_data->item_id);
 		if(it == m_items.end()){
 			auto obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_data->item_id.get(), 0, 0);
-			obj->save_and_wait(false);
+			obj->async_save(true);
 			it = m_items.emplace(item_data->item_id, std::move(obj)).first;
 		}
 		const auto &obj = it->second;
@@ -331,7 +309,7 @@ void ItemBox::pump_status(){
 		const auto new_updated_time = saturated_add(old_updated_time, saturated_mul(auto_inc_period, interval_count));
 		new_timestamps.emplace(obj, new_updated_time);
 	}
-	commit_transaction(transaction,
+	commit_transaction(transaction, false,
 		[&]{
 			for(auto it = new_timestamps.begin(); it != new_timestamps.end(); ++it){
 				it->first->set_updated_time(it->second);
@@ -355,7 +333,7 @@ void ItemBox::check_init_items(){
 				ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
 		}
 	}
-	commit_transaction(transaction);
+	commit_transaction(transaction, false);
 }
 
 ItemBox::ItemInfo ItemBox::get(ItemId item_id) const {
@@ -382,8 +360,8 @@ void ItemBox::get_all(std::vector<ItemBox::ItemInfo> &ret) const {
 	}
 }
 
-ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction,
-	const boost::function<void ()> &callback, bool notax)
+ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction, bool tax,
+	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
@@ -421,7 +399,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 				auto it = m_items.find(item_id);
 				if(it == m_items.end()){
 					auto obj = boost::make_shared<MySql::Center_Item>(account_uuid.get(), item_id.get(), 0, 0);
-					obj->enable_auto_saving(); // obj->save_and_wait(false);
+					obj->enable_auto_saving(); // obj->async_save(true);
 					it = m_items.emplace_hint(it, item_id, std::move(obj));
 				}
 				const auto &obj = it->second;
@@ -506,7 +484,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 		callback();
 	}
 
-	if(!notax && (taxing_amount > 0)){
+	if(tax && (taxing_amount > 0)){
 		LOG_EMPERY_CENTER_DEBUG("Calculating tax: account_uuid = ", account_uuid, ", taxing_amount = ", taxing_amount);
 
 		try {
@@ -553,12 +531,12 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 
 	return { };
 }
-void ItemBox::commit_transaction(const std::vector<ItemTransactionElement> &transaction,
-	const boost::function<void ()> &callback, bool notax)
+void ItemBox::commit_transaction(const std::vector<ItemTransactionElement> &transaction, bool tax,
+	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
-	const auto insuff_id = commit_transaction_nothrow(transaction, callback, notax);
+	const auto insuff_id = commit_transaction_nothrow(transaction, tax, callback);
 	if(insuff_id != ItemId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient items in item box: account_uuid = ", get_account_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient items in item box"));
