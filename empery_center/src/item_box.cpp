@@ -415,7 +415,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 					shall_enable_gold_payment = true;
 				}
 
-				LOG_EMPERY_CENTER_DEBUG("@ Item transaction: add: account_uuid = ", account_uuid,
+				LOG_EMPERY_CENTER_DEBUG("^ Item transaction: add: account_uuid = ", account_uuid,
 					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
@@ -461,7 +461,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 					taxing_amount = checked_add(taxing_amount, saturated_sub(old_count, new_count));
 				}
 
-				LOG_EMPERY_CENTER_DEBUG("@ Item transaction: remove: account_uuid = ", account_uuid,
+				LOG_EMPERY_CENTER_DEBUG("^ Item transaction: remove: account_uuid = ", account_uuid,
 					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				if(!withdrawn){
