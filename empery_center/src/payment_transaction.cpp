@@ -7,6 +7,7 @@
 #include "transaction_element.hpp"
 #include "item_ids.hpp"
 #include "reason_ids.hpp"
+#include "events/account.hpp"
 
 namespace EmperyCenter {
 
@@ -73,7 +74,7 @@ bool PaymentTransaction::has_been_cancelled() const {
 const std::string &PaymentTransaction::get_operation_remarks() const {
 	return m_obj->unlocked_get_operation_remarks();
 }
-void PaymentTransaction::settle(std::string operation_remarks){
+void PaymentTransaction::commit(std::string operation_remarks){
 	PROFILE_ME;
 
 	if(is_virtually_removed()){
@@ -83,6 +84,10 @@ void PaymentTransaction::settle(std::string operation_remarks){
 	}
 
 	const auto item_box = ItemBoxMap::require(get_account_uuid());
+
+	Poseidon::sync_raise_event(
+		boost::make_shared<Events::AccountPrecommitPaymentTransaction>(
+			get_account_uuid(),  get_item_id(), get_item_count()));
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_ADD, get_item_id(), get_item_count(),

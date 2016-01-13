@@ -39,7 +39,7 @@ public:
 	bool has_been_committed() const;
 	bool has_been_cancelled() const;
 	const std::string &get_operation_remarks() const;
-	void settle(std::string operation_remarks);
+	void commit(std::string operation_remarks);
 	void cancel(std::string operation_remarks);
 
 	const std::string &get_remarks() const;

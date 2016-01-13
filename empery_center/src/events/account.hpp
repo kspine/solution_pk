@@ -36,6 +36,17 @@ namespace Events {
 		{
 		}
 	};
+
+	struct AccountPrecommitPaymentTransaction : public Poseidon::EventBase<340104> {
+		AccountUuid account_uuid;
+		ItemId item_id;
+		std::uint64_t item_count;
+
+		AccountPrecommitPaymentTransaction(AccountUuid account_uuid_, ItemId item_id_, std::uint64_t item_count_)
+			: account_uuid(account_uuid_), item_id(item_id_), item_count(item_count_)
+		{
+		}
+	};
 }
 
 }

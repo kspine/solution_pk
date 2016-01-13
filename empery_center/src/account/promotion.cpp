@@ -5,6 +5,7 @@
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/http/utilities.hpp>
 #include <boost/container/flat_map.hpp>
+#include <poseidon/singletons/event_dispatcher.hpp>
 #include <iconv.h>
 #include "../msg/err_account.hpp"
 #include "../../../empery_promotion/src/msg/err_account.hpp"
@@ -15,6 +16,7 @@
 #include "../singletons/activation_code_map.hpp"
 #include "../activation_code.hpp"
 #include "../account_attribute_ids.hpp"
+#include "../events/account.hpp"
 
 namespace EmperyCenter {
 
@@ -36,43 +38,6 @@ namespace {
 	std::string g_sms_uri        = "/";
 	std::string g_sms_message    = "code = $(code), minutes = $(minutes)";
 	std::string g_sms_charset    = "UTF-8";
-
-	MODULE_RAII_PRIORITY(/* handles */, 1000){
-		get_config(g_platform_id,    "promotion_platform_id");
-
-		get_config(g_server_host,    "promotion_server_host");
-		get_config(g_server_port,    "promotion_server_port");
-		get_config(g_server_use_ssl, "promotion_server_use_ssl");
-		get_config(g_server_auth,    "promotion_server_auth_user_pass");
-		get_config(g_server_path,    "promotion_server_path");
-
-		Poseidon::CsvParser csv;
-
-		boost::container::flat_map<std::string, unsigned> level_config;
-		level_config.reserve(20);
-		csv.load("empery_promotion_levels.csv");
-		while(csv.fetch_row()){
-			std::string key;
-			unsigned level;
-
-			csv.get(key,   "level");
-			csv.get(level, "displayLevel");
-
-			if(!level_config.emplace(std::move(key), level).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate promotion level: key = ", key);
-				DEBUG_THROW(Exception, sslit("Duplicate promotion level"));
-			}
-		}
-		g_level_config = std::move(level_config);
-
-		get_config(g_sms_host,    "promotion_sms_host");
-		get_config(g_sms_port,    "promotion_sms_port");
-		get_config(g_sms_use_ssl, "promotion_sms_use_ssl");
-		get_config(g_sms_auth,    "promotion_sms_auth_user_pass");
-		get_config(g_sms_uri,     "promotion_sms_uri");
-		get_config(g_sms_message, "promotion_sms_message");
-		get_config(g_sms_charset, "promotion_sms_charset");
-	}
 
 	int check_login_backtrace(boost::shared_ptr<Account> &new_account,
 		const std::string &login_name, const std::string &password, const std::string &ip)
@@ -125,7 +90,7 @@ namespace {
 						", cur_login_name = ", cur_login_name, ", is_auction_center_enabled = ", is_auction_center_enabled);
 					account = boost::make_shared<Account>(account_uuid, g_platform_id, cur_login_name,
 						referrer_uuid, cur_level, utc_now, cur_nick);
-					AccountMap::insert(account, ip); // XXX use real ip
+					AccountMap::insert(account, std::string());
 				} else {
 					account->set_promotion_level(cur_level);
 				}
@@ -272,6 +237,53 @@ namespace {
 			}
 		}
 		return error_code;
+	}
+
+	MODULE_RAII_PRIORITY(handles, 1000){
+		get_config(g_platform_id,    "promotion_platform_id");
+
+		get_config(g_server_host,    "promotion_server_host");
+		get_config(g_server_port,    "promotion_server_port");
+		get_config(g_server_use_ssl, "promotion_server_use_ssl");
+		get_config(g_server_auth,    "promotion_server_auth_user_pass");
+		get_config(g_server_path,    "promotion_server_path");
+
+		Poseidon::CsvParser csv;
+
+		boost::container::flat_map<std::string, unsigned> level_config;
+		level_config.reserve(20);
+		csv.load("empery_promotion_levels.csv");
+		while(csv.fetch_row()){
+			std::string key;
+			unsigned level;
+
+			csv.get(key,   "level");
+			csv.get(level, "displayLevel");
+
+			if(!level_config.emplace(std::move(key), level).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate promotion level: key = ", key);
+				DEBUG_THROW(Exception, sslit("Duplicate promotion level"));
+			}
+		}
+		g_level_config = std::move(level_config);
+
+		get_config(g_sms_host,    "promotion_sms_host");
+		get_config(g_sms_port,    "promotion_sms_port");
+		get_config(g_sms_use_ssl, "promotion_sms_use_ssl");
+		get_config(g_sms_auth,    "promotion_sms_auth_user_pass");
+		get_config(g_sms_uri,     "promotion_sms_uri");
+		get_config(g_sms_message, "promotion_sms_message");
+		get_config(g_sms_charset, "promotion_sms_charset");
+
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountPrecommitPaymentTransaction>(
+			[](const boost::shared_ptr<Events::AccountPrecommitPaymentTransaction> &event){
+				PROFILE_ME;
+				LOG_EMPERY_CENTER_DEBUG("Updating account level from promotion server: account_uuid = ", event->account_uuid);
+				auto account = AccountMap::require(event->account_uuid);
+				check_login_backtrace(account, account->get_login_name(), std::string(), std::string());
+			});
+		LOG_EMPERY_CENTER_DEBUG("Created AccountPrecommitPaymentTransaction listener.");
+		handles.push(std::move(listener));
 	}
 }
 

@@ -43,7 +43,7 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED);
 	}
 
-	payment_transaction->settle(remarks);
+	payment_transaction->commit(remarks);
 
 	return Response();
 }
