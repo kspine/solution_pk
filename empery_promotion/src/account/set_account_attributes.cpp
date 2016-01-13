@@ -74,6 +74,10 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		const auto visible = boost::lexical_cast<bool>(can_view_account_performance);
 		can_view_account_performance = boost::lexical_cast<std::string>(visible);
 	}
+	if(!is_auction_center_enabled.empty()){
+		const auto enabled = boost::lexical_cast<bool>(is_auction_center_enabled);
+		is_auction_center_enabled = boost::lexical_cast<std::string>(enabled);
+	}
 
 	if(!new_login_name.empty()){
 		AccountMap::set_login_name(info.account_id, std::move(new_login_name));

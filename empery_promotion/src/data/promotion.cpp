@@ -1,8 +1,7 @@
 #include "../precompiled.hpp"
 #include "promotion.hpp"
 #include <poseidon/multi_index_map.hpp>
-#include "formats.hpp"
-// #include "../resource_http_session.hpp"
+#include <poseidon/csv_parser.hpp>
 
 namespace EmperyPromotion {
 
@@ -24,14 +23,14 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetch_row()){
 		Data::Promotion elem = { };
 
-		csv.get(elem.level,             "level");
+		csv.get(elem.level,              "level");
 		csv.get(elem.display_level,      "displayLevel");
-		csv.get(elem.name,              "name");
+		csv.get(elem.name,               "name");
 		csv.get(elem.tax_ratio,          "taxRatio");
 		csv.get(elem.tax_extra,          "taxExtra");
 		csv.get(elem.immediate_price,    "immediatePrice");
 		csv.get(elem.immediate_discount, "immediateDiscount");
-		csv.get(elem.auto_upgrade_count,  "autoUpgradeCount");
+		csv.get(elem.auto_upgrade_count, "autoUpgradeCount");
 
 		if(!map->insert(std::move(elem)).second){
 			LOG_EMPERY_PROMOTION_ERROR("Duplicate promotion element: level = ", elem.level);
@@ -41,7 +40,6 @@ MODULE_RAII_PRIORITY(handles, 1000){
 
 	LOG_EMPERY_PROMOTION_INFO("Done loading promotion");
 	g_map = map;
-//	handles.push(ResourceHttpSession::create_servlet("promotion", serialize_csv(csv, "level")));
 	handles.push(map);
 }
 
