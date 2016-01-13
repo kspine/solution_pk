@@ -15,7 +15,6 @@
 #include "../singletons/activation_code_map.hpp"
 #include "../activation_code.hpp"
 #include "../account_attribute_ids.hpp"
-#include "../checked_arithmetic.hpp"
 
 namespace EmperyCenter {
 
@@ -66,13 +65,13 @@ namespace {
 		}
 		g_level_config = std::move(level_config);
 
-		get_config(g_sms_host,       "promotion_sms_host");
-		get_config(g_sms_port,       "promotion_sms_port");
-		get_config(g_sms_use_ssl,    "promotion_sms_use_ssl");
-		get_config(g_sms_auth,       "promotion_sms_auth_user_pass");
-		get_config(g_sms_uri,        "promotion_sms_uri");
-		get_config(g_sms_message,    "promotion_sms_message");
-		get_config(g_sms_charset,    "promotion_sms_charset");
+		get_config(g_sms_host,    "promotion_sms_host");
+		get_config(g_sms_port,    "promotion_sms_port");
+		get_config(g_sms_use_ssl, "promotion_sms_use_ssl");
+		get_config(g_sms_auth,    "promotion_sms_auth_user_pass");
+		get_config(g_sms_uri,     "promotion_sms_uri");
+		get_config(g_sms_message, "promotion_sms_message");
+		get_config(g_sms_charset, "promotion_sms_charset");
 	}
 
 	int check_login_backtrace(boost::shared_ptr<Account> &new_account,
@@ -113,8 +112,8 @@ namespace {
 
 			AccountUuid referrer_uuid;
 
-			const auto create_or_update_account = [&](
-				const std::string &cur_login_name, unsigned cur_level, const std::string &cur_nick)
+			const auto create_or_update_account = [&](const std::string &cur_login_name,
+				unsigned cur_level, const std::string &cur_nick, bool is_auction_center_enabled)
 			{
 				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
 					", cur_level = ", cur_level, ", cur_nick = ", cur_nick);
@@ -123,12 +122,17 @@ namespace {
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 					const auto utc_now = Poseidon::get_utc_time();
 					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid,
-						", cur_login_name = ", cur_login_name);
+						", cur_login_name = ", cur_login_name, ", is_auction_center_enabled = ", is_auction_center_enabled);
 					account = boost::make_shared<Account>(account_uuid, g_platform_id, cur_login_name,
 						referrer_uuid, cur_level, utc_now, cur_nick);
 					AccountMap::insert(account, ip); // XXX use real ip
 				} else {
 					account->set_promotion_level(cur_level);
+				}
+				if(is_auction_center_enabled){
+					boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+					modifiers.emplace(AccountAttributeIds::ID_AUCTION_CENTER_ENABLED, "1");
+					account->set_attributes(std::move(modifiers));
 				}
 				referrer_uuid = account->get_account_uuid();
 				return account;
@@ -141,14 +145,15 @@ namespace {
 				const auto &referrer_level_str = elem.at(sslit("level")).get<std::string>();
 				const unsigned referrer_level = g_level_config.at(referrer_level_str);
 				const auto &referrer_nick = elem.at(sslit("nick")).get<std::string>();
-
-				create_or_update_account(referrer_login_name, referrer_level, referrer_nick);
+				const auto is_auction_center_enabled = elem.at(sslit("isAuctionCenterEnabled")).get<bool>();
+				create_or_update_account(referrer_login_name, referrer_level, referrer_nick, is_auction_center_enabled);
 			}
 
 			const auto &level_str = response_object.at(sslit("level")).get<std::string>();
 			const unsigned level = g_level_config.at(level_str);
 			const auto &nick = response_object.at(sslit("nick")).get<std::string>();
-			new_account = create_or_update_account(login_name, level, nick);
+			const auto is_auction_center_enabled = response_object.at(sslit("isAuctionCenterEnabled")).get<bool>();
+			new_account = create_or_update_account(login_name, level, nick, is_auction_center_enabled);
 		}
 		return error_code;
 	}

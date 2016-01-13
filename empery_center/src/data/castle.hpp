@@ -85,7 +85,7 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeAcademy> require(unsigned building_level);
 
 	public:
-		unsigned tech_level;
+		//
 	};
 
 	class CastleUpgradeCivilian : public CastleUpgradeAbstract {

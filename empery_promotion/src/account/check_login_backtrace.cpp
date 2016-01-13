@@ -37,6 +37,7 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 
 	ret[sslit("level")] = boost::lexical_cast<std::string>(info.level);
 	ret[sslit("nick")] = std::move(info.nick);
+	ret[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
 
 	Poseidon::JsonArray referrers;
 	auto referrer_id = info.referrer_id;
@@ -47,6 +48,7 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 		elem[sslit("loginName")] = std::move(referrer_info.login_name);
 		elem[sslit("level")] = boost::lexical_cast<std::string>(referrer_info.level);
 		elem[sslit("nick")] = std::move(referrer_info.nick);
+		elem[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(referrer_info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
 		referrers.emplace_back(std::move(elem));
 
 		referrer_id = referrer_info.referrer_id;

@@ -28,6 +28,7 @@ struct AccountMap {
 		ATTR_REMARKS                      =  8,
 		ATTR_MAX_VISIBLE_SUBORD_DEPTH     =  9,
 		ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE = 10,
+		ATTR_AUCTION_CENTER_ENABLED       = 11,
 	};
 
 	struct AccountInfo {

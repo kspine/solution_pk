@@ -51,6 +51,7 @@ ACCOUNT_SERVLET("queryAccountAttributes", session, params){
 	ret[sslit("remarks")] = AccountMap::get_attribute(info.account_id, AccountMap::ATTR_REMARKS);
 	ret[sslit("maxVisibleSubordDepth")] = boost::lexical_cast<std::string>(max_visible_subord_depth);
 	ret[sslit("canViewAccountPerformance")] = AccountMap::get_attribute(info.account_id, AccountMap::ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE);
+	ret[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";

@@ -196,7 +196,7 @@ namespace {
 			csv.get(elem.building_level, "college_level");
 			read_upgrade_element(elem, csv);
 
-			csv.get(elem.tech_level, "tech_level");
+			//
 
 			if(!upgrade_academy_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade academy: building_level = ", elem.building_level);

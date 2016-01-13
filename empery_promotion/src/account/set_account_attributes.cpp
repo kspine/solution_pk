@@ -24,6 +24,7 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	auto level                        = params.get("level");
 	auto max_visible_subord_depth     = params.get("maxVisibleSubordDepth");
 	auto can_view_account_performance = params.get("canViewAccountPerformance");
+	auto is_auction_center_enabled    = params.get("isAuctionCenterEnabled");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);
@@ -122,6 +123,9 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	}
 	if(!can_view_account_performance.empty()){
 		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE, std::move(can_view_account_performance));
+	}
+	if(!is_auction_center_enabled.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED, std::move(is_auction_center_enabled));
 	}
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
