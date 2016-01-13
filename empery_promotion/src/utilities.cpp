@@ -164,7 +164,6 @@ namespace {
 			referrers.emplace_back(current_id, Data::Promotion::get(referrer_info.level));
 		}
 
-		const auto dividend_total = static_cast<std::uint64_t>(amount * g_bonus_ratio);
 		const auto income_tax_ratio_total = std::accumulate(g_income_tax_ratio_array.begin(), g_income_tax_ratio_array.end(), 0.0);
 
 		std::uint64_t dividend_accumulated = 0;
@@ -179,7 +178,7 @@ namespace {
 				LOG_EMPERY_PROMOTION_DEBUG("> Referrer is at level zero: referrer_id = ", referrer_id);
 				continue;
 			}
-			const auto my_max_dividend = dividend_total * referrer_promotion_data->tax_ratio;
+			const auto my_max_dividend = amount * referrer_promotion_data->tax_ratio;
 			LOG_EMPERY_PROMOTION_DEBUG("> Current referrer: referrer_id = ", referrer_id,
 				", level = ", referrer_promotion_data->level, ", tax_ratio = ", referrer_promotion_data->tax_ratio,
 				", dividend_accumulated = ", dividend_accumulated, ", my_max_dividend = ", my_max_dividend);
@@ -227,7 +226,7 @@ namespace {
 						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
 						continue;
 					}
-					const auto extra = static_cast<std::uint64_t>(std::round(dividend_total * g_extra_tax_ratio_array.at(generation)));
+					const auto extra = static_cast<std::uint64_t>(std::round(amount * g_extra_tax_ratio_array.at(generation)));
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
@@ -343,7 +342,8 @@ void commit_first_balance_bonus(){
 					if(fake_outcome.find(info.login_name) != fake_outcome.end()){
 						LOG_EMPERY_PROMOTION_DEBUG("> Fake outcome user: login_name = ", info.login_name);
 					} else {
-						really_accumulate_balance_bonus(info.account_id, info.account_id, obj->get_outcome_balance(),
+						const auto amount = static_cast<std::uint64_t>(obj->get_outcome_balance() * g_bonus_ratio);
+						really_accumulate_balance_bonus(info.account_id, info.account_id, amount,
 							// 首次结算从自己开始，以后从推荐人开始。
 							info.account_id, new_level);
 					}
@@ -370,8 +370,15 @@ void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uin
 	}
 
 	const auto info = AccountMap::require(account_id);
-	really_accumulate_balance_bonus(account_id, payer_id, amount,
+	really_accumulate_balance_bonus(account_id, payer_id, static_cast<std::uint64_t>(amount * g_bonus_ratio),
 		info.referrer_id, upgrade_to_level);
+}
+void accumulate_balance_bonus_abs(AccountId account_id, std::uint64_t amount){
+	PROFILE_ME;
+
+	const auto info = AccountMap::require(account_id);
+	really_accumulate_balance_bonus(account_id, account_id, amount,
+		info.referrer_id, 0);
 }
 
 std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell){

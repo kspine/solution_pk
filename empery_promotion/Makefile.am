@@ -65,6 +65,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/auction_transfer_in.cpp	\
 	src/account/auction_transfer_out.cpp	\
 	src/account/enable_auction_center.cpp	\
+	src/account/accumulate_balance_bonus.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\

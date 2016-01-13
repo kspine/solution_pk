@@ -20,6 +20,7 @@ extern void check_auto_upgradeable(AccountId init_account_id);
 
 extern void commit_first_balance_bonus();
 extern void accumulate_balance_bonus(AccountId account_id, AccountId payer_id, std::uint64_t amount, std::uint64_t upgrade_to_level);
+extern void accumulate_balance_bonus_abs(AccountId account_id, std::uint64_t amount);
 
 extern std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell);
 
