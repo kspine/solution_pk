@@ -23,7 +23,7 @@ private:
 
 public:
 	PaymentTransaction(std::string serial, AccountUuid account_uuid, std::uint64_t created_time, std::uint64_t expiry_time,
-		ItemId item_id, std::uint64_t amount, std::string remarks);
+		ItemId item_id, std::uint64_t item_count, std::string remarks);
 	explicit PaymentTransaction(boost::shared_ptr<MySql::Center_PaymentTransaction> obj);
 	~PaymentTransaction();
 
@@ -34,7 +34,7 @@ public:
 	std::uint64_t get_expiry_time() const;
 
 	ItemId get_item_id() const;
-	std::uint64_t get_amount() const;
+	std::uint64_t get_item_count() const;
 
 	bool has_been_committed() const;
 	bool has_been_cancelled() const;

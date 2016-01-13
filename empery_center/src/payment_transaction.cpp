@@ -27,11 +27,11 @@ std::string PaymentTransaction::random_serial(){
 }
 
 PaymentTransaction::PaymentTransaction(std::string serial, AccountUuid account_uuid, std::uint64_t created_time, std::uint64_t expiry_time,
-	ItemId item_id, std::uint64_t amount, std::string remarks)
+	ItemId item_id, std::uint64_t item_count, std::string remarks)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>(std::move(serial), account_uuid.get(), created_time, expiry_time,
-				item_id.get(), amount, std::move(remarks), false, false, std::string());
+				item_id.get(), item_count, std::move(remarks), false, false, std::string());
 			obj->async_save(true);
 			return obj;
 		}())
@@ -60,8 +60,8 @@ std::uint64_t PaymentTransaction::get_expiry_time() const {
 ItemId PaymentTransaction::get_item_id() const {
 	return ItemId(m_obj->get_item_id());
 }
-std::uint64_t PaymentTransaction::get_amount() const {
-	return m_obj->get_amount();
+std::uint64_t PaymentTransaction::get_item_count() const {
+	return m_obj->get_item_count();
 }
 
 bool PaymentTransaction::has_been_committed() const {
@@ -85,7 +85,7 @@ void PaymentTransaction::settle(std::string operation_remarks){
 	const auto item_box = ItemBoxMap::require(get_account_uuid());
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(ItemTransactionElement::OP_ADD, get_item_id(), get_amount(),
+	transaction.emplace_back(ItemTransactionElement::OP_ADD, get_item_id(), get_item_count(),
 		ReasonIds::ID_PAYMENT, 0, 0, 0);
 	item_box->commit_transaction(transaction, false,
 		[&]{

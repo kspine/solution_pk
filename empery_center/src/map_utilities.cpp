@@ -35,7 +35,7 @@ namespace {
 		assert(radius >= 1);
 
 		ret.reserve(ret.size() + radius * 6);
-		auto current = Coord(origin.x() - static_cast<boost::int64_t>(radius), origin.y());
+		auto current = Coord(origin.x() - static_cast<std::int64_t>(radius), origin.y());
 		int dx = in_odd_row;
 		for(std::uint64_t i = 0; i < radius; ++i){
 			ret.emplace_back(current);
@@ -100,7 +100,7 @@ void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, std::uint64_t
 void get_castle_foundation(std::vector<Coord> &ret, Coord origin, bool solid){
 	PROFILE_ME;
 
-	static constexpr std::array<std::array<std::pair<boost::int8_t, boost::int8_t>, 10>, 2> castle_foundation_table = {{
+	static constexpr std::array<std::array<std::pair<std::int8_t, std::int8_t>, 10>, 2> castle_foundation_table = {{
 		{{
 			{ 0, 0}, { 1, 0},
 			{-1, 0}, {-1,-1}, { 0,-1}, { 1,-1}, { 2, 0}, { 1, 1}, { 0, 1}, {-1, 1}

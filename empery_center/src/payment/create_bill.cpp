@@ -8,6 +8,7 @@
 #include "../singletons/account_map.hpp"
 #include "../checked_arithmetic.hpp"
 #include "../item_ids.hpp"
+#include "../data/item.hpp"
 
 namespace EmperyCenter {
 
@@ -20,6 +21,7 @@ namespace {
 		object[sslit("created_time")] = payment_transaction->get_created_time();
 		object[sslit("expiry_time")]  = payment_transaction->get_expiry_time();
 		object[sslit("item_id")]      = payment_transaction->get_item_id().get();
+		object[sslit("item_count")]   = payment_transaction->get_item_count();
 	}
 
 	boost::shared_ptr<PaymentTransaction> really_create_bill(
@@ -55,7 +57,7 @@ namespace {
 PAYMENT_SERVLET("create_bill/diamonds", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
-	const auto amount      = boost::lexical_cast<boost::uint64_t>(params.at("amount"));
+	const auto amount      = boost::lexical_cast<std::uint64_t>(params.at("amount"));
 	const auto &remarks    = params.get("remarks");
 
 	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
@@ -78,7 +80,7 @@ PAYMENT_SERVLET("create_bill/diamonds", root, session, params){
 PAYMENT_SERVLET("create_bill/alternative_gold_coins", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
-	const auto amount      = boost::lexical_cast<boost::uint64_t>(params.at("amount"));
+	const auto amount      = boost::lexical_cast<std::uint64_t>(params.at("amount"));
 	const auto &remarks    = params.get("remarks");
 
 	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
@@ -90,6 +92,30 @@ PAYMENT_SERVLET("create_bill/alternative_gold_coins", root, session, params){
 	}
 
 	const auto payment_transaction = really_create_bill(account->get_account_uuid(), ItemIds::ID_GOLD_COINS, amount, remarks);
+
+	Poseidon::JsonObject object;
+	fill_payment_transaction_object(object, payment_transaction);
+	root[sslit("payment_transaction")] = std::move(object);
+
+	return Response();
+}
+
+PAYMENT_SERVLET("create_bill/alternative_gift_box", root, session, params){
+	const auto platform_id     = boost::lexical_cast<PlatformId>(params.at("platform_id"));
+	const auto &login_name     = params.at("login_name");
+	const auto promotion_level = boost::lexical_cast<unsigned>(params.at("promotion_level"));
+	const auto &remarks        = params.get("remarks");
+
+	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
+	}
+	const auto item_data = Data::Item::get_by_type(Data::Item::CAT_GIFT_BOX, promotion_level);
+	if(!item_data){
+		return Response(Msg::ERR_NO_SUCH_PROMOTION_LEVEL);
+	}
+
+	const auto payment_transaction = really_create_bill(account->get_account_uuid(), item_data->item_id, 1, remarks);
 
 	Poseidon::JsonObject object;
 	fill_payment_transaction_object(object, payment_transaction);

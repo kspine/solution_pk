@@ -54,10 +54,10 @@ boost::shared_ptr<const ServletCallback> ClusterClient::get_servlet(std::uint16_
 boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x, std::int64_t numerical_y, std::string name){
 	PROFILE_ME;
 
-	const auto host       = get_config<std::string>    ("cluster_cbpp_client_connect",      "127.0.0.1");
-	const auto port       = get_config<unsigned>       ("cluster_cbpp_client_port",         13217);
-	const auto use_ssl    = get_config<bool>           ("cluster_cbpp_client_use_ssl",      false);
-	const auto keep_alive = get_config<std::uint64_t>("cluster_cbpp_keep_alive_interval", 15000);
+	const auto host       = get_config<std::string>   ("cluster_cbpp_client_host",         "127.0.0.1");
+	const auto port       = get_config<unsigned>      ("cluster_cbpp_client_port",         13217);
+	const auto use_ssl    = get_config<bool>          ("cluster_cbpp_client_use_ssl",      false);
+	const auto keep_alive = get_config<std::uint64_t> ("cluster_cbpp_keep_alive_interval", 15000);
 
 	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 

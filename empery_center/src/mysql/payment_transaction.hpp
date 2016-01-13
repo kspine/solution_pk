@@ -14,7 +14,7 @@ namespace MySql {
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
 	FIELD_INTEGER_UNSIGNED  (item_id)	\
-	FIELD_BIGINT_UNSIGNED   (amount)	\
+	FIELD_BIGINT_UNSIGNED   (item_count)	\
 	FIELD_STRING            (remarks)	\
 	FIELD_TINYINT_UNSIGNED  (committed)	\
 	FIELD_TINYINT_UNSIGNED  (cancelled)	\
