@@ -23,7 +23,7 @@ namespace {
 
 			csv.get(elem.vip_level,        "vip_level");
 			csv.get(elem.production_turbo, "vip_buff");
-			csv.get(elem.max_castle_count, "castle_limit");
+			csv.get(elem.max_castle_count, "immigrant_limit");
 
 			if(!vip_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate Vip: vip_level = ", elem.vip_level);
