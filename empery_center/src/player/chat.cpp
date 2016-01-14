@@ -81,7 +81,7 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 			const auto center_y = view.bottom() + static_cast<std::int64_t>(view.height() / 2);
 			std::vector<boost::shared_ptr<PlayerSession>> other_sessions;
 			WorldMap::get_players_viewing_rectangle(other_sessions,
-				Rectangle(center_x - static_cast<std::int64_t>(width), center_y - static_cast<std::int64_t>(height), width, height));
+				Rectangle(center_x - static_cast<std::int64_t>(width / 2), center_y - static_cast<std::int64_t>(height / 2), width, height));
 			for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){
 				const auto &other_session = *it;
 				try {
