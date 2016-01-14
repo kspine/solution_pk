@@ -136,6 +136,8 @@ public:
 
 		try {
 			Poseidon::StreamBuffer contents;
+			bool shutdown_it = false;
+
 			auto wit = Poseidon::StreamBuffer::WriteIterator(contents);
 /*
 			#define MESSAGE_NAME    SC_PackedResponse
@@ -149,19 +151,35 @@ public:
 */
 			Poseidon::vuint50_to_binary(Msg::SC_PackedResponse::ID, wit);
 			Poseidon::vuint50_to_binary(queue.size(), wit);
-			while(!queue.empty()){
-				auto message = std::move(queue.front());
+			for(;;){
+				if(queue.empty()){
+					break;
+				}
+				auto msg = std::move(queue.front());
 				queue.pop_front();
 
-				Poseidon::vuint50_to_binary(message.first, wit);
-				Poseidon::vuint50_to_binary(message.second.size(), wit);
-				contents.splice(message.second);
+				Poseidon::vuint50_to_binary(std::get<0>(msg), wit);
+				Poseidon::vuint50_to_binary(std::get<1>(msg).size(), wit);
+				contents.splice(std::get<1>(msg));
+
+				if(std::get<2>(msg)){
+					shutdown_it = true;
+					break;
+				}
 			}
 
 			impl->send(std::move(contents), true);
+			if(shutdown_it){
+				const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(session->get_upgraded_session());
+				if(impl){
+					impl->shutdown(Poseidon::WebSocket::ST_NORMAL_CLOSURE);
+				} else {
+					session->force_shutdown();
+				}
+			}
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
+			session->force_shutdown();
 		}
 	}
 };
@@ -245,9 +263,6 @@ void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders /* request_he
 	DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 }
 
-namespace {
-}
-
 bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 /*
@@ -269,7 +284,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 			boost::make_shared<QueueImpl>(virtual_shared_from_this<PlayerSession>()),
 			{ }, { });
 	}
-	m_send_queue.emplace_back(message_id, std::move(payload));
+	m_send_queue.emplace_back(message_id, std::move(payload), false);
 	return true;
 }
 bool PlayerSession::send_control(std::uint16_t message_id, int status_code, std::string reason){
@@ -289,18 +304,20 @@ void PlayerSession::shutdown(int reason, const char *message) noexcept {
 	if(!message){
 		message = "";
 	}
+
 	try {
-		send_control(Poseidon::Cbpp::ControlMessage::ID, reason, message);
+		const Poseidon::Mutex::UniqueLock lock(m_send_queue_mutex);
+		if(m_send_queue.empty()){
+			Poseidon::JobDispatcher::enqueue(
+				boost::make_shared<QueueImpl>(virtual_shared_from_this<PlayerSession>()),
+				{ }, { });
+		}
+		constexpr auto msg_id = Poseidon::Cbpp::ControlMessage::ID;
+		m_send_queue.emplace_back(msg_id, Poseidon::Cbpp::ControlMessage(msg_id, reason, message), true);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		Poseidon::Http::Session::force_shutdown();
 	}
-	const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(get_upgraded_session());
-	if(impl){
-		impl->shutdown(Poseidon::WebSocket::ST_NORMAL_CLOSURE);
-	}
-
-	Poseidon::Http::Session::shutdown_read();
-	Poseidon::Http::Session::shutdown_write();
 }
 
 void PlayerSession::set_view(Rectangle view){

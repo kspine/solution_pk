@@ -6,6 +6,7 @@
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <cstdint>
+#include <tuple>
 #include <poseidon/cxx_util.hpp>
 #include <poseidon/ip_port.hpp>
 #include <poseidon/stream_buffer.hpp>
@@ -33,7 +34,7 @@ private:
 	const std::string m_path;
 
 	mutable Poseidon::Mutex m_send_queue_mutex;
-	std::deque<std::pair<unsigned, Poseidon::StreamBuffer>> m_send_queue;
+	std::deque<std::tuple<unsigned, Poseidon::StreamBuffer, bool>> m_send_queue;
 
 	Rectangle m_view;
 
