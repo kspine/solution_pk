@@ -80,8 +80,10 @@ void Account::set_nick(std::string nick){
 	if(session){
 		try {
 			Msg::SC_AccountAttributes msg;
-			msg.account_uuid = account_uuid.str();
-			msg.nick         = m_obj->unlocked_get_nick();
+			msg.account_uuid    = account_uuid.str();
+			msg.nick            = m_obj->unlocked_get_nick();
+			msg.promotion_level = get_promotion_level();
+			msg.activated       = has_been_activated();
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -190,6 +192,7 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 		try {
 			Msg::SC_AccountAttributes msg;
 			msg.account_uuid = account_uuid.str();
+			msg.nick            = m_obj->unlocked_get_nick();
 			msg.attributes.reserve(modifiers.size());
 			for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
 				const auto &obj = m_attributes.at(it->first);
@@ -198,6 +201,8 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 				attribute.account_attribute_id = obj->get_account_attribute_id();
 				attribute.value                = obj->unlocked_get_value();
 			}
+			msg.promotion_level = get_promotion_level();
+			msg.activated       = has_been_activated();
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

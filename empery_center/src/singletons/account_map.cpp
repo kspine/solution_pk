@@ -187,7 +187,7 @@ namespace {
 
 		// 其他。
 		msg.promotion_level = account->get_promotion_level();
-		msg.activated       = account->has_been_activated() + (unsigned)1;
+		msg.activated       = account->has_been_activated();
 
 		session->send(msg);
 
