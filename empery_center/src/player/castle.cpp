@@ -17,6 +17,7 @@
 #include "../data/item.hpp"
 #include "../msg/err_item.hpp"
 #include "../map_utilities.hpp"
+#include "../building_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -180,6 +181,11 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	if(info.building_id == BuildingId()){
 		return Response(Msg::ERR_NO_BUILDING_THERE) <<building_base_id;
 	}
+	if(info.building_id == BuildingIds::ID_ACADEMY){
+		if(castle->is_tech_upgrade_in_progress()){
+			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
+		}
+	}
 	if(info.mission != Castle::MIS_NONE){
 		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT) <<building_base_id;
 	}
@@ -323,6 +329,17 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	}
 
 	castle->pump_status();
+
+	std::vector<Castle::BuildingBaseInfo> academy_infos;
+	castle->get_buildings_by_id(academy_infos, BuildingIds::ID_ACADEMY);
+	if(academy_infos.empty()){
+		return Response(Msg::ERR_NO_ACADEMY);
+	}
+	for(auto it = academy_infos.begin(); it != academy_infos.end(); ++it){
+		if(it->mission != Castle::MIS_NONE){
+			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
+		}
+	}
 
 	const auto queue_size = castle->get_tech_queue_size();
 	const auto max_queue_size = Data::Global::as_unsigned(Data::Global::SLOT_MAX_CONCURRENT_UPGRADING_TECH_COUNT);

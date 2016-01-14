@@ -618,6 +618,18 @@ std::uint64_t Castle::get_max_resource_amount(ResourceId resource_id) const {
 	}
 	return max_amount;
 }
+bool Castle::is_tech_upgrade_in_progress() const {
+	PROFILE_ME;
+
+	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
+		const auto &obj = it->second;
+		const auto mission = Mission(obj->get_mission());
+		if(mission != MIS_NONE){
+			return true;
+		}
+	}
+	return false;
+}
 
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;

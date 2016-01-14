@@ -40,6 +40,9 @@ namespace Msg {
 		ERR_BUILDING_QUEUE_FULL             = 71429,
 		ERR_TECH_QUEUE_FULL                 = 71430,
 		ERR_ACCOUNT_MAX_IMMIGRANT_GROUPS    = 71431,
+		ERR_ACADEMY_UPGRADE_IN_PROGRESS     = 71432,
+		ERR_TECH_UPGRADE_IN_PROGRESS        = 71433,
+		ERR_NO_ACADEMY                      = 71434,
 	};
 }
 

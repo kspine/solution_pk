@@ -92,6 +92,7 @@ public:
 	// 各个建筑的独立接口。
 	unsigned get_level() const; // 领主府
 	std::uint64_t get_max_resource_amount(ResourceId resource_id) const; // 仓库
+	bool is_tech_upgrade_in_progress() const;
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
