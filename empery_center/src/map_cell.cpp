@@ -90,14 +90,15 @@ void MapCell::pump_status(){
 
 		double turbo = 0.0;
 		if(production_resource_id == ResourceIds::ID_GRAIN){
-			turbo = castle->get_attribute(AttributeIds::ID_GRAIN_PRODUCTION_TURBO) / 1000.0;
+			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_GRAIN) / 1000.0;
 		} else if(production_resource_id == ResourceIds::ID_WOOD){
-			turbo = castle->get_attribute(AttributeIds::ID_WOOD_PRODUCTION_TURBO) / 1000.0;
+			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_WOOD) / 1000.0;
 		} else if(production_resource_id == ResourceIds::ID_STONE){
-			turbo = castle->get_attribute(AttributeIds::ID_STONE_PRODUCTION_TURBO) / 1000.0;
+			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_STONE) / 1000.0;
 		} else {
 			LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
 		}
+		turbo += castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_ALL) / 1000.0;
 		production_rate *= (1 + turbo);
 
 		if(production_rate < 0){

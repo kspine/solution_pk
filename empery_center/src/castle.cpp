@@ -299,18 +299,26 @@ void Castle::recalculate_attributes(){
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto &obj = it->second;
-		const auto building_id = BuildingId(obj->get_building_id());
 		const unsigned building_level = obj->get_building_level();
 		if(building_level == 0){
 			continue;
 		}
+		const auto building_id = BuildingId(obj->get_building_id());
 		const auto building_data = Data::CastleBuilding::require(building_id);
 		const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, building_level);
 		if(!upgrade_data){
 			continue;
 		}
-		auto &value = modifiers[AttributeIds::ID_PROSPERITY_POINTS];
-		value += static_cast<std::int64_t>(upgrade_data->prosperity_points);
+
+		auto &prosperity = modifiers[AttributeIds::ID_PROSPERITY_POINTS];
+		prosperity += static_cast<std::int64_t>(upgrade_data->prosperity_points);
+
+		if(building_id == BuildingIds::ID_PRIMARY){
+			auto &castle_level = modifiers[AttributeIds::ID_CASTLE_LEVEL];
+			if(castle_level < building_level){
+				castle_level = building_level;
+			}
+		}
 	}
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
 		const auto &obj = it->second;
