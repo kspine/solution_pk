@@ -1,4 +1,4 @@
-#ifndef EMPERY_CENTER_AUCTION_CENTER_HPP_
+ #ifndef EMPERY_CENTER_AUCTION_CENTER_HPP_
 #define EMPERY_CENTER_AUCTION_CENTER_HPP_
 
 #include <poseidon/cxx_util.hpp>
@@ -69,8 +69,10 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 
 	void get_transfer(std::vector<TransferInfo> &ret, MapObjectUuid map_object_uuid) const;
-	bool begin_transfer(MapObjectUuid map_object_uuid, const boost::container::flat_map<ItemId, std::uint64_t> &items);
-	bool commit_transfer(MapObjectUuid map_object_uuid);
+	void get_all_transfers(std::vector<TransferInfo> &ret) const;
+	std::pair<ResourceId, ItemId> begin_transfer(MapObjectUuid map_object_uuid,
+		const boost::container::flat_map<ItemId, std::uint64_t> &items);
+	ResourceId commit_transfer(MapObjectUuid map_object_uuid);
 	void cancel_transfer(MapObjectUuid map_object_uuid, bool refund_fee);
 };
 

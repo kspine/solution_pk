@@ -54,9 +54,9 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/announcement.cpp	\
 	src/admin/mail.cpp	\
 	src/admin/activation_code.cpp	\
-	src/auction/account.cpp	\
-	src/auction/castle.cpp	\
-	src/auction/trade.cpp	\
+	src/auction/query.cpp	\
+	src/auction/transfer.cpp	\
+	src/auction/transaction.cpp	\
 	src/account/promotion.cpp	\
 	src/account/test.cpp	\
 	src/payment/create_bill.cpp	\

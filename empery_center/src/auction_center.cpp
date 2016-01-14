@@ -263,7 +263,25 @@ void AuctionCenter::get_transfer(std::vector<AuctionCenter::TransferInfo> &ret, 
 		ret.emplace_back(std::move(info));
 	}
 }
-bool AuctionCenter::begin_transfer(MapObjectUuid map_object_uuid, const boost::container::flat_map<ItemId, std::uint64_t> &items){
+void AuctionCenter::get_all_transfers(std::vector<AuctionCenter::TransferInfo> &ret) const {
+	PROFILE_ME;
+
+	for(auto tit = m_transfers.begin(); tit != m_transfers.end(); ++tit){
+		ret.reserve(ret.size() + tit->second.size());
+		for(auto it = tit->second.begin(); it != tit->second.end(); ++it){
+			const auto &obj = it->second;
+			if(obj->get_created_time() == 0){
+				continue;
+			}
+			TransferInfo info;
+			fill_transfer_info(info, obj);
+			ret.emplace_back(std::move(info));
+		}
+	}
+}
+std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_object_uuid,
+	const boost::container::flat_map<ItemId, std::uint64_t> &items)
+{
 	PROFILE_ME;
 
 	const auto account_uuid = get_account_uuid();
@@ -384,14 +402,9 @@ bool AuctionCenter::begin_transfer(MapObjectUuid map_object_uuid, const boost::c
 					}
 				});
 		});
-	if(insuff_resource_id || insuff_item_id){
-		LOG_EMPERY_CENTER_DEBUG("Failed to begin transfer: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid,
-			", insuff_resource_id = ", insuff_resource_id, ", insuff_item_id = ", insuff_item_id);
-		return false;
-	}
-	return true;
+	return std::make_pair(insuff_resource_id, insuff_item_id);
 }
-bool AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
+ResourceId AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 	PROFILE_ME;
 
 	const auto account_uuid = get_account_uuid();
@@ -404,7 +417,7 @@ bool AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 	const auto tit = m_transfers.find(map_object_uuid);
 	if(tit == m_transfers.end()){
 		LOG_EMPERY_CENTER_DEBUG("No auction transfer is in progress: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid);
-		return false;
+		return { };
 	}
 
 	std::vector<boost::shared_ptr<MySql::Center_AuctionTransfer>> temp_result;
@@ -471,8 +484,7 @@ bool AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 					}
 				});
 		});
-
-	return true;
+	return insuff_resource_id;
 }
 void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, bool refund_fee){
 	PROFILE_ME;
