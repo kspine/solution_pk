@@ -74,13 +74,14 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 			LOG_EMPERY_CENTER_DEBUG("View is null: account_uuid = ", account->get_account_uuid());
 		} else {
 			const auto range = Data::Global::as_array(Data::Global::SLOT_ADJACENT_CHAT_RANGE);
+			const auto width  = static_cast<std::uint64_t>(range.at(0).get<double>());
+			const auto height = static_cast<std::uint64_t>(range.at(1).get<double>());
 
 			const auto center_x = view.left()   + static_cast<std::int64_t>(view.width() / 2);
 			const auto center_y = view.bottom() + static_cast<std::int64_t>(view.height() / 2);
 			std::vector<boost::shared_ptr<PlayerSession>> other_sessions;
 			WorldMap::get_players_viewing_rectangle(other_sessions,
-				Rectangle(center_x, center_y,
-					static_cast<std::uint64_t>(range.at(0).get<double>()), static_cast<std::uint64_t>(range.at(1).get<double>())));
+				Rectangle(center_x - static_cast<std::int64_t>(width), center_y - static_cast<std::int64_t>(height), width, height));
 			for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){
 				const auto &other_session = *it;
 				try {
