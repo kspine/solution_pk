@@ -21,13 +21,14 @@ namespace {
 		PROFILE_ME;
 
 		info.item_id = ItemId(obj->get_item_id());
-		info.count   = obj->get_item_count_locked();
+		info.count   = obj->get_item_count();
 	}
 	void fill_transfer_info(AuctionCenter::TransferInfo &info, const boost::shared_ptr<MySql::Center_AuctionTransfer> &obj){
 		PROFILE_ME;
 
 		info.map_object_uuid        = MapObjectUuid(obj->unlocked_get_map_object_uuid());
 		info.item_id                = ItemId(obj->get_item_id());
+		info.item_count             = obj->get_item_count();
 		info.item_count_locked      = obj->get_item_count_locked();
 		info.item_count_fee         = obj->get_item_count_fee();
 		info.resource_id            = ResourceId(obj->get_resource_id());
@@ -145,14 +146,14 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 				auto it = m_items.find(item_id);
 				if(it == m_items.end()){
 					auto obj = boost::make_shared<MySql::Center_AuctionTransfer>(
-						account_uuid.get(), Poseidon::Uuid(), item_id.get(), 0, 0, 0, 0, 0, 0, 0);
+						account_uuid.get(), Poseidon::Uuid(), item_id.get(), 0, 0, 0, 0, 0, 0, 0, 0);
 					obj->enable_auto_saving(); // obj->async_save(true);
 					it = m_items.emplace_hint(it, item_id, std::move(obj));
 				}
 				const auto &obj = it->second;
 				auto temp_it = temp_result_map.find(obj);
 				if(temp_it == temp_result_map.end()){
-					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_item_count_locked());
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_item_count());
 				}
 				const auto old_count = temp_it->second;
 				temp_it->second = checked_add(old_count, delta_count);
@@ -185,7 +186,7 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 				const auto &obj = it->second;
 				auto temp_it = temp_result_map.find(obj);
 				if(temp_it == temp_result_map.end()){
-					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_item_count_locked());
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_item_count());
 				}
 				const auto old_count = temp_it->second;
 				if(temp_it->second >= delta_count){
@@ -224,7 +225,7 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 	}
 
 	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
-		it->first->set_item_count_locked(it->second);
+		it->first->set_item_count(it->second);
 	}
 	if(withdrawn){
 		*withdrawn = false;
@@ -313,20 +314,19 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 		auto iit = tit->second.find(item_id);
 		if(iit == tit->second.end()){
 			auto obj = boost::make_shared<MySql::Center_AuctionTransfer>(
-				account_uuid.get(), map_object_uuid.get(), item_id.get(), 0, 0, 0, 0, 0, 0, 0);
+				account_uuid.get(), map_object_uuid.get(), item_id.get(), 0, 0, 0, 0, 0, 0, 0, 0);
 			obj->enable_auto_saving(); // obj->async_save(true);
 			iit = tit->second.emplace(item_id, std::move(obj)).first;
 		}
 		const auto &obj = iit->second;
-		auto &info = temp_result[obj];
-		info.item_count_locked      = obj->get_item_count_locked();
-		info.item_count_fee         = obj->get_item_count_fee();
-		info.resource_amount_locked = obj->get_resource_amount_locked();
-		info.resource_amount_fee    = obj->get_resource_amount_fee();
+		temp_result.emplace(obj, TransferInfo());
 	}
 
 	const auto transfer_fee_ratio = Data::Global::as_double(Data::Global::SLOT_AUCTION_TRANSFER_FEE_RATIO);
 	const auto transfer_duration  = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_DURATION);
+
+	const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
+	const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
 
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto due_time = saturated_add(utc_now, saturated_mul(transfer_duration, (std::uint64_t)60000));
@@ -340,13 +340,16 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 		const auto item_id = it->first;
 		const auto item_count = it->second;
 
+		auto &info = temp_result.at(tit->second.at(item_id));
+		info.item_count = checked_add(info.item_count, item_count);
+
 		const auto item_data = Data::Item::require(item_id);
 		if(item_data->type.first == Data::Item::CAT_RESOURCE_BOX){
 			const auto resource_id = ResourceId(item_data->type.second);
 			const auto resource_data = Data::CastleResource::require(resource_id);
 			const auto locked_resource_id = resource_data->locked_resource_id;
 
-			const auto resource_amount_locked = checked_mul(item_count, item_data->value);
+			const auto resource_amount_locked = checked_mul(item_count, resource_amount_per_box);
 			const auto resource_amount_fee = static_cast<std::uint64_t>(std::ceil(resource_amount_locked * transfer_fee_ratio - 0.001));
 
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, resource_amount_locked,
@@ -356,30 +359,28 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_ADD, locked_resource_id, resource_amount_locked,
 				ReasonIds::ID_AUCTION_TRANSFER_LOCK, 0, 0, 0);
 
-			auto &info = temp_result.at(tit->second.at(item_id));
-			info.item_count_locked      = checked_add(info.item_count_locked,      item_count);
 			info.resource_id            = resource_id;
 			info.resource_amount_locked = checked_add(info.resource_amount_locked, resource_amount_locked);
 			info.resource_amount_fee    = checked_add(info.resource_amount_fee,    resource_amount_fee);
 
-			LOG_EMPERY_CENTER_DEBUG("%% Lock resource: map_object_uuid = ", map_object_uuid,
-				", item_id = ", item_id, ", item_count = ", item_count, ", resource_id = ", resource_id,
-				", resource_amount_locked = ", resource_amount_locked, ", resource_amount_fee = ", resource_amount_fee);
+			LOG_EMPERY_CENTER_DEBUG("%% Lock resource: map_object_uuid = ", map_object_uuid, ", item_id = ", item_id, ", item_count = ", item_count,
+				", resource_id = ", resource_id, ", resource_amount_locked = ", resource_amount_locked,
+				", resource_amount_fee = ", resource_amount_fee);
 		} else {
-			const auto item_count_locked = item_count;
-			const auto item_count_fee = static_cast<std::uint64_t>(std::ceil(item_count * transfer_fee_ratio - 0.001));
+			const auto item_count_locked = checked_mul(item_count, item_count_per_box);
+			const auto item_count_fee = static_cast<std::uint64_t>(std::ceil(item_count_locked * transfer_fee_ratio - 0.001));
 
 			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, item_count_locked,
 				ReasonIds::ID_AUCTION_TRANSFER_LOCK, 0, 0, 0);
 			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, item_count_fee,
 				ReasonIds::ID_AUCTION_TRANSFER_LOCK, 0, 0, 0);
 
-			auto &info = temp_result.at(tit->second.at(item_id));
 			info.item_count_locked      = checked_add(info.item_count_locked, item_count_locked);
 			info.item_count_fee         = checked_add(info.item_count_fee,    item_count_fee);
+			info.resource_id            = ResourceId();
 
-			LOG_EMPERY_CENTER_DEBUG("%% Lock item: account_uuid = ", account_uuid,
-				", item_id = ", item_id, ", item_count_locked = ", item_count_locked, ", item_count_fee = ", item_count_fee);
+			LOG_EMPERY_CENTER_DEBUG("%% Lock item: account_uuid = ", account_uuid, ", item_id = ", item_id, ", item_count = ", item_count,
+				", item_count_locked = ", item_count_locked, ", item_count_fee = ", item_count_fee);
 		}
 	}
 
@@ -392,6 +393,7 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 					for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
 						const auto &obj = it->first;
 						const auto &info = it->second;
+						obj->set_item_count             (info.item_count);
 						obj->set_item_count_locked      (info.item_count_locked);
 						obj->set_item_count_fee         (info.item_count_fee);
 						obj->set_resource_id            (info.resource_id.get());
@@ -435,6 +437,12 @@ ResourceId AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 			continue;
 		}
 
+		const auto item_id = ItemId(obj->get_item_id());
+		const auto item_count = obj->get_item_count();
+
+		auction_transaction.emplace_back(AuctionTransactionElement::OP_ADD, item_id, item_count,
+			ReasonIds::ID_AUCTION_TRANSFER_COMMIT, 0, 0, 0);
+
 		const auto resource_id = ResourceId(obj->get_resource_id());
 		if(resource_id){
 			const auto resource_amount_locked = obj->get_resource_amount_locked();
@@ -442,30 +450,21 @@ ResourceId AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 			const auto resource_data = Data::CastleResource::require(resource_id);
 			const auto locked_resource_id = resource_data->locked_resource_id;
 
-			const auto item_id = ItemId(obj->get_item_id());
-			const auto item_count_locked = obj->get_item_count_locked();
-
-			auction_transaction.emplace_back(AuctionTransactionElement::OP_ADD, item_id, item_count_locked,
-				ReasonIds::ID_AUCTION_TRANSFER_COMMIT, 0, 0, 0);
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, locked_resource_id, resource_amount_locked,
 				ReasonIds::ID_AUCTION_TRANSFER_COMMIT, 0, 0, 0);
 
-			temp_result.emplace_back(obj);
-
 			LOG_EMPERY_CENTER_DEBUG("%% Commit resource: map_object_uuid = ", map_object_uuid,
+				", item_id = ", item_id, ", item_count = ", item_count,
 				", resource_id = ", resource_id, ", resource_amount_locked = ", resource_amount_locked);
 		} else {
-			const auto item_id = ItemId(obj->get_item_id());
 			const auto item_count_locked = obj->get_item_count_locked();
 
-			auction_transaction.emplace_back(AuctionTransactionElement::OP_ADD, item_id, item_count_locked,
-				ReasonIds::ID_AUCTION_TRANSFER_COMMIT, 0, 0, 0);
-
-			temp_result.emplace_back(obj);
-
 			LOG_EMPERY_CENTER_DEBUG("%% Commit item: account_uuid = ", account_uuid,
-				", item_id = ", item_id, ", item_count_locked = ", item_count_locked);
+				", item_id = ", item_id, ", item_count = ", item_count,
+				", item_count_locked = ", item_count_locked);
 		}
+
+		temp_result.emplace_back(obj);
 	}
 
 	ResourceId insuff_resource_id;
@@ -475,6 +474,7 @@ ResourceId AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 				[&]{
 					for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
 						const auto &obj = *it;
+						obj->set_item_count             (0);
 						obj->set_item_count_locked      (0);
 						obj->set_item_count_fee         (0);
 						obj->set_resource_amount_locked (0);
@@ -537,8 +537,6 @@ void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, bool refund_f
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, locked_resource_id, resource_amount_locked,
 				ReasonIds::ID_AUCTION_TRANSFER_UNLOCK, 0, 0, 0);
 
-			temp_result.emplace_back(obj);
-
 			LOG_EMPERY_CENTER_DEBUG("%% Unlock resource: map_object_uuid = ", map_object_uuid,
 				", resource_id = ", resource_id, ", resource_amount_locked = ", resource_amount_locked,
 				", resource_amount_fee = ", resource_amount_fee);
@@ -554,11 +552,11 @@ void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, bool refund_f
 					ReasonIds::ID_AUCTION_TRANSFER_UNLOCK, 0, 0, 0);
 			}
 
-			temp_result.emplace_back(obj);
-
 			LOG_EMPERY_CENTER_DEBUG("%% Unlock item: account_uuid = ", account_uuid,
 				", item_id = ", item_id, ", item_count_locked = ", item_count_locked, ", item_count_fee = ", item_count_fee);
 		}
+
+		temp_result.emplace_back(obj);
 	}
 
 	castle->commit_resource_transaction(resource_transaction,
@@ -567,6 +565,7 @@ void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, bool refund_f
 				[&]{
 					for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
 						const auto &obj = *it;
+						obj->set_item_count             (0);
 						obj->set_item_count_locked      (0);
 						obj->set_item_count_fee         (0);
 						obj->set_resource_amount_locked (0);

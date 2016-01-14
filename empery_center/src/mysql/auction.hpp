@@ -12,6 +12,7 @@ namespace MySql {
 	FIELD_UUID              (account_uuid)	\
 	FIELD_UUID              (map_object_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (item_id)	\
+	FIELD_BIGINT_UNSIGNED   (item_count)	\
 	FIELD_BIGINT_UNSIGNED   (item_count_locked)	\
 	FIELD_BIGINT_UNSIGNED   (item_count_fee)	\
 	FIELD_INTEGER_UNSIGNED  (resource_id)	\

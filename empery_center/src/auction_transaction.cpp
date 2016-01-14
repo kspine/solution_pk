@@ -12,6 +12,7 @@
 #include "mail_type_ids.hpp"
 #include "chat_message_slot_ids.hpp"
 #include "data/global.hpp"
+#include "data/item.hpp"
 
 namespace EmperyCenter {
 
@@ -103,10 +104,22 @@ void AuctionTransaction::commit(std::string operation_remarks){
 			const auto expiry_duration = checked_mul(default_mail_expiry_duration, (std::uint64_t)60000);
 			const auto utc_now = Poseidon::get_utc_time();
 
+			const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
+			const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
+
+			const auto item_id = get_item_id();
+			std::uint64_t item_count_unlocked = 0;
+			const auto item_data = Data::Item::require(item_id);
+			if(item_data->type.first == Data::Item::CAT_RESOURCE_BOX){
+				item_count_unlocked = checked_mul(get_item_count(), resource_amount_per_box) / item_data->value;
+			} else {
+				item_count_unlocked = checked_mul(get_item_count(), item_count_per_box);
+			}
+
 			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 			segments.reserve(2);
-			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_ID,    boost::lexical_cast<std::string>(get_item_id()));
-			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_COUNT, boost::lexical_cast<std::string>(get_item_count()));
+			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_ID,    boost::lexical_cast<std::string>(item_id));
+			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_COUNT, boost::lexical_cast<std::string>(item_count_unlocked));
 
 			boost::container::flat_map<ItemId, std::uint64_t> attachments;
 			attachments.emplace(get_item_id(), get_item_count());

@@ -27,6 +27,7 @@ public:
 	struct TransferInfo {
 		MapObjectUuid map_object_uuid;
 		ItemId item_id;
+		std::uint64_t item_count;
 		std::uint64_t item_count_locked;
 		std::uint64_t item_count_fee;
 		ResourceId resource_id;
