@@ -13,6 +13,9 @@
 #include "data/item.hpp"
 #include "data/global.hpp"
 #include "checked_arithmetic.hpp"
+#include "singletons/player_session_map.hpp"
+#include "player_session.hpp"
+#include "msg/sc_auction.hpp"
 
 namespace EmperyCenter {
 
@@ -36,6 +39,59 @@ namespace {
 		info.resource_amount_fee    = obj->get_resource_amount_fee();
 		info.created_time           = obj->get_created_time();
 		info.due_time               = obj->get_due_time();
+	}
+
+	void fill_item_message(Msg::SC_AuctionItemChanged &msg, const boost::shared_ptr<MySql::Center_AuctionTransfer> &obj){
+		PROFILE_ME;
+
+		msg.item_id = obj->get_item_id();
+		msg.count   = obj->get_item_count();
+	}
+	void fill_transfer_message(Msg::SC_AuctionTransferStatus &msg, MapObjectUuid map_object_uuid,
+		const boost::container::flat_map<ItemId, boost::shared_ptr<MySql::Center_AuctionTransfer>> &transfers, std::uint64_t utc_now)
+	{
+		PROFILE_ME;
+
+		msg.map_object_uuid = map_object_uuid.str();
+		msg.items.reserve(transfers.size());
+		for(auto it = transfers.begin(); it != transfers.end(); ++it){
+			const auto &obj = it->second;
+			auto &item = *msg.items.emplace(msg.items.end());
+			item.item_id            = obj->get_item_id();
+			item.item_count         = obj->get_item_count();
+			item.created_time       = obj->get_created_time();
+			item.due_time           = obj->get_due_time();
+			item.remaining_duration = saturated_sub(obj->get_due_time(), utc_now);
+		}
+	}
+
+	using TransferMapConstIterator =
+		boost::container::flat_map<MapObjectUuid,
+			boost::container::flat_map<ItemId,
+				boost::shared_ptr<MySql::Center_AuctionTransfer>>>::const_iterator;
+
+	bool check_transfer(AuctionCenter *auction_center, TransferMapConstIterator it, std::uint64_t utc_now){
+		PROFILE_ME;
+
+		if(it->second.empty()){
+			return false;
+		}
+		const auto obj = it->second.begin()->second;
+		if(obj->get_created_time() == 0){
+			return false;
+		}
+		if(utc_now < obj->get_due_time()){
+			return false;
+		}
+
+		LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(), ", map_object_uuid = ", it->first);
+		const auto succeeded = auction_center->commit_transfer(it->first);
+		if(!succeeded){
+			LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
+			auction_center->cancel_transfer(it->first, true);
+		}
+
+		return true;
 	}
 }
 
@@ -63,27 +119,7 @@ void AuctionCenter::pump_status(){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_transfers.begin(); it != m_transfers.end(); ++it){
-		if(it->second.empty()){
-			continue;
-		}
-		const auto obj = it->second.begin()->second;
-		if(obj->get_created_time() == 0){
-			continue;
-		}
-		if(utc_now < obj->get_due_time()){
-			continue;
-		}
-
-		try {
-			LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", get_account_uuid(), ", map_object_uuid = ", it->first);
-			const auto succeeded = commit_transfer(it->first);
-			if(!succeeded){
-				LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
-				cancel_transfer(it->first, true);
-			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		}
+		check_transfer(this, it, utc_now);
 	}
 }
 
@@ -574,6 +610,52 @@ void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, bool refund_f
 					}
 				});
 		});
+}
+
+void AuctionCenter::pump_transfer_status(MapObjectUuid map_object_uuid){
+	PROFILE_ME;
+
+	const auto it = m_transfers.find(map_object_uuid);
+	if(it == m_transfers.end()){
+		LOG_EMPERY_CENTER_DEBUG("Auction transfer not found: account_uuid = ", get_account_uuid(), ", map_object_uuid = ", map_object_uuid);
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	check_transfer(this, it, utc_now);
+}
+void AuctionCenter::synchronize_transfer_with_player(MapObjectUuid map_object_uuid, const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto it = m_transfers.find(map_object_uuid);
+	if(it == m_transfers.end()){
+		LOG_EMPERY_CENTER_DEBUG("Auction transfer not found: account_uuid = ", get_account_uuid(), ", map_object_uuid = ", map_object_uuid);
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	Msg::SC_AuctionTransferStatus msg;
+	fill_transfer_message(msg, it->first, it->second, utc_now);
+	session->send(msg);
+}
+
+void AuctionCenter::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	for(auto it = m_items.begin(); it != m_items.end(); ++it){
+		Msg::SC_AuctionItemChanged msg;
+		fill_item_message(msg, it->second);
+		session->send(msg);
+	}
+	for(auto it = m_transfers.begin(); it != m_transfers.end(); ++it){
+		Msg::SC_AuctionTransferStatus msg;
+		fill_transfer_message(msg, it->first, it->second, utc_now);
+		session->send(msg);
+	}
 }
 
 }

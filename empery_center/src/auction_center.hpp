@@ -17,6 +17,8 @@ namespace MySql {
 	class Center_AuctionTransfer;
 }
 
+class PlayerSession;
+
 class AuctionCenter : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct ItemInfo {
@@ -75,7 +77,23 @@ public:
 		const boost::container::flat_map<ItemId, std::uint64_t> &items);
 	ResourceId commit_transfer(MapObjectUuid map_object_uuid);
 	void cancel_transfer(MapObjectUuid map_object_uuid, bool refund_fee);
+
+	void pump_transfer_status(MapObjectUuid map_object_uuid);
+	void synchronize_transfer_with_player(MapObjectUuid map_object_uuid, const boost::shared_ptr<PlayerSession> &session) const;
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
+
+inline void synchronize_auction_center_with_player(const boost::shared_ptr<const AuctionCenter> &auction_center,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	auction_center->synchronize_with_player(session);
+}
+inline void synchronize_auction_center_with_player(const boost::shared_ptr<AuctionCenter> &auction_center,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	auction_center->synchronize_with_player(session);
+}
 
 }
 

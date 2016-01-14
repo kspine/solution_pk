@@ -175,6 +175,7 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 	const auto castle = boost::make_shared<Castle>(castle_uuid,
 		owner_uuid, map_object->get_parent_object_uuid(), std::move(req.castle_name), coord);
 	castle->pump_status();
+	castle->recalculate_attributes();
 	WorldMap::insert_map_object(castle);
 	LOG_EMPERY_CENTER_INFO("Created castle: castle_uuid = ", castle_uuid, ", owner_uuid = ", owner_uuid);
 	map_object->delete_from_game(); // noexcept

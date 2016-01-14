@@ -48,6 +48,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/item.cpp	\
 	src/player/mail.cpp	\
 	src/player/chat.cpp	\
+	src/player/auction.cpp	\
 	src/player/announcement.cpp	\
 	src/admin/account.cpp	\
 	src/admin/item.cpp	\

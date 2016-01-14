@@ -26,66 +26,74 @@ AUCTION_SERVLET("query/account", root, session, params){
 
 	// 获取账号状态。
 	{
-		Poseidon::JsonObject temp_object;
+		Poseidon::JsonObject elem_account;
 
-		temp_object[sslit("account_uuid")]    = account->get_account_uuid().str();
-		temp_object[sslit("promotion_level")] = account->get_promotion_level();
-		temp_object[sslit("nick")]            = account->get_nick();
+		elem_account[sslit("account_uuid")]    = account->get_account_uuid().str();
+		elem_account[sslit("promotion_level")] = account->get_promotion_level();
+		elem_account[sslit("nick")]            = account->get_nick();
 
-		root[sslit("account")] = std::move(temp_object);
+		root[sslit("account")] = std::move(elem_account);
 	}
 
 	// 获取交易中心状态。
 	{
-		Poseidon::JsonObject temp_object;
+		Poseidon::JsonObject elem_auction_center;
 
 		const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
 		auction_center->pump_status();
 
 		{
-			std::vector<AuctionCenter::ItemInfo> items;
-			auction_center->get_all_items(items);
-
-			Poseidon::JsonObject temp_object;
-			for(auto it = items.begin(); it != items.end(); ++it){
-				char str[64];
-				unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->item_id.get());
-				temp_object[SharedNts(str, len)] = it->count;
-			}
-			temp_object[sslit("items")] = std::move(temp_object);
-		}
-
-		{
 			std::vector<AuctionCenter::TransferInfo> transfers;
 			auction_center->get_all_transfers(transfers);
 
-			boost::container::flat_map<MapObjectUuid, Poseidon::JsonObject> temp_map;
-			temp_map.reserve(transfers.size());
+			boost::container::flat_map<MapObjectUuid, Poseidon::JsonObject> castle_map;
+			castle_map.reserve(transfers.size());
 			for(auto it = transfers.begin(); it != transfers.end(); ++it){
-				auto &temp_object = temp_map[it->map_object_uuid];
-
-				Poseidon::JsonObject item_object;
-				item_object[sslit("item_count_locked")]      = it->item_count_locked;
-				item_object[sslit("item_count_fee")]         = it->item_count_fee;
-				item_object[sslit("resource_id")]            = it->resource_id.get();
-				item_object[sslit("resource_amount_locked")] = it->resource_amount_locked;
-				item_object[sslit("resource_amount_fee")]    = it->resource_amount_fee;
-				item_object[sslit("created_time")]           = it->created_time;
-				item_object[sslit("due_time")]               = it->due_time;
+				Poseidon::JsonObject elem_castle;
+				elem_castle[sslit("item_count")]             = it->item_count;
+				elem_castle[sslit("item_count_locked")]      = it->item_count_locked;
+				elem_castle[sslit("item_count_fee")]         = it->item_count_fee;
+				elem_castle[sslit("resource_id")]            = it->resource_id.get();
+				elem_castle[sslit("resource_amount_locked")] = it->resource_amount_locked;
+				elem_castle[sslit("resource_amount_fee")]    = it->resource_amount_fee;
+				elem_castle[sslit("created_time")]           = it->created_time;
+				elem_castle[sslit("due_time")]               = it->due_time;
 
 				char str[64];
 				unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->item_id.get());
-				temp_object[SharedNts(str, len)] = std::move(item_object);
+				castle_map[it->map_object_uuid][SharedNts(str, len)] = std::move(elem_castle);
 			}
 
-			Poseidon::JsonObject castle_object;
-			for(auto it = temp_map.begin(); it != temp_map.end(); ++it){
-				castle_object[boost::lexical_cast<SharedNts>(it->first)] = std::move(it->second);
+			Poseidon::JsonObject elem_castles;
+			for(auto it = castle_map.begin(); it != castle_map.end(); ++it){
+				const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(it->first));
+				if(!castle){
+					continue;
+				}
+
+				Poseidon::JsonObject elem_castle;
+				elem_castle[sslit("resources")] = std::move(it->second);
+				elem_castle[sslit("name")] = castle->get_name();
+
+				elem_castles[boost::lexical_cast<SharedNts>(it->first)] = std::move(elem_castle);
 			}
-			temp_object[sslit("castles")] = std::move(castle_object);
+			elem_auction_center[sslit("castles")] = std::move(elem_castles);
 		}
 
-		root[sslit("auction_center")] = std::move(temp_object);
+		{
+			std::vector<AuctionCenter::ItemInfo> items;
+			auction_center->get_all_items(items);
+
+			Poseidon::JsonObject elem_items;
+			for(auto it = items.begin(); it != items.end(); ++it){
+				char str[64];
+				unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->item_id.get());
+				elem_items[SharedNts(str, len)] = it->count;
+			}
+			elem_auction_center[sslit("items")] = std::move(elem_items);
+		}
+
+		root[sslit("auction_center")] = std::move(elem_auction_center);
 	}
 
 	const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
@@ -93,7 +101,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 
 	// 获取城堡状态。
 	{
-		Poseidon::JsonObject castle_object;
+		Poseidon::JsonObject elem_castles;
 
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
 		WorldMap::get_map_objects_by_owner(map_objects, account->get_account_uuid());
@@ -104,36 +112,33 @@ AUCTION_SERVLET("query/account", root, session, params){
 			}
 			castle->pump_status();
 
-			Poseidon::JsonObject temp_object;
-
+			Poseidon::JsonObject elem_castle;
 			{
-				Poseidon::JsonObject resource_object;
+				Poseidon::JsonObject elem_resources;
 
 				const auto fill_resource = [&](ResourceId resource_id){
 					char str[64];
 					unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)resource_id.get());
 					const double amount = castle->get_resource(resource_id).amount;
-					resource_object[SharedNts(str, len)] = amount / resource_amount_per_box;
+					elem_resources[SharedNts(str, len)] = amount / resource_amount_per_box;
 				};
-
 				fill_resource(ResourceIds::ID_GRAIN);
 				fill_resource(ResourceIds::ID_WOOD);
 				fill_resource(ResourceIds::ID_STONE);
 
-				temp_object[sslit("resources")] = std::move(resource_object);
+				elem_castle[sslit("resources")] = std::move(elem_resources);
 			}
+			elem_castle[sslit("name")] = castle->get_name();
 
-			temp_object[sslit("name")] = castle->get_name();
-
-			castle_object[boost::lexical_cast<SharedNts>(castle->get_map_object_uuid())] = std::move(temp_object);
+			elem_castles[boost::lexical_cast<SharedNts>(castle->get_map_object_uuid())] = std::move(elem_castle);
 		}
 
-		root[sslit("castles")] = std::move(castle_object);
+		root[sslit("castles")] = std::move(elem_castles);
 	}
 
 	// 获取背包状态。
 	{
-		Poseidon::JsonObject temp_object;
+		Poseidon::JsonObject elem_items;
 
 		const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 		item_box->pump_status();
@@ -142,13 +147,12 @@ AUCTION_SERVLET("query/account", root, session, params){
 			char str[64];
 			unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)item_id.get());
 			const double count = item_box->get(item_id).count;
-			temp_object[SharedNts(str, len)] = count / item_count_per_box;
+			elem_items[SharedNts(str, len)] = count / item_count_per_box;
 		};
-
 		fill_item(ItemIds::ID_GOLD);
 		fill_item(ItemIds::ID_SPRING_WATER);
 
-		root[sslit("items")] = std::move(temp_object);
+		root[sslit("items")] = std::move(elem_items);
 	}
 
 	return Response();

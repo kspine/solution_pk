@@ -39,7 +39,7 @@ namespace {
 			flags |= FL_ATTACHMENTS_FETCHED;
 		}
 
-		msg.mail_uuid       = obj->get_mail_uuid().to_string();
+		msg.mail_uuid       = obj->unlocked_get_mail_uuid().to_string();
 		msg.expiry_duration = saturated_sub(obj->get_expiry_time(), utc_now);
 		msg.flags           = flags;
 	}
