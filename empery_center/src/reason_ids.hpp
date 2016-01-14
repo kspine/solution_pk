@@ -31,6 +31,7 @@ constexpr ReasonId
 	ID_AUCTION_TRANSFER_LOCK        ( 673006 ), // 0                   0                   0
 	ID_AUCTION_TRANSFER_COMMIT      ( 673007 ), // 0                   0                   0
 	ID_AUCTION_TRANSFER_UNLOCK      ( 673008 ), // 0                   0                   0
+	ID_AUCTION_CENTER_WITHDRAW      ( 673009 ), // 0                   0                   0
 
 	ID_MAP_CELL_PURCHASE            ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE             ( 674002 ), // 世界坐标 X          世界坐标 Y          0

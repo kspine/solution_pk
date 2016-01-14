@@ -12,7 +12,9 @@ constexpr MailTypeId
 
 	ID_LEVEL_BONUS          ( 100 ),
 	ID_INCOME_TAX           ( 101 ),
-	ID_LEVEL_BONUS_EXTRA    ( 102 );
+	ID_LEVEL_BONUS_EXTRA    ( 102 ),
+
+	ID_AUCTION_RESULT       ( 200 );
 
 }
 

@@ -1,11 +1,10 @@
 #include "precompiled.hpp"
 #include "payment_transaction.hpp"
 #include "singletons/payment_transaction_map.hpp"
-#include "mysql/payment_transaction.hpp"
+#include "mysql/payment.hpp"
 #include "singletons/item_box_map.hpp"
 #include "item_box.hpp"
 #include "transaction_element.hpp"
-#include "item_ids.hpp"
 #include "reason_ids.hpp"
 #include "events/account.hpp"
 

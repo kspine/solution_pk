@@ -11,15 +11,15 @@ namespace EmperyCenter {
 class PaymentTransaction;
 
 struct PaymentTransactionMap {
-	static boost::shared_ptr<PaymentTransaction> get(const std::string &code);
-	static boost::shared_ptr<PaymentTransaction> require(const std::string &code);
+	static boost::shared_ptr<PaymentTransaction> get(const std::string &serial);
+	static boost::shared_ptr<PaymentTransaction> require(const std::string &serial);
 
 	static void get_all(std::vector<boost::shared_ptr<PaymentTransaction>> &ret);
 	static void get_by_account(std::vector<boost::shared_ptr<PaymentTransaction>> &ret, AccountUuid account_uuid);
 
 	static void insert(const boost::shared_ptr<PaymentTransaction> &payment_transaction);
 	static void update(const boost::shared_ptr<PaymentTransaction> &payment_transaction, bool throws_if_not_exists = true);
-	static void remove(const std::string &code) noexcept;
+	static void remove(const std::string &serial) noexcept;
 
 private:
 	PaymentTransactionMap() = delete;

@@ -34,6 +34,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/simple_http_client_daemon.cpp	\
 	src/singletons/auction_center_map.cpp	\
 	src/singletons/payment_transaction_map.cpp	\
+	src/singletons/auction_transaction_map.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -56,7 +57,8 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/activation_code.cpp	\
 	src/auction/query.cpp	\
 	src/auction/transfer.cpp	\
-	src/auction/transaction.cpp	\
+	src/auction/create_bill.cpp	\
+	src/auction/commit_bill.cpp	\
 	src/account/promotion.cpp	\
 	src/account/test.cpp	\
 	src/payment/create_bill.cpp	\
@@ -86,4 +88,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/activation_code.cpp	\
 	src/auction_center.cpp	\
 	src/payment_transaction.cpp	\
+	src/auction_transaction.cpp	\
 	src/mmain.cpp
