@@ -133,6 +133,9 @@ void AuctionTransaction::commit(std::string operation_remarks){
 			mail_info.expiry_time = saturated_add(utc_now, expiry_duration);
 			mail_info.system      = true;
 			mail_box->insert(std::move(mail_info));
+
+			m_obj->set_committed(true);
+			m_obj->set_operation_remarks(std::move(operation_remarks));
 		}
 		break;
 
