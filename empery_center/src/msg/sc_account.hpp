@@ -25,7 +25,9 @@ namespace Msg {
 	FIELD_ARRAY         (public_items,	\
 		FIELD_VUINT         (item_id)	\
 		FIELD_VUINT         (item_count)	\
-	)
+	)	\
+	FIELD_VUINT         (promotion_level)	\
+	FIELD_VUINT         (activated)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AccountQueryAttributesRet

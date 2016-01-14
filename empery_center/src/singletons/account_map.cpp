@@ -185,6 +185,10 @@ namespace {
 			}
 		}
 
+		// 其他。
+		msg.promotion_level = account->get_promotion_level();
+		msg.activated       = account->has_been_activated() + (unsigned)1;
+
 		session->send(msg);
 
 		const auto update_cache = [&](CacheType type){
