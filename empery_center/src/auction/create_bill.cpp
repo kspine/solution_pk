@@ -18,6 +18,7 @@ namespace {
 
 		object[sslit("serial")]       = auction_transaction->get_serial();
 		object[sslit("account_uuid")] = auction_transaction->get_account_uuid().str();
+		object[sslit("operation")]    = static_cast<unsigned>(auction_transaction->get_operation());
 		object[sslit("created_time")] = auction_transaction->get_created_time();
 		object[sslit("expiry_time")]  = auction_transaction->get_expiry_time();
 		object[sslit("item_id")]      = auction_transaction->get_item_id().get();
