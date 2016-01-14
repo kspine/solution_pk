@@ -4,6 +4,7 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/json.hpp>
+#include <poseidon/async_job.hpp>
 #include "player_session_map.hpp"
 #include "../msg/kill.hpp"
 #include "../data/global.hpp"
@@ -310,6 +311,20 @@ namespace {
 		const auto cluster_map = boost::make_shared<ClusterMapContainer>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
+
+		Poseidon::enqueue_async_job(
+			[map_object_map]{
+				PROFILE_ME;
+				LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
+				for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
+					const auto castle = boost::dynamic_pointer_cast<Castle>(it->map_object);
+					if(!castle){
+						continue;
+					}
+					castle->recalculate_attributes();
+				}
+				LOG_EMPERY_CENTER_DEBUG("Done recalculating castle attributes.");
+			});
 	}
 
 	template<typename T>
