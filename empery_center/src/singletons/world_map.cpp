@@ -1219,6 +1219,8 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 			if(result.first == 0){
 				castle = factory(coord);
 				assert(castle);
+				castle->pump_status();
+				castle->recalculate_attributes();
 				insert_map_object(castle);
 			}
 			cached_start_points.erase(cached_start_points.begin() + static_cast<std::ptrdiff_t>(index));
