@@ -618,7 +618,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 		++immigrant_group_count;
 	}
 	const auto vip_data = Data::Vip::require(account->get_promotion_level());
-	if(immigrant_group_count >= vip_data->max_castle_count){
+	if(immigrant_group_count >= vip_data->max_castle_count + 1){
 		return Response(Msg::ERR_ACCOUNT_MAX_IMMIGRANT_GROUPS) <<vip_data->max_castle_count;
 	}
 
