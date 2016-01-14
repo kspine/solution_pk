@@ -11,6 +11,7 @@
 #include "../map_object_type_ids.hpp"
 #include "../map_cell.hpp"
 #include "../data/global.hpp"
+#include "../data/vip.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../data/item.hpp"
@@ -37,7 +38,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
 		const auto &child = *it;
 		LOG_EMPERY_CENTER_DEBUG("Child object: map_object_uuid = ", map_object_uuid,
-			", child_object_uuid = ", child->get_map_object_uuid(), ", child_type_id = ", child->get_map_object_type_id());
+			", child_object_uuid = ", child->get_map_object_uuid(), ", child_object_type_id = ", child->get_map_object_type_id());
 		child->pump_status();
 		child->synchronize_with_player(session);
 	}
@@ -570,20 +571,38 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	}
 
 	std::size_t immigrant_group_count = 0;
-	std::vector<boost::shared_ptr<MapObject>> child_objects;
-	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
-	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+	std::vector<boost::shared_ptr<MapObject>> temp_map_objects;
+	WorldMap::get_map_objects_by_parent_object(temp_map_objects, map_object_uuid);
+	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
 		const auto &child = *it;
-		const auto child_type_id = child->get_map_object_type_id();
-		if((child_type_id != MapObjectTypeIds::ID_CASTLE) && (child_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
+		const auto child_object_type_id = child->get_map_object_type_id();
+		if((child_object_type_id != MapObjectTypeIds::ID_CASTLE) && (child_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
 			continue;
 		}
 		LOG_EMPERY_CENTER_DEBUG("Found child castle or immigrant group: map_object_uuid = ", map_object_uuid,
-			", child_object_uuid = ", child->get_map_object_uuid(), ", child_type_id = ", child_type_id);
+			", child_object_uuid = ", child->get_map_object_uuid(), ", child_object_type_id = ", child_object_type_id);
 		++immigrant_group_count;
 	}
 	if(immigrant_group_count >= upgrade_data->max_immigrant_group_count){
-		return Response(Msg::ERR_MAX_NUMBER_OF_IMMIGRANT_GROUPS);
+		return Response(Msg::ERR_MAX_NUMBER_OF_IMMIGRANT_GROUPS) <<upgrade_data->max_immigrant_group_count;
+	}
+
+	immigrant_group_count = 0;
+	temp_map_objects.clear();
+	WorldMap::get_map_objects_by_owner(temp_map_objects, account->get_account_uuid());
+	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
+		const auto &other = *it;
+		const auto other_object_type_id = other->get_map_object_type_id();
+		if((other_object_type_id != MapObjectTypeIds::ID_CASTLE) && (other_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("Found another castle or immigrant group: map_object_uuid = ", map_object_uuid,
+			", other_object_uuid = ", other->get_map_object_uuid(), ", other_object_type_id = ", other_object_type_id);
+		++immigrant_group_count;
+	}
+	const auto vip_data = Data::Vip::require(account->get_promotion_level());
+	if(immigrant_group_count >= vip_data->max_castle_count){
+		return Response(Msg::ERR_ACCOUNT_MAX_IMMIGRANT_GROUPS) <<vip_data->max_castle_count;
 	}
 
 	std::vector<Coord> foundation;

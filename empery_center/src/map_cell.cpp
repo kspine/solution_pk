@@ -16,6 +16,8 @@
 #include "data/global.hpp"
 #include "attribute_ids.hpp"
 #include "resource_ids.hpp"
+#include "account.hpp"
+#include "data/vip.hpp"
 
 namespace EmperyCenter {
 
@@ -63,6 +65,7 @@ void MapCell::pump_status(){
 			LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
 			DEBUG_THROW(Exception, sslit("No parent castle"));
 		}
+		const auto account = AccountMap::require(castle->get_owner_uuid());
 
 		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
 		const auto production_data = Data::MapTerrain::require(terrain_id);
@@ -99,6 +102,10 @@ void MapCell::pump_status(){
 			LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
 		}
 		turbo += castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_ALL) / 1000.0;
+		production_rate *= (1 + turbo);
+
+		const auto vip_data = Data::Vip::require(account->get_promotion_level());
+		turbo = vip_data->production_turbo;
 		production_rate *= (1 + turbo);
 
 		if(production_rate < 0){

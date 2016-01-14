@@ -39,6 +39,7 @@ namespace Msg {
 		ERR_WAREHOUSE_FULL                  = 71428,
 		ERR_BUILDING_QUEUE_FULL             = 71429,
 		ERR_TECH_QUEUE_FULL                 = 71430,
+		ERR_ACCOUNT_MAX_IMMIGRANT_GROUPS    = 71431,
 	};
 }
 
