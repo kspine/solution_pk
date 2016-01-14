@@ -11,6 +11,7 @@
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../item_ids.hpp"
+#include "../data/global.hpp"
 
 namespace EmperyCenter {
 
@@ -87,6 +88,9 @@ AUCTION_SERVLET("query/account", root, session, params){
 		root[sslit("auction_center")] = std::move(temp_object);
 	}
 
+	const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
+	const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
+
 	// 获取城堡状态。
 	{
 		Poseidon::JsonObject castle_object;
@@ -108,7 +112,8 @@ AUCTION_SERVLET("query/account", root, session, params){
 				const auto fill_resource = [&](ResourceId resource_id){
 					char str[64];
 					unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)resource_id.get());
-					resource_object[SharedNts(str, len)] = castle->get_resource(resource_id).amount;
+					const double amount = castle->get_resource(resource_id).amount;
+					resource_object[SharedNts(str, len)] = amount / resource_amount_per_box;
 				};
 
 				fill_resource(ResourceIds::ID_GRAIN);
@@ -136,7 +141,8 @@ AUCTION_SERVLET("query/account", root, session, params){
 		const auto fill_item = [&](ItemId item_id){
 			char str[64];
 			unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)item_id.get());
-			temp_object[SharedNts(str, len)] = item_box->get(item_id).count;
+			const double count = item_box->get(item_id).count;
+			temp_object[SharedNts(str, len)] = count / item_count_per_box;
 		};
 
 		fill_item(ItemIds::ID_GOLD);
