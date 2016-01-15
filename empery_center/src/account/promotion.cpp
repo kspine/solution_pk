@@ -39,7 +39,7 @@ namespace {
 	std::string g_sms_message    = "code = $(code), minutes = $(minutes)";
 	std::string g_sms_charset    = "UTF-8";
 
-	int check_login_backtrace(boost::shared_ptr<Account> &new_account,
+	std::pair<int, boost::shared_ptr<Account>> check_login_backtrace(
 		const std::string &login_name, const std::string &password, const std::string &ip)
 	{
 		PROFILE_ME;
@@ -54,6 +54,7 @@ namespace {
 		auto response_object = Poseidon::JsonParser::parse_object(iss);
 		LOG_EMPERY_CENTER_DEBUG("Promotion server response: ", response_object.dump());
 		auto error_code = static_cast<int>(response_object.at(sslit("errorCode")).get<double>());
+		boost::shared_ptr<Account> new_account;
 		if(error_code != Msg::ST_OK){
 			switch(error_code){
 			case EmperyPromotion::Msg::ERR_NO_SUCH_ACCOUNT:
@@ -120,7 +121,7 @@ namespace {
 			const auto is_auction_center_enabled = response_object.at(sslit("isAuctionCenterEnabled")).get<bool>();
 			new_account = create_or_update_account(login_name, level, nick, is_auction_center_enabled);
 		}
-		return error_code;
+		return std::make_pair(error_code, new_account);
 	}
 
 	struct IconvCloer {
@@ -278,9 +279,12 @@ namespace {
 		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountPrecommitPaymentTransaction>(
 			[](const boost::shared_ptr<Events::AccountPrecommitPaymentTransaction> &event){
 				PROFILE_ME;
+				const auto account = AccountMap::require(event->account_uuid);
+				if(account->get_platform_id() != g_platform_id){
+					return;
+				}
 				LOG_EMPERY_CENTER_DEBUG("Updating account level from promotion server: account_uuid = ", event->account_uuid);
-				auto account = AccountMap::require(event->account_uuid);
-				check_login_backtrace(account, account->get_login_name(), std::string(), std::string());
+				check_login_backtrace(account->get_login_name(), std::string(), std::string());
 			});
 		LOG_EMPERY_CENTER_DEBUG("Created AccountPrecommitPaymentTransaction listener.");
 		handles.push(std::move(listener));
@@ -292,11 +296,11 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 	const auto &password   = params.at("password");
 	const auto &token      = params.at("token");
 
-	boost::shared_ptr<Account> account;
-	const auto error_code = check_login_backtrace(account, login_name, password, session->get_remote_info().ip.get());
-	if(error_code != Msg::ST_OK){
-		return Response(error_code) <<login_name;
+	const auto result = check_login_backtrace(login_name, password, session->get_remote_info().ip.get());
+	if(result.first != Msg::ST_OK){
+		return Response(result.first) <<login_name;
 	}
+	const auto &account = result.second;
 	if(!account){
 		LOG_EMPERY_CENTER_ERROR("Null account pointer! login_name = ", login_name);
 		DEBUG_THROW(Exception, sslit("Null account pointer"));
@@ -321,11 +325,11 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 	const auto &old_token  = params.at("oldToken");
 	const auto &token      = params.at("token");
 
-	boost::shared_ptr<Account> account;
-	const auto error_code = check_login_backtrace(account, login_name, std::string(), session->get_remote_info().ip.get());
-	if((error_code != Msg::ST_OK) && (error_code != Msg::ERR_INVALID_PASSWORD)){
-		return Response(error_code) <<login_name;
+	const auto result = check_login_backtrace(login_name, std::string(), session->get_remote_info().ip.get());
+	if((result.first != Msg::ST_OK) && (result.first != Msg::ERR_INVALID_PASSWORD)){
+		return Response(result.first) <<login_name;
 	}
+	const auto &account = result.second;
 	if(!account){
 		LOG_EMPERY_CENTER_ERROR("Null account pointer! login_name = ", login_name);
 		DEBUG_THROW(Exception, sslit("Null account pointer"));
@@ -355,11 +359,11 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 ACCOUNT_SERVLET("promotion/regain", root, session, params){
 	const auto &login_name = params.at("loginName");
 
-	boost::shared_ptr<Account> account;
-	const auto error_code = check_login_backtrace(account, login_name, std::string(), session->get_remote_info().ip.get());
-	if((error_code != Msg::ST_OK) && (error_code != Msg::ERR_INVALID_PASSWORD)){
-		return Response(error_code) <<login_name;
+	const auto result = check_login_backtrace(login_name, std::string(), session->get_remote_info().ip.get());
+	if((result.first != Msg::ST_OK) && (result.first != Msg::ERR_INVALID_PASSWORD)){
+		return Response(result.first) <<login_name;
 	}
+	const auto &account = result.second;
 	if(!account){
 		LOG_EMPERY_CENTER_ERROR("Null account pointer! login_name = ", login_name);
 		DEBUG_THROW(Exception, sslit("Null account pointer"));
