@@ -49,7 +49,7 @@ ACCOUNT_SERVLET("buyGiftBox", session, params){
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, promotion_data->immediate_price,
-		Events::ItemChanged::R_BUY_DIAMONDS, 0, 0, 0, serial);
+		Events::ItemChanged::R_BUY_GIFT_BOX, level, 0, 0, serial);
 	const auto insufficient_item_id = ItemMap::commit_transaction_nothrow(transaction.data(), transaction.size());
 	if(insufficient_item_id){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ITEMS;
