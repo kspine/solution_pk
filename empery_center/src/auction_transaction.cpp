@@ -144,7 +144,7 @@ void AuctionTransaction::commit(std::string operation_remarks){
 			const auto auction_center = AuctionCenterMap::require(get_account_uuid());
 
 			std::vector<AuctionTransactionElement> transaction;
-			transaction.emplace_back(AuctionTransactionElement::OP_ADD, get_item_id(), get_item_count(),
+			transaction.emplace_back(AuctionTransactionElement::OP_REMOVE, get_item_id(), get_item_count(),
 				ReasonIds::ID_AUCTION_CENTER_WITHDRAW, 0, 0, 0);
 			auction_center->commit_item_transaction(transaction,
 				[&]{

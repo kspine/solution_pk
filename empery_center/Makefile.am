@@ -35,6 +35,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/auction_center_map.cpp	\
 	src/singletons/payment_transaction_map.cpp	\
 	src/singletons/auction_transaction_map.cpp	\
+	src/singletons/global_status.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\

@@ -784,7 +784,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Map object not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Map object not found"));
 		}
@@ -1244,7 +1244,7 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 		for(auto it = start_points.begin(); it != start_points.end(); ++it){
 			const auto &start_point_data = *it;
 			cached_start_points.emplace_back(cluster_coord.x() + start_point_data->map_coord.first,
-			                                cluster_coord.y() + start_point_data->map_coord.second);
+			                                 cluster_coord.y() + start_point_data->map_coord.second);
 		}
 		LOG_EMPERY_CENTER_DEBUG("Retrying: cluster_coord = ", cluster_coord, ", start_point_count = ", cached_start_points.size());
 		castle = get_start_point();
