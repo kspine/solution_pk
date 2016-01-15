@@ -65,33 +65,30 @@ namespace {
 		}
 	}
 
-	using TransferMapConstIterator =
-		boost::container::flat_map<MapObjectUuid,
-			boost::container::flat_map<ItemId,
-				boost::shared_ptr<MySql::Center_AuctionTransfer>>>::const_iterator;
-
-	bool check_transfer(AuctionCenter *auction_center, TransferMapConstIterator it, std::uint64_t utc_now){
+	bool check_transfer(AuctionCenter *auction_center, MapObjectUuid map_object_uuid,
+		boost::container::flat_map<ItemId, boost::shared_ptr<MySql::Center_AuctionTransfer>> &transfers, std::uint64_t utc_now)
+	{
 		PROFILE_ME;
 
-		if(it->second.empty()){
-			return false;
-		}
-		const auto obj = it->second.begin()->second;
-		if(obj->get_created_time() == 0){
-			return false;
-		}
-		if(utc_now < obj->get_due_time()){
-			return false;
-		}
+		bool result = false;
+		for(auto it = transfers.begin(); it != transfers.end(); ++it){
+			const auto &obj = it->second;
+			if(obj->get_created_time() == 0){
+				continue;
+			}
+			if(utc_now < obj->get_due_time()){
+				continue;
+			}
 
-		LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(), ", map_object_uuid = ", it->first);
-		const auto succeeded = auction_center->commit_transfer(it->first);
-		if(!succeeded){
-			LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
-			auction_center->cancel_transfer(it->first, true);
+			LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(), ", map_object_uuid = ", it->first);
+			const auto succeeded = auction_center->commit_transfer(map_object_uuid);
+			if(!succeeded){
+				LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
+				auction_center->cancel_transfer(map_object_uuid, true);
+			}
+			result = true;
 		}
-
-		return true;
+		return result;
 	}
 }
 
@@ -119,7 +116,7 @@ void AuctionCenter::pump_status(){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_transfers.begin(); it != m_transfers.end(); ++it){
-		check_transfer(this, it, utc_now);
+		check_transfer(this, it->first, it->second, utc_now);
 	}
 }
 
@@ -623,7 +620,7 @@ void AuctionCenter::pump_transfer_status(MapObjectUuid map_object_uuid){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	check_transfer(this, it, utc_now);
+	check_transfer(this, it->first, it->second, utc_now);
 }
 void AuctionCenter::synchronize_transfer_with_player(MapObjectUuid map_object_uuid, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
