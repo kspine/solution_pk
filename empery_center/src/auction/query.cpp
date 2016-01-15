@@ -12,6 +12,7 @@
 #include "../item_box.hpp"
 #include "../item_ids.hpp"
 #include "../data/global.hpp"
+#include "../data/castle.hpp"
 
 namespace EmperyCenter {
 
@@ -117,8 +118,10 @@ AUCTION_SERVLET("query/account", root, session, params){
 				Poseidon::JsonObject elem_resources;
 
 				const auto fill_resource = [&](ResourceId resource_id){
+					const auto resource_data = Data::CastleResource::require(resource_id);
+
 					char str[64];
-					unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)resource_id.get());
+					unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)resource_data->undeployed_item_id.get());
 					const double amount = castle->get_resource(resource_id).amount;
 					elem_resources[SharedNts(str, len)] = amount / resource_amount_per_box;
 				};
