@@ -64,7 +64,9 @@ ACCOUNT_SERVLET("buyGiftBox", session, params){
 	check_auto_upgradeable(info.referrer_id);
 
 	while(info.referrer_id){
-		AccountMap::accumulate_performance(info.referrer_id, price);
+		const auto delta_performance = static_cast<std::uint64_t>(price * 0.6);
+		LOG_EMPERY_PROMOTION_DEBUG("> Accumulate performance: account_id = ", info.referrer_id, ", delta_performance = ", delta_performance);
+		AccountMap::accumulate_performance(info.referrer_id, delta_performance);
 		info = AccountMap::require(info.referrer_id);
 	}
 
