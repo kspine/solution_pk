@@ -63,11 +63,8 @@ ACCOUNT_SERVLET("buyGiftBox", session, params){
 	}
 	check_auto_upgradeable(info.referrer_id);
 
-	for(;;){
+	while(info.referrer_id){
 		AccountMap::accumulate_performance(info.referrer_id, price);
-		if(!info.referrer_id){
-			break;
-		}
 		info = AccountMap::require(info.referrer_id);
 	}
 
