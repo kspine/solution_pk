@@ -110,19 +110,20 @@ void AuctionTransaction::commit(std::string operation_remarks){
 			const auto item_id = get_item_id();
 			std::uint64_t item_count_unlocked = 0;
 			const auto item_data = Data::Item::require(item_id);
+			const auto item_box_count = get_item_count();
 			if(item_data->type.first == Data::Item::CAT_RESOURCE_BOX){
-				item_count_unlocked = checked_mul(get_item_count(), resource_amount_per_box) / item_data->value;
+				item_count_unlocked = checked_mul(item_box_count, resource_amount_per_box) / item_data->value;
 			} else {
-				item_count_unlocked = checked_mul(get_item_count(), item_count_per_box);
+				item_count_unlocked = checked_mul(item_box_count, item_count_per_box);
 			}
 
 			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 			segments.reserve(2);
 			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_ID,    boost::lexical_cast<std::string>(item_id));
-			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_COUNT, boost::lexical_cast<std::string>(item_count_unlocked));
+			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_COUNT, boost::lexical_cast<std::string>(item_box_count));
 
 			boost::container::flat_map<ItemId, std::uint64_t> attachments;
-			attachments.emplace(get_item_id(), get_item_count());
+			attachments.emplace(get_item_id(), item_count_unlocked);
 
 			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
 				MailTypeIds::ID_AUCTION_RESULT, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
