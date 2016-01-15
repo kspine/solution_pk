@@ -50,6 +50,7 @@ namespace {
 				LOG_EMPERY_CENTER_DEBUG("Max number of castles exceeded: castle_count = ", castle_count, ", old_limit = ", old_limit);
 				goto _reselect;
 			}
+			return coord_hint;
 		}
 	_reselect:
 		LOG_EMPERY_CENTER_INFO("Reselecting init cluster server...");
