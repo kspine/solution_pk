@@ -54,9 +54,6 @@ namespace {
 				const auto &auction_transaction = it->auction_transaction;
 
 				LOG_EMPERY_CENTER_INFO("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
-				if(!auction_transaction->is_virtually_removed()){
-					auction_transaction->cancel("Bill expired");
-				}
 				auction_transaction_map->erase<2>(it);
 			}
 		}

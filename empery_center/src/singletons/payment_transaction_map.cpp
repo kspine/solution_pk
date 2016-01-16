@@ -54,9 +54,6 @@ namespace {
 				const auto &payment_transaction = it->payment_transaction;
 
 				LOG_EMPERY_CENTER_INFO("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
-				if(!payment_transaction->is_virtually_removed()){
-					payment_transaction->cancel("Bill expired");
-				}
 				payment_transaction_map->erase<2>(it);
 			}
 		}
