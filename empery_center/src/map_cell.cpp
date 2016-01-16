@@ -123,15 +123,16 @@ void MapCell::pump_status(){
 		const auto old_resource_amount      = m_obj->get_resource_amount();
 
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
-		const auto new_resource_amount = std::min(
-			saturated_add(old_resource_amount,
-				static_cast<std::uint64_t>(std::round(production_duration * production_rate / 60000.0))),
-			static_cast<std::uint64_t>(std::round(capacity)));
-		LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
-			", terrain_id = ", terrain_id, ", new_resource_amount = ", new_resource_amount);
+		const auto amount_to_add = static_cast<std::uint64_t>(std::round(production_duration * production_rate / 60000.0));
+		if(amount_to_add != 0){
+			const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
+			const auto new_resource_amount = std::min(saturated_add(old_resource_amount, amount_to_add), rounded_capacity);
+			LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
+				", terrain_id = ", terrain_id, ", new_resource_amount = ", new_resource_amount);
 
-		m_obj->set_last_production_time (utc_now);
-		m_obj->set_resource_amount      (new_resource_amount);
+			m_obj->set_last_production_time (utc_now);
+			m_obj->set_resource_amount      (new_resource_amount);
+		}
 	}
 }
 
