@@ -8,9 +8,12 @@
 #include "../msg/err_account.hpp"
 #include "../payment_transaction.hpp"
 #include "../singletons/payment_transaction_map.hpp"
+#include "../singletons/account_map.hpp"
+#include "../account.hpp"
 #include "../string_utilities.hpp"
 #include "../account_utilities.hpp"
 #include "../data/item.hpp"
+#include "../events/account.hpp"
 
 namespace EmperyCenter {
 
@@ -76,13 +79,21 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 	const auto item_id = payment_transaction->get_item_id();
 	const auto item_data = Data::Item::require(item_id);
 
+	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
+
 	std::uint64_t taxing_amount = 0;
 	if(item_data->type.first == Data::Item::CAT_GIFT_BOX){
 		const auto level = item_data->type.second;
 		LOG_EMPERY_CENTER_DEBUG("Gift box: item_id = ", item_id, ", level = ", level, ", item_count = ", item_count);
 		const auto unit_price = g_level_prices.at(level);
 		taxing_amount = checked_mul(unit_price, item_count);
+
+		account->activate();
 	}
+
+	Poseidon::sync_raise_event(
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
+			account->get_platform_id(), account->get_login_name()));
 
 	payment_transaction->commit(remarks);
 	try {

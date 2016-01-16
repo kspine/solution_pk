@@ -37,13 +37,12 @@ namespace Events {
 		}
 	};
 
-	struct AccountPrecommitPaymentTransaction : public Poseidon::EventBase<340104> {
-		AccountUuid account_uuid;
-		ItemId item_id;
-		std::uint64_t item_count;
+	struct AccountSynchronizeWithThirdServer : public Poseidon::EventBase<340104> {
+		PlatformId platform_id;
+		std::string login_name;
 
-		AccountPrecommitPaymentTransaction(AccountUuid account_uuid_, ItemId item_id_, std::uint64_t item_count_)
-			: account_uuid(account_uuid_), item_id(item_id_), item_count(item_count_)
+		AccountSynchronizeWithThirdServer(PlatformId platform_id_, std::string login_name_)
+			: platform_id(platform_id_), login_name(std::move(login_name_))
 		{
 		}
 	};

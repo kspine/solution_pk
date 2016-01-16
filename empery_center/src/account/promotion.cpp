@@ -276,17 +276,16 @@ namespace {
 		get_config(g_sms_message, "promotion_sms_message");
 		get_config(g_sms_charset, "promotion_sms_charset");
 
-		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountPrecommitPaymentTransaction>(
-			[](const boost::shared_ptr<Events::AccountPrecommitPaymentTransaction> &event){
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountSynchronizeWithThirdServer>(
+			[](const boost::shared_ptr<Events::AccountSynchronizeWithThirdServer> &event){
 				PROFILE_ME;
-				const auto account = AccountMap::require(event->account_uuid);
-				if(account->get_platform_id() != g_platform_id){
+				if(event->platform_id != g_platform_id){
 					return;
 				}
-				LOG_EMPERY_CENTER_DEBUG("Updating account level from promotion server: account_uuid = ", event->account_uuid);
-				check_login_backtrace(account->get_login_name(), std::string(), std::string());
+				LOG_EMPERY_CENTER_DEBUG("Updating account level from promotion server: login_name = ", event->login_name);
+				check_login_backtrace(event->login_name, std::string(), std::string());
 			});
-		LOG_EMPERY_CENTER_DEBUG("Created AccountPrecommitPaymentTransaction listener.");
+		LOG_EMPERY_CENTER_DEBUG("Created AccountSynchronizeWithThirdServer listener.");
 		handles.push(std::move(listener));
 	}
 }

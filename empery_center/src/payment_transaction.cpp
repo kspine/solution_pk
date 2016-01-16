@@ -6,6 +6,8 @@
 #include "item_box.hpp"
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
+#include "singletons/account_map.hpp"
+#include "account.hpp"
 #include "events/account.hpp"
 
 namespace EmperyCenter {
@@ -82,11 +84,12 @@ void PaymentTransaction::commit(std::string operation_remarks){
 		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
 	}
 
+	const auto account = AccountMap::require(get_account_uuid());
 	const auto item_box = ItemBoxMap::require(get_account_uuid());
 
 	Poseidon::sync_raise_event(
-		boost::make_shared<Events::AccountPrecommitPaymentTransaction>(
-			get_account_uuid(),  get_item_id(), get_item_count()));
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
+			account->get_platform_id(), account->get_login_name()));
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_ADD, get_item_id(), get_item_count(),

@@ -9,6 +9,7 @@
 #include "../checked_arithmetic.hpp"
 #include "../item_ids.hpp"
 #include "../data/item.hpp"
+#include "../events/account.hpp"
 
 namespace EmperyCenter {
 
@@ -83,6 +84,10 @@ PAYMENT_SERVLET("create_bill/alternative_gold_coins", root, session, params){
 	const auto amount      = boost::lexical_cast<std::uint64_t>(params.at("amount"));
 	const auto &remarks    = params.get("remarks");
 
+	Poseidon::sync_raise_event(
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
+			platform_id, login_name));
+
 	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
@@ -105,6 +110,10 @@ PAYMENT_SERVLET("create_bill/alternative_gift_box", root, session, params){
 	const auto &login_name     = params.at("login_name");
 	const auto promotion_level = boost::lexical_cast<unsigned>(params.at("promotion_level"));
 	const auto &remarks        = params.get("remarks");
+
+	Poseidon::sync_raise_event(
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
+			platform_id, login_name));
 
 	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
 	if(!account){
