@@ -16,13 +16,6 @@ struct SimpleHttpClientDaemon {
 		Poseidon::OptionalMap get_params = Poseidon::OptionalMap(), const std::string &user_pass = std::string(),
 		Poseidon::StreamBuffer entity = Poseidon::StreamBuffer(), std::string content_type = std::string());
 
-	// 异步接口。
-	// 第一个参数是出参。
-	static boost::shared_ptr<const Poseidon::JobPromise> async_request(boost::shared_ptr<Poseidon::StreamBuffer> ret,
-		const std::string &host, unsigned port, bool use_ssl, Poseidon::Http::Verb verb, std::string uri,
-		Poseidon::OptionalMap get_params = Poseidon::OptionalMap(), const std::string &user_pass = std::string(),
-		Poseidon::StreamBuffer entity = Poseidon::StreamBuffer(), std::string content_type = std::string());
-
 private:
 	SimpleHttpClientDaemon() = delete;
 };

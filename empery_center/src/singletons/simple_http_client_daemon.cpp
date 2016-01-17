@@ -16,16 +16,15 @@ namespace {
 	class SimpleHttpClient : public Poseidon::TcpClientBase, private Poseidon::Http::ClientReader, private Poseidon::Http::ClientWriter {
 	private:
 		const boost::shared_ptr<Poseidon::JobPromise> m_promise;
-		const boost::shared_ptr<Poseidon::StreamBuffer> m_buffer;
 
 		Poseidon::Http::ResponseHeaders m_res_headers;
+		Poseidon::StreamBuffer m_buffer;
 
 	public:
-		SimpleHttpClient(const Poseidon::SockAddr &addr, bool use_ssl,
-			boost::shared_ptr<Poseidon::JobPromise> promise, boost::shared_ptr<Poseidon::StreamBuffer> buffer)
+		SimpleHttpClient(const Poseidon::SockAddr &addr, bool use_ssl, boost::shared_ptr<Poseidon::JobPromise> promise)
 			: Poseidon::TcpClientBase(addr, use_ssl)
-			, m_promise(std::move(promise)), m_buffer(std::move(buffer))
-			, m_res_headers()
+			, m_promise(std::move(promise))
+			, m_res_headers(), m_buffer()
 		{
 		}
 
@@ -86,7 +85,7 @@ namespace {
 			PROFILE_ME;
 			LOG_EMPERY_CENTER_DEBUG("Response entity: entity_offset = ", entity_offset, ", entity.size() = ", entity.size());
 
-			m_buffer->splice(entity);
+			m_buffer.splice(entity);
 		}
 		bool on_response_end(std::uint64_t content_length, bool /* is_chunked */, Poseidon::OptionalMap /* headers */) override {
 			PROFILE_ME;
@@ -96,8 +95,7 @@ namespace {
 				m_promise->set_success();
 			} else {
 				m_promise->set_exception(boost::copy_exception(
-					Poseidon::Http::Exception(__FILE__, __LINE__, m_res_headers.status_code, { }, SharedNts(m_buffer->dump()))
-					));
+					Poseidon::Http::Exception(__FILE__, __LINE__, m_res_headers.status_code, { }, SharedNts(m_buffer.dump()))));
 			}
 
 			return true;
@@ -111,6 +109,13 @@ namespace {
 		}
 
 	public:
+		const Poseidon::StreamBuffer &get_buffer() const {
+			return m_buffer;
+		}
+		Poseidon::StreamBuffer &get_buffer(){
+			return m_buffer;
+		}
+
 		bool send(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity){
 			return Poseidon::Http::ClientWriter::put_request(std::move(request_headers), std::move(entity));
 		}
@@ -123,20 +128,6 @@ Poseidon::StreamBuffer SimpleHttpClientDaemon::sync_request(
 {
 	PROFILE_ME;
 
-	const auto buffer = boost::make_shared<Poseidon::StreamBuffer>();
-	const auto promise = async_request(std::move(buffer),
-		host, port, use_ssl, verb, std::move(uri), std::move(get_params), std::move(user_pass), std::move(entity), std::move(content_type));
-	Poseidon::JobDispatcher::yield(promise);
-	promise->check_and_rethrow();
-	return std::move(*buffer);
-}
-
-boost::shared_ptr<const Poseidon::JobPromise> SimpleHttpClientDaemon::async_request(boost::shared_ptr<Poseidon::StreamBuffer> ret,
-	const std::string &host, unsigned port, bool use_ssl, Poseidon::Http::Verb verb, std::string uri,
-	Poseidon::OptionalMap get_params, const std::string &user_pass, Poseidon::StreamBuffer entity, std::string content_type)
-{
-	PROFILE_ME;
-
 	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 	{
 		const auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
@@ -144,8 +135,8 @@ boost::shared_ptr<const Poseidon::JobPromise> SimpleHttpClientDaemon::async_requ
 		promise->check_and_rethrow();
 	}
 
-	auto promise = boost::make_shared<Poseidon::JobPromise>();
-	const auto client = boost::make_shared<SimpleHttpClient>(*sock_addr, use_ssl, promise, std::move(ret));
+	const auto promise = boost::make_shared<Poseidon::JobPromise>();
+	const auto client = boost::make_shared<SimpleHttpClient>(*sock_addr, use_ssl, promise);
 	client->go_resident();
 
 	Poseidon::Http::RequestHeaders req_headers;
@@ -165,8 +156,10 @@ boost::shared_ptr<const Poseidon::JobPromise> SimpleHttpClientDaemon::async_requ
 		LOG_EMPERY_CENTER_WARNING("Failed to send data to remote server!");
 		DEBUG_THROW(Exception, sslit("Failed to send data to remote server"));
 	}
+	Poseidon::JobDispatcher::yield(promise);
+	promise->check_and_rethrow();
 
-	return std::move(promise);
+	return std::move(client->get_buffer());
 }
 
 }

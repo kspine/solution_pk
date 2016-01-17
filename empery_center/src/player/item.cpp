@@ -12,7 +12,6 @@
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
 #include "../singletons/simple_http_client_daemon.hpp"
-#include <poseidon/singletons/job_dispatcher.hpp>
 
 namespace EmperyCenter {
 
@@ -146,12 +145,9 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 	get_params.set(sslit("unitPrice"),   boost::lexical_cast<std::string>(unit_price));
 	get_params.set(sslit("cardsToSell"), boost::lexical_cast<std::string>(repeat_count));
 
-	const auto entity = boost::make_shared<Poseidon::StreamBuffer>();
-	const auto promise = SimpleHttpClientDaemon::async_request(entity, g_promotion_host, g_promotion_port, g_promotion_use_ssl,
+	const auto entity = SimpleHttpClientDaemon::sync_request(g_promotion_host, g_promotion_port, g_promotion_use_ssl,
 		Poseidon::Http::V_GET, g_promotion_path + "/sellAccelerationCards", std::move(get_params), g_promotion_auth);
-	Poseidon::JobDispatcher::yield(promise); // 等待……
-	// promise->check_and_rethrow(); // 但是忽略所有错误。
-	LOG_EMPERY_CENTER_INFO("Received response from promotion server: entity = ", entity->dump());
+	LOG_EMPERY_CENTER_INFO("Received response from promotion server: entity = ", entity.dump());
 
 	return Response();
 }
