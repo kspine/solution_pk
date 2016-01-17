@@ -3,6 +3,8 @@
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
 #include "../events/account.hpp"
+#include "../singletons/item_map.hpp"
+#include "../item_ids.hpp"
 
 namespace EmperyPromotion {
 
@@ -38,6 +40,7 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 	ret[sslit("level")] = boost::lexical_cast<std::string>(info.level);
 	ret[sslit("nick")] = std::move(info.nick);
 	ret[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
+	ret[sslit("hasAccelerationCards")] = ItemMap::get_count(info.account_id, ItemIds::ID_ACCELERATION_CARDS) != 0;
 
 	Poseidon::JsonArray referrers;
 	auto referrer_id = info.referrer_id;

@@ -79,7 +79,7 @@ namespace {
 			AccountUuid referrer_uuid;
 
 			const auto create_or_update_account = [&](const std::string &cur_login_name,
-				unsigned cur_level, const std::string &cur_nick, bool is_auction_center_enabled)
+				unsigned cur_level, const std::string &cur_nick, bool is_auction_center_enabled, bool has_acceleration_cards)
 			{
 				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
 					", cur_level = ", cur_level, ", cur_nick = ", cur_nick);
@@ -100,6 +100,9 @@ namespace {
 					modifiers.emplace(AccountAttributeIds::ID_AUCTION_CENTER_ENABLED, "1");
 					account->set_attributes(std::move(modifiers));
 				}
+				if(has_acceleration_cards){
+					account->activate();
+				}
 				referrer_uuid = account->get_account_uuid();
 				return account;
 			};
@@ -112,14 +115,16 @@ namespace {
 				const unsigned referrer_level = g_level_config.at(referrer_level_str);
 				const auto &referrer_nick = elem.at(sslit("nick")).get<std::string>();
 				const auto is_auction_center_enabled = elem.at(sslit("isAuctionCenterEnabled")).get<bool>();
-				create_or_update_account(referrer_login_name, referrer_level, referrer_nick, is_auction_center_enabled);
+				const auto has_acceleration_cards = elem.at(sslit("hasAccelerationCards")).get<bool>();
+				create_or_update_account(referrer_login_name, referrer_level, referrer_nick, is_auction_center_enabled, has_acceleration_cards);
 			}
 
 			const auto &level_str = response_object.at(sslit("level")).get<std::string>();
 			const unsigned level = g_level_config.at(level_str);
 			const auto &nick = response_object.at(sslit("nick")).get<std::string>();
 			const auto is_auction_center_enabled = response_object.at(sslit("isAuctionCenterEnabled")).get<bool>();
-			new_account = create_or_update_account(login_name, level, nick, is_auction_center_enabled);
+			const auto has_acceleration_cards = response_object.at(sslit("hasAccelerationCards")).get<bool>();
+			new_account = create_or_update_account(login_name, level, nick, is_auction_center_enabled, has_acceleration_cards);
 		}
 		return std::make_pair(error_code, new_account);
 	}

@@ -162,6 +162,8 @@ bool MapCell::is_acceleration_card_applied() const {
 }
 void MapCell::set_acceleration_card_applied(bool value){
 	m_obj->set_acceleration_card_applied(value);
+
+	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
 ItemId MapCell::get_ticket_item_id() const {
