@@ -131,29 +131,24 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 
 	const auto unit_price = Data::Global::as_unsigned(Data::Global::SLOT_ACCELERATION_CARD_UNIT_PRICE);
 
-	boost::shared_ptr<const Poseidon::JobPromise> promise;
-	boost::shared_ptr<Poseidon::StreamBuffer> entity;
-
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, checked_mul(repeat_count, unit_price),
 		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
 	transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, repeat_count,
 		ReasonIds::ID_BUY_ACCELERATION_CARD, account->get_promotion_level(), 0, 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
-		[&]{
-			Poseidon::OptionalMap get_params;
-			get_params.set(sslit("loginName"),   account->get_login_name());
-			get_params.set(sslit("unitPrice"),   boost::lexical_cast<std::string>(unit_price));
-			get_params.set(sslit("cardsToSell"), boost::lexical_cast<std::string>(repeat_count));
-
-			entity = boost::make_shared<Poseidon::StreamBuffer>();
-			promise = SimpleHttpClientDaemon::async_request(entity, g_promotion_host, g_promotion_port, g_promotion_use_ssl,
-				Poseidon::Http::V_GET, g_promotion_path + "/sellAccelerationCards", std::move(get_params), g_promotion_auth);
-		});
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
 
+	Poseidon::OptionalMap get_params;
+	get_params.set(sslit("loginName"),   account->get_login_name());
+	get_params.set(sslit("unitPrice"),   boost::lexical_cast<std::string>(unit_price));
+	get_params.set(sslit("cardsToSell"), boost::lexical_cast<std::string>(repeat_count));
+
+	const auto entity = boost::make_shared<Poseidon::StreamBuffer>();
+	const auto promise = SimpleHttpClientDaemon::async_request(entity, g_promotion_host, g_promotion_port, g_promotion_use_ssl,
+		Poseidon::Http::V_GET, g_promotion_path + "/sellAccelerationCards", std::move(get_params), g_promotion_auth);
 	Poseidon::JobDispatcher::yield(promise); // 等待……
 	// promise->check_and_rethrow(); // 但是忽略所有错误。
 	LOG_EMPERY_CENTER_INFO("Received response from promotion server: entity = ", entity->dump());
