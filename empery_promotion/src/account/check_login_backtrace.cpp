@@ -52,6 +52,7 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 		elem[sslit("level")] = boost::lexical_cast<std::string>(referrer_info.level);
 		elem[sslit("nick")] = std::move(referrer_info.nick);
 		elem[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(referrer_info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
+		elem[sslit("hasAccelerationCards")] = ItemMap::get_count(referrer_info.account_id, ItemIds::ID_ACCELERATION_CARDS) != 0;
 		referrers.emplace_back(std::move(elem));
 
 		referrer_id = referrer_info.referrer_id;
