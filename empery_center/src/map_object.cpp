@@ -20,7 +20,6 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 			obj->async_save(true);
 			return obj;
 		}())
-	, m_harvest_remainder(0)
 {
 }
 MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
