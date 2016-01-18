@@ -225,7 +225,7 @@ PLAYER_SERVLET(Msg::CS_MailBatchReadAndFetchAttachments, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MailDelete, account, session, /* req */){
+PLAYER_SERVLET(Msg::CS_MailBatchDelete, account, session, /* req */){
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
