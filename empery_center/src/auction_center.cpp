@@ -153,7 +153,7 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 
 	const auto account_uuid = get_account_uuid();
 
-	boost::shared_ptr<bool> withdrawn;
+	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_AuctionTransfer>, std::uint64_t /* new_count */> temp_result_map;
 
 	for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
@@ -195,13 +195,8 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 				LOG_EMPERY_CENTER_DEBUG("% Auction transaction: add: account_uuid = ", account_uuid,
 					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				if(!withdrawn){
-					withdrawn = boost::make_shared<bool>(true);
-				}
-				Poseidon::async_raise_event(
-					boost::make_shared<Events::AuctionItemChanged>(account_uuid,
-						item_id, old_count, new_count, reason, param1, param2, param3),
-					withdrawn);
+				events.emplace_back(boost::make_shared<Events::AuctionItemChanged>(
+					account_uuid, item_id, old_count, new_count, reason, param1, param2, param3));
 			}
 			break;
 
@@ -237,13 +232,8 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 				LOG_EMPERY_CENTER_DEBUG("% Auction transaction: remove: account_uuid = ", account_uuid,
 					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				if(!withdrawn){
-					withdrawn = boost::make_shared<bool>(true);
-				}
-				Poseidon::async_raise_event(
-					boost::make_shared<Events::AuctionItemChanged>(account_uuid,
-						item_id, old_count, new_count, reason, param1, param2, param3),
-					withdrawn);
+				events.emplace_back(boost::make_shared<Events::AuctionItemChanged>(
+					account_uuid, item_id, old_count, new_count, reason, param1, param2, param3));
 			}
 			break;
 
@@ -257,12 +247,14 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 		callback();
 	}
 
+	const auto withdrawn = boost::make_shared<bool>(true);
+	for(auto it = events.begin(); it != events.end(); ++it){
+		Poseidon::async_raise_event(*it, withdrawn);
+	}
 	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 		it->first->set_item_count(it->second);
 	}
-	if(withdrawn){
-		*withdrawn = false;
-	}
+	*withdrawn = false;
 
 	return { };
 }
