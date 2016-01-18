@@ -289,7 +289,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_BUILDING_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
-	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0));
+	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
@@ -466,7 +466,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_TECH_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
-	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0));
+	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,

@@ -15,8 +15,8 @@ constexpr ChatMessageSlotId
 	ID_TAXER                ( 86201 ),
 	ID_TAX_AMOUNT           ( 86202 ),
 
-	ID_AUCTION_ITEM_ID      ( 86301 ),
-	ID_AUCTION_ITEM_COUNT   ( 86302 );
+	ID_ITEM_ID              ( 86301 ),
+	ID_ITEM_COUNT           ( 86302 );
 
 }
 

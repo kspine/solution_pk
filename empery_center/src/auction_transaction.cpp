@@ -119,11 +119,11 @@ void AuctionTransaction::commit(std::string operation_remarks){
 
 			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 			segments.reserve(2);
-			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_ID,    boost::lexical_cast<std::string>(item_id));
-			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_COUNT, boost::lexical_cast<std::string>(item_box_count));
+			segments.emplace_back(ChatMessageSlotIds::ID_ITEM_ID,    boost::lexical_cast<std::string>(item_id));
+			segments.emplace_back(ChatMessageSlotIds::ID_ITEM_COUNT, boost::lexical_cast<std::string>(item_box_count));
 
 			boost::container::flat_map<ItemId, std::uint64_t> attachments;
-			attachments.emplace(get_item_id(), item_count_unlocked);
+			attachments.emplace(item_id, item_count_unlocked);
 
 			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
 				MailTypeIds::ID_AUCTION_RESULT, AccountUuid(), std::string(), std::move(segments), std::move(attachments));

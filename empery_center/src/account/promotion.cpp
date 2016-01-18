@@ -180,7 +180,7 @@ namespace {
 		pos = utf8_message.find("$(minutes)");
 		if(pos != std::string::npos){
 			char str[256];
-			unsigned len = (unsigned)std::sprintf(str, "%.f", std::ceil(expiry_duration / 60000.0));
+			unsigned len = (unsigned)std::sprintf(str, "%.f", std::ceil(expiry_duration / 60000.0 - 0.001));
 			utf8_message.replace(pos, sizeof("$(minutes)") - 1, str, len);
 		}
 		LOG_EMPERY_CENTER_DEBUG("Generated message: utf8_message = ", utf8_message);

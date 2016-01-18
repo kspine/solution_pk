@@ -14,7 +14,10 @@ constexpr MailTypeId
 	ID_INCOME_TAX           ( 101 ),
 	ID_LEVEL_BONUS_EXTRA    ( 102 ),
 
-	ID_AUCTION_RESULT       ( 200 );
+	ID_AUCTION_RESULT       ( 200 ),
+	ID_PAYMENT_DIAMONDS     ( 201 ),
+	ID_PAYMENT_GOLD_COINS   ( 202 ),
+	ID_PAYMENT_GIFT_BOXES   ( 203 );
 
 }
 
