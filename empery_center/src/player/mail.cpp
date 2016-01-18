@@ -117,7 +117,37 @@ PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account, session, req){
 	return Response();
 }
 
+namespace {
+	void really_fetch_attachments(const boost::shared_ptr<ItemBox> &item_box,
+		const boost::shared_ptr<MailBox> &mail_box, MailBox::MailInfo &info, LanguageId language_id)
+	{
+		PROFILE_ME;
+
+		const auto &mail_uuid = info.mail_uuid;
+		const auto mail_data = MailBoxMap::require_mail_data(mail_uuid, language_id);
+
+		const auto &attachments = mail_data->get_attachments();
+		LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", mail_box->get_account_uuid(),
+			", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+
+		const auto mail_uuid_tail = Poseidon::load_be(reinterpret_cast<const std::uint64_t *>(mail_uuid.get().end())[-1]);
+		std::vector<ItemTransactionElement> transaction;
+		transaction.reserve(attachments.size());
+		for(auto it = attachments.begin(); it != attachments.end(); ++it){
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
+				ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), mail_data->get_type().get());
+		}
+		item_box->commit_transaction(transaction, false,
+			[&]{
+				info.attachments_fetched = true;
+				mail_box->update(std::move(info));
+			});
+	}
+}
+
 PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
+	const auto language_id = LanguageId(req.language_id);
+
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
@@ -132,25 +162,7 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
-	const auto language_id = LanguageId(req.language_id);
-	const auto mail_data = MailBoxMap::require_mail_data(mail_uuid, language_id);
-
-	const auto &attachments = mail_data->get_attachments();
-	LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", account->get_account_uuid(),
-		", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
-
-	const auto mail_uuid_tail = Poseidon::load_be(reinterpret_cast<const std::uint64_t *>(mail_uuid.get().end())[-1]);
-	std::vector<ItemTransactionElement> transaction;
-	transaction.reserve(attachments.size());
-	for(auto it = attachments.begin(); it != attachments.end(); ++it){
-		transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
-			ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), mail_data->get_type().get());
-	}
-	item_box->commit_transaction(transaction, false,
-		[&]{
-			info.attachments_fetched = true;
-			mail_box->update(std::move(info));
-		});
+	really_fetch_attachments(item_box, mail_box, info, language_id);
 
 	return Response();
 }
@@ -172,6 +184,68 @@ PLAYER_SERVLET(Msg::CS_MailDelete, account, session, req){
 	}
 
 	mail_box->remove(mail_uuid);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MailBatchReadAndFetchAttachments, account, session, req){
+	const auto language_id = LanguageId(req.language_id);
+
+	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
+	mail_box->pump_status();
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	std::vector<MailBox::MailInfo> mail_infos;
+	mail_box->get_all(mail_infos);
+	for(auto it = mail_infos.begin(); it != mail_infos.end(); ++it){
+		auto &info = *it;
+		if(info.expiry_time == 0){
+			continue;
+		}
+		if(info.read){
+			continue;
+		}
+
+		info.read = true;
+		mail_box->update(std::move(info));
+	}
+	for(auto it = mail_infos.begin(); it != mail_infos.end(); ++it){
+		auto &info = *it;
+		if(info.expiry_time == 0){
+			continue;
+		}
+		if(info.attachments_fetched){
+			continue;
+		}
+
+		really_fetch_attachments(item_box, mail_box, info, language_id);
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MailDelete, account, session, /* req */){
+	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
+	mail_box->pump_status();
+
+	std::vector<MailBox::MailInfo> mail_infos;
+	mail_box->get_all(mail_infos);
+	for(auto it = mail_infos.begin(); it != mail_infos.end(); ++it){
+		auto &info = *it;
+		if(info.expiry_time == 0){
+			continue;
+		}
+		if(!info.read){
+			continue;
+		}
+		if(!info.attachments_fetched){
+			continue;
+		}
+
+		const auto mail_uuid = info.mail_uuid;
+		mail_box->remove(mail_uuid);
+	}
 
 	return Response();
 }

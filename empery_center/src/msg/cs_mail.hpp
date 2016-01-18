@@ -54,6 +54,18 @@ namespace Msg {
 	FIELD_STRING        (mail_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MailBatchReadAndFetchAttachments
+#define MESSAGE_ID      606
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (language_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MailBatchDelete
+#define MESSAGE_ID      607
+#define MESSAGE_FIELDS  \
+	//
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
