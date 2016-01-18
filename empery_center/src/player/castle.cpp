@@ -531,7 +531,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 		map_cell->pump_status();
 
 		if(map_cell->get_resource_amount() != 0){
-			const auto amount_harvested = map_cell->harvest(UINT64_MAX, false);
+			const auto amount_harvested = map_cell->harvest(false);
 			if(amount_harvested == 0){
 				LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
 					", coord = ", map_cell->get_coord(), ", resource_id = ", map_cell->get_production_resource_id());

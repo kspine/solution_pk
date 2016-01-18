@@ -23,6 +23,9 @@ private:
 	boost::container::flat_map<AttributeId,
 		boost::shared_ptr<MySql::Center_MapCellAttribute>> m_attributes;
 
+	// 非持久化数据。
+	double m_production_remainder = 0;
+
 public:
 	explicit MapCell(Coord coord);
 	MapCell(boost::shared_ptr<MySql::Center_MapCell> obj,
@@ -48,7 +51,7 @@ public:
 	void set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
 	void set_ticket_item_id(ItemId ticket_item_id);
 
-	std::uint64_t harvest(std::uint64_t max_amount, bool saturated);
+	std::uint64_t harvest(bool saturated);
 
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;

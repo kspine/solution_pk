@@ -13,7 +13,7 @@
 #include "data/map.hpp"
 #include "singletons/account_map.hpp"
 #include "data/global.hpp"
-#include "data/map.hpp"
+#include "data/map_object.hpp"
 
 namespace EmperyCenter {
 
@@ -66,8 +66,16 @@ std::uint64_t Overlay::get_resource_amount() const {
 	return m_obj->get_resource_amount();
 }
 
-std::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, std::uint64_t max_amount, bool saturated){
+std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, std::uint64_t duration, bool saturated){
 	PROFILE_ME;
+
+	const auto parent_object_uuid = harvester->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+	if(!castle){
+		LOG_EMPERY_CENTER_DEBUG("No parent castle: harvester_uuid = ", harvester->get_map_object_uuid(),
+			", parent_object_uuid = ", parent_object_uuid);
+		return 0;
+	}
 
 	const auto cluster_coord = get_cluster_coord();
 	const auto &overlay_group_name = get_overlay_group_name();
@@ -79,24 +87,26 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, std::uin
 		LOG_EMPERY_CENTER_DEBUG("No reward resource id: overlay_group_name = ", overlay_group_name, ", resource_id = ", resource_id);
 		return 0;
 	}
-	auto amount_avail = get_resource_amount();
-	if(amount_avail > max_amount){
-		amount_avail = max_amount;
+
+	const auto harvester_type_id = harvester->get_map_object_type_id();
+	const auto harvester_data = Data::MapObject::require(harvester_type_id);
+	const auto harvest_speed = harvester_data->harvest_speed;
+	if(harvest_speed <= 0){
+		LOG_EMPERY_CENTER_DEBUG("Harvest speed is zero: harvester_type_id = ", harvester_type_id);
+		return 0;
 	}
+	const auto amount_to_harvest = harvest_speed * duration / 60000.0 + m_harvest_remainder;
+	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
+	const auto amount_remaining = get_resource_amount();
+	const auto amount_avail = std::min(rounded_amount_to_harvest, amount_remaining);
 	if(amount_avail == 0){
-		LOG_EMPERY_CENTER_DEBUG("Zero amount specified: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
+		LOG_EMPERY_CENTER_DEBUG("No resource available: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 		return 0;
 	}
 
-	auto amount_to_add = amount_avail;
-	const auto max_amount_to_add = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
-	if(amount_to_add > max_amount_to_add){
-		amount_to_add = max_amount_to_add;
-	}
-	auto amount_to_remove = amount_avail;
-	if(!saturated){
-		amount_to_remove = amount_to_add;
-	}
+	const auto capacity_remaining = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
+	const auto amount_to_add = std::min(amount_avail, capacity_remaining);
+	const auto amount_to_remove = saturated ? amount_avail : amount_to_add;
 	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,
 		", resource_id = ", resource_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
@@ -105,6 +115,8 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<Castle> &castle, std::uin
 		ReasonIds::ID_HARVEST_OVERLAY, cluster_coord.x(), cluster_coord.y(), overlay_id.get());
 	castle->commit_resource_transaction(transaction,
 		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove)); });
+
+	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
 
 	WorldMap::update_overlay(virtual_shared_from_this<Overlay>(), false);
 

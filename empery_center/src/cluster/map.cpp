@@ -11,7 +11,7 @@
 #include "../data/map.hpp"
 #include "../castle.hpp"
 #include "../overlay.hpp"
-#include "../data/map_object_type.hpp"
+#include "../data/map_object.hpp"
 
 namespace EmperyCenter {
 
@@ -126,21 +126,15 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 //	const auto resource_id = overlay->get_resource_id();
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
-	const auto harvest_speed = map_object_type_data->harvest_speed;
+	const auto map_object_data = Data::MapObject::require(map_object_type_id);
+	const auto harvest_speed = map_object_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
-	const auto harvest_amount = harvest_speed * req.interval / 60000.0 + map_object->get_harvest_remainder();
-	const auto rounded_amount = static_cast<std::uint64_t>(harvest_amount);
-	const auto remainder = std::fdim(harvest_amount, rounded_amount);
 
-	const auto harvested_amount = overlay->harvest(castle, rounded_amount, true);
-	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid,
-		", map_object_type_id = ", map_object_type_id, ", harvest_speed = ", harvest_speed, ", interval = ", req.interval,
-		", harvest_amount = ", harvest_amount, ", rounded_amount = ", rounded_amount, ", harvested_amount = ", harvested_amount);
-	map_object->set_harvest_remainder(remainder); // noexcept
-
+	const auto harvested_amount = overlay->harvest(map_object, req.interval, true);
+	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
+		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", harvested_amount = ", harvested_amount);
 	if(harvested_amount == 0){
 		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
 	}

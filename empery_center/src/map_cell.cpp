@@ -123,15 +123,18 @@ void MapCell::pump_status(){
 		const auto old_resource_amount      = m_obj->get_resource_amount();
 
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
-		const auto amount_to_add = static_cast<std::uint64_t>(std::round(production_duration * production_rate / 60000.0));
-		if(amount_to_add != 0){
+		const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
+		const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
+		if(rounded_amount_produced != 0){
 			const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
-			const auto new_resource_amount = std::min(saturated_add(old_resource_amount, amount_to_add), rounded_capacity);
-			LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(),
-				", terrain_id = ", terrain_id, ", new_resource_amount = ", new_resource_amount);
+			const auto new_resource_amount = std::min(saturated_add(old_resource_amount, rounded_amount_produced), rounded_capacity);
+			LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(), ", terrain_id = ", terrain_id,
+				", new_resource_amount = ", new_resource_amount, ", rounded_capacity = ", rounded_capacity);
 
 			m_obj->set_last_production_time (utc_now);
 			m_obj->set_resource_amount      (new_resource_amount);
+
+			m_production_remainder = amount_produced - rounded_amount_produced;
 		}
 	}
 }
@@ -204,7 +207,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-std::uint64_t MapCell::harvest(std::uint64_t max_amount, bool saturated){
+std::uint64_t MapCell::harvest(bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
@@ -225,27 +228,18 @@ std::uint64_t MapCell::harvest(std::uint64_t max_amount, bool saturated){
 		LOG_EMPERY_CENTER_DEBUG("No production resource id: coord = ", coord);
 		return 0;
 	}
-	auto amount_avail = get_resource_amount();
-	if(amount_avail > max_amount){
-		amount_avail = max_amount;
-	}
+	const auto amount_avail = get_resource_amount();
 	if(amount_avail == 0){
-		LOG_EMPERY_CENTER_DEBUG("Zero amount specified: coord = ", coord);
+		LOG_EMPERY_CENTER_DEBUG("No resource available: coord = ", coord);
 		return 0;
 	}
 
-	auto amount_to_add = amount_avail;
-	const auto max_amount_to_add = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
-	if(amount_to_add > max_amount_to_add){
-		amount_to_add = max_amount_to_add;
-	}
-	auto amount_to_remove = amount_avail;
-	if(!saturated){
-		amount_to_remove = amount_to_add;
-	}
-	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord,
-		", castle_uuid = ", castle->get_map_object_uuid(), ", ticket_item_id = ", ticket_item_id,
-		", resource_id = ", resource_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
+	const auto capacity_remaining = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
+	const auto amount_to_add = std::min(amount_avail, capacity_remaining);
+	const auto amount_to_remove = saturated ? amount_avail : amount_to_add;
+	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", castle_uuid = ", castle->get_map_object_uuid(),
+		", ticket_item_id = ", ticket_item_id, ", resource_id = ", resource_id,
+		", capacity_remaining = ", capacity_remaining, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
 	std::vector<ResourceTransactionElement> transaction;
 	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add,

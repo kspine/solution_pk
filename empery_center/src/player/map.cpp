@@ -8,7 +8,7 @@
 #include "../map_object.hpp"
 #include "../cluster_session.hpp"
 #include "../msg/sk_map.hpp"
-#include "../data/map_object_type.hpp"
+#include "../data/map_object.hpp"
 #include "../map_cell.hpp"
 #include "../castle.hpp"
 #include "../data/castle.hpp"
@@ -67,8 +67,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
-	const auto speed = map_object_type_data->speed;
+	const auto map_object_data = Data::MapObject::require(map_object_type_id);
+	const auto speed = map_object_data->speed;
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
 	}
@@ -324,8 +324,8 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
-	const auto speed = map_object_type_data->speed;
+	const auto map_object_data = Data::MapObject::require(map_object_type_id);
+	const auto speed = map_object_data->speed;
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
 	}
