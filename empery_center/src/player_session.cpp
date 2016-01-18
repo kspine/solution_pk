@@ -52,14 +52,14 @@ protected:
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
 			auto read = Poseidon::StreamBuffer::ReadIterator(payload);
-			std::uint64_t message_id64;
-			if(!Poseidon::vuint50_from_binary(message_id64, read, payload.size())){
+			std::uint64_t message_id_64;
+			if(!Poseidon::vuint50_from_binary(message_id_64, read, payload.size())){
 				LOG_EMPERY_CENTER_WARNING("Packet too small");
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
-			message_id = message_id64 & 0xFFFF;
-			if(message_id != message_id64){
-				LOG_EMPERY_CENTER_WARNING("Message id too large: message_id64 = ", message_id64);
+			message_id = message_id_64 & 0xFFFF;
+			if(message_id != message_id_64){
+				LOG_EMPERY_CENTER_WARNING("Message id too large: message_id_64 = ", message_id_64);
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 			}
 
