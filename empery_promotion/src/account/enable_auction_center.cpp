@@ -33,12 +33,12 @@ ACCOUNT_SERVLET("enableAuctionCenter", session, params){
 		ret[sslit("errorMessage")] = "Auction center is already enabled";
 		return ret;
 	}
-
+/*
 	const auto enable_price = get_config<std::uint64_t>("auction_center_enable_price", 50000);
-
+*/
 	std::string str("1");
 	AccountMap::touch_attribute(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
-
+/*
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, enable_price,
 		Events::ItemChanged::R_ENABLE_AUCTION_CENTER, 0, 0, 0, std::string());
@@ -48,7 +48,7 @@ ACCOUNT_SERVLET("enableAuctionCenter", session, params){
 		ret[sslit("errorMessage")] = "No enough items";
 		return ret;
 	}
-	AccountMap::set_attribute(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED, std::move(str));
+*/	AccountMap::set_attribute(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED, std::move(str));
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
