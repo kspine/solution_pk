@@ -130,12 +130,12 @@ namespace {
 		LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", mail_box->get_account_uuid(),
 			", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 
-		const auto mail_uuid_tail = Poseidon::load_be(reinterpret_cast<const std::uint64_t *>(mail_uuid.get().end())[-1]);
+		const auto mail_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(mail_uuid.get()[0]));
 		std::vector<ItemTransactionElement> transaction;
 		transaction.reserve(attachments.size());
 		for(auto it = attachments.begin(); it != attachments.end(); ++it){
 			transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
-				ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_tail, language_id.get(), mail_data->get_type().get());
+				ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_head, language_id.get(), mail_data->get_type().get());
 		}
 		item_box->commit_transaction(transaction, false,
 			[&]{
