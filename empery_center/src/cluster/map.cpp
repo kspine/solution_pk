@@ -132,9 +132,10 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
 
-	const auto harvested_amount = overlay->harvest(map_object, req.interval, true);
+	const auto interval = req.interval;
+	const auto harvested_amount = overlay->harvest(map_object, interval, true);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
-		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", harvested_amount = ", harvested_amount);
+		", harvest_speed = ", harvest_speed, ", interval = ", interval, ", harvested_amount = ", harvested_amount);
 	if(harvested_amount == 0){
 		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
 	}
