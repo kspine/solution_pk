@@ -63,7 +63,7 @@ namespace {
 		LOG_EMPERY_CENTER_INFO("Loading activation codes...");
 		std::ostringstream oss;
 		const auto utc_now = Poseidon::get_utc_time();
-		oss <<"SELECT * FROM `Center_ActivationCode` WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now);
+		oss <<"SELECT * FROM `Center_ActivationCode` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now);
 		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_ActivationCode>();

@@ -66,7 +66,7 @@ namespace {
 		LOG_EMPERY_CENTER_INFO("Loading auction transactions...");
 		const auto utc_now = Poseidon::get_utc_time();
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_AuctionTransaction` WHERE `expiry_time` > " <<Poseidon::MySql::DateFormatter(utc_now)
+		oss <<"SELECT * FROM `Center_AuctionTransaction` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now)
 		    <<"  AND `committed` = 0 AND `cancelled` = 0";
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_AuctionTransaction>();
