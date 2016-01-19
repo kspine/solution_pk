@@ -46,6 +46,16 @@ namespace Events {
 		{
 		}
 	};
+
+	struct AccountNumberOnline : public Poseidon::EventBase<340105> {
+		std::uint64_t interval;
+		std::uint64_t account_count;
+
+		AccountNumberOnline(std::uint64_t interval_, std::uint64_t account_count_)
+			: interval(interval_), account_count(account_count_)
+		{
+		}
+	};
 }
 
 }

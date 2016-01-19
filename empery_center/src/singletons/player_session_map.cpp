@@ -82,6 +82,13 @@ namespace {
 		}
 	}
 
+	void statistic_timer_proc(std::uint64_t now, std::uint64_t period){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Session statistic timer: now = ", now, ", period = ", period);
+
+		Poseidon::async_raise_event(boost::make_shared<Events::AccountNumberOnline>(period, g_session_map->size()));
+	}
+
 	MODULE_RAII_PRIORITY(handles, 8000){
 		const auto session_map = boost::make_shared<PlayerSessionMapContainer>();
 		g_session_map = session_map;
@@ -90,6 +97,12 @@ namespace {
 		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
+		g_gc_timer = timer;
+		handles.push(timer);
+
+		const auto statistic_interval = get_config<std::uint64_t>("account_online_statistic_interval", 60000);
+		timer = Poseidon::TimerDaemon::register_timer(0, statistic_interval,
+			std::bind(&statistic_timer_proc, std::placeholders::_2, std::placeholders::_3));
 		g_gc_timer = timer;
 		handles.push(timer);
 	}
