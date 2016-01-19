@@ -25,6 +25,8 @@ private:
 
 	// 非持久化数据。
 	double m_production_remainder = 0;
+	double m_production_rate = 0;
+	std::uint64_t m_capacity = 0;
 
 public:
 	explicit MapCell(Coord coord);
@@ -47,6 +49,13 @@ public:
 	ResourceId get_production_resource_id() const;
 	std::uint64_t get_last_production_time() const;
 	std::uint64_t get_resource_amount() const;
+
+	double get_production_rate() const {
+		return m_production_rate;
+	}
+	std::uint64_t get_capacity() const {
+		return m_capacity;
+	}
 
 	void set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
 	void set_ticket_item_id(ItemId ticket_item_id);

@@ -70,6 +70,7 @@ void MapCell::pump_status(){
 
 		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
 		const auto production_data = Data::MapTerrain::require(terrain_id);
+
 		double production_rate     = production_data->best_production_rate;
 		double capacity            = production_data->best_capacity;
 
@@ -139,6 +140,8 @@ void MapCell::pump_status(){
 			m_obj->set_resource_amount      (new_resource_amount);
 
 			m_production_remainder = amount_produced - rounded_amount_produced;
+			m_production_rate      = production_rate;
+			m_capacity             = rounded_capacity;
 		}
 	}
 }
@@ -323,6 +326,8 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second->get_value();
 		}
+		msg.production_rate           = std::round(get_production_rate() * 1000);
+		msg.capacity                  = get_capacity();
 		session->send(msg);
 	}
 }
