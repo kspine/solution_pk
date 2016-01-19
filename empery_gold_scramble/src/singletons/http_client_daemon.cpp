@@ -126,7 +126,6 @@ namespace {
 					throw;
 				}
 				Poseidon::JobDispatcher::yield(promise);
-				promise->check_and_rethrow();
 			}
 
 			const auto promise = boost::make_shared<Poseidon::JobPromise>();
@@ -135,7 +134,6 @@ namespace {
 			client->go_resident();
 			client->Poseidon::Http::ClientWriter::put_request(std::move(request_headers), std::move(entity));
 			Poseidon::JobDispatcher::yield(promise);
-			promise->check_and_rethrow();
 			return std::move(client->m_response);
 		}
 

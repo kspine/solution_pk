@@ -214,7 +214,6 @@ Result ClusterSession::send_and_wait(std::uint16_t message_id, Poseidon::StreamB
 			DEBUG_THROW(Exception, sslit("Could not send data to cluster server"));
 		}
 		Poseidon::JobDispatcher::yield(promise);
-		promise->check_and_rethrow();
 	} catch(...){
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
 		m_requests.erase(serial);

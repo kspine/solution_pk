@@ -156,7 +156,6 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
 		const auto promise = it->promise;
 		Poseidon::JobDispatcher::yield(promise);
-		promise->check_and_rethrow();
 
 		if(it->sink){
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
@@ -255,7 +254,6 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
 		const auto promise = it->promise;
 		Poseidon::JobDispatcher::yield(promise);
-		promise->check_and_rethrow();
 
 		if(it->sink){
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed:  mail_uuid = ", mail_uuid, ", language_id = ", language_id,
