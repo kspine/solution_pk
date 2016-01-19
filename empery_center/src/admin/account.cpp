@@ -100,6 +100,33 @@ ADMIN_SERVLET("account/insert", root, session, params){
 	return Response();
 }
 
+ADMIN_SERVLET("account/set_nick", root, session, params){
+	const auto account_uuid = AccountUuid(params.at("account_uuid"));
+	const auto &nick = params.at("nick");
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+
+	account->set_nick(nick);
+
+	return Response();
+}
+
+ADMIN_SERVLET("account/activate", root, session, params){
+	const auto account_uuid = AccountUuid(params.at("account_uuid"));
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+
+	account->activate();
+
+	return Response();
+}
+
 ADMIN_SERVLET("account/ban", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 	const auto banned_until = boost::lexical_cast<std::uint64_t>(params.at("banned_until"));

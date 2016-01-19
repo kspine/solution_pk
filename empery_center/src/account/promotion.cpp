@@ -76,13 +76,17 @@ namespace {
 		if(referrers_it != response_object.end()){
 			const auto &referrers_array = referrers_it->second.get<Poseidon::JsonArray>();
 
-			AccountUuid referrer_uuid;
-
-			const auto create_or_update_account = [&](const std::string &cur_login_name,
-				unsigned cur_level, const std::string &cur_nick, bool is_auction_center_enabled, bool has_acceleration_cards)
-			{
+			const auto check_account = [](AccountUuid referrer_uuid, const std::string &cur_login_name, const Poseidon::JsonObject &elem){
+				const auto &level_str = elem.at(sslit("level")).get<std::string>();
+				const unsigned cur_level = g_level_config.at(level_str);
+				const auto &cur_nick = elem.at(sslit("nick")).get<std::string>();
+				const auto is_auction_center_enabled = elem.at(sslit("isAuctionCenterEnabled")).get<bool>();
+				const auto has_acceleration_cards = elem.at(sslit("hasAccelerationCards")).get<bool>();
+				const auto has_enough_gold_coins = elem.at(sslit("hasEnoughGoldCoins")).get<bool>();
 				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
-					", cur_level = ", cur_level, ", cur_nick = ", cur_nick);
+					", cur_level = ", cur_level, ", cur_nick = ", cur_nick, ", is_auction_center_enabled = ", is_auction_center_enabled,
+					", has_acceleration_cards = ", has_acceleration_cards, ", has_enough_gold_coins = ", has_enough_gold_coins);
+
 				auto account = AccountMap::get_by_login_name(g_platform_id, cur_login_name);
 				if(!account){
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
@@ -100,31 +104,20 @@ namespace {
 					modifiers.emplace(AccountAttributeIds::ID_AUCTION_CENTER_ENABLED, "1");
 					account->set_attributes(std::move(modifiers));
 				}
-				if(has_acceleration_cards){
+				if(has_acceleration_cards || has_enough_gold_coins){
 					account->activate();
 				}
-				referrer_uuid = account->get_account_uuid();
 				return account;
 			};
 
+			AccountUuid referrer_uuid;
 			for(auto it = referrers_array.rbegin(); it != referrers_array.rend(); ++it){
-				auto &elem = it->get<Poseidon::JsonObject>();
-
+				const auto &elem = it->get<Poseidon::JsonObject>();
 				const auto &referrer_login_name = elem.at(sslit("loginName")).get<std::string>();
-				const auto &referrer_level_str = elem.at(sslit("level")).get<std::string>();
-				const unsigned referrer_level = g_level_config.at(referrer_level_str);
-				const auto &referrer_nick = elem.at(sslit("nick")).get<std::string>();
-				const auto is_auction_center_enabled = elem.at(sslit("isAuctionCenterEnabled")).get<bool>();
-				const auto has_acceleration_cards = elem.at(sslit("hasAccelerationCards")).get<bool>();
-				create_or_update_account(referrer_login_name, referrer_level, referrer_nick, is_auction_center_enabled, has_acceleration_cards);
+				const auto referrer = check_account(referrer_uuid, referrer_login_name, elem);
+				referrer_uuid = referrer->get_account_uuid();
 			}
-
-			const auto &level_str = response_object.at(sslit("level")).get<std::string>();
-			const unsigned level = g_level_config.at(level_str);
-			const auto &nick = response_object.at(sslit("nick")).get<std::string>();
-			const auto is_auction_center_enabled = response_object.at(sslit("isAuctionCenterEnabled")).get<bool>();
-			const auto has_acceleration_cards = response_object.at(sslit("hasAccelerationCards")).get<bool>();
-			new_account = create_or_update_account(login_name, level, nick, is_auction_center_enabled, has_acceleration_cards);
+			new_account = check_account(referrer_uuid, login_name, response_object);
 		}
 		return std::make_pair(error_code, new_account);
 	}

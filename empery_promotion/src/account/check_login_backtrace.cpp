@@ -37,10 +37,13 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 	Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedIn>(
 		info.account_id, ip));
 
-	ret[sslit("level")] = boost::lexical_cast<std::string>(info.level);
-	ret[sslit("nick")] = std::move(info.nick);
-	ret[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
-	ret[sslit("hasAccelerationCards")] = ItemMap::get_count(info.account_id, ItemIds::ID_ACCELERATION_CARDS) != 0;
+	const auto fill_account_info = [](Poseidon::JsonObject &elem, AccountMap::AccountInfo &&info){
+		elem[sslit("level")] = boost::lexical_cast<std::string>(info.level);
+		elem[sslit("nick")] = std::move(info.nick);
+		elem[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
+		elem[sslit("hasAccelerationCards")] = ItemMap::get_count(info.account_id, ItemIds::ID_ACCELERATION_CARDS) != 0;
+		elem[sslit("hasEnoughGoldCoins")] = ItemMap::get_count(info.account_id, ItemIds::ID_GOLD_COINS) >= 3000;
+	};
 
 	Poseidon::JsonArray referrers;
 	auto referrer_id = info.referrer_id;
@@ -49,15 +52,13 @@ ACCOUNT_SERVLET("checkLoginBacktrace", session, params){
 
 		Poseidon::JsonObject elem;
 		elem[sslit("loginName")] = std::move(referrer_info.login_name);
-		elem[sslit("level")] = boost::lexical_cast<std::string>(referrer_info.level);
-		elem[sslit("nick")] = std::move(referrer_info.nick);
-		elem[sslit("isAuctionCenterEnabled")] = AccountMap::cast_attribute<bool>(referrer_info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED);
-		elem[sslit("hasAccelerationCards")] = ItemMap::get_count(referrer_info.account_id, ItemIds::ID_ACCELERATION_CARDS) != 0;
+		fill_account_info(elem, std::move(referrer_info));
 		referrers.emplace_back(std::move(elem));
 
 		referrer_id = referrer_info.referrer_id;
 	}
 	ret[sslit("referrers")] = std::move(referrers);
+	fill_account_info(ret, std::move(info));
 
 	ret[sslit("errorCode")] = error_code;
 	ret[sslit("errorMessage")] = std::move(error_message);
