@@ -19,6 +19,7 @@ lib_libposeidon_empery_center_log_la_SOURCES = \
 	src/handlers/account_created.cpp	\
 	src/handlers/account_logged_in.cpp	\
 	src/handlers/account_logged_out.cpp	\
+	src/handlers/account_number_online.cpp	\
 	src/handlers/item_changed.cpp	\
 	src/handlers/resource_changed.cpp	\
 	src/handlers/auction_item_changed.cpp	\
