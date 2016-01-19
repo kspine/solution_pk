@@ -140,9 +140,10 @@ void MapCell::pump_status(){
 			m_obj->set_resource_amount      (new_resource_amount);
 
 			m_production_remainder = amount_produced - rounded_amount_produced;
-			m_production_rate      = production_rate;
-			m_capacity             = rounded_capacity;
 		}
+
+		m_production_rate = production_rate;
+		m_capacity        = rounded_capacity;
 	}
 }
 
