@@ -18,6 +18,7 @@
 #include "resource_ids.hpp"
 #include "account.hpp"
 #include "data/vip.hpp"
+#include "terrain_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -91,7 +92,7 @@ void MapCell::pump_status(){
 			capacity        *= acc_card_capacity_modifier;
 		}
 
-		double turbo = 0.0;
+		double turbo = 0;
 		if(production_resource_id == ResourceIds::ID_GRAIN){
 			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_GRAIN) / 1000.0;
 		} else if(production_resource_id == ResourceIds::ID_WOOD){
@@ -100,6 +101,9 @@ void MapCell::pump_status(){
 			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_STONE) / 1000.0;
 		} else {
 			LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
+		}
+		if((terrain_id == TerrainIds::ID_DESERT) || (terrain_id == TerrainIds::ID_ROTTEN_WOOD) || (terrain_id == TerrainIds::ID_GRAVEL)){
+			turbo += castle->get_attribute(AttributeIds::ID_DESERT_DEVELOPMENT) / 1000.0;
 		}
 		turbo += castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_ALL) / 1000.0;
 		production_rate *= (1 + turbo);

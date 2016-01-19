@@ -14,7 +14,8 @@ constexpr AttributeId
 	ID_PRODUCTION_TURBO_WOOD        ( 2500004 ),
 	ID_PRODUCTION_TURBO_STONE       ( 2500005 ),
 	ID_PRODUCTION_TURBO_ALL         ( 2500006 ),
-	ID_CASTLE_LEVEL                 ( 2500007 );
+	ID_CASTLE_LEVEL                 ( 2500007 ),
+	ID_DESERT_DEVELOPMENT           ( 2500008 );
 
 }
 
