@@ -130,8 +130,9 @@ void MapCell::pump_status(){
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
 		const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
 		const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
+		const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
+
 		if(rounded_amount_produced != 0){
-			const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
 			const auto new_resource_amount = std::min(saturated_add(old_resource_amount, rounded_amount_produced), rounded_capacity);
 			LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(), ", terrain_id = ", terrain_id,
 				", new_resource_amount = ", new_resource_amount, ", rounded_capacity = ", rounded_capacity);
