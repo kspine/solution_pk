@@ -16,11 +16,38 @@
 #include "chat_message_slot_ids.hpp"
 #include "data/global.hpp"
 #include "item_ids.hpp"
+#include "account_utilities.hpp"
+#include "data/item.hpp"
+#include <boost/container/flat_map.hpp>
+#include <poseidon/csv_parser.hpp>
 
 namespace EmperyCenter {
 
 namespace {
 	std::uint64_t g_auto_inc = Poseidon::get_utc_time();
+
+	boost::container::flat_map<unsigned, std::uint64_t> g_level_prices;
+
+	MODULE_RAII_PRIORITY(/* handles */, 1000){
+		Poseidon::CsvParser csv;
+
+		boost::container::flat_map<unsigned, std::uint64_t> level_prices;
+		level_prices.reserve(20);
+		csv.load("empery_promotion_levels.csv");
+		while(csv.fetch_row()){
+			unsigned level = 0;
+			std::uint64_t price = 0;
+
+			csv.get(level, "displayLevel");
+			csv.get(price, "immediatePrice");
+
+			if(!level_prices.emplace(level, price).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate promotion level: level = ", level);
+				DEBUG_THROW(Exception, sslit("Duplicate promotion level"));
+			}
+		}
+		g_level_prices = std::move(level_prices);
+	}
 }
 
 std::string PaymentTransaction::random_serial(){
@@ -91,9 +118,11 @@ void PaymentTransaction::commit(std::string operation_remarks){
 		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
 	}
 
-	const auto account = AccountMap::require(get_account_uuid());
-	const auto item_box = ItemBoxMap::require(get_account_uuid());
-	const auto mail_box = MailBoxMap::require(get_account_uuid());
+	const auto account_uuid = get_account_uuid();
+
+	const auto account = AccountMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto mail_box = MailBoxMap::require(account_uuid);
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
@@ -108,6 +137,19 @@ void PaymentTransaction::commit(std::string operation_remarks){
 
 	const auto item_id = get_item_id();
 	const auto item_count = get_item_count();
+
+	const auto item_data = Data::Item::require(item_id);
+
+	std::uint64_t taxing_amount = 0;
+	if(item_data->type.first == Data::Item::CAT_GIFT_BOX){
+		const auto level = item_data->type.second;
+		LOG_EMPERY_CENTER_DEBUG("Gift box: item_id = ", item_id, ", level = ", level, ", item_count = ", item_count);
+		const auto unit_price = g_level_prices.at(level);
+		taxing_amount = checked_mul(unit_price, item_count);
+
+		account->activate();
+	}
+
 	MailTypeId mail_type_id;
 	if(item_id == ItemIds::ID_DIAMONDS){
 		mail_type_id = MailTypeIds::ID_PAYMENT_DIAMONDS;
@@ -143,6 +185,12 @@ void PaymentTransaction::commit(std::string operation_remarks){
 			m_obj->set_committed(true);
 			m_obj->set_operation_remarks(std::move(operation_remarks));
 		});
+
+	try {
+		accumulate_promotion_bonus(account_uuid, taxing_amount);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
 
 	PaymentTransactionMap::update(virtual_shared_from_this<PaymentTransaction>(), false);
 }

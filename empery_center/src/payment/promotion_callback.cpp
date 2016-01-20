@@ -11,36 +11,9 @@
 #include "../singletons/account_map.hpp"
 #include "../account.hpp"
 #include "../string_utilities.hpp"
-#include "../account_utilities.hpp"
-#include "../data/item.hpp"
 #include "../events/account.hpp"
 
 namespace EmperyCenter {
-
-namespace {
-	boost::container::flat_map<unsigned, std::uint64_t> g_level_prices;
-
-	MODULE_RAII_PRIORITY(/* handles */, 1000){
-		Poseidon::CsvParser csv;
-
-		boost::container::flat_map<unsigned, std::uint64_t> level_prices;
-		level_prices.reserve(20);
-		csv.load("empery_promotion_levels.csv");
-		while(csv.fetch_row()){
-			unsigned level = 0;
-			std::uint64_t price = 0;
-
-			csv.get(level, "displayLevel");
-			csv.get(price, "immediatePrice");
-
-			if(!level_prices.emplace(level, price).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate promotion level: level = ", level);
-				DEBUG_THROW(Exception, sslit("Duplicate promotion level"));
-			}
-		}
-		g_level_prices = std::move(level_prices);
-	}
-}
 
 PAYMENT_SERVLET("promotion_callback", root, session, params){
 	const auto &serial   = params.at("serial");
@@ -76,31 +49,13 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED);
 	}
 
-	const auto item_id = payment_transaction->get_item_id();
-	const auto item_data = Data::Item::require(item_id);
-
 	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
-
-	std::uint64_t taxing_amount = 0;
-	if(item_data->type.first == Data::Item::CAT_GIFT_BOX){
-		const auto level = item_data->type.second;
-		LOG_EMPERY_CENTER_DEBUG("Gift box: item_id = ", item_id, ", level = ", level, ", item_count = ", item_count);
-		const auto unit_price = g_level_prices.at(level);
-		taxing_amount = checked_mul(unit_price, item_count);
-
-		account->activate();
-	}
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
 			account->get_platform_id(), account->get_login_name()));
 
 	payment_transaction->commit(remarks);
-	try {
-		accumulate_promotion_bonus(payment_transaction->get_account_uuid(), taxing_amount);
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_DEBUG("std::exception thrown: what = ", e.what());
-	}
 
 	return Response();
 }
