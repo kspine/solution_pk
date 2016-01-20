@@ -125,16 +125,8 @@ PlatformId Account::get_platform_id() const {
 const std::string &Account::get_login_name() const {
 	return m_obj->unlocked_get_login_name();
 }
-
 AccountUuid Account::get_referrer_uuid() const {
 	return AccountUuid(m_obj->unlocked_get_referrer_uuid());
-}
-void Account::set_referrer_uuid(AccountUuid account_uuid){
-	PROFILE_ME;
-
-	m_obj->set_referrer_uuid(account_uuid.get());
-
-	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
 
 unsigned Account::get_promotion_level() const {

@@ -31,9 +31,7 @@ public:
 	AccountUuid get_account_uuid() const;
 	PlatformId get_platform_id() const;
 	const std::string &get_login_name() const;
-
 	AccountUuid get_referrer_uuid() const;
-	void set_referrer_uuid(AccountUuid account_uuid);
 
 	unsigned get_promotion_level() const;
 	void set_promotion_level(unsigned promotion_level);
