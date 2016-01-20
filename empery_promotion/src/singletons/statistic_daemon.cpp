@@ -88,6 +88,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 				case Events::ItemChanged::R_BUY_GIFT_BOX:
 				case Events::ItemChanged::R_BUY_GOLD_COINS:
 					PUT_NUMBER(param1)
+					PUT_STRING(remarks)
 					break;
 				case Events::ItemChanged::R_AUCTION_TRANSFER_IN:
 				case Events::ItemChanged::R_AUCTION_TRANSFER_OUT:
