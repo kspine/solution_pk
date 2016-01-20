@@ -18,13 +18,14 @@
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
-	// TODO quiet
-
 	const auto channel     = ChatChannelId(req.channel);
 	const auto type        = ChatMessageTypeId(req.type);
 	const auto language_id = LanguageId(req.language_id);
 
 	const auto utc_now = Poseidon::get_utc_time();
+	if(utc_now < account->get_quieted_until()){
+		return Response(Msg::ERR_ACCOUNT_QUIETED);
+	}
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	segments.reserve(req.segments.size());
@@ -50,8 +51,7 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 	} else {
 		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
-	const auto milliseconds_remaining = saturated_sub(
-		saturated_mul<std::uint64_t>(min_seconds, 1000), saturated_sub(utc_now, last_chat_time));
+	const auto milliseconds_remaining = saturated_sub(saturated_mul<std::uint64_t>(min_seconds, 1000), saturated_sub(utc_now, last_chat_time));
 	if(milliseconds_remaining != 0){
 		return Response(Msg::ERR_CHAT_FLOOD) <<milliseconds_remaining;
 	}
