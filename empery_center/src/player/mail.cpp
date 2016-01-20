@@ -46,7 +46,7 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account, session, req){
 		}
 
 		if(mail_data->get_attachments().empty()){
-			if(info.attachments_fetched){
+			if(!info.attachments_fetched){
 				LOG_EMPERY_CENTER_DEBUG("Mail has no attachments. Lazy update: account_uuid = ", account->get_account_uuid(),
 					", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 				info.attachments_fetched = true;
