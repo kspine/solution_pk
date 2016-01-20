@@ -15,7 +15,7 @@ namespace {
 		object[sslit("operation")]         = static_cast<unsigned>(auction_transaction->get_operation());
 		object[sslit("created_time")]      = auction_transaction->get_created_time();
 		object[sslit("expiry_time")]       = auction_transaction->get_expiry_time();
-		object[sslit("item_id")]           = auction_transaction->get_item_id();
+		object[sslit("item_id")]           = auction_transaction->get_item_id().get();
 		object[sslit("item_count")]        = auction_transaction->get_item_count();
 		object[sslit("remarks")]           = auction_transaction->get_remarks();
 		object[sslit("committed")]         = auction_transaction->has_been_committed();
