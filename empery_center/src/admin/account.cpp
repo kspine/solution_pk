@@ -68,6 +68,35 @@ ADMIN_SERVLET("account/get_by_login_name", root, session, params){
 	return Response();
 }
 
+ADMIN_SERVLET("account/get_all", root, session, params){
+	const auto &begin_str = params.get("begin");
+	const auto &count_str = params.get("count");
+
+	std::uint64_t begin = 0, count = UINT64_MAX;
+	if(!begin_str.empty()){
+		begin = boost::lexical_cast<std::uint64_t>(begin_str);
+	}
+	if(!count_str.empty()){
+		count = boost::lexical_cast<std::uint64_t>(count_str);
+	}
+
+	root[sslit("begin")] = begin;
+
+	std::vector<boost::shared_ptr<Account>> accounts;
+	AccountMap::get_all(accounts, begin, count);
+	root[sslit("count_total")] = AccountMap::get_count();
+
+	Poseidon::JsonArray elem_accounts;
+	for(auto it = accounts.begin(); it != accounts.end(); ++it){
+		Poseidon::JsonObject object;
+		fill_account_object(object, *it);
+		elem_accounts.emplace_back(std::move(object));
+	}
+	root[sslit("accounts")] = std::move(elem_accounts);
+
+	return Response();
+}
+
 ADMIN_SERVLET("account/insert", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
@@ -141,19 +170,19 @@ ADMIN_SERVLET("account/get_banned", root, session, params){
 		count = boost::lexical_cast<std::uint64_t>(count_str);
 	}
 
-	std::vector<boost::shared_ptr<Account>> accounts;
-	AccountMap::get_banned(accounts);
-	root[sslit("count_total")] = accounts.size();
-
 	root[sslit("begin")] = begin;
 
-	Poseidon::JsonArray banned_accounts;
-	for(std::uint64_t i = begin; (i - begin < count) && (i < accounts.size()); ++i){
-		Poseidon::JsonObject banned_account;
-		fill_account_object(banned_account, accounts.at(i));
-		banned_accounts.emplace_back(std::move(banned_account));
+	std::vector<boost::shared_ptr<Account>> accounts;
+	AccountMap::get_banned(accounts, begin, count);
+	root[sslit("count_total")] = accounts.size();
+
+	Poseidon::JsonArray elem_banned_accounts;
+	for(auto it = accounts.begin(); it != accounts.end(); ++it){
+		Poseidon::JsonObject object;
+		fill_account_object(object, *it);
+		elem_banned_accounts.emplace_back(std::move(object));
 	}
-	root[sslit("banned_accounts")] = std::move(banned_accounts);
+	root[sslit("banned_accounts")] = std::move(elem_banned_accounts);
 
 	return Response();
 }
@@ -194,19 +223,19 @@ ADMIN_SERVLET("account/get_quieted", root, session, params){
 		count = boost::lexical_cast<std::uint64_t>(count_str);
 	}
 
-	std::vector<boost::shared_ptr<Account>> accounts;
-	AccountMap::get_quieted(accounts);
-	root[sslit("count_total")] = accounts.size();
-
 	root[sslit("begin")] = begin;
 
-	Poseidon::JsonArray quieted_accounts;
-	for(std::uint64_t i = begin; (i - begin < count) && (i < accounts.size()); ++i){
-		Poseidon::JsonObject quieted_account;
-		fill_account_object(quieted_account, accounts.at(i));
-		quieted_accounts.emplace_back(std::move(quieted_account));
+	std::vector<boost::shared_ptr<Account>> accounts;
+	AccountMap::get_quieted(accounts, begin, count);
+	root[sslit("count_total")] = accounts.size();
+
+	Poseidon::JsonArray elem_quieted_accounts;
+	for(auto it = accounts.begin(); it != accounts.end(); ++it){
+		Poseidon::JsonObject object;
+		fill_account_object(object, *it);
+		elem_quieted_accounts.emplace_back(std::move(object));
 	}
-	root[sslit("quieted_accounts")] = std::move(quieted_accounts);
+	root[sslit("quieted_accounts")] = std::move(elem_quieted_accounts);
 
 	return Response();
 }

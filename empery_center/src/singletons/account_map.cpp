@@ -126,6 +126,34 @@ namespace {
 		handles.push(info_cache_map);
 	}
 
+	template<typename IteratorT>
+	void really_append_account(std::vector<boost::shared_ptr<Account>> &ret,
+		const std::pair<IteratorT, IteratorT> &range, std::uint64_t begin, std::uint64_t count)
+	{
+		PROFILE_ME;
+
+		auto lower = range.first;
+		for(std::uint64_t i = 0; i < begin; ++i){
+			if(lower == range.second){
+				break;
+			}
+			++lower;
+		}
+
+		auto upper = lower;
+		for(std::uint64_t i = 0; i < count; ++i){
+			if(upper == range.second){
+				break;
+			}
+			++upper;
+		}
+
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(lower, upper)));
+		for(auto it = lower; it != upper; ++it){
+			ret.emplace_back(it->account);
+		}
+	}
+
 	void synchronize_account_and_update_cache(std::uint64_t now, std::uint64_t cache_timeout,
 		const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags) noexcept
 	try {
@@ -269,13 +297,29 @@ boost::shared_ptr<Account> AccountMap::require_by_login_name(PlatformId platform
 	return account;
 }
 
-void AccountMap::get_all(std::vector<boost::shared_ptr<Account>> &ret){
+std::uint64_t AccountMap::get_count(){
+	return g_account_map->size();
+}
+void AccountMap::get_all(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count){
 	PROFILE_ME;
 
-	ret.reserve(ret.size() + g_account_map->size());
-	for(auto it = g_account_map->begin<0>(); it != g_account_map->end<0>(); ++it){
-		ret.emplace_back(it->account);
-	}
+	really_append_account(ret,
+		std::make_pair(g_account_map->begin<0>(), g_account_map->end<0>()),
+		begin, count);
+}
+void AccountMap::get_banned(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count){
+	PROFILE_ME;
+
+	really_append_account(ret,
+		std::make_pair(g_account_map->upper_bound<4>(0), g_account_map->end<4>()),
+		begin, count);
+}
+void AccountMap::get_quieted(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count){
+	PROFILE_ME;
+
+	really_append_account(ret,
+		std::make_pair(g_account_map->upper_bound<5>(0), g_account_map->end<5>()),
+		begin, count);
 }
 void AccountMap::get_by_nick(std::vector<boost::shared_ptr<Account>> &ret, const std::string &nick){
 	PROFILE_ME;
@@ -294,24 +338,6 @@ void AccountMap::get_by_referrer(std::vector<boost::shared_ptr<Account>> &ret, A
 	PROFILE_ME;
 
 	const auto range = g_account_map->equal_range<3>(referrer_uuid);
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-	for(auto it = range.first; it != range.second; ++it){
-		ret.emplace_back(it->account);
-	}
-}
-void AccountMap::get_banned(std::vector<boost::shared_ptr<Account>> &ret){
-	PROFILE_ME;
-
-	const auto range = std::make_pair(g_account_map->upper_bound<4>(0), g_account_map->end<4>());
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-	for(auto it = range.first; it != range.second; ++it){
-		ret.emplace_back(it->account);
-	}
-}
-void AccountMap::get_quieted(std::vector<boost::shared_ptr<Account>> &ret){
-	PROFILE_ME;
-
-	const auto range = std::make_pair(g_account_map->upper_bound<5>(0), g_account_map->end<5>());
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->account);
