@@ -99,7 +99,7 @@ ACCOUNT_SERVLET("test/regain", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto old_cooldown = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN);
+	const auto old_cooldown = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIF_CODE_COOLDOWN);
 	if(old_cooldown > utc_now){
 		return Response(Msg::ERR_VERIFICATION_CODE_FLOOD) <<(utc_now - utc_now);
 	}
@@ -117,9 +117,9 @@ ACCOUNT_SERVLET("test/regain", root, session, params){
 
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 	modifiers.reserve(3);
-	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE,             std::move(verification_code));
-	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE_EXPIRY_TIME, std::move(expiry_time));
-	modifiers.emplace(AccountAttributeIds::ID_VERIFICATION_CODE_COOLDOWN,    std::move(cooldown));
+	modifiers.emplace(AccountAttributeIds::ID_VERIF_CODE,             std::move(verification_code));
+	modifiers.emplace(AccountAttributeIds::ID_VERIF_CODE_EXPIRY_TIME, std::move(expiry_time));
+	modifiers.emplace(AccountAttributeIds::ID_VERIF_CODE_COOLDOWN,    std::move(cooldown));
 	account->set_attributes(std::move(modifiers));
 
 	// send verification code
@@ -141,11 +141,11 @@ ACCOUNT_SERVLET("test/reset_password", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIFICATION_CODE_EXPIRY_TIME);
+	const auto expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIF_CODE_EXPIRY_TIME);
 	if(expiry_time <= utc_now){
 		return Response(Msg::ERR_VERIFICATION_CODE_EXPIRED);
 	}
-	const auto &code_expected = account->get_attribute(AccountAttributeIds::ID_VERIFICATION_CODE);
+	const auto &code_expected = account->get_attribute(AccountAttributeIds::ID_VERIF_CODE);
 	if(verification_code != code_expected){
 		LOG_EMPERY_CENTER_DEBUG("Unexpected verification code: expecting ", code_expected, ", got ", verification_code);
 		return Response(Msg::ERR_VERIFICATION_CODE_INCORRECT);

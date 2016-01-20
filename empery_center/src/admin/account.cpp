@@ -6,6 +6,7 @@
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
 #include "../account.hpp"
+#include "../account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -13,25 +14,26 @@ namespace {
 	void fill_account_object(Poseidon::JsonObject &object, const boost::shared_ptr<Account> &account){
 		PROFILE_ME;
 
-		object[sslit("account_uuid")]      = account->get_account_uuid().str();
-		object[sslit("platform_id")]       = account->get_platform_id().get();
-		object[sslit("login_name")]        = account->get_login_name();
+		object[sslit("account_uuid")]            = account->get_account_uuid().str();
+		object[sslit("platform_id")]             = account->get_platform_id().get();
+		object[sslit("login_name")]              = account->get_login_name();
 
-		object[sslit("referrer_uuid")]     = account->get_referrer_uuid().str();
-		object[sslit("promotion_level")]   = account->get_promotion_level();
-		object[sslit("created_time")]      = account->get_created_time();
-		object[sslit("nick")]              = account->get_nick();
-		object[sslit("activated")]         = account->has_been_activated();
-		object[sslit("banned_until")]      = account->get_banned_until();
+		object[sslit("referrer_uuid")]           = account->get_referrer_uuid().str();
+		object[sslit("promotion_level")]         = account->get_promotion_level();
+		object[sslit("created_time")]            = account->get_created_time();
+		object[sslit("nick")]                    = account->get_nick();
+		object[sslit("activated")]               = account->has_been_activated();
+		object[sslit("banned_until")]            = account->get_banned_until();
+		object[sslit("quieted_until")]           = account->get_quieted_until();
 
-		Poseidon::JsonObject attribute_object;
-		boost::container::flat_map<AccountAttributeId, std::string> attributes;
-		account->get_attributes(attributes);
-		for(auto it = attributes.begin(); it != attributes.end(); ++it){
-			char str[64];
-			unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->first.get());
-			attribute_object[SharedNts(str, len)] = std::move(it->second);
-		}
+		object[sslit("avatar")]                  = account->get_attribute(AccountAttributeIds::ID_AVATAR);
+		object[sslit("last_login_time")]         = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_LOGGED_IN_TIME);
+		object[sslit("last_logout_time")]        = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME);
+		object[sslit("sequential_sign_in_days")] = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS);
+		object[sslit("auction_center_enabled")]  = account->get_attribute(AccountAttributeIds::ID_AUCTION_CENTER_ENABLED).empty() == false;
+		object[sslit("gold_payment_enabled")]    = account->get_attribute(AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED).empty() == false;
+		object[sslit("verif_code")]              = account->get_attribute(AccountAttributeIds::ID_VERIF_CODE);
+		object[sslit("verif_code_expiry_time")]  = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VERIF_CODE_EXPIRY_TIME);
 	}
 }
 
@@ -127,6 +129,35 @@ ADMIN_SERVLET("account/activate", root, session, params){
 	return Response();
 }
 
+ADMIN_SERVLET("account/get_banned", root, session, params){
+	const auto &begin_str = params.get("begin");
+	const auto &count_str = params.get("count");
+
+	std::uint64_t begin = 0, count = UINT64_MAX;
+	if(!begin_str.empty()){
+		begin = boost::lexical_cast<std::uint64_t>(begin_str);
+	}
+	if(!count_str.empty()){
+		count = boost::lexical_cast<std::uint64_t>(count_str);
+	}
+
+	std::vector<boost::shared_ptr<Account>> accounts;
+	AccountMap::get_banned(accounts);
+	root[sslit("count_total")] = accounts.size();
+
+	root[sslit("begin")] = begin;
+
+	Poseidon::JsonArray banned_accounts;
+	for(std::uint64_t i = begin; (i - begin < count) && (i < accounts.size()); ++i){
+		Poseidon::JsonObject banned_account;
+		fill_account_object(banned_account, accounts.at(i));
+		banned_accounts.emplace_back(std::move(banned_account));
+	}
+	root[sslit("banned_accounts")] = std::move(banned_accounts);
+
+	return Response();
+}
+
 ADMIN_SERVLET("account/ban", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 	const auto banned_until = boost::lexical_cast<std::uint64_t>(params.at("banned_until"));
@@ -147,6 +178,49 @@ ADMIN_SERVLET("account/ban", root, session, params){
 			session->shutdown(Msg::KILL_OPERATOR_COMMAND, "");
 		}
 	}
+
+	return Response();
+}
+
+ADMIN_SERVLET("account/get_quieted", root, session, params){
+	const auto &begin_str = params.get("begin");
+	const auto &count_str = params.get("count");
+
+	std::uint64_t begin = 0, count = UINT64_MAX;
+	if(!begin_str.empty()){
+		begin = boost::lexical_cast<std::uint64_t>(begin_str);
+	}
+	if(!count_str.empty()){
+		count = boost::lexical_cast<std::uint64_t>(count_str);
+	}
+
+	std::vector<boost::shared_ptr<Account>> accounts;
+	AccountMap::get_quieted(accounts);
+	root[sslit("count_total")] = accounts.size();
+
+	root[sslit("begin")] = begin;
+
+	Poseidon::JsonArray quieted_accounts;
+	for(std::uint64_t i = begin; (i - begin < count) && (i < accounts.size()); ++i){
+		Poseidon::JsonObject quieted_account;
+		fill_account_object(quieted_account, accounts.at(i));
+		quieted_accounts.emplace_back(std::move(quieted_account));
+	}
+	root[sslit("quieted_accounts")] = std::move(quieted_accounts);
+
+	return Response();
+}
+
+ADMIN_SERVLET("account/quiet", root, session, params){
+	const auto account_uuid = AccountUuid(params.at("account_uuid"));
+	const auto quieted_until = boost::lexical_cast<std::uint64_t>(params.at("quieted_until"));
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+
+	account->set_quieted_until(quieted_until);
 
 	return Response();
 }

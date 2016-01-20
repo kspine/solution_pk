@@ -30,9 +30,9 @@ constexpr AccountAttributeId
 	ID_LAST_CHAT_TIME_ALLIANCE        ( 402 ),
 	ID_GOLD_PAYMENT_ENABLED           ( 403 ),
 
-	ID_VERIFICATION_CODE              ( 500 ),
-	ID_VERIFICATION_CODE_EXPIRY_TIME  ( 501 ),
-	ID_VERIFICATION_CODE_COOLDOWN     ( 502 ),
+	ID_VERIF_CODE                     ( 500 ),
+	ID_VERIF_CODE_EXPIRY_TIME         ( 501 ),
+	ID_VERIF_CODE_COOLDOWN            ( 502 ),
 	ID_CASTLE_HARVESTED_COOLDOWN      ( 503 );
 
 }
