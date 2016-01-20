@@ -18,6 +18,7 @@
 #include "../msg/err_item.hpp"
 #include "../map_utilities.hpp"
 #include "../building_ids.hpp"
+#include "../account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -518,6 +519,16 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto harvest_cooldown = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_CASTLE_HARVESTED_COOLDOWN);
+	if(utc_now < harvest_cooldown){
+		LOG_EMPERY_CENTER_DEBUG("In harvest cooldown: account_uuid = ", account->get_account_uuid());
+		return Response();
+	}
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers[AccountAttributeIds::ID_CASTLE_HARVESTED_COOLDOWN] = boost::lexical_cast<std::string>(utc_now + 1000);
+	account->set_attributes(std::move(modifiers));
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
