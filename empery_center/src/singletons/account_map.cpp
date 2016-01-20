@@ -26,12 +26,15 @@ namespace {
 		std::pair<PlatformId, std::size_t> platform_id_login_name_hash;
 		std::size_t nick_hash;
 		AccountUuid referrer_uuid;
+		std::uint64_t banned_until;
+		std::uint64_t quieted_until;
 
 		explicit AccountElement(boost::shared_ptr<Account> account_)
 			: account(std::move(account_))
 			, account_uuid(account->get_account_uuid())
 			, platform_id_login_name_hash(account->get_platform_id(), hash_string_nocase(account->get_login_name()))
 			, nick_hash(hash_string_nocase(account->get_nick())), referrer_uuid(account->get_referrer_uuid())
+			, banned_until(account->get_banned_until()), quieted_until(account->get_quieted_until())
 		{
 		}
 	};
@@ -41,6 +44,8 @@ namespace {
 		MULTI_MEMBER_INDEX(platform_id_login_name_hash)
 		MULTI_MEMBER_INDEX(nick_hash)
 		MULTI_MEMBER_INDEX(referrer_uuid)
+		MULTI_MEMBER_INDEX(banned_until)
+		MULTI_MEMBER_INDEX(quieted_until)
 	)
 
 	boost::shared_ptr<AccountMapContainer> g_account_map;
@@ -289,6 +294,24 @@ void AccountMap::get_by_referrer(std::vector<boost::shared_ptr<Account>> &ret, A
 	PROFILE_ME;
 
 	const auto range = g_account_map->equal_range<3>(referrer_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->account);
+	}
+}
+void AccountMap::get_banned(std::vector<boost::shared_ptr<Account>> &ret){
+	PROFILE_ME;
+
+	const auto range = std::make_pair(g_account_map->upper_bound<4>(0), g_account_map->end<4>());
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->account);
+	}
+}
+void AccountMap::get_quieted(std::vector<boost::shared_ptr<Account>> &ret){
+	PROFILE_ME;
+
+	const auto range = std::make_pair(g_account_map->upper_bound<5>(0), g_account_map->end<5>());
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->account);

@@ -99,7 +99,7 @@ Account::Account(AccountUuid account_uuid, PlatformId platformId, std::string lo
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Account>(account_uuid.get(), platformId.get(), std::move(login_name),
-				referrer_uuid.get(), promotion_level, created_time, std::move(nick), false, std::string(), 0, 0);
+				referrer_uuid.get(), promotion_level, created_time, std::move(nick), false, std::string(), 0, 0, 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -233,6 +233,13 @@ std::uint64_t Account::get_banned_until() const {
 }
 void Account::set_banned_until(std::uint64_t banned_until){
 	m_obj->set_banned_until(banned_until);
+}
+
+std::uint64_t Account::get_quieted_until() const {
+	return m_obj->get_quieted_until();
+}
+void Account::set_quieted_until(std::uint64_t quieted_until){
+	m_obj->set_quieted_until(quieted_until);
 }
 
 const std::string &Account::get_attribute(AccountAttributeId account_attribute_id) const {

@@ -53,6 +53,9 @@ public:
 	std::uint64_t get_banned_until() const;
 	void set_banned_until(std::uint64_t banned_until);
 
+	std::uint64_t get_quieted_until() const;
+	void set_quieted_until(std::uint64_t quieted_until);
+
 	const std::string &get_attribute(AccountAttributeId account_attribute_id) const;
 	void get_attributes(boost::container::flat_map<AccountAttributeId, std::string> &ret) const;
 	void set_attributes(boost::container::flat_map<AccountAttributeId, std::string> modifiers);
