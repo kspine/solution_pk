@@ -14,7 +14,7 @@ namespace {
 		object[sslit("account_uuid")]      = payment_transaction->get_account_uuid().str();
 		object[sslit("created_time")]      = payment_transaction->get_created_time();
 		object[sslit("expiry_time")]       = payment_transaction->get_expiry_time();
-		object[sslit("item_id")]           = payment_transaction->get_item_id();
+		object[sslit("item_id")]           = payment_transaction->get_item_id().get();
 		object[sslit("item_count")]        = payment_transaction->get_item_count();
 		object[sslit("remarks")]           = payment_transaction->get_remarks();
 		object[sslit("committed")]         = payment_transaction->has_been_committed();
