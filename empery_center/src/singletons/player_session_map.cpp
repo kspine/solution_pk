@@ -103,7 +103,6 @@ namespace {
 		const auto statistic_interval = get_config<std::uint64_t>("account_online_statistic_interval", 60000);
 		timer = Poseidon::TimerDaemon::register_timer(0, statistic_interval,
 			std::bind(&statistic_timer_proc, std::placeholders::_2, std::placeholders::_3));
-		g_gc_timer = timer;
 		handles.push(timer);
 	}
 }
