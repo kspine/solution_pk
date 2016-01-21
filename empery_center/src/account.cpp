@@ -57,9 +57,6 @@ namespace {
 		boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
 		WorldMap::get_all_clusters(clusters);
 		LOG_EMPERY_CENTER_DEBUG("Number of clusters is ", clusters.size());
-		if(clusters.empty()){
-			DEBUG_THROW(Exception, sslit("No clusters available"));
-		}
 
 		boost::container::flat_multimap<std::size_t, Coord> clusters_by_castle_count;
 		clusters_by_castle_count.reserve(clusters.size());
@@ -69,7 +66,12 @@ namespace {
 			LOG_EMPERY_CENTER_INFO("Number of castles on cluster: cluster_coord = ", cluster_coord, ", castle_count = ", castle_count);
 			clusters_by_castle_count.emplace(castle_count, cluster_coord);
 		}
+		const auto limit_max = get_config<std::uint64_t>("cluster_map_castle_limit_max", 700);
+		clusters_by_castle_count.erase(clusters_by_castle_count.lower_bound(limit_max), clusters_by_castle_count.end());
 
+		if(clusters_by_castle_count.empty()){
+			DEBUG_THROW(Exception, sslit("No clusters available"));
+		}
 		const auto front_it = clusters_by_castle_count.begin();
 
 		auto new_limit = old_limit;
