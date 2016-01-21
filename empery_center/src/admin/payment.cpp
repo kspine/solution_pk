@@ -3,23 +3,31 @@
 #include "../msg/err_account.hpp"
 #include "../singletons/payment_transaction_map.hpp"
 #include "../payment_transaction.hpp"
+#include "../singletons/account_map.hpp"
+#include "../account.hpp"
 
 namespace EmperyCenter {
 
 namespace {
-	void fill_payment_transaction_object(Poseidon::JsonObject &object, const boost::shared_ptr<PaymentTransaction> &payment_transaction){
+	void fill_payment_transaction_object(Poseidon::JsonObject &object, const boost::shared_ptr<PaymentTransaction> &transaction){
 		PROFILE_ME;
 
-		object[sslit("serial")]            = payment_transaction->get_serial();
-		object[sslit("account_uuid")]      = payment_transaction->get_account_uuid().str();
-		object[sslit("created_time")]      = payment_transaction->get_created_time();
-		object[sslit("expiry_time")]       = payment_transaction->get_expiry_time();
-		object[sslit("item_id")]           = payment_transaction->get_item_id().get();
-		object[sslit("item_count")]        = payment_transaction->get_item_count();
-		object[sslit("remarks")]           = payment_transaction->get_remarks();
-		object[sslit("committed")]         = payment_transaction->has_been_committed();
-		object[sslit("cancelled")]         = payment_transaction->has_been_cancelled();
-		object[sslit("operation_remarks")] = payment_transaction->get_operation_remarks();
+		object[sslit("serial")]            = transaction->get_serial();
+		object[sslit("account_uuid")]      = transaction->get_account_uuid().str();
+		object[sslit("created_time")]      = transaction->get_created_time();
+		object[sslit("expiry_time")]       = transaction->get_expiry_time();
+		object[sslit("item_id")]           = transaction->get_item_id().get();
+		object[sslit("item_count")]        = transaction->get_item_count();
+		object[sslit("remarks")]           = transaction->get_remarks();
+		object[sslit("committed")]         = transaction->has_been_committed();
+		object[sslit("cancelled")]         = transaction->has_been_cancelled();
+		object[sslit("operation_remarks")] = transaction->get_operation_remarks();
+
+		const auto account = AccountMap::require(transaction->get_account_uuid());
+
+		object[sslit("platform_id")]       = account->get_platform_id().get();
+		object[sslit("login_name")]        = account->get_login_name();
+		object[sslit("nick")]              = account->get_nick();
 	}
 }
 

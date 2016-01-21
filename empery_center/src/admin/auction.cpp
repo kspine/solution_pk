@@ -3,24 +3,32 @@
 #include "../msg/err_account.hpp"
 #include "../singletons/auction_transaction_map.hpp"
 #include "../auction_transaction.hpp"
+#include "../singletons/account_map.hpp"
+#include "../account.hpp"
 
 namespace EmperyCenter {
 
 namespace {
-	void fill_auction_transaction_object(Poseidon::JsonObject &object, const boost::shared_ptr<AuctionTransaction> &auction_transaction){
+	void fill_auction_transaction_object(Poseidon::JsonObject &object, const boost::shared_ptr<AuctionTransaction> &transaction){
 		PROFILE_ME;
 
-		object[sslit("serial")]            = auction_transaction->get_serial();
-		object[sslit("account_uuid")]      = auction_transaction->get_account_uuid().str();
-		object[sslit("operation")]         = static_cast<unsigned>(auction_transaction->get_operation());
-		object[sslit("created_time")]      = auction_transaction->get_created_time();
-		object[sslit("expiry_time")]       = auction_transaction->get_expiry_time();
-		object[sslit("item_id")]           = auction_transaction->get_item_id().get();
-		object[sslit("item_count")]        = auction_transaction->get_item_count();
-		object[sslit("remarks")]           = auction_transaction->get_remarks();
-		object[sslit("committed")]         = auction_transaction->has_been_committed();
-		object[sslit("cancelled")]         = auction_transaction->has_been_cancelled();
-		object[sslit("operation_remarks")] = auction_transaction->get_operation_remarks();
+		object[sslit("serial")]            = transaction->get_serial();
+		object[sslit("account_uuid")]      = transaction->get_account_uuid().str();
+		object[sslit("operation")]         = static_cast<unsigned>(transaction->get_operation());
+		object[sslit("created_time")]      = transaction->get_created_time();
+		object[sslit("expiry_time")]       = transaction->get_expiry_time();
+		object[sslit("item_id")]           = transaction->get_item_id().get();
+		object[sslit("item_count")]        = transaction->get_item_count();
+		object[sslit("remarks")]           = transaction->get_remarks();
+		object[sslit("committed")]         = transaction->has_been_committed();
+		object[sslit("cancelled")]         = transaction->has_been_cancelled();
+		object[sslit("operation_remarks")] = transaction->get_operation_remarks();
+
+		const auto account = AccountMap::require(transaction->get_account_uuid());
+
+		object[sslit("platform_id")]       = account->get_platform_id().get();
+		object[sslit("login_name")]        = account->get_login_name();
+		object[sslit("nick")]              = account->get_nick();
 	}
 }
 
