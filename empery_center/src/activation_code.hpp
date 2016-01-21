@@ -32,7 +32,8 @@ public:
 	void set_expiry_time(std::uint64_t expiry_time);
 
 	AccountUuid get_used_by_account() const;
-	void set_used_by_account(AccountUuid account_uuid);
+	std::uint64_t get_used_time() const;
+	void set_used_by_account(AccountUuid account_uuid, std::uint64_t used_time);
 
 	bool is_virtually_removed() const;
 };

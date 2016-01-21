@@ -48,8 +48,8 @@ namespace {
 				if(utc_now < it->expiry_time){
 					break;
 				}
-				const auto &activation_code = it->activation_code;
 
+				const auto activation_code = it->activation_code;
 				LOG_EMPERY_CENTER_INFO("Reclaiming activation code: code = ", activation_code->get_code());
 				activation_code_map->erase<1>(it);
 			}

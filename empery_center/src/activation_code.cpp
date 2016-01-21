@@ -27,7 +27,7 @@ ActivationCode::ActivationCode(std::string code, std::uint64_t created_time, std
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_ActivationCode>(
-				std::move(code), created_time, expiry_time, Poseidon::Uuid());
+				std::move(code), created_time, expiry_time, Poseidon::Uuid(), 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -59,8 +59,12 @@ void ActivationCode::set_expiry_time(std::uint64_t expiry_time){
 AccountUuid ActivationCode::get_used_by_account() const {
 	return AccountUuid(m_obj->unlocked_get_used_by_account());
 }
-void ActivationCode::set_used_by_account(AccountUuid account_uuid){
+std::uint64_t ActivationCode::get_used_time() const {
+	return m_obj->get_used_time();
+}
+void ActivationCode::set_used_by_account(AccountUuid account_uuid, std::uint64_t used_time){
 	m_obj->set_used_by_account(account_uuid.get());
+	m_obj->set_used_time(used_time);
 
 	ActivationCodeMap::update(virtual_shared_from_this<ActivationCode>(), false);
 }

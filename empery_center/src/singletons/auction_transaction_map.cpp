@@ -41,8 +41,12 @@ namespace {
 
 		const auto utc_now = Poseidon::get_utc_time();
 
+		std::vector<boost::shared_ptr<AuctionTransaction>> erased;
+
 		const auto auction_transaction_map = g_auction_transaction_map.lock();
 		if(auction_transaction_map){
+			erased.reserve(auction_transaction_map->size());
+
 			for(;;){
 				const auto it = auction_transaction_map->begin<2>();
 				if(it == auction_transaction_map->end<2>()){
@@ -54,7 +58,19 @@ namespace {
 				const auto &auction_transaction = it->auction_transaction;
 
 				LOG_EMPERY_CENTER_INFO("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
+				erased.emplace_back(auction_transaction);
 				auction_transaction_map->erase<2>(it);
+			}
+		}
+
+		for(auto it = erased.begin(); it != erased.end(); ++it){
+			const auto &auction_transaction = *it;
+			try {
+				if(!auction_transaction->is_virtually_removed()){
+					auction_transaction->cancel("Auction transaction expired");
+				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
 		}
 	}

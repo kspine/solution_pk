@@ -441,8 +441,10 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 		return Response(Msg::ERR_ACTIVATION_CODE_DELETED);
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	account->activate();
-	activation_code->set_used_by_account(account->get_account_uuid());
+	activation_code->set_used_by_account(account->get_account_uuid(), utc_now);
 
 	return Response();
 }

@@ -12,7 +12,8 @@ namespace MySql {
 	FIELD_STRING            (code)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
-	FIELD_UUID              (used_by_account)
+	FIELD_UUID              (used_by_account)	\
+	FIELD_DATETIME          (used_time)
 #include <poseidon/mysql/object_generator.hpp>
 
 }
