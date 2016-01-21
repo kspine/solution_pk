@@ -1,8 +1,8 @@
 #ifndef EMPERY_CENTER_SINGLETONS_PLAYER_SESSION_MAP_HPP_
 #define EMPERY_CENTER_SINGLETONS_PLAYER_SESSION_MAP_HPP_
 
-#include <boost/container/flat_map.hpp>
 #include <utility>
+#include <vector>
 #include <boost/shared_ptr.hpp>
 #include <poseidon/cxx_ver.hpp>
 #include <poseidon/cbpp/fwd.hpp>
@@ -23,7 +23,7 @@ struct PlayerSessionMap {
 	static void remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept;
 	static void async_begin_gc() noexcept;
 
-	static void get_all(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret);
+	static void get_all(std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> &ret);
 	static void clear(const char *reason) noexcept;
 	static void clear(int code, const char *reason) noexcept;
 

@@ -224,7 +224,7 @@ void PlayerSessionMap::async_begin_gc() noexcept {
 	}
 }
 
-void PlayerSessionMap::get_all(boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> &ret){
+void PlayerSessionMap::get_all(std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> &ret){
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + g_session_map->size());
@@ -233,7 +233,7 @@ void PlayerSessionMap::get_all(boost::container::flat_map<AccountUuid, boost::sh
 		if(!session){
 			continue;
 		}
-		ret.emplace(it->account_uuid, std::move(session));
+		ret.emplace_back(it->account, std::move(session));
 	}
 }
 void PlayerSessionMap::clear(const char *reason) noexcept {

@@ -56,9 +56,9 @@ namespace {
 		PROFILE_ME;
 
 		try {
-			boost::container::flat_map<AccountUuid, boost::shared_ptr<PlayerSession>> sessions;
-			PlayerSessionMap::get_all(sessions);
-			for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> online_players;
+			PlayerSessionMap::get_all(online_players);
+			for(auto it = online_players.begin(); it != online_players.end(); ++it){
 				const auto &session = it->second;
 				try {
 					synchronize_announcement_with_player(announcement, session);

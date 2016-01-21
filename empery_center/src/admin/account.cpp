@@ -7,6 +7,10 @@
 #include "../player_session.hpp"
 #include "../account.hpp"
 #include "../account_attribute_ids.hpp"
+#include "../singletons/world_map.hpp"
+#include "../castle.hpp"
+#include "../map_object_type_ids.hpp"
+#include <boost/container/flat_map.hpp>
 
 namespace EmperyCenter {
 
@@ -250,6 +254,100 @@ ADMIN_SERVLET("account/quiet", root, session, params){
 	}
 
 	account->set_quieted_until(quieted_until);
+
+	return Response();
+}
+
+ADMIN_SERVLET("account/get_level_distribution_all", root, session, /* params */){
+	std::vector<std::uint64_t> count_array;
+	count_array.reserve(32);
+
+	boost::container::flat_map<AccountUuid, unsigned> level_map;
+	level_map.reserve(AccountMap::get_count());
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_all_map_objects(map_objects);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+
+		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+		if(!castle){
+			LOG_EMPERY_CENTER_ERROR("Not a castle? map_object_uuid = ", map_object->get_map_object_uuid());
+			continue;
+		}
+		const auto account_uuid = castle->get_owner_uuid();
+		const auto level = castle->get_level();
+
+		auto &max_castle_level = level_map[account_uuid];
+		if(max_castle_level < level){
+			max_castle_level = level;
+		}
+	}
+	for(auto it = level_map.begin(); it != level_map.end(); ++it){
+		const auto max_castle_level = it->second;
+		if(count_array.size() < max_castle_level + 1){
+			count_array.resize(max_castle_level + 1);
+		}
+		++count_array.at(max_castle_level);
+	}
+
+	Poseidon::JsonArray counts;
+	for(auto it = count_array.begin(); it != count_array.end(); ++it){
+		counts.emplace_back(*it);
+	}
+	root[sslit("counts")] = std::move(counts);
+
+	return Response();
+}
+
+ADMIN_SERVLET("account/get_level_distribution_online", root, session, /* params */){
+	std::vector<std::uint64_t> count_array;
+	count_array.reserve(32);
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+
+	std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> online_players;
+	PlayerSessionMap::get_all(online_players);
+	for(auto it = online_players.begin(); it != online_players.end(); ++it){
+		const auto &account = it->first;
+		const auto account_uuid = account->get_account_uuid();
+
+		map_objects.clear();
+		WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
+
+		unsigned max_castle_level = 0;
+		for(auto mit = map_objects.begin(); mit != map_objects.end(); ++mit){
+			const auto &map_object = *mit;
+			if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
+			const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+			if(!castle){
+				LOG_EMPERY_CENTER_ERROR("Not a castle? map_object_uuid = ", map_object->get_map_object_uuid());
+				continue;
+			}
+			const auto level = castle->get_level();
+
+			if(max_castle_level < level){
+				max_castle_level = level;
+			}
+		}
+		LOG_EMPERY_CENTER_DEBUG("> Online account: account_uuid = ", account_uuid, ", max_castle_level = ", max_castle_level);
+
+		if(count_array.size() < max_castle_level + 1){
+			count_array.resize(max_castle_level + 1);
+		}
+		++count_array.at(max_castle_level);
+	}
+
+	Poseidon::JsonArray counts;
+	for(auto it = count_array.begin(); it != count_array.end(); ++it){
+		counts.emplace_back(*it);
+	}
+	root[sslit("counts")] = std::move(counts);
 
 	return Response();
 }
