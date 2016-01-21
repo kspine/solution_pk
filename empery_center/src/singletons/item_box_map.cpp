@@ -17,7 +17,7 @@ namespace {
 		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
-		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
+		mutable boost::shared_ptr<std::vector<boost::shared_ptr<MySql::Center_Item>>> sink;
 
 		mutable boost::shared_ptr<ItemBox> item_box;
 		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
@@ -90,11 +90,16 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 		LOG_EMPERY_CENTER_INFO("Loading item box: account_uuid = ", account_uuid);
 
 		if(!it->promise){
-			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
+			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Item>>>();
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_Item` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
-			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
-				&MySql::Center_Item::create, "Center_Item", oss.str());
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<MySql::Center_Item>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_Item", oss.str());
 			it->promise = std::move(promise);
 			it->sink    = std::move(sink);
 		}
@@ -106,18 +111,7 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 		if(it->sink){
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
 
-			std::vector<boost::shared_ptr<MySql::Center_Item>> objs;
-			objs.reserve(it->sink->size());
-			for(auto sit = it->sink->begin(); sit != it->sink->end(); ++sit){
-				const auto &base = *sit;
-				auto obj = boost::dynamic_pointer_cast<MySql::Center_Item>(base);
-				if(!obj){
-					LOG_EMPERY_CENTER_ERROR("Unexpected dynamic MySQL object type: type = ", typeid(*base).name());
-					DEBUG_THROW(Exception, sslit("Unexpected dynamic MySQL object type"));
-				}
-				objs.emplace_back(std::move(obj));
-			}
-			auto item_box = boost::make_shared<ItemBox>(account_uuid, objs);
+			auto item_box = boost::make_shared<ItemBox>(account_uuid, *(it->sink));
 			item_box->check_init_items();
 
 			const auto item_box_refresh_interval = get_config<std::uint64_t>("item_box_refresh_interval", 60000);

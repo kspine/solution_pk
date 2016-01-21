@@ -19,7 +19,7 @@ namespace {
 		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
-		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
+		mutable boost::shared_ptr<std::vector<boost::shared_ptr<MySql::Center_Mail>>> sink;
 
 		mutable boost::shared_ptr<MailBox> mail_box;
 		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
@@ -42,7 +42,7 @@ namespace {
 		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
-		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
+		mutable boost::shared_ptr<std::vector<boost::shared_ptr<MySql::Center_MailData>>> sink;
 
 		mutable boost::shared_ptr<MySql::Center_MailData> mail_data_obj;
 		mutable boost::shared_ptr<MailData> mail_data;
@@ -142,13 +142,18 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		LOG_EMPERY_CENTER_INFO("Loading mail box: account_uuid = ", account_uuid);
 
 		if(!it->promise){
-			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
+			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Mail>>>();
 			std::ostringstream oss;
 			const auto utc_now = Poseidon::get_utc_time();
 			oss <<"SELECT * FROM `Center_Mail` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now)
 			    <<"  AND `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
-			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
-				&MySql::Center_Mail::create, "Center_Mail", oss.str());
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<MySql::Center_Mail>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_Mail", oss.str());
 			it->promise = std::move(promise);
 			it->sink    = std::move(sink);
 		}
@@ -160,18 +165,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		if(it->sink){
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
 
-			std::vector<boost::shared_ptr<MySql::Center_Mail>> objs;
-			objs.reserve(it->sink->size());
-			for(auto sit = it->sink->begin(); sit != it->sink->end(); ++sit){
-				const auto &base = *sit;
-				auto obj = boost::dynamic_pointer_cast<MySql::Center_Mail>(base);
-				if(!obj){
-					LOG_EMPERY_CENTER_ERROR("Unexpected dynamic MySQL object type: type = ", typeid(*base).name());
-					DEBUG_THROW(Exception, sslit("Unexpected dynamic MySQL object type"));
-				}
-				objs.emplace_back(std::move(obj));
-			}
-			auto mail_box = boost::make_shared<MailBox>(account_uuid, objs);
+			auto mail_box = boost::make_shared<MailBox>(account_uuid, *(it->sink));
 
 			const auto mail_box_refresh_interval = get_config<std::uint64_t>("mail_box_refresh_interval", 60000);
 			auto timer = Poseidon::TimerDaemon::register_timer(0, mail_box_refresh_interval,
@@ -239,14 +233,19 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 		LOG_EMPERY_CENTER_INFO("Loading mail data: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 
 		if(!it->promise){
-			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
+			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MailData>>>();
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_MailData` WHERE "
 			    <<"  (`mail_uuid` = " <<Poseidon::MySql::UuidFormatter(mail_uuid.get()) <<" AND `language_id` = " <<language_id <<") OR "
 			    <<"    (`mail_uuid` = " <<Poseidon::MySql::UuidFormatter(mail_uuid.get()) <<" AND `language_id` = 0) "
 			    <<"  ORDER BY `language_id` DESC LIMIT 1";
-			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
-				&MySql::Center_MailData::create, "Center_MailData", oss.str());
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<MySql::Center_MailData>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_MailData", oss.str());
 			it->promise = std::move(promise);
 			it->sink    = std::move(sink);
 		}
@@ -266,12 +265,7 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 					0, 0, Poseidon::Uuid(), std::string(), std::string(), std::string());
 				obj->enable_auto_saving(); // obj->async_save(true);
 			} else {
-				const auto &base = it->sink->front();
-				obj = boost::dynamic_pointer_cast<MySql::Center_MailData>(base);
-				if(!obj){
-					LOG_EMPERY_CENTER_ERROR("Unexpected dynamic MySQL object type: type = ", typeid(*base).name());
-					DEBUG_THROW(Exception, sslit("Unexpected dynamic MySQL object type"));
-				}
+				obj = std::move(it->sink->front());
 				obj->disable_auto_saving();
 				obj->set_language_id(language_id.get());
 				obj->enable_auto_saving();

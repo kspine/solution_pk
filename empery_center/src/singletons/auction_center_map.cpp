@@ -17,7 +17,7 @@ namespace {
 		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
-		mutable boost::shared_ptr<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>> sink;
+		mutable boost::shared_ptr<std::vector<boost::shared_ptr<MySql::Center_AuctionTransfer>>> sink;
 
 		mutable boost::shared_ptr<AuctionCenter> auction_center;
 		mutable boost::shared_ptr<Poseidon::TimerItem> timer;
@@ -90,11 +90,16 @@ boost::shared_ptr<AuctionCenter> AuctionCenterMap::get(AccountUuid account_uuid)
 		LOG_EMPERY_CENTER_INFO("Loading auction center: account_uuid = ", account_uuid);
 
 		if(!it->promise){
-			auto sink = boost::make_shared<std::deque<boost::shared_ptr<Poseidon::MySql::ObjectBase>>>();
+			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_AuctionTransfer>>>();
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_AuctionTransfer` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
-			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(sink,
-				&MySql::Center_AuctionTransfer::create, "Center_AuctionTransfer", oss.str());
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<MySql::Center_AuctionTransfer>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_AuctionTransfer", oss.str());
 			it->promise = std::move(promise);
 			it->sink    = std::move(sink);
 		}
@@ -106,18 +111,7 @@ boost::shared_ptr<AuctionCenter> AuctionCenterMap::get(AccountUuid account_uuid)
 		if(it->sink){
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
 
-			std::vector<boost::shared_ptr<MySql::Center_AuctionTransfer>> objs;
-			objs.reserve(it->sink->size());
-			for(auto sit = it->sink->begin(); sit != it->sink->end(); ++sit){
-				const auto &base = *sit;
-				auto obj = boost::dynamic_pointer_cast<MySql::Center_AuctionTransfer>(base);
-				if(!obj){
-					LOG_EMPERY_CENTER_ERROR("Unexpected dynamic MySQL object type: type = ", typeid(*base).name());
-					DEBUG_THROW(Exception, sslit("Unexpected dynamic MySQL object type"));
-				}
-				objs.emplace_back(std::move(obj));
-			}
-			auto auction_center = boost::make_shared<AuctionCenter>(account_uuid, objs);
+			auto auction_center = boost::make_shared<AuctionCenter>(account_uuid, *(it->sink));
 
 			const auto auction_center_refresh_interval = get_config<std::uint64_t>("auction_center_refresh_interval", 60000);
 			auto timer = Poseidon::TimerDaemon::register_timer(0, auction_center_refresh_interval,
