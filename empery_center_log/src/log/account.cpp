@@ -43,8 +43,9 @@ LOG_SERVLET("account/realtime_online", root, session, params){
 }
 
 LOG_SERVLET("account/daily_logged_in", root, session, params){
-	const auto &since_str    = params.get("since");
-	const auto &duration_str = params.get("duration");
+	const auto &since_str     = params.get("since");
+	const auto &duration_str  = params.get("duration");
+	const auto &tz_offset_str = params.get("tz_offset");
 
 	std::uint64_t since = 0, duration = UINT64_MAX;
 	if(!since_str.empty()){
@@ -52,6 +53,11 @@ LOG_SERVLET("account/daily_logged_in", root, session, params){
 	}
 	if(!duration_str.empty()){
 		duration = boost::lexical_cast<std::uint64_t>(duration_str);
+	}
+	std::uint64_t tz_offset = 0;
+	if(!tz_offset_str.empty()){
+		const auto delta = boost::lexical_cast<std::int64_t>(tz_offset_str);
+		tz_offset = static_cast<std::uint64_t>(86400000 + delta) % 86400000;
 	}
 
 	struct CounterElement {
@@ -66,7 +72,7 @@ LOG_SERVLET("account/daily_logged_in", root, session, params){
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				const auto timestamp = conn->get_datetime("timestamp");
-				const auto rounded_timestamp = Poseidon::get_utc_time_from_local(Poseidon::get_local_time_from_utc(timestamp) / 86400000 * 86400000);
+				const auto rounded_timestamp = (timestamp + tz_offset) / 86400000 * 86400000 - tz_offset;
 				auto &counters = counter_map[rounded_timestamp];
 				counters.accounts.insert(conn->get_string("account_uuid"));
 				counters.ips.insert(conn->get_string("remote_ip"));
@@ -90,6 +96,7 @@ LOG_SERVLET("account/daily_logged_in", root, session, params){
 LOG_SERVLET("account/daily_created", root, session, params){
 	const auto &since_str    = params.get("since");
 	const auto &duration_str = params.get("duration");
+	const auto &tz_offset_str = params.get("tz_offset");
 
 	std::uint64_t since = 0, duration = UINT64_MAX;
 	if(!since_str.empty()){
@@ -97,6 +104,11 @@ LOG_SERVLET("account/daily_created", root, session, params){
 	}
 	if(!duration_str.empty()){
 		duration = boost::lexical_cast<std::uint64_t>(duration_str);
+	}
+	std::uint64_t tz_offset = 0;
+	if(!tz_offset_str.empty()){
+		const auto delta = boost::lexical_cast<std::int64_t>(tz_offset_str);
+		tz_offset = static_cast<std::uint64_t>(86400000 + delta) % 86400000;
 	}
 
 	struct CounterElement {
@@ -115,7 +127,7 @@ LOG_SERVLET("account/daily_created", root, session, params){
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				const auto timestamp = conn->get_datetime("timestamp");
-				const auto rounded_timestamp = Poseidon::get_utc_time_from_local(Poseidon::get_local_time_from_utc(timestamp) / 86400000 * 86400000);
+				const auto rounded_timestamp = (timestamp + tz_offset) / 86400000 * 86400000 - tz_offset;
 				auto &counters = counter_map[rounded_timestamp];
 				counters.accounts.insert(conn->get_string("account_uuid"));
 				counters.ips.insert(conn->get_string("remote_ip"));
