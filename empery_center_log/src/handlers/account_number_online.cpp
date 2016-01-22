@@ -12,7 +12,7 @@ MODULE_RAII_PRIORITY(handles, 5000){
 		[](const boost::shared_ptr<Events::AccountNumberOnline> &event){
 			const auto obj = boost::make_shared<MySql::CenterLog_AccountNumberOnline>(Poseidon::get_utc_time(),
 				event->interval, event->account_count);
-			obj->async_save(false);
+			obj->async_save(false, true);
 		});
 	LOG_EMPERY_CENTER_LOG_DEBUG("Created AccountNumberOnline listener");
 	handles.push(std::move(listener));

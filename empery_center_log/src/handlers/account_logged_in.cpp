@@ -12,7 +12,7 @@ MODULE_RAII_PRIORITY(handles, 5000){
 		[](const boost::shared_ptr<Events::AccountLoggedIn> &event){
 			const auto obj = boost::make_shared<MySql::CenterLog_AccountLoggedIn>(Poseidon::get_utc_time(),
 				event->account_uuid.get(), event->remote_ip);
-			obj->async_save(false);
+			obj->async_save(false, true);
 		});
 	LOG_EMPERY_CENTER_LOG_DEBUG("Created AccountLoggedIn listener");
 	handles.push(std::move(listener));
