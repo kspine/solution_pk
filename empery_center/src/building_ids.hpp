@@ -19,11 +19,7 @@ constexpr BuildingId
 	ID_CITADEL_WALL         ( 1907001 ), // 城墙
 	ID_DEFENSE_TOWER_1      ( 1913001 ), // 箭塔
 	ID_DEFENSE_TOWER_2      ( 1913002 ), // 箭塔
-	ID_CIVILIAN_1           ( 1904001 ), // 民房
-	ID_CIVILIAN_2           ( 1904002 ), // 民房
-	ID_CIVILIAN_3           ( 1904003 ), // 民房
-	ID_CIVILIAN_4           ( 1904004 ), // 民房
-	ID_CIVILIAN_5           ( 1904005 ); // 民房
+	ID_CIVILIAN             ( 1904001 ); // 民房
 
 }
 

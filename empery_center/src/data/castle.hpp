@@ -94,7 +94,8 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeCivilian> require(unsigned building_level);
 
 	public:
-		std::uint64_t max_population;
+		double population_production_rate;
+		std::uint64_t population_capacity;
 	};
 
 	class CastleUpgradeWarehouse : public CastleUpgradeAbstract {

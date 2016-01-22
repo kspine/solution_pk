@@ -41,7 +41,7 @@ namespace Data {
 		TerrainId terrain_id;
 		ResourceId best_resource_id;
 		double best_production_rate; // 每分钟产出资源。
-		double best_capacity;
+		std::uint64_t best_capacity;
 		bool buildable;
 		bool passable;
 	};

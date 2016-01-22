@@ -10,6 +10,7 @@
 #include "player_session.hpp"
 #include "data/castle.hpp"
 #include "building_ids.hpp"
+#include "resource_ids.hpp"
 #include "events/resource.hpp"
 #include "attribute_ids.hpp"
 #include "map_cell.hpp"
@@ -605,16 +606,25 @@ std::uint64_t Castle::get_max_resource_amount(ResourceId resource_id) const {
 	std::uint64_t max_amount = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
-		if(building_id != BuildingIds::ID_WAREHOUSE){
-			continue;
-		}
 		const unsigned current_level = it->second->get_building_level();
-		const auto data = Data::CastleUpgradeWarehouse::require(current_level);
-		const auto mait = data->max_resource_amounts.find(resource_id);
-		if(mait == data->max_resource_amounts.end()){
-			continue;
+
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		const auto building_type = building_data->type;
+
+		if(resource_id == ResourceIds::ID_POPULATION){
+			if(building_type == Data::CastleBuilding::T_CIVILIAN){
+				const auto upgrade_data = Data::CastleUpgradeCivilian::require(current_level);
+				max_amount = saturated_add(max_amount, upgrade_data->population_capacity);
+			}
+		} else {
+			if(building_type == Data::CastleBuilding::T_WAREHOUSE){
+				const auto upgrade_data = Data::CastleUpgradeWarehouse::require(current_level);
+				const auto rit = upgrade_data->max_resource_amounts.find(resource_id);
+				if(rit != upgrade_data->max_resource_amounts.end()){
+					max_amount = saturated_add(max_amount, rit->second);
+				}
+			}
 		}
-		max_amount = saturated_add(max_amount, mait->second);
 	}
 	return max_amount;
 }
