@@ -17,7 +17,7 @@ namespace MySql {
 	FIELD_BIGINT			(x)	\
 	FIELD_BIGINT			(y)	\
 	FIELD_DATETIME          (created_time)	\
-	FIELD_TINYINT_UNSIGNED  (deleted)
+	FIELD_BOOLEAN           (deleted)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapObjectAttribute

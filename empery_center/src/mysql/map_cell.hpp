@@ -12,7 +12,7 @@ namespace MySql {
 	FIELD_BIGINT            (x)	\
 	FIELD_BIGINT            (y)	\
 	FIELD_UUID              (parent_object_uuid)	\
-	FIELD_TINYINT_UNSIGNED  (acceleration_card_applied)	\
+	FIELD_BOOLEAN           (acceleration_card_applied)	\
 	FIELD_INTEGER_UNSIGNED  (ticket_item_id)	\
 	FIELD_INTEGER_UNSIGNED  (production_resource_id)	\
 	FIELD_DATETIME          (last_production_time)	\
