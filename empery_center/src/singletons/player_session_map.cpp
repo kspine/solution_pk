@@ -49,7 +49,7 @@ namespace {
 			LOG_EMPERY_CENTER_INFO("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
 			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
 		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 
 		try {
@@ -57,7 +57,7 @@ namespace {
 			modifiers[AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME] = boost::lexical_cast<std::string>(utc_now);
 			account->set_attributes(std::move(modifiers));
 		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_INFO("std::exception thrown: what = ", e.what());
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 
 		return next;

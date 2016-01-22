@@ -57,7 +57,7 @@ namespace {
 				}
 				const auto &auction_transaction = it->auction_transaction;
 
-				LOG_EMPERY_CENTER_INFO("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
 				erased.emplace_back(auction_transaction);
 				auction_transaction_map->erase<2>(it);
 			}
