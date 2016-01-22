@@ -44,7 +44,7 @@ namespace {
 				}
 
 				if(it->chat_box && it->chat_box.unique()){
-					LOG_EMPERY_CENTER_INFO("Reclaiming chat box: account_uuid = ", it->account_uuid);
+					LOG_EMPERY_CENTER_DEBUG("Reclaiming chat box: account_uuid = ", it->account_uuid);
 					chat_box_map->erase<1>(it);
 				} else {
 					chat_box_map->set_key<1, 1>(it, now + 1000);
@@ -79,7 +79,7 @@ boost::shared_ptr<ChatBox> ChatBoxMap::get(AccountUuid account_uuid){
 		it = chat_box_map->insert<0>(it, ChatBoxElement(account_uuid, 0));
 	}
 	if(!it->chat_box){
-		LOG_EMPERY_CENTER_INFO("Loading chat box: account_uuid = ", account_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Loading chat box: account_uuid = ", account_uuid);
 
 		auto chat_box = boost::make_shared<ChatBox>(account_uuid);
 

@@ -57,7 +57,7 @@ namespace {
 				}
 				const auto &payment_transaction = it->payment_transaction;
 
-				LOG_EMPERY_CENTER_INFO("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
 				erased.emplace_back(payment_transaction);
 				payment_transaction_map->erase<2>(it);
 			}

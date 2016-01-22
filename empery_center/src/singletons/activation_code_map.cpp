@@ -50,7 +50,7 @@ namespace {
 				}
 
 				const auto activation_code = it->activation_code;
-				LOG_EMPERY_CENTER_INFO("Reclaiming activation code: code = ", activation_code->get_code());
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming activation code: code = ", activation_code->get_code());
 				activation_code_map->erase<1>(it);
 			}
 		}
