@@ -46,106 +46,7 @@ MapCell::~MapCell(){
 void MapCell::pump_status(){
 	PROFILE_ME;
 
-	const auto coord = get_coord();
-	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
-	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
-	const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
-	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope,
-		", map_x = ", map_x, ", map_y = ", map_y);
-	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
-	const auto terrain_id = cell_data->terrain_id;
-
-	const auto utc_now = Poseidon::get_utc_time();
-
-	const bool acc_card_applied = m_obj->get_acceleration_card_applied();
-	const auto ticket_item_id = get_ticket_item_id();
-	const auto production_resource_id = get_production_resource_id();
-	if(ticket_item_id && production_resource_id){
-		const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(get_parent_object_uuid()));
-		if(!castle){
-			LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
-			DEBUG_THROW(Exception, sslit("No parent castle"));
-		}
-		const auto account = AccountMap::require(castle->get_owner_uuid());
-
-		const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
-		const auto production_data = Data::MapTerrain::require(terrain_id);
-
-		double production_rate     = production_data->best_production_rate;
-		double capacity            = production_data->best_capacity;
-
-		if(production_resource_id != production_data->best_resource_id){
-			const auto non_best_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_PRODUCTION_RATE_MODIFIER);
-			const auto non_best_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_CAPACITY_MODIFIER);
-
-			production_rate *= non_best_rate_modifier;
-			capacity        *= non_best_capacity_modifier;
-		}
-
-		production_rate *= ticket_data->production_rate_modifier;
-		capacity        *= ticket_data->capacity_modifier;
-
-		if(acc_card_applied){
-			const auto acc_card_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_PRODUCTION_RATE_MODIFIER);
-			const auto acc_card_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_CAPACITY_MODIFIER);
-
-			production_rate *= acc_card_rate_modifier;
-			capacity        *= acc_card_capacity_modifier;
-		}
-
-		double turbo = 0;
-		if(production_resource_id == ResourceIds::ID_GRAIN){
-			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_GRAIN) / 1000.0;
-		} else if(production_resource_id == ResourceIds::ID_WOOD){
-			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_WOOD) / 1000.0;
-		} else if(production_resource_id == ResourceIds::ID_STONE){
-			turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_STONE) / 1000.0;
-		} else {
-			LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
-		}
-		if((terrain_id == TerrainIds::ID_DESERT) || (terrain_id == TerrainIds::ID_ROTTEN_WOOD) || (terrain_id == TerrainIds::ID_GRAVEL)){
-			turbo += castle->get_attribute(AttributeIds::ID_DESERT_DEVELOPMENT) / 1000.0;
-		}
-		turbo += castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_ALL) / 1000.0;
-		production_rate *= (1 + turbo);
-
-		const auto vip_data = Data::Vip::require(account->get_promotion_level());
-		turbo = vip_data->production_turbo;
-		production_rate *= (1 + turbo);
-
-		if(production_rate < 0){
-			production_rate = 0;
-		}
-		if(capacity < 0){
-			capacity = 0;
-		}
-		LOG_EMPERY_CENTER_DEBUG("Checking map cell production: coord = ", get_coord(),
-			", terrain_id = ", terrain_id, ", acc_card_applied = ", acc_card_applied,
-			", ticket_item_id = ", ticket_item_id, ", production_resource_id = ", production_resource_id,
-			", production_rate = ", production_rate, ", capacity = ", capacity);
-
-		const auto old_last_production_time = m_obj->get_last_production_time();
-		const auto old_resource_amount      = m_obj->get_resource_amount();
-
-		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
-		const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
-		const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
-		const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
-
-		if(rounded_amount_produced != 0){
-			const auto new_resource_amount = std::min(saturated_add(old_resource_amount, rounded_amount_produced), rounded_capacity);
-			LOG_EMPERY_CENTER_DEBUG("Produced resource: coord = ", get_coord(), ", terrain_id = ", terrain_id,
-				", new_resource_amount = ", new_resource_amount, ", rounded_capacity = ", rounded_capacity);
-
-			m_obj->set_last_production_time (utc_now);
-			m_obj->set_resource_amount      (new_resource_amount);
-
-			m_production_remainder = amount_produced - rounded_amount_produced;
-		}
-
-		m_production_rate = production_rate;
-		m_capacity        = rounded_capacity;
-	}
+	pump_production();
 }
 
 Coord MapCell::get_coord() const {
@@ -189,6 +90,108 @@ std::uint64_t MapCell::get_last_production_time() const {
 }
 std::uint64_t MapCell::get_resource_amount() const {
 	return m_obj->get_resource_amount();
+}
+
+void MapCell::pump_production(){
+	PROFILE_ME;
+
+	const auto coord = get_coord();
+	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+	const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope,
+		", map_x = ", map_x, ", map_y = ", map_y);
+	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+	const auto terrain_id = cell_data->terrain_id;
+
+	const bool acc_card_applied = m_obj->get_acceleration_card_applied();
+	const auto ticket_item_id = get_ticket_item_id();
+	const auto production_resource_id = get_production_resource_id();
+	if(!ticket_item_id || !production_resource_id){
+		return;
+	}
+
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(get_parent_object_uuid()));
+	if(!castle){
+		LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
+		DEBUG_THROW(Exception, sslit("No parent castle"));
+	}
+	const auto account = AccountMap::require(castle->get_owner_uuid());
+
+	const auto ticket_data     = Data::MapCellTicket::require(ticket_item_id);
+	const auto production_data = Data::MapTerrain::require(terrain_id);
+
+	double production_rate     = production_data->best_production_rate;
+	double capacity            = production_data->best_capacity;
+
+	if(production_resource_id != production_data->best_resource_id){
+		const auto non_best_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_PRODUCTION_RATE_MODIFIER);
+		const auto non_best_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_NON_BEST_RESOURCE_CAPACITY_MODIFIER);
+
+		production_rate *= non_best_rate_modifier;
+		capacity        *= non_best_capacity_modifier;
+	}
+
+	production_rate *= ticket_data->production_rate_modifier;
+	capacity        *= ticket_data->capacity_modifier;
+
+	if(acc_card_applied){
+		const auto acc_card_rate_modifier     = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_PRODUCTION_RATE_MODIFIER);
+		const auto acc_card_capacity_modifier = Data::Global::as_double(Data::Global::SLOT_ACCELERATION_CARD_CAPACITY_MODIFIER);
+
+		production_rate *= acc_card_rate_modifier;
+		capacity        *= acc_card_capacity_modifier;
+	}
+
+	double tech_turbo;
+	if(production_resource_id == ResourceIds::ID_GRAIN){
+		tech_turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_GRAIN) / 1000.0;
+	} else if(production_resource_id == ResourceIds::ID_WOOD){
+		tech_turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_WOOD) / 1000.0;
+	} else if(production_resource_id == ResourceIds::ID_STONE){
+		tech_turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_STONE) / 1000.0;
+	} else {
+		LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
+		tech_turbo = 0;
+	}
+	if((terrain_id == TerrainIds::ID_DESERT) || (terrain_id == TerrainIds::ID_ROTTEN_WOOD) || (terrain_id == TerrainIds::ID_GRAVEL)){
+		tech_turbo += castle->get_attribute(AttributeIds::ID_DESERT_DEVELOPMENT) / 1000.0;
+	}
+	tech_turbo += castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_ALL) / 1000.0;
+	production_rate *= (1 + tech_turbo);
+
+	const auto vip_data = Data::Vip::require(account->get_promotion_level());
+	production_rate *= (1 + vip_data->production_turbo);
+
+	if(production_rate < 0){
+		production_rate = 0;
+	}
+	if(capacity < 0){
+		capacity = 0;
+	}
+	LOG_EMPERY_CENTER_DEBUG("Checking map cell production: coord = ", get_coord(),
+		", terrain_id = ", terrain_id, ", acc_card_applied = ", acc_card_applied,
+		", ticket_item_id = ", ticket_item_id, ", production_resource_id = ", production_resource_id,
+		", production_rate = ", production_rate, ", capacity = ", capacity);
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto old_last_production_time = m_obj->get_last_production_time();
+	const auto old_resource_amount      = m_obj->get_resource_amount();
+
+	const auto production_duration = saturated_sub(utc_now, old_last_production_time);
+	const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
+	const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
+	const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
+	const auto new_resource_amount = std::min(saturated_add(old_resource_amount, rounded_amount_produced), rounded_capacity);
+	if(new_resource_amount > old_resource_amount){
+		m_obj->set_resource_amount(new_resource_amount);
+		m_obj->set_last_production_time(utc_now);
+		m_production_remainder = amount_produced - rounded_amount_produced;
+	}
+
+	m_production_rate = production_rate;
+	m_capacity        = rounded_capacity;
 }
 
 void MapCell::set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id){
@@ -243,7 +246,7 @@ std::uint64_t MapCell::harvest(bool saturated){
 		return 0;
 	}
 
-	const auto capacity_remaining = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
+	const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id), castle->get_resource(resource_id).amount);
 	const auto amount_to_add = std::min(amount_avail, capacity_remaining);
 	const auto amount_to_remove = saturated ? amount_avail : amount_to_add;
 	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", castle_uuid = ", castle->get_map_object_uuid(),

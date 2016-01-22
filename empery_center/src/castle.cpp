@@ -14,6 +14,7 @@
 #include "events/resource.hpp"
 #include "attribute_ids.hpp"
 #include "map_cell.hpp"
+#include "reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -173,9 +174,9 @@ namespace {
 }
 
 Castle::Castle(MapObjectUuid map_object_uuid,
-	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
+	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
 	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
-		owner_uuid, parent_object_uuid, std::move(name), coord)
+		owner_uuid, parent_object_uuid, std::move(name), coord, created_time)
 {
 	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
 	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
@@ -267,6 +268,8 @@ void Castle::pump_status(){
 
 	MapObject::pump_status();
 
+	pump_production();
+
 	const auto utc_now = Poseidon::get_utc_time();
 
 	bool dirty = false;
@@ -340,6 +343,68 @@ void Castle::recalculate_attributes(){
 	}
 
 	set_attributes(std::move(modifiers));
+}
+
+void Castle::pump_production(){
+	PROFILE_ME;
+
+	double production_rate = 0;
+	double capacity        = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != Data::CastleBuilding::T_CIVILIAN){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		if(current_level == 0){
+			continue;
+		}
+		const auto upgrade_data = Data::CastleUpgradeCivilian::require(current_level);
+		production_rate += upgrade_data->population_production_rate;
+		capacity        += upgrade_data->population_capacity;
+	}
+	if(production_rate <= 0){
+		return;
+	}
+
+	double tech_turbo;
+	tech_turbo = get_attribute(AttributeIds::ID_PRODUCTION_TURBO_POPULATION) / 1000.0;
+	production_rate *= (1 + tech_turbo);
+
+	if(production_rate < 0){
+		production_rate = 0;
+	}
+	if(capacity < 0){
+		capacity = 0;
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Checking castle production: map_object_uuid = ", get_map_object_uuid(),
+		", production_rate = ", production_rate, ", capacity = ", capacity);
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto old_last_production_time = get_last_action_time();
+	const auto old_resource_amount      = get_resource(ResourceIds::ID_POPULATION).amount;
+
+	const auto production_duration = saturated_sub(utc_now, old_last_production_time);
+	const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
+	const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
+	const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
+	const auto new_resource_amount = std::min(saturated_add(old_resource_amount, rounded_amount_produced), rounded_capacity);
+	if(new_resource_amount > old_resource_amount){
+		std::vector<ResourceTransactionElement> transaction;
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD, ResourceIds::ID_POPULATION, new_resource_amount - old_resource_amount,
+			ReasonIds::ID_CASTLE_PRODUCTION, production_duration, 0, 0);
+		commit_resource_transaction(transaction,
+			[&]{
+				set_last_action_time(utc_now);
+				m_production_remainder = amount_produced - rounded_amount_produced;
+			});
+	}
+
+	m_production_rate = production_rate;
+	m_capacity        = rounded_capacity;
 }
 
 Castle::BuildingBaseInfo Castle::get_building_base(BuildingBaseId building_base_id) const {
@@ -589,7 +654,8 @@ unsigned Castle::get_level() const {
 	unsigned level = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
-		if(building_id != BuildingIds::ID_PRIMARY){
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != Data::CastleBuilding::T_PRIMARY){
 			continue;
 		}
 		const unsigned current_level = it->second->get_building_level();
@@ -600,33 +666,28 @@ unsigned Castle::get_level() const {
 	}
 	return level;
 }
-std::uint64_t Castle::get_max_resource_amount(ResourceId resource_id) const {
+std::uint64_t Castle::get_warehouse_capacity(ResourceId resource_id) const {
 	PROFILE_ME;
 
-	std::uint64_t max_amount = 0;
+	std::uint64_t capacity = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
-		const unsigned current_level = it->second->get_building_level();
-
 		const auto building_data = Data::CastleBuilding::require(building_id);
-		const auto building_type = building_data->type;
-
-		if(resource_id == ResourceIds::ID_POPULATION){
-			if(building_type == Data::CastleBuilding::T_CIVILIAN){
-				const auto upgrade_data = Data::CastleUpgradeCivilian::require(current_level);
-				max_amount = saturated_add(max_amount, upgrade_data->population_capacity);
-			}
-		} else {
-			if(building_type == Data::CastleBuilding::T_WAREHOUSE){
-				const auto upgrade_data = Data::CastleUpgradeWarehouse::require(current_level);
-				const auto rit = upgrade_data->max_resource_amounts.find(resource_id);
-				if(rit != upgrade_data->max_resource_amounts.end()){
-					max_amount = saturated_add(max_amount, rit->second);
-				}
-			}
+		if(building_data->type != Data::CastleBuilding::T_WAREHOUSE){
+			continue;
 		}
+		const unsigned current_level = it->second->get_building_level();
+		if(current_level == 0){
+			continue;
+		}
+		const auto upgrade_data = Data::CastleUpgradeWarehouse::require(current_level);
+		const auto rit = upgrade_data->max_resource_amounts.find(resource_id);
+		if(rit == upgrade_data->max_resource_amounts.end()){
+			continue;
+		}
+		capacity = saturated_add(capacity, rit->second);
 	}
-	return max_amount;
+	return capacity;
 }
 bool Castle::is_tech_upgrade_in_progress() const {
 	PROFILE_ME;

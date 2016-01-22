@@ -26,7 +26,6 @@ public:
 		MIS_CONSTRUCT       = 1,
 		MIS_UPGRADE         = 2,
 		MIS_DESTRUCT        = 3,
-//		MIS_PRODUCE         = 4,
 	};
 
 	struct BuildingBaseInfo {
@@ -62,9 +61,14 @@ private:
 		boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
 	bool m_locked_by_transaction = false;
 
+	// 非持久化数据。
+	double m_production_remainder = 0;
+	double m_production_rate = 0;
+	std::uint64_t m_capacity = 0;
+
 public:
 	Castle(MapObjectUuid map_object_uuid,
-		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord);
+		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time);
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
@@ -75,6 +79,15 @@ public:
 public:
 	void pump_status() override;
 	void recalculate_attributes() override;
+
+	double get_production_rate() const {
+		return m_production_rate;
+	}
+	std::uint64_t get_capacity() const {
+		return m_capacity;
+	}
+
+	void pump_production();
 
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
 	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;
@@ -91,8 +104,8 @@ public:
 
 	// 各个建筑的独立接口。
 	unsigned get_level() const; // 领主府
-	std::uint64_t get_max_resource_amount(ResourceId resource_id) const; // 仓库
-	bool is_tech_upgrade_in_progress() const;
+	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
+	bool is_tech_upgrade_in_progress() const; // 学院
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;

@@ -9,7 +9,7 @@ namespace AttributeIds {
 
 constexpr AttributeId
 	ID_PROSPERITY_POINTS            ( 2500001 ),
-	//
+	ID_PRODUCTION_TURBO_POPULATION  ( 2500002 ),
 	ID_PRODUCTION_TURBO_GRAIN       ( 2500003 ),
 	ID_PRODUCTION_TURBO_WOOD        ( 2500004 ),
 	ID_PRODUCTION_TURBO_STONE       ( 2500005 ),

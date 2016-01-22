@@ -183,6 +183,8 @@ void Account::activate(){
 		return;
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	boost::shared_ptr<Castle> castle;
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_owner(map_objects, get_account_uuid());
@@ -198,7 +200,7 @@ void Account::activate(){
 		castle = WorldMap::create_init_castle(
 			[&](Coord coord){
 				return boost::make_shared<Castle>(MapObjectUuid(Poseidon::Uuid::random()),
-					get_account_uuid(), MapObjectUuid(), get_nick(), coord);
+					get_account_uuid(), MapObjectUuid(), get_nick(), coord, utc_now);
 			},
 			get_init_cluster_hint()
 		);

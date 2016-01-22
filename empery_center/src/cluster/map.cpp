@@ -165,10 +165,12 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 		return std::move(result);
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	const auto owner_uuid = map_object->get_owner_uuid();
 	const auto castle = boost::make_shared<Castle>(castle_uuid,
-		owner_uuid, map_object->get_parent_object_uuid(), std::move(req.castle_name), coord);
+		owner_uuid, map_object->get_parent_object_uuid(), std::move(req.castle_name), coord, utc_now);
 	castle->pump_status();
 	castle->recalculate_attributes();
 	WorldMap::insert_map_object(castle);

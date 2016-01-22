@@ -104,7 +104,7 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, st
 		return 0;
 	}
 
-	const auto capacity_remaining = saturated_sub(castle->get_max_resource_amount(resource_id), castle->get_resource(resource_id).amount);
+	const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id), castle->get_resource(resource_id).amount);
 	const auto amount_to_add = std::min(amount_avail, capacity_remaining);
 	const auto amount_to_remove = saturated ? amount_avail : amount_to_add;
 	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,

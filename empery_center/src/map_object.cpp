@@ -12,11 +12,11 @@
 namespace EmperyCenter {
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord)
+	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
-				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), Poseidon::get_utc_time(), false);
+				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, created_time, false);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -50,32 +50,20 @@ MapObjectUuid MapObject::get_map_object_uuid() const {
 MapObjectTypeId MapObject::get_map_object_type_id() const {
 	return MapObjectTypeId(m_obj->get_map_object_type_id());
 }
+
+std::uint64_t MapObject::get_last_action_time() const {
+	return m_obj->get_last_action_time();
+}
+void MapObject::set_last_action_time(std::uint64_t last_action_time){
+	m_obj->set_last_action_time(last_action_time);
+}
+
 AccountUuid MapObject::get_owner_uuid() const {
 	return AccountUuid(m_obj->unlocked_get_owner_uuid());
 }
 MapObjectUuid MapObject::get_parent_object_uuid() const {
 	return MapObjectUuid(m_obj->unlocked_get_parent_object_uuid());
 }
-
-const std::string &MapObject::get_name() const {
-	return m_obj->unlocked_get_name();
-}
-void MapObject::set_name(std::string name){
-	PROFILE_ME;
-
-	m_obj->set_name(std::move(name));
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
-}
-
 Coord MapObject::get_coord() const {
 	return Coord(m_obj->get_x(), m_obj->get_y());
 }
@@ -103,6 +91,25 @@ void MapObject::set_coord(Coord coord) noexcept {
 
 std::uint64_t MapObject::get_created_time() const {
 	return m_obj->get_created_time();
+}
+
+const std::string &MapObject::get_name() const {
+	return m_obj->unlocked_get_name();
+}
+void MapObject::set_name(std::string name){
+	PROFILE_ME;
+
+	m_obj->set_name(std::move(name));
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			synchronize_with_player(session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 bool MapObject::has_been_deleted() const {

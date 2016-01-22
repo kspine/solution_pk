@@ -652,6 +652,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	std::vector<ItemTransactionElement> transaction;
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_IMMIGRANT_CREATION_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
@@ -660,7 +662,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 		[&]{
 			const auto immigrants_uuid = MapObjectUuid(Poseidon::Uuid::random());
 			const auto immigrants = boost::make_shared<MapObject>(immigrants_uuid, MapObjectTypeIds::ID_IMMIGRANTS,
-				account->get_account_uuid(), map_object_uuid, std::string(), coord);
+				account->get_account_uuid(), map_object_uuid, std::string(), coord, utc_now);
 			immigrants->pump_status();
 			WorldMap::insert_map_object(immigrants);
 			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid, ", account_uuid = ", account->get_account_uuid());

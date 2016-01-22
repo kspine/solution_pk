@@ -21,6 +21,7 @@ constexpr ReasonId
 	ID_UNPACK_INTO_CASTLE           ( 672009 ), // 城堡 UUID 开始      道具 ID             重复次数
 	                                            // 64 位（大端序）
 	ID_BUY_ACCELERATION_CARD        ( 672010 ), // 玩家等级            0                   0
+	ID_CASTLE_PRODUCTION            ( 672011 ), // 时间区间（毫秒）    0                   0
 
 	ID_INIT_ITEMS                   ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT               ( 673002 ), // 自增长类型          自增长偏移          0
