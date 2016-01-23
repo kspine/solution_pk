@@ -9,12 +9,12 @@ namespace Msg {
 	using namespace Poseidon::Cbpp::StatusCodes;
 
 	enum {
-		ERR_NO_SUCH_MAIL                    = 71601,
-		ERR_NO_ATTACHMENTS                  = 71602,
-		ERR_ATTACHMENTS_FETCHED             = 71603,
-		ERR_MAIL_IS_UNREAD                  = 71604,
-		ERR_MAIL_HAS_ATTACHMENTS            = 71605,
-		ERR_NO_SUCH_LANGUAGE_ID             = 71606,
+		ERR_NO_SUCH_MAIL                        = 71601,
+		ERR_NO_ATTACHMENTS                      = 71602,
+		ERR_ATTACHMENTS_FETCHED                 = 71603,
+		ERR_MAIL_IS_UNREAD                      = 71604,
+		ERR_MAIL_HAS_ATTACHMENTS                = 71605,
+		ERR_NO_SUCH_LANGUAGE_ID                 = 71606,
 	};
 }
 

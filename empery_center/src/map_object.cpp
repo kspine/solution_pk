@@ -16,7 +16,7 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
-				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, created_time, false);
+				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, false);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -49,13 +49,6 @@ MapObjectUuid MapObject::get_map_object_uuid() const {
 }
 MapObjectTypeId MapObject::get_map_object_type_id() const {
 	return MapObjectTypeId(m_obj->get_map_object_type_id());
-}
-
-std::uint64_t MapObject::get_last_action_time() const {
-	return m_obj->get_last_action_time();
-}
-void MapObject::set_last_action_time(std::uint64_t last_action_time){
-	m_obj->set_last_action_time(last_action_time);
 }
 
 AccountUuid MapObject::get_owner_uuid() const {

@@ -9,7 +9,6 @@
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
 #include "data/castle.hpp"
-#include "building_ids.hpp"
 #include "resource_ids.hpp"
 #include "events/resource.hpp"
 #include "attribute_ids.hpp"
@@ -22,29 +21,46 @@ namespace {
 	void fill_building_base_info(Castle::BuildingBaseInfo &info, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj){
 		PROFILE_ME;
 
-		info.building_base_id   = BuildingBaseId(obj->get_building_base_id());
-		info.building_id        = BuildingId(obj->get_building_id());
-		info.building_level     = obj->get_building_level();
-		info.mission            = Castle::Mission(obj->get_mission());
-		info.mission_duration   = obj->get_mission_duration();
-		info.mission_time_begin = obj->get_mission_time_begin();
-		info.mission_time_end   = obj->get_mission_time_end();
+		info.building_base_id      = BuildingBaseId(obj->get_building_base_id());
+		info.building_id           = BuildingId(obj->get_building_id());
+		info.building_level        = obj->get_building_level();
+		info.mission               = Castle::Mission(obj->get_mission());
+		info.mission_duration      = obj->get_mission_duration();
+		info.mission_time_begin    = obj->get_mission_time_begin();
+		info.mission_time_end      = obj->get_mission_time_end();
 	}
 	void fill_tech_info(Castle::TechInfo &info, const boost::shared_ptr<MySql::Center_CastleTech> &obj){
 		PROFILE_ME;
 
-		info.tech_id            = TechId(obj->get_tech_id());
-		info.tech_level         = obj->get_tech_level();
-		info.mission            = Castle::Mission(obj->get_mission());
-		info.mission_duration   = obj->get_mission_duration();
-		info.mission_time_begin = obj->get_mission_time_begin();
-		info.mission_time_end   = obj->get_mission_time_end();
+		info.tech_id               = TechId(obj->get_tech_id());
+		info.tech_level            = obj->get_tech_level();
+		info.mission               = Castle::Mission(obj->get_mission());
+		info.mission_duration      = obj->get_mission_duration();
+		info.mission_time_begin    = obj->get_mission_time_begin();
+		info.mission_time_end      = obj->get_mission_time_end();
 	}
 	void fill_resource_info(Castle::ResourceInfo &info, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
 		PROFILE_ME;
 
-		info.resource_id        = ResourceId(obj->get_resource_id());
-		info.amount             = obj->get_amount();
+		info.resource_id           = ResourceId(obj->get_resource_id());
+		info.amount                = obj->get_amount();
+	}
+	void fill_battalion_info(Castle::BattalionInfo &info, const boost::shared_ptr<MySql::Center_CastleBattalion> &obj){
+		PROFILE_ME;
+
+		info.map_object_type_id    = MapObjectTypeId(obj->get_map_object_type_id());
+		info.count                 = obj->get_count();
+		info.enabled               = obj->get_enabled();
+	}
+	void fill_battalion_production_info(Castle::BattalionProductionInfo &info, const boost::shared_ptr<MySql::Center_CastleBattalionProduction> &obj){
+		PROFILE_ME;
+
+		info.building_base_id      = BuildingBaseId(obj->get_building_base_id());
+		info.map_object_type_id    = MapObjectTypeId(obj->get_map_object_type_id());
+		info.count                 = obj->get_count();
+		info.production_duration   = obj->get_production_duration();
+		info.production_time_begin = obj->get_production_time_begin();
+		info.production_time_end   = obj->get_production_time_end();
 	}
 
 	void fill_building_message(Msg::SC_CastleBuildingBase &msg, const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj,
@@ -59,7 +75,7 @@ namespace {
 		msg.mission                = obj->get_mission();
 		msg.mission_duration       = obj->get_mission_duration();
 		// msg.reserved
-		msg.mission_time_begin     = obj->get_mission_time_begin();
+		// msg.reserved2
 		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), utc_now);
 	}
 	void fill_tech_message(Msg::SC_CastleTech &msg, const boost::shared_ptr<MySql::Center_CastleTech> &obj,
@@ -73,15 +89,35 @@ namespace {
 		msg.mission                = obj->get_mission();
 		msg.mission_duration       = obj->get_mission_duration();
 		// msg.reserved
-		msg.mission_time_begin     = obj->get_mission_time_begin();
+		// msg.reserved2
 		msg.mission_time_remaining = saturated_sub(obj->get_mission_time_end(), utc_now);
 	}
 	void fill_resource_message(Msg::SC_CastleResource &msg, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
 		PROFILE_ME;
 
-		msg.map_object_uuid = obj->unlocked_get_map_object_uuid().to_string();
-		msg.resource_id     = obj->get_resource_id();
-		msg.amount          = obj->get_amount();
+		msg.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
+		msg.resource_id            = obj->get_resource_id();
+		msg.amount                 = obj->get_amount();
+	}
+	void fill_battalion_message(Msg::SC_CastleBattalion &msg, const boost::shared_ptr<MySql::Center_CastleBattalion> &obj){
+		PROFILE_ME;
+
+		msg.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
+		msg.map_object_type_id     = obj->get_map_object_type_id();
+		msg.count                  = obj->get_count();
+		msg.enabled                = obj->get_enabled();
+	}
+	void fill_battalion_production_message(Msg::SC_CastleBattalionProduction &msg,
+		const boost::shared_ptr<MySql::Center_CastleBattalionProduction> &obj, std::uint64_t utc_now)
+	{
+		PROFILE_ME;
+
+		msg.map_object_uuid           = obj->unlocked_get_map_object_uuid().to_string();
+		msg.building_base_id          = obj->get_building_base_id();
+		msg.map_object_type_id        = obj->get_map_object_type_id();
+		msg.count                     = obj->get_count();
+		msg.production_duration       = obj->get_production_duration();
+		msg.production_time_remaining = saturated_sub(obj->get_production_time_end(), utc_now);
 	}
 
 	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now){
@@ -244,7 +280,9 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
-	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources)
+	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
+	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> &battalions,
+	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &battalion_production)
 	: MapObject(std::move(obj), attributes)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
@@ -258,6 +296,14 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	for(auto it = resources.begin(); it != resources.end(); ++it){
 		const auto &obj = *it;
 		m_resources.emplace(ResourceId(obj->get_resource_id()), obj);
+	}
+	for(auto it = battalions.begin(); it != battalions.end(); ++it){
+		const auto &obj = *it;
+		m_battalions.emplace(MapObjectTypeId(obj->get_map_object_type_id()), obj);
+	}
+	for(auto it = battalion_production.begin(); it != battalion_production.end(); ++it){
+		const auto &obj = *it;
+		m_battalion_production.emplace(BuildingBaseId(obj->get_building_base_id()), obj);
 	}
 }
 Castle::~Castle(){
@@ -317,7 +363,7 @@ void Castle::recalculate_attributes(){
 		auto &prosperity = modifiers[AttributeIds::ID_PROSPERITY_POINTS];
 		prosperity += static_cast<std::int64_t>(upgrade_data->prosperity_points);
 
-		if(building_id == BuildingIds::ID_PRIMARY){
+		if(building_data->type == Data::CastleBuilding::T_PRIMARY){
 			auto &castle_level = modifiers[AttributeIds::ID_CASTLE_LEVEL];
 			if(castle_level < building_level){
 				castle_level = building_level;
@@ -348,6 +394,31 @@ void Castle::recalculate_attributes(){
 void Castle::pump_production(){
 	PROFILE_ME;
 
+	BuildingBaseId primary_base_id;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != Data::CastleBuilding::T_PRIMARY){
+			continue;
+		}
+		primary_base_id = it->first;
+	}
+	if(!primary_base_id){
+		LOG_EMPERY_CENTER_ERROR("No primary building? map_object_uuid = ", get_map_object_uuid());
+		DEBUG_THROW(Exception, sslit("No primary building"));
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	auto production_it = m_battalion_production.find(primary_base_id);
+	if(production_it == m_battalion_production.end()){
+		auto obj = boost::make_shared<MySql::Center_CastleBattalionProduction>(
+			get_map_object_uuid().get(), primary_base_id.get(), 0, 0, 0, utc_now, utc_now, std::string());
+		obj->async_save(true);
+		production_it = m_battalion_production.emplace(primary_base_id, std::move(obj)).first;
+	}
+	const auto &production_obj = production_it->second;
+
 	double production_rate = 0;
 	double capacity        = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
@@ -365,6 +436,7 @@ void Castle::pump_production(){
 		capacity        += upgrade_data->population_capacity;
 	}
 	if(production_rate <= 0){
+		production_obj->set_production_time_begin(utc_now);
 		return;
 	}
 
@@ -382,9 +454,7 @@ void Castle::pump_production(){
 	LOG_EMPERY_CENTER_DEBUG("Checking castle production: map_object_uuid = ", get_map_object_uuid(),
 		", production_rate = ", production_rate, ", capacity = ", capacity);
 
-	const auto utc_now = Poseidon::get_utc_time();
-
-	const auto old_last_production_time = get_last_action_time();
+	const auto old_last_production_time = production_obj->get_production_time_begin();
 	const auto old_resource_amount      = get_resource(ResourceIds::ID_POPULATION).amount;
 
 	const auto production_duration = saturated_sub(utc_now, old_last_production_time);
@@ -396,11 +466,10 @@ void Castle::pump_production(){
 		std::vector<ResourceTransactionElement> transaction;
 		transaction.emplace_back(ResourceTransactionElement::OP_ADD, ResourceIds::ID_POPULATION, new_resource_amount - old_resource_amount,
 			ReasonIds::ID_CASTLE_PRODUCTION, production_duration, 0, 0);
-		commit_resource_transaction(transaction,
-			[&]{
-				set_last_action_time(utc_now);
-				m_production_remainder = amount_produced - rounded_amount_produced;
-			});
+		commit_resource_transaction(transaction);
+
+		production_obj->set_production_time_begin(utc_now);
+		m_production_remainder = amount_produced - rounded_amount_produced;
 	}
 
 	m_production_rate = production_rate;
@@ -612,6 +681,8 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 		return;
 	}
 
+	pump_production();
+
 	const auto utc_now = Poseidon::get_utc_time();
 
 	if(check_building_mission(it->second, utc_now)){
@@ -701,7 +772,19 @@ bool Castle::is_tech_upgrade_in_progress() const {
 	}
 	return false;
 }
+bool Castle::is_battalion_production_in_progress(BuildingBaseId building_base_id) const {
+	PROFILE_ME;
 
+	const auto it = m_battalion_production.find(building_base_id);
+	if(it != m_battalion_production.end()){
+		const auto &obj = it->second;
+		const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+		if(map_object_type_id != MapObjectTypeId()){
+			return true;
+		}
+	}
+	return false;
+}
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;
 
@@ -745,9 +828,10 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 
 	std::uint64_t duration;
 	switch(mission){
-//	case MIS_CONSTRUCT:
-//		break;
-
+/*
+	case MIS_CONSTRUCT:
+		break;
+*/
 	case MIS_UPGRADE:
 		{
 			const unsigned level = obj->get_tech_level();
@@ -755,10 +839,10 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 			duration = checked_mul(tech_data->upgrade_duration, (std::uint64_t)60000);
 		}
 		break;
-
-//	case MIS_DESTRUCT:
-//		break;
-
+/*
+	case MIS_DESTRUCT:
+		break;
+*/
 	default:
 		LOG_EMPERY_CENTER_ERROR("Unknown tech mission: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id,
 			", mission = ", (unsigned)mission);
@@ -934,7 +1018,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 {
 	PROFILE_ME;
 
-	const FlagGuard transaction_guard(m_locked_by_transaction);
+	const FlagGuard transaction_guard(m_locked_by_resource_transaction);
 
 	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t /* new_count */> temp_result_map;
@@ -1075,6 +1159,114 @@ void Castle::commit_resource_transaction(const std::vector<ResourceTransactionEl
 	}
 }
 
+Castle::BattalionInfo Castle::get_battalion(MapObjectTypeId map_object_type_id) const {
+	PROFILE_ME;
+
+	BattalionInfo info = { };
+	info.map_object_type_id = map_object_type_id;
+
+	const auto it = m_battalions.find(map_object_type_id);
+	if(it == m_battalions.end()){
+		return info;
+	}
+	fill_battalion_info(info, it->second);
+	return info;
+}
+void Castle::get_all_battalions(std::vector<Castle::BattalionInfo> &ret) const {
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_battalions.size());
+	for(auto it = m_battalions.begin(); it != m_battalions.end(); ++it){
+		BattalionInfo info;
+		fill_battalion_info(info, it->second);
+		ret.emplace_back(std::move(info));
+	}
+}
+void Castle::enable_battalion(MapObjectTypeId map_object_type_id){
+	PROFILE_ME;
+
+	auto it = m_battalions.find(map_object_type_id);
+	if(it == m_battalions.end()){
+		auto obj = boost::make_shared<MySql::Center_CastleBattalion>(
+			get_map_object_uuid().get(), map_object_type_id.get(), 0, false);
+		obj->async_save(true);
+		it = m_battalions.emplace(map_object_type_id, std::move(obj)).first;
+	}
+	if(it->second->get_enabled()){
+		LOG_EMPERY_CENTER_DEBUG("Battalion is already enabled: map_object_uuid = ", get_map_object_uuid().get(),
+			", map_object_type_id = ", map_object_type_id);
+		return;
+	}
+
+	it->second->set_enabled(true);
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleBattalion msg;
+			fill_battalion_message(msg, it->second);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
+/*
+__attribute__((__warn_unused_result__))
+MapObjectTypeId commit_battalion_transaction_nothrow(const std::vector<BattalionTransactionElement> &transaction,
+        const boost::function<void ()> &callback = boost::function<void ()>());
+        void commit_battalion_transaction(const std::vector<BattalionTransactionElement> &transaction,
+                const boost::function<void ()> &callback = boost::function<void ()>());
+*/
+Castle::BattalionProductionInfo Castle::get_battalion_production(BuildingBaseId building_base_id) const {
+	PROFILE_ME;
+
+	BattalionProductionInfo info = { };
+	info.building_base_id = building_base_id;
+
+	const auto it = m_battalion_production.find(building_base_id);
+	if(it == m_battalion_production.end()){
+		return info;
+	}
+	fill_battalion_production_info(info, it->second);
+	return info;
+}
+void Castle::get_all_battalion_production(std::vector<Castle::BattalionProductionInfo> &ret) const {
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_battalion_production.size());
+	for(auto it = m_battalion_production.begin(); it != m_battalion_production.end(); ++it){
+		BattalionProductionInfo info;
+		fill_battalion_production_info(info, it->second);
+		ret.emplace_back(std::move(info));
+	}
+}
+/*
+void begin_battalion_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count);
+void cancel_battalion_production(BuildingBaseId building_base_id);
+void speed_up_battalion_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
+
+*/
+
+void Castle::synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto it = m_battalion_production.find(building_base_id);
+	if(it == m_battalion_production.end()){
+		LOG_EMPERY_CENTER_DEBUG("Battalion production not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	Msg::SC_CastleBattalionProduction msg;
+	fill_battalion_production_message(msg, it->second, utc_now);
+	session->send(msg);
+}
+
 void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
@@ -1093,6 +1285,16 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
 		Msg::SC_CastleResource msg;
 		fill_resource_message(msg, it->second);
+		session->send(msg);
+	}
+	for(auto it = m_battalions.begin(); it != m_battalions.end(); ++it){
+		Msg::SC_CastleBattalion msg;
+		fill_battalion_message(msg, it->second);
+		session->send(msg);
+	}
+	for(auto it = m_battalion_production.begin(); it != m_battalion_production.end(); ++it){
+		Msg::SC_CastleBattalionProduction msg;
+		fill_battalion_production_message(msg, it->second, utc_now);
 		session->send(msg);
 	}
 }

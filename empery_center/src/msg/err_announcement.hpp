@@ -9,7 +9,7 @@ namespace Msg {
 	using namespace Poseidon::Cbpp::StatusCodes;
 
 	enum {
-		ERR_NO_SUCH_ANNOUNCEMENT            = 71901,
+		ERR_NO_SUCH_ANNOUNCEMENT                = 71901,
 	};
 }
 

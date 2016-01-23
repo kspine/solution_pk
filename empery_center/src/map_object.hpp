@@ -47,9 +47,6 @@ public:
 
 	std::uint64_t get_created_time() const;
 
-	std::uint64_t get_last_action_time() const;
-	void set_last_action_time(std::uint64_t last_action_time);
-
 	bool has_been_deleted() const;
 	void delete_from_game() noexcept;
 

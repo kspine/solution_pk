@@ -25,9 +25,21 @@ namespace {
 	boost::weak_ptr<const CastleUpgradePrimaryMap> g_upgrade_primary_map;
 	const char UPGRADE_PRIMARY_FILE[] = "City_Castel";
 
+	using CastleUpgradeStablesMap = boost::container::flat_map<unsigned, Data::CastleUpgradeStables>;
+	boost::weak_ptr<const CastleUpgradeStablesMap> g_upgrade_stables_map;
+	const char UPGRADE_STABLES_FILE[] = "City_Camp_horse";
+
 	using CastleUpgradeBarracksMap = boost::container::flat_map<unsigned, Data::CastleUpgradeBarracks>;
 	boost::weak_ptr<const CastleUpgradeBarracksMap> g_upgrade_barracks_map;
-	const char UPGRADE_BARRACKS_FILE[] = "City_Camp";
+	const char UPGRADE_BARRACKS_FILE[] = "City_Camp_Barracks";
+
+	using CastleUpgradeArcherBarracksMap = boost::container::flat_map<unsigned, Data::CastleUpgradeArcherBarracks>;
+	boost::weak_ptr<const CastleUpgradeArcherBarracksMap> g_upgrade_archer_barracks_map;
+	const char UPGRADE_ARCHER_BARRACKS_FILE[] = "City_Camp_target";
+
+	using CastleUpgradeWeaponryMap = boost::container::flat_map<unsigned, Data::CastleUpgradeWeaponry>;
+	boost::weak_ptr<const CastleUpgradeWeaponryMap> g_upgrade_weaponry_map;
+	const char UPGRADE_WEAPONRY_FILE[] = "City_Camp_instrument";
 
 	using CastleUpgradeAcademyMap = boost::container::flat_map<unsigned, Data::CastleUpgradeAcademy>;
 	boost::weak_ptr<const CastleUpgradeAcademyMap> g_upgrade_academy_map;
@@ -168,6 +180,26 @@ namespace {
 		servlet = DataSession::create_servlet(UPGRADE_PRIMARY_FILE, Data::encode_csv_as_json(csv, "castel_level"));
 		handles.push(std::move(servlet));
 
+		csv = Data::sync_load_data(UPGRADE_STABLES_FILE);
+		const auto upgrade_stables_map = boost::make_shared<CastleUpgradeStablesMap>();
+		while(csv.fetch_row()){
+			Data::CastleUpgradeStables elem = { };
+
+			csv.get(elem.building_level, "camp_level");
+			read_upgrade_element(elem, csv);
+
+			//
+
+			if(!upgrade_stables_map->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade stables: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade stables"));
+			}
+		}
+		g_upgrade_stables_map = upgrade_stables_map;
+		handles.push(upgrade_stables_map);
+		servlet = DataSession::create_servlet(UPGRADE_STABLES_FILE, Data::encode_csv_as_json(csv, "camp_level"));
+		handles.push(std::move(servlet));
+
 		csv = Data::sync_load_data(UPGRADE_BARRACKS_FILE);
 		const auto upgrade_barracks_map = boost::make_shared<CastleUpgradeBarracksMap>();
 		while(csv.fetch_row()){
@@ -186,6 +218,46 @@ namespace {
 		g_upgrade_barracks_map = upgrade_barracks_map;
 		handles.push(upgrade_barracks_map);
 		servlet = DataSession::create_servlet(UPGRADE_BARRACKS_FILE, Data::encode_csv_as_json(csv, "camp_level"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(UPGRADE_ARCHER_BARRACKS_FILE);
+		const auto upgrade_archer_barracks_map = boost::make_shared<CastleUpgradeArcherBarracksMap>();
+		while(csv.fetch_row()){
+			Data::CastleUpgradeArcherBarracks elem = { };
+
+			csv.get(elem.building_level, "camp_level");
+			read_upgrade_element(elem, csv);
+
+			//
+
+			if(!upgrade_archer_barracks_map->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade archer barracks: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade archer barracks"));
+			}
+		}
+		g_upgrade_archer_barracks_map = upgrade_archer_barracks_map;
+		handles.push(upgrade_archer_barracks_map);
+		servlet = DataSession::create_servlet(UPGRADE_ARCHER_BARRACKS_FILE, Data::encode_csv_as_json(csv, "camp_level"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(UPGRADE_WEAPONRY_FILE);
+		const auto upgrade_weaponry_map = boost::make_shared<CastleUpgradeWeaponryMap>();
+		while(csv.fetch_row()){
+			Data::CastleUpgradeWeaponry elem = { };
+
+			csv.get(elem.building_level, "camp_level");
+			read_upgrade_element(elem, csv);
+
+			//
+
+			if(!upgrade_weaponry_map->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade weaponry: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade weaponry"));
+			}
+		}
+		g_upgrade_weaponry_map = upgrade_weaponry_map;
+		handles.push(upgrade_weaponry_map);
+		servlet = DataSession::create_servlet(UPGRADE_WEAPONRY_FILE, Data::encode_csv_as_json(csv, "camp_level"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(UPGRADE_ACADEMY_FILE);
@@ -469,8 +541,8 @@ namespace Data {
 		switch(type){
 		case CastleBuilding::T_PRIMARY:
 			return CastleUpgradePrimary::get(building_level);
-		case CastleBuilding::T_BARRACKS:
-			return CastleUpgradeBarracks::get(building_level);
+//		case CastleBuilding::T_BARRACKS:
+//			return CastleUpgradeBarracks::get(building_level);
 		case CastleBuilding::T_ACADEMY:
 			return CastleUpgradeAcademy::get(building_level);
 		case CastleBuilding::T_CIVILIAN:
@@ -483,6 +555,14 @@ namespace Data {
 			return CastleUpgradeCitadelWall::get(building_level);
 		case CastleBuilding::T_DEFENSE_TOWER:
 			return CastleUpgradeDefenseTower::get(building_level);
+		case CastleBuilding::T_STABLES:
+			return CastleUpgradeStables::get(building_level);
+		case CastleBuilding::T_BARRACKS:
+			return CastleUpgradeBarracks::get(building_level);
+		case CastleBuilding::T_ARCHER_BARRACKS:
+			return CastleUpgradeArcherBarracks::get(building_level);
+		case CastleBuilding::T_WEAPONRY:
+			return CastleUpgradeWeaponry::get(building_level);
 		default:
 			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", static_cast<unsigned>(type));
 			return { };
@@ -524,6 +604,32 @@ namespace Data {
 		return ret;
 	}
 
+	boost::shared_ptr<const CastleUpgradeStables> CastleUpgradeStables::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto upgrade_stables_map = g_upgrade_stables_map.lock();
+		if(!upgrade_stables_map){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeStablesMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = upgrade_stables_map->find(building_level);
+		if(it == upgrade_stables_map->end()){
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeStables not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const CastleUpgradeStables>(upgrade_stables_map, &(it->second));
+	}
+	boost::shared_ptr<const CastleUpgradeStables> CastleUpgradeStables::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("CastleUpgradeStables not found"));
+		}
+		return ret;
+	}
+
 	boost::shared_ptr<const CastleUpgradeBarracks> CastleUpgradeBarracks::get(unsigned building_level){
 		PROFILE_ME;
 
@@ -546,6 +652,58 @@ namespace Data {
 		auto ret = get(building_level);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeBarracks not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const CastleUpgradeArcherBarracks> CastleUpgradeArcherBarracks::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto upgrade_archer_barracks_map = g_upgrade_archer_barracks_map.lock();
+		if(!upgrade_archer_barracks_map){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeArcherBarracksMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = upgrade_archer_barracks_map->find(building_level);
+		if(it == upgrade_archer_barracks_map->end()){
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeArcherBarracks not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const CastleUpgradeArcherBarracks>(upgrade_archer_barracks_map, &(it->second));
+	}
+	boost::shared_ptr<const CastleUpgradeArcherBarracks> CastleUpgradeArcherBarracks::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("CastleUpgradeArcherBarracks not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const CastleUpgradeWeaponry> CastleUpgradeWeaponry::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto upgrade_weaponry_map = g_upgrade_weaponry_map.lock();
+		if(!upgrade_weaponry_map){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeWeaponryMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = upgrade_weaponry_map->find(building_level);
+		if(it == upgrade_weaponry_map->end()){
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeWeaponry not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const CastleUpgradeWeaponry>(upgrade_weaponry_map, &(it->second));
+	}
+	boost::shared_ptr<const CastleUpgradeWeaponry> CastleUpgradeWeaponry::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("CastleUpgradeWeaponry not found"));
 		}
 		return ret;
 	}

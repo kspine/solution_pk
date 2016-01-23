@@ -104,10 +104,14 @@ void MapCell::pump_production(){
 	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
 	const auto terrain_id = cell_data->terrain_id;
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	const bool acc_card_applied = m_obj->get_acceleration_card_applied();
 	const auto ticket_item_id = get_ticket_item_id();
 	const auto production_resource_id = get_production_resource_id();
 	if(!ticket_item_id || !production_resource_id){
+		m_obj->set_resource_amount(0);
+		m_obj->set_last_production_time(utc_now);
 		return;
 	}
 
@@ -174,8 +178,6 @@ void MapCell::pump_production(){
 		", ticket_item_id = ", ticket_item_id, ", production_resource_id = ", production_resource_id,
 		", production_rate = ", production_rate, ", capacity = ", capacity);
 
-	const auto utc_now = Poseidon::get_utc_time();
-
 	const auto old_last_production_time = m_obj->get_last_production_time();
 	const auto old_resource_amount      = m_obj->get_resource_amount();
 
@@ -186,6 +188,7 @@ void MapCell::pump_production(){
 	const auto new_resource_amount = std::min(saturated_add(old_resource_amount, rounded_amount_produced), rounded_capacity);
 	if(new_resource_amount > old_resource_amount){
 		m_obj->set_resource_amount(new_resource_amount);
+
 		m_obj->set_last_production_time(utc_now);
 		m_production_remainder = amount_produced - rounded_amount_produced;
 	}

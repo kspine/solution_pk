@@ -9,7 +9,7 @@ namespace BuildingIds {
 
 constexpr BuildingId
 	ID_PRIMARY              ( 1901001 ), // 领主府
-	ID_STABLE               ( 1902001 ), // 马厩
+	ID_STABLES              ( 1902001 ), // 马厩
 	ID_BARRACKS             ( 1902002 ), // 兵营
 	ID_ARCHER_BARRACKS      ( 1902003 ), // 弓兵营
 	ID_WEAPONRY             ( 1902004 ), // 器械营

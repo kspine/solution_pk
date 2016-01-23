@@ -187,6 +187,9 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
 		}
 	}
+	if(castle->is_battalion_production_in_progress(building_base_id)){
+		return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
+	}
 	if(info.mission != Castle::MIS_NONE){
 		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT) <<building_base_id;
 	}
@@ -338,7 +341,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	}
 	for(auto it = academy_infos.begin(); it != academy_infos.end(); ++it){
 		if(it->mission != Castle::MIS_NONE){
-			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
+			return Response(Msg::ERR_ACADEMY_UPGRADE_IN_PROGRESS);
 		}
 	}
 

@@ -25,14 +25,16 @@ namespace Data {
 	class CastleBuilding {
 	public:
 		enum Type {
-			T_PRIMARY       = 1,
-			T_BARRACKS      = 2,
-			T_ACADEMY       = 3,
-			T_CIVILIAN      = 4,
-			// T_WATCHTOWER    = 5,
-			T_WAREHOUSE     = 6,
-			T_CITADEL_WALL  = 7,
-			T_DEFENSE_TOWER = 8,
+			T_PRIMARY           =  1,
+			T_ACADEMY           =  3,
+			T_CIVILIAN          =  4,
+			T_WAREHOUSE         =  6,
+			T_CITADEL_WALL      =  7,
+			T_DEFENSE_TOWER     =  8,
+			T_STABLES           = 17,
+			T_BARRACKS          = 18,
+			T_ARCHER_BARRACKS   = 19,
+			T_WEAPONRY          = 20,
 		};
 
 	public:
@@ -70,10 +72,37 @@ namespace Data {
 		std::uint64_t max_immigrant_group_count;
 	};
 
+	class CastleUpgradeStables : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeStables> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeStables> require(unsigned building_level);
+
+	public:
+		//
+	};
+
 	class CastleUpgradeBarracks : public CastleUpgradeAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradeBarracks> get(unsigned building_level);
 		static boost::shared_ptr<const CastleUpgradeBarracks> require(unsigned building_level);
+
+	public:
+		//
+	};
+
+	class CastleUpgradeArcherBarracks : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeArcherBarracks> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeArcherBarracks> require(unsigned building_level);
+
+	public:
+		//
+	};
+
+	class CastleUpgradeWeaponry : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeWeaponry> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeWeaponry> require(unsigned building_level);
 
 	public:
 		//

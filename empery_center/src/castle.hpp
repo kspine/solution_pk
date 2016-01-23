@@ -15,6 +15,8 @@ namespace MySql {
 	class Center_CastleBuildingBase;
 	class Center_CastleResource;
 	class Center_CastleTech;
+	class Center_CastleBattalion;
+	class Center_CastleBattalionProduction;
 }
 
 class PlayerSession;
@@ -52,14 +54,37 @@ public:
 		std::uint64_t amount;
 	};
 
+	struct BattalionInfo {
+		MapObjectTypeId map_object_type_id;
+		std::uint64_t count;
+		bool enabled;
+	};
+
+	struct BattalionProductionInfo {
+		BuildingBaseId building_base_id;
+		MapObjectTypeId map_object_type_id;
+		std::uint64_t count;
+		std::uint64_t production_duration;
+		std::uint64_t production_time_begin;
+		std::uint64_t production_time_end;
+	};
+
 private:
 	boost::container::flat_map<BuildingBaseId,
 		boost::shared_ptr<MySql::Center_CastleBuildingBase>> m_buildings;
 	boost::container::flat_map<TechId,
 		boost::shared_ptr<MySql::Center_CastleTech>> m_techs;
+
 	boost::container::flat_map<ResourceId,
 		boost::shared_ptr<MySql::Center_CastleResource>> m_resources;
-	bool m_locked_by_transaction = false;
+	bool m_locked_by_resource_transaction = false;
+
+	boost::container::flat_map<MapObjectTypeId,
+		boost::shared_ptr<MySql::Center_CastleBattalion>> m_battalions;
+
+	boost::container::flat_map<BuildingBaseId,
+		boost::shared_ptr<MySql::Center_CastleBattalionProduction>> m_battalion_production;
+	bool m_locked_by_battalion_transaction = false;
 
 	// 非持久化数据。
 	double m_production_remainder = 0;
@@ -73,7 +98,9 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
-		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources);
+		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
+		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> &battalions,
+		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &battalion_production);
 	~Castle();
 
 public:
@@ -106,6 +133,7 @@ public:
 	unsigned get_level() const; // 领主府
 	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
 	bool is_tech_upgrade_in_progress() const; // 学院
+	bool is_battalion_production_in_progress(BuildingBaseId building_base_id) const;
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
@@ -126,6 +154,25 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 	void commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,
 		const boost::function<void ()> &callback = boost::function<void ()>());
+
+	BattalionInfo get_battalion(MapObjectTypeId map_object_type_id) const;
+	void get_all_battalions(std::vector<BattalionInfo> &ret) const;
+	void enable_battalion(MapObjectTypeId map_object_type_id);
+
+	__attribute__((__warn_unused_result__))
+	MapObjectTypeId commit_battalion_transaction_nothrow(const std::vector<BattalionTransactionElement> &transaction,
+		const boost::function<void ()> &callback = boost::function<void ()>());
+	void commit_battalion_transaction(const std::vector<BattalionTransactionElement> &transaction,
+		const boost::function<void ()> &callback = boost::function<void ()>());
+
+	BattalionProductionInfo get_battalion_production(BuildingBaseId building_base_id) const;
+	void get_all_battalion_production(std::vector<BattalionProductionInfo> &ret) const;
+
+	void begin_battalion_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count);
+	void cancel_battalion_production(BuildingBaseId building_base_id);
+	void speed_up_battalion_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
+
+	void synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
