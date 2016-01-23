@@ -107,7 +107,7 @@ void check_auto_upgradeable(AccountId init_account_id){
 				", count = ", count, ", auto_upgrade_count = ", new_promotion_data->auto_upgrade_count);
 			if(count < new_promotion_data->auto_upgrade_count){
 				LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
-				break;
+				continue;
 			}
 			auto promotion_data = Data::Promotion::get_next(new_promotion_data->level);
 			if(!promotion_data || (promotion_data == new_promotion_data)){
