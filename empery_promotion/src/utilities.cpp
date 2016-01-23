@@ -98,23 +98,27 @@ void check_auto_upgradeable(AccountId init_account_id){
 			}
 		}
 		auto new_promotion_data = old_promotion_data;
-		for(;;){
-			std::size_t count = 0;
-			for(auto it = subordinate_level_counts.lower_bound(new_promotion_data->level); it != subordinate_level_counts.end(); ++it){
-				count += it->second;
+		{
+			auto cur_promotion_data = old_promotion_data;
+			for(;;){
+				std::size_t count = 0;
+				for(auto it = subordinate_level_counts.lower_bound(cur_promotion_data->level); it != subordinate_level_counts.end(); ++it){
+					count += it->second;
+				}
+				LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", cur_promotion_data->level,
+					", count = ", count, ", auto_upgrade_count = ", cur_promotion_data->auto_upgrade_count);
+				if(count < cur_promotion_data->auto_upgrade_count){
+					LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
+				} else {
+					new_promotion_data = cur_promotion_data;
+				}
+				auto promotion_data = Data::Promotion::get_next(cur_promotion_data->level);
+				if(!promotion_data || (promotion_data == cur_promotion_data)){
+					LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
+					break;
+				}
+				cur_promotion_data = std::move(promotion_data);
 			}
-			LOG_EMPERY_PROMOTION_DEBUG("> Try auto upgrade: level = ", new_promotion_data->level,
-				", count = ", count, ", auto_upgrade_count = ", new_promotion_data->auto_upgrade_count);
-			if(count < new_promotion_data->auto_upgrade_count){
-				LOG_EMPERY_PROMOTION_DEBUG("No enough subordinates");
-				continue;
-			}
-			auto promotion_data = Data::Promotion::get_next(new_promotion_data->level);
-			if(!promotion_data || (promotion_data == new_promotion_data)){
-				LOG_EMPERY_PROMOTION_DEBUG("No more promotion levels");
-				break;
-			}
-			new_promotion_data = std::move(promotion_data);
 		}
 		if(new_promotion_data == old_promotion_data){
 			LOG_EMPERY_PROMOTION_DEBUG("Not auto upgradeable: account_id = ", account_id);
