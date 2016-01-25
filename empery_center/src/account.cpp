@@ -211,6 +211,8 @@ void Account::activate(){
 	}
 
 	m_obj->set_activated(true);
+
+	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
 
 const std::string &Account::get_login_token() const {
@@ -229,6 +231,8 @@ std::uint64_t Account::get_banned_until() const {
 }
 void Account::set_banned_until(std::uint64_t banned_until){
 	m_obj->set_banned_until(banned_until);
+
+	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
 
 std::uint64_t Account::get_quieted_until() const {
@@ -236,6 +240,8 @@ std::uint64_t Account::get_quieted_until() const {
 }
 void Account::set_quieted_until(std::uint64_t quieted_until){
 	m_obj->set_quieted_until(quieted_until);
+
+	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
 
 const std::string &Account::get_attribute(AccountAttributeId account_attribute_id) const {
