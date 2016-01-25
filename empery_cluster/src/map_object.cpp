@@ -101,17 +101,17 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 				result = Response(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
 				return UINT64_MAX;
 			}
+			const auto other_owner_uuid = other_object->get_owner_uuid();
 			const auto other_object_type_id = other_object->get_map_object_type_id();
-			if(other_object_type_id != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
-				continue;
-			}
-			foundation.clear();
-			get_castle_foundation(foundation, other_coord, false);
-			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
-				if(new_coord == *fit){
-					LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
-					result = Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
-					return UINT64_MAX;
+			if((other_owner_uuid != owner_uuid) && (other_object_type_id == EmperyCenter::MapObjectTypeIds::ID_CASTLE)){
+				foundation.clear();
+				get_castle_foundation(foundation, other_coord, false);
+				for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
+					if(new_coord == *fit){
+						LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
+						result = Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
+						return UINT64_MAX;
+					}
 				}
 			}
 		}
