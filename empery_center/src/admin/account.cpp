@@ -18,11 +18,14 @@ namespace {
 	void fill_account_object(Poseidon::JsonObject &object, const boost::shared_ptr<Account> &account){
 		PROFILE_ME;
 
+		const auto referrer = AccountMap::get(account->get_referrer_uuid());
+
 		object[sslit("account_uuid")]            = account->get_account_uuid().str();
 		object[sslit("platform_id")]             = account->get_platform_id().get();
 		object[sslit("login_name")]              = account->get_login_name();
 
-		object[sslit("referrer_uuid")]           = account->get_referrer_uuid().str();
+		object[sslit("referrer_uuid")]           = referrer ? referrer->get_account_uuid().str() : std::string();
+		object[sslit("referrer_login_name")]     = referrer ? referrer->get_login_name() : std::string();
 		object[sslit("promotion_level")]         = account->get_promotion_level();
 		object[sslit("created_time")]            = account->get_created_time();
 		object[sslit("nick")]                    = account->get_nick();

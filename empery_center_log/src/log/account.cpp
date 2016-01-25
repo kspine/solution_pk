@@ -22,20 +22,32 @@ LOG_SERVLET("account/realtime_online", root, session, params){
 		duration = boost::lexical_cast<std::uint64_t>(duration_str);
 	}
 
-	Poseidon::JsonArray realtime_online;
+	struct CounterElement {
+		std::uint64_t interval;
+		std::uint64_t account_count;
+	};
+	boost::container::flat_map<std::uint64_t, CounterElement> counter_map;
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `CenterLog_AccountNumberOnline` WHERE " <<Poseidon::MySql::DateTimeFormatter(since) <<" <= `timestamp` "
-		    <<"  AND `timestamp` < " <<Poseidon::MySql::DateTimeFormatter(saturated_add(since, duration));
+		    <<"  AND `timestamp` < " <<Poseidon::MySql::DateTimeFormatter(saturated_add(since, duration)) <<" ";
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				Poseidon::JsonObject object;
-				object[sslit("timestamp")]     = conn->get_datetime("timestamp");
-				object[sslit("interval")]      = conn->get_unsigned("interval");
-				object[sslit("account_count")] = conn->get_unsigned("account_count");
-				realtime_online.emplace_back(std::move(object));
+				const auto timestamp = conn->get_datetime("timestamp");
+				auto &counters = counter_map[timestamp];
+				counters.interval = conn->get_unsigned("interval");
+				counters.account_count = conn->get_unsigned("account_count");
 			}, "CenterLog_AccountNumberOnline", oss.str());
 		Poseidon::JobDispatcher::yield(promise);
+	}
+
+	Poseidon::JsonArray realtime_online;
+	for(auto it = counter_map.begin(); it != counter_map.end(); ++it){
+		Poseidon::JsonObject object;
+		object[sslit("timestamp")]     = it->first;
+		object[sslit("interval")]      = it->second.interval;
+		object[sslit("account_count")] = it->second.account_count;
+		realtime_online.emplace_back(std::move(object));
 	}
 	root[sslit("realtime_online")] = std::move(realtime_online);
 
@@ -68,7 +80,7 @@ LOG_SERVLET("account/daily_logged_in", root, session, params){
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `CenterLog_AccountLoggedIn`  WHERE " <<Poseidon::MySql::DateTimeFormatter(since) <<" <= `timestamp` "
-		    <<"  AND `timestamp` < " <<Poseidon::MySql::DateTimeFormatter(saturated_add(since, duration));
+		    <<"  AND `timestamp` < " <<Poseidon::MySql::DateTimeFormatter(saturated_add(since, duration)) <<" ";
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				const auto timestamp = conn->get_datetime("timestamp");
@@ -94,8 +106,8 @@ LOG_SERVLET("account/daily_logged_in", root, session, params){
 }
 
 LOG_SERVLET("account/daily_created", root, session, params){
-	const auto &since_str    = params.get("since");
-	const auto &duration_str = params.get("duration");
+	const auto &since_str     = params.get("since");
+	const auto &duration_str  = params.get("duration");
 	const auto &tz_offset_str = params.get("tz_offset");
 
 	std::uint64_t since = 0, duration = UINT64_MAX;
@@ -123,7 +135,7 @@ LOG_SERVLET("account/daily_created", root, session, params){
 		    <<"  GROUP BY `timestamp` "
 		    <<") AS `z` ON `account_uuid` = `earliest_account_uuid` AND `timestamp` = `earliest` "
 		    <<"WHERE " <<Poseidon::MySql::DateTimeFormatter(since) <<" <= `timestamp` "
-		    <<"  AND `timestamp` < " <<Poseidon::MySql::DateTimeFormatter(saturated_add(since, duration));
+		    <<"  AND `timestamp` < " <<Poseidon::MySql::DateTimeFormatter(saturated_add(since, duration)) <<" ";
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				const auto timestamp = conn->get_datetime("timestamp");
