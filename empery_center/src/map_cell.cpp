@@ -103,8 +103,24 @@ void MapCell::pump_status(){
 		} else {
 			LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
 		}
-		if((terrain_id == TerrainIds::ID_DESERT) || (terrain_id == TerrainIds::ID_ROTTEN_WOOD) || (terrain_id == TerrainIds::ID_GRAVEL)){
+		switch(terrain_id.get()){
+		case TerrainIds::ID_DESERT.get():
+		case TerrainIds::ID_ROTTEN_WOOD.get():
+		case TerrainIds::ID_GRAVEL.get():
+		case TerrainIds::ID_OASIS.get():
 			turbo += castle->get_attribute(AttributeIds::ID_DESERT_DEVELOPMENT) / 1000.0;
+			break;
+		case TerrainIds::ID_WASTELAND.get():
+		case TerrainIds::ID_DEADWOOD.get():
+		case TerrainIds::ID_STONES.get():
+			turbo += castle->get_attribute(AttributeIds::ID_WASTELAND_DEVELOPMENT) / 1000.0;
+			break;
+		case TerrainIds::ID_PRAIRIE.get():
+		case TerrainIds::ID_FOREST.get():
+		case TerrainIds::ID_HILL.get():
+		case TerrainIds::ID_SOIL.get():
+			turbo += castle->get_attribute(AttributeIds::ID_PRAIRIE_DEVELOPMENT) / 1000.0;
+			break;
 		}
 		turbo += castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_ALL) / 1000.0;
 		production_rate *= (1 + turbo);
