@@ -53,8 +53,7 @@ namespace MySql {
 	FIELD_BIGINT_UNSIGNED   (count)	\
 	FIELD_BIGINT_UNSIGNED   (production_duration)	\
 	FIELD_DATETIME          (production_time_begin)	\
-	FIELD_DATETIME          (production_time_end)	\
-	FIELD_STRING            (resource_locked)
+	FIELD_DATETIME          (production_time_end)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

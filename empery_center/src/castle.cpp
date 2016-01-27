@@ -11,9 +11,11 @@
 #include "data/castle.hpp"
 #include "resource_ids.hpp"
 #include "events/resource.hpp"
+#include "events/battalion.hpp"
 #include "attribute_ids.hpp"
 #include "map_cell.hpp"
 #include "reason_ids.hpp"
+#include "data/map_object.hpp"
 
 namespace EmperyCenter {
 
@@ -52,7 +54,9 @@ namespace {
 		info.count                 = obj->get_count();
 		info.enabled               = obj->get_enabled();
 	}
-	void fill_battalion_production_info(Castle::BattalionProductionInfo &info, const boost::shared_ptr<MySql::Center_CastleBattalionProduction> &obj){
+	void fill_battalion_production_info(Castle::BattalionProductionInfo &info,
+		const boost::shared_ptr<MySql::Center_CastleBattalionProduction> &obj)
+	{
 		PROFILE_ME;
 
 		info.building_base_id      = BuildingBaseId(obj->get_building_base_id());
@@ -413,7 +417,7 @@ void Castle::pump_production(){
 	auto production_it = m_battalion_production.find(primary_base_id);
 	if(production_it == m_battalion_production.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleBattalionProduction>(
-			get_map_object_uuid().get(), primary_base_id.get(), 0, 0, 0, utc_now, utc_now, std::string());
+			get_map_object_uuid().get(), primary_base_id.get(), 0, 0, 0, utc_now, utc_now);
 		obj->async_save(true);
 		production_it = m_battalion_production.emplace(primary_base_id, std::move(obj)).first;
 	}
@@ -465,7 +469,7 @@ void Castle::pump_production(){
 	if(new_resource_amount > old_resource_amount){
 		std::vector<ResourceTransactionElement> transaction;
 		transaction.emplace_back(ResourceTransactionElement::OP_ADD, ResourceIds::ID_POPULATION, new_resource_amount - old_resource_amount,
-			ReasonIds::ID_CASTLE_PRODUCTION, production_duration, 0, 0);
+			ReasonIds::ID_POPULATION_PRODUCTION, production_duration, 0, 0);
 		commit_resource_transaction(transaction);
 
 		production_obj->set_production_time_begin(utc_now);
@@ -537,7 +541,8 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	const auto &obj = it->second;
 	const auto old_mission = Mission(obj->get_mission());
 	if(old_mission != MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("Building mission conflict: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		LOG_EMPERY_CENTER_DEBUG("Building mission conflict: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
 		DEBUG_THROW(Exception, sslit("Building mission conflict"));
 	}
 
@@ -547,7 +552,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 		{
 			const auto building_data = Data::CastleBuilding::require(building_id);
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
-			duration = checked_mul(upgrade_data->upgrade_duration, (std::uint64_t)60000);
+			duration = std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001);
 		}
 		obj->set_building_id(building_id.get());
 		obj->set_building_level(0);
@@ -558,7 +563,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 			const unsigned level = obj->get_building_level();
 			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level + 1);
-			duration = checked_mul(upgrade_data->upgrade_duration, (std::uint64_t)60000);
+			duration = std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001);
 		}
 		break;
 
@@ -567,13 +572,13 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 			const unsigned level = obj->get_building_level();
 			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
 			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level);
-			duration = checked_mul(upgrade_data->destruct_duration, (std::uint64_t)60000);
+			duration = std::ceil(upgrade_data->destruct_duration * 60000.0 - 0.001);
 		}
 		break;
 
 	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown building mission: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id,
-			", mission = ", (unsigned)mission);
+		LOG_EMPERY_CENTER_ERROR("Unknown building mission: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id, ", mission = ", (unsigned)mission);
 		DEBUG_THROW(Exception, sslit("Unknown building mission"));
 	}
 
@@ -605,13 +610,15 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 
 	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
 		return;
 	}
 	const auto &obj = it->second;
 	const auto old_mission = Mission(obj->get_mission());
 	if(old_mission == MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("No building mission: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		LOG_EMPERY_CENTER_DEBUG("No building mission: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
 		return;
 	}
 
@@ -641,13 +648,15 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, std::uin
 
 	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_WARNING("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		LOG_EMPERY_CENTER_WARNING("Building base not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
 		DEBUG_THROW(Exception, sslit("Building base not found"));
 	}
 	const auto &obj = it->second;
 	const auto old_mission = Mission(obj->get_mission());
 	if(old_mission == MIS_NONE){
-		LOG_EMPERY_CENTER_DEBUG("No building mission: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		LOG_EMPERY_CENTER_DEBUG("No building mission: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
 		DEBUG_THROW(Exception, sslit("No building mission"));
 	}
 
@@ -677,7 +686,8 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 
 	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
 		return;
 	}
 
@@ -708,7 +718,8 @@ void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, c
 
 	const auto it = m_buildings.find(building_base_id);
 	if(it == m_buildings.end()){
-		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id);
+		LOG_EMPERY_CENTER_DEBUG("Building base not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
 		return;
 	}
 
@@ -719,6 +730,23 @@ void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, c
 	session->send(msg);
 }
 
+unsigned Castle::get_max_level(BuildingId building_id) const {
+	PROFILE_ME;
+
+	unsigned level = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto cur_building_id = BuildingId(it->second->get_building_id());
+		if(cur_building_id != building_id){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		if(level >= current_level){
+			continue;
+		}
+		level = current_level;
+	}
+	return level;
+}
 unsigned Castle::get_level() const {
 	PROFILE_ME;
 
@@ -836,7 +864,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 		{
 			const unsigned level = obj->get_tech_level();
 			const auto tech_data = Data::CastleTech::require(TechId(obj->get_tech_id()), level + 1);
-			duration = checked_mul(tech_data->upgrade_duration, (std::uint64_t)60000);
+			duration = std::ceil(tech_data->upgrade_duration * 60000.0 - 0.001);
 		}
 		break;
 /*
@@ -1018,10 +1046,15 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 {
 	PROFILE_ME;
 
+	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
+	events.reserve(transaction.size());
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t /* new_count */> temp_result_map;
+	temp_result_map.reserve(transaction.size());
+
 	const FlagGuard transaction_guard(m_locked_by_resource_transaction);
 
-	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t /* new_count */> temp_result_map;
+	const auto map_object_uuid = get_map_object_uuid();
+	const auto owner_uuid = get_owner_uuid();
 
     for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
 		const auto operation    = tit->m_operation;
@@ -1063,10 +1096,9 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 				temp_it->second = checked_add(old_amount, delta_amount);
 				const auto new_amount = temp_it->second;
 
-				const auto &map_object_uuid = get_map_object_uuid();
-				const auto &owner_uuid = get_owner_uuid();
 				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: add: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
-					", resource_id = ", resource_id, ", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
+					", resource_id = ", resource_id,
+					", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				events.emplace_back(boost::make_shared<Events::ResourceChanged>(
 					map_object_uuid, owner_uuid, resource_id, old_amount, new_amount, reason, param1, param2, param3));
@@ -1102,10 +1134,9 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 				}
 				const auto new_amount = temp_it->second;
 
-				const auto &map_object_uuid = get_map_object_uuid();
-				const auto &owner_uuid = get_owner_uuid();
 				LOG_EMPERY_CENTER_DEBUG("@ Resource transaction: remove: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
-					", resource_id = ", resource_id, ", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
+					", resource_id = ", resource_id,
+					", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				events.emplace_back(boost::make_shared<Events::ResourceChanged>(
 					map_object_uuid, owner_uuid, resource_id, old_amount, new_amount, reason, param1, param2, param3));
@@ -1118,13 +1149,12 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 		}
 	}
 
-	if(callback){
-		callback();
-	}
-
 	const auto withdrawn = boost::make_shared<bool>(true);
 	for(auto it = events.begin(); it != events.end(); ++it){
 		Poseidon::async_raise_event(*it, withdrawn);
+	}
+	if(callback){
+		callback();
 	}
 	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 		it->first->set_amount(it->second);
@@ -1213,13 +1243,154 @@ void Castle::enable_battalion(MapObjectTypeId map_object_type_id){
 	}
 }
 
-/*
-__attribute__((__warn_unused_result__))
-MapObjectTypeId commit_battalion_transaction_nothrow(const std::vector<BattalionTransactionElement> &transaction,
-        const boost::function<void ()> &callback = boost::function<void ()>());
-        void commit_battalion_transaction(const std::vector<BattalionTransactionElement> &transaction,
-                const boost::function<void ()> &callback = boost::function<void ()>());
-*/
+MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<BattalionTransactionElement> &transaction,
+	const boost::function<void ()> &callback)
+{
+	PROFILE_ME;
+
+	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
+	events.reserve(transaction.size());
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleBattalion>, std::uint64_t /* new_count */> temp_result_map;
+	temp_result_map.reserve(transaction.size());
+
+	const FlagGuard transaction_guard(m_locked_by_battalion_transaction);
+
+	const auto map_object_uuid = get_map_object_uuid();
+	const auto owner_uuid = get_owner_uuid();
+
+    for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
+		const auto operation          = tit->m_operation;
+		const auto map_object_type_id = tit->m_some_id;
+		const auto delta_count        = tit->m_delta_count;
+
+		if(delta_count == 0){
+			continue;
+		}
+
+		const auto reason = tit->m_reason;
+		const auto param1 = tit->m_param1;
+		const auto param2 = tit->m_param2;
+		const auto param3 = tit->m_param3;
+
+		switch(operation){
+		case BattalionTransactionElement::OP_NONE:
+			break;
+
+		case BattalionTransactionElement::OP_ADD:
+			{
+				boost::shared_ptr<MySql::Center_CastleBattalion> obj;
+				{
+					const auto it = m_battalions.find(map_object_type_id);
+					if(it == m_battalions.end()){
+						obj = boost::make_shared<MySql::Center_CastleBattalion>(
+							get_map_object_uuid().get(), map_object_type_id.get(), 0, false);
+						obj->enable_auto_saving(); // obj->async_save(true);
+						m_battalions.emplace(map_object_type_id, obj);
+					} else {
+						obj = it->second;
+					}
+				}
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
+				}
+				const auto old_count = temp_it->second;
+				temp_it->second = checked_add(old_count, delta_count);
+				const auto new_count = temp_it->second;
+
+				LOG_EMPERY_CENTER_DEBUG("@ Battalion transaction: add: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
+					", map_object_type_id = ", map_object_type_id,
+					", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
+					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				events.emplace_back(boost::make_shared<Events::BattalionChanged>(
+					map_object_uuid, owner_uuid, map_object_type_id, old_count, new_count, reason, param1, param2, param3));
+			}
+			break;
+
+		case BattalionTransactionElement::OP_REMOVE:
+		case BattalionTransactionElement::OP_REMOVE_SATURATED:
+			{
+				const auto it = m_battalions.find(map_object_type_id);
+				if(it == m_battalions.end()){
+					if(operation != BattalionTransactionElement::OP_REMOVE_SATURATED){
+						LOG_EMPERY_CENTER_DEBUG("Battalion not found: map_object_type_id = ", map_object_type_id);
+						return map_object_type_id;
+					}
+					break;
+				}
+				const auto &obj = it->second;
+				auto temp_it = temp_result_map.find(obj);
+				if(temp_it == temp_result_map.end()){
+					temp_it = temp_result_map.emplace_hint(temp_it, obj, obj->get_count());
+				}
+				const auto old_count = temp_it->second;
+				if(temp_it->second >= delta_count){
+					temp_it->second -= delta_count;
+				} else {
+					if(operation != BattalionTransactionElement::OP_REMOVE_SATURATED){
+						LOG_EMPERY_CENTER_DEBUG("No enough battalions: map_object_type_id = ", map_object_type_id,
+							", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
+						return map_object_type_id;
+					}
+					temp_it->second = 0;
+				}
+				const auto new_count = temp_it->second;
+
+				LOG_EMPERY_CENTER_DEBUG("@ Battalion transaction: remove: map_object_uuid = ", map_object_uuid, ", owner_uuid = ", owner_uuid,
+					", map_object_type_id = ", map_object_type_id,
+					", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
+					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
+				events.emplace_back(boost::make_shared<Events::BattalionChanged>(
+					map_object_uuid, owner_uuid, map_object_type_id, old_count, new_count, reason, param1, param2, param3));
+			}
+			break;
+
+		default:
+			LOG_EMPERY_CENTER_ERROR("Unknown battalion transaction operation: operation = ", (unsigned)operation);
+			DEBUG_THROW(Exception, sslit("Unknown battalion transaction operation"));
+		}
+	}
+
+	const auto withdrawn = boost::make_shared<bool>(true);
+	for(auto it = events.begin(); it != events.end(); ++it){
+		Poseidon::async_raise_event(*it, withdrawn);
+	}
+	if(callback){
+		callback();
+	}
+	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
+		it->first->set_count(it->second);
+	}
+	*withdrawn = false;
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
+				Msg::SC_CastleBattalion msg;
+				fill_battalion_message(msg, it->first);
+				session->send(msg);
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+
+	return { };
+}
+void Castle::commit_battalion_transaction(const std::vector<BattalionTransactionElement> &transaction,
+	const boost::function<void ()> &callback)
+{
+	PROFILE_ME;
+
+	const auto insuff_id = commit_battalion_transaction_nothrow(transaction, callback);
+	if(insuff_id != MapObjectTypeId()){
+		LOG_EMPERY_CENTER_DEBUG("Insufficient battalions in castle: map_object_uuid = ", get_map_object_uuid(), ", insuff_id = ", insuff_id);
+		DEBUG_THROW(Exception, sslit("Insufficient battalions in castle"));
+	}
+}
+
 Castle::BattalionProductionInfo Castle::get_battalion_production(BuildingBaseId building_base_id) const {
 	PROFILE_ME;
 
@@ -1243,12 +1414,169 @@ void Castle::get_all_battalion_production(std::vector<Castle::BattalionProductio
 		ret.emplace_back(std::move(info));
 	}
 }
-/*
-void begin_battalion_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count);
-void cancel_battalion_production(BuildingBaseId building_base_id);
-void speed_up_battalion_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
 
-*/
+void Castle::begin_battalion_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count){
+	PROFILE_ME;
+
+	auto it = m_battalion_production.find(building_base_id);
+	if(it == m_battalion_production.end()){
+		auto obj = boost::make_shared<MySql::Center_CastleBattalionProduction>(
+			get_map_object_uuid().get(), building_base_id.get(), 0, 0, 0, 0, 0);
+		obj->async_save(true);
+		it = m_battalion_production.emplace(building_base_id, obj).first;
+	}
+	const auto &obj = it->second;
+	const auto old_map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+	if(old_map_object_type_id != MapObjectTypeId()){
+		LOG_EMPERY_CENTER_DEBUG("Battalion production conflict: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		DEBUG_THROW(Exception, sslit("Battalion production conflict"));
+	}
+
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const std::uint64_t duration = std::ceil(map_object_type_data->production_time * 60000.0 * count - 0.001);
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	obj->set_map_object_type_id(map_object_type_id.get());
+	obj->set_count(count);
+	obj->set_production_duration(duration);
+	obj->set_production_time_begin(utc_now);
+	obj->set_production_time_end(saturated_add(utc_now, duration));
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleBattalionProduction msg;
+			fill_battalion_production_message(msg, it->second, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+void Castle::cancel_battalion_production(BuildingBaseId building_base_id){
+	PROFILE_ME;
+
+	const auto it = m_battalion_production.find(building_base_id);
+	if(it == m_battalion_production.end()){
+		LOG_EMPERY_CENTER_DEBUG("Battalion production not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		return;
+	}
+	const auto &obj = it->second;
+	const auto old_map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+	if(old_map_object_type_id == MapObjectTypeId()){
+		LOG_EMPERY_CENTER_DEBUG("No battalion production not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	obj->set_map_object_type_id(0);
+	obj->set_count(0);
+	obj->set_production_duration(0);
+	obj->set_production_time_begin(utc_now);
+	obj->set_production_time_end(utc_now);
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleBattalionProduction msg;
+			fill_battalion_production_message(msg, it->second, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+void Castle::speed_up_battalion_production(BuildingBaseId building_base_id, std::uint64_t delta_duration){
+	PROFILE_ME;
+
+	const auto it = m_battalion_production.find(building_base_id);
+	if(it == m_battalion_production.end()){
+		LOG_EMPERY_CENTER_WARNING("Battalion production not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		DEBUG_THROW(Exception, sslit("Battalion production not found"));
+	}
+	const auto &obj = it->second;
+	const auto old_map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+	if(old_map_object_type_id == MapObjectTypeId()){
+		LOG_EMPERY_CENTER_WARNING("No battalion production not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		DEBUG_THROW(Exception, sslit("Battalion production not found"));
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	obj->set_production_time_end(saturated_sub(obj->get_production_time_end(), delta_duration));
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleBattalionProduction msg;
+			fill_battalion_production_message(msg, it->second, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
+void Castle::harvest_battalion(BuildingBaseId building_base_id){
+	PROFILE_ME;
+
+	const auto it = m_battalion_production.find(building_base_id);
+	if(it == m_battalion_production.end()){
+		LOG_EMPERY_CENTER_WARNING("Battalion production not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		DEBUG_THROW(Exception, sslit("Battalion production not found"));
+	}
+	const auto &obj = it->second;
+	const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+	if(map_object_type_id == MapObjectTypeId()){
+		LOG_EMPERY_CENTER_WARNING("No battalion production not found: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		DEBUG_THROW(Exception, sslit("Battalion production not found"));
+	}
+	const auto count = obj->get_count();
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	if(utc_now < obj->get_production_time_end()){
+		LOG_EMPERY_CENTER_WARNING("Battalion production incomplete: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id);
+		DEBUG_THROW(Exception, sslit("Battalion production incomplete"));
+	}
+
+	std::vector<BattalionTransactionElement> transaction;
+	transaction.emplace_back(BattalionTransactionElement::OP_ADD, map_object_type_id, count,
+		ReasonIds::ID_HARVEST_BATTALION, map_object_type_id.get(), count, 0);
+	commit_battalion_transaction(transaction,
+		[&]{
+			obj->set_map_object_type_id(0);
+			obj->set_count(0);
+			obj->set_production_duration(0);
+			obj->set_production_time_begin(utc_now);
+			obj->set_production_time_end(utc_now);
+		});
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleBattalionProduction msg;
+			fill_battalion_production_message(msg, it->second, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
 
 void Castle::synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;

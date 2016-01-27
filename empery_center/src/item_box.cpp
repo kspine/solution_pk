@@ -184,14 +184,16 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 {
 	PROFILE_ME;
 
+	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
+	events.reserve(transaction.size());
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, std::uint64_t /* new_count */> temp_result_map;
+	temp_result_map.reserve(transaction.size());
+	std::uint64_t taxing_amount = 0;
+
 	const FlagGuard transaction_guard(m_locked_by_transaction);
 
 	const auto account_uuid = get_account_uuid();
 	const auto account = AccountMap::require(account_uuid);
-
-	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, std::uint64_t /* new_count */> temp_result_map;
-	std::uint64_t taxing_amount = 0;
 
 	bool shall_enable_gold_payment = false;
 
@@ -289,9 +291,17 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 		}
 	}
 
+	const auto withdrawn = boost::make_shared<bool>(true);
+	for(auto it = events.begin(); it != events.end(); ++it){
+		Poseidon::async_raise_event(*it, withdrawn);
+	}
 	if(callback){
 		callback();
 	}
+	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
+		it->first->set_count(it->second);
+	}
+	*withdrawn = false;
 
 	if(tax && (taxing_amount > 0)){
 		LOG_EMPERY_CENTER_DEBUG("Calculating tax: account_uuid = ", account_uuid, ", taxing_amount = ", taxing_amount);
@@ -302,15 +312,6 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
-
-	const auto withdrawn = boost::make_shared<bool>(true);
-	for(auto it = events.begin(); it != events.end(); ++it){
-		Poseidon::async_raise_event(*it, withdrawn);
-	}
-	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
-		it->first->set_count(it->second);
-	}
-	*withdrawn = false;
 
 	if(shall_enable_gold_payment){
 		const auto gold_payment_enabled = account->cast_attribute<bool>(AccountAttributeIds::ID_GOLD_PAYMENT_ENABLED);

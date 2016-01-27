@@ -149,12 +149,14 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 {
 	PROFILE_ME;
 
+	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
+	events.reserve(transaction.size());
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_AuctionTransfer>, std::uint64_t /* new_count */> temp_result_map;
+	temp_result_map.reserve(transaction.size());
+
 	const FlagGuard transaction_guard(m_locked_by_transaction);
 
 	const auto account_uuid = get_account_uuid();
-
-	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_AuctionTransfer>, std::uint64_t /* new_count */> temp_result_map;
 
 	for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
 		const auto operation   = tit->m_operation;
@@ -243,13 +245,12 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 		}
 	}
 
-	if(callback){
-		callback();
-	}
-
 	const auto withdrawn = boost::make_shared<bool>(true);
 	for(auto it = events.begin(); it != events.end(); ++it){
 		Poseidon::async_raise_event(*it, withdrawn);
+	}
+	if(callback){
+		callback();
 	}
 	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 		it->first->set_item_count(it->second);

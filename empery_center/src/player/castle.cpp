@@ -15,6 +15,7 @@
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../data/item.hpp"
+#include "../data/map_object.hpp"
 #include "../msg/err_item.hpp"
 #include "../map_utilities.hpp"
 #include "../building_ids.hpp"
@@ -94,14 +95,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
 	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
-		castle->get_buildings_by_id(prerequisite_buildings, it->first);
-		unsigned max_level = 0;
-		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
-			if(max_level < prereq_it->building_level){
-				max_level = prereq_it->building_level;
-			}
-		}
+		const auto max_level = castle->get_max_level(it->first);
 		if(max_level < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
 				", level_required = ", it->second, ", max_level = ", max_level);
@@ -182,32 +176,37 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	if(info.building_id == BuildingId()){
 		return Response(Msg::ERR_NO_BUILDING_THERE) <<building_base_id;
 	}
-	if(info.building_id == BuildingIds::ID_ACADEMY){
-		if(castle->is_tech_upgrade_in_progress()){
-			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
-		}
-	}
-	if(castle->is_battalion_production_in_progress(building_base_id)){
-		return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
-	}
 	if(info.mission != Castle::MIS_NONE){
 		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT) <<building_base_id;
 	}
 
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
+	switch(building_data->type){
+	case Data::CastleBuilding::T_ACADEMY:
+		if(castle->is_tech_upgrade_in_progress()){
+			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
+		}
+		break;
+
+	case Data::CastleBuilding::T_STABLES:
+	case Data::CastleBuilding::T_BARRACKS:
+	case Data::CastleBuilding::T_ARCHER_BARRACKS:
+	case Data::CastleBuilding::T_WEAPONRY:
+		if(castle->is_battalion_production_in_progress(building_base_id)){
+			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
+		}
+		break;
+
+	default:
+		break;
+	}
+
 	const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, info.building_level + 1);
 	if(!upgrade_data){
 		return Response(Msg::ERR_BUILDING_UPGRADE_MAX) <<info.building_id;
 	}
 	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
-		castle->get_buildings_by_id(prerequisite_buildings, it->first);
-		unsigned max_level = 0;
-		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
-			if(max_level < prereq_it->building_level){
-				max_level = prereq_it->building_level;
-			}
-		}
+		const auto max_level = castle->get_max_level(it->first);
 		if(max_level < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
 				", level_required = ", it->second, ", max_level = ", max_level);
@@ -368,14 +367,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	}
 
 	for(auto it = tech_data->prerequisite.begin(); it != tech_data->prerequisite.end(); ++it){
-		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
-		castle->get_buildings_by_id(prerequisite_buildings, it->first);
-		unsigned max_level = 0;
-		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
-			if(max_level < prereq_it->building_level){
-				max_level = prereq_it->building_level;
-			}
-		}
+		const auto max_level = castle->get_max_level(it->first);
 		if(max_level < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: tech_id = ", it->first,
 				", level_required = ", it->second, ", max_level = ", max_level);
@@ -383,14 +375,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 		}
 	}
 	for(auto it = tech_data->display_prerequisite.begin(); it != tech_data->display_prerequisite.end(); ++it){
-		std::vector<Castle::BuildingBaseInfo> prerequisite_buildings;
-		castle->get_buildings_by_id(prerequisite_buildings, it->first);
-		unsigned max_level = 0;
-		for(auto prereq_it = prerequisite_buildings.begin(); prereq_it != prerequisite_buildings.end(); ++prereq_it){
-			if(max_level < prereq_it->building_level){
-				max_level = prereq_it->building_level;
-			}
-		}
+		const auto max_level = castle->get_max_level(it->first);
 		if(max_level < it->second){
 			LOG_EMPERY_CENTER_DEBUG("Display prerequisite not met: tech_id = ", it->first,
 				", level_required = ", it->second, ", max_level = ", max_level);
@@ -805,6 +790,217 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+
+	const auto building_info = castle->get_building_base(building_base_id);
+	if(building_info.building_id == BuildingId()){
+		return Response(Msg::ERR_NO_BUILDING_THERE) <<building_base_id;
+	}
+	if(building_info.mission != Castle::MIS_NONE){
+		return Response(Msg::ERR_BARRACKS_UPGRADE_IN_PROGRESS) <<building_base_id;
+	}
+
+	const auto info = castle->get_battalion_production(building_base_id);
+	if(info.map_object_type_id != MapObjectTypeId()){
+		return Response(Msg::ERR_BATTALION_PRODUCTION_CONFLICT) <<info.map_object_type_id;
+	}
+
+	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	const auto battalion_info = castle->get_battalion(map_object_type_id);
+	if(!battalion_info.enabled){
+		return Response(Msg::ERR_BATTALION_UNAVAILABLE) <<map_object_type_id;
+	}
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	if(building_info.building_id != map_object_type_data->factory_id){
+		return Response(Msg::ERR_FACTORY_ID_MISMATCH) <<map_object_type_data->factory_id;
+	}
+
+	const auto count = req.count;
+	if(count == 0){
+		return Response(Msg::ERR_ZERO_BATTALION_COUNT);
+	}
+
+	std::vector<ResourceTransactionElement> transaction;
+	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+			ReasonIds::ID_PRODUCE_BATTALION, map_object_type_id.get(), count, 0);
+	}
+	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
+		[&]{ castle->begin_battalion_production(building_base_id, map_object_type_id, count); });
+	if(insuff_resource_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+
+	const auto info = castle->get_battalion_production(building_base_id);
+	if(info.map_object_type_id == MapObjectTypeId()){
+		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
+	}
+
+	const auto map_object_type_id = info.map_object_type_id;
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto count = info.count;
+
+	const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
+
+	std::vector<ResourceTransactionElement> transaction;
+	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD,
+			it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
+			ReasonIds::ID_CANCEL_PRODUCE_BATTALION, map_object_type_id.get(), count, 0);
+	}
+	castle->commit_resource_transaction(transaction,
+		[&]{ castle->cancel_battalion_production(building_base_id); });
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+
+	const auto info = castle->get_battalion_production(building_base_id);
+	if(info.map_object_type_id == MapObjectTypeId()){
+		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	if(utc_now < info.production_time_end){
+		return Response(Msg::ERR_BATTALION_PRODUCTION_INCOMPLETE) <<building_base_id;
+	}
+
+	castle->harvest_battalion(building_base_id);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+
+	const auto info = castle->get_battalion_production(building_base_id);
+	if(info.map_object_type_id == MapObjectTypeId()){
+		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
+	}
+
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::require(item_id);
+	if(item_data->type.first != Data::Item::CAT_UPGRADE_TURBO){
+		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_UPGRADE_TURBO;
+	}
+	if((item_data->type.second != 1) && (item_data->type.second != 2)){
+		return Response(Msg::ERR_NOT_BATTALION_PRODUCTION_ITEM) <<item_id;
+	}
+	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	const auto time_remaining = saturated_sub(info.production_time_end, utc_now);
+	const auto count_to_consume = std::min<std::uint64_t>(req.count,
+		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
+		ReasonIds::ID_SPEED_UP_BATTALION_PRODUCTION, info.map_object_type_id.get(), info.count, 0);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ castle->speed_up_battalion_production(building_base_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	const auto info = castle->get_battalion(map_object_type_id);
+	if(info.enabled){
+		return Response(Msg::ERR_BATTALION_UNLOCKED) <<map_object_type_id;
+	}
+
+	const auto map_object_type_data = Data::MapObjectType::get(map_object_type_id);
+	if(!map_object_type_data){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
+	}
+	for(auto it = map_object_type_data->prerequisite.begin(); it != map_object_type_data->prerequisite.end(); ++it){
+		const auto max_level = castle->get_max_level(it->first);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
+			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
+		}
+	}
+	const auto previous_id = map_object_type_data->previous_id;
+	if(previous_id){
+		const auto prev_info = castle->get_battalion(previous_id);
+		if(!prev_info.enabled){
+			return Response(Msg::ERR_PREREQUISITE_BATTALION_NOT_MET) <<previous_id;
+		}
+	}
+
+	std::vector<ResourceTransactionElement> transaction;
+	for(auto it = map_object_type_data->enability_cost.begin(); it != map_object_type_data->enability_cost.end(); ++it){
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+			ReasonIds::ID_ENABLE_BATTALION, map_object_type_id.get(), 0, 0);
+	}
+	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
+		[&]{ castle->enable_battalion(map_object_type_id); });
+	if(insuff_resource_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
 	return Response();

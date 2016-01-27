@@ -126,8 +126,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 //	const auto resource_id = overlay->get_resource_id();
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_data = Data::MapObject::require(map_object_type_id);
-	const auto harvest_speed = map_object_data->harvest_speed;
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto harvest_speed = map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}

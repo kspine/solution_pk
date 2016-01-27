@@ -134,6 +134,45 @@ namespace Msg {
 	FIELD_VUINT         (repeat_count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleBeginBattalionProduction
+#define MESSAGE_ID      418
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (building_base_id)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_VUINT         (count)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_CastleCancelBattalionProduction
+#define MESSAGE_ID      419
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (building_base_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_CastleHarvestBattalion
+#define MESSAGE_ID      420
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (building_base_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_CastleSpeedUpBattalionProduction
+#define MESSAGE_ID      421
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (building_base_id)	\
+	FIELD_VUINT         (item_id)	\
+	FIELD_VUINT         (count)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_CastleEnableBattalion
+#define MESSAGE_ID      422
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (map_object_type_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

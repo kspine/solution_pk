@@ -130,6 +130,7 @@ public:
 	void synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	// 各个建筑的独立接口。
+	unsigned get_max_level(BuildingId building_id) const;
 	unsigned get_level() const; // 领主府
 	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
 	bool is_tech_upgrade_in_progress() const; // 学院
@@ -171,6 +172,8 @@ public:
 	void begin_battalion_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count);
 	void cancel_battalion_production(BuildingBaseId building_base_id);
 	void speed_up_battalion_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
+
+	void harvest_battalion(BuildingBaseId building_base_id);
 
 	void synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 

@@ -54,11 +54,11 @@ namespace Data {
 
 	public:
 		unsigned building_level;
-		std::uint64_t upgrade_duration;
+		double upgrade_duration;
 		boost::container::flat_map<ResourceId, std::uint64_t> upgrade_cost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		std::uint64_t prosperity_points;
-		std::uint64_t destruct_duration;
+		double destruct_duration;
 	};
 
 	class CastleUpgradePrimary : public CastleUpgradeAbstract {
@@ -162,7 +162,7 @@ namespace Data {
 
 	public:
 		std::pair<TechId, unsigned> tech_id_level;
-		std::uint64_t upgrade_duration;
+		double upgrade_duration;
 		boost::container::flat_map<ResourceId, std::uint64_t> upgrade_cost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		boost::container::flat_map<BuildingId, unsigned> display_prerequisite;
