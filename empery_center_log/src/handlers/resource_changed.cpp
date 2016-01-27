@@ -1,7 +1,7 @@
 #include "../precompiled.hpp"
 #include <poseidon/singletons/event_dispatcher.hpp>
 #include "../mysql/resource_changed.hpp"
-#include "../../../empery_center/src/events/resource.hpp"
+#include "../../../empery_center/src/events/castle.hpp"
 
 namespace EmperyCenterLog {
 
