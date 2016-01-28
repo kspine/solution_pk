@@ -73,6 +73,20 @@ namespace {
 	{
 		PROFILE_ME;
 
+		const auto commit_or_cancel = [](const boost::shared_ptr<AuctionCenter> &auction_center, MapObjectUuid map_object_uuid){
+			PROFILE_ME;
+			LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(),
+				", map_object_uuid = ", map_object_uuid);
+
+			const auto item_box = ItemBoxMap::require(auction_center->get_account_uuid());
+
+			const auto succeeded = auction_center->commit_transfer(map_object_uuid);
+			if(!succeeded){
+				LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
+				auction_center->cancel_transfer(map_object_uuid, item_box, true);
+			}
+		};
+
 		for(auto it = transfers.begin(); it != transfers.end(); ++it){
 			const auto &obj = it->second;
 			if(obj->get_created_time() == 0){
@@ -83,22 +97,7 @@ namespace {
 			}
 
 			Poseidon::enqueue_async_job(
-				std::bind(
-					[](const boost::shared_ptr<AuctionCenter> &auction_center, MapObjectUuid map_object_uuid){
-						PROFILE_ME;
-						LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(),
-							", map_object_uuid = ", map_object_uuid);
-
-						const auto item_box = ItemBoxMap::require(auction_center->get_account_uuid());
-
-						const auto succeeded = auction_center->commit_transfer(map_object_uuid);
-						if(!succeeded){
-							LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
-							auction_center->cancel_transfer(map_object_uuid, item_box, true);
-						}
-					},
-					auction_center, map_object_uuid)
-				);
+				std::bind(commit_or_cancel, auction_center, map_object_uuid));
 		}
 	}
 }

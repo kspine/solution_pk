@@ -62,6 +62,8 @@ void accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t amount){
 	const auto send_mail_nothrow = [](const boost::shared_ptr<Account> &referrer, MailTypeId mail_type_id,
 		std::uint64_t count_to_add, const boost::shared_ptr<Account> &taxer) noexcept
 	{
+		PROFILE_ME;
+
 		if(count_to_add == 0){
 			return;
 		}
