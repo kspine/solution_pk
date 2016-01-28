@@ -257,6 +257,26 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	}
 
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
+	switch(building_data->type){
+	case Data::CastleBuilding::T_ACADEMY:
+		if(castle->is_tech_upgrade_in_progress()){
+			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
+		}
+		break;
+
+	case Data::CastleBuilding::T_STABLES:
+	case Data::CastleBuilding::T_BARRACKS:
+	case Data::CastleBuilding::T_ARCHER_BARRACKS:
+	case Data::CastleBuilding::T_WEAPONRY:
+		if(castle->is_battalion_production_in_progress(building_base_id)){
+			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
+		}
+		break;
+
+	default:
+		break;
+	}
+
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level);
 	if(upgrade_data->destruct_duration == 0){
 		return Response(Msg::ERR_BUILDING_NOT_DESTRUCTIBLE) <<info.building_id;
