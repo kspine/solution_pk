@@ -198,7 +198,7 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
-		[&]{ map_cell->set_owner(parent_object_uuid, resource_id, ticket_item_id); });
+		[&]{ map_cell->set_parent_object(parent_object_uuid, resource_id, ticket_item_id); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}

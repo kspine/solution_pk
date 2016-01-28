@@ -59,7 +59,7 @@ public:
 
 	void pump_production();
 
-	void set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
+	void set_parent_object(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
 	void set_ticket_item_id(ItemId ticket_item_id);
 
 	std::uint64_t harvest(bool saturated);

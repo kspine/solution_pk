@@ -2,17 +2,16 @@
 #include "auction_transaction.hpp"
 #include "singletons/auction_transaction_map.hpp"
 #include "mysql/auction.hpp"
-#include "singletons/auction_center_map.hpp"
 #include "auction_center.hpp"
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
-#include "singletons/mail_box_map.hpp"
 #include "mail_box.hpp"
 #include "mail_data.hpp"
 #include "mail_type_ids.hpp"
 #include "chat_message_slot_ids.hpp"
 #include "data/global.hpp"
 #include "data/item.hpp"
+#include "singletons/mail_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -82,7 +81,9 @@ bool AuctionTransaction::has_been_cancelled() const {
 const std::string &AuctionTransaction::get_operation_remarks() const {
 	return m_obj->unlocked_get_operation_remarks();
 }
-void AuctionTransaction::commit(std::string operation_remarks){
+void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, const boost::shared_ptr<AuctionCenter> &auction_center,
+	std::string operation_remarks)
+{
 	PROFILE_ME;
 
 	if(is_virtually_removed()){
@@ -95,8 +96,6 @@ void AuctionTransaction::commit(std::string operation_remarks){
 	switch(operation){
 	case OP_TRANSFER_IN:
 		{
-			const auto mail_box = MailBoxMap::require(get_account_uuid());
-
 			const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 			const auto language_id = LanguageId(); // neutral
 
@@ -142,8 +141,6 @@ void AuctionTransaction::commit(std::string operation_remarks){
 
 	case OP_TRANSFER_OUT:
 		{
-			const auto auction_center = AuctionCenterMap::require(get_account_uuid());
-
 			std::vector<AuctionTransactionElement> transaction;
 			transaction.emplace_back(AuctionTransactionElement::OP_REMOVE, get_item_id(), get_item_count(),
 				ReasonIds::ID_AUCTION_CENTER_WITHDRAW, 0, 0, 0);

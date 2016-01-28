@@ -177,6 +177,8 @@ public:
 
 	void synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
+	void undeploy();
+
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 

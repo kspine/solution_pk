@@ -7,15 +7,16 @@
 #include "item_box.hpp"
 #include "castle.hpp"
 #include "singletons/world_map.hpp"
-#include "singletons/item_box_map.hpp"
 #include "reason_ids.hpp"
 #include "data/castle.hpp"
 #include "data/item.hpp"
 #include "data/global.hpp"
 #include "checked_arithmetic.hpp"
 #include "singletons/player_session_map.hpp"
+#include "singletons/item_box_map.hpp"
 #include "player_session.hpp"
 #include "msg/sc_auction.hpp"
+#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -47,8 +48,9 @@ namespace {
 		msg.item_id = obj->get_item_id();
 		msg.count   = obj->get_item_count();
 	}
-	void fill_transfer_message(Msg::SC_AuctionTransferStatus &msg, MapObjectUuid map_object_uuid,
-		const boost::container::flat_map<ItemId, boost::shared_ptr<MySql::Center_AuctionTransfer>> &transfers, std::uint64_t utc_now)
+	void fill_transfer_message(Msg::SC_AuctionTransferStatus &msg,
+		MapObjectUuid map_object_uuid, const boost::container::flat_map<ItemId, boost::shared_ptr<MySql::Center_AuctionTransfer>> &transfers,
+		std::uint64_t utc_now)
 	{
 		PROFILE_ME;
 
@@ -65,12 +67,12 @@ namespace {
 		}
 	}
 
-	bool check_transfer(AuctionCenter *auction_center, MapObjectUuid map_object_uuid,
-		boost::container::flat_map<ItemId, boost::shared_ptr<MySql::Center_AuctionTransfer>> &transfers, std::uint64_t utc_now)
+	void check_transfer(const boost::shared_ptr<AuctionCenter> &auction_center,
+		MapObjectUuid map_object_uuid, boost::container::flat_map<ItemId, boost::shared_ptr<MySql::Center_AuctionTransfer>> &transfers,
+		std::uint64_t utc_now)
 	{
 		PROFILE_ME;
 
-		bool result = false;
 		for(auto it = transfers.begin(); it != transfers.end(); ++it){
 			const auto &obj = it->second;
 			if(obj->get_created_time() == 0){
@@ -80,15 +82,24 @@ namespace {
 				continue;
 			}
 
-			LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(), ", map_object_uuid = ", it->first);
-			const auto succeeded = auction_center->commit_transfer(map_object_uuid);
-			if(!succeeded){
-				LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
-				auction_center->cancel_transfer(map_object_uuid, true);
-			}
-			result = true;
+			Poseidon::enqueue_async_job(
+				std::bind(
+					[](const boost::shared_ptr<AuctionCenter> &auction_center, MapObjectUuid map_object_uuid){
+						PROFILE_ME;
+						LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(),
+							", map_object_uuid = ", map_object_uuid);
+
+						const auto item_box = ItemBoxMap::require(auction_center->get_account_uuid());
+
+						const auto succeeded = auction_center->commit_transfer(map_object_uuid);
+						if(!succeeded){
+							LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
+							auction_center->cancel_transfer(map_object_uuid, item_box, true);
+						}
+					},
+					auction_center, map_object_uuid)
+				);
 		}
-		return result;
 	}
 }
 
@@ -116,7 +127,7 @@ void AuctionCenter::pump_status(){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_transfers.begin(); it != m_transfers.end(); ++it){
-		check_transfer(this, it->first, it->second, utc_now);
+		check_transfer(virtual_shared_from_this<AuctionCenter>(), it->first, it->second, utc_now);
 	}
 }
 
@@ -306,7 +317,7 @@ void AuctionCenter::get_all_transfers(std::vector<AuctionCenter::TransferInfo> &
 		}
 	}
 }
-std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_object_uuid,
+std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_object_uuid, const boost::shared_ptr<ItemBox> &item_box,
 	const boost::container::flat_map<ItemId, std::uint64_t> &items)
 {
 	PROFILE_ME;
@@ -317,7 +328,6 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 		LOG_EMPERY_CENTER_WARNING("Castle not found: map_object_uuid = ", map_object_uuid);
 		DEBUG_THROW(Exception, sslit("Castle not found"));
 	}
-	const auto item_box = ItemBoxMap::require(account_uuid);
 
 	auto tit = m_transfers.find(map_object_uuid);
 	if(tit == m_transfers.end()){
@@ -512,7 +522,7 @@ ResourceId AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 		});
 	return insuff_resource_id;
 }
-void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, bool refund_fee){
+void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, const boost::shared_ptr<ItemBox> &item_box, bool refund_fee){
 	PROFILE_ME;
 
 	const auto account_uuid = get_account_uuid();
@@ -521,7 +531,6 @@ void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, bool refund_f
 		LOG_EMPERY_CENTER_WARNING("Castle not found: map_object_uuid = ", map_object_uuid);
 		DEBUG_THROW(Exception, sslit("Castle not found"));
 	}
-	const auto item_box = ItemBoxMap::require(account_uuid);
 
 	const auto tit = m_transfers.find(map_object_uuid);
 	if(tit == m_transfers.end()){
@@ -613,7 +622,7 @@ void AuctionCenter::pump_transfer_status(MapObjectUuid map_object_uuid){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	check_transfer(this, it->first, it->second, utc_now);
+	check_transfer(virtual_shared_from_this<AuctionCenter>(), it->first, it->second, utc_now);
 }
 void AuctionCenter::synchronize_transfer_with_player(MapObjectUuid map_object_uuid, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;

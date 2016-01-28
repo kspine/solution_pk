@@ -9,6 +9,8 @@
 #include "../payment_transaction.hpp"
 #include "../singletons/payment_transaction_map.hpp"
 #include "../singletons/account_map.hpp"
+#include "../singletons/item_box_map.hpp"
+#include "../singletons/mail_box_map.hpp"
 #include "../account.hpp"
 #include "../string_utilities.hpp"
 #include "../events/account.hpp"
@@ -50,12 +52,14 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 	}
 
 	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
+	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
+	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
 			account->get_platform_id(), account->get_login_name()));
 
-	payment_transaction->commit(remarks);
+	payment_transaction->commit(item_box, mail_box, remarks);
 
 	return Response();
 }

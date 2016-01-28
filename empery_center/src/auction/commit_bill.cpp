@@ -3,6 +3,8 @@
 #include "../msg/err_account.hpp"
 #include "../auction_transaction.hpp"
 #include "../singletons/auction_transaction_map.hpp"
+#include "../singletons/mail_box_map.hpp"
+#include "../singletons/auction_center_map.hpp"
 
 namespace EmperyCenter {
 
@@ -26,7 +28,10 @@ AUCTION_SERVLET("commit_bill", root, session, params){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_COMMITTED);
 	}
 
-	auction_transaction->commit(remarks);
+	const auto mail_box = MailBoxMap::require(auction_transaction->get_account_uuid());
+	const auto auction_center = AuctionCenterMap::require(auction_transaction->get_account_uuid());
+
+	auction_transaction->commit(mail_box, auction_center, remarks);
 
 	return Response();
 }

@@ -14,6 +14,9 @@ namespace MySql {
 	class Center_AuctionTransaction;
 }
 
+class MailBox;
+class AuctionCenter;
+
 class AuctionTransaction : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum Operation {
@@ -46,7 +49,8 @@ public:
 	bool has_been_committed() const;
 	bool has_been_cancelled() const;
 	const std::string &get_operation_remarks() const;
-	void commit(std::string operation_remarks);
+	void commit(const boost::shared_ptr<MailBox> &mail_box, const boost::shared_ptr<AuctionCenter> &auction_center,
+		std::string operation_remarks);
 	void cancel(std::string operation_remarks);
 
 	const std::string &get_remarks() const;

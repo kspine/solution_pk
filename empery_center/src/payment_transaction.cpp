@@ -2,14 +2,12 @@
 #include "payment_transaction.hpp"
 #include "singletons/payment_transaction_map.hpp"
 #include "mysql/payment.hpp"
-#include "singletons/item_box_map.hpp"
 #include "item_box.hpp"
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
 #include "singletons/account_map.hpp"
 #include "account.hpp"
 #include "events/account.hpp"
-#include "singletons/mail_box_map.hpp"
 #include "mail_box.hpp"
 #include "mail_data.hpp"
 #include "mail_type_ids.hpp"
@@ -18,6 +16,7 @@
 #include "item_ids.hpp"
 #include "account_utilities.hpp"
 #include "data/item.hpp"
+#include "singletons/mail_box_map.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/csv_parser.hpp>
 
@@ -111,7 +110,9 @@ bool PaymentTransaction::has_been_cancelled() const {
 const std::string &PaymentTransaction::get_operation_remarks() const {
 	return m_obj->unlocked_get_operation_remarks();
 }
-void PaymentTransaction::commit(std::string operation_remarks){
+void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, const boost::shared_ptr<MailBox> &mail_box,
+	std::string operation_remarks)
+{
 	PROFILE_ME;
 
 	if(is_virtually_removed()){
@@ -123,8 +124,6 @@ void PaymentTransaction::commit(std::string operation_remarks){
 	const auto account_uuid = get_account_uuid();
 
 	const auto account = AccountMap::require(account_uuid);
-	const auto item_box = ItemBoxMap::require(account_uuid);
-	const auto mail_box = MailBoxMap::require(account_uuid);
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(

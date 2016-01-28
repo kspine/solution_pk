@@ -213,7 +213,7 @@ void MapCell::pump_production(){
 	m_capacity        = rounded_capacity;
 }
 
-void MapCell::set_owner(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id){
+void MapCell::set_parent_object(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id){
 	PROFILE_ME;
 
 	pump_status();

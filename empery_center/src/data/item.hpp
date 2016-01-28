@@ -24,13 +24,16 @@ namespace Data {
 			CAT_UPGRADE_TURBO         =  1, // 建造加速，训练加速，研究加速
 			CAT_SIGNING_IN            =  2, // 签到专用
 			CAT_RESOURCE              =  3, // 粮食，木头，石头
-			CAT_GIFT_BOX              =  4, // 礼包
+			CAT_LEVEL_GIFT_BOX        =  4, // 充值礼包
 			CAT_LAND_PURCHASE_TICKET  =  5, // 土地购买券专用
 			CAT_LAND_UPGRADE_TICKET   =  6, // 土地升级券专用
 			CAT_RARE_RESOURCE         =  7, // 铁矿，赤铜
 			CAT_CURRENCY              =  8, // 黄金，钻石
 			CAT_ACCELERATION_CARD     =  9, // 效率卡
 			CAT_RESOURCE_BOX          = 10, // 资源包
+			// = 11, // ???
+			CAT_GIFT_BOX              = 12, // 加速礼包
+			CAT_RESOURCE_TOKEN        = 13, // 资源代币
 		};
 
 	public:

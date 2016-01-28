@@ -17,6 +17,7 @@ namespace MySql {
 	class Center_AuctionTransfer;
 }
 
+class ItemBox;
 class PlayerSession;
 
 class AuctionCenter : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
@@ -73,10 +74,10 @@ public:
 
 	void get_transfer(std::vector<TransferInfo> &ret, MapObjectUuid map_object_uuid) const;
 	void get_all_transfers(std::vector<TransferInfo> &ret) const;
-	std::pair<ResourceId, ItemId> begin_transfer(MapObjectUuid map_object_uuid,
+	std::pair<ResourceId, ItemId> begin_transfer(MapObjectUuid map_object_uuid, const boost::shared_ptr<ItemBox> &item_box,
 		const boost::container::flat_map<ItemId, std::uint64_t> &items);
 	ResourceId commit_transfer(MapObjectUuid map_object_uuid);
-	void cancel_transfer(MapObjectUuid map_object_uuid, bool refund_fee);
+	void cancel_transfer(MapObjectUuid map_object_uuid, const boost::shared_ptr<ItemBox> &item_box, bool refund_fee);
 
 	void pump_transfer_status(MapObjectUuid map_object_uuid);
 	void synchronize_transfer_with_player(MapObjectUuid map_object_uuid, const boost::shared_ptr<PlayerSession> &session) const;
