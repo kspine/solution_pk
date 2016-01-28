@@ -251,7 +251,9 @@ namespace {
 
 		boost::container::flat_map<std::string, unsigned> level_config;
 		level_config.reserve(20);
-		csv.load("empery_promotion_levels.csv");
+		constexpr char path[] = "empery_promotion_levels.csv";
+		LOG_EMPERY_CENTER_INFO("Loading csv file: path = ", path);
+		csv.load(path);
 		while(csv.fetch_row()){
 			std::string key;
 			unsigned level;

@@ -33,7 +33,9 @@ namespace {
 
 		boost::container::flat_map<unsigned, std::uint64_t> level_prices;
 		level_prices.reserve(20);
-		csv.load("empery_promotion_levels.csv");
+		constexpr char path[] = "empery_promotion_levels.csv";
+		LOG_EMPERY_CENTER_INFO("Loading csv file: path = ", path);
+		csv.load(path);
 		while(csv.fetch_row()){
 			unsigned level = 0;
 			std::uint64_t price = 0;
