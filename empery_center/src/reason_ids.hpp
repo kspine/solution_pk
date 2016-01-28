@@ -26,6 +26,7 @@ constexpr ReasonId
 	ID_CANCEL_PRODUCE_BATTALION      ( 672014 ), // 部队 ID             数量                0
 	ID_HARVEST_BATTALION             ( 672015 ), // 部队 ID             数量                0
 	ID_SPEED_UP_BATTALION_PRODUCTION ( 672016 ), // 部队 ID             数量                0
+	ID_DISMISS_BATTALION             ( 672017 ), // 部队 ID             数量                0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0
