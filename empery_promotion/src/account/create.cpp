@@ -144,10 +144,10 @@ ACCOUNT_SERVLET("create", session, params){
 			return ret;
 		}
 		accumulate_balance_bonus(new_account_id, payer_info.account_id, result.second, promotion_data->level);
-		check_auto_upgradeable(referrer_info.account_id);
 	} else {
 		ret[sslit("balanceToConsume")] = 0;
 	}
+	check_auto_upgradeable(referrer_info.account_id);
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;
 	ret[sslit("errorMessage")] = "No error";
