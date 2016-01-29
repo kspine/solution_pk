@@ -270,11 +270,11 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 					temp_it->second = 0;
 				}
 				const auto new_count = temp_it->second;
-/*
+
 				if((item_id == ItemIds::ID_DIAMONDS) || (item_id == ItemIds::ID_GOLD)){
 					taxing_amount = checked_add(taxing_amount, saturated_sub(old_count, new_count));
 				}
-*/
+
 				LOG_EMPERY_CENTER_DEBUG("& Item transaction: remove: account_uuid = ", account_uuid,
 					", item_id = ", item_id, ", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
