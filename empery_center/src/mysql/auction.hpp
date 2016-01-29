@@ -26,7 +26,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_STRING            (serial)	\
 	FIELD_UUID              (account_uuid)	\
-	FIELD_BOOLEAN           (operation)	\
+	FIELD_TINYINT_UNSIGNED  (operation)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
 	FIELD_INTEGER_UNSIGNED  (item_id)	\
