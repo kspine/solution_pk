@@ -19,6 +19,7 @@ public:
 		ACT_ATTACK              = 1,
 		ACT_DEPLOY_INTO_CASTLE  = 2,
 		ACT_HARVEST_OVERLAY     = 3,
+		ACT_ENTER_CASTLE        = 4,
 	};
 
 	struct Waypoint {

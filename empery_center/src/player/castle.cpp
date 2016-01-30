@@ -800,12 +800,12 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 	const auto count_to_consume = req.repeat_count;
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
-		ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), static_cast<std::int64_t>(count_to_consume));
+		ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
 			std::vector<ResourceTransactionElement> res_transaction;
 			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, checked_mul(count_to_consume, item_data->value),
-				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), static_cast<std::int64_t>(count_to_consume));
+				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
 			castle->commit_resource_transaction(res_transaction);
 		});
 	if(insuff_item_id){

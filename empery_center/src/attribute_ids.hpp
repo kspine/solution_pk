@@ -17,7 +17,8 @@ constexpr AttributeId
 	ID_CASTLE_LEVEL                 ( 2500007 ),
 	ID_DESERT_DEVELOPMENT           ( 2500008 ),
 	ID_WASTELAND_DEVELOPMENT        ( 2500009 ),
-	ID_PRAIRIE_DEVELOPMENT          ( 2500010 );
+	ID_PRAIRIE_DEVELOPMENT          ( 2500010 ),
+	ID_BATTALION_COUNT              ( 2500011 );
 
 }
 

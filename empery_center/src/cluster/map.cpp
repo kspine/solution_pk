@@ -3,7 +3,9 @@
 #include "../msg/ks_map.hpp"
 #include "../msg/sk_map.hpp"
 #include "../msg/err_map.hpp"
+#include "../msg/err_castle.hpp"
 #include "../msg/kill.hpp"
+#include <poseidon/endian.hpp>
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
@@ -12,6 +14,10 @@
 #include "../castle.hpp"
 #include "../overlay.hpp"
 #include "../data/map_object.hpp"
+#include "../map_utilities.hpp"
+#include "../transaction_element.hpp"
+#include "../reason_ids.hpp"
+#include "../attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -176,6 +182,55 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 	WorldMap::insert_map_object(castle);
 	LOG_EMPERY_CENTER_INFO("Created castle: castle_uuid = ", castle_uuid, ", owner_uuid = ", owner_uuid);
 	map_object->delete_from_game(); // noexcept
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto castle_uuid = MapObjectUuid(req.castle_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+	}
+	if(castle->get_owner_uuid() != map_object->get_owner_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	bool close_enough = false;
+	std::vector<Coord> foundation;
+	get_castle_foundation(foundation, castle->get_coord(), true);
+	for(auto it = foundation.begin(); it != foundation.end(); ++it){
+		if(map_object->get_coord() == *it){
+			close_enough = true;
+			break;
+		}
+	}
+	if(!close_enough){
+		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
+	}
+
+	const auto castle_uuid_head     = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
+	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	auto battalion_count = map_object->get_attribute(AttributeIds::ID_BATTALION_COUNT);
+	if(battalion_count <= 0){
+		battalion_count = 1;
+	}
+	std::vector<BattalionTransactionElement> transaction;
+	transaction.emplace_back(BattalionTransactionElement::OP_ADD, map_object->get_map_object_type_id(), battalion_count,
+		ReasonIds::ID_ENTER_CASTLE, castle_uuid_head, map_object_uuid_head, 0);
+	castle->commit_battalion_transaction(transaction,
+		[&]{ map_object->delete_from_game(); });
 
 	return Response();
 }

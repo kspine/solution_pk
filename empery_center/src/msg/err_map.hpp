@@ -49,6 +49,7 @@ namespace Msg {
 		ERR_CANNOT_DEPLOY_ON_TERRITORY          = 71338,
 		ERR_NOT_AT_MAP_EDGE                     = 71339,
 		ERR_SWITCHED_CLUSTER                    = 71340,
+		ERR_TOO_FAR_FROM_CASTLE                 = 71341,
 	};
 }
 
