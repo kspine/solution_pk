@@ -673,7 +673,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 				account->get_account_uuid(), map_object_uuid, std::string(), coord, utc_now);
 			immigrants->pump_status();
 			WorldMap::insert_map_object(immigrants);
-			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid, ", account_uuid = ", account->get_account_uuid());
+			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid,
+				", account_uuid = ", account->get_account_uuid());
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;

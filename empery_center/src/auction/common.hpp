@@ -32,7 +32,7 @@ AUCTION_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 				::Poseidon::OptionalMap params_)	\
 			{	\
 				PROFILE_ME;	\
-				LOG_EMPERY_CENTER_INFO("Auction servlet request: uri = ", uri_);	\
+				LOG_EMPERY_CENTER_DEBUG("Auction servlet request: uri = ", uri_);	\
 				return TOKEN_CAT3(AuctionServlet, __LINE__, Proc_) (root_, session_, ::std::move(params_));	\
 			}	\
 		}	\

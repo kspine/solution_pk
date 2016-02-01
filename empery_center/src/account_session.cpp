@@ -69,8 +69,7 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AccountHttpSession::predi
 
 void AccountHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-		"Accepted account HTTP request from ", get_remote_info());
+	LOG_EMPERY_CENTER_DEBUG("Accepted account HTTP request from ", get_remote_info());
 
 	Poseidon::OptionalMap headers;
 	headers.set(sslit("Access-Control-Allow-Origin"),  "*");

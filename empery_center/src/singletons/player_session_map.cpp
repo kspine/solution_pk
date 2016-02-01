@@ -46,7 +46,7 @@ namespace {
 		const auto next = g_session_map->erase<1>(it);
 
 		try {
-			LOG_EMPERY_CENTER_INFO("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
+			LOG_EMPERY_CENTER_DEBUG("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
 			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
@@ -174,7 +174,7 @@ void PlayerSessionMap::add(const boost::shared_ptr<Account> &account, const boos
 			}
 
 			const auto remote_ip = std::string(session->get_remote_info().ip.get());
-			LOG_EMPERY_CENTER_INFO("Player goes online: account_uuid = ", account_uuid, ", remote_ip = ", remote_ip);
+			LOG_EMPERY_CENTER_DEBUG("Player goes online: account_uuid = ", account_uuid, ", remote_ip = ", remote_ip);
 			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedIn>(account_uuid, remote_ip));
 			break;
 		}
@@ -185,7 +185,7 @@ void PlayerSessionMap::add(const boost::shared_ptr<Account> &account, const boos
 		}
 		if(other_session){
 			other_session->shutdown(Msg::KILL_SESSION_GHOSTED, { });
-			LOG_EMPERY_CENTER_INFO("Session ghosted: account_uuid = ", account_uuid);
+			LOG_EMPERY_CENTER_DEBUG("Session ghosted: account_uuid = ", account_uuid);
 		}
 		g_session_map->erase(result.first);
 	}
