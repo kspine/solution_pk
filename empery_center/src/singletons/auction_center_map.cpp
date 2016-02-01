@@ -8,6 +8,7 @@
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include "../auction_center.hpp"
 #include "../mysql/auction.hpp"
+#include "account_map.hpp"
 
 namespace EmperyCenter {
 
@@ -79,6 +80,12 @@ boost::shared_ptr<AuctionCenter> AuctionCenterMap::get(AccountUuid account_uuid)
 	const auto auction_center_map = g_auction_center_map.lock();
 	if(!auction_center_map){
 		LOG_EMPERY_CENTER_WARNING("AuctionCenterMap is not loaded.");
+		return { };
+	}
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		return { };
 	}
 

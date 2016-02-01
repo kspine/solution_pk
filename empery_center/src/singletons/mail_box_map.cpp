@@ -10,6 +10,7 @@
 #include "../mail_box.hpp"
 #include "../mail_data.hpp"
 #include "../mysql/mail.hpp"
+#include "account_map.hpp"
 
 namespace EmperyCenter {
 
@@ -131,6 +132,12 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 	const auto mail_box_map = g_mail_box_map.lock();
 	if(!mail_box_map){
 		LOG_EMPERY_CENTER_WARNING("MailBoxMap is not loaded.");
+		return { };
+	}
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		return { };
 	}
 

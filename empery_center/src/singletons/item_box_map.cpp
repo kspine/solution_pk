@@ -8,6 +8,7 @@
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include "../item_box.hpp"
 #include "../mysql/item.hpp"
+#include "account_map.hpp"
 
 namespace EmperyCenter {
 
@@ -79,6 +80,12 @@ boost::shared_ptr<ItemBox> ItemBoxMap::get(AccountUuid account_uuid){
 	const auto item_box_map = g_item_box_map.lock();
 	if(!item_box_map){
 		LOG_EMPERY_CENTER_WARNING("ItemBoxMap is not loaded.");
+		return { };
+	}
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		return { };
 	}
 

@@ -5,6 +5,7 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "../chat_box.hpp"
+#include "account_map.hpp"
 
 namespace EmperyCenter {
 
@@ -71,6 +72,12 @@ boost::shared_ptr<ChatBox> ChatBoxMap::get(AccountUuid account_uuid){
 	const auto chat_box_map = g_chat_box_map.lock();
 	if(!chat_box_map){
 		LOG_EMPERY_CENTER_WARNING("ChatBoxMap is not loaded.");
+		return { };
+	}
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
 		return { };
 	}
 
