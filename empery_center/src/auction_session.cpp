@@ -69,8 +69,7 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AuctionHttpSession::predi
 
 void AuctionHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-		"Accepted auction HTTP request from ", get_remote_info());
+	LOG_EMPERY_CENTER_DEBUG("Accepted auction HTTP request from ", get_remote_info());
 
 	Poseidon::OptionalMap headers;
 	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
