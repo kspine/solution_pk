@@ -351,8 +351,8 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	old_coord = map_object->get_coord();
 	const auto old_cluster_scope = WorldMap::get_cluster_scope(old_coord);
 
-	const auto border_thickness  = static_cast<unsigned>(Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS));
-	const auto bypassable_blocks = static_cast<unsigned>(Data::Global::as_unsigned(Data::Global::SLOT_MAP_SWITCH_MAX_BYPASSABLE_BLOCKS));
+	const unsigned border_thickness  = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
+	const unsigned bypassable_blocks = Data::Global::as_unsigned(Data::Global::SLOT_MAP_SWITCH_MAX_BYPASSABLE_BLOCKS);
 
 	const auto old_cluster_coord = old_cluster_scope.bottom_left();
 	const auto old_map_x = static_cast<unsigned>(old_coord.x() - old_cluster_coord.x());
@@ -370,41 +370,44 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 		switch(direction){
 		case 0:  // x+
 			if(old_map_x != old_cluster_scope.width() - border_thickness - 1){
-				LOG_EMPERY_CENTER_DEBUG("> Not at right edge.");
+				LOG_EMPERY_CENTER_DEBUG("> Not at right edge: old_map_x = ", old_map_x);
 				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
 			}
 			new_cluster_coord = Coord(old_cluster_coord.x() + static_cast<std::int64_t>(old_cluster_scope.width()),
-			                         old_cluster_coord.y());
+			                          old_cluster_coord.y());
 			new_map_x = border_thickness;
 			bypass_dx = 1;
 			break;
+
 		case 1:  // y+
 			if(old_map_y != old_cluster_scope.height() - border_thickness - 1){
-				LOG_EMPERY_CENTER_DEBUG("> Not at top edge.");
+				LOG_EMPERY_CENTER_DEBUG("> Not at top edge: old_map_y = ", old_map_y);
 				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
 			}
 			new_cluster_coord = Coord(old_cluster_coord.x(),
-			                         old_cluster_coord.y() + static_cast<std::int64_t>(old_cluster_scope.height()));
+			                          old_cluster_coord.y() + static_cast<std::int64_t>(old_cluster_scope.height()));
 			new_map_y = border_thickness;
 			bypass_dy = 1;
 			break;
+
 		case 2:  // x-
 			if(old_map_x != border_thickness){
-				LOG_EMPERY_CENTER_DEBUG("> Not at left edge.");
+				LOG_EMPERY_CENTER_DEBUG("> Not at left edge: old_map_x = ", old_map_x);
 				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
 			}
 			new_cluster_coord = Coord(old_cluster_coord.x() - static_cast<std::int64_t>(old_cluster_scope.width()),
-			                         old_cluster_coord.y());
+			                          old_cluster_coord.y());
 			new_map_x = old_cluster_scope.width() - border_thickness - 1;
 			bypass_dx = -1;
 			break;
+
 		default: // y-
 			if(old_map_y != border_thickness){
-				LOG_EMPERY_CENTER_DEBUG("> Not at bottom edge.");
+				LOG_EMPERY_CENTER_DEBUG("> Not at bottom edge: old_map_y = ", old_map_y);
 				return Response(Msg::ERR_NOT_AT_MAP_EDGE);
 			}
 			new_cluster_coord = Coord(old_cluster_coord.x(),
-			                         old_cluster_coord.y() - static_cast<std::int64_t>(old_cluster_scope.height()));
+			                          old_cluster_coord.y() - static_cast<std::int64_t>(old_cluster_scope.height()));
 			new_map_y = old_cluster_scope.height() - border_thickness - 1;
 			bypass_dy = -1;
 			break;
@@ -417,67 +420,66 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_cluster_coord;
 	}
 
-	auto new_coord = Coord(new_cluster_coord.x() + new_map_x, new_cluster_coord.y() + new_map_y);
-
-	unsigned bypass_count = 0;
-	std::pair<long, std::string> result;
-	for(;;){
-		{
-			const auto new_map_cell = WorldMap::get_map_cell(new_coord);
-			if(new_map_cell){
-				const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
-				if(cell_owner_uuid && (account->get_account_uuid() != cell_owner_uuid)){
-					LOG_EMPERY_CENTER_DEBUG("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
-					result = Response(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
-					goto _retry;
-				}
+	const auto try_once = [&](Coord new_coord) -> std::pair<long, std::string> {
+		const auto new_map_cell = WorldMap::get_map_cell(new_coord);
+		if(new_map_cell){
+			const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
+			if(cell_owner_uuid && (account->get_account_uuid() != cell_owner_uuid)){
+				LOG_EMPERY_CENTER_DEBUG("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
+				return Response(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
 			}
+		}
 
-			const auto cell_data = Data::MapCellBasic::require(new_map_x, new_map_y);
-			const auto terrain_id = cell_data->terrain_id;
-			const auto terrain_data = Data::MapTerrain::require(terrain_id);
-			if(!terrain_data->passable){
-				LOG_EMPERY_CENTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
-				result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
-				goto _retry;
+		const auto cell_data = Data::MapCellBasic::require(new_map_x, new_map_y);
+		const auto terrain_id = cell_data->terrain_id;
+		const auto terrain_data = Data::MapTerrain::require(terrain_id);
+		if(!terrain_data->passable){
+			LOG_EMPERY_CENTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
+			return Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
+		}
+
+		std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+		WorldMap::get_map_objects_by_rectangle(adjacent_objects,
+			Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 4, new_coord.y() + 4)));
+		std::vector<Coord> foundation;
+		for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
+			const auto &other_object = *it;
+			const auto other_map_object_uuid = other_object->get_map_object_uuid();
+			const auto other_coord = other_object->get_coord();
+			if(new_coord == other_coord){
+				LOG_EMPERY_CENTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
+				return Response(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
 			}
-
-			std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
-			WorldMap::get_map_objects_by_rectangle(adjacent_objects,
-				Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 4, new_coord.y() + 4)));
-			std::vector<Coord> foundation;
-			for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
-				const auto &other_object = *it;
-				const auto other_map_object_uuid = other_object->get_map_object_uuid();
-				const auto other_coord = other_object->get_coord();
-				if(new_coord == other_coord){
-					LOG_EMPERY_CENTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
-					result = Response(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
-					goto _retry;
-				}
-				const auto other_object_type_id = other_object->get_map_object_type_id();
-				if(other_object_type_id != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
-					continue;
-				}
-				foundation.clear();
-				get_castle_foundation(foundation, other_coord, false);
-				for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
-					if(new_coord == *fit){
-						LOG_EMPERY_CENTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
-						result = Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
-						goto _retry;
-					}
+			const auto other_object_type_id = other_object->get_map_object_type_id();
+			if(other_object_type_id != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
+			foundation.clear();
+			get_castle_foundation(foundation, other_coord, false);
+			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
+				if(new_coord == *fit){
+					LOG_EMPERY_CENTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
+					return Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
 				}
 			}
 		}
-		break;
+		return Response();
+	};
 
-	_retry:
+	unsigned bypass_count = 0;
+	auto new_coord = Coord(new_cluster_coord.x() + new_map_x, new_cluster_coord.y() + new_map_y);
+	for(;;){
+		auto result = try_once(new_coord);
+		if(result.first == Msg::ST_OK){
+			break;
+		}
+
 		if(bypass_count >= bypassable_blocks){
 			LOG_EMPERY_CENTER_DEBUG("Max bypass block count exceeded. Give up.");
 			return std::move(result);
 		}
 		++bypass_count;
+
 		new_coord = Coord(new_coord.x() + bypass_dx, new_coord.y() + bypass_dy);
 		LOG_EMPERY_CENTER_DEBUG("Trying next point: new_coord = ", new_coord);
 	}
