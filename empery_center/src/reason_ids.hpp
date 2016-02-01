@@ -8,7 +8,7 @@ namespace EmperyCenter {
 namespace ReasonIds {
 
 constexpr ReasonId
-	                                              // param1              param2              param3
+	                                             // param1              param2              param3
 	ID_ADMIN_OPERATION               ( 671001 ), // 自定义              自定义              自定义
 	ID_UPGRADE_BUILDING              ( 672001 ), // 建筑 ID             等级                0
 	ID_CANCEL_UPGRADE_BUILDING       ( 672002 ), // 建筑 ID             等级                0
@@ -37,6 +37,7 @@ constexpr ReasonId
 	ID_AUCTION_TRANSFER_COMMIT       ( 673007 ), // 0                   0                   0
 	ID_AUCTION_TRANSFER_UNLOCK       ( 673008 ), // 0                   0                   0
 	ID_AUCTION_CENTER_WITHDRAW       ( 673009 ), // 0                   0                   0
+	ID_TASK_REWARD                   ( 673010 ), // 任务 ID             0                   0
 
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0
