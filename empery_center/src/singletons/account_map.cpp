@@ -184,7 +184,7 @@ namespace {
 				public_end = attributes.upper_bound(AccountAttributeIds::ID_PUBLIC_END);
 			}
 		};
-		const auto copy_attributes  = [&](decltype(attributes)::iterator begin, decltype(attributes)::iterator end){
+		const auto copy_attributes  = [&](decltype(attributes.begin()) begin, decltype(attributes.begin()) end){
 			for(auto it = begin; it != end; ++it){
 				auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 				attribute.account_attribute_id = it->first.get();
@@ -198,7 +198,7 @@ namespace {
 		}
 		if(flags & CT_PRIV_ATTRS){
 			fetch_attributes();
-			copy_attributes(public_end, attributes.end());
+			copy_attributes(public_end, attributes.upper_bound(AccountAttributeIds::ID_END));
 		}
 
 		// items

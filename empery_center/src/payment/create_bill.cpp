@@ -86,7 +86,7 @@ PAYMENT_SERVLET("create_bill/alternative_gold_coins", root, session, params){
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
-			platform_id, login_name));
+			boost::shared_ptr<long>(), platform_id, login_name, std::string()));
 
 	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
 	if(!account){
@@ -113,7 +113,7 @@ PAYMENT_SERVLET("create_bill/alternative_gift_box", root, session, params){
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
-			platform_id, login_name));
+			boost::shared_ptr<long>(), platform_id, login_name, std::string()));
 
 	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
 	if(!account){

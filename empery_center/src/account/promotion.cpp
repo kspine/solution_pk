@@ -283,7 +283,10 @@ namespace {
 					return;
 				}
 				LOG_EMPERY_CENTER_DEBUG("Updating account level from promotion server: login_name = ", event->login_name);
-				check_login_backtrace(event->login_name, std::string(), std::string());
+				auto result = check_login_backtrace(event->login_name, event->third_token, std::string());
+				if(event->error_code){
+					*(event->error_code) = result.first;
+				}
 			});
 		LOG_EMPERY_CENTER_DEBUG("Created AccountSynchronizeWithThirdServer listener.");
 		handles.push(std::move(listener));
@@ -317,6 +320,7 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 	modifiers.reserve(4);
 	modifiers[AccountAttributeIds::ID_LOGIN_TOKEN]             = token;
 	modifiers[AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME] = boost::lexical_cast<std::string>(token_expiry_time);
+	modifiers[AccountAttributeIds::ID_SAVED_THIRD_TOKEN]       = password;
 	account->set_attributes(std::move(modifiers));
 
 	root[sslit("hasBeenActivated")]    = account->has_been_activated();

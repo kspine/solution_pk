@@ -38,11 +38,15 @@ namespace Events {
 	};
 
 	struct AccountSynchronizeWithThirdServer : public Poseidon::EventBase<340104> {
+		boost::shared_ptr<long> error_code;
 		PlatformId platform_id;
 		std::string login_name;
+		std::string third_token;
 
-		AccountSynchronizeWithThirdServer(PlatformId platform_id_, std::string login_name_)
-			: platform_id(platform_id_), login_name(std::move(login_name_))
+		AccountSynchronizeWithThirdServer(boost::shared_ptr<long> error_code_,
+			PlatformId platform_id_, std::string login_name_, std::string third_token_)
+			: error_code(std::move(error_code_))
+			, platform_id(platform_id_), login_name(std::move(login_name_)), third_token(std::move(third_token_))
 		{
 		}
 	};

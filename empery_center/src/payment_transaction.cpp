@@ -127,7 +127,7 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
-			account->get_platform_id(), account->get_login_name()));
+			boost::shared_ptr<long>(), account->get_platform_id(), account->get_login_name(), std::string()));
 
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 	const auto language_id = LanguageId(); // neutral

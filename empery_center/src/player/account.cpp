@@ -13,6 +13,7 @@
 #include "../item_box.hpp"
 #include "../transaction_element.hpp"
 #include "../checked_arithmetic.hpp"
+#include "../events/account.hpp"
 
 namespace EmperyCenter {
 
@@ -68,7 +69,8 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	const auto platform_id  = PlatformId(req.platform_id);
 	const auto &login_name  = req.login_name;
 	const auto &login_token = req.login_token;
-	LOG_EMPERY_CENTER_INFO("Account login: platform_id = ", platform_id, ", login_name = ", login_name, ", login_token = ", login_token);
+
+	LOG_EMPERY_CENTER_DEBUG("Account login: platform_id = ", platform_id, ", login_name = ", login_name, ", login_token = ", login_token);
 
 	const auto old_account = PlayerSessionMap::get_account(session);
 	if(old_account){
@@ -82,6 +84,16 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	if(!account->has_been_activated()){
 		return Response(Msg::ERR_ACTIVATE_YOUR_ACCOUNT) <<login_name;
 	}
+
+	const auto third_error_code = boost::make_shared<long>(Msg::ST_OK);
+	Poseidon::sync_raise_event(
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(third_error_code,
+			account->get_platform_id(), account->get_login_name(), account->get_attribute(AccountAttributeIds::ID_SAVED_THIRD_TOKEN)));
+	if(*third_error_code != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Third server returned an error: third_error_code = ", *third_error_code);
+		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
+	}
+
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);
 	if(utc_now >= expected_token_expiry_time){

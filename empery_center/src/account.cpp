@@ -11,6 +11,7 @@
 #include "map_object_type_ids.hpp"
 #include "singletons/global_status.hpp"
 #include "checked_arithmetic.hpp"
+#include "account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -273,7 +274,8 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 			msg.account_uuid    = account_uuid.str();
 			msg.nick            = m_obj->unlocked_get_nick();
 			msg.attributes.reserve(modifiers.size());
-			for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
+			const auto range = std::make_pair(modifiers.begin(), modifiers.upper_bound(AccountAttributeIds::ID_END));
+			for(auto it = range.first; it != range.second; ++it){
 				const auto &obj = m_attributes.at(it->first);
 
 				auto &attribute = *msg.attributes.emplace(msg.attributes.end());

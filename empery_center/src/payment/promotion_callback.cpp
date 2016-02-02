@@ -57,7 +57,7 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
-			account->get_platform_id(), account->get_login_name()));
+			boost::shared_ptr<long>(), account->get_platform_id(), account->get_login_name(), std::string()));
 
 	payment_transaction->commit(item_box, mail_box, remarks);
 
