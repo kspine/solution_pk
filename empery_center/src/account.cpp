@@ -74,13 +74,11 @@ namespace {
 		}
 		const auto front_it = clusters_by_castle_count.begin();
 
-		auto new_limit = old_limit;
-		if(new_limit == 0){
-			const auto limit_init = get_config<std::uint64_t>("cluster_map_castle_limit_init", 300);
-			new_limit = limit_init;
-		} else if(new_limit <= front_it->first){
+		const auto limit_init = get_config<std::uint64_t>("cluster_map_castle_limit_init", 300);
+		auto new_limit = limit_init;
+		if(front_it->first >= limit_init){
 			const auto limit_increment = get_config<std::uint64_t>("cluster_map_castle_limit_increment", 200);
-			new_limit += ((front_it->first - new_limit) / limit_increment + 1) * limit_increment;
+			new_limit = saturated_add(new_limit, saturated_mul((front_it->first - limit_init) / limit_increment + 1, limit_increment));
 		}
 		LOG_EMPERY_CENTER_DEBUG("Resetting castle limit: old_limit = ", old_limit, ", new_limit = ", new_limit);
 
