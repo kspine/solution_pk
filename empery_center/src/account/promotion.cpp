@@ -29,7 +29,7 @@ namespace {
 	std::string g_server_auth    = { };
 	std::string g_server_path    = { };
 
-	boost::container::flat_map<std::string, unsigned> g_level_config;
+	boost::container::flat_map<std::uint64_t, unsigned> g_level_config;
 
 	std::string g_sms_host       = "localhost";
 	unsigned    g_sms_port       = 80;
@@ -77,8 +77,15 @@ namespace {
 			const auto &referrers_array = referrers_it->second.get<Poseidon::JsonArray>();
 
 			const auto check_account = [](AccountUuid referrer_uuid, const std::string &cur_login_name, const Poseidon::JsonObject &elem){
-				const auto &level_str = elem.at(sslit("level")).get<std::string>();
-				const unsigned cur_level = g_level_config.at(level_str);
+				const auto level = boost::lexical_cast<std::uint64_t>(elem.at(sslit("level")).get<std::string>());
+				unsigned cur_level = 1;
+				{
+					auto level_it = g_level_config.upper_bound(level);
+					if(level_it != g_level_config.begin()){
+						--level_it;
+						cur_level = level_it->second;
+					}
+				}
 				const auto &cur_nick = elem.at(sslit("nick")).get<std::string>();
 				const auto is_auction_center_enabled = elem.at(sslit("isAuctionCenterEnabled")).get<bool>();
 				const auto has_acceleration_cards = elem.at(sslit("hasAccelerationCards")).get<bool>();
@@ -249,19 +256,19 @@ namespace {
 
 		Poseidon::CsvParser csv;
 
-		boost::container::flat_map<std::string, unsigned> level_config;
+		boost::container::flat_map<std::uint64_t, unsigned> level_config;
 		level_config.reserve(20);
 		constexpr char path[] = "empery_promotion_levels.csv";
 		LOG_EMPERY_CENTER_INFO("Loading csv file: path = ", path);
 		csv.load(path);
 		while(csv.fetch_row()){
-			std::string key;
+			std::uint64_t key;
 			unsigned level;
 
 			csv.get(key,   "level");
 			csv.get(level, "displayLevel");
 
-			if(!level_config.emplace(std::move(key), level).second){
+			if(!level_config.emplace(key, level).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate promotion level: key = ", key);
 				DEBUG_THROW(Exception, sslit("Duplicate promotion level"));
 			}
