@@ -115,12 +115,6 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 {
 	PROFILE_ME;
 
-	if(is_virtually_removed()){
-		LOG_EMPERY_CENTER_ERROR("Payment transaction has been virtually removed: serial = ", get_serial(),
-			", expiry_time = ", get_expiry_time(), ", committed = ", has_been_committed(), ", cancelled = ", has_been_cancelled());
-		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
-	}
-
 	const auto account_uuid = get_account_uuid();
 
 	const auto account = AccountMap::require(account_uuid);
@@ -128,6 +122,12 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
 			boost::shared_ptr<long>(), account->get_platform_id(), account->get_login_name(), std::string()));
+
+	if(is_virtually_removed()){
+		LOG_EMPERY_CENTER_ERROR("Payment transaction has been virtually removed: serial = ", get_serial(),
+			", expiry_time = ", get_expiry_time(), ", committed = ", has_been_committed(), ", cancelled = ", has_been_cancelled());
+		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
+	}
 
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 	const auto language_id = LanguageId(); // neutral
