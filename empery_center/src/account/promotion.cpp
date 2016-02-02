@@ -355,7 +355,7 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 
 	const auto token_expiry_duration = get_config<std::uint64_t>("account_token_expiry_duration", 0);
 
-	const auto token_expiry_time = boost::lexical_cast<std::uint64_t>(params.at("login_token_expiry_time"));
+	const auto token_expiry_time = saturated_add(utc_now, token_expiry_duration);
 
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 	modifiers.reserve(4);
