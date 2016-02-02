@@ -38,7 +38,7 @@ namespace {
 				}
 			}
 			object.clear();
-			csv.get(object, "enability_cost");
+			csv.get(object, "levelup_resource");
 			elem.enability_cost.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
