@@ -61,6 +61,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/sell_acceleration_cards.cpp	\
 	src/account/buy_diamonds.cpp	\
 	src/account/buy_gift_box.cpp	\
+	src/account/buy_large_gift_box.cpp	\
 	src/account/buy_gold_coins.cpp	\
 	src/account/auction_transfer_in.cpp	\
 	src/account/auction_transfer_out.cpp	\

@@ -119,7 +119,35 @@ PAYMENT_SERVLET("create_bill/alternative_gift_box", root, session, params){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
-	const auto item_data = Data::Item::get_by_type(Data::Item::CAT_GIFT_BOX, promotion_level);
+	const auto item_data = Data::Item::get_by_type(Data::Item::CAT_LEVEL_GIFT_BOX, promotion_level);
+	if(!item_data){
+		return Response(Msg::ERR_NO_SUCH_PROMOTION_LEVEL);
+	}
+
+	const auto payment_transaction = really_create_bill(account->get_account_uuid(), item_data->item_id, 1, remarks);
+
+	Poseidon::JsonObject object;
+	fill_payment_transaction_object(object, payment_transaction);
+	root[sslit("payment_transaction")] = std::move(object);
+
+	return Response();
+}
+
+PAYMENT_SERVLET("create_bill/alternative_large_gift_box", root, session, params){
+	const auto platform_id     = boost::lexical_cast<PlatformId>(params.at("platform_id"));
+	const auto &login_name     = params.at("login_name");
+	const auto promotion_level = boost::lexical_cast<unsigned>(params.at("promotion_level"));
+	const auto &remarks        = params.get("remarks");
+
+	Poseidon::sync_raise_event(
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
+			boost::shared_ptr<long>(), platform_id, login_name, std::string()));
+
+	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
+	}
+	const auto item_data = Data::Item::get_by_type(Data::Item::CAT_LARGE_LEVEL_GIFT_BOX, promotion_level);
 	if(!item_data){
 		return Response(Msg::ERR_NO_SUCH_PROMOTION_LEVEL);
 	}

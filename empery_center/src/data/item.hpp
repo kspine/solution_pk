@@ -34,6 +34,7 @@ namespace Data {
 			// = 11, // ???
 			CAT_GIFT_BOX              = 12, // 加速礼包
 			CAT_RESOURCE_TOKEN        = 13, // 资源代币
+			CAT_LARGE_LEVEL_GIFT_BOX  = 14, // 大充值礼包
 		};
 
 	public:

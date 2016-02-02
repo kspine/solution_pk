@@ -142,9 +142,10 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 	const auto item_data = Data::Item::require(item_id);
 
 	std::uint64_t taxing_amount = 0;
-	if(item_data->type.first == Data::Item::CAT_GIFT_BOX){
+	if((item_data->type.first == Data::Item::CAT_LEVEL_GIFT_BOX) || (item_data->type.first == Data::Item::CAT_LARGE_LEVEL_GIFT_BOX)){
 		const auto level = item_data->type.second;
-		LOG_EMPERY_CENTER_DEBUG("Gift box: item_id = ", item_id, ", level = ", level, ", item_count = ", item_count);
+		LOG_EMPERY_CENTER_DEBUG("Gift box: item_id = ", item_id, ", type = ", (unsigned)item_data->type.first,
+			", level = ", level, ", item_count = ", item_count);
 		const auto unit_price = g_level_prices.at(level);
 		taxing_amount = checked_mul(unit_price, item_count);
 
