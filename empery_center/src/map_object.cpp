@@ -8,6 +8,7 @@
 #include "msg/sc_map.hpp"
 #include "msg/sk_map.hpp"
 #include "singletons/account_map.hpp"
+#include "attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -117,6 +118,16 @@ void MapObject::delete_from_game() noexcept {
 	m_obj->set_deleted(true);
 
 	WorldMap::remove_map_object(get_map_object_uuid());
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			synchronize_with_player(session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 std::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
@@ -163,7 +174,14 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 		return;
 	}
 
-	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+	if(!m_obj->get_deleted()){
+		const auto soldier_count = get_attribute(AttributeIds::ID_SOLDIER_COUNT);
+		if(soldier_count <= 0){
+			WorldMap::remove_map_object(get_map_object_uuid());
+		} else {
+			WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+		}
+	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
