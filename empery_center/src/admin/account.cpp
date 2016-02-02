@@ -109,6 +109,7 @@ ADMIN_SERVLET("account/insert", root, session, params){
 	const auto &login_name = params.at("login_name");
 	const auto referrer_uuid = AccountUuid(params.at("referrer_uuid"));
 	const auto promotion_level = boost::lexical_cast<unsigned>(params.at("promotion_level"));
+	const auto &login_token = params.get("login_token");
 
 	auto account = AccountMap::get_by_login_name(platform_id, login_name);
 	if(account){
@@ -127,10 +128,14 @@ ADMIN_SERVLET("account/insert", root, session, params){
 	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name);
 	AccountMap::insert(account, session->get_remote_info().ip.get());
 
-	const auto &login_token = params.get("login_token");
 	if(!login_token.empty()){
-		const auto login_token_expiry_time = boost::lexical_cast<std::uint64_t>(params.at("login_token_expiry_time"));
-		account->set_login_token(login_token, login_token_expiry_time);
+		const auto token_expiry_time = boost::lexical_cast<std::uint64_t>(params.at("login_token_expiry_time"));
+
+		boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+		modifiers.reserve(4);
+		modifiers[AccountAttributeIds::ID_LOGIN_TOKEN]             = login_token;
+		modifiers[AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME] = boost::lexical_cast<std::string>(token_expiry_time);
+		account->set_attributes(std::move(modifiers));
 	}
 
 	root[sslit("account_uuid")] = account_uuid.str();
@@ -207,7 +212,11 @@ ADMIN_SERVLET("account/ban", root, session, params){
 
 	const auto utc_now = Poseidon::get_utc_time();
 	if(utc_now < banned_until){
-		account->set_login_token({ }, 0);
+		boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+		modifiers.reserve(4);
+		modifiers[AccountAttributeIds::ID_LOGIN_TOKEN]             = { };
+		modifiers[AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME] = { };
+		account->set_attributes(std::move(modifiers));
 
 		const auto session = PlayerSessionMap::get(account_uuid);
 		if(session){

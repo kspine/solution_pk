@@ -44,10 +44,6 @@ public:
 	bool has_been_activated() const;
 	void activate();
 
-	const std::string &get_login_token() const;
-	std::uint64_t get_login_token_expiry_time() const;
-	void set_login_token(std::string login_token, std::uint64_t login_token_expiry_time);
-
 	std::uint64_t get_banned_until() const;
 	void set_banned_until(std::uint64_t banned_until);
 

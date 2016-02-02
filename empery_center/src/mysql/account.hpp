@@ -17,8 +17,6 @@ namespace MySql {
 	FIELD_DATETIME          (created_time)	\
 	FIELD_STRING            (nick)	\
 	FIELD_BOOLEAN           (activated)	\
-	FIELD_STRING            (login_token)	\
-	FIELD_DATETIME          (login_token_expiry_time)	\
 	FIELD_DATETIME          (banned_until)	\
 	FIELD_DATETIME          (quieted_until)
 #include <poseidon/mysql/object_generator.hpp>

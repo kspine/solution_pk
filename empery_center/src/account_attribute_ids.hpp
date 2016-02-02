@@ -33,7 +33,10 @@ constexpr AccountAttributeId
 	ID_VERIF_CODE                     ( 500 ),
 	ID_VERIF_CODE_EXPIRY_TIME         ( 501 ),
 	ID_VERIF_CODE_COOLDOWN            ( 502 ),
-	ID_CASTLE_HARVESTED_COOLDOWN      ( 503 );
+	ID_CASTLE_HARVESTED_COOLDOWN      ( 503 ),
+	ID_LOGIN_TOKEN                    ( 504 ),
+	ID_LOGIN_TOKEN_EXPIRY_TIME        ( 505 ),
+	ID_SAVED_THIRD_TOKEN              ( 506 );
 
 }
 

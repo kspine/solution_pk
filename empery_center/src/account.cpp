@@ -99,7 +99,7 @@ Account::Account(AccountUuid account_uuid, PlatformId platformId, std::string lo
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Account>(account_uuid.get(), platformId.get(), std::move(login_name),
-				referrer_uuid.get(), promotion_level, created_time, std::move(nick), false, std::string(), 0, 0, 0);
+				referrer_uuid.get(), promotion_level, created_time, std::move(nick), false, 0, 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -211,17 +211,6 @@ void Account::activate(){
 	m_obj->set_activated(true);
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
-}
-
-const std::string &Account::get_login_token() const {
-	return m_obj->unlocked_get_login_token();
-}
-std::uint64_t Account::get_login_token_expiry_time() const {
-	return m_obj->get_login_token_expiry_time();
-}
-void Account::set_login_token(std::string login_token, std::uint64_t login_token_expiry_time){
-	m_obj->set_login_token(std::move(login_token));
-	m_obj->set_login_token_expiry_time(login_token_expiry_time);
 }
 
 std::uint64_t Account::get_banned_until() const {

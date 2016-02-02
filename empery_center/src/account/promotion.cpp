@@ -311,7 +311,13 @@ ACCOUNT_SERVLET("promotion/check_login", root, session, params){
 
 	const auto token_expiry_duration = get_config<std::uint64_t>("account_token_expiry_duration", 0);
 
-	account->set_login_token(token, saturated_add(utc_now, token_expiry_duration));
+	const auto token_expiry_time = saturated_add(utc_now, token_expiry_duration);
+
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers.reserve(4);
+	modifiers[AccountAttributeIds::ID_LOGIN_TOKEN]             = token;
+	modifiers[AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME] = boost::lexical_cast<std::string>(token_expiry_time);
+	account->set_attributes(std::move(modifiers));
 
 	root[sslit("hasBeenActivated")]    = account->has_been_activated();
 	root[sslit("tokenExpiryDuration")] = token_expiry_duration;
@@ -337,8 +343,9 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 		LOG_EMPERY_CENTER_DEBUG("Empty token");
 		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
 	}
-	if(old_token != account->get_login_token()){
-		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", account->get_login_token(), ", got ", old_token);
+	const auto expected_token = account->get_attribute(AccountAttributeIds::ID_LOGIN_TOKEN);
+	if(old_token != expected_token){
+		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", expected_token, ", got ", old_token);
 		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
 	}
 	const auto utc_now = Poseidon::get_utc_time();
@@ -348,7 +355,13 @@ ACCOUNT_SERVLET("promotion/renewal_token", root, session, params){
 
 	const auto token_expiry_duration = get_config<std::uint64_t>("account_token_expiry_duration", 0);
 
-	account->set_login_token(token, saturated_add(utc_now, token_expiry_duration));
+	const auto token_expiry_time = boost::lexical_cast<std::uint64_t>(params.at("login_token_expiry_time"));
+
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers.reserve(4);
+	modifiers[AccountAttributeIds::ID_LOGIN_TOKEN]             = token;
+	modifiers[AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME] = boost::lexical_cast<std::string>(token_expiry_time);
+	account->set_attributes(std::move(modifiers));
 
 	root[sslit("tokenExpiryDuration")] = token_expiry_duration;
 

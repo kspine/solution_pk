@@ -65,7 +65,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/auction/create_bill.cpp	\
 	src/auction/commit_bill.cpp	\
 	src/account/promotion.cpp	\
-	src/account/test.cpp	\
 	src/payment/create_bill.cpp	\
 	src/payment/promotion_callback.cpp	\
 	src/cluster/map.cpp	\

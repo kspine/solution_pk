@@ -83,15 +83,17 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 		return Response(Msg::ERR_ACTIVATE_YOUR_ACCOUNT) <<login_name;
 	}
 	const auto utc_now = Poseidon::get_utc_time();
-	if(utc_now >= account->get_login_token_expiry_time()){
+	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);
+	if(utc_now >= expected_token_expiry_time){
 		return Response(Msg::ERR_TOKEN_EXPIRED) <<login_name;
 	}
 	if(login_token.empty()){
 		LOG_EMPERY_CENTER_DEBUG("Empty token");
 		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
 	}
-	if(login_token != account->get_login_token()){
-		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", account->get_login_token(), ", got ", login_token);
+	const auto &expected_token = account->get_attribute(AccountAttributeIds::ID_LOGIN_TOKEN);
+	if(login_token != expected_token){
+		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", expected_token, ", got ", login_token);
 		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
 	}
 	if(utc_now < account->get_banned_until()){
