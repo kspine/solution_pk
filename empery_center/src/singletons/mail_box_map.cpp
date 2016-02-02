@@ -11,6 +11,7 @@
 #include "../mail_data.hpp"
 #include "../mysql/mail.hpp"
 #include "account_map.hpp"
+#include "../account.hpp"
 
 namespace EmperyCenter {
 
@@ -123,7 +124,7 @@ namespace {
 		handles.push(timer);
 	}
 
-	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("10000000-0000-0000-C000-F00000000001");
+	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("10000000-F660-0008-CEF2-0DDD8AD2585C");
 }
 
 boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
@@ -135,10 +136,15 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		return { };
 	}
 
-	const auto account = AccountMap::get(account_uuid);
+	auto account = AccountMap::get(account_uuid);
 	if(!account){
-		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
-		return { };
+		if(account_uuid != GLOBAL_MAIL_ACCCOUNT_UUID){
+			LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
+			return { };
+		}
+		const auto utc_now = Poseidon::get_utc_time();
+		account = boost::make_shared<Account>(account_uuid, PlatformId(), std::string(), AccountUuid(), 0, utc_now, "Global mail account");
+		AccountMap::insert(account, std::string());
 	}
 
 	auto it = mail_box_map->find<0>(account_uuid);
