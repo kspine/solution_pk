@@ -1,6 +1,5 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
-#include <poseidon/endian.hpp>
 #include "../msg/cs_mail.hpp"
 #include "../msg/sc_mail.hpp"
 #include "../msg/err_mail.hpp"

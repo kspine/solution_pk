@@ -13,6 +13,7 @@
 #include <poseidon/flags.hpp>
 #include <poseidon/module_raii.hpp>
 #include <poseidon/uuid.hpp>
+#include <poseidon/endian.hpp>
 
 #include "log.hpp"
 #include "checked_arithmetic.hpp"

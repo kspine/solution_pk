@@ -5,7 +5,6 @@
 #include "../msg/err_map.hpp"
 #include "../msg/err_castle.hpp"
 #include "../msg/kill.hpp"
-#include <poseidon/endian.hpp>
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
@@ -133,7 +132,11 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
-	const auto harvest_speed = map_object_type_data->harvest_speed;
+	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
+	if(soldier_count < 1){
+		soldier_count = 1;
+	}
+	const auto harvest_speed = soldier_count * map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
@@ -219,16 +222,16 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
 	}
 
-	const auto castle_uuid_head     = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
-	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
+	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 
-	auto battalion_count = map_object->get_attribute(AttributeIds::ID_BATTALION_COUNT);
-	if(battalion_count <= 0){
-		battalion_count = 1;
+	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
+	if(soldier_count < 1){
+		soldier_count = 1;
 	}
 	std::vector<BattalionTransactionElement> transaction;
-	transaction.emplace_back(BattalionTransactionElement::OP_ADD, map_object->get_map_object_type_id(), battalion_count,
-		ReasonIds::ID_ENTER_CASTLE, castle_uuid_head, map_object_uuid_head, 0);
+	transaction.emplace_back(BattalionTransactionElement::OP_ADD, map_object->get_map_object_type_id(), soldier_count,
+		ReasonIds::ID_ENTER_CASTLE, castle_uuid_head, battalion_uuid_head, 0);
 	castle->commit_battalion_transaction(transaction,
 		[&]{ map_object->delete_from_game(); });
 

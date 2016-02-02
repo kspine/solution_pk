@@ -27,6 +27,8 @@ constexpr ReasonId
 	ID_HARVEST_BATTALION             ( 672015 ), // 部队 ID             数量                0
 	ID_SPEED_UP_BATTALION_PRODUCTION ( 672016 ), // 部队 ID             数量                0
 	ID_DISMISS_BATTALION             ( 672017 ), // 部队 ID             数量                0
+	ID_ENTER_CASTLE                  ( 672018 ), // 城堡 UUID 高位      部队 UUID 高位      0
+	ID_LEAVE_CASTLE                  ( 672019 ), // 城堡 UUID 高位      部队 UUID 高位      0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0
@@ -42,10 +44,7 @@ constexpr ReasonId
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_RECYCLE              ( 674003 ), // 世界坐标 X          世界坐标 Y          0
-	ID_APPLY_ACCELERATION_CARD       ( 674004 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
-
-	ID_ENTER_CASTLE                  ( 675001 ), // 城堡 UUID 高位      部队 UUID 高位      0
-	ID_LEAVE_CASTLE                  ( 675002 ); // 城堡 UUID 高位      部队 UUID 高位      0
+	ID_APPLY_ACCELERATION_CARD       ( 674004 ); // 世界坐标 X          世界坐标 Y          土地购买券 ID
 
 }
 

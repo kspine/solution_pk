@@ -26,6 +26,58 @@ namespace {
 			csv.get(elem.speed,              "speed");
 			csv.get(elem.harvest_speed,      "collect_speed");
 
+			Poseidon::JsonObject object;
+			csv.get(object, "arm_need");
+			elem.prerequisite.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto building_id = boost::lexical_cast<BuildingId>(it->first);
+				const auto building_level = static_cast<unsigned>(it->second.get<double>());
+				if(!elem.prerequisite.emplace(building_id, building_level).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate prerequisite: building_id = ", building_id);
+					DEBUG_THROW(Exception, sslit("Duplicate prerequisite"));
+				}
+			}
+			object.clear();
+			csv.get(object, "enability_cost");
+			elem.enability_cost.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto resource_amount = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.enability_cost.emplace(resource_id, resource_amount).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate enability resource cost: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate enability resource cost"));
+				}
+			}
+
+			object.clear();
+			csv.get(object, "recruit_resource");
+			elem.production_cost.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto resource_amount = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.production_cost.emplace(resource_id, resource_amount).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate production resource cost: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate production resource cost"));
+				}
+			}
+			object.clear();
+			csv.get(object, "maintenance_resource");
+			elem.maintenance_cost.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto resource_amount = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.maintenance_cost.emplace(resource_id, resource_amount).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate maintenance resource cost: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate maintenance resource cost"));
+				}
+			}
+
+			csv.get(elem.previous_id,        "soldiers_need");
+			csv.get(elem.production_time,    "levy_time");
+			csv.get(elem.factory_id,         "city_camp");
+			csv.get(elem.max_rally_count,    "force_mnax");
+			csv.get(elem.harvest_speed,      "collect_speed");
+
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapObjectType"));
