@@ -34,7 +34,7 @@ namespace {
 			LOG_EMPERY_CENTER_ERROR("Sign-in item is not daily-reset?");
 			DEBUG_THROW(Exception, sslit("Sign-in item is not daily-reset"));
 		}
-		const auto auto_inc_offset = item_data->auto_inc_offset;
+		const auto auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
 		LOG_EMPERY_CENTER_DEBUG("Retrieved daily sign-in offset: auto_inc_offset = ", auto_inc_offset);
 
 		const auto utc_now = Poseidon::get_utc_time();
@@ -123,7 +123,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
-	constexpr std::size_t MAX_ATTRIBUTE_LEN = 4096;
+	constexpr std::size_t MAX_ATTRIBUTE_LEN = 0xFFFF;
 
 	const auto account_attribute_id = AccountAttributeId(req.account_attribute_id);
 	auto &value = req.value;
@@ -143,7 +143,7 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
-	constexpr std::size_t MAX_NICK_LEN = 255;
+	constexpr std::size_t MAX_NICK_LEN = 31;
 
 	auto &nick = req.nick;
 

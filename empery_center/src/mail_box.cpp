@@ -243,7 +243,7 @@ void MailBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	}
 */
 	/// XXX Remove this.
-	constexpr std::size_t max_count_returned = 100;
+	constexpr std::size_t max_count_returned = 500;
 	std::vector<boost::shared_ptr<MySql::Center_Mail>> temp;
 	temp.reserve(max_count_returned);
 	for(auto it = m_mails.rbegin(); it != m_mails.rend(); ++it){
