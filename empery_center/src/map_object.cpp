@@ -173,7 +173,7 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 	if(!dirty){
 		return;
 	}
-
+/*
 	if(!m_obj->get_deleted()){
 		const auto soldier_count = get_attribute(AttributeIds::ID_SOLDIER_COUNT);
 		if(soldier_count <= 0){
@@ -182,7 +182,7 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 			WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 		}
 	}
-
+*/
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
