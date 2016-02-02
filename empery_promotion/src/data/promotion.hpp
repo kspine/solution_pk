@@ -23,6 +23,7 @@ namespace Data {
 		std::uint64_t immediate_price;
 		double immediate_discount;
 		unsigned auto_upgrade_count;
+		std::uint64_t large_gift_box_price;
 	};
 }
 
