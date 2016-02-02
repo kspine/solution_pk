@@ -98,7 +98,7 @@ protected:
 	}
 };
 
-class PlayerSession::QueueImpl : public Poseidon::JobBase {
+class PlayerSession::QueueImpl : public Poseidon::JobBase { // XXX Remove this.
 private:
 	const boost::weak_ptr<PlayerSession> m_session;
 
@@ -278,6 +278,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 	whole.splice(payload);
 	return impl->send(std::move(whole), true);
 */
+	// XXX Remove this.
 	const Poseidon::Mutex::UniqueLock lock(m_send_queue_mutex);
 	if(m_send_queue.empty()){
 		Poseidon::JobDispatcher::enqueue(

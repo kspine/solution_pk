@@ -231,7 +231,7 @@ void MailBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
-
+/*
 	for(auto it = m_mails.begin(); it != m_mails.end(); ++it){
 		const auto &obj = it->second;
 		if(utc_now >= obj->get_expiry_time()){
@@ -239,6 +239,28 @@ void MailBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		}
 		Msg::SC_MailChanged msg;
 		fill_mail_message(msg, it->second, utc_now);
+		session->send(msg);
+	}
+*/
+	/// XXX Remove this.
+	constexpr std::size_t max_count_returned = 100;
+	std::vector<boost::shared_ptr<MySql::Center_Mail>> temp;
+	temp.reserve(max_count_returned);
+	for(auto it = m_mails.rbegin(); it != m_mails.rend(); ++it){
+		if(temp.size() >= max_count_returned){
+			break;
+		}
+		const auto &obj = it->second;
+		if(utc_now >= obj->get_expiry_time()){
+			continue;
+		}
+		temp.emplace_back(obj);
+	}
+	for(auto it = temp.begin(); it != temp.end(); ++it){
+		const auto &obj = *it;
+
+		Msg::SC_MailChanged msg;
+		fill_mail_message(msg, obj, utc_now);
 		session->send(msg);
 	}
 }

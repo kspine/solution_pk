@@ -91,7 +91,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 			account->get_platform_id(), account->get_login_name(), account->get_attribute(AccountAttributeIds::ID_SAVED_THIRD_TOKEN)));
 	if(*third_error_code != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Third server returned an error: third_error_code = ", *third_error_code);
-		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
+		return Response(Msg::ERR_TOKEN_INVALIDATED) <<login_name;
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
