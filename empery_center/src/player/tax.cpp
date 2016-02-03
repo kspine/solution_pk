@@ -26,7 +26,7 @@ PLAYER_SERVLET(Msg::CS_TaxGetRecordsPaged, account, session, req){
 	Msg::SC_TaxRecordsPaged msg;
 	msg.total_count = records.size();
 	msg.begin = req.begin;
-	msg.records.reserve(static_cast<std::size_t>(rbegin - rend));
+	msg.records.reserve(static_cast<std::size_t>(rend - rbegin));
 	for(auto it = rbegin; it != rend; ++it){
 		auto &record = *msg.records.emplace(msg.records.end());
 		record.auto_inc          = it->auto_inc;
