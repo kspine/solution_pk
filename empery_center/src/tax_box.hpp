@@ -18,7 +18,7 @@ namespace MySql {
 class TaxBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct RecordInfo {
-		std::uint64_t auto_inc;
+		Poseidon::Uuid auto_uuid;
 		std::uint64_t timestamp;
 		AccountUuid from_account_uuid;
 		ReasonId reason;
@@ -30,7 +30,6 @@ private:
 	const AccountUuid m_account_uuid;
 
 	std::deque<boost::shared_ptr<MySql::Center_TaxRecord>> m_records;
-	std::uint64_t m_auto_inc = 0;
 
 public:
 	TaxBox(AccountUuid account_uuid,

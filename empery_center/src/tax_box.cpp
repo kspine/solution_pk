@@ -12,7 +12,7 @@ namespace {
 	void fill_record_info(TaxBox::RecordInfo &info, const boost::shared_ptr<MySql::Center_TaxRecord> &obj){
 		PROFILE_ME;
 
-		info.auto_inc          = obj->get_auto_inc();
+		info.auto_uuid         = obj->unlocked_get_auto_uuid();
 		info.timestamp         = obj->get_timestamp();
 		info.from_account_uuid = AccountUuid(obj->get_from_account_uuid());
 		info.reason            = ReasonId(obj->get_reason());
@@ -31,11 +31,8 @@ TaxBox::TaxBox(AccountUuid account_uuid,
 	}
 	std::sort(m_records.begin(), m_records.end(),
 		[](const boost::shared_ptr<MySql::Center_TaxRecord> &lhs, const boost::shared_ptr<MySql::Center_TaxRecord> &rhs){
-			return lhs->get_auto_inc() < rhs->get_auto_inc();
+			return lhs->unlocked_get_auto_uuid() < rhs->unlocked_get_auto_uuid();
 		});
-	if(!m_records.empty()){
-		m_auto_inc = m_records.back()->get_auto_inc();
-	}
 }
 TaxBox::~TaxBox(){
 }
@@ -54,7 +51,7 @@ void TaxBox::pump_status(){
 			break;
 		}
 		LOG_EMPERY_CENTER_DEBUG("Removing expired tax record: account_uuid = ", obj->unlocked_get_account_uuid(),
-			", auto_inc = ", obj->get_auto_inc());
+			", auto_uuid = ", obj->unlocked_get_auto_uuid());
 		m_records.pop_front();
 	}
 }
@@ -74,17 +71,16 @@ void TaxBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 {
 	PROFILE_ME;
 
-	const auto auto_inc = ++m_auto_inc;
-	auto obj = boost::make_shared<MySql::Center_TaxRecord>(get_account_uuid().get(), auto_inc, timestamp, from_account_uuid.get(),
+	const auto obj = boost::make_shared<MySql::Center_TaxRecord>(Poseidon::Uuid::random(),
+		get_account_uuid().get(), timestamp, from_account_uuid.get(),
 		reason.get(), old_amount, new_amount, static_cast<std::int64_t>(new_amount - old_amount), false);
 	obj->async_save(true);
-	m_records.emplace_back(std::move(obj));
+	m_records.emplace_back(obj);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
 			Msg::SC_TaxNewRecord msg;
-			msg.auto_inc = auto_inc;
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

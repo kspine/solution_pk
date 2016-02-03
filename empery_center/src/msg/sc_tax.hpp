@@ -13,7 +13,7 @@ namespace Msg {
 	FIELD_VUINT         (total_count)	\
 	FIELD_VUINT         (begin)	\
 	FIELD_ARRAY         (records,	\
-		FIELD_VUINT         (auto_inc)	\
+		FIELD_VUINT         (reserved)	\
 		FIELD_VUINT         (timestamp)	\
 		FIELD_STRING        (from_account_uuid)	\
 		FIELD_VUINT         (reason)	\
@@ -25,7 +25,7 @@ namespace Msg {
 #define MESSAGE_NAME    SC_TaxNewRecord
 #define MESSAGE_ID      1199
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (auto_inc)
+	FIELD_VUINT         (reserved)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

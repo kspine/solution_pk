@@ -31,7 +31,6 @@ PLAYER_SERVLET(Msg::CS_TaxGetRecordsPaged, account, session, req){
 		AccountMap::cached_synchronize_account_with_player(it->from_account_uuid, session);
 
 		auto &record = *msg.records.emplace(msg.records.end());
-		record.auto_inc          = it->auto_inc;
 		record.timestamp         = it->timestamp;
 		record.from_account_uuid = it->from_account_uuid.str();
 		record.reason            = it->reason.get();

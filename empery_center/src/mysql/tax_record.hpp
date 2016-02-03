@@ -9,8 +9,8 @@ namespace MySql {
 
 #define MYSQL_OBJECT_NAME   Center_TaxRecord
 #define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (auto_uuid)	\
 	FIELD_UUID              (account_uuid)	\
-	FIELD_BIGINT_UNSIGNED   (auto_inc)	\
 	FIELD_DATETIME          (timestamp)	\
 	FIELD_UUID              (from_account_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (reason)	\
