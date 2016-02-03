@@ -6,13 +6,13 @@
 #include <poseidon/async_job.hpp>
 #include "singletons/account_map.hpp"
 #include "account.hpp"
-#include "singletons/mail_box_map.hpp"
-#include "mail_box.hpp"
-#include "mail_data.hpp"
+#include "singletons/tax_box_map.hpp"
+#include "tax_box.hpp"
+#include "singletons/item_box_map.hpp"
+#include "item_box.hpp"
 #include "item_ids.hpp"
-#include "mail_type_ids.hpp"
-#include "chat_message_slot_ids.hpp"
-#include "data/global.hpp"
+#include "transaction_element.hpp"
+#include "reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -59,58 +59,35 @@ namespace {
 void accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t amount){
 	PROFILE_ME;
 
-	const auto send_mail_nothrow = [](const boost::shared_ptr<Account> &referrer, MailTypeId mail_type_id,
-		std::uint64_t count_to_add, const boost::shared_ptr<Account> &taxer) noexcept
+	const auto send_tax_nothrow = [](const boost::shared_ptr<Account> &account, ReasonId reason,
+		std::uint64_t amount_to_add, const boost::shared_ptr<Account> &taxer) noexcept
 	{
 		PROFILE_ME;
 
-		if(count_to_add == 0){
+		if(amount_to_add == 0){
 			return;
 		}
-		const auto gold_count = count_to_add; // count_to_add / 2;
-		const auto coin_count = 0;            // count_to_add / 2;
 
-		try {
-			const auto referrer_uuid = referrer->get_account_uuid();
-			const auto mail_box = MailBoxMap::require(referrer_uuid);
+		const auto account_uuid = account->get_account_uuid();
+		const auto taxer_uuid = taxer->get_account_uuid();
 
-			const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
-			const auto language_id = LanguageId(); // neutral
+		const auto item_box = ItemBoxMap::require(account_uuid);
+		const auto tax_box = TaxBoxMap::require(account_uuid);
 
-			const auto default_mail_expiry_duration = Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
-			const auto expiry_duration = checked_mul(default_mail_expiry_duration, (std::uint64_t)60000);
-			const auto utc_now = Poseidon::get_utc_time();
+		LOG_EMPERY_CENTER_DEBUG("Promotion tax: account_uuid = ", account_uuid,
+			", reason = ", reason, ", taxer_uuid = ", taxer_uuid, ", amount_to_add = ", amount_to_add);
 
-			const auto taxer_uuid = taxer->get_account_uuid();
+		const auto taxer_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(taxer_uuid.get()[0]));
+		const auto utc_now = Poseidon::get_utc_time();
 
-			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
-			segments.reserve(2);
-			segments.emplace_back(ChatMessageSlotIds::ID_TAXER,      taxer_uuid.str());
-			segments.emplace_back(ChatMessageSlotIds::ID_TAX_AMOUNT, boost::lexical_cast<std::string>(count_to_add));
+		const auto old_gold_amount = item_box->get(ItemIds::ID_GOLD).count;
+		const auto new_gold_amount = checked_add(old_gold_amount, amount_to_add);
 
-			boost::container::flat_map<ItemId, std::uint64_t> attachments;
-			attachments.reserve(2);
-			if(gold_count != 0){
-				attachments.emplace(ItemIds::ID_GOLD,       gold_count);
-			}
-			if(coin_count != 0){
-				attachments.emplace(ItemIds::ID_GOLD_COINS, coin_count);
-			}
-
-			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-				mail_type_id, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
-			MailBoxMap::insert_mail_data(mail_data);
-
-			MailBox::MailInfo mail_info = { };
-			mail_info.mail_uuid   = mail_uuid;
-			mail_info.expiry_time = saturated_add(utc_now, expiry_duration);
-			mail_info.system      = true;
-			mail_box->insert(std::move(mail_info));
-			LOG_EMPERY_CENTER_DEBUG("Promotion bonus mail sent: referrer_uuid = ", referrer_uuid,
-				", mail_type_id = ", mail_type_id, ", taxer_uuid = ", taxer_uuid, ", count_to_add = ", count_to_add);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-		}
+		std::vector<ItemTransactionElement> transaction;
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD, amount_to_add,
+			reason, taxer_uuid_head, account->get_promotion_level(), 0);
+		item_box->commit_transaction(transaction, false,
+			[&]{ tax_box->push(utc_now, taxer_uuid, reason, old_gold_amount, new_gold_amount); });
 	};
 
 	const auto withdrawn = boost::make_shared<bool>(true);
@@ -160,7 +137,7 @@ void accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t amount){
 		// 扣除个税即使没有上家（视为被系统回收）。
 		const auto tax_total = static_cast<std::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
 		Poseidon::enqueue_async_job(
-			std::bind(send_mail_nothrow, referrer, MailTypeIds::ID_LEVEL_BONUS, my_dividend - tax_total, account),
+			std::bind(send_tax_nothrow, referrer, ReasonIds::ID_LEVEL_BONUS, my_dividend - tax_total, account),
 			{ }, withdrawn);
 
 		{
@@ -172,7 +149,7 @@ void accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t amount){
 				}
 				const auto tax_amount = static_cast<std::uint64_t>(std::round(my_dividend * (*tit)));
 				Poseidon::enqueue_async_job(
-					std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_INCOME_TAX, tax_amount, referrer),
+					std::bind(send_tax_nothrow, next_referrer, ReasonIds::ID_INCOME_TAX, tax_amount, referrer),
 					{ }, withdrawn);
 				++tit;
 			}
@@ -187,7 +164,7 @@ void accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t amount){
 				}
 				const auto extra_amount = static_cast<std::uint64_t>(std::round(dividend_total * (*eit)));
 				Poseidon::enqueue_async_job(
-					std::bind(send_mail_nothrow, next_referrer, MailTypeIds::ID_LEVEL_BONUS_EXTRA, extra_amount, referrer),
+					std::bind(send_tax_nothrow, next_referrer, ReasonIds::ID_LEVEL_BONUS_EXTRA, extra_amount, referrer),
 					{ }, withdrawn);
 				++eit;
 			}

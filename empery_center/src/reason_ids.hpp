@@ -40,6 +40,9 @@ constexpr ReasonId
 	ID_AUCTION_TRANSFER_UNLOCK       ( 673008 ), // 0                   0                   0
 	ID_AUCTION_CENTER_WITHDRAW       ( 673009 ), // 0                   0                   0
 	ID_TASK_REWARD                   ( 673010 ), // 任务 ID             0                   0
+	ID_LEVEL_BONUS                   ( 673011 ), // 纳税账号 UUID 高位  税收等级            0
+	ID_INCOME_TAX                    ( 673012 ), // 纳税账号 UUID 高位  税收等级            0
+	ID_LEVEL_BONUS_EXTRA             ( 673013 ), // 纳税账号 UUID 高位  税收等级            0
 
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0

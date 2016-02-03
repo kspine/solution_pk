@@ -46,7 +46,7 @@ namespace {
 				goto _reselect;
 			}
 			const auto castle_count = count_castles_in_clusters(coord_hint);
-			LOG_EMPERY_CENTER_INFO("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
+			LOG_EMPERY_CENTER_DEBUG("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
 			if(castle_count >= old_limit){
 				LOG_EMPERY_CENTER_DEBUG("Max number of castles exceeded: castle_count = ", castle_count, ", old_limit = ", old_limit);
 				goto _reselect;
@@ -90,7 +90,7 @@ namespace {
 		GlobalStatus::set(GlobalStatus::SLOT_INIT_SERVER_X,     std::move(x_str));
 		GlobalStatus::set(GlobalStatus::SLOT_INIT_SERVER_Y,     std::move(y_str));
 
-		LOG_EMPERY_CENTER_INFO("Selecting cluster server: cluster_coord = ", front_it->second);
+		LOG_EMPERY_CENTER_DEBUG("Selected cluster server: cluster_coord = ", front_it->second);
 		return front_it->second;
 	}
 }

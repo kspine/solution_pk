@@ -147,7 +147,7 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 
 	const auto entity = SimpleHttpClientDaemon::sync_request(g_promotion_host, g_promotion_port, g_promotion_use_ssl,
 		Poseidon::Http::V_GET, g_promotion_path + "/sellAccelerationCards", std::move(get_params), g_promotion_auth);
-	LOG_EMPERY_CENTER_INFO("Received response from promotion server: entity = ", entity.dump());
+	LOG_EMPERY_CENTER_DEBUG("Received response from promotion server: entity = ", entity.dump());
 
 	return Response();
 }

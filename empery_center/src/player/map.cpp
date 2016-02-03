@@ -455,7 +455,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 				continue;
 			}
 			foundation.clear();
-			get_castle_foundation(foundation, other_coord, false);
+			get_castle_foundation(foundation, other_coord, true);
 			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
 				if(new_coord == *fit){
 					LOG_EMPERY_CENTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);

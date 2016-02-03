@@ -45,6 +45,7 @@ namespace Data {
 			SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX        = 100033,
 			SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX   = 100034,
 			SLOT_ADJACENT_CHAT_RANGE                        = 100035,
+			SLOT_TAX_RECORD_EXPIRY_DAYS                     = 100036,
 		};
 
 	public:
