@@ -30,6 +30,7 @@ private:
 	const AccountUuid m_account_uuid;
 
 	std::deque<boost::shared_ptr<MySql::Center_TaxRecord>> m_records;
+	std::uint64_t m_auto_inc = 0;
 
 public:
 	TaxBox(AccountUuid account_uuid,

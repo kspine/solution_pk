@@ -33,6 +33,9 @@ TaxBox::TaxBox(AccountUuid account_uuid,
 		[](const boost::shared_ptr<MySql::Center_TaxRecord> &lhs, const boost::shared_ptr<MySql::Center_TaxRecord> &rhs){
 			return lhs->get_auto_inc() < rhs->get_auto_inc();
 		});
+	if(!m_records.empty()){
+		m_auto_inc = m_records.back()->get_auto_inc();
+	}
 }
 TaxBox::~TaxBox(){
 }
@@ -50,6 +53,8 @@ void TaxBox::pump_status(){
 		if(obj->get_timestamp() >= expired_before){
 			break;
 		}
+		LOG_EMPERY_CENTER_DEBUG("Removing expired tax record: account_uuid = ", obj->unlocked_get_account_uuid(),
+			", auto_inc = ", obj->get_auto_inc());
 		m_records.pop_front();
 	}
 }
@@ -69,12 +74,7 @@ void TaxBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 {
 	PROFILE_ME;
 
-	std::uint64_t auto_inc = 0;
-	if(!m_records.empty()){
-		auto_inc = m_records.front()->get_auto_inc();
-	}
-	++auto_inc;
-
+	const auto auto_inc = ++m_auto_inc;
 	auto obj = boost::make_shared<MySql::Center_TaxRecord>(get_account_uuid().get(), auto_inc, timestamp, from_account_uuid.get(),
 		reason.get(), old_amount, new_amount, static_cast<std::int64_t>(new_amount - old_amount), false);
 	obj->async_save(true);
