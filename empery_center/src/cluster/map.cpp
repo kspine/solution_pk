@@ -201,7 +201,7 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 		segments.emplace_back(ChatMessageSlotIds::ID_NEW_CASTLE_COORD_Y, boost::lexical_cast<std::string>(coord.y()));
 
 		const auto announcement = boost::make_shared<Announcement>(announcement_uuid, language_id, utc_now,
-			utc_now + 86400000, 0, ChatMessageTypeIds::ID_NEW_CASTLE_NOTIFICATION, std::move(segments));
+			utc_now + 1000, 0, ChatMessageTypeIds::ID_NEW_CASTLE_NOTIFICATION, std::move(segments));
 		AnnouncementMap::insert(announcement);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
