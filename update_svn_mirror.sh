@@ -1,6 +1,6 @@
 #!/bin/bash
 
-prefix=../svn/paike_server
+prefix=../svn/paike_server/master
 
 mkdir -p $prefix/
 
