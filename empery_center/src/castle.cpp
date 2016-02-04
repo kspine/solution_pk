@@ -812,7 +812,6 @@ bool Castle::is_battalion_production_in_progress(BuildingBaseId building_base_id
 	}
 	return false;
 }
-
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;
 
