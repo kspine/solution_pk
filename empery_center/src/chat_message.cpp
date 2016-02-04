@@ -56,7 +56,7 @@ void presend_chat_message_segments(const std::vector<std::pair<ChatMessageSlotId
 
 		switch(slot_id.get()){
 		case ChatMessageSlotIds::ID_TAXER.get():
-		case ChatMessageSlotIds::ID_IMMIGRANT_OWNER.get():
+		case ChatMessageSlotIds::ID_NEW_CASTLE_OWNER.get():
 			AccountMap::cached_synchronize_account_with_player(AccountUuid(value), session);
 			break;
 		}

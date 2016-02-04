@@ -9,7 +9,7 @@ namespace ChatMessageTypeIds {
 
 constexpr ChatMessageTypeId
 	ID_PLAIN                    (   1 ),
-	ID_IMMIGRANT_NOTIFICATION   (   2 ),
+	ID_NEW_CASTLE_NOTIFICATION  (   2 ),
 
 	ID_LEVEL_BONUS              ( 100 ),
 	ID_INCOME_TAX               ( 101 ),

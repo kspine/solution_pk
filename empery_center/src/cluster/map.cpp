@@ -17,6 +17,10 @@
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 #include "../attribute_ids.hpp"
+#include "../announcement.hpp"
+#include "../singletons/announcement_map.hpp"
+#include "../chat_message_type_ids.hpp"
+#include "../chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -185,6 +189,23 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 	WorldMap::insert_map_object(castle);
 	LOG_EMPERY_CENTER_INFO("Created castle: castle_uuid = ", castle_uuid, ", owner_uuid = ", owner_uuid);
 	map_object->delete_from_game(); // noexcept
+
+	try {
+		const auto announcement_uuid = AnnouncementUuid(Poseidon::Uuid::random());
+		const auto language_id       = LanguageId();
+
+		std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+		segments.reserve(4);
+		segments.emplace_back(ChatMessageSlotIds::ID_NEW_CASTLE_OWNER,   owner_uuid.str());
+		segments.emplace_back(ChatMessageSlotIds::ID_NEW_CASTLE_COORD_X, boost::lexical_cast<std::string>(coord.x()));
+		segments.emplace_back(ChatMessageSlotIds::ID_NEW_CASTLE_COORD_Y, boost::lexical_cast<std::string>(coord.y()));
+
+		const auto announcement = boost::make_shared<Announcement>(announcement_uuid, language_id, utc_now,
+			utc_now + 86400000, 0, ChatMessageTypeIds::ID_NEW_CASTLE_NOTIFICATION, std::move(segments));
+		AnnouncementMap::insert(announcement);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
 
 	return Response();
 }
