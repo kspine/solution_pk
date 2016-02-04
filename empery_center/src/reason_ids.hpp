@@ -21,14 +21,6 @@ constexpr ReasonId
 	ID_UNPACK_INTO_CASTLE            ( 672009 ), // 城堡 UUID 高位      道具 ID             重复次数
 	ID_BUY_ACCELERATION_CARD         ( 672010 ), // 玩家等级            0                   0
 	ID_POPULATION_PRODUCTION         ( 672011 ), // 时间区间（毫秒）    0                   0
-	ID_ENABLE_BATTALION              ( 672012 ), // 部队 ID             0                   0
-	ID_PRODUCE_BATTALION             ( 672013 ), // 部队 ID             数量                0
-	ID_CANCEL_PRODUCE_BATTALION      ( 672014 ), // 部队 ID             数量                0
-	ID_HARVEST_BATTALION             ( 672015 ), // 部队 ID             数量                0
-	ID_SPEED_UP_BATTALION_PRODUCTION ( 672016 ), // 部队 ID             数量                0
-	ID_DISMISS_BATTALION             ( 672017 ), // 部队 ID             数量                0
-	ID_ENTER_CASTLE                  ( 672018 ), // 城堡 UUID 高位      部队 UUID 高位      0
-	ID_LEAVE_CASTLE                  ( 672019 ), // 城堡 UUID 高位      部队 UUID 高位      0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0

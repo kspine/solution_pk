@@ -11,7 +11,6 @@ class TransactionElement;
 using ItemTransactionElement      = TransactionElement<class ItemBox,       ItemId>;
 using ResourceTransactionElement  = TransactionElement<class Castle,        ResourceId>;
 using AuctionTransactionElement   = TransactionElement<class AuctionCenter, ItemId>;
-using BattalionTransactionElement = TransactionElement<class Castle,        MapObjectTypeId>;
 
 }
 
