@@ -147,13 +147,13 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 		account->activate();
 	}
 
-	ChatMessageTypeId mail_type_id;
+	ChatMessageTypeId type;
 	if(item_id == ItemIds::ID_DIAMONDS){
-		mail_type_id = ChatMessageTypeIds::ID_PAYMENT_DIAMONDS;
+		type = ChatMessageTypeIds::ID_PAYMENT_DIAMONDS;
 	} else if(item_id == ItemIds::ID_GOLD_COINS){
-		mail_type_id = ChatMessageTypeIds::ID_PAYMENT_GOLD_COINS;
+		type = ChatMessageTypeIds::ID_PAYMENT_GOLD_COINS;
 	} else {
-		mail_type_id = ChatMessageTypeIds::ID_PAYMENT_GIFT_BOXES;
+		type = ChatMessageTypeIds::ID_PAYMENT_GIFT_BOXES;
 	}
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
@@ -165,7 +165,7 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 	// attachments.emplace(get_item_id(), item_count_unlocked);
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-		mail_type_id, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
+		type, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
 	MailBoxMap::insert_mail_data(mail_data);
 
 	std::vector<ItemTransactionElement> transaction;
