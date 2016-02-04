@@ -7,7 +7,7 @@
 #include "reason_ids.hpp"
 #include "mail_box.hpp"
 #include "mail_data.hpp"
-#include "mail_type_ids.hpp"
+#include "chat_message_type_ids.hpp"
 #include "chat_message_slot_ids.hpp"
 #include "data/global.hpp"
 #include "data/item.hpp"
@@ -125,7 +125,7 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 			attachments.emplace(item_id, item_count_unlocked);
 
 			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-				MailTypeIds::ID_AUCTION_RESULT, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
+				ChatMessageTypeIds::ID_AUCTION_RESULT, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
 			MailBoxMap::insert_mail_data(mail_data);
 
 			MailBox::MailInfo mail_info = { };

@@ -193,7 +193,7 @@ namespace IdTypes {
 	using LanguageId          = GenericId<std::uint32_t, 110002>;
 	using AccountAttributeId  = GenericId<std::uint32_t, 110003>;
 	using ReasonId            = GenericId<std::uint32_t, 110004>;
-	using MailTypeId          = GenericId<std::uint32_t, 110005>;
+	// using ChatMessageTypeId          = GenericId<std::uint32_t, 110005>;
 	using ChatChannelId       = GenericId<std::uint32_t, 110006>;
 	using ChatMessageTypeId   = GenericId<std::uint32_t, 110007>;
 	using ChatMessageSlotId   = GenericId<std::uint32_t, 110008>;

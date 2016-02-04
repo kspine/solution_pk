@@ -19,6 +19,10 @@
 #include "../map_utilities.hpp"
 #include "../building_ids.hpp"
 #include "../account_attribute_ids.hpp"
+#include "../announcement.hpp"
+#include "../singletons/announcement_map.hpp"
+#include "../chat_message_type_ids.hpp"
+#include "../chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -677,6 +681,23 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	try {
+		const auto announcement_uuid = AnnouncementUuid(Poseidon::Uuid::random());
+		const auto language_id       = LanguageId();
+
+		std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+		segments.reserve(4);
+		segments.emplace_back(ChatMessageSlotIds::ID_IMMIGRANT_OWNER,   account->get_account_uuid().str());
+		segments.emplace_back(ChatMessageSlotIds::ID_IMMIGRANT_COORD_X, boost::lexical_cast<std::string>(coord.x()));
+		segments.emplace_back(ChatMessageSlotIds::ID_IMMIGRANT_COORD_Y, boost::lexical_cast<std::string>(coord.y()));
+
+		const auto announcement = boost::make_shared<Announcement>(announcement_uuid, language_id, utc_now,
+			utc_now + 86400000, 0, ChatMessageTypeIds::ID_IMMIGRANT_NOTIFICATION, std::move(segments));
+		AnnouncementMap::insert(announcement);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
 
 	return Response();

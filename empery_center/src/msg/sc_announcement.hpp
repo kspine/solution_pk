@@ -18,7 +18,8 @@ namespace Msg {
 	FIELD_ARRAY         (segments,	\
 		FIELD_VUINT         (slot)	\
 		FIELD_STRING        (value)	\
-	)
+	)	\
+	FIELD_VUINT         (type)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AnnouncementRemoved

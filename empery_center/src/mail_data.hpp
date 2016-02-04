@@ -26,7 +26,7 @@ private:
 
 public:
 	MailData(MailUuid mail_uuid, LanguageId language_id, std::uint64_t created_time,
-		MailTypeId type, AccountUuid from_account_uuid, std::string subject,
+		ChatMessageTypeId type, AccountUuid from_account_uuid, std::string subject,
 		std::vector<std::pair<ChatMessageSlotId, std::string>> segments, boost::container::flat_map<ItemId, std::uint64_t> attachments);
 	explicit MailData(boost::shared_ptr<MySql::Center_MailData> obj);
 	~MailData();
@@ -36,8 +36,8 @@ public:
 	LanguageId get_language_id() const;
 	std::uint64_t get_created_time() const;
 
-	MailTypeId get_type() const;
-	void set_type(MailTypeId type);
+	ChatMessageTypeId get_type() const;
+	void set_type(ChatMessageTypeId type);
 
 	AccountUuid get_from_account_uuid() const;
 	void set_from_account_uuid(AccountUuid account_uuid);

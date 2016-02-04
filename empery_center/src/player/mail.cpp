@@ -12,7 +12,7 @@
 #include "../singletons/item_box_map.hpp"
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
-#include "../mail_type_ids.hpp"
+#include "../chat_message_type_ids.hpp"
 #include "../chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
@@ -89,7 +89,7 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-		MailTypeIds::ID_NORMAL, account->get_account_uuid(), std::move(req.subject), std::move(segments), std::move(attachments));
+		ChatMessageTypeIds::ID_PLAIN, account->get_account_uuid(), std::move(req.subject), std::move(segments), std::move(attachments));
 	MailBoxMap::insert_mail_data(mail_data);
 
 	MailBox::MailInfo mail_info = { };

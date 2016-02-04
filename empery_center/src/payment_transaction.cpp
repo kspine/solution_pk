@@ -9,7 +9,7 @@
 #include "account.hpp"
 #include "mail_box.hpp"
 #include "mail_data.hpp"
-#include "mail_type_ids.hpp"
+#include "chat_message_type_ids.hpp"
 #include "chat_message_slot_ids.hpp"
 #include "data/global.hpp"
 #include "item_ids.hpp"
@@ -147,13 +147,13 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 		account->activate();
 	}
 
-	MailTypeId mail_type_id;
+	ChatMessageTypeId mail_type_id;
 	if(item_id == ItemIds::ID_DIAMONDS){
-		mail_type_id = MailTypeIds::ID_PAYMENT_DIAMONDS;
+		mail_type_id = ChatMessageTypeIds::ID_PAYMENT_DIAMONDS;
 	} else if(item_id == ItemIds::ID_GOLD_COINS){
-		mail_type_id = MailTypeIds::ID_PAYMENT_GOLD_COINS;
+		mail_type_id = ChatMessageTypeIds::ID_PAYMENT_GOLD_COINS;
 	} else {
-		mail_type_id = MailTypeIds::ID_PAYMENT_GIFT_BOXES;
+		mail_type_id = ChatMessageTypeIds::ID_PAYMENT_GIFT_BOXES;
 	}
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;

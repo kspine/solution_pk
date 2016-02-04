@@ -51,11 +51,12 @@ namespace {
 }
 
 Announcement::Announcement(AnnouncementUuid announcement_uuid, LanguageId language_id, std::uint64_t created_time,
-	std::uint64_t expiry_time, std::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
+	std::uint64_t expiry_time, std::uint64_t period,
+	ChatMessageTypeId type, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Announcement>(announcement_uuid.get(), language_id.get(), created_time,
-				expiry_time, period, encode_segments(segments));
+				expiry_time, period, type.get(), encode_segments(segments));
 			obj->async_save(true);
 			return obj;
 		}())
@@ -86,17 +87,23 @@ std::uint64_t Announcement::get_expiry_time() const {
 std::uint64_t Announcement::get_period() const {
 	return m_obj->get_period();
 }
+ChatMessageTypeId Announcement::get_type() const {
+	return ChatMessageTypeId(m_obj->get_type());
+}
 const std::vector<std::pair<ChatMessageSlotId, std::string>> &Announcement::get_segments() const {
 	return m_segments;
 }
 
-void Announcement::modify(std::uint64_t expiry_time, std::uint64_t period, std::vector<std::pair<ChatMessageSlotId, std::string>> segments){
+void Announcement::modify(std::uint64_t expiry_time, std::uint64_t period,
+	ChatMessageTypeId type, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
+{
 	PROFILE_ME;
 
 	auto str = encode_segments(segments);
 
 	m_obj->set_expiry_time(expiry_time);
 	m_obj->set_period(period);
+	m_obj->set_type(type.get());
 	m_obj->set_segments(std::move(str));
 	m_segments = std::move(segments);
 
@@ -135,6 +142,7 @@ void Announcement::synchronize_with_player(const boost::shared_ptr<PlayerSession
 			segment.slot  = it->first.get();
 			segment.value = it->second;
 		}
+		msg.type              = get_type().get();
 		session->send(msg);
 	}
 }

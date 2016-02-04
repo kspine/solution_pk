@@ -54,8 +54,11 @@ void presend_chat_message_segments(const std::vector<std::pair<ChatMessageSlotId
 		const auto slot_id = it->first;
 		const auto &value = it->second;
 
-		if(slot_id == ChatMessageSlotIds::ID_TAXER){
+		switch(slot_id.get()){
+		case ChatMessageSlotIds::ID_TAXER.get():
+		case ChatMessageSlotIds::ID_IMMIGRANT_OWNER.get():
 			AccountMap::cached_synchronize_account_with_player(AccountUuid(value), session);
+			break;
 		}
 	}
 }

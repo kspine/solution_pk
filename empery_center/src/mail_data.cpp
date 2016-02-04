@@ -87,7 +87,7 @@ namespace {
 }
 
 MailData::MailData(MailUuid mail_uuid, LanguageId language_id, std::uint64_t created_time,
-	MailTypeId type, AccountUuid from_account_uuid, std::string subject,
+	ChatMessageTypeId type, AccountUuid from_account_uuid, std::string subject,
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments, boost::container::flat_map<ItemId, std::uint64_t> attachments)
 	: m_obj(
 		[&]{
@@ -118,10 +118,10 @@ std::uint64_t MailData::get_created_time() const {
 	return m_obj->get_created_time();
 }
 
-MailTypeId MailData::get_type() const {
-	return MailTypeId(m_obj->get_type());
+ChatMessageTypeId MailData::get_type() const {
+	return ChatMessageTypeId(m_obj->get_type());
 }
-void MailData::set_type(MailTypeId type){
+void MailData::set_type(ChatMessageTypeId type){
 	m_obj->set_type(type.get());
 }
 

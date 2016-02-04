@@ -18,7 +18,11 @@ constexpr ChatMessageSlotId
 	ID_ITEM_ID                  ( 86301 ),
 	ID_ITEM_COUNT               ( 86302 ),
 	ID_AUCTION_ITEM_BOX_ID      ( 86303 ),
-	ID_AUCTION_ITEM_BOX_COUNT   ( 86304 );
+	ID_AUCTION_ITEM_BOX_COUNT   ( 86304 ),
+
+	ID_IMMIGRANT_OWNER          ( 86401 ),
+	ID_IMMIGRANT_COORD_X        ( 86402 ),
+	ID_IMMIGRANT_COORD_Y        ( 86403 );
 
 }
 

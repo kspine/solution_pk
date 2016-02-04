@@ -15,6 +15,7 @@ namespace {
 		object[sslit("created_time")]      = announcement->get_created_time();
 		object[sslit("expiry_time")]       = announcement->get_expiry_time();
 		object[sslit("period")]            = announcement->get_period();
+		object[sslit("type")]              = announcement->get_type().get();
 
 		const auto &segments = announcement->get_segments();
 		Poseidon::JsonArray temp_array;
@@ -62,6 +63,7 @@ ADMIN_SERVLET("announcement/insert", root, session, params){
 	const auto language_id = boost::lexical_cast<LanguageId>(params.at("language_id"));
 	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
 	const auto period      = boost::lexical_cast<std::uint64_t>(params.at("period"));
+	const auto type        = boost::lexical_cast<ChatMessageTypeId>(params.at("type"));
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	std::istringstream iss(params.at("segments"));
@@ -77,7 +79,7 @@ ADMIN_SERVLET("announcement/insert", root, session, params){
 	const auto announcement_uuid = AnnouncementUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto announcement = boost::make_shared<Announcement>(
-		announcement_uuid, language_id, utc_now, expiry_time, period, std::move(segments));
+		announcement_uuid, language_id, utc_now, expiry_time, period, type, std::move(segments));
 	AnnouncementMap::insert(announcement);
 
 	root[sslit("announcement_uuid")] = announcement_uuid.str();
@@ -95,6 +97,7 @@ ADMIN_SERVLET("announcement/update", root, session, params){
 
 	const auto expiry_time = boost::lexical_cast<std::uint64_t>(params.at("expiry_time"));
 	const auto period      = boost::lexical_cast<std::uint64_t>(params.at("period"));
+	const auto type        = boost::lexical_cast<ChatMessageTypeId>(params.at("type"));
 
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	std::istringstream iss(params.at("segments"));
@@ -107,7 +110,7 @@ ADMIN_SERVLET("announcement/update", root, session, params){
 		segments.emplace_back(slot_id, std::move(value));
 	}
 
-	announcement->modify(expiry_time, period, std::move(segments));
+	announcement->modify(expiry_time, period, type, std::move(segments));
 
 	return Response();
 }
