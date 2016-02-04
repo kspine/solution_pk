@@ -46,12 +46,13 @@ void TaxBox::pump_status(){
 		if(m_records.empty()){
 			break;
 		}
-		const auto &obj = m_records.front();
+		const auto obj = m_records.front();
 		if(obj->get_timestamp() >= expired_before){
 			break;
 		}
 		LOG_EMPERY_CENTER_DEBUG("Removing expired tax record: account_uuid = ", obj->unlocked_get_account_uuid(),
 			", auto_uuid = ", obj->unlocked_get_auto_uuid());
+		obj->set_deleted(true);
 		m_records.pop_front();
 	}
 }
