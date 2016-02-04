@@ -76,7 +76,6 @@ namespace {
 			csv.get(elem.production_time,    "levy_time");
 			csv.get(elem.factory_id,         "city_camp");
 			csv.get(elem.max_rally_count,    "force_mnax");
-			csv.get(elem.harvest_speed,      "collect_speed");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
