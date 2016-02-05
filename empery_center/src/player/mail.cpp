@@ -66,6 +66,9 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<to_account_uuid;
 	}
 
+	const auto to_mail_box = MailBoxMap::require(to_account->get_account_uuid());
+	to_mail_box->pump_status();
+
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	segments.reserve(req.segments.size());
 	for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
@@ -77,9 +80,6 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 	}
 
 	boost::container::flat_map<ItemId, std::uint64_t> attachments;
-
-	const auto to_mail_box = MailBoxMap::require(to_account->get_account_uuid());
-	to_mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 	const auto language_id = LanguageId(req.language_id);
@@ -116,35 +116,17 @@ PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account, session, req){
 	return Response();
 }
 
-namespace {
-	template<typename CallbackT>
-	void really_fetch_attachments(const boost::shared_ptr<ItemBox> &item_box, MailUuid mail_uuid, LanguageId language_id, CallbackT &&callback){
-		PROFILE_ME;
-
-		const auto mail_data = MailBoxMap::require_mail_data(mail_uuid, language_id);
-
-		const auto &attachments = mail_data->get_attachments();
-		LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", item_box->get_account_uuid(),
-			", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
-
-		const auto mail_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(mail_uuid.get()[0]));
-		std::vector<ItemTransactionElement> transaction;
-		transaction.reserve(attachments.size());
-		for(auto it = attachments.begin(); it != attachments.end(); ++it){
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
-				ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_head, language_id.get(), mail_data->get_type().get());
-		}
-		item_box->commit_transaction(transaction, false, std::forward<CallbackT>(callback));
-	}
-}
-
 PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
-	const auto language_id = LanguageId(req.language_id);
-
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto mail_uuid = MailUuid(req.mail_uuid);
+	const auto language_id = LanguageId(req.language_id);
+
+	boost::shared_ptr<MailData> mail_data;
+_recheck:
 	auto info = mail_box->get(mail_uuid);
 	if(info.expiry_time == 0){
 		return Response(Msg::ERR_NO_SUCH_MAIL) <<mail_uuid;
@@ -152,14 +134,25 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 	if(info.attachments_fetched){
 		return Response(Msg::ERR_ATTACHMENTS_FETCHED) <<mail_uuid;
 	}
+	if(!mail_data){
+		mail_data = MailBoxMap::require_mail_data(mail_uuid, language_id); // 可能 yield，所以不能依赖这之后的 info 状态。
+		goto _recheck;
+	}
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto &attachments = mail_data->get_attachments();
+	LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", item_box->get_account_uuid(),
+		", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 
-	really_fetch_attachments(item_box, mail_uuid, language_id,
-		[&]{
-			info.attachments_fetched = true;
-			mail_box->update(std::move(info));
-		});
+	const auto mail_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(mail_uuid.get()[0]));
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(attachments.size());
+	for(auto it = attachments.begin(); it != attachments.end(); ++it){
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
+			ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_head, language_id.get(), mail_data->get_type().get());
+	}
+	info.attachments_fetched = true;
+	item_box->commit_transaction(transaction, false,
+		[&]{ mail_box->update(std::move(info)); });
 
 	return Response();
 }
@@ -193,34 +186,51 @@ PLAYER_SERVLET(Msg::CS_MailBatchReadAndFetchAttachments, account, session, req){
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
-	std::vector<MailBox::MailInfo> mail_infos;
-	mail_box->get_all(mail_infos);
-	for(auto it = mail_infos.begin(); it != mail_infos.end(); ++it){
-		auto &info = *it;
-		if(info.expiry_time == 0){
-			continue;
+	boost::container::flat_map<std::pair<MailUuid, LanguageId>, boost::shared_ptr<MailData>> mail_datas;
+	{
+		std::vector<MailBox::MailInfo> mail_infos;
+		mail_box->get_all(mail_infos);
+		mail_datas.reserve(mail_infos.size());
+		for(auto it = mail_infos.begin(); it != mail_infos.end(); ++it){
+			const auto &info = *it;
+			const auto mail_uuid = info.mail_uuid;
+			auto mail_data = MailBoxMap::require_mail_data(mail_uuid, language_id); // 可能 yield，所以不能依赖这之后的 info 状态。
+			mail_datas.emplace(std::make_pair(mail_uuid, language_id), std::move(mail_data));
 		}
-		if(info.read){
-			continue;
-		}
-
-		info.read = true;
-		mail_box->update(std::move(info));
 	}
-	for(auto it = mail_infos.begin(); it != mail_infos.end(); ++it){
-		auto &info = *it;
+	for(auto it = mail_datas.begin(); it != mail_datas.end(); ++it){
+		const auto mail_uuid = it->first.first;
+		const auto &mail_data = it->second;
+
+		auto info = mail_box->get(mail_uuid);
 		if(info.expiry_time == 0){
 			continue;
 		}
-		if(info.attachments_fetched){
-			continue;
-		}
 
-		really_fetch_attachments(item_box, info.mail_uuid, language_id,
-			[&]{
-				info.attachments_fetched = true;
-				mail_box->update(std::move(info));
-			});
+		const auto mail_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(mail_uuid.get()[0]));
+
+		bool dirty = false;
+		std::vector<ItemTransactionElement> transaction;
+		if(!info.read){
+			info.read = true;
+			++dirty;
+		}
+		if(!info.attachments_fetched){
+			const auto &attachments = mail_data->get_attachments();
+			LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", item_box->get_account_uuid(),
+				", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
+			transaction.reserve(attachments.size());
+			for(auto it = attachments.begin(); it != attachments.end(); ++it){
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
+					ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_head, language_id.get(), mail_data->get_type().get());
+			}
+			info.attachments_fetched = true;
+			++dirty;
+		}
+		if(dirty){
+			item_box->commit_transaction(transaction, false,
+				[&]{ mail_box->update(std::move(info)); });
+		}
 	}
 
 	return Response();

@@ -14,6 +14,8 @@ namespace {
 	void fill_payment_transaction_object(Poseidon::JsonObject &object, const boost::shared_ptr<PaymentTransaction> &transaction){
 		PROFILE_ME;
 
+		const auto account = AccountMap::require(transaction->get_account_uuid());
+
 		object[sslit("serial")]            = transaction->get_serial();
 		object[sslit("account_uuid")]      = transaction->get_account_uuid().str();
 		object[sslit("created_time")]      = transaction->get_created_time();
@@ -24,8 +26,6 @@ namespace {
 		object[sslit("committed")]         = transaction->has_been_committed();
 		object[sslit("cancelled")]         = transaction->has_been_cancelled();
 		object[sslit("operation_remarks")] = transaction->get_operation_remarks();
-
-		const auto account = AccountMap::require(transaction->get_account_uuid());
 
 		object[sslit("platform_id")]       = account->get_platform_id().get();
 		object[sslit("login_name")]        = account->get_login_name();
@@ -56,6 +56,10 @@ ADMIN_SERVLET("payment/commit_transaction", root, session, params){
 	if(!payment_transaction){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_NOT_FOUND) <<serial;
 	}
+
+	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
+	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
+
 	if(payment_transaction->has_been_committed()){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED) <<serial;
 	}
@@ -66,9 +70,6 @@ ADMIN_SERVLET("payment/commit_transaction", root, session, params){
 	if(payment_transaction->get_expiry_time() < utc_now){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_EXPIRED) <<serial;
 	}
-
-	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
-	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
 
 	payment_transaction->commit(item_box, mail_box, remarks);
 

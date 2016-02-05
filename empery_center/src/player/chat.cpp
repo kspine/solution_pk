@@ -4,6 +4,7 @@
 #include "../msg/sc_chat.hpp"
 #include "../msg/err_chat.hpp"
 #include <poseidon/json.hpp>
+#include <poseidon/async_job.hpp>
 #include "../singletons/chat_box_map.hpp"
 #include "../chat_box.hpp"
 #include "../chat_message.hpp"
@@ -85,9 +86,14 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 			for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){
 				const auto &other_session = *it;
 				try {
-					const auto other_account = PlayerSessionMap::require_account(other_session);
-					const auto other_chat_box = ChatBoxMap::require(other_account->get_account_uuid());
-					other_chat_box->insert(message);
+					Poseidon::enqueue_async_job(
+						std::bind(
+							[](const boost::shared_ptr<PlayerSession> &other_session, const boost::shared_ptr<ChatMessage> &message){
+								const auto other_account = PlayerSessionMap::require_account(other_session);
+								const auto other_chat_box = ChatBoxMap::require(other_account->get_account_uuid());
+								other_chat_box->insert(message);
+							},
+							other_session, message));
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 					other_session->shutdown(e.what());

@@ -25,6 +25,9 @@ AUCTION_SERVLET("query/account", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
 
+	const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	// 获取账号状态。
 	{
 		Poseidon::JsonObject elem_account;
@@ -40,7 +43,6 @@ AUCTION_SERVLET("query/account", root, session, params){
 	{
 		Poseidon::JsonObject elem_auction_center;
 
-		const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
 		auction_center->pump_status();
 
 		{
@@ -143,7 +145,6 @@ AUCTION_SERVLET("query/account", root, session, params){
 	{
 		Poseidon::JsonObject elem_items;
 
-		const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 		item_box->pump_status();
 
 		const auto fill_item = [&](ItemId item_id){

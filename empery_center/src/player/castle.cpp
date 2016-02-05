@@ -287,6 +287,8 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -305,8 +307,6 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_BUILDING_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
@@ -450,6 +450,8 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -468,8 +470,6 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_TECH_IMMEDIATE_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
@@ -590,6 +590,8 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -657,8 +659,6 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	}
 	const auto &coord = foundation.front();
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto immigrants_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -683,6 +683,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -712,8 +714,6 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto count_to_consume = std::min<std::uint64_t>(req.count,
 		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
@@ -730,6 +730,8 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -759,8 +761,6 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto count_to_consume = std::min<std::uint64_t>(req.count,
 		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
@@ -777,6 +777,8 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -792,8 +794,6 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_RESOURCE_BOX;
 	}
 	const auto resource_id = ResourceId(item_data->type.second);
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 
@@ -931,6 +931,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -958,8 +960,6 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto time_remaining = saturated_sub(info.production_time_end, utc_now);
 	const auto count_to_consume = std::min<std::uint64_t>(req.count,

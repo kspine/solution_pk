@@ -26,6 +26,11 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 	if(!payment_transaction){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_NOT_FOUND) <<serial;
 	}
+
+	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
+	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
+	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
+
 	if(payment_transaction->has_been_cancelled()){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_CANCELLED) <<serial;
 	}
@@ -50,10 +55,6 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 	if(payment_transaction->has_been_committed()){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED);
 	}
-
-	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
-	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
-	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
 
 	Poseidon::sync_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(

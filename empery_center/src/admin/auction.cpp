@@ -14,6 +14,8 @@ namespace {
 	void fill_auction_transaction_object(Poseidon::JsonObject &object, const boost::shared_ptr<AuctionTransaction> &transaction){
 		PROFILE_ME;
 
+		const auto account = AccountMap::require(transaction->get_account_uuid());
+
 		object[sslit("serial")]            = transaction->get_serial();
 		object[sslit("account_uuid")]      = transaction->get_account_uuid().str();
 		object[sslit("operation")]         = static_cast<unsigned>(transaction->get_operation());
@@ -25,8 +27,6 @@ namespace {
 		object[sslit("committed")]         = transaction->has_been_committed();
 		object[sslit("cancelled")]         = transaction->has_been_cancelled();
 		object[sslit("operation_remarks")] = transaction->get_operation_remarks();
-
-		const auto account = AccountMap::require(transaction->get_account_uuid());
 
 		object[sslit("platform_id")]       = account->get_platform_id().get();
 		object[sslit("login_name")]        = account->get_login_name();
@@ -57,6 +57,10 @@ ADMIN_SERVLET("auction/commit_transaction", root, session, params){
 	if(!auction_transaction){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_NOT_FOUND) <<serial;
 	}
+
+	const auto mail_box = MailBoxMap::require(auction_transaction->get_account_uuid());
+	const auto auction_center = AuctionCenterMap::require(auction_transaction->get_account_uuid());
+
 	if(auction_transaction->has_been_committed()){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_COMMITTED) <<serial;
 	}
@@ -67,9 +71,6 @@ ADMIN_SERVLET("auction/commit_transaction", root, session, params){
 	if(auction_transaction->get_expiry_time() < utc_now){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_EXPIRED) <<serial;
 	}
-
-	const auto mail_box = MailBoxMap::require(auction_transaction->get_account_uuid());
-	const auto auction_center = AuctionCenterMap::require(auction_transaction->get_account_uuid());
 
 	auction_transaction->commit(mail_box, auction_center, remarks);
 
