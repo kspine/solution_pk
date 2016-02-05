@@ -117,16 +117,14 @@ PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account, session, req){
 }
 
 namespace {
-	void really_fetch_attachments(const boost::shared_ptr<ItemBox> &item_box,
-		const boost::shared_ptr<MailBox> &mail_box, MailBox::MailInfo &info, LanguageId language_id)
-	{
+	template<typename CallbackT>
+	void really_fetch_attachments(const boost::shared_ptr<ItemBox> &item_box, MailUuid mail_uuid, LanguageId language_id, CallbackT &&callback){
 		PROFILE_ME;
 
-		const auto &mail_uuid = info.mail_uuid;
 		const auto mail_data = MailBoxMap::require_mail_data(mail_uuid, language_id);
 
 		const auto &attachments = mail_data->get_attachments();
-		LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", mail_box->get_account_uuid(),
+		LOG_EMPERY_CENTER_DEBUG("Unpacking mail attachments: account_uuid = ", item_box->get_account_uuid(),
 			", mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 
 		const auto mail_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(mail_uuid.get()[0]));
@@ -136,11 +134,7 @@ namespace {
 			transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
 				ReasonIds::ID_MAIL_ATTACHMENTS, mail_uuid_head, language_id.get(), mail_data->get_type().get());
 		}
-		item_box->commit_transaction(transaction, false,
-			[&]{
-				info.attachments_fetched = true;
-				mail_box->update(std::move(info));
-			});
+		item_box->commit_transaction(transaction, false, std::forward<CallbackT>(callback));
 	}
 }
 
@@ -161,7 +155,11 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
-	really_fetch_attachments(item_box, mail_box, info, language_id);
+	really_fetch_attachments(item_box, mail_uuid, language_id,
+		[&]{
+			info.attachments_fetched = true;
+			mail_box->update(std::move(info));
+		});
 
 	return Response();
 }
@@ -218,7 +216,11 @@ PLAYER_SERVLET(Msg::CS_MailBatchReadAndFetchAttachments, account, session, req){
 			continue;
 		}
 
-		really_fetch_attachments(item_box, mail_box, info, language_id);
+		really_fetch_attachments(item_box, info.mail_uuid, language_id,
+			[&]{
+				info.attachments_fetched = true;
+				mail_box->update(std::move(info));
+			});
 	}
 
 	return Response();
