@@ -234,7 +234,7 @@ void MailBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 
 	for(auto it = m_mails.begin(); it != m_mails.end(); ++it){
 		const auto &obj = it->second;
-		if(utc_now >= obj->get_expiry_time()){
+		if(obj->get_expiry_time() == 0){
 			continue;
 		}
 		Msg::SC_MailChanged msg;
