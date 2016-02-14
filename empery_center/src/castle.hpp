@@ -89,7 +89,7 @@ private:
 	// 非持久化数据。
 	double m_production_remainder = 0;
 	double m_production_rate = 0;
-	std::uint64_t m_capacity = 0;
+	double m_capacity = 0;
 
 public:
 	Castle(MapObjectUuid map_object_uuid,
@@ -110,7 +110,7 @@ public:
 	double get_production_rate() const {
 		return m_production_rate;
 	}
-	std::uint64_t get_capacity() const {
+	double get_capacity() const {
 		return m_capacity;
 	}
 

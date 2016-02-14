@@ -29,6 +29,7 @@ constexpr ReasonId
 	ID_DISMISS_BATTALION             ( 672017 ), // 部队 ID             数量                0
 	ID_ENTER_CASTLE                  ( 672018 ), // 城堡 UUID 高位      部队 UUID 高位      0
 	ID_LEAVE_CASTLE                  ( 672019 ), // 城堡 UUID 高位      部队 UUID 高位      0
+	ID_POPULATION_CONSUMPTION        ( 672020 ), // 时间区间（毫秒）    0                   0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0

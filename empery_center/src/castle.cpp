@@ -420,8 +420,43 @@ void Castle::pump_production(){
 		obj->async_save(true);
 		production_it = m_battalion_production.emplace(primary_base_id, std::move(obj)).first;
 	}
+	// 特殊：
+	// production_time_begin 是上次人口消耗资源的时间。
+	// production_time_end 是上次人口产出的时间；
 	const auto &production_obj = production_it->second;
 
+	// 人口消耗。
+	boost::container::flat_map<ResourceId, std::uint64_t> resources_to_consume_per_minute;
+	for(auto it = m_battalions.begin(); it != m_battalions.end(); ++it){
+		const auto &obj = it->second;
+		const auto count = obj->get_count();
+		if(count == 0){
+			continue;
+		}
+		const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+		const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
+			auto &amount_total = resources_to_consume_per_minute[rit->first];
+			amount_total = saturated_add(amount_total, saturated_mul(count, rit->second));
+		}
+	}
+	const auto last_consumption_time = production_obj->get_production_time_begin();
+	const auto consumption_minutes = saturated_sub(utc_now, last_consumption_time) / 60000;
+	const auto consumption_duration = consumption_minutes * 60000;
+	if(consumption_minutes > 0){
+		LOG_EMPERY_CENTER_DEBUG("Checking population consumption: map_object_uuid = ", get_map_object_uuid(),
+			", consumption_minutes = ", consumption_minutes);
+		std::vector<ResourceTransactionElement> transaction;
+		transaction.reserve(resources_to_consume_per_minute.size());
+		for(auto it = resources_to_consume_per_minute.begin(); it != resources_to_consume_per_minute.end(); ++it){
+			transaction.emplace_back(ResourceTransactionElement::OP_REMOVE_SATURATED, it->first, saturated_mul(it->second, consumption_minutes),
+				ReasonIds::ID_POPULATION_CONSUMPTION, consumption_duration, 0, 0);
+		}
+		commit_resource_transaction(transaction);
+	}
+	production_obj->set_production_time_begin(last_consumption_time + consumption_duration);
+
+	// 人口产出。
 	double production_rate = 0;
 	double capacity        = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
@@ -438,45 +473,47 @@ void Castle::pump_production(){
 		production_rate += upgrade_data->population_production_rate;
 		capacity        += upgrade_data->population_capacity;
 	}
-	if(production_rate <= 0){
-		production_obj->set_production_time_begin(utc_now);
-		return;
+	if(production_rate > 0){
+		double tech_turbo;
+		tech_turbo = get_attribute(AttributeIds::ID_PRODUCTION_TURBO_POPULATION) / 1000.0;
+		production_rate *= (1 + tech_turbo);
+
+		// const auto vip_data = Data::Vip::require(account->get_promotion_level());
+		// production_rate *= (1 + vip_data->production_turbo);
+
+		capacity = std::round(capacity);
+
+		if(production_rate < 0){
+			production_rate = 0;
+		}
+		if(capacity < 0){
+			capacity = 0;
+		}
+		LOG_EMPERY_CENTER_DEBUG("Checking population production: map_object_uuid = ", get_map_object_uuid(),
+			", production_rate = ", production_rate, ", capacity = ", capacity);
+
+		const auto old_last_production_time = production_obj->get_production_time_end();
+		const auto old_resource_amount      = get_resource(ResourceIds::ID_POPULATION).amount;
+
+		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
+		const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
+		const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
+		const auto new_resource_amount = std::min<std::uint64_t>(saturated_add(old_resource_amount, rounded_amount_produced), capacity);
+		if(new_resource_amount > old_resource_amount){
+			std::vector<ResourceTransactionElement> transaction;
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD, ResourceIds::ID_POPULATION, new_resource_amount - old_resource_amount,
+				ReasonIds::ID_POPULATION_PRODUCTION, production_duration, 0, 0);
+			commit_resource_transaction(transaction);
+
+			m_production_remainder = amount_produced - rounded_amount_produced;
+		}
+	} else {
+		// 清空人口？
 	}
-
-	double tech_turbo;
-	tech_turbo = get_attribute(AttributeIds::ID_PRODUCTION_TURBO_POPULATION) / 1000.0;
-	production_rate *= (1 + tech_turbo);
-
-	if(production_rate < 0){
-		production_rate = 0;
-	}
-	if(capacity < 0){
-		capacity = 0;
-	}
-
-	LOG_EMPERY_CENTER_DEBUG("Checking castle production: map_object_uuid = ", get_map_object_uuid(),
-		", production_rate = ", production_rate, ", capacity = ", capacity);
-
-	const auto old_last_production_time = production_obj->get_production_time_begin();
-	const auto old_resource_amount      = get_resource(ResourceIds::ID_POPULATION).amount;
-
-	const auto production_duration = saturated_sub(utc_now, old_last_production_time);
-	const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
-	const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
-	const auto rounded_capacity = static_cast<std::uint64_t>(std::round(capacity));
-	const auto new_resource_amount = std::min(saturated_add(old_resource_amount, rounded_amount_produced), rounded_capacity);
-	if(new_resource_amount > old_resource_amount){
-		std::vector<ResourceTransactionElement> transaction;
-		transaction.emplace_back(ResourceTransactionElement::OP_ADD, ResourceIds::ID_POPULATION, new_resource_amount - old_resource_amount,
-			ReasonIds::ID_POPULATION_PRODUCTION, production_duration, 0, 0);
-		commit_resource_transaction(transaction);
-
-		production_obj->set_production_time_begin(utc_now);
-		m_production_remainder = amount_produced - rounded_amount_produced;
-	}
+	production_obj->set_production_time_end(utc_now);
 
 	m_production_rate = production_rate;
-	m_capacity        = rounded_capacity;
+	m_capacity        = capacity;
 }
 
 Castle::BuildingBaseInfo Castle::get_building_base(BuildingBaseId building_base_id) const {
