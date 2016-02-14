@@ -288,8 +288,7 @@ namespace {
 			csv.get(elem.building_level, "house_level");
 			read_upgrade_element(elem, csv);
 
-			csv.get(elem.population_production_rate, "population_produce");
-			csv.get(elem.population_capacity,        "population_max");
+			//
 
 			if(!upgrade_civilian_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade civilian: building_level = ", elem.building_level);
