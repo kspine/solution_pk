@@ -18,7 +18,11 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (building_base_id)	\
-	FIELD_VUINT         (building_id)
+	FIELD_VUINT         (building_id)	\
+	FIELD_ARRAY         (tokens,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_CastleCancelBuildingMission
@@ -32,7 +36,11 @@ namespace Msg {
 #define MESSAGE_ID      403
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (building_base_id)
+	FIELD_VUINT         (building_base_id)	\
+	FIELD_ARRAY         (tokens,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_CastleDestroyBuilding
@@ -60,7 +68,11 @@ namespace Msg {
 #define MESSAGE_ID      407
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (tech_id)
+	FIELD_VUINT         (tech_id)	\
+	FIELD_ARRAY         (tokens,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_CastleCancelTechMission
@@ -140,7 +152,11 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (building_base_id)	\
 	FIELD_VUINT         (map_object_type_id)	\
-	FIELD_VUINT         (count)
+	FIELD_VUINT         (count)	\
+	FIELD_ARRAY         (tokens,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_CastleCancelBattalionProduction
@@ -170,7 +186,11 @@ namespace Msg {
 #define MESSAGE_ID      422
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (map_object_type_id)
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_ARRAY         (tokens,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_CastleDismissBattalion
@@ -187,64 +207,6 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_VUINT         (count)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    CS_CastleCreateBuildingUsingTokens
-#define MESSAGE_ID      425
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (building_base_id)	\
-	FIELD_VUINT         (building_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    CS_CastleUpgradeBuildingUsingTokens
-#define MESSAGE_ID      426
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (building_base_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    CS_CastleUpgradeTechUsingTokens
-#define MESSAGE_ID      427
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (tech_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    CS_CastleBeginBattalionProductionUsingTokens
-#define MESSAGE_ID      428
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (building_base_id)	\
-	FIELD_VUINT         (map_object_type_id)	\
-	FIELD_VUINT         (count)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    CS_CastleEnableBattalionUsingTokens
-#define MESSAGE_ID      429
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (map_object_type_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

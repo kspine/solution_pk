@@ -24,6 +24,9 @@ namespace EmperyCenter {
 using ServletCallback = PlayerSession::ServletCallback;
 
 namespace {
+	// “红区”：在客户端的消息结尾填充零，可供以后扩展字段使用，这样新增加的字段会使用这个填充区域的字节，而不会造成解析失败。
+	constexpr std::array<unsigned char, PlayerSession::RED_ZONE_SIZE> g_red_zone = { };
+
 	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
@@ -74,6 +77,7 @@ protected:
 					LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", message_id);
 					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 				}
+				payload.put(g_red_zone.data(), g_red_zone.size());
 				result = (*servlet)(parent, std::move(payload));
 			}
 		} catch(Poseidon::Cbpp::Exception &e){

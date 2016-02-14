@@ -41,8 +41,8 @@ namespace Data {
 		static boost::shared_ptr<const Item> get(ItemId item_id);
 		static boost::shared_ptr<const Item> require(ItemId item_id);
 
-		static boost::shared_ptr<const Item> get_by_type(Category category, unsigned type);
-		static boost::shared_ptr<const Item> require_by_type(Category category, unsigned type);
+		static boost::shared_ptr<const Item> get_by_type(Category category, std::uint32_t type);
+		static boost::shared_ptr<const Item> require_by_type(Category category, std::uint32_t type);
 
 		static void get_init(std::vector<boost::shared_ptr<const Item>> &ret);
 		static void get_auto_inc(std::vector<boost::shared_ptr<const Item>> &ret);
@@ -50,7 +50,7 @@ namespace Data {
 
 	public:
 		ItemId item_id;
-		std::pair<Category, unsigned> type;
+		std::pair<Category, std::uint32_t> type;
 		std::uint64_t value;
 
 		TradeId use_as_trade_id;

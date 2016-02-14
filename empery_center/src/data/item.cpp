@@ -47,7 +47,8 @@ namespace {
 
 			csv.get(elem.item_id, "itemid");
 
-			unsigned category = Data::Item::CAT_UNKNOWN, type = 0;
+			unsigned category = Data::Item::CAT_UNKNOWN;
+			std::uint32_t type = 0;
 			csv.get(category,     "class");
 			csv.get(type,         "type");
 			elem.type = std::make_pair(static_cast<Data::Item::Category>(category), type);
@@ -194,7 +195,7 @@ namespace Data {
 		return ret;
 	}
 
-	boost::shared_ptr<const Item> Item::get_by_type(Item::Category category, unsigned type){
+	boost::shared_ptr<const Item> Item::get_by_type(Item::Category category, std::uint32_t type){
 		PROFILE_ME;
 
 		const auto item_map = g_item_map.lock();
@@ -210,7 +211,7 @@ namespace Data {
 		}
 		return boost::shared_ptr<const Item>(item_map, &*it);
 	}
-	boost::shared_ptr<const Item> Item::require_by_type(Item::Category category, unsigned type){
+	boost::shared_ptr<const Item> Item::require_by_type(Item::Category category, std::uint32_t type){
 		PROFILE_ME;
 
 		auto ret = get_by_type(category, type);

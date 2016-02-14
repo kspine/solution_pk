@@ -33,7 +33,12 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 			{	\
 				PROFILE_ME;	\
-				MsgType_ msg_(::std::move(payload_));	\
+				MsgType_ msg_;	\
+				msg_ <<payload_;	\
+				if(payload_.size() < ::EmperyCenter::PlayerSession::RED_ZONE_SIZE){	\
+					const auto bytes_underflowed = ::EmperyCenter::PlayerSession::RED_ZONE_SIZE - payload_.size();	\
+					LOG_EMPERY_CENTER_DEBUG("*** Buffer underflow: bytes_underflowed = ", bytes_underflowed);	\
+				}	\
 				LOG_EMPERY_CENTER_TRACE("Received request from ", session_->get_remote_info(), ": ", msg_);	\
 				return TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
 			}	\
@@ -54,14 +59,19 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 				const ::boost::shared_ptr< ::EmperyCenter::Account> &,	\
 				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &, MsgType_);	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServlet, __LINE__, Entry_) (	\
-				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &session_, const ::Poseidon::StreamBuffer &payload_)	\
+				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 			{	\
 				PROFILE_ME;	\
 				const auto account_ = ::EmperyCenter::PlayerSessionMap::get_account(session_);	\
 				if(!account_){	\
 					return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::ERR_NOT_LOGGED_IN);	\
 				}	\
-				MsgType_ msg_(payload_);	\
+				MsgType_ msg_;	\
+				msg_ <<payload_;	\
+				if(payload_.size() < ::EmperyCenter::PlayerSession::RED_ZONE_SIZE){	\
+					const auto bytes_underflowed = ::EmperyCenter::PlayerSession::RED_ZONE_SIZE - payload_.size();	\
+					LOG_EMPERY_CENTER_DEBUG("*** Buffer underflow: bytes_underflowed = ", bytes_underflowed);	\
+				}	\
 				LOG_EMPERY_CENTER_TRACE("Received request from account ", account_, " on ",	\
 					session_->get_remote_info(), ": ", msg_);	\
 				return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (account_, session_, ::std::move(msg_));	\

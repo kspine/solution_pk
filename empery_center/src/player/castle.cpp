@@ -48,6 +48,69 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 	return Response();
 }
 
+namespace {
+	template<typename CallbackT>
+	std::pair<ResourceId, ItemId> try_decrement_resources(const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box,
+		boost::container::flat_map<ResourceId, std::uint64_t> resources, boost::container::flat_map<ItemId, std::uint64_t> tokens,
+		ReasonId reason, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3, CallbackT &&callback)
+	{
+		PROFILE_ME;
+
+		std::vector<ResourceTransactionElement> resource_transaction;
+		resource_transaction.reserve(resources.size());
+		std::vector<ItemTransactionElement> item_transaction;
+		item_transaction.reserve(tokens.size());
+
+		for(auto it = tokens.begin(); it != tokens.end(); ++it){
+			const auto item_id = it->first;
+			const auto item_data = Data::Item::require(item_id);
+			if(item_data->type.first != Data::Item::CAT_RESOURCE_TOKEN){
+				LOG_EMPERY_CENTER_WARNING("The specified item is not a resource token: item_id = ", item_id);
+				DEBUG_THROW(Exception, sslit("The specified item is not a resource token"));
+			}
+			const auto resource_id = ResourceId(item_data->type.second);
+			const auto rit = resources.find(resource_id);
+			if(rit == resources.end()){
+				LOG_EMPERY_CENTER_DEBUG("$$ Unneeded token: item_id = ", item_id);
+				// 不扣减资源代币。
+				it->second = 0;
+				continue;
+			}
+			const auto max_count_needed = checked_add(rit->second, item_data->value - 1) / item_data->value;
+			LOG_EMPERY_CENTER_DEBUG("$$ Use token: item_id = ", item_id, ", count = ", it->second, ", max_count_needed = ", max_count_needed);
+			const auto tokens_to_consume = std::min(it->second, max_count_needed);
+			rit->second = saturated_sub(rit->second, checked_mul(item_data->value, tokens_to_consume));
+			it->second = tokens_to_consume;
+		}
+
+		for(auto it = resources.begin(); it != resources.end(); ++it){
+			if(it->second == 0){
+				continue;
+			}
+			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+				reason, param1, param2, param3);
+		}
+		for(auto it = tokens.begin(); it != tokens.end(); ++it){
+			if(it->second == 0){
+				continue;
+			}
+			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
+				reason, param1, param2, param3);
+		}
+
+		ResourceId insuff_resource_id;
+		ItemId insuff_item_id;
+		insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
+			[&]{
+				insuff_item_id = item_box->commit_transaction_nothrow(item_transaction, true,
+					[&]{
+						std::forward<CallbackT>(callback)();
+					});
+			});
+		return std::make_pair(insuff_resource_id, insuff_item_id);
+	}
+}
+
 PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
@@ -57,6 +120,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	castle->pump_status();
 
@@ -101,15 +166,22 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	std::vector<ResourceTransactionElement> transaction;
-	for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
-		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0);
+
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
-	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
+
+	const auto result = try_decrement_resources(castle, item_box, upgrade_data->upgrade_cost, std::move(tokens),
+		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
 		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_CONSTRUCT, building_data->building_id); });
-	if(insuff_resource_id){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	if(result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
+	}
+	if(result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
 	}
 
 	return Response();
@@ -159,6 +231,8 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	castle->pump_status();
 
@@ -212,15 +286,22 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	std::vector<ResourceTransactionElement> transaction;
-	for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
-		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0);
+
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
-	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
+
+	const auto result = try_decrement_resources(castle, item_box, upgrade_data->upgrade_cost, std::move(tokens),
+		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
 		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, { }); });
-	if(insuff_resource_id){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	if(result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
+	}
+	if(result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
 	}
 
 	return Response();
@@ -287,8 +368,6 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -297,6 +376,8 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 	castle->pump_building_status(building_base_id);
@@ -350,6 +431,8 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	castle->pump_status();
 
 	std::vector<Castle::BuildingBaseInfo> academy_infos;
@@ -401,15 +484,22 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 			return Response(Msg::ERR_DISPLAY_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	std::vector<ResourceTransactionElement> transaction;
-	for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
-		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_UPGRADE_TECH, tech_data->tech_id_level.first.get(), tech_data->tech_id_level.second, 0);
+
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
-	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
+
+	const auto result = try_decrement_resources(castle, item_box, tech_data->upgrade_cost, std::move(tokens),
+		ReasonIds::ID_UPGRADE_TECH, tech_data->tech_id_level.first.get(), tech_data->tech_id_level.second, 0,
 		[&]{ castle->create_tech_mission(tech_id, Castle::MIS_UPGRADE); });
-	if(insuff_resource_id){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	if(result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
+	}
+	if(result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
 	}
 
 	return Response();
@@ -450,8 +540,6 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -460,6 +548,8 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto tech_id = TechId(req.tech_id);
 	castle->pump_tech_status(tech_id);
@@ -590,8 +680,6 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -600,6 +688,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto castle_level = castle->get_level();
 	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
@@ -683,8 +773,6 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -693,6 +781,8 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 	castle->pump_building_status(building_base_id);
@@ -730,8 +820,6 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -740,6 +828,8 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto tech_id = TechId(req.tech_id);
 	castle->pump_tech_status(tech_id);
@@ -777,8 +867,6 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -787,6 +875,8 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto item_id = ItemId(req.item_id);
 	const auto item_data = Data::Item::require(item_id);
@@ -825,6 +915,8 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
 	const auto building_info = castle->get_building_base(building_base_id);
@@ -854,16 +946,26 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	if(count == 0){
 		return Response(Msg::ERR_ZERO_BATTALION_COUNT);
 	}
-
-	std::vector<ResourceTransactionElement> transaction;
-	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){
-		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_PRODUCE_BATTALION, map_object_type_id.get(), count, 0);
+	auto production_cost = map_object_type_data->production_cost;
+	for(auto it = production_cost.begin(); it != production_cost.end(); ++it){
+		it->second = checked_mul<std::uint64_t>(it->second, count);
 	}
-	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
+
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
+	}
+
+	const auto result = try_decrement_resources(castle, item_box, std::move(production_cost), std::move(tokens),
+		ReasonIds::ID_PRODUCE_BATTALION, map_object_type_id.get(), count, 0,
 		[&]{ castle->begin_battalion_production(building_base_id, map_object_type_id, count); });
-	if(insuff_resource_id){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	if(result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
+	}
+	if(result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
 	}
 
 	return Response();
@@ -931,8 +1033,6 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -941,6 +1041,8 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
@@ -986,6 +1088,8 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
 	const auto info = castle->get_battalion(map_object_type_id);
 	if(info.enabled){
@@ -1012,15 +1116,21 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 		}
 	}
 
-	std::vector<ResourceTransactionElement> transaction;
-	for(auto it = map_object_type_data->enability_cost.begin(); it != map_object_type_data->enability_cost.end(); ++it){
-		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_ENABLE_BATTALION, map_object_type_id.get(), 0, 0);
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
-	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
+
+	const auto result = try_decrement_resources(castle, item_box, map_object_type_data->enability_cost, std::move(tokens),
+		ReasonIds::ID_ENABLE_BATTALION, map_object_type_id.get(), 0, 0,
 		[&]{ castle->enable_battalion(map_object_type_id); });
-	if(insuff_resource_id){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	if(result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
+	}
+	if(result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
 	}
 
 	return Response();
