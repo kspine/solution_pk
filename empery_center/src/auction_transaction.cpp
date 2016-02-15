@@ -36,7 +36,7 @@ AuctionTransaction::AuctionTransaction(std::string serial, AccountUuid account_u
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_AuctionTransaction>(std::move(serial), account_uuid.get(), static_cast<unsigned>(operation),
-				created_time, expiry_time, item_id.get(), item_count, std::move(remarks), false, false, std::string());
+				created_time, expiry_time, item_id.get(), item_count, std::move(remarks), 0, false, false, std::string());
 			obj->async_save(true);
 			return obj;
 		}())
@@ -72,6 +72,16 @@ std::uint64_t AuctionTransaction::get_item_count() const {
 	return m_obj->get_item_count();
 }
 
+const std::string &AuctionTransaction::get_remarks() const {
+	return m_obj->unlocked_get_remarks();
+}
+void AuctionTransaction::set_remarks(std::string remarks){
+	m_obj->set_remarks(std::move(remarks));
+}
+
+std::uint64_t AuctionTransaction::get_last_updated_time() const {
+	return m_obj->get_last_updated_time();
+}
 bool AuctionTransaction::has_been_committed() const {
 	return m_obj->get_committed();
 }
@@ -92,6 +102,8 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 		DEBUG_THROW(Exception, sslit("Auction transaction has been virtually removed"));
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	const auto operation = get_operation();
 	switch(operation){
 	case OP_TRANSFER_IN:
@@ -101,15 +113,15 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 
 			const auto default_mail_expiry_duration = Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
 			const auto expiry_duration = checked_mul(default_mail_expiry_duration, (std::uint64_t)60000);
-			const auto utc_now = Poseidon::get_utc_time();
 
 			const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
 			const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
 
 			const auto item_id = get_item_id();
-			std::uint64_t item_count_unlocked = 0;
 			const auto item_data = Data::Item::require(item_id);
 			const auto item_box_count = get_item_count();
+
+			std::uint64_t item_count_unlocked;
 			if(item_data->type.first == Data::Item::CAT_RESOURCE_BOX){
 				item_count_unlocked = checked_mul(item_box_count, resource_amount_per_box) / item_data->value;
 			} else {
@@ -134,6 +146,7 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 			mail_info.system      = true;
 			mail_box->insert(std::move(mail_info));
 
+			m_obj->set_last_updated_time(utc_now);
 			m_obj->set_committed(true);
 			m_obj->set_operation_remarks(std::move(operation_remarks));
 		}
@@ -146,6 +159,7 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 				ReasonIds::ID_AUCTION_CENTER_WITHDRAW, 0, 0, 0);
 			auction_center->commit_item_transaction(transaction,
 				[&]{
+					m_obj->set_last_updated_time(utc_now);
 					m_obj->set_committed(true);
 					m_obj->set_operation_remarks(std::move(operation_remarks));
 				});
@@ -168,17 +182,13 @@ void AuctionTransaction::cancel(std::string operation_remarks){
 		DEBUG_THROW(Exception, sslit("Auction transaction has been virtually removed"));
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
+	m_obj->set_last_updated_time(utc_now);
 	m_obj->set_cancelled(true);
 	m_obj->set_operation_remarks(std::move(operation_remarks));
 
 	AuctionTransactionMap::update(virtual_shared_from_this<AuctionTransaction>(), false);
-}
-
-const std::string &AuctionTransaction::get_remarks() const {
-	return m_obj->unlocked_get_remarks();
-}
-void AuctionTransaction::set_remarks(std::string remarks){
-	m_obj->set_remarks(std::move(remarks));
 }
 
 bool AuctionTransaction::is_virtually_removed() const {

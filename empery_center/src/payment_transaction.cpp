@@ -67,7 +67,7 @@ PaymentTransaction::PaymentTransaction(std::string serial, AccountUuid account_u
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>(std::move(serial), account_uuid.get(), created_time, expiry_time,
-				item_id.get(), item_count, std::move(remarks), false, false, std::string());
+				item_id.get(), item_count, std::move(remarks), 0, false, false, std::string());
 			obj->async_save(true);
 			return obj;
 		}())
@@ -100,6 +100,16 @@ std::uint64_t PaymentTransaction::get_item_count() const {
 	return m_obj->get_item_count();
 }
 
+const std::string &PaymentTransaction::get_remarks() const {
+	return m_obj->unlocked_get_remarks();
+}
+void PaymentTransaction::set_remarks(std::string remarks){
+	m_obj->set_remarks(std::move(remarks));
+}
+
+std::uint64_t PaymentTransaction::get_last_updated_time() const {
+	return m_obj->get_last_updated_time();
+}
 bool PaymentTransaction::has_been_committed() const {
 	return m_obj->get_committed();
 }
@@ -179,6 +189,7 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 			mail_info.system      = true;
             mail_box->insert(std::move(mail_info));
 
+			m_obj->set_last_updated_time(utc_now);
 			m_obj->set_committed(true);
 			m_obj->set_operation_remarks(std::move(operation_remarks));
 		});
@@ -200,17 +211,13 @@ void PaymentTransaction::cancel(std::string operation_remarks){
 		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
+	m_obj->set_last_updated_time(utc_now);
 	m_obj->set_cancelled(true);
 	m_obj->set_operation_remarks(std::move(operation_remarks));
 
 	PaymentTransactionMap::update(virtual_shared_from_this<PaymentTransaction>(), false);
-}
-
-const std::string &PaymentTransaction::get_remarks() const {
-	return m_obj->unlocked_get_remarks();
-}
-void PaymentTransaction::set_remarks(std::string remarks){
-	m_obj->set_remarks(std::move(remarks));
 }
 
 bool PaymentTransaction::is_virtually_removed() const {
