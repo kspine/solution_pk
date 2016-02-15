@@ -79,7 +79,7 @@ namespace {
 	const char RESOURCE_FILE[] = "initial_material";
 
 	template<typename ElementT>
-	void read_upgrade_element(ElementT &elem, const Poseidon::CsvParser &csv){
+	void read_upgrade_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
 		csv.get(elem.upgrade_duration, "levelup_time");
 
 		Poseidon::JsonObject object;
@@ -168,7 +168,7 @@ namespace {
 			Data::CastleUpgradePrimary elem = { };
 
 			csv.get(elem.building_level, "castel_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.max_map_cell_count,        "territory_number");
 			csv.get(elem.max_map_cell_distance,     "range");
@@ -190,7 +190,7 @@ namespace {
 			Data::CastleUpgradeStables elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -210,7 +210,7 @@ namespace {
 			Data::CastleUpgradeBarracks elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -230,7 +230,7 @@ namespace {
 			Data::CastleUpgradeArcherBarracks elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -250,7 +250,7 @@ namespace {
 			Data::CastleUpgradeWeaponry elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -270,7 +270,7 @@ namespace {
 			Data::CastleUpgradeAcademy elem = { };
 
 			csv.get(elem.building_level, "college_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -290,7 +290,7 @@ namespace {
 			Data::CastleUpgradeCivilian elem = { };
 
 			csv.get(elem.building_level, "house_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.population_production_rate, "population_produce");
 			csv.get(elem.population_capacity,        "population_max");
@@ -311,7 +311,7 @@ namespace {
 			Data::CastleUpgradeWarehouse elem = { };
 
 			csv.get(elem.building_level, "storage_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			Poseidon::JsonObject object;
 			csv.get(object, "resource_max");
@@ -341,7 +341,7 @@ namespace {
 			Data::CastleUpgradeCitadelWall elem = { };
 
 			csv.get(elem.building_level, "wall_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.strength, "troops");
 			csv.get(elem.armor, "defence");
@@ -362,7 +362,7 @@ namespace {
 			Data::CastleUpgradeDefenseTower elem = { };
 
 			csv.get(elem.building_level, "tower_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.firepower, "atk");
 
@@ -382,7 +382,7 @@ namespace {
 			Data::CastleUpgradeParadeGround elem = { };
 
 			csv.get(elem.building_level, "filed_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.max_battalion_count, "force_limit");
 

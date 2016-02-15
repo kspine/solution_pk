@@ -211,6 +211,7 @@ namespace IdTypes {
 	using RechargeId          = GenericId<std::uint32_t, 120011>;
 	using ShopId              = GenericId<std::uint32_t, 120012>;
 	using StartPointId        = GenericId<std::uint32_t, 120013>;
+	using TaskId              = GenericId<std::uint32_t, 120014>;
 
 	using AccountUuid         = GenericUuid<210001>;
 	using MapObjectUuid       = GenericUuid<210002>;
