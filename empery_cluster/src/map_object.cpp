@@ -23,12 +23,12 @@ namespace Msg {
 
 using Response = ::EmperyCenter::CbppResponse;
 
-MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
-	boost::weak_ptr<ClusterClient> cluster, Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes)
-	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id), m_owner_uuid(owner_uuid)
-	, m_cluster(std::move(cluster)), m_coord(coord), m_attributes(std::move(attributes))
-	, m_next_action_time(0), m_blocked_retry_count(0)
-	, m_action(ACT_GUARD), m_action_param()
+MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, boost::weak_ptr<ClusterClient> cluster,
+	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes)
+	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id)
+	, m_owner_uuid(owner_uuid), m_parent_object_uuid(parent_object_uuid), m_cluster(std::move(cluster))
+	, m_coord(coord), m_attributes(std::move(attributes))
 {
 }
 MapObject::~MapObject(){
