@@ -31,6 +31,7 @@ namespace Data {
 			T_WAREHOUSE         =  6,
 			T_CITADEL_WALL      =  7,
 			T_DEFENSE_TOWER     =  8,
+			T_PARADE_GROUND     =  9,
 			T_STABLES           = 17,
 			T_BARRACKS          = 18,
 			T_ARCHER_BARRACKS   = 19,
@@ -153,6 +154,15 @@ namespace Data {
 
 	public:
 		std::uint64_t firepower;
+	};
+
+	class CastleUpgradeParadeGround : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeParadeGround> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeParadeGround> require(unsigned building_level);
+
+	public:
+		std::uint64_t max_battalion_count;
 	};
 
 	class CastleTech {
