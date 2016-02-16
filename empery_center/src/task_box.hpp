@@ -50,6 +50,8 @@ public:
 		return m_account_uuid;
 	}
 
+	void check_init_tasks();
+
 	TaskInfo get(TaskId task_id) const;
 	void get_all(std::vector<TaskInfo> &ret) const;
 

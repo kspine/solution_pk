@@ -117,6 +117,11 @@ void TaskBox::pump_status(){
 	// TODO
 }
 
+void TaskBox::check_init_tasks(){
+	PROFILE_ME;
+
+}
+
 TaskBox::TaskInfo TaskBox::get(TaskId task_id) const {
 	PROFILE_ME;
 
