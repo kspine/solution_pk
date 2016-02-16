@@ -51,6 +51,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 	if(!map_object){
 		const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
 		const auto owner_uuid         = AccountUuid(req.owner_uuid);
+		const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 		const auto coord              = Coord(req.x, req.y);
 
 		boost::container::flat_map<AttributeId, std::int64_t> attributes;
@@ -61,8 +62,8 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 
 		LOG_EMPERY_CLUSTER_TRACE("Creating map object: map_object_uuid = ", map_object_uuid,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", coord = ", coord);
-		map_object = boost::make_shared<MapObject>(map_object_uuid,
-			map_object_type_id, owner_uuid, cluster, coord, std::move(attributes));
+		map_object = boost::make_shared<MapObject>(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, cluster,
+			coord, std::move(attributes));
 		WorldMap::replace_map_object_no_synchronize(cluster, map_object);
 	}
 

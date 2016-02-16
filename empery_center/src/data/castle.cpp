@@ -61,6 +61,10 @@ namespace {
 	boost::weak_ptr<const CastleUpgradeDefenseTowerMap> g_upgrade_defense_tower_map;
 	const char UPGRADE_DEFENSE_TOWER_FILE[] = "City_Tower";
 
+	using CastleUpgradeParadeGroundMap = boost::container::flat_map<unsigned, Data::CastleUpgradeParadeGround>;
+	boost::weak_ptr<const CastleUpgradeParadeGroundMap> g_upgrade_parade_ground_map;
+	const char UPGRADE_PARADE_GROUND_FILE[] = "City_Flied";
+
 	MULTI_INDEX_MAP(CastleTechMap, Data::CastleTech,
 		UNIQUE_MEMBER_INDEX(tech_id_level)
 	)
@@ -75,7 +79,7 @@ namespace {
 	const char RESOURCE_FILE[] = "initial_material";
 
 	template<typename ElementT>
-	void read_upgrade_element(ElementT &elem, const Poseidon::CsvParser &csv){
+	void read_upgrade_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
 		csv.get(elem.upgrade_duration, "levelup_time");
 
 		Poseidon::JsonObject object;
@@ -164,7 +168,7 @@ namespace {
 			Data::CastleUpgradePrimary elem = { };
 
 			csv.get(elem.building_level, "castel_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.max_map_cell_count,        "territory_number");
 			csv.get(elem.max_map_cell_distance,     "range");
@@ -186,7 +190,7 @@ namespace {
 			Data::CastleUpgradeStables elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -206,7 +210,7 @@ namespace {
 			Data::CastleUpgradeBarracks elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -226,7 +230,7 @@ namespace {
 			Data::CastleUpgradeArcherBarracks elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -246,7 +250,7 @@ namespace {
 			Data::CastleUpgradeWeaponry elem = { };
 
 			csv.get(elem.building_level, "camp_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -266,7 +270,7 @@ namespace {
 			Data::CastleUpgradeAcademy elem = { };
 
 			csv.get(elem.building_level, "college_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -286,7 +290,7 @@ namespace {
 			Data::CastleUpgradeCivilian elem = { };
 
 			csv.get(elem.building_level, "house_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			//
 
@@ -306,7 +310,7 @@ namespace {
 			Data::CastleUpgradeWarehouse elem = { };
 
 			csv.get(elem.building_level, "storage_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			Poseidon::JsonObject object;
 			csv.get(object, "resource_max");
@@ -336,7 +340,7 @@ namespace {
 			Data::CastleUpgradeCitadelWall elem = { };
 
 			csv.get(elem.building_level, "wall_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.strength, "troops");
 			csv.get(elem.armor, "defence");
@@ -357,7 +361,7 @@ namespace {
 			Data::CastleUpgradeDefenseTower elem = { };
 
 			csv.get(elem.building_level, "tower_level");
-			read_upgrade_element(elem, csv);
+			read_upgrade_abstract(elem, csv);
 
 			csv.get(elem.firepower, "atk");
 
@@ -369,6 +373,26 @@ namespace {
 		g_upgrade_defense_tower_map = upgrade_defense_tower_map;
 		handles.push(upgrade_defense_tower_map);
 		servlet = DataSession::create_servlet(UPGRADE_DEFENSE_TOWER_FILE, Data::encode_csv_as_json(csv, "tower_level"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(UPGRADE_PARADE_GROUND_FILE);
+		const auto upgrade_parade_ground_map = boost::make_shared<CastleUpgradeParadeGroundMap>();
+		while(csv.fetch_row()){
+			Data::CastleUpgradeParadeGround elem = { };
+
+			csv.get(elem.building_level, "filed_level");
+			read_upgrade_abstract(elem, csv);
+
+			csv.get(elem.max_battalion_count, "force_limit");
+
+			if(!upgrade_parade_ground_map->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade parade ground: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade parade ground"));
+			}
+		}
+		g_upgrade_parade_ground_map = upgrade_parade_ground_map;
+		handles.push(upgrade_parade_ground_map);
+		servlet = DataSession::create_servlet(UPGRADE_PARADE_GROUND_FILE, Data::encode_csv_as_json(csv, "filed_level"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TECH_FILE);
@@ -540,8 +564,6 @@ namespace Data {
 		switch(type){
 		case CastleBuilding::T_PRIMARY:
 			return CastleUpgradePrimary::get(building_level);
-//		case CastleBuilding::T_BARRACKS:
-//			return CastleUpgradeBarracks::get(building_level);
 		case CastleBuilding::T_ACADEMY:
 			return CastleUpgradeAcademy::get(building_level);
 		case CastleBuilding::T_CIVILIAN:
@@ -554,6 +576,8 @@ namespace Data {
 			return CastleUpgradeCitadelWall::get(building_level);
 		case CastleBuilding::T_DEFENSE_TOWER:
 			return CastleUpgradeDefenseTower::get(building_level);
+		case CastleBuilding::T_PARADE_GROUND:
+			return CastleUpgradeParadeGround::get(building_level);
 		case CastleBuilding::T_STABLES:
 			return CastleUpgradeStables::get(building_level);
 		case CastleBuilding::T_BARRACKS:
@@ -833,6 +857,32 @@ namespace Data {
 		auto ret = get(building_level);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("CastleUpgradeDefenseTower not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const CastleUpgradeParadeGround> CastleUpgradeParadeGround::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto upgrade_parade_ground_map = g_upgrade_parade_ground_map.lock();
+		if(!upgrade_parade_ground_map){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeParadeGroundMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = upgrade_parade_ground_map->find(building_level);
+		if(it == upgrade_parade_ground_map->end()){
+			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeParadeGround not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const CastleUpgradeParadeGround>(upgrade_parade_ground_map, &(it->second));
+	}
+	boost::shared_ptr<const CastleUpgradeParadeGround> CastleUpgradeParadeGround::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("CastleUpgradeParadeGround not found"));
 		}
 		return ret;
 	}

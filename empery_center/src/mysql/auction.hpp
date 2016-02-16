@@ -32,6 +32,7 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (item_id)	\
 	FIELD_BIGINT_UNSIGNED   (item_count)	\
 	FIELD_STRING            (remarks)	\
+	FIELD_DATETIME          (last_updated_time)	\
 	FIELD_BOOLEAN           (committed)	\
 	FIELD_BOOLEAN           (cancelled)	\
 	FIELD_STRING            (operation_remarks)

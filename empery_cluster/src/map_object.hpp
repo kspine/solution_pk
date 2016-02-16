@@ -37,23 +37,25 @@ private:
 	const MapObjectUuid m_map_object_uuid;
 	const MapObjectTypeId m_map_object_type_id;
 	const AccountUuid m_owner_uuid;
+	const MapObjectUuid m_parent_object_uuid;
 	const boost::weak_ptr<ClusterClient> m_cluster;
 
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, std::int64_t> m_attributes;
 
 	boost::shared_ptr<Poseidon::TimerItem> m_action_timer;
-	std::uint64_t m_next_action_time;
+	std::uint64_t m_next_action_time = 0;
 	// 移动。
 	std::deque<Waypoint> m_waypoints;
-	unsigned m_blocked_retry_count;
+	unsigned m_blocked_retry_count = 0;
 	// 移动完毕后动作。
-	Action m_action;
+	Action m_action = ACT_GUARD;
 	std::string m_action_param;
 
 public:
-	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
-		boost::weak_ptr<ClusterClient> cluster, Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes);
+	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, boost::weak_ptr<ClusterClient> cluster,
+		Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes);
 	~MapObject();
 
 private:
@@ -69,6 +71,9 @@ public:
 	}
 	AccountUuid get_owner_uuid() const {
 		return m_owner_uuid;
+	}
+	MapObjectUuid get_parent_object_uuid() const {
+		return m_parent_object_uuid;
 	}
 	boost::shared_ptr<ClusterClient> get_cluster() const {
 		return m_cluster.lock();
