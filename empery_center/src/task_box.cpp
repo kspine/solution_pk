@@ -144,10 +144,66 @@ void TaskBox::get_all(std::vector<TaskBox::TaskInfo> &ret) const {
 void TaskBox::insert(TaskBox::TaskInfo info){
 	PROFILE_ME;
 
+	const auto task_id = info.task_id;
+	const auto it = m_tasks.find(task_id);
+	if(it != m_tasks.end()){
+		LOG_EMPERY_CENTER_WARNING("Task exists: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+		DEBUG_THROW(Exception, sslit("Task exists"));
+	}
+
+	const auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), task_id.get(),
+		info.created_time, info.expiry_time, encode_progress(*info.progress), info.rewarded);
+	obj->async_save(true);
+	const auto pair = boost::make_shared<TaskObjectPair>(obj, *info.progress);
+	m_tasks.emplace(task_id, pair);
+
+	const auto session = PlayerSessionMap::get(get_account_uuid());
+	if(session){
+		try {
+			Msg::SC_TaskChanged msg;
+			fill_task_message(msg, pair);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 	PROFILE_ME;
 
+	const auto task_id = info.task_id;
+	const auto it = m_tasks.find(task_id);
+	if(it == m_tasks.end()){
+	    LOG_EMPERY_CENTER_WARNING("Task not found: account_uuid = ", get_account_uuid(), ", task_uuid = ", task_id);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Task not found"));
+		}
+		return;
+	}
+	const auto &pair = it->second;
+
+	std::string progress_str;
+	if(pair.owner_before(info.progress) || info.progress.owner_before(pair)){
+		progress_str = encode_progress(*info.progress);
+	}
+
+	pair->first->set_created_time(info.created_time);
+	pair->first->set_expiry_time(info.expiry_time);
+	pair->first->set_progress(std::move(progress_str));
+	pair->first->set_rewarded(info.rewarded);
+
+	const auto session = PlayerSessionMap::get(get_account_uuid());
+	if(session){
+	    try {
+        	Msg::SC_TaskChanged msg;
+        	fill_task_message(msg, pair);
+        	session->send(msg);
+    	} catch(std::exception &e){
+        	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+        	session->shutdown(e.what());
+    	}
+	}
 }
 bool TaskBox::remove(TaskId task_id) noexcept {
 	PROFILE_ME;
