@@ -37,6 +37,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/auction_transaction_map.cpp	\
 	src/singletons/global_status.cpp	\
 	src/singletons/tax_box_map.cpp	\
+	src/singletons/task_box_map.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -98,4 +99,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/payment_transaction.cpp	\
 	src/auction_transaction.cpp	\
 	src/tax_box.cpp	\
+	src/task_box.cpp	\
 	src/mmain.cpp
