@@ -56,6 +56,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/auction.cpp	\
 	src/player/announcement.cpp	\
 	src/player/tax.cpp	\
+	src/player/task.cpp	\
 	src/admin/account.cpp	\
 	src/admin/item.cpp	\
 	src/admin/castle.cpp	\

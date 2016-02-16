@@ -145,12 +145,14 @@ void ItemBox::check_init_items(){
 	Data::Item::get_init(items_to_check);
 	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
 		const auto &item_data = *dit;
-		const auto it = m_items.find(item_data->item_id);
-		if(it == m_items.end()){
-			LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, item_data->init_count,
-				ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
+		const auto item_id = item_data->item_id;
+		const auto iit = m_items.find(item_id);
+		if(iit != m_items.end()){
+			continue;
 		}
+		LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_id, ", init_count = ", item_data->init_count);
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, item_data->init_count,
+			ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
 	}
 	commit_transaction(transaction, false);
 }

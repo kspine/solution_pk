@@ -1297,6 +1297,8 @@ _use_hint:
 		if(castle){
 			LOG_EMPERY_CENTER_INFO("Init castle created successfully: map_object_uuid = ", castle->get_map_object_uuid(),
 				", owner_uuid = ", castle->get_owner_uuid(), ", coord = ", castle->get_coord());
+			castle->check_init_buildings();
+			castle->check_init_resources();
 			return std::move(castle);
 		}
 		clusters.erase(it);

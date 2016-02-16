@@ -4,6 +4,7 @@
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
 #include "../data_session.hpp"
+#include "../building_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -148,9 +149,7 @@ namespace {
 
 			csv.get(elem.building_id, "id");
 			csv.get(elem.build_limit, "num");
-			unsigned temp = 0;
-			csv.get(temp, "type");
-			elem.type = static_cast<Data::CastleBuilding::Type>(temp);
+			csv.get(elem.type,        "type");
 
 			if(!building_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate building: building_id = ", elem.building_id);
@@ -559,40 +558,40 @@ namespace Data {
 		return ret;
 	}
 
-	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::get(CastleBuilding::Type type, unsigned building_level){
+	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::get(BuildingTypeId type, unsigned building_level){
 		PROFILE_ME;
 
-		switch(type){
-		case CastleBuilding::T_PRIMARY:
+		switch(type.get()){
+		case BuildingTypeIds::ID_PRIMARY.get():
 			return CastleUpgradePrimary::get(building_level);
-		case CastleBuilding::T_ACADEMY:
+		case BuildingTypeIds::ID_ACADEMY.get():
 			return CastleUpgradeAcademy::get(building_level);
-		case CastleBuilding::T_CIVILIAN:
+		case BuildingTypeIds::ID_CIVILIAN.get():
 			return CastleUpgradeCivilian::get(building_level);
-//		case CastleBuilding::T_WATCHTOWER:
+//		case BuildingTypeIds::ID_WARCHTOWER.get():
 //			return CastleUpgradeWatchtower::get(building_level);
-		case CastleBuilding::T_WAREHOUSE:
+		case BuildingTypeIds::ID_WAREHOUSE.get():
 			return CastleUpgradeWarehouse::get(building_level);
-		case CastleBuilding::T_CITADEL_WALL:
+		case BuildingTypeIds::ID_CITADEL_WALL.get():
 			return CastleUpgradeCitadelWall::get(building_level);
-		case CastleBuilding::T_DEFENSE_TOWER:
+		case BuildingTypeIds::ID_DEFENSE_TOWER.get():
 			return CastleUpgradeDefenseTower::get(building_level);
-		case CastleBuilding::T_PARADE_GROUND:
+		case BuildingTypeIds::ID_PARADE_GROUND.get():
 			return CastleUpgradeParadeGround::get(building_level);
-		case CastleBuilding::T_STABLES:
+		case BuildingTypeIds::ID_STABLES.get():
 			return CastleUpgradeStables::get(building_level);
-		case CastleBuilding::T_BARRACKS:
+		case BuildingTypeIds::ID_BARRACKS.get():
 			return CastleUpgradeBarracks::get(building_level);
-		case CastleBuilding::T_ARCHER_BARRACKS:
+		case BuildingTypeIds::ID_ARCHER_BARRACKS.get():
 			return CastleUpgradeArcherBarracks::get(building_level);
-		case CastleBuilding::T_WEAPONRY:
+		case BuildingTypeIds::ID_WEAPONRY.get():
 			return CastleUpgradeWeaponry::get(building_level);
 		default:
-			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", static_cast<unsigned>(type));
+			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", type);
 			return { };
 		}
 	}
-	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::require(CastleBuilding::Type type, unsigned building_level){
+	boost::shared_ptr<const CastleUpgradeAbstract> CastleUpgradeAbstract::require(BuildingTypeId type, unsigned building_level){
 		PROFILE_ME;
 
 		auto ret = get(type, building_level);

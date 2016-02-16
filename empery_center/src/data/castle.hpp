@@ -24,34 +24,19 @@ namespace Data {
 
 	class CastleBuilding {
 	public:
-		enum Type {
-			T_PRIMARY           =  1,
-			T_ACADEMY           =  3,
-			T_CIVILIAN          =  4,
-			T_WAREHOUSE         =  6,
-			T_CITADEL_WALL      =  7,
-			T_DEFENSE_TOWER     =  8,
-			T_PARADE_GROUND     =  9,
-			T_STABLES           = 17,
-			T_BARRACKS          = 18,
-			T_ARCHER_BARRACKS   = 19,
-			T_WEAPONRY          = 20,
-		};
-
-	public:
 		static boost::shared_ptr<const CastleBuilding> get(BuildingId building_id);
 		static boost::shared_ptr<const CastleBuilding> require(BuildingId building_id);
 
 	public:
 		BuildingId building_id;
 		unsigned build_limit;
-		Type type;
+		BuildingTypeId type;
 	};
 
 	class CastleUpgradeAbstract {
 	public:
-		static boost::shared_ptr<const CastleUpgradeAbstract> get(CastleBuilding::Type type, unsigned building_level);
-		static boost::shared_ptr<const CastleUpgradeAbstract> require(CastleBuilding::Type type, unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeAbstract> get(BuildingTypeId type, unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeAbstract> require(BuildingTypeId type, unsigned building_level);
 
 	public:
 		unsigned building_level;

@@ -17,7 +17,7 @@
 #include "../data/map_object.hpp"
 #include "../msg/err_item.hpp"
 #include "../map_utilities.hpp"
-#include "../building_ids.hpp"
+#include "../building_type_ids.hpp"
 #include "../account_attribute_ids.hpp"
 
 namespace EmperyCenter {
@@ -144,8 +144,9 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 	if(!building_data){
 		return Response(Msg::ERR_NO_SUCH_BUILDING) <<building_id;
 	}
-	const auto count = castle->count_buildings_by_id(building_id);
-	if(count >= building_data->build_limit){
+	std::vector<Castle::BuildingBaseInfo> old_infos;
+	castle->get_buildings_by_id(old_infos, building_id);
+	if(old_infos.size() >= building_data->build_limit){
 		return Response(Msg::ERR_BUILD_LIMIT_EXCEEDED) <<building_id;
 	}
 
@@ -254,24 +255,16 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	}
 
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
-	switch(building_data->type){
-	case Data::CastleBuilding::T_ACADEMY:
+	if(building_data->type == BuildingTypeIds::ID_ACADEMY){
 		if(castle->is_tech_upgrade_in_progress()){
 			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
 		}
-		break;
-
-	case Data::CastleBuilding::T_STABLES:
-	case Data::CastleBuilding::T_BARRACKS:
-	case Data::CastleBuilding::T_ARCHER_BARRACKS:
-	case Data::CastleBuilding::T_WEAPONRY:
+	} else if((building_data->type == BuildingTypeIds::ID_STABLES) || (building_data->type == BuildingTypeIds::ID_BARRACKS) ||
+		(building_data->type == BuildingTypeIds::ID_ARCHER_BARRACKS) || (building_data->type == BuildingTypeIds::ID_WEAPONRY))
+	{
 		if(castle->is_battalion_production_in_progress(building_base_id)){
 			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, info.building_level + 1);
@@ -337,24 +330,16 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	}
 
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
-	switch(building_data->type){
-	case Data::CastleBuilding::T_ACADEMY:
+	if(building_data->type == BuildingTypeIds::ID_ACADEMY){
 		if(castle->is_tech_upgrade_in_progress()){
 			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
 		}
-		break;
-
-	case Data::CastleBuilding::T_STABLES:
-	case Data::CastleBuilding::T_BARRACKS:
-	case Data::CastleBuilding::T_ARCHER_BARRACKS:
-	case Data::CastleBuilding::T_WEAPONRY:
+	} else if((building_data->type == BuildingTypeIds::ID_STABLES) || (building_data->type == BuildingTypeIds::ID_BARRACKS) ||
+		(building_data->type == BuildingTypeIds::ID_ARCHER_BARRACKS) || (building_data->type == BuildingTypeIds::ID_WEAPONRY))
+	{
 		if(castle->is_battalion_production_in_progress(building_base_id)){
 			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level);
@@ -436,7 +421,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	castle->pump_status();
 
 	std::vector<Castle::BuildingBaseInfo> academy_infos;
-	castle->get_buildings_by_id(academy_infos, BuildingIds::ID_ACADEMY);
+	castle->get_buildings_by_type_id(academy_infos, BuildingTypeIds::ID_ACADEMY);
 	if(academy_infos.empty()){
 		return Response(Msg::ERR_NO_ACADEMY);
 	}
