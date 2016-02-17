@@ -131,11 +131,18 @@ TaskBox::~TaskBox(){
 void TaskBox::pump_status(){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_TRACE("Checking tasks: account_uuid = ", get_account_uuid());
-/*
+
 	const auto utc_now = Poseidon::get_utc_time();
 
-*/
-	// TODO
+	auto it = m_tasks.begin();
+	while(it != m_tasks.end()){
+		const auto &obj = it->second->first;
+		if(obj->get_expiry_time() < utc_now){
+			++it;
+			continue;
+		}
+		it = m_tasks.erase(it);
+	}
 }
 
 void TaskBox::check_init_tasks(){
@@ -151,22 +158,6 @@ void TaskBox::check_init_tasks(){
 
 	const auto account_uuid = get_account_uuid();
 	const auto utc_now = Poseidon::get_utc_time();
-
-	// 删除旧任务。
-
-	{
-		auto it = m_tasks.begin();
-		while(it != m_tasks.end()){
-			const auto &obj = it->second->first;
-			if(obj->get_expiry_time() < utc_now){
-				++it;
-				continue;
-			}
-			it = m_tasks.erase(it);
-		}
-	}
-
-	// 检查新任务。
 
 	{
 		std::vector<boost::shared_ptr<const Data::TaskPrimary>> task_data_primary;
