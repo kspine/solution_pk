@@ -198,7 +198,7 @@ namespace {
 				Events::ItemChanged::R_BALANCE_BONUS, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
 
 			// 扣除个税即使没有上家（视为被系统回收）。
-			const auto tax_total = static_cast<std::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
+			const auto tax_total = static_cast<std::uint64_t>(std::floor(my_dividend * income_tax_ratio_total + 0.001));
 			transaction.emplace_back(referrer_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, tax_total,
 				Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
 
@@ -211,7 +211,7 @@ namespace {
 					if(first_promotion_data && (it->second->level <= first_promotion_data->level)){
 						continue;
 					}
-					const auto tax = static_cast<std::uint64_t>(std::round(my_dividend * g_income_tax_ratio_array.at(generation)));
+					const auto tax = static_cast<std::uint64_t>(std::floor(my_dividend * g_income_tax_ratio_array.at(generation) + 0.001));
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", tax = ", tax);
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, tax,
 						Events::ItemChanged::R_INCOME_TAX, my_dividend, referrer_id.get(), 0, std::string());
@@ -230,7 +230,7 @@ namespace {
 						LOG_EMPERY_PROMOTION_DEBUG("> No extra tax available.");
 						continue;
 					}
-					const auto extra = static_cast<std::uint64_t>(std::round(amount * g_extra_tax_ratio_array.at(generation)));
+					const auto extra = static_cast<std::uint64_t>(std::floor(amount * g_extra_tax_ratio_array.at(generation) + 0.001));
 					LOG_EMPERY_PROMOTION_DEBUG("> Referrer: referrer_id = ", it->first, ", level = ", it->second->level, ", extra = ", extra);
 					transaction.emplace_back(it->first, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, extra,
 						Events::ItemChanged::R_BALANCE_BONUS_EXTRA, account_id.get(), payer_id.get(), upgrade_to_level, std::string());
