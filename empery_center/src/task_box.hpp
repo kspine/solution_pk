@@ -32,7 +32,7 @@ public:
 private:
 	const AccountUuid m_account_uuid;
 
-	boost::shared_ptr<MySql::Center_Task> m_timestamp;
+	boost::shared_ptr<MySql::Center_Task> m_stamps;
 
 	boost::container::flat_map<TaskId,
 		boost::shared_ptr<std::pair<boost::shared_ptr<MySql::Center_Task>, Progress>>
@@ -59,7 +59,9 @@ public:
 	void update(TaskInfo info, bool throws_if_not_exists = true);
 	bool remove(TaskId task_id) noexcept;
 
-	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3);
+	bool has_been_accomplished(TaskId task_id) const;
+	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+		bool is_primary_castle, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

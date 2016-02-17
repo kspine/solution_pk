@@ -186,7 +186,7 @@ void Account::activate(){
 
 	boost::shared_ptr<Castle> castle;
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	WorldMap::get_map_objects_by_owner(map_objects, get_account_uuid());
+	WorldMap::get_map_objects_by_owner_and_type(map_objects, get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
 		const auto test_castle = boost::dynamic_pointer_cast<Castle>(map_object);
