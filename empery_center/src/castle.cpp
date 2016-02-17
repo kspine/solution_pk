@@ -15,6 +15,7 @@
 #include "map_cell.hpp"
 #include "reason_ids.hpp"
 #include "data/map_object.hpp"
+#include "building_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -217,67 +218,6 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
 		owner_uuid, parent_object_uuid, std::move(name), coord, created_time)
 {
-	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: owner_uuid = ", get_owner_uuid());
-	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
-	Data::CastleBuildingBase::get_init(init_buildings);
-	for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
-		const auto &building_data = *dit;
-
-		const auto &buildings_allowed = building_data->buildings_allowed;
-		boost::container::flat_map<BuildingId, unsigned> random_buildings;
-		random_buildings.reserve(buildings_allowed.size());
-		for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
-			const auto building_id = *it;
-			random_buildings.emplace(building_id, 0);
-		}
-		for(auto tit = m_buildings.begin(); tit != m_buildings.end(); ++tit){
-			const auto &obj = tit->second;
-			const auto building_id = BuildingId(obj->get_building_id());
-			const auto it = random_buildings.find(building_id);
-			if(it == random_buildings.end()){
-				continue;
-			}
-			it->second += 1;
-		}
-		auto it = random_buildings.begin();
-		while(it != random_buildings.end()){
-			const auto random_building_data = Data::CastleBuilding::require(it->first);
-			if(it->second >= random_building_data->build_limit){
-				LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
-					", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
-				it = random_buildings.erase(it);
-			} else {
-				++it;
-			}
-		}
-		if(random_buildings.empty()){
-			continue;
-		}
-		const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
-		it = random_buildings.begin() + index;
-		const auto building_id = it->first;
-		const auto init_level = building_data->init_level;
-
-		const auto building_base_id = building_data->building_base_id;
-		LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
-			", building_base_id = ", building_base_id, ", building_id = ", building_id);
-		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
-		obj->async_save(true);
-		m_buildings.emplace(building_base_id, std::move(obj));
-	}
-
-	LOG_EMPERY_CENTER_DEBUG("Checking for init resources: owner_uuid = ", get_owner_uuid());
-	std::vector<boost::shared_ptr<const Data::CastleResource>> resource_data_all;
-	Data::CastleResource::get_all(resource_data_all);
-	for(auto dit = resource_data_all.begin(); dit != resource_data_all.end(); ++dit){
-		const auto &resource_data = *dit;
-		const auto resource_id = resource_data->resource_id;
-		auto obj = boost::make_shared<MySql::Center_CastleResource>(
-			get_map_object_uuid().get(), resource_id.get(), resource_data->init_amount);
-		obj->async_save(true);
-		m_resources.emplace(resource_id, std::move(obj));
-	}
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
@@ -366,7 +306,7 @@ void Castle::recalculate_attributes(){
 		auto &prosperity = modifiers[AttributeIds::ID_PROSPERITY_POINTS];
 		prosperity += static_cast<std::int64_t>(upgrade_data->prosperity_points);
 
-		if(building_data->type == Data::CastleBuilding::T_PRIMARY){
+		if(building_data->type == BuildingTypeIds::ID_PRIMARY){
 			auto &castle_level = modifiers[AttributeIds::ID_CASTLE_LEVEL];
 			if(castle_level < building_level){
 				castle_level = building_level;
@@ -401,7 +341,7 @@ void Castle::pump_production(){
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
 		const auto building_data = Data::CastleBuilding::require(building_id);
-		if(building_data->type != Data::CastleBuilding::T_PRIMARY){
+		if(building_data->type != BuildingTypeIds::ID_PRIMARY){
 			continue;
 		}
 		primary_base_id = it->first;
@@ -462,7 +402,7 @@ void Castle::pump_production(){
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
 		const auto building_data = Data::CastleBuilding::require(building_id);
-		if(building_data->type != Data::CastleBuilding::T_CIVILIAN){
+		if(building_data->type != BuildingTypeIds::ID_CIVILIAN){
 			continue;
 		}
 		const unsigned current_level = it->second->get_building_level();
@@ -516,6 +456,64 @@ void Castle::pump_production(){
 	m_capacity        = capacity;
 }
 
+void Castle::check_init_buildings(){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: map_object_uuid = ", get_map_object_uuid());
+	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
+	Data::CastleBuildingBase::get_init(init_buildings);
+	for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
+		const auto &building_data = *dit;
+		const auto building_base_id = building_data->building_base_id;
+		const auto bit = m_buildings.find(building_base_id);
+		if(bit != m_buildings.end()){
+			continue;
+		}
+
+		const auto &buildings_allowed = building_data->buildings_allowed;
+		boost::container::flat_map<BuildingId, unsigned> random_buildings;
+		random_buildings.reserve(buildings_allowed.size());
+		for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
+			const auto building_id = *it;
+			random_buildings.emplace(building_id, 0);
+		}
+		for(auto tit = m_buildings.begin(); tit != m_buildings.end(); ++tit){
+			const auto &obj = tit->second;
+			const auto building_id = BuildingId(obj->get_building_id());
+			const auto it = random_buildings.find(building_id);
+			if(it == random_buildings.end()){
+				continue;
+			}
+			it->second += 1;
+		}
+		auto it = random_buildings.begin();
+		while(it != random_buildings.end()){
+			const auto random_building_data = Data::CastleBuilding::require(it->first);
+			if(it->second >= random_building_data->build_limit){
+				LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
+					", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
+				it = random_buildings.erase(it);
+			} else {
+				++it;
+			}
+		}
+		if(random_buildings.empty()){
+			continue;
+		}
+		const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
+		it = random_buildings.begin() + index;
+		const auto building_id = it->first;
+		const auto init_level = building_data->init_level;
+
+		LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
+			", building_base_id = ", building_base_id, ", building_id = ", building_id);
+		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
+			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
+		obj->async_save(true);
+		m_buildings.emplace(building_base_id, std::move(obj));
+	}
+}
+
 Castle::BuildingBaseInfo Castle::get_building_base(BuildingBaseId building_base_id) const {
 	PROFILE_ME;
 
@@ -539,23 +537,26 @@ void Castle::get_all_building_bases(std::vector<Castle::BuildingBaseInfo> &ret) 
 		ret.emplace_back(std::move(info));
 	}
 }
-std::size_t Castle::count_buildings_by_id(BuildingId building_id) const {
-	PROFILE_ME;
-
-	std::size_t count = 0;
-	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(BuildingId(it->second->get_building_id()) != building_id){
-			continue;
-		}
-		++count;
-	}
-	return count;
-}
 void Castle::get_buildings_by_id(std::vector<Castle::BuildingBaseInfo> &ret, BuildingId building_id) const {
 	PROFILE_ME;
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(BuildingId(it->second->get_building_id()) != building_id){
+		const auto current_id = BuildingId(it->second->get_building_id());
+		if(current_id != building_id){
+			continue;
+		}
+		BuildingBaseInfo info;
+		fill_building_base_info(info, it->second);
+		ret.emplace_back(std::move(info));
+	}
+}
+void Castle::get_buildings_by_type_id(std::vector<Castle::BuildingBaseInfo> &ret, BuildingTypeId type) const {
+	PROFILE_ME;
+
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto current_id = BuildingId(it->second->get_building_id());
+		const auto building_data = Data::CastleBuilding::require(current_id);
+		if(building_data->type != type){
 			continue;
 		}
 		BuildingBaseInfo info;
@@ -790,7 +791,7 @@ unsigned Castle::get_level() const {
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
 		const auto building_data = Data::CastleBuilding::require(building_id);
-		if(building_data->type != Data::CastleBuilding::T_PRIMARY){
+		if(building_data->type != BuildingTypeIds::ID_PRIMARY){
 			continue;
 		}
 		const unsigned current_level = it->second->get_building_level();
@@ -808,7 +809,7 @@ std::uint64_t Castle::get_warehouse_capacity(ResourceId resource_id) const {
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
 		const auto building_data = Data::CastleBuilding::require(building_id);
-		if(building_data->type != Data::CastleBuilding::T_WAREHOUSE){
+		if(building_data->type != BuildingTypeIds::ID_WAREHOUSE){
 			continue;
 		}
 		const unsigned current_level = it->second->get_building_level();
@@ -1051,6 +1052,27 @@ void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_pt
 	Msg::SC_CastleTech msg;
 	fill_tech_message(msg, it->second, utc_now);
 	session->send(msg);
+}
+
+void Castle::check_init_resources(){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("Checking for init resources: map_object_uuid = ", get_map_object_uuid());
+	std::vector<ResourceTransactionElement> transaction;
+	std::vector<boost::shared_ptr<const Data::CastleResource>> resource_data_all;
+	Data::CastleResource::get_all(resource_data_all);
+	for(auto dit = resource_data_all.begin(); dit != resource_data_all.end(); ++dit){
+		const auto &resource_data = *dit;
+		const auto resource_id = resource_data->resource_id;
+		const auto rit = m_resources.find(resource_id);
+		if(rit != m_resources.end()){
+			continue;
+		}
+		LOG_EMPERY_CENTER_TRACE("> Adding resource: resource_id = ", resource_id, ", init_amount = ", resource_data->init_amount);
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, resource_data->init_amount,
+			ReasonIds::ID_INIT_RESOURCES, resource_data->init_amount, 0, 0);
+	}
+	commit_resource_transaction(transaction);
 }
 
 Castle::ResourceInfo Castle::get_resource(ResourceId resource_id) const {

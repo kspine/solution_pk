@@ -16,6 +16,16 @@ namespace Data {
 		MapObjectTypeId map_object_type_id;
 		double speed;
 		double harvest_speed;
+
+		boost::container::flat_map<BuildingId, unsigned> prerequisite;
+		boost::container::flat_map<ResourceId, std::uint64_t> enability_cost;
+
+		boost::container::flat_map<ResourceId, std::uint64_t> production_cost;
+		boost::container::flat_map<ResourceId, std::uint64_t> maintenance_cost;
+		MapObjectTypeId previous_id;
+		double production_time;
+		BuildingId factory_id;
+		std::uint64_t max_rally_count;
 	};
 }
 

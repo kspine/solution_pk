@@ -166,9 +166,10 @@ void MailBox::insert(MailInfo info){
 void MailBox::update(MailInfo info, bool throws_if_not_exists){
 	PROFILE_ME;
 
-	const auto it = m_mails.find(info.mail_uuid);
+	const auto mail_uuid = info.mail_uuid;
+	const auto it = m_mails.find(mail_uuid);
 	if(it == m_mails.end()){
-		LOG_EMPERY_CENTER_WARNING("Mail not found: account_uuid = ", get_account_uuid(), ", mail_uuid = ", info.mail_uuid);
+		LOG_EMPERY_CENTER_WARNING("Mail not found: account_uuid = ", get_account_uuid(), ", mail_uuid = ", mail_uuid);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Mail not found"));
 		}

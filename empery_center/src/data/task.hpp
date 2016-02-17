@@ -10,17 +10,12 @@ namespace EmperyCenter {
 namespace Data {
 	class TaskAbstract {
 	public:
-		enum ObjectiveType {
-			
-		};
-
-	public:
 		static boost::shared_ptr<const TaskAbstract> get(TaskId task_id);
 		static boost::shared_ptr<const TaskAbstract> require(TaskId task_id);
 
 	public:
 		TaskId task_id;
-		ObjectiveType objective_type;
+		TaskTypeId type;
 		boost::container::flat_map<std::uint64_t, std::vector<std::uint64_t>> objective;
 		boost::container::flat_map<ItemId, std::uint64_t> reward;
 	};

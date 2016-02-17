@@ -116,10 +116,12 @@ public:
 
 	void pump_production();
 
+	void check_init_buildings();
+
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
 	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;
-	std::size_t count_buildings_by_id(BuildingId building_id) const;
 	void get_buildings_by_id(std::vector<BuildingBaseInfo> &ret, BuildingId building_id) const;
+	void get_buildings_by_type_id(std::vector<BuildingBaseInfo> &ret, BuildingTypeId type) const;
 	// 如果指定地基上有任务会抛出异常。
 	void create_building_mission(BuildingBaseId building_base_id, Mission mission, BuildingId building_id = BuildingId());
 	void cancel_building_mission(BuildingBaseId building_base_id);
@@ -146,6 +148,8 @@ public:
 	void pump_tech_status(TechId tech_id);
 	unsigned get_tech_queue_size() const;
 	void synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const;
+
+	void check_init_resources();
 
 	ResourceInfo get_resource(ResourceId resource_id) const;
 	void get_all_resources(std::vector<ResourceInfo> &ret) const;

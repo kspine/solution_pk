@@ -143,7 +143,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 			return { };
 		}
 		const auto utc_now = Poseidon::get_utc_time();
-		account = boost::make_shared<Account>(account_uuid, PlatformId(), std::string(), AccountUuid(), 0, utc_now, "Global mail account");
+		account = boost::make_shared<Account>(account_uuid, PlatformId(1), std::string(), AccountUuid(), 0, utc_now, "Global mail account");
 		AccountMap::insert(account, std::string());
 	}
 

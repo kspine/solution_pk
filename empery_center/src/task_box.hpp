@@ -19,21 +19,23 @@ class PlayerSession;
 
 class TaskBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
-	using ProgressMap = boost::container::flat_map<std::uint64_t, std::uint64_t>;
+	using Progress = boost::container::flat_map<std::uint64_t, std::uint64_t>;
 
 	struct TaskInfo {
 		TaskId task_id;
 		std::uint64_t created_time;
 		std::uint64_t expiry_time;
-		boost::shared_ptr<const ProgressMap> progress;
+		boost::shared_ptr<const Progress> progress;
 		bool rewarded;
 	};
 
 private:
 	const AccountUuid m_account_uuid;
 
+	boost::shared_ptr<MySql::Center_Task> m_timestamp;
+
 	boost::container::flat_map<TaskId,
-		std::pair<boost::shared_ptr<MySql::Center_Task>, boost::shared_ptr<ProgressMap>>
+		boost::shared_ptr<std::pair<boost::shared_ptr<MySql::Center_Task>, Progress>>
 		> m_tasks;
 
 public:
@@ -48,10 +50,16 @@ public:
 		return m_account_uuid;
 	}
 
+	void check_init_tasks();
+
 	TaskInfo get(TaskId task_id) const;
 	void get_all(std::vector<TaskInfo> &ret) const;
 
+	void insert(TaskInfo info);
+	void update(TaskInfo info, bool throws_if_not_exists = true);
+	bool remove(TaskId task_id) noexcept;
 
+	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
