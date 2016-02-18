@@ -19,10 +19,16 @@ class PlayerSession;
 
 class TaskBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
+	enum Category {
+		CAT_PRIMARY     = 1,
+		CAT_DAILY       = 2,
+	};
+
 	using Progress = boost::container::flat_map<std::uint64_t, std::uint64_t>;
 
 	struct TaskInfo {
 		TaskId task_id;
+		Category category;
 		std::uint64_t created_time;
 		std::uint64_t expiry_time;
 		boost::shared_ptr<const Progress> progress;

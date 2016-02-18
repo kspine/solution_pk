@@ -11,6 +11,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (account_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (task_id)	\
+	FIELD_INTEGER_UNSIGNED  (category)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
 	FIELD_STRING            (progress)	\

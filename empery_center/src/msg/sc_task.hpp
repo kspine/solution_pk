@@ -11,8 +11,9 @@ namespace Msg {
 #define MESSAGE_ID      1299
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (task_id)	\
+	FIELD_VUINT         (category)	\
 	FIELD_VUINT         (created_time)	\
-	FIELD_VUINT         (expiry_time)	\
+	FIELD_VUINT         (expiry_duration)	\
 	FIELD_ARRAY         (progress,	\
 		FIELD_VUINT         (key)	\
 		FIELD_VUINT         (count)	\

@@ -81,28 +81,30 @@ namespace {
 		const auto &progress = pair->second;
 
 		info.task_id      = TaskId(obj->get_task_id());
+		info.category     = TaskBox::Category(obj->get_category());
 		info.created_time = obj->get_created_time();
 		info.expiry_time  = obj->get_expiry_time();
 		info.progress     = boost::shared_ptr<const TaskBox::Progress>(pair, &progress);
 		info.rewarded     = obj->get_rewarded();
 	}
 
-	void fill_task_message(Msg::SC_TaskChanged &msg, const boost::shared_ptr<TaskObjectPair> &pair){
+	void fill_task_message(Msg::SC_TaskChanged &msg, const boost::shared_ptr<TaskObjectPair> &pair, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto &obj = pair->first;
 		const auto &progress = pair->second;
 
-		msg.task_id       = obj->get_task_id();
-		msg.created_time  = obj->get_created_time();
-		msg.expiry_time   = obj->get_expiry_time();
+		msg.task_id         = obj->get_task_id();
+		msg.category        = obj->get_category();
+		msg.created_time    = obj->get_created_time();
+		msg.expiry_duration = saturated_sub(obj->get_expiry_time(), utc_now);
 		msg.progress.reserve(progress.size());
 		for(auto it = progress.begin(); it != progress.end(); ++it){
 			auto &elem = *msg.progress.emplace(msg.progress.end());
 			elem.key = it->first;
 			elem.count = it->second;
 		}
-		msg.rewarded      = obj->get_rewarded();
+		msg.rewarded        = obj->get_rewarded();
 	}
 }
 
@@ -170,6 +172,7 @@ void TaskBox::check_init_tasks(){
 			LOG_EMPERY_CENTER_DEBUG("New primary task: account_uuid = ", account_uuid, ", task_id = ", task_id);
 			TaskInfo info = { };
 			info.task_id      = task_id;
+			info.category     = CAT_PRIMARY;
 			info.created_time = utc_now;
 			info.expiry_time  = UINT64_MAX;
 			insert(std::move(info));
@@ -177,7 +180,7 @@ void TaskBox::check_init_tasks(){
 	}
 
 	if(!m_stamps){
-		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, std::string(), false);
+		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, std::string(), false);
 		obj->async_save(true);
 		m_stamps = std::move(obj);
 	}
@@ -220,6 +223,7 @@ void TaskBox::check_init_tasks(){
 			LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
 			TaskInfo info = { };
 			info.task_id      = task_id;
+			info.category     = CAT_DAILY;
 			info.created_time = utc_now;
 			info.expiry_time  = (today + 1) * 86400000;
 			insert(std::move(info));
@@ -262,12 +266,14 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 		DEBUG_THROW(Exception, sslit("Task exists"));
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	Progress progress;
 	if(info.progress){
 		progress = *info.progress;
 	}
 	const auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), task_id.get(),
-		info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
+		info.category, info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
 	obj->async_save(true);
 	const auto pair = boost::make_shared<TaskObjectPair>(obj, std::move(progress));
 	m_tasks.emplace(task_id, pair);
@@ -276,7 +282,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 	if(session){
 		try {
 			Msg::SC_TaskChanged msg;
-			fill_task_message(msg, pair);
+			fill_task_message(msg, pair, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -298,6 +304,8 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 	}
 	const auto &pair = it->second;
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	std::string progress_str;
 	bool reset_progress = false;
 	if(pair.owner_before(info.progress) || info.progress.owner_before(pair)){
@@ -305,6 +313,7 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 		reset_progress = true;
 	}
 
+	pair->first->set_category(info.category);
 	pair->first->set_created_time(info.created_time);
 	pair->first->set_expiry_time(info.expiry_time);
 	if(reset_progress){
@@ -316,7 +325,7 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 	if(session){
 	    try {
         	Msg::SC_TaskChanged msg;
-        	fill_task_message(msg, pair);
+        	fill_task_message(msg, pair, utc_now);
         	session->send(msg);
     	} catch(std::exception &e){
         	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -334,13 +343,15 @@ bool TaskBox::remove(TaskId task_id) noexcept {
 	const auto pair = std::move(it->second);
 	m_tasks.erase(it);
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	pair->first->set_expiry_time(0);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
 			Msg::SC_TaskChanged msg;
-			fill_task_message(msg, pair);
+			fill_task_message(msg, pair, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -372,9 +383,11 @@ bool TaskBox::has_been_accomplished(TaskId task_id) const {
 void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 		Msg::SC_TaskChanged msg;
-		fill_task_message(msg, it->second);
+		fill_task_message(msg, it->second, utc_now);
 		session->send(msg);
 	}
 }
