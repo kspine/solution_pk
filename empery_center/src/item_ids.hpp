@@ -14,6 +14,8 @@ constexpr ItemId
 	ID_GOLD                 ( 1103004 ),
 
 	ID_SIGNING_IN           ( 2100020 ),
+	ID_TASK_DAILY_RESET     ( 2100038 ),
+
 	ID_LAND_UPGRADE_TICKET  ( 2100032 ),
 	ID_ACCELERATION_CARD    ( 2100033 );
 

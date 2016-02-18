@@ -883,7 +883,9 @@ void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &re
 		ret.emplace_back(it->map_object);
 	}
 }
-void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
+void WorldMap::get_map_objects_by_owner_and_type(std::vector<boost::shared_ptr<MapObject>> &ret,
+	AccountUuid owner_uuid, MapObjectTypeId map_object_type_id)
+{
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -895,6 +897,9 @@ void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>
 	const auto range = map_object_map->equal_range<2>(owner_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
+		if(it->map_object->get_map_object_type_id() != map_object_type_id){
+			continue;
+		}
 		ret.emplace_back(it->map_object);
 	}
 }

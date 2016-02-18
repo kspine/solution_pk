@@ -39,23 +39,11 @@ PLAYER_SERVLET(Msg::CS_ItemFetchTaskReward, account, session, req){
 		return Response(Msg::ERR_TASK_REWARD_FETCHED) <<task_id;
 	}
 
-	const auto task_data = Data::TaskAbstract::require(task_id);
-	for(auto it = task_data->objective.begin(); it != task_data->objective.end(); ++it){
-		const auto key = it->first;
-		const auto count_finish = it->second.at(0);
-
-		const auto oit = info.progress->find(key);
-		if(oit == info.progress->end()){
-			LOG_EMPERY_CENTER_DEBUG("Progress element not found: key = ", key);
-			return Response(Msg::ERR_TASK_NOT_ACCOMPLISHED) <<key <<",0,0";
-		}
-		const auto count = oit->second;
-		if(count < count_finish){
-			LOG_EMPERY_CENTER_DEBUG("Objective not met: key = ", key, ", count = ", count, ", count_finish = ", count_finish);
-			return Response(Msg::ERR_TASK_NOT_ACCOMPLISHED) <<key <<',' <<count <<',' <<count_finish;
-		}
+	if(!task_box->has_been_accomplished(task_id)){
+		return Response(Msg::ERR_TASK_NOT_ACCOMPLISHED) <<task_id;
 	}
 
+	const auto task_data = Data::TaskAbstract::require(task_id);
 	std::vector<ItemTransactionElement> transaction;
 	transaction.reserve(task_data->reward.size());
 	for(auto it = task_data->reward.begin(); it != task_data->reward.end(); ++it){

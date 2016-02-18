@@ -246,7 +246,12 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	}
 	for(auto it = battalion_production.begin(); it != battalion_production.end(); ++it){
 		const auto &obj = *it;
-		m_battalion_production.emplace(BuildingBaseId(obj->get_building_base_id()), obj);
+		const auto building_base_id = BuildingBaseId(obj->get_building_base_id());
+		if(!building_base_id){
+			m_population_production_stamps = obj;
+		} else {
+			m_battalion_production.emplace(building_base_id, obj);
+		}
 	}
 }
 Castle::~Castle(){
@@ -337,33 +342,17 @@ void Castle::recalculate_attributes(){
 void Castle::pump_production(){
 	PROFILE_ME;
 
-	BuildingBaseId primary_base_id;
-	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		const auto building_id = BuildingId(it->second->get_building_id());
-		const auto building_data = Data::CastleBuilding::require(building_id);
-		if(building_data->type != BuildingTypeIds::ID_PRIMARY){
-			continue;
-		}
-		primary_base_id = it->first;
-	}
-	if(!primary_base_id){
-		LOG_EMPERY_CENTER_ERROR("No primary building? map_object_uuid = ", get_map_object_uuid());
-		DEBUG_THROW(Exception, sslit("No primary building"));
-	}
-
 	const auto utc_now = Poseidon::get_utc_time();
 
-	auto production_it = m_battalion_production.find(primary_base_id);
-	if(production_it == m_battalion_production.end()){
+	if(!m_population_production_stamps){
 		auto obj = boost::make_shared<MySql::Center_CastleBattalionProduction>(
-			get_map_object_uuid().get(), primary_base_id.get(), 0, 0, 0, utc_now, utc_now);
+			get_map_object_uuid().get(), 0, 0, 0, 0, utc_now, utc_now);
 		obj->async_save(true);
-		production_it = m_battalion_production.emplace(primary_base_id, std::move(obj)).first;
+		m_population_production_stamps = std::move(obj);
 	}
 	// 特殊：
 	// production_time_begin 是上次人口消耗资源的时间。
 	// production_time_end 是上次人口产出的时间；
-	const auto &production_obj = production_it->second;
 
 	// 人口消耗。
 	boost::container::flat_map<ResourceId, std::uint64_t> resources_to_consume_per_minute;
@@ -380,7 +369,7 @@ void Castle::pump_production(){
 			amount_total = saturated_add(amount_total, saturated_mul(count, rit->second));
 		}
 	}
-	const auto last_consumption_time = production_obj->get_production_time_begin();
+	const auto last_consumption_time = m_population_production_stamps->get_production_time_begin();
 	const auto consumption_minutes = saturated_sub(utc_now, last_consumption_time) / 60000;
 	const auto consumption_duration = consumption_minutes * 60000;
 	if(consumption_minutes > 0){
@@ -394,7 +383,7 @@ void Castle::pump_production(){
 		}
 		commit_resource_transaction(transaction);
 	}
-	production_obj->set_production_time_begin(last_consumption_time + consumption_duration);
+	m_population_production_stamps->set_production_time_begin(last_consumption_time + consumption_duration);
 
 	// 人口产出。
 	double production_rate = 0;
@@ -432,7 +421,7 @@ void Castle::pump_production(){
 		LOG_EMPERY_CENTER_DEBUG("Checking population production: map_object_uuid = ", get_map_object_uuid(),
 			", production_rate = ", production_rate, ", capacity = ", capacity);
 
-		const auto old_last_production_time = production_obj->get_production_time_end();
+		const auto old_last_production_time = m_population_production_stamps->get_production_time_end();
 		const auto old_resource_amount      = get_resource(ResourceIds::ID_POPULATION).amount;
 
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
@@ -450,7 +439,7 @@ void Castle::pump_production(){
 	} else {
 		// 清空人口？
 	}
-	production_obj->set_production_time_end(utc_now);
+	m_population_production_stamps->set_production_time_end(utc_now);
 
 	m_production_rate = production_rate;
 	m_capacity        = capacity;

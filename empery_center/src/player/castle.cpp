@@ -210,7 +210,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account, session, req){
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level + 1);
 	std::vector<ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
+		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_UPGRADE_CANCELLATION_REFUND_RATIO);
 		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
 				it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
@@ -511,7 +511,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 	const auto tech_data = Data::CastleTech::require(info.tech_id, info.tech_level + 1);
 	std::vector<ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
+		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_BATTALION_PRODUCTION_CANCELLATION_REFUND_RATIO);
 		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
 				it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
@@ -580,12 +580,9 @@ PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account, session, /* req */){
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	WorldMap::get_map_objects_by_owner(map_objects, account->get_account_uuid());
+	WorldMap::get_map_objects_by_owner_and_type(map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
-		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
-			continue;
-		}
 		synchronize_map_object_with_player(map_object, session);
 	}
 
@@ -701,15 +698,19 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 
 	immigrant_group_count = 0;
 	temp_map_objects.clear();
-	WorldMap::get_map_objects_by_owner(temp_map_objects, account->get_account_uuid());
+	WorldMap::get_map_objects_by_owner_and_type(temp_map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
 	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
 		const auto &other = *it;
-		const auto other_object_type_id = other->get_map_object_type_id();
-		if((other_object_type_id != MapObjectTypeIds::ID_CASTLE) && (other_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
-			continue;
-		}
-		LOG_EMPERY_CENTER_DEBUG("Found another castle or immigrant group: map_object_uuid = ", map_object_uuid,
-			", other_object_uuid = ", other->get_map_object_uuid(), ", other_object_type_id = ", other_object_type_id);
+		LOG_EMPERY_CENTER_DEBUG("Found another castle: map_object_uuid = ", map_object_uuid,
+			", other_object_uuid = ", other->get_map_object_uuid());
+		++immigrant_group_count;
+	}
+	temp_map_objects.clear();
+	WorldMap::get_map_objects_by_owner_and_type(temp_map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_IMMIGRANTS);
+	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
+		const auto &other = *it;
+		LOG_EMPERY_CENTER_DEBUG("Found another immigrant group: map_object_uuid = ", map_object_uuid,
+			", other_object_uuid = ", other->get_map_object_uuid());
 		++immigrant_group_count;
 	}
 	const auto vip_data = Data::Vip::require(account->get_promotion_level());
@@ -918,13 +919,13 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	}
 
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto battalion_info = castle->get_battalion(map_object_type_id);
-	if(!battalion_info.enabled){
-		return Response(Msg::ERR_BATTALION_UNAVAILABLE) <<map_object_type_id;
-	}
 	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
 	if(building_info.building_id != map_object_type_data->factory_id){
 		return Response(Msg::ERR_FACTORY_ID_MISMATCH) <<map_object_type_data->factory_id;
+	}
+	const auto battalion_info = castle->get_battalion(map_object_type_id);
+	if(!battalion_info.enabled && !map_object_type_data->enability_cost.empty()){
+		return Response(Msg::ERR_BATTALION_UNAVAILABLE) <<map_object_type_id;
 	}
 
 	const auto count = req.count;
@@ -977,7 +978,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
 	const auto count = info.count;
 
-	const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_CANCELLATION_REFUND_RATIO);
+	const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_UPGRADE_CANCELLATION_REFUND_RATIO);
 
 	std::vector<ResourceTransactionElement> transaction;
 	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){

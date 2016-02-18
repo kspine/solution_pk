@@ -48,10 +48,10 @@ ItemBox::~ItemBox(){
 
 void ItemBox::pump_status(){
 	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking for auto increment items: account_uuid = ", get_account_uuid());
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	LOG_EMPERY_CENTER_TRACE("Checking for auto increment items: account_uuid = ", get_account_uuid());
 	std::vector<ItemTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 	Data::Item::get_auto_inc(items_to_check);
@@ -138,8 +138,8 @@ void ItemBox::pump_status(){
 
 void ItemBox::check_init_items(){
 	PROFILE_ME;
-
 	LOG_EMPERY_CENTER_TRACE("Checking for init items: account_uuid = ", get_account_uuid());
+
 	std::vector<ItemTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 	Data::Item::get_init(items_to_check);

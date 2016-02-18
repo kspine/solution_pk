@@ -13,6 +13,7 @@
 #include "../item_ids.hpp"
 #include "../data/global.hpp"
 #include "../data/castle.hpp"
+#include "../map_object_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -107,7 +108,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 		Poseidon::JsonObject elem_castles;
 
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		WorldMap::get_map_objects_by_owner(map_objects, account->get_account_uuid());
+		WorldMap::get_map_objects_by_owner_and_type(map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 			const auto castle = boost::dynamic_pointer_cast<Castle>(*it);
 			if(!castle){
