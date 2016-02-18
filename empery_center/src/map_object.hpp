@@ -24,8 +24,8 @@ private:
 		boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 public:
-	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time);
+	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,
+		std::string name, Coord coord, std::uint64_t created_time, bool garrisoned);
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	~MapObject();
@@ -49,6 +49,9 @@ public:
 
 	bool has_been_deleted() const;
 	void delete_from_game() noexcept;
+
+	bool is_garrisoned() const;
+	void set_garrisoned(bool garrisoned);
 
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;

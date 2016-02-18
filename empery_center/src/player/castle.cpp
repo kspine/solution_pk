@@ -19,6 +19,7 @@
 #include "../map_utilities.hpp"
 #include "../building_type_ids.hpp"
 #include "../account_attribute_ids.hpp"
+#include "../attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -745,7 +746,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
 			const auto immigrants = boost::make_shared<MapObject>(immigrants_uuid, MapObjectTypeIds::ID_IMMIGRANTS,
-				account->get_account_uuid(), map_object_uuid, std::string(), coord, utc_now);
+				account->get_account_uuid(), map_object_uuid, std::string(), coord, utc_now, false);
 			immigrants->pump_status();
 			WorldMap::insert_map_object(immigrants);
 			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid,
@@ -1122,28 +1123,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleDismissBattalion, account, session, req){
-	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
-	}
-	if(castle->get_owner_uuid() != account->get_account_uuid()){
-		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
-	}
-
-	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto count = req.count;
-
-	std::vector<BattalionTransactionElement> transaction;
-	transaction.emplace_back(BattalionTransactionElement::OP_REMOVE_SATURATED, map_object_type_id, count,
-		ReasonIds::ID_DISMISS_BATTALION, map_object_type_id.get(), count, 0);
-	castle->commit_battalion_transaction(transaction);
-
-	return Response();
-}
-
-PLAYER_SERVLET(Msg::CS_CastleRallyBattalion, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -1160,27 +1140,25 @@ PLAYER_SERVLET(Msg::CS_CastleRallyBattalion, account, session, req){
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}
-	const auto max_rally_count = map_object_type_data->max_rally_count;
-	if(count > max_rally_count){
-		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_BATTALION) <<max_rally_count;
+	const auto max_soldier_count = map_object_type_data->max_soldier_count;
+	if(count > max_soldier_count){
+		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_BATTALION) <<max_soldier_count;
 	}
 
-	std::vector<Coord> foundation;
-	get_castle_foundation(foundation, castle->get_coord(), false);
-	for(;;){
-		if(foundation.empty()){
-			return Response(Msg::ERR_NO_ROOM_FOR_NEW_UNIT);
+	std::size_t battalion_count = 0;
+	std::vector<boost::shared_ptr<MapObject>> current_battalions;
+	WorldMap::get_map_objects_by_parent_object(current_battalions, castle->get_map_object_uuid());
+	for(auto it = current_battalions.begin(); it != current_battalions.end(); ++it){
+		const auto &battalion = *it;
+		if(battalion->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
+			continue;
 		}
-		const auto &coord = foundation.front();
-		std::vector<boost::shared_ptr<MapObject>> test_objects;
-		WorldMap::get_map_objects_by_rectangle(test_objects, Rectangle(coord, 1, 1));
-		if(test_objects.empty()){
-			LOG_EMPERY_CENTER_DEBUG("Found coord for battalion: coord = ", coord);
-			break;
-		}
-		foundation.erase(foundation.begin());
+		++battalion_count;
 	}
-	const auto &coord = foundation.front();
+	const auto max_battalion_count = castle->get_max_battalion_count();
+	if(battalion_count >= max_battalion_count){
+		return Response(Msg::ERR_MAX_BATTALION_COUNT_EXCEEDED) <<max_battalion_count;
+	}
 
 	const auto battalion_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	const auto utc_now        = Poseidon::get_utc_time();
@@ -1188,20 +1166,25 @@ PLAYER_SERVLET(Msg::CS_CastleRallyBattalion, account, session, req){
 	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(battalion_uuid.get()[0]));
 
-	std::vector<BattalionTransactionElement> transaction;
-	transaction.emplace_back(BattalionTransactionElement::OP_REMOVE, map_object_type_id, count,
-		ReasonIds::ID_LEAVE_CASTLE, castle_uuid_head, battalion_uuid_head, 0);
-	const auto insuff_battalion_id = castle->commit_battalion_transaction_nothrow(transaction,
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(count);
+
+	std::vector<SoldierTransactionElement> transaction;
+	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, count,
+		ReasonIds::ID_CREATE_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
+	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
 		[&]{
 			const auto battalion = boost::make_shared<MapObject>(battalion_uuid, map_object_type_id,
-				account->get_account_uuid(), castle->get_map_object_uuid(), std::string(), coord, utc_now);
+				account->get_account_uuid(), castle->get_map_object_uuid(), std::string(), castle->get_coord(), utc_now, true);
+			battalion->set_attributes(std::move(modifiers));
 			battalion->pump_status();
+
 			WorldMap::insert_map_object(battalion);
-			LOG_EMPERY_CENTER_INFO("Created battalion group: battalion_uuid = ", battalion_uuid,
+			LOG_EMPERY_CENTER_INFO("Created battalion: battalion_uuid = ", battalion_uuid,
 				", account_uuid = ", account->get_account_uuid());
 		});
 	if(insuff_battalion_id){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_BATTALIONS) <<insuff_battalion_id;
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
 	}
 
 	return Response();

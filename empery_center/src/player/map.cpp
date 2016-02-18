@@ -3,6 +3,7 @@
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
+#include "../msg/err_castle.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_utilities.hpp"
 #include "../map_object.hpp"
@@ -22,6 +23,7 @@
 #include "../data/global.hpp"
 #include "../overlay.hpp"
 #include "../map_object_type_ids.hpp"
+#include "../attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -489,6 +491,94 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	map_object->set_coord(new_coord);
 
 	session->send(Msg::SC_MapObjectStopped(map_object_uuid.str(), 0, std::string(), Msg::ERR_SWITCHED_CLUSTER, std::string()));
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
+	}
+
+	const auto castle_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(castle && map_object->is_garrisoned()){
+		auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
+		if(soldier_count < 0){
+			soldier_count = 0;
+		}
+
+		const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
+		const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+		std::vector<SoldierTransactionElement> transaction;
+		transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, soldier_count,
+			ReasonIds::ID_DISMISS_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
+		castle->commit_soldier_transaction(transaction,
+			[&]{ map_object->delete_from_game(); });
+	} else {
+		map_object->delete_from_game();
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapEvacuateFromCastle, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
+	}
+
+	const auto castle_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+	}
+	if(!map_object->is_garrisoned()){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+	}
+
+	std::vector<Coord> foundation;
+	get_castle_foundation(foundation, castle->get_coord(), false);
+	for(;;){
+		if(foundation.empty()){
+			return Response(Msg::ERR_NO_ROOM_FOR_NEW_UNIT);
+		}
+		const auto &coord = foundation.front();
+		std::vector<boost::shared_ptr<MapObject>> test_objects;
+		WorldMap::get_map_objects_by_rectangle(test_objects, Rectangle(coord, 1, 1));
+		if(test_objects.empty()){
+			LOG_EMPERY_CENTER_DEBUG("Found coord for battalion: coord = ", coord);
+			break;
+		}
+		foundation.erase(foundation.begin());
+	}
+	const auto &coord = foundation.front();
+
+	map_object->set_coord(Coord(INT64_MAX, INT64_MAX));
+	map_object->set_garrisoned(false);
+	map_object->set_coord(coord);
 
 	return Response();
 }

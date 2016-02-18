@@ -216,7 +216,7 @@ namespace {
 Castle::Castle(MapObjectUuid map_object_uuid,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
 	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
-		owner_uuid, parent_object_uuid, std::move(name), coord, created_time)
+		owner_uuid, parent_object_uuid, std::move(name), coord, created_time, false)
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
@@ -839,6 +839,26 @@ bool Castle::is_battalion_production_in_progress(BuildingBaseId building_base_id
 	}
 	return false;
 }
+std::uint64_t Castle::get_max_battalion_count() const {
+	PROFILE_ME;
+
+	std::uint64_t count = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != BuildingTypeIds::ID_PARADE_GROUND){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		if(current_level == 0){
+			continue;
+		}
+		const auto upgrade_data = Data::CastleUpgradeParadeGround::require(current_level);
+		count = saturated_add(count, upgrade_data->max_battalion_count);
+	}
+	return count;
+}
+
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;
 
@@ -1290,7 +1310,7 @@ void Castle::enable_battalion(MapObjectTypeId map_object_type_id){
 	}
 }
 
-MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<BattalionTransactionElement> &transaction,
+MapObjectTypeId Castle::commit_soldier_transaction_nothrow(const std::vector<SoldierTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
@@ -1300,7 +1320,7 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleBattalion>, std::uint64_t /* new_count */> temp_result_map;
 	temp_result_map.reserve(transaction.size());
 
-	const FlagGuard transaction_guard(m_locked_by_battalion_transaction);
+	const FlagGuard transaction_guard(m_locked_by_soldier_transaction);
 
 	const auto map_object_uuid = get_map_object_uuid();
 	const auto owner_uuid = get_owner_uuid();
@@ -1320,10 +1340,10 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 		const auto param3 = tit->m_param3;
 
 		switch(operation){
-		case BattalionTransactionElement::OP_NONE:
+		case SoldierTransactionElement::OP_NONE:
 			break;
 
-		case BattalionTransactionElement::OP_ADD:
+		case SoldierTransactionElement::OP_ADD:
 			{
 				boost::shared_ptr<MySql::Center_CastleBattalion> obj;
 				{
@@ -1354,12 +1374,12 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 			}
 			break;
 
-		case BattalionTransactionElement::OP_REMOVE:
-		case BattalionTransactionElement::OP_REMOVE_SATURATED:
+		case SoldierTransactionElement::OP_REMOVE:
+		case SoldierTransactionElement::OP_REMOVE_SATURATED:
 			{
 				const auto it = m_battalions.find(map_object_type_id);
 				if(it == m_battalions.end()){
-					if(operation != BattalionTransactionElement::OP_REMOVE_SATURATED){
+					if(operation != SoldierTransactionElement::OP_REMOVE_SATURATED){
 						LOG_EMPERY_CENTER_DEBUG("Battalion not found: map_object_type_id = ", map_object_type_id);
 						return map_object_type_id;
 					}
@@ -1374,7 +1394,7 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 				if(temp_it->second >= delta_count){
 					temp_it->second -= delta_count;
 				} else {
-					if(operation != BattalionTransactionElement::OP_REMOVE_SATURATED){
+					if(operation != SoldierTransactionElement::OP_REMOVE_SATURATED){
 						LOG_EMPERY_CENTER_DEBUG("No enough battalions: map_object_type_id = ", map_object_type_id,
 							", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
 						return map_object_type_id;
@@ -1426,12 +1446,12 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 
 	return { };
 }
-void Castle::commit_battalion_transaction(const std::vector<BattalionTransactionElement> &transaction,
+void Castle::commit_soldier_transaction(const std::vector<SoldierTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
-	const auto insuff_id = commit_battalion_transaction_nothrow(transaction, callback);
+	const auto insuff_id = commit_soldier_transaction_nothrow(transaction, callback);
 	if(insuff_id != MapObjectTypeId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient battalions in castle: map_object_uuid = ", get_map_object_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient battalions in castle"));
@@ -1600,10 +1620,10 @@ void Castle::harvest_battalion(BuildingBaseId building_base_id){
 		DEBUG_THROW(Exception, sslit("Battalion production incomplete"));
 	}
 
-	std::vector<BattalionTransactionElement> transaction;
-	transaction.emplace_back(BattalionTransactionElement::OP_ADD, map_object_type_id, count,
+	std::vector<SoldierTransactionElement> transaction;
+	transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, count,
 		ReasonIds::ID_HARVEST_BATTALION, map_object_type_id.get(), count, 0);
-	commit_battalion_transaction(transaction,
+	commit_soldier_transaction(transaction,
 		[&]{
 			obj->set_map_object_type_id(0);
 			obj->set_count(0);

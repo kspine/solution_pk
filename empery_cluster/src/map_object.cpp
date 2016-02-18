@@ -182,7 +182,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		}
 		Msg::KS_MapEnterCastle sreq;
 		sreq.map_object_uuid = map_object_uuid.str();
-		sreq.castle_uuid     = m_action_param;
 		auto sresult = cluster->send_and_wait(sreq);
 		if(sresult.first != Msg::ST_OK){
 			LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);

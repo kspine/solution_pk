@@ -12,12 +12,12 @@
 
 namespace EmperyCenter {
 
-MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
+MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,
+	std::string name, Coord coord, std::uint64_t created_time, bool garrisoned)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
-				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, false);
+				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, false, garrisoned);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -95,6 +95,8 @@ void MapObject::set_name(std::string name){
 
 	m_obj->set_name(std::move(name));
 
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
@@ -118,6 +120,30 @@ void MapObject::delete_from_game() noexcept {
 	m_obj->set_deleted(true);
 
 	WorldMap::remove_map_object(get_map_object_uuid());
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			synchronize_with_player(session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
+bool MapObject::is_garrisoned() const {
+	return m_obj->get_garrisoned();
+}
+void MapObject::set_garrisoned(bool garrisoned){
+	PROFILE_ME;
+
+	if(is_garrisoned() == garrisoned){
+		return;
+	}
+	m_obj->set_garrisoned(garrisoned);
+
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -224,6 +250,7 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second->get_value();
 		}
+		msg.garrisoned         = is_garrisoned();
 		session->send(msg);
 	}
 }

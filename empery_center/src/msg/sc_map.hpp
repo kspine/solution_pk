@@ -51,7 +51,8 @@ namespace Msg {
 	FIELD_ARRAY         (attributes,	\
 		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\
-	)
+	)	\
+	FIELD_VUINT         (garrisoned)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectRemoved

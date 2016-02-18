@@ -25,7 +25,7 @@ namespace Data {
 		MapObjectTypeId previous_id;
 		double production_time;
 		BuildingId factory_id;
-		std::uint64_t max_rally_count;
+		std::uint64_t max_soldier_count;
 	};
 }
 
