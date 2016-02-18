@@ -119,11 +119,6 @@ TaskBox::TaskBox(AccountUuid account_uuid,
 			m_tasks.emplace(task_id, boost::make_shared<TaskObjectPair>(obj, decode_progress(obj->unlocked_get_progress())));
 		}
 	}
-	if(!m_stamps){
-		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, std::string(), false);
-		obj->async_save(true);
-		m_stamps = std::move(obj);
-	}
 }
 TaskBox::~TaskBox(){
 }
@@ -181,8 +176,14 @@ void TaskBox::check_init_tasks(){
 		}
 	}
 
-	// m_stamps 特殊：
+	if(!m_stamps){
+		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, std::string(), false);
+		obj->async_save(true);
+		m_stamps = std::move(obj);
+	}
+	// 特殊：
 	// created_time 是上次每日任务刷新时间。
+
 	const auto last_refreshed_time = m_stamps->get_created_time();
 	const auto last_refreshed_day = saturated_sub(last_refreshed_time, auto_inc_offset) / 86400000;
 	const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;

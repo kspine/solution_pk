@@ -82,6 +82,8 @@ private:
 	boost::container::flat_map<MapObjectTypeId,
 		boost::shared_ptr<MySql::Center_CastleBattalion>> m_battalions;
 
+	boost::shared_ptr<MySql::Center_CastleBattalionProduction> m_population_production_stamps;
+
 	boost::container::flat_map<BuildingBaseId,
 		boost::shared_ptr<MySql::Center_CastleBattalionProduction>> m_battalion_production;
 	bool m_locked_by_battalion_transaction = false;
