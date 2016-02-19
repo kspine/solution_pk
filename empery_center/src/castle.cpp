@@ -176,7 +176,7 @@ namespace {
 			return false;
 		}
 		const auto mission_time_end = obj->get_mission_time_end();
-		if(utc_now <= mission_time_end){
+		if(utc_now < mission_time_end){
 			return false;
 		}
 
@@ -207,7 +207,7 @@ namespace {
 
 		obj->set_mission(Castle::MIS_NONE);
 		obj->set_mission_duration(0);
-		obj->set_mission_time_end(utc_now);
+		obj->set_mission_time_end(0);
 
 		return true;
 	}

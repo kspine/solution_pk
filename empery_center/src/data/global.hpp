@@ -47,6 +47,7 @@ namespace Data {
 			SLOT_ADJACENT_CHAT_RANGE                                = 100035,
 			SLOT_TAX_RECORD_EXPIRY_DAYS                             = 100036,
 			SLOT_BATTALION_PRODUCTION_CANCELLATION_REFUND_RATIO     = 100037,
+			SLOT_MAX_DAILY_TASK_COUNT                               = 100038,
 		};
 
 	public:

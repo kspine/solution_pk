@@ -7,6 +7,7 @@
 #include "player_session.hpp"
 #include "data/task.hpp"
 #include "data/item.hpp"
+#include "data/global.hpp"
 #include "item_ids.hpp"
 #include "map_object_type_ids.hpp"
 #include "task_type_ids.hpp"
@@ -193,6 +194,8 @@ void TaskBox::check_primary_tasks(){
 	const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
 	LOG_EMPERY_CENTER_DEBUG("Checking for new daily task: last_refreshed_day = ", last_refreshed_day, ", today = ", today);
 	if(last_refreshed_day < today){
+		const auto daily_task_refresh_time = (today + 1) * 86400000 + auto_inc_offset;
+
 		unsigned account_level = 0;
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
 		WorldMap::get_map_objects_by_owner_and_type(map_objects, account_uuid, MapObjectTypeIds::ID_CASTLE);
@@ -210,6 +213,10 @@ void TaskBox::check_primary_tasks(){
 		}
 		LOG_EMPERY_CENTER_DEBUG("Account level: account_uuid = ", account_uuid, ", account_level = ", account_level);
 
+		const auto max_daily_task_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_DAILY_TASK_COUNT);
+		std::vector<TaskId> task_candidates;
+		task_candidates.reserve(max_daily_task_count);
+
 		std::vector<boost::shared_ptr<const Data::TaskDaily>> task_data_daily;
 		Data::TaskDaily::get_all(task_data_daily);
 		for(auto it = task_data_daily.begin(); it != task_data_daily.end(); ++it){
@@ -221,15 +228,29 @@ void TaskBox::check_primary_tasks(){
 			if(m_tasks.find(task_id) != m_tasks.end()){
 				continue;
 			}
+			task_candidates.emplace_back(task_id);
+		}
+
+		for(std::size_t i = 0; i < task_candidates.size(); ++i){
+			const auto j = Poseidon::rand32(0, task_candidates.size());
+			std::swap(task_candidates.at(i), task_candidates.at(j));
+		}
+		if(task_candidates.size() > max_daily_task_count){
+			task_candidates.resize(max_daily_task_count);
+		}
+
+		for(auto it = task_candidates.begin(); it != task_candidates.end(); ++it){
+			const auto task_id = *it;
 			LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
 			TaskInfo info = { };
 			info.task_id      = task_id;
 			info.category     = CAT_DAILY;
 			info.created_time = utc_now;
-			info.expiry_time  = (today + 1) * 86400000 + auto_inc_offset;
+			info.expiry_time  = daily_task_refresh_time;
 			insert(std::move(info));
 		}
-		m_stamps->set_created_time(utc_now);
+
+		m_stamps->set_created_time(daily_task_refresh_time);
 	}
 }
 
@@ -369,12 +390,16 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 {
 	PROFILE_ME;
 
+	pump_status();
+
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	const auto utc_now = Poseidon::get_utc_time();
 
 	enum {
 		TCC_UNKNOWN, TCC_PRIMARY, TCC_NON_PRIMARY
 	} castle_category = TCC_UNKNOWN;
+
+	bool recheck = false;
 
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 		const auto task_id = it->first;
@@ -427,6 +452,10 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			throw;
 		}
 
+		if(count_new >= count_finish){
+			recheck = true;
+		}
+
 		if(session){
 	    	try {
         		Msg::SC_TaskChanged msg;
@@ -437,6 +466,10 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
     	    	session->shutdown(e.what());
     		}
 		}
+	}
+
+	if(recheck){
+		check_primary_tasks();
 	}
 }
 bool TaskBox::has_been_accomplished(TaskId task_id) const {
