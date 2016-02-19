@@ -946,7 +946,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	}
 
 	const auto info = castle->get_battalion_production(building_base_id);
-	if(!info.map_object_type_id){
+	if(info.map_object_type_id){
 		return Response(Msg::ERR_BATTALION_PRODUCTION_CONFLICT) <<info.map_object_type_id;
 	}
 
