@@ -1095,6 +1095,9 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 			if(map_object->is_virtually_removed()){
 				continue;
 			}
+			if(map_object->is_garrisoned()){
+				continue;
+			}
 			synchronize_map_object_with_player(map_object, session);
 		}
 	} catch(std::exception &e){
