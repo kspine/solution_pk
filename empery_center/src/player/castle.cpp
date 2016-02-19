@@ -1224,7 +1224,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 			battalion->pump_status();
 
 			WorldMap::insert_map_object(battalion);
-			LOG_EMPERY_CENTER_INFO("Created battalion: battalion_uuid = ", battalion_uuid,
+			LOG_EMPERY_CENTER_DEBUG("Created battalion: battalion_uuid = ", battalion_uuid,
 				", account_uuid = ", account->get_account_uuid());
 		});
 	if(insuff_battalion_id){

@@ -136,10 +136,10 @@ void TaskBox::pump_status(){
 	while(it != m_tasks.end()){
 		const auto &obj = it->second->first;
 		if(obj->get_expiry_time() < utc_now){
-			++it;
+			it = m_tasks.erase(it);
 			continue;
 		}
-		it = m_tasks.erase(it);
+		++it;
 	}
 }
 
