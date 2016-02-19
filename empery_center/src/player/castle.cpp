@@ -20,6 +20,9 @@
 #include "../building_type_ids.hpp"
 #include "../account_attribute_ids.hpp"
 #include "../attribute_ids.hpp"
+#include "../singletons/task_box_map.hpp"
+#include "../task_box.hpp"
+#include "../task_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -51,7 +54,8 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 
 namespace {
 	template<typename CallbackT>
-	std::pair<ResourceId, ItemId> try_decrement_resources(const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box,
+	std::pair<ResourceId, ItemId> try_decrement_resources(
+		const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box, const boost::shared_ptr<TaskBox> &task_box,
 		boost::container::flat_map<ResourceId, std::uint64_t> resources, boost::container::flat_map<ItemId, std::uint64_t> tokens,
 		ReasonId reason, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3, CallbackT &&callback)
 	{
@@ -108,6 +112,18 @@ namespace {
 						std::forward<CallbackT>(callback)();
 					});
 			});
+
+		try {
+			for(auto it = resources.begin(); it != resources.end(); ++it){
+				if(it->second == 0){
+					continue;
+				}
+				task_box->check(TaskTypeIds::ID_CONSUME_RESOURCE, it->first.get(), it->second, castle->get_map_object_uuid(), 0, 0, 0);
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+
 		return std::make_pair(insuff_resource_id, insuff_item_id);
 	}
 }
@@ -123,6 +139,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 	}
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	castle->pump_status();
 
@@ -176,7 +193,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, upgrade_data->upgrade_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box,
+		upgrade_data->upgrade_cost, std::move(tokens),
 		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
 		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_CONSTRUCT, building_data->building_id); });
 	if(result.first){
@@ -235,6 +253,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	}
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	castle->pump_status();
 
@@ -248,7 +267,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	// castle->pump_building_status(building_base_id);
 
 	const auto info = castle->get_building_base(building_base_id);
-	if(info.building_id == BuildingId()){
+	if(!info.building_id){
 		return Response(Msg::ERR_NO_BUILDING_THERE) <<building_base_id;
 	}
 	if(info.mission != Castle::MIS_NONE){
@@ -288,7 +307,8 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, upgrade_data->upgrade_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box,
+		upgrade_data->upgrade_cost, std::move(tokens),
 		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
 		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, { }); });
 	if(result.first){
@@ -323,7 +343,7 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	// castle->pump_building_status(building_base_id);
 
 	const auto info = castle->get_building_base(building_base_id);
-	if(info.building_id == BuildingId()){
+	if(!info.building_id){
 		return Response(Msg::ERR_NO_BUILDING_THERE) <<building_base_id;
 	}
 	if(info.mission != Castle::MIS_NONE){
@@ -348,7 +368,7 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 		return Response(Msg::ERR_BUILDING_NOT_DESTRUCTIBLE) <<info.building_id;
 	}
 
-	castle->create_building_mission(building_base_id, Castle::MIS_DESTRUCT, BuildingId());
+	castle->create_building_mission(building_base_id, Castle::MIS_DESTRUCT, info.building_id);
 
 	return Response();
 }
@@ -418,6 +438,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	}
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	castle->pump_status();
 
@@ -478,7 +499,8 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, tech_data->upgrade_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box,
+		tech_data->upgrade_cost, std::move(tokens),
 		ReasonIds::ID_UPGRADE_TECH, tech_data->tech_id_level.first.get(), tech_data->tech_id_level.second, 0,
 		[&]{ castle->create_tech_mission(tech_id, Castle::MIS_UPGRADE); });
 	if(result.first){
@@ -600,6 +622,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto harvest_cooldown = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_CASTLE_HARVESTED_COOLDOWN);
 	if(utc_now < harvest_cooldown){
@@ -622,11 +646,17 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 		map_cell->pump_status();
 
 		if(map_cell->get_resource_amount() != 0){
+			const auto resource_id = map_cell->get_production_resource_id();
 			const auto amount_harvested = map_cell->harvest(false);
 			if(amount_harvested == 0){
 				LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
-					", coord = ", map_cell->get_coord(), ", resource_id = ", map_cell->get_production_resource_id());
+					", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);
 				continue;
+			}
+			try {
+				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested, castle->get_map_object_uuid(), 0, 0, 0);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
 		}
 		warehouse_full = false;
@@ -903,11 +933,12 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	}
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
 	const auto building_info = castle->get_building_base(building_base_id);
-	if(building_info.building_id == BuildingId()){
+	if(!building_info.building_id){
 		return Response(Msg::ERR_NO_BUILDING_THERE) <<building_base_id;
 	}
 	if(building_info.mission != Castle::MIS_NONE){
@@ -915,7 +946,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	}
 
 	const auto info = castle->get_battalion_production(building_base_id);
-	if(info.map_object_type_id != MapObjectTypeId()){
+	if(!info.map_object_type_id){
 		return Response(Msg::ERR_BATTALION_PRODUCTION_CONFLICT) <<info.map_object_type_id;
 	}
 
@@ -945,7 +976,8 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, std::move(production_cost), std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box,
+		std::move(production_cost), std::move(tokens),
 		ReasonIds::ID_PRODUCE_BATTALION, map_object_type_id.get(), count, 0,
 		[&]{ castle->begin_battalion_production(building_base_id, map_object_type_id, count); });
 	if(result.first){
@@ -971,7 +1003,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
 	const auto info = castle->get_battalion_production(building_base_id);
-	if(info.map_object_type_id == MapObjectTypeId()){
+	if(!info.map_object_type_id){
 		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
 	}
 
@@ -1003,10 +1035,12 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
 	const auto info = castle->get_battalion_production(building_base_id);
-	if(info.map_object_type_id == MapObjectTypeId()){
+	if(!info.map_object_type_id){
 		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
 	}
 	const auto utc_now = Poseidon::get_utc_time();
@@ -1014,7 +1048,13 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 		return Response(Msg::ERR_BATTALION_PRODUCTION_INCOMPLETE) <<building_base_id;
 	}
 
-	castle->harvest_battalion(building_base_id);
+	const auto count_harvested = castle->harvest_battalion(building_base_id);
+
+	try {
+		task_box->check(TaskTypeIds::ID_HARVEST_BATTALION, info.map_object_type_id.get(), count_harvested, castle->get_map_object_uuid(), 0, 0, 0);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
 
 	return Response();
 }
@@ -1034,7 +1074,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
 	const auto info = castle->get_battalion_production(building_base_id);
-	if(info.map_object_type_id == MapObjectTypeId()){
+	if(!info.map_object_type_id){
 		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
 	}
 
@@ -1076,6 +1116,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	}
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
 	const auto info = castle->get_battalion(map_object_type_id);
@@ -1110,7 +1151,8 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, map_object_type_data->enability_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box,
+		map_object_type_data->enability_cost, std::move(tokens),
 		ReasonIds::ID_ENABLE_BATTALION, map_object_type_id.get(), 0, 0,
 		[&]{ castle->enable_battalion(map_object_type_id); });
 	if(result.first){

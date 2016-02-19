@@ -56,7 +56,7 @@ public:
 		return m_account_uuid;
 	}
 
-	void check_init_tasks();
+	void check_primary_tasks();
 
 	TaskInfo get(TaskId task_id) const;
 	void get_all(std::vector<TaskInfo> &ret) const;
@@ -67,7 +67,7 @@ public:
 
 	bool has_been_accomplished(TaskId task_id) const;
 	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-		bool is_primary_castle, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3);
+		MapObjectUuid castle_uuid, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

@@ -142,7 +142,7 @@ void TaskBox::pump_status(){
 	}
 }
 
-void TaskBox::check_init_tasks(){
+void TaskBox::check_primary_tasks(){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_TRACE("Checking for initial tasks: account_uuid = ", get_account_uuid());
 
@@ -151,7 +151,8 @@ void TaskBox::check_init_tasks(){
 		LOG_EMPERY_CENTER_ERROR("Task daily reset item is not daily-reset?");
 		DEBUG_THROW(Exception, sslit("Task daily reset item is not daily-reset"));
 	}
-	const auto auto_inc_offset = item_data->auto_inc_offset;
+	const auto auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
+	LOG_EMPERY_CENTER_DEBUG("Retrieved daily task offset: auto_inc_offset = ", auto_inc_offset);
 
 	const auto account_uuid = get_account_uuid();
 	const auto utc_now = Poseidon::get_utc_time();
@@ -180,7 +181,7 @@ void TaskBox::check_init_tasks(){
 	}
 
 	if(!m_stamps){
-		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, std::string(), false);
+		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, 0, std::string(), false);
 		obj->async_save(true);
 		m_stamps = std::move(obj);
 	}
@@ -225,7 +226,7 @@ void TaskBox::check_init_tasks(){
 			info.task_id      = task_id;
 			info.category     = CAT_DAILY;
 			info.created_time = utc_now;
-			info.expiry_time  = (today + 1) * 86400000;
+			info.expiry_time  = (today + 1) * 86400000 + auto_inc_offset;
 			insert(std::move(info));
 		}
 		m_stamps->set_created_time(utc_now);
@@ -266,6 +267,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 		DEBUG_THROW(Exception, sslit("Task exists"));
 	}
 
+	const auto task_data = Data::TaskAbstract::require(task_id);
 	const auto utc_now = Poseidon::get_utc_time();
 
 	Progress progress;
@@ -273,7 +275,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 		progress = *info.progress;
 	}
 	const auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), task_id.get(),
-		info.category, info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
+		info.category, task_data->type.get(), info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
 	obj->async_save(true);
 	const auto pair = boost::make_shared<TaskObjectPair>(obj, std::move(progress));
 	m_tasks.emplace(task_id, pair);
@@ -363,11 +365,79 @@ bool TaskBox::remove(TaskId task_id) noexcept {
 }
 
 void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-	bool is_primary_castle, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3)
+	MapObjectUuid castle_uuid, std::uint64_t /* param1 */, std::uint64_t /* param2 */, std::uint64_t /* param3 */)
 {
 	PROFILE_ME;
 
-	// TODO
+	const auto session = PlayerSessionMap::get(get_account_uuid());
+	const auto utc_now = Poseidon::get_utc_time();
+
+	enum {
+		TCC_UNKNOWN, TCC_PRIMARY, TCC_NON_PRIMARY
+	} castle_category = TCC_UNKNOWN;
+
+	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+		const auto task_id = it->first;
+		auto &pair = it->second;
+		const auto &obj = pair->first;
+		if(TaskTypeId(obj->get_type()) != type){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+		const auto task_data = Data::TaskAbstract::require(task_id);
+
+		if(castle_category == TCC_UNKNOWN){
+			std::vector<boost::shared_ptr<MapObject>> castles;
+			WorldMap::get_map_objects_by_owner_and_type(castles, get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
+			std::sort(castles.begin(), castles.end(),
+				[](const boost::shared_ptr<MapObject> &lhs, const boost::shared_ptr<MapObject> &rhs){
+					return lhs->get_map_object_uuid() < rhs->get_map_object_uuid();
+				});
+			castle_category = (castle_uuid == castles.at(0)->get_map_object_uuid()) ? TCC_PRIMARY : TCC_NON_PRIMARY;
+			LOG_EMPERY_CENTER_DEBUG("> Identified castle category: castle_uuid = ", castle_uuid,
+				", castle_category = ", (unsigned)castle_category);
+		}
+		if((task_data->castle_category == Data::TaskAbstract::CC_PRIMARY) && (castle_category != TCC_PRIMARY)){
+			LOG_EMPERY_CENTER_DEBUG("> Task is for primary castles only: task_id = ", task_id);
+			continue;
+		}
+		if((task_data->castle_category == Data::TaskAbstract::CC_NON_PRIMARY) && (castle_category != TCC_NON_PRIMARY)){
+			LOG_EMPERY_CENTER_DEBUG("> Task is for non-primary castles only: task_id = ", task_id);
+			continue;
+		}
+
+		const auto oit = task_data->objective.find(key);
+		if(oit == task_data->objective.end()){
+			continue;
+		}
+		auto &count_current = pair->second[key];
+		const auto count_finish = oit->second.at(0);
+
+		const auto count_old = count_current;
+		const auto count_new = std::min(saturated_add(count_old, count), count_finish);
+		if(count_new == count_old){
+			continue;
+		}
+
+		count_current = count_new;
+		try {
+			obj->set_progress(encode_progress(pair->second));
+		} catch(...){
+			count_current = count_old;
+			throw;
+		}
+
+		if(session){
+	    	try {
+        		Msg::SC_TaskChanged msg;
+        		fill_task_message(msg, pair, utc_now);
+        		session->send(msg);
+    		} catch(std::exception &e){
+	        	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+    	    	session->shutdown(e.what());
+    		}
+		}
+	}
 }
 bool TaskBox::has_been_accomplished(TaskId task_id) const {
 	PROFILE_ME;

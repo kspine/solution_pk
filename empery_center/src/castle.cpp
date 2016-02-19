@@ -1594,7 +1594,7 @@ void Castle::speed_up_battalion_production(BuildingBaseId building_base_id, std:
 	}
 }
 
-void Castle::harvest_battalion(BuildingBaseId building_base_id){
+std::uint64_t Castle::harvest_battalion(BuildingBaseId building_base_id){
 	PROFILE_ME;
 
 	const auto it = m_battalion_production.find(building_base_id);
@@ -1643,6 +1643,8 @@ void Castle::harvest_battalion(BuildingBaseId building_base_id){
 			session->shutdown(e.what());
 		}
 	}
+
+	return count;
 }
 
 void Castle::synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {

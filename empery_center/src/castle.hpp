@@ -180,7 +180,7 @@ public:
 	void cancel_battalion_production(BuildingBaseId building_base_id);
 	void speed_up_battalion_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
 
-	void harvest_battalion(BuildingBaseId building_base_id);
+	std::uint64_t harvest_battalion(BuildingBaseId building_base_id);
 
 	void synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 

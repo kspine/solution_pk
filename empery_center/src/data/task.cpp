@@ -18,8 +18,9 @@ namespace {
 
 	template<typename ElementT>
 	void read_task_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
-		csv.get(elem.task_id, "task_id");
-		csv.get(elem.type,    "task_type");
+		csv.get(elem.task_id,         "task_id");
+		csv.get(elem.castle_category, "task_city");
+		csv.get(elem.type,            "task_type");
 
 		Poseidon::JsonObject object;
 		csv.get(object, "task_need");
