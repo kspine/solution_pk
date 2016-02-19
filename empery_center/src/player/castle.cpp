@@ -956,13 +956,13 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 		return Response(Msg::ERR_FACTORY_ID_MISMATCH) <<map_object_type_data->factory_id;
 	}
 	const auto battalion_info = castle->get_battalion(map_object_type_id);
-	if(!battalion_info.enabled && !map_object_type_data->enability_cost.empty()){
+	if(!(battalion_info.enabled || map_object_type_data->enability_cost.empty())){
 		return Response(Msg::ERR_BATTALION_UNAVAILABLE) <<map_object_type_id;
 	}
 
 	const auto count = req.count;
 	if(count == 0){
-		return Response(Msg::ERR_ZERO_BATTALION_COUNT);
+		return Response(Msg::ERR_ZERO_SOLDIER_COUNT);
 	}
 	auto production_cost = map_object_type_data->production_cost;
 	for(auto it = production_cost.begin(); it != production_cost.end(); ++it){
@@ -1119,15 +1119,15 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto info = castle->get_battalion(map_object_type_id);
-	if(info.enabled){
-		return Response(Msg::ERR_BATTALION_UNLOCKED) <<map_object_type_id;
-	}
-
 	const auto map_object_type_data = Data::MapObjectType::get(map_object_type_id);
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}
+	const auto info = castle->get_battalion(map_object_type_id);
+	if(info.enabled || map_object_type_data->enability_cost.empty()){
+		return Response(Msg::ERR_BATTALION_UNLOCKED) <<map_object_type_id;
+	}
+
 	for(auto it = map_object_type_data->prerequisite.begin(); it != map_object_type_data->prerequisite.end(); ++it){
 		const auto max_level = castle->get_max_level(it->first);
 		if(max_level < it->second){
@@ -1138,8 +1138,9 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	}
 	const auto previous_id = map_object_type_data->previous_id;
 	if(previous_id){
+		const auto prev_data = Data::MapObjectType::require(previous_id);
 		const auto prev_info = castle->get_battalion(previous_id);
-		if(!prev_info.enabled){
+		if(!(prev_info.enabled || prev_data->enability_cost.empty())){
 			return Response(Msg::ERR_PREREQUISITE_BATTALION_NOT_MET) <<previous_id;
 		}
 	}
@@ -1209,7 +1210,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(battalion_uuid.get()[0]));
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(count);
 
 	std::vector<SoldierTransactionElement> transaction;
 	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, count,

@@ -583,4 +583,63 @@ PLAYER_SERVLET(Msg::CS_MapEvacuateFromCastle, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
+	}
+
+	const auto castle_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+	}
+	if(!map_object->is_garrisoned()){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+	}
+
+	const auto soldier_count = req.soldier_count;
+	if(soldier_count == 0){
+		return Response(Msg::ERR_ZERO_SOLDIER_COUNT);
+	}
+
+	const auto old_soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto new_soldier_count = checked_add(old_soldier_count, soldier_count);
+	const auto max_soldier_count = map_object_type_data->max_soldier_count;
+	if(new_soldier_count > max_soldier_count){
+		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_BATTALION) <<max_soldier_count;
+	}
+
+	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
+	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(new_soldier_count);
+	const auto old_soldier_count_max = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT_MAX));
+	if(new_soldier_count > old_soldier_count_max){
+		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(new_soldier_count);
+	}
+
+	std::vector<SoldierTransactionElement> transaction;
+	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, soldier_count,
+		ReasonIds::ID_REFILL_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
+	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
+		[&]{ map_object->set_attributes(std::move(modifiers)); });
+	if(insuff_battalion_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
+	}
+
+	return Response();
+}
+
 }

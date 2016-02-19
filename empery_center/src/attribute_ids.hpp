@@ -18,7 +18,9 @@ constexpr AttributeId
 	ID_DESERT_DEVELOPMENT           ( 2500008 ),
 	ID_WASTELAND_DEVELOPMENT        ( 2500009 ),
 	ID_PRAIRIE_DEVELOPMENT          ( 2500010 ),
-	ID_SOLDIER_COUNT                ( 2500011 );
+	ID_SOLDIER_COUNT                ( 2500011 ),
+	//
+	ID_SOLDIER_COUNT_MAX            ( 2500077 );
 
 }
 
