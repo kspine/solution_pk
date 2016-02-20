@@ -9,6 +9,7 @@
 #include "map_utilities.hpp"
 #include "map_cell.hpp"
 #include "data/map.hpp"
+#include "data/global.hpp"
 #include "../../empery_center/src/msg/sc_map.hpp"
 #include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
@@ -66,14 +67,22 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		}
 
 		const auto new_cluster_scope = WorldMap::get_cluster_scope(new_coord);
-		const auto map_x = static_cast<unsigned>(new_coord.x() - new_cluster_scope.left());
-		const auto map_y = static_cast<unsigned>(new_coord.y() - new_cluster_scope.bottom());
-		const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+		const auto new_map_x = static_cast<unsigned>(new_coord.x() - new_cluster_scope.left());
+		const auto new_map_y = static_cast<unsigned>(new_coord.y() - new_cluster_scope.bottom());
+		const unsigned border_thickness  = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
+		if((new_map_x > new_cluster_scope.width() - border_thickness - 1) || (new_map_x < border_thickness) ||
+			(new_map_y > new_cluster_scope.height() - border_thickness - 1) || (new_map_y < border_thickness))
+		{
+			LOG_EMPERY_CLUSTER_DEBUG("Blocked by map_border: new_coord = ", new_coord);
+			result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<new_coord;
+			return UINT64_MAX;
+		}
+		const auto cell_data = Data::MapCellBasic::require(new_map_x, new_map_y);
 		const auto terrain_id = cell_data->terrain_id;
 		const auto terrain_data = Data::MapTerrain::require(terrain_id);
 		if(!terrain_data->passable){
-			LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
-			result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
+			LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: new_coord = ", new_coord, ", terrain_id = ", terrain_id);
+			result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<new_coord;
 			return UINT64_MAX;
 		}
 
