@@ -134,18 +134,55 @@ void TaskBox::pump_status(){
 
 	auto it = m_tasks.begin();
 	while(it != m_tasks.end()){
+		const auto task_id = it->first;
 		const auto &obj = it->second->first;
-		if(obj->get_expiry_time() < utc_now){
-			it = m_tasks.erase(it);
+		if(utc_now < obj->get_expiry_time()){
+			++it;
 			continue;
 		}
-		++it;
+		const auto task_data = Data::TaskAbstract::require(task_id);
+		if(has_task_been_accomplished(task_data.get(), it->second->second) && !obj->get_rewarded()){
+			++it;
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("> Removing expired task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+		it = m_tasks.erase(it);
 	}
+
+	check_daily_tasks();
 }
 
 void TaskBox::check_primary_tasks(){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Checking for initial tasks: account_uuid = ", get_account_uuid());
+	LOG_EMPERY_CENTER_TRACE("Checking for primary tasks: account_uuid = ", get_account_uuid());
+
+	const auto account_uuid = get_account_uuid();
+	const auto utc_now = Poseidon::get_utc_time();
+
+	std::vector<boost::shared_ptr<const Data::TaskPrimary>> task_data_primary;
+	Data::TaskPrimary::get_all(task_data_primary);
+	for(auto it = task_data_primary.begin(); it != task_data_primary.end(); ++it){
+		const auto &task_data = *it;
+		const auto previous_id = task_data->previous_id;
+		if(previous_id && !has_been_accomplished(previous_id)){
+			continue;
+		}
+		const auto task_id = task_data->task_id;
+		if(m_tasks.find(task_id) != m_tasks.end()){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("New primary task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+		TaskInfo info = { };
+		info.task_id      = task_id;
+		info.category     = CAT_PRIMARY;
+		info.created_time = utc_now;
+		info.expiry_time  = UINT64_MAX;
+		insert(std::move(info));
+	}
+}
+void TaskBox::check_daily_tasks(){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking for daily tasks: account_uuid = ", get_account_uuid());
 
 	const auto item_data = Data::Item::require(ItemIds::ID_TASK_DAILY_RESET);
 	if(item_data->auto_inc_type != Data::Item::AIT_DAILY){
@@ -157,29 +194,6 @@ void TaskBox::check_primary_tasks(){
 
 	const auto account_uuid = get_account_uuid();
 	const auto utc_now = Poseidon::get_utc_time();
-
-	{
-		std::vector<boost::shared_ptr<const Data::TaskPrimary>> task_data_primary;
-		Data::TaskPrimary::get_all(task_data_primary);
-		for(auto it = task_data_primary.begin(); it != task_data_primary.end(); ++it){
-			const auto &task_data = *it;
-			const auto previous_id = task_data->previous_id;
-			if(previous_id && !has_been_accomplished(previous_id)){
-				continue;
-			}
-			const auto task_id = task_data->task_id;
-			if(m_tasks.find(task_id) != m_tasks.end()){
-				continue;
-			}
-			LOG_EMPERY_CENTER_DEBUG("New primary task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-			TaskInfo info = { };
-			info.task_id      = task_id;
-			info.category     = CAT_PRIMARY;
-			info.created_time = utc_now;
-			info.expiry_time  = UINT64_MAX;
-			insert(std::move(info));
-		}
-	}
 
 	if(!m_stamps){
 		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, 0, std::string(), false);
@@ -230,24 +244,56 @@ void TaskBox::check_primary_tasks(){
 			}
 			task_candidates.emplace_back(task_id);
 		}
-
+		// 1. 如果有完成但是未领奖的每日任务，把它们先从随机集合里面去掉。
+		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+			const auto task_id = it->first;
+			const auto &obj = it->second->first;
+			const auto category = Category(obj->get_category());
+			if(category != CAT_DAILY){
+				continue;
+			}
+			const auto cit = std::find(task_candidates.begin(), task_candidates.end(), task_id);
+			if(cit == task_candidates.end()){
+				continue;
+			}
+			task_candidates.erase(cit);
+		}
+		// 2. 将剩余的任务打乱，未领奖的任务不在其中。
 		for(std::size_t i = 0; i < task_candidates.size(); ++i){
 			const auto j = Poseidon::rand32(0, task_candidates.size());
 			std::swap(task_candidates.at(i), task_candidates.at(j));
 		}
+		// 3. 把刚才删掉的任务排在其他任务前面。
+		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+			const auto task_id = it->first;
+			const auto &obj = it->second->first;
+			const auto category = Category(obj->get_category());
+			if(category != CAT_DAILY){
+				continue;
+			}
+			LOG_EMPERY_CENTER_DEBUG("Unrewarded task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+			task_candidates.insert(task_candidates.begin(), task_id);
+		}
+		// 4. 列表生成完成。
 		if(task_candidates.size() > max_daily_task_count){
 			task_candidates.resize(max_daily_task_count);
 		}
 
 		for(auto it = task_candidates.begin(); it != task_candidates.end(); ++it){
 			const auto task_id = *it;
-			LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-			TaskInfo info = { };
+			auto info = get(task_id);
+			const bool nonexistent = (info.created_time == 0);
 			info.task_id      = task_id;
 			info.category     = CAT_DAILY;
 			info.created_time = utc_now;
 			info.expiry_time  = daily_task_refresh_time;
-			insert(std::move(info));
+			if(nonexistent){
+				LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+				insert(std::move(info));
+			} else {
+				LOG_EMPERY_CENTER_DEBUG("Unrewarded daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+				update(std::move(info));
+			}
 		}
 
 		m_stamps->set_created_time(daily_task_refresh_time);

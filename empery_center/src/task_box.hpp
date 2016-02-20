@@ -20,6 +20,7 @@ class PlayerSession;
 class TaskBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum Category {
+		CAT_NULL        = 0,
 		CAT_PRIMARY     = 1,
 		CAT_DAILY       = 2,
 	};
@@ -57,6 +58,7 @@ public:
 	}
 
 	void check_primary_tasks();
+	void check_daily_tasks();
 
 	TaskInfo get(TaskId task_id) const;
 	void get_all(std::vector<TaskInfo> &ret) const;
