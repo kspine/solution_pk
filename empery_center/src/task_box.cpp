@@ -164,11 +164,19 @@ void TaskBox::check_primary_tasks(){
 	for(auto it = task_data_primary.begin(); it != task_data_primary.end(); ++it){
 		const auto &task_data = *it;
 		const auto previous_id = task_data->previous_id;
-		if(previous_id && !has_been_accomplished(previous_id)){
-			continue;
+		if(previous_id){
+			const auto pit = m_tasks.find(previous_id);
+			if(pit == m_tasks.end()){
+				continue;
+			}
+			const auto &pobj = pit->second->first;
+			if(!pobj->get_rewarded()){
+				continue;
+			}
 		}
 		const auto task_id = task_data->task_id;
-		if(m_tasks.find(task_id) != m_tasks.end()){
+		const auto pit = m_tasks.find(task_id);
+		if(pit != m_tasks.end()){
 			continue;
 		}
 		LOG_EMPERY_CENTER_DEBUG("New primary task: account_uuid = ", account_uuid, ", task_id = ", task_id);
@@ -441,8 +449,6 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	const auto utc_now = Poseidon::get_utc_time();
 
-	bool should_recheck_primary_tasks = false;
-
 	enum {
 		TCC_UNKNOWN, TCC_PRIMARY, TCC_NON_PRIMARY
 	} castle_category = TCC_UNKNOWN;
@@ -506,10 +512,6 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			throw;
 		}
 
-		if(count_new >= count_finish){
-			should_recheck_primary_tasks = true;
-		}
-
 		if(session){
 	    	try {
         		Msg::SC_TaskChanged msg;
@@ -520,10 +522,6 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
     	    	session->shutdown(e.what());
     		}
 		}
-	}
-
-	if(should_recheck_primary_tasks){
-		check_primary_tasks();
 	}
 }
 bool TaskBox::has_been_accomplished(TaskId task_id) const {

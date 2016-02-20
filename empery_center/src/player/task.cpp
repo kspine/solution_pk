@@ -54,6 +54,8 @@ PLAYER_SERVLET(Msg::CS_ItemFetchTaskReward, account, session, req){
 	item_box->commit_transaction(transaction, false,
 		[&]{ task_box->update(std::move(info)); });
 
+	task_box->check_primary_tasks();
+
 	return Response();
 }
 
