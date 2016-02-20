@@ -196,7 +196,7 @@ void TaskBox::check_daily_tasks(){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	if(!m_stamps){
-		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, 0, std::string(), false);
+		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, std::string(), false);
 		obj->async_save(true);
 		m_stamps = std::move(obj);
 	}
@@ -342,7 +342,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 		progress = *info.progress;
 	}
 	const auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), task_id.get(),
-		info.category, task_data->type.get(), info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
+		info.category, info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
 	obj->async_save(true);
 	const auto pair = boost::make_shared<TaskObjectPair>(obj, std::move(progress));
 	m_tasks.emplace(task_id, pair);
@@ -441,21 +441,21 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	const auto utc_now = Poseidon::get_utc_time();
 
+	bool should_recheck_primary_tasks = false;
+
 	enum {
 		TCC_UNKNOWN, TCC_PRIMARY, TCC_NON_PRIMARY
 	} castle_category = TCC_UNKNOWN;
 
-	bool recheck = false;
-
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 		const auto task_id = it->first;
-		auto &pair = it->second;
-		const auto &obj = pair->first;
-		if(TaskTypeId(obj->get_type()) != type){
+		const auto task_data = Data::TaskAbstract::require(task_id);
+		if(task_data->type != type){
 			continue;
 		}
+		auto &pair = it->second;
+		const auto &obj = pair->first;
 		LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
-		const auto task_data = Data::TaskAbstract::require(task_id);
 
 		if(castle_category == TCC_UNKNOWN){
 			std::vector<boost::shared_ptr<MapObject>> castles;
@@ -485,7 +485,15 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		const auto count_finish = oit->second.at(0);
 
 		const auto count_old = count_current;
-		const auto count_new = std::min(saturated_add(count_old, count), count_finish);
+		std::uint64_t count_new;
+		if(task_data->accumulative){
+			count_new = std::max(count_old, count);
+		} else {
+			count_new = saturated_add(count_old, count);
+		}
+		if(count_new > count_finish){
+			count_new = count_finish;
+		}
 		if(count_new == count_old){
 			continue;
 		}
@@ -499,7 +507,7 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		}
 
 		if(count_new >= count_finish){
-			recheck = true;
+			should_recheck_primary_tasks = true;
 		}
 
 		if(session){
@@ -514,7 +522,7 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		}
 	}
 
-	if(recheck){
+	if(should_recheck_primary_tasks){
 		check_primary_tasks();
 	}
 }

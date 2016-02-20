@@ -12,7 +12,6 @@ namespace MySql {
 	FIELD_UUID              (account_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (task_id)	\
 	FIELD_INTEGER_UNSIGNED  (category)	\
-	FIELD_INTEGER_UNSIGNED  (type)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
 	FIELD_STRING            (progress)	\
