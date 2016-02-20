@@ -395,7 +395,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_BUILDING_IMMEDIATE_UPGRADE_TRADE_ID));
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_IMMEDIATE_BUILDING_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
@@ -569,7 +569,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_TECH_IMMEDIATE_UPGRADE_TRADE_ID));
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_IMMEDIATE_TECH_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
 	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
@@ -1229,6 +1229,42 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 		});
 	if(insuff_battalion_id){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleCompleteBattalionProductionImmediately, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	const auto building_base_id = BuildingBaseId(req.building_base_id);
+
+	const auto info = castle->get_battalion_production(building_base_id);
+	if(!info.map_object_type_id){
+		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_IMMEDIATE_BATTALION_PRODUCTION_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	const auto time_remaining = saturated_sub(info.production_time_end, utc_now);
+	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
+	std::vector<ItemTransactionElement> transaction;
+	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ castle->speed_up_battalion_production(building_base_id, UINT64_MAX); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
 
 	return Response();
