@@ -296,7 +296,7 @@ void TaskBox::check_daily_tasks(){
 			}
 		}
 
-		m_stamps->set_created_time(daily_task_refresh_time);
+		m_stamps->set_created_time(utc_now);
 	}
 }
 
