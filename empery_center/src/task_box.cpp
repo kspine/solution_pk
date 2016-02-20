@@ -487,11 +487,15 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		if(oit == task_data->objective.end()){
 			continue;
 		}
-		auto &count_current = pair->second[key];
 		const auto count_finish = oit->second.at(0);
 
-		const auto count_old = count_current;
-		std::uint64_t count_new;
+		std::uint64_t count_old, count_new;
+		const auto cit = pair->second.find(key);
+		if(cit != pair->second.end()){
+			count_old = cit->second;
+		} else {
+			count_old = 0;
+		}
 		if(task_data->accumulative){
 			count_new = std::max(count_old, count);
 		} else {
@@ -504,13 +508,12 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			continue;
 		}
 
-		count_current = count_new;
-		try {
-			obj->set_progress(encode_progress(pair->second));
-		} catch(...){
-			count_current = count_old;
-			throw;
-		}
+		auto progress = pair->second;
+		progress[key] = count_new;
+		auto progress_str = encode_progress(progress);
+
+		pair->second = std::move(progress);
+		obj->set_progress(std::move(progress_str));
 
 		if(session){
 	    	try {
@@ -541,6 +544,11 @@ void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+		const auto &obj = it->second->first;
+		const auto category = Category(obj->get_category());
+		if((category == CAT_PRIMARY) && obj->get_rewarded()){
+			continue;
+		}
 		Msg::SC_TaskChanged msg;
 		fill_task_message(msg, it->second, utc_now);
 		session->send(msg);
