@@ -7,6 +7,8 @@
 #include <deque>
 #include "id_types.hpp"
 #include "coord.hpp"
+#include "ai/ai_map_object.hpp"
+#include "ai/ai_map_troops_object.hpp"
 
 namespace EmperyCluster {
 
@@ -20,6 +22,12 @@ public:
 		ACT_DEPLOY_INTO_CASTLE  = 2,
 		ACT_HARVEST_OVERLAY     = 3,
 		ACT_ENTER_CASTLE        = 4,
+	};
+	
+	enum ATTACK_IMPACT{
+		IMPACT_NORMAL            = 0,
+		IMPACT_MISS              = 1,
+		IMPACT_CRITICAL          = 2,
 	};
 
 	struct Waypoint {
@@ -51,6 +59,8 @@ private:
 	// 移动完毕后动作。
 	Action m_action = ACT_GUARD;
 	std::string m_action_param;
+	
+	boost::shared_ptr<AI_MapObject> m_ai_mapObject;
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
@@ -61,7 +71,13 @@ public:
 private:
 	// 返回下一个动作的延迟。如果返回 UINT64_MAX 则当前动作被取消。
 	std::uint64_t pump_action(std::pair<long, std::string> &result, std::uint64_t now);
-
+public:
+	void 	init_map_object_ai();
+	std::uint64_t move(std::pair<long, std::string> &result);
+	std::uint64_t combat(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t on_combat(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
+	
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
