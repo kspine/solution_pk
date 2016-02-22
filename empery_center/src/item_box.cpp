@@ -308,11 +308,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 	if(tax && (taxing_amount > 0)){
 		LOG_EMPERY_CENTER_DEBUG("Calculating tax: account_uuid = ", account_uuid, ", taxing_amount = ", taxing_amount);
 
-		try {
-			accumulate_promotion_bonus(account_uuid, taxing_amount);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		}
+		async_accumulate_promotion_bonus(account_uuid, taxing_amount);
 	}
 
 	if(shall_enable_gold_payment){

@@ -6,7 +6,9 @@
 
 namespace EmperyCenter {
 
-extern void accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t texing_amount);
+extern void async_accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t texing_amount) noexcept;
+
+extern void async_recheck_building_level_tasks(AccountUuid account_uuid) noexcept;
 
 }
 

@@ -108,9 +108,13 @@ AUCTION_SERVLET("query/account", root, session, params){
 		Poseidon::JsonObject elem_castles;
 
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		WorldMap::get_map_objects_by_owner_and_type(map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
+		WorldMap::get_map_objects_by_owner(map_objects, account->get_account_uuid());
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			const auto castle = boost::dynamic_pointer_cast<Castle>(*it);
+			const auto &map_object = *it;
+			if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
+			const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 			if(!castle){
 				continue;
 			}

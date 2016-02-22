@@ -194,11 +194,7 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 			m_obj->set_operation_remarks(std::move(operation_remarks));
 		});
 
-	try {
-		accumulate_promotion_bonus(account_uuid, taxing_amount);
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-	}
+	async_accumulate_promotion_bonus(account_uuid, taxing_amount);
 
 	PaymentTransactionMap::update(virtual_shared_from_this<PaymentTransaction>(), false);
 }

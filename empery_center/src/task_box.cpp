@@ -13,6 +13,7 @@
 #include "task_type_ids.hpp"
 #include "singletons/world_map.hpp"
 #include "castle.hpp"
+#include "account_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -220,9 +221,12 @@ void TaskBox::check_daily_tasks(){
 
 		unsigned account_level = 0;
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		WorldMap::get_map_objects_by_owner_and_type(map_objects, account_uuid, MapObjectTypeIds::ID_CASTLE);
+		WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 			const auto &map_object = *it;
+			if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
 			const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 			if(!castle){
 				continue;
@@ -355,6 +359,12 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 	const auto pair = boost::make_shared<TaskObjectPair>(obj, std::move(progress));
 	m_tasks.emplace(task_id, pair);
 
+	if(task_data->accumulative){
+		if(task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL){
+			async_recheck_building_level_tasks(get_account_uuid());
+		}
+	}
+
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
@@ -439,19 +449,26 @@ bool TaskBox::remove(TaskId task_id) noexcept {
 	return true;
 }
 
+bool TaskBox::has_been_accomplished(TaskId task_id) const {
+	PROFILE_ME;
+
+	const auto it = m_tasks.find(task_id);
+	if(it == m_tasks.end()){
+		return false;
+	}
+	const auto task_data = Data::TaskAbstract::require(task_id);
+	return has_task_been_accomplished(task_data.get(), it->second->second);
+}
 void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-	MapObjectUuid castle_uuid, std::uint64_t /* param1 */, std::uint64_t /* param2 */, std::uint64_t /* param3 */)
+	CastleCategory castle_category, std::int64_t param1, std::int64_t param2, std::int64_t param3)
 {
 	PROFILE_ME;
 
-	pump_status();
+	(void)param1;
+	(void)param2;
+	(void)param3;
 
-	const auto session = PlayerSessionMap::get(get_account_uuid());
 	const auto utc_now = Poseidon::get_utc_time();
-
-	enum {
-		TCC_UNKNOWN, TCC_PRIMARY, TCC_NON_PRIMARY
-	} castle_category = TCC_UNKNOWN;
 
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 		const auto task_id = it->first;
@@ -463,17 +480,17 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		const auto &obj = pair->first;
 		LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
 
-		if(castle_category == TCC_UNKNOWN){
-			std::vector<boost::shared_ptr<MapObject>> castles;
-			WorldMap::get_map_objects_by_owner_and_type(castles, get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
-			std::sort(castles.begin(), castles.end(),
-				[](const boost::shared_ptr<MapObject> &lhs, const boost::shared_ptr<MapObject> &rhs){
-					return lhs->get_map_object_uuid() < rhs->get_map_object_uuid();
-				});
-			castle_category = (castle_uuid == castles.at(0)->get_map_object_uuid()) ? TCC_PRIMARY : TCC_NON_PRIMARY;
-			LOG_EMPERY_CENTER_DEBUG("> Identified castle category: castle_uuid = ", castle_uuid,
-				", castle_category = ", (unsigned)castle_category);
+		const auto oit = task_data->objective.find(key);
+		if(oit == task_data->objective.end()){
+			continue;
 		}
+
+		if(type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL){
+			if(param1 != static_cast<std::int64_t>(oit->second.at(1))){
+				continue;
+			}
+		}
+
 		if((task_data->castle_category == Data::TaskAbstract::CC_PRIMARY) && (castle_category != TCC_PRIMARY)){
 			LOG_EMPERY_CENTER_DEBUG("> Task is for primary castles only: task_id = ", task_id);
 			continue;
@@ -482,12 +499,6 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			LOG_EMPERY_CENTER_DEBUG("> Task is for non-primary castles only: task_id = ", task_id);
 			continue;
 		}
-
-		const auto oit = task_data->objective.find(key);
-		if(oit == task_data->objective.end()){
-			continue;
-		}
-		const auto count_finish = oit->second.at(0);
 
 		std::uint64_t count_old, count_new;
 		const auto cit = pair->second.find(key);
@@ -501,6 +512,7 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		} else {
 			count_new = saturated_add(count_old, count);
 		}
+		const auto count_finish = static_cast<std::uint64_t>(oit->second.at(0));
 		if(count_new > count_finish){
 			count_new = count_finish;
 		}
@@ -515,6 +527,7 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		pair->second = std::move(progress);
 		obj->set_progress(std::move(progress_str));
 
+		const auto session = PlayerSessionMap::get(get_account_uuid());
 		if(session){
 	    	try {
         		Msg::SC_TaskChanged msg;
@@ -527,15 +540,15 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		}
 	}
 }
-bool TaskBox::has_been_accomplished(TaskId task_id) const {
+void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+	const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2, std::int64_t param3)
+{
 	PROFILE_ME;
 
-	const auto it = m_tasks.find(task_id);
-	if(it == m_tasks.end()){
-		return false;
-	}
-	const auto task_data = Data::TaskAbstract::require(task_id);
-	return has_task_been_accomplished(task_data.get(), it->second->second);
+	const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(castle->get_owner_uuid());
+
+	check(type, key, count,
+		(castle->get_map_object_uuid() == primary_castle_uuid) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2, param3);
 }
 
 void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {

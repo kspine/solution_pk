@@ -118,7 +118,8 @@ namespace {
 				if(it->second == 0){
 					continue;
 				}
-				task_box->check(TaskTypeIds::ID_CONSUME_RESOURCE, it->first.get(), it->second, castle->get_map_object_uuid(), 0, 0, 0);
+				task_box->check(TaskTypeIds::ID_CONSUME_RESOURCE, it->first.get(), it->second,
+					castle, 0, 0, 0);
 			}
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -603,9 +604,12 @@ PLAYER_SERVLET(Msg::CS_CastleQueryIndividualTechInfo, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account, session, /* req */){
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	WorldMap::get_map_objects_by_owner_and_type(map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
+	WorldMap::get_map_objects_by_owner(map_objects, account->get_account_uuid());
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
+		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
 		synchronize_map_object_with_player(map_object, session);
 	}
 
@@ -654,7 +658,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 				continue;
 			}
 			try {
-				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested, castle->get_map_object_uuid(), 0, 0, 0);
+				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested,
+					castle, 0, 0, 0);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
@@ -714,13 +719,13 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	std::vector<boost::shared_ptr<MapObject>> temp_map_objects;
 	WorldMap::get_map_objects_by_parent_object(temp_map_objects, map_object_uuid);
 	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
-		const auto &child = *it;
-		const auto child_object_type_id = child->get_map_object_type_id();
+		const auto &child_object = *it;
+		const auto child_object_type_id = child_object->get_map_object_type_id();
 		if((child_object_type_id != MapObjectTypeIds::ID_CASTLE) && (child_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
 			continue;
 		}
 		LOG_EMPERY_CENTER_DEBUG("Found child castle or immigrant group: map_object_uuid = ", map_object_uuid,
-			", child_object_uuid = ", child->get_map_object_uuid(), ", child_object_type_id = ", child_object_type_id);
+			", child_object_uuid = ", child_object->get_map_object_uuid(), ", child_object_type_id = ", child_object_type_id);
 		++immigrant_group_count;
 	}
 	if(immigrant_group_count >= upgrade_data->max_immigrant_group_count){
@@ -729,19 +734,15 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 
 	immigrant_group_count = 0;
 	temp_map_objects.clear();
-	WorldMap::get_map_objects_by_owner_and_type(temp_map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_CASTLE);
+	WorldMap::get_map_objects_by_owner(temp_map_objects, account->get_account_uuid());
 	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
-		const auto &other = *it;
-		LOG_EMPERY_CENTER_DEBUG("Found another castle: map_object_uuid = ", map_object_uuid,
-			", other_object_uuid = ", other->get_map_object_uuid());
-		++immigrant_group_count;
-	}
-	temp_map_objects.clear();
-	WorldMap::get_map_objects_by_owner_and_type(temp_map_objects, account->get_account_uuid(), MapObjectTypeIds::ID_IMMIGRANTS);
-	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
-		const auto &other = *it;
-		LOG_EMPERY_CENTER_DEBUG("Found another immigrant group: map_object_uuid = ", map_object_uuid,
-			", other_object_uuid = ", other->get_map_object_uuid());
+		const auto &other_object = *it;
+		const auto other_object_type_id = other_object->get_map_object_type_id();
+		if((other_object_type_id != MapObjectTypeIds::ID_CASTLE) && (other_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("Found another castle or immigrant group: map_object_uuid = ", map_object_uuid,
+			", other_object_uuid = ", other_object->get_map_object_uuid(), ", other_object_type_id = ", other_object_type_id);
 		++immigrant_group_count;
 	}
 	const auto vip_data = Data::Vip::require(account->get_promotion_level());
@@ -1051,7 +1052,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 	const auto count_harvested = castle->harvest_battalion(building_base_id);
 
 	try {
-		task_box->check(TaskTypeIds::ID_HARVEST_BATTALION, info.map_object_type_id.get(), count_harvested, castle->get_map_object_uuid(), 0, 0, 0);
+		task_box->check(TaskTypeIds::ID_HARVEST_BATTALION, info.map_object_type_id.get(), count_harvested,
+			castle, 0, 0, 0);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
@@ -1190,7 +1192,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 
 	std::size_t battalion_count = 0;
 	std::vector<boost::shared_ptr<MapObject>> current_battalions;
-	WorldMap::get_map_objects_by_parent_object(current_battalions, castle->get_map_object_uuid());
+	WorldMap::get_map_objects_by_parent_object(current_battalions, map_object_uuid);
 	for(auto it = current_battalions.begin(); it != current_battalions.end(); ++it){
 		const auto &battalion = *it;
 		if(battalion->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
@@ -1219,7 +1221,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
 		[&]{
 			const auto battalion = boost::make_shared<MapObject>(battalion_uuid, map_object_type_id,
-				account->get_account_uuid(), castle->get_map_object_uuid(), std::string(), castle->get_coord(), utc_now, true);
+				account->get_account_uuid(), map_object_uuid, std::string(), castle->get_coord(), utc_now, true);
 			battalion->set_attributes(std::move(modifiers));
 			battalion->pump_status();
 

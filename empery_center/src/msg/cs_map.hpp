@@ -108,6 +108,15 @@ namespace Msg {
 	FIELD_VUINT         (soldier_count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapLoadMinimap
+#define MESSAGE_ID      313
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (left)	\
+	FIELD_VINT          (bottom)	\
+	FIELD_VUINT         (width)	\
+	FIELD_VUINT         (height)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -25,7 +25,7 @@ namespace Data {
 		unsigned castle_category;
 		TaskTypeId type;
 		bool accumulative;
-		boost::container::flat_map<std::uint64_t, std::vector<std::uint64_t>> objective;
+		boost::container::flat_map<std::uint64_t, std::vector<double>> objective;
 		boost::container::flat_map<ItemId, std::uint64_t> reward;
 	};
 

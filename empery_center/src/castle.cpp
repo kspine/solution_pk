@@ -16,6 +16,7 @@
 #include "reason_ids.hpp"
 #include "data/map_object.hpp"
 #include "building_type_ids.hpp"
+#include "account_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -124,7 +125,7 @@ namespace {
 		msg.production_time_remaining = saturated_sub(obj->get_production_time_end(), utc_now);
 	}
 
-	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now){
+	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, AccountUuid owner_uuid, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto mission = Castle::Mission(obj->get_mission());
@@ -165,6 +166,8 @@ namespace {
 		obj->set_mission_duration(0);
 		obj->set_mission_time_begin(0);
 		obj->set_mission_time_end(0);
+
+		async_recheck_building_level_tasks(owner_uuid);
 
 		return true;
 	}
@@ -268,7 +271,7 @@ void Castle::pump_status(){
 
 	bool dirty = false;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(check_building_mission(it->second, utc_now)){
+		if(check_building_mission(it->second, get_owner_uuid(), utc_now)){
 			++dirty;
 		}
 	}
@@ -449,6 +452,7 @@ void Castle::check_init_buildings(){
 	PROFILE_ME;
 
 	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: map_object_uuid = ", get_map_object_uuid());
+	bool dirty = false;
 	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
 	Data::CastleBuildingBase::get_init(init_buildings);
 	for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
@@ -500,6 +504,11 @@ void Castle::check_init_buildings(){
 			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
 		obj->async_save(true);
 		m_buildings.emplace(building_base_id, std::move(obj));
+
+		++dirty;
+	}
+	if(dirty){
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 }
 
@@ -615,7 +624,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
-	if(check_building_mission(obj, utc_now)){
+	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
 		recalculate_attributes();
 	}
 
@@ -655,7 +664,7 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(utc_now);
 
-	// check_building_mission(obj, utc_now);
+	// check_building_mission(obj, get_owner_uuid(), utc_now);
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -690,7 +699,7 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, std::uin
 
 	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
-	if(check_building_mission(obj, utc_now)){
+	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
 		recalculate_attributes();
 	}
 
@@ -721,7 +730,7 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	if(check_building_mission(it->second, utc_now)){
+	if(check_building_mission(it->second, get_owner_uuid(), utc_now)){
 		recalculate_attributes();
 	}
 }
@@ -754,6 +763,17 @@ void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, c
 	Msg::SC_CastleBuildingBase msg;
 	fill_building_message(msg, it->second, utc_now);
 	session->send(msg);
+}
+
+void Castle::accumulate_building_levels(boost::container::flat_map<BuildingId, boost::container::flat_map<unsigned, std::size_t>> &ret) const {
+	PROFILE_ME;
+
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		const unsigned level = it->second->get_building_level();
+		auto &count = ret[building_id][level];
+		++count;
+	}
 }
 
 unsigned Castle::get_max_level(BuildingId building_id) const {

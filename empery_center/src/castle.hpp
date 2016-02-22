@@ -133,6 +133,9 @@ public:
 	unsigned get_building_queue_size() const;
 	void synchronize_building_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
+	// <建筑 ID, <等级, 数量>>
+	void accumulate_building_levels(boost::container::flat_map<BuildingId, boost::container::flat_map<unsigned, std::size_t>> &ret) const;
+
 	// 各个建筑的独立接口。
 	unsigned get_max_level(BuildingId building_id) const;
 	unsigned get_level() const; // 领主府

@@ -70,15 +70,11 @@ namespace {
 		Coord coord;
 		AccountUuid owner_uuid;
 		MapObjectUuid parent_object_uuid;
-		std::pair<AccountUuid, MapObjectTypeId> owner_uuid_type;
-		std::pair<MapObjectUuid, MapObjectTypeId> parent_object_uuid_type;
 
 		explicit MapObjectElement(boost::shared_ptr<MapObject> map_object_)
 			: map_object(std::move(map_object_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
 			, owner_uuid(map_object->get_owner_uuid()), parent_object_uuid(map_object->get_parent_object_uuid())
-			, owner_uuid_type(map_object->get_owner_uuid(), map_object->get_map_object_type_id())
-			, parent_object_uuid_type(map_object->get_parent_object_uuid(), map_object->get_map_object_type_id())
 		{
 		}
 	};
@@ -88,8 +84,6 @@ namespace {
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
-		MULTI_MEMBER_INDEX(owner_uuid_type)
-		MULTI_MEMBER_INDEX(parent_object_uuid_type)
 	)
 
 	boost::weak_ptr<MapObjectMapContainer> g_map_object_map;
@@ -919,40 +913,6 @@ void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<Ma
 		ret.emplace_back(it->map_object);
 	}
 }
-void WorldMap::get_map_objects_by_owner_and_type(std::vector<boost::shared_ptr<MapObject>> &ret,
-	AccountUuid owner_uuid, MapObjectTypeId map_object_type_id)
-{
-	PROFILE_ME;
-
-	const auto map_object_map = g_map_object_map.lock();
-	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
-		return;
-	}
-
-	const auto range = map_object_map->equal_range<4>(std::make_pair(owner_uuid, map_object_type_id));
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-	for(auto it = range.first; it != range.second; ++it){
-		ret.emplace_back(it->map_object);
-	}
-}
-void WorldMap::get_map_objects_by_parent_object_and_type(std::vector<boost::shared_ptr<MapObject>> &ret,
-	MapObjectUuid parent_object_uuid, MapObjectTypeId map_object_type_id)
-{
-	PROFILE_ME;
-
-	const auto map_object_map = g_map_object_map.lock();
-	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
-		return;
-	}
-
-	const auto range = map_object_map->equal_range<5>(std::make_pair(parent_object_uuid, map_object_type_id));
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-	for(auto it = range.first; it != range.second; ++it){
-		ret.emplace_back(it->map_object);
-	}
-}
 void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
@@ -983,6 +943,32 @@ void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObj
 	}
 _exit_while:
 	;
+}
+MapObjectUuid WorldMap::get_primary_castle_uuid(AccountUuid owner_uuid){
+	PROFILE_ME;
+
+	MapObjectUuid min_castle_uuid;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return min_castle_uuid;
+	}
+
+	const auto range = map_object_map->equal_range<2>(owner_uuid);
+	for(auto it = range.first; it != range.second; ++it){
+		const auto &map_object = it->map_object;
+		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		const auto castle_uuid = map_object->get_map_object_uuid();
+		if(min_castle_uuid && (min_castle_uuid > castle_uuid)){
+			continue;
+		}
+		min_castle_uuid = castle_uuid;
+	}
+
+	return min_castle_uuid;
 }
 
 void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle){

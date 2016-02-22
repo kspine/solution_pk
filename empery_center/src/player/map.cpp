@@ -92,7 +92,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	// 撤销当前的路径。
 	auto kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		// return std::move(kresult);
 		cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
@@ -275,7 +275,7 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 		// 撤销当前的路径。
 		const auto kresult = cluster->send_and_wait(kreq);
 		if(kresult.first != Msg::ST_OK){
-			LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+			LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 			cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
 			continue;
 		}
@@ -350,7 +350,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	// 撤销当前的路径。
 	auto kresult = old_cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		old_cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
@@ -643,6 +643,33 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 	if(insuff_battalion_id){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapLoadMinimap, account, session, req){
+	const auto rectangle = Rectangle(req.left, req.bottom, req.width, req.height);
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_map_objects_by_rectangle(map_objects, rectangle);
+
+	Msg::SC_MapMinimap msg;
+	msg.left   = rectangle.left();
+	msg.bottom = rectangle.bottom();
+	msg.width  = rectangle.width();
+	msg.height = rectangle.height();
+	msg.castles.reserve(256);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		auto &elem = *msg.castles.emplace(msg.castles.end());
+		elem.x          = map_object->get_coord().x();
+		elem.y          = map_object->get_coord().y();
+		elem.owner_uuid = map_object->get_owner_uuid().str();
+	}
+	session->send(msg);
 
 	return Response();
 }

@@ -29,7 +29,7 @@ namespace {
 		for(auto it = object.begin(); it != object.end(); ++it){
 			const auto key = boost::lexical_cast<std::uint64_t>(it->first);
 			const auto &value_array = it->second.get<Poseidon::JsonArray>();
-			std::vector<std::uint64_t> values;
+			std::vector<double> values;
 			values.reserve(value_array.size());
 			for(auto vit = value_array.begin(); vit != value_array.end(); ++vit){
 				values.emplace_back(vit->get<double>());

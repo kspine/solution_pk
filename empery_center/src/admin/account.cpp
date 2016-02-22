@@ -328,11 +328,14 @@ ADMIN_SERVLET("account/get_level_distribution_online", root, session, /* params 
 		const auto account_uuid = account->get_account_uuid();
 
 		map_objects.clear();
-		WorldMap::get_map_objects_by_owner_and_type(map_objects, account_uuid, MapObjectTypeIds::ID_CASTLE);
+		WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
 
 		unsigned max_castle_level = 0;
 		for(auto mit = map_objects.begin(); mit != map_objects.end(); ++mit){
 			const auto &map_object = *mit;
+			if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
 			const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 			if(!castle){
 				LOG_EMPERY_CENTER_ERROR("Not a castle? map_object_uuid = ", map_object->get_map_object_uuid());
