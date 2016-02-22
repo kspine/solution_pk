@@ -7,11 +7,13 @@
 #include "player_session.hpp"
 #include "data/task.hpp"
 #include "data/item.hpp"
+#include "data/global.hpp"
 #include "item_ids.hpp"
 #include "map_object_type_ids.hpp"
 #include "task_type_ids.hpp"
 #include "singletons/world_map.hpp"
 #include "castle.hpp"
+#include "account_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -133,51 +135,74 @@ void TaskBox::pump_status(){
 
 	auto it = m_tasks.begin();
 	while(it != m_tasks.end()){
+		const auto task_id = it->first;
 		const auto &obj = it->second->first;
-		if(obj->get_expiry_time() < utc_now){
+		if(utc_now < obj->get_expiry_time()){
 			++it;
 			continue;
 		}
+		const auto task_data = Data::TaskAbstract::require(task_id);
+		if(has_task_been_accomplished(task_data.get(), it->second->second) && !obj->get_rewarded()){
+			++it;
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("> Removing expired task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
 		it = m_tasks.erase(it);
 	}
+
+	check_daily_tasks();
 }
 
-void TaskBox::check_init_tasks(){
+void TaskBox::check_primary_tasks(){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Checking for initial tasks: account_uuid = ", get_account_uuid());
+	LOG_EMPERY_CENTER_TRACE("Checking for primary tasks: account_uuid = ", get_account_uuid());
+
+	const auto account_uuid = get_account_uuid();
+	const auto utc_now = Poseidon::get_utc_time();
+
+	std::vector<boost::shared_ptr<const Data::TaskPrimary>> task_data_primary;
+	Data::TaskPrimary::get_all(task_data_primary);
+	for(auto it = task_data_primary.begin(); it != task_data_primary.end(); ++it){
+		const auto &task_data = *it;
+		const auto previous_id = task_data->previous_id;
+		if(previous_id){
+			const auto pit = m_tasks.find(previous_id);
+			if(pit == m_tasks.end()){
+				continue;
+			}
+			const auto &pobj = pit->second->first;
+			if(!pobj->get_rewarded()){
+				continue;
+			}
+		}
+		const auto task_id = task_data->task_id;
+		const auto pit = m_tasks.find(task_id);
+		if(pit != m_tasks.end()){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("New primary task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+		TaskInfo info = { };
+		info.task_id      = task_id;
+		info.category     = CAT_PRIMARY;
+		info.created_time = utc_now;
+		info.expiry_time  = UINT64_MAX;
+		insert(std::move(info));
+	}
+}
+void TaskBox::check_daily_tasks(){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking for daily tasks: account_uuid = ", get_account_uuid());
 
 	const auto item_data = Data::Item::require(ItemIds::ID_TASK_DAILY_RESET);
 	if(item_data->auto_inc_type != Data::Item::AIT_DAILY){
 		LOG_EMPERY_CENTER_ERROR("Task daily reset item is not daily-reset?");
 		DEBUG_THROW(Exception, sslit("Task daily reset item is not daily-reset"));
 	}
-	const auto auto_inc_offset = item_data->auto_inc_offset;
+	const auto auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
+	LOG_EMPERY_CENTER_DEBUG("Retrieved daily task offset: auto_inc_offset = ", auto_inc_offset);
 
 	const auto account_uuid = get_account_uuid();
 	const auto utc_now = Poseidon::get_utc_time();
-
-	{
-		std::vector<boost::shared_ptr<const Data::TaskPrimary>> task_data_primary;
-		Data::TaskPrimary::get_all(task_data_primary);
-		for(auto it = task_data_primary.begin(); it != task_data_primary.end(); ++it){
-			const auto &task_data = *it;
-			const auto previous_id = task_data->previous_id;
-			if(previous_id && !has_been_accomplished(previous_id)){
-				continue;
-			}
-			const auto task_id = task_data->task_id;
-			if(m_tasks.find(task_id) != m_tasks.end()){
-				continue;
-			}
-			LOG_EMPERY_CENTER_DEBUG("New primary task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-			TaskInfo info = { };
-			info.task_id      = task_id;
-			info.category     = CAT_PRIMARY;
-			info.created_time = utc_now;
-			info.expiry_time  = UINT64_MAX;
-			insert(std::move(info));
-		}
-	}
 
 	if(!m_stamps){
 		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, std::string(), false);
@@ -192,11 +217,16 @@ void TaskBox::check_init_tasks(){
 	const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
 	LOG_EMPERY_CENTER_DEBUG("Checking for new daily task: last_refreshed_day = ", last_refreshed_day, ", today = ", today);
 	if(last_refreshed_day < today){
+		const auto daily_task_refresh_time = (today + 1) * 86400000 + auto_inc_offset;
+
 		unsigned account_level = 0;
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		WorldMap::get_map_objects_by_owner_and_type(map_objects, account_uuid, MapObjectTypeIds::ID_CASTLE);
+		WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 			const auto &map_object = *it;
+			if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
 			const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 			if(!castle){
 				continue;
@@ -209,6 +239,10 @@ void TaskBox::check_init_tasks(){
 		}
 		LOG_EMPERY_CENTER_DEBUG("Account level: account_uuid = ", account_uuid, ", account_level = ", account_level);
 
+		const auto max_daily_task_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_DAILY_TASK_COUNT);
+		std::vector<TaskId> task_candidates;
+		task_candidates.reserve(max_daily_task_count);
+
 		std::vector<boost::shared_ptr<const Data::TaskDaily>> task_data_daily;
 		Data::TaskDaily::get_all(task_data_daily);
 		for(auto it = task_data_daily.begin(); it != task_data_daily.end(); ++it){
@@ -220,14 +254,60 @@ void TaskBox::check_init_tasks(){
 			if(m_tasks.find(task_id) != m_tasks.end()){
 				continue;
 			}
-			LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-			TaskInfo info = { };
+			task_candidates.emplace_back(task_id);
+		}
+		// 1. 如果有完成但是未领奖的每日任务，把它们先从随机集合里面去掉。
+		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+			const auto task_id = it->first;
+			const auto &obj = it->second->first;
+			const auto category = Category(obj->get_category());
+			if(category != CAT_DAILY){
+				continue;
+			}
+			const auto cit = std::find(task_candidates.begin(), task_candidates.end(), task_id);
+			if(cit == task_candidates.end()){
+				continue;
+			}
+			task_candidates.erase(cit);
+		}
+		// 2. 将剩余的任务打乱，未领奖的任务不在其中。
+		for(std::size_t i = 0; i < task_candidates.size(); ++i){
+			const auto j = Poseidon::rand32(0, task_candidates.size());
+			std::swap(task_candidates.at(i), task_candidates.at(j));
+		}
+		// 3. 把刚才删掉的任务排在其他任务前面。
+		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+			const auto task_id = it->first;
+			const auto &obj = it->second->first;
+			const auto category = Category(obj->get_category());
+			if(category != CAT_DAILY){
+				continue;
+			}
+			LOG_EMPERY_CENTER_DEBUG("Unrewarded task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+			task_candidates.insert(task_candidates.begin(), task_id);
+		}
+		// 4. 列表生成完成。
+		if(task_candidates.size() > max_daily_task_count){
+			task_candidates.resize(max_daily_task_count);
+		}
+
+		for(auto it = task_candidates.begin(); it != task_candidates.end(); ++it){
+			const auto task_id = *it;
+			auto info = get(task_id);
+			const bool nonexistent = (info.created_time == 0);
 			info.task_id      = task_id;
 			info.category     = CAT_DAILY;
 			info.created_time = utc_now;
-			info.expiry_time  = (today + 1) * 86400000;
-			insert(std::move(info));
+			info.expiry_time  = daily_task_refresh_time;
+			if(nonexistent){
+				LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+				insert(std::move(info));
+			} else {
+				LOG_EMPERY_CENTER_DEBUG("Unrewarded daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+				update(std::move(info));
+			}
 		}
+
 		m_stamps->set_created_time(utc_now);
 	}
 }
@@ -266,6 +346,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 		DEBUG_THROW(Exception, sslit("Task exists"));
 	}
 
+	const auto task_data = Data::TaskAbstract::require(task_id);
 	const auto utc_now = Poseidon::get_utc_time();
 
 	Progress progress;
@@ -277,6 +358,12 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 	obj->async_save(true);
 	const auto pair = boost::make_shared<TaskObjectPair>(obj, std::move(progress));
 	m_tasks.emplace(task_id, pair);
+
+	if(task_data->accumulative){
+		if(task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL){
+			async_recheck_building_level_tasks(get_account_uuid());
+		}
+	}
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
@@ -362,13 +449,6 @@ bool TaskBox::remove(TaskId task_id) noexcept {
 	return true;
 }
 
-void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-	bool is_primary_castle, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3)
-{
-	PROFILE_ME;
-
-	// TODO
-}
 bool TaskBox::has_been_accomplished(TaskId task_id) const {
 	PROFILE_ME;
 
@@ -379,6 +459,97 @@ bool TaskBox::has_been_accomplished(TaskId task_id) const {
 	const auto task_data = Data::TaskAbstract::require(task_id);
 	return has_task_been_accomplished(task_data.get(), it->second->second);
 }
+void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+	CastleCategory castle_category, std::int64_t param1, std::int64_t param2, std::int64_t param3)
+{
+	PROFILE_ME;
+
+	(void)param1;
+	(void)param2;
+	(void)param3;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+		const auto task_id = it->first;
+		const auto task_data = Data::TaskAbstract::require(task_id);
+		if(task_data->type != type){
+			continue;
+		}
+		auto &pair = it->second;
+		const auto &obj = pair->first;
+		LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+
+		const auto oit = task_data->objective.find(key);
+		if(oit == task_data->objective.end()){
+			continue;
+		}
+
+		if(type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL){
+			if(param1 != static_cast<std::int64_t>(oit->second.at(1))){
+				continue;
+			}
+		}
+
+		if((task_data->castle_category == Data::TaskAbstract::CC_PRIMARY) && (castle_category != TCC_PRIMARY)){
+			LOG_EMPERY_CENTER_DEBUG("> Task is for primary castles only: task_id = ", task_id);
+			continue;
+		}
+		if((task_data->castle_category == Data::TaskAbstract::CC_NON_PRIMARY) && (castle_category != TCC_NON_PRIMARY)){
+			LOG_EMPERY_CENTER_DEBUG("> Task is for non-primary castles only: task_id = ", task_id);
+			continue;
+		}
+
+		std::uint64_t count_old, count_new;
+		const auto cit = pair->second.find(key);
+		if(cit != pair->second.end()){
+			count_old = cit->second;
+		} else {
+			count_old = 0;
+		}
+		if(task_data->accumulative){
+			count_new = std::max(count_old, count);
+		} else {
+			count_new = saturated_add(count_old, count);
+		}
+		const auto count_finish = static_cast<std::uint64_t>(oit->second.at(0));
+		if(count_new > count_finish){
+			count_new = count_finish;
+		}
+		if(count_new == count_old){
+			continue;
+		}
+
+		auto progress = pair->second;
+		progress[key] = count_new;
+		auto progress_str = encode_progress(progress);
+
+		pair->second = std::move(progress);
+		obj->set_progress(std::move(progress_str));
+
+		const auto session = PlayerSessionMap::get(get_account_uuid());
+		if(session){
+	    	try {
+        		Msg::SC_TaskChanged msg;
+        		fill_task_message(msg, pair, utc_now);
+        		session->send(msg);
+    		} catch(std::exception &e){
+	        	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+    	    	session->shutdown(e.what());
+    		}
+		}
+	}
+}
+void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+	const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2, std::int64_t param3)
+{
+	PROFILE_ME;
+
+	const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(castle->get_owner_uuid());
+
+	check(type, key, count,
+		(castle->get_map_object_uuid() == primary_castle_uuid) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2, param3);
+}
 
 void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
@@ -386,6 +557,11 @@ void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+		const auto &obj = it->second->first;
+		const auto category = Category(obj->get_category());
+		if((category == CAT_PRIMARY) && obj->get_rewarded()){
+			continue;
+		}
 		Msg::SC_TaskChanged msg;
 		fill_task_message(msg, it->second, utc_now);
 		session->send(msg);

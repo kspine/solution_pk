@@ -3,6 +3,8 @@
 #include "../msg/cs_map.hpp"
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
+#include "../msg/err_castle.hpp"
+#include "../msg/kill.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_utilities.hpp"
 #include "../map_object.hpp"
@@ -22,6 +24,10 @@
 #include "../data/global.hpp"
 #include "../overlay.hpp"
 #include "../map_object_type_ids.hpp"
+#include "../attribute_ids.hpp"
+#include "../singletons/task_box_map.hpp"
+#include "../task_box.hpp"
+#include "../task_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -89,8 +95,10 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	// 撤销当前的路径。
 	auto kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
-		return std::move(kresult);
+		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+		// return std::move(kresult);
+		cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
@@ -270,7 +278,8 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 		// 撤销当前的路径。
 		const auto kresult = cluster->send_and_wait(kreq);
 		if(kresult.first != Msg::ST_OK){
-			LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+			LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+			cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
 			continue;
 		}
 
@@ -344,8 +353,9 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	// 撤销当前的路径。
 	auto kresult = old_cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
-		return std::move(kresult);
+		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+		old_cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
@@ -489,6 +499,225 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	map_object->set_coord(new_coord);
 
 	session->send(Msg::SC_MapObjectStopped(map_object_uuid.str(), 0, std::string(), Msg::ERR_SWITCHED_CLUSTER, std::string()));
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
+	}
+
+	const auto castle_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(castle && map_object->is_garrisoned()){
+		auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
+		if(soldier_count < 0){
+			soldier_count = 0;
+		}
+
+		const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
+		const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+		std::vector<SoldierTransactionElement> transaction;
+		transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, soldier_count,
+			ReasonIds::ID_DISMISS_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
+		castle->commit_soldier_transaction(transaction,
+			[&]{ map_object->delete_from_game(); });
+	} else {
+		map_object->delete_from_game();
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapEvacuateFromCastle, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
+	}
+
+	const auto castle_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+	}
+	if(!map_object->is_garrisoned()){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+	}
+
+	std::vector<Coord> foundation;
+	get_castle_foundation(foundation, castle->get_coord(), false);
+	for(;;){
+		if(foundation.empty()){
+			return Response(Msg::ERR_NO_ROOM_FOR_NEW_UNIT);
+		}
+		const auto &coord = foundation.front();
+		std::vector<boost::shared_ptr<MapObject>> test_objects;
+		WorldMap::get_map_objects_by_rectangle(test_objects, Rectangle(coord, 1, 1));
+		if(test_objects.empty()){
+			LOG_EMPERY_CENTER_DEBUG("Found coord for battalion: coord = ", coord);
+			break;
+		}
+		foundation.erase(foundation.begin());
+	}
+	const auto &coord = foundation.front();
+
+	map_object->set_coord(Coord(INT64_MAX, INT64_MAX));
+	map_object->set_garrisoned(false);
+	map_object->set_coord(coord);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto speed = map_object_type_data->speed;
+	if(speed <= 0){
+		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
+	}
+
+	const auto castle_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+	}
+	if(!map_object->is_garrisoned()){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+	}
+
+	const auto soldier_count = req.soldier_count;
+	if(soldier_count == 0){
+		return Response(Msg::ERR_ZERO_SOLDIER_COUNT);
+	}
+
+	const auto old_soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto new_soldier_count = checked_add(old_soldier_count, soldier_count);
+	const auto max_soldier_count = map_object_type_data->max_soldier_count;
+	if(new_soldier_count > max_soldier_count){
+		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_BATTALION) <<max_soldier_count;
+	}
+
+	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
+	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(new_soldier_count);
+	const auto old_soldier_count_max = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT_MAX));
+	if(new_soldier_count > old_soldier_count_max){
+		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(new_soldier_count);
+	}
+
+	std::vector<SoldierTransactionElement> transaction;
+	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, soldier_count,
+		ReasonIds::ID_REFILL_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
+	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
+		[&]{ map_object->set_attributes(std::move(modifiers)); });
+	if(insuff_battalion_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapLoadMinimap, account, session, req){
+	const auto rectangle = Rectangle(req.left, req.bottom, req.width, req.height);
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_map_objects_by_rectangle(map_objects, rectangle);
+
+	Msg::SC_MapMinimap msg;
+	msg.left   = rectangle.left();
+	msg.bottom = rectangle.bottom();
+	msg.width  = rectangle.width();
+	msg.height = rectangle.height();
+	msg.castles.reserve(256);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		auto &elem = *msg.castles.emplace(msg.castles.end());
+		elem.x          = map_object->get_coord().x();
+		elem.y          = map_object->get_coord().y();
+		elem.owner_uuid = map_object->get_owner_uuid().str();
+	}
+	session->send(msg);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	const auto coord = Coord(req.x, req.y);
+	const auto map_cell = WorldMap::get_map_cell(coord);
+	if(!map_cell){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
+	}
+	if(map_cell->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
+	}
+
+	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
+	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<parent_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+	if(!castle){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
+	}
+
+	map_cell->pump_status();
+
+	if(map_cell->get_resource_amount() != 0){
+		const auto resource_id = map_cell->get_production_resource_id();
+		const auto amount_harvested = map_cell->harvest(false);
+		if(amount_harvested == 0){
+			return Response(Msg::ERR_WAREHOUSE_FULL);
+		}
+		try {
+			task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested,
+				castle, 0, 0, 0);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
 
 	return Response();
 }

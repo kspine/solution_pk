@@ -50,6 +50,7 @@ namespace Msg {
 		ERR_NOT_AT_MAP_EDGE                     = 71339,
 		ERR_SWITCHED_CLUSTER                    = 71340,
 		ERR_TOO_FAR_FROM_CASTLE                 = 71341,
+		ERR_MAP_OBJECT_IS_NOT_GARRISONED        = 71342,
 		ERR_NO_ATTACK_TARGT                     = 71343,
 	};
 }

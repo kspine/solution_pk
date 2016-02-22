@@ -10,13 +10,22 @@ namespace EmperyCenter {
 namespace Data {
 	class TaskAbstract {
 	public:
+		enum CastleCategory {
+			CC_PRIMARY      = 1,
+			CC_ALL          = 2,
+			CC_NON_PRIMARY  = 3,
+		};
+
+	public:
 		static boost::shared_ptr<const TaskAbstract> get(TaskId task_id);
 		static boost::shared_ptr<const TaskAbstract> require(TaskId task_id);
 
 	public:
 		TaskId task_id;
+		unsigned castle_category;
 		TaskTypeId type;
-		boost::container::flat_map<std::uint64_t, std::vector<std::uint64_t>> objective;
+		bool accumulative;
+		boost::container::flat_map<std::uint64_t, std::vector<double>> objective;
 		boost::container::flat_map<ItemId, std::uint64_t> reward;
 	};
 

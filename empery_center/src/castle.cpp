@@ -16,6 +16,7 @@
 #include "reason_ids.hpp"
 #include "data/map_object.hpp"
 #include "building_type_ids.hpp"
+#include "account_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -124,7 +125,7 @@ namespace {
 		msg.production_time_remaining = saturated_sub(obj->get_production_time_end(), utc_now);
 	}
 
-	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now){
+	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, AccountUuid owner_uuid, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto mission = Castle::Mission(obj->get_mission());
@@ -166,6 +167,8 @@ namespace {
 		obj->set_mission_time_begin(0);
 		obj->set_mission_time_end(0);
 
+		async_recheck_building_level_tasks(owner_uuid);
+
 		return true;
 	}
 	bool check_tech_mission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, std::uint64_t utc_now){
@@ -176,7 +179,7 @@ namespace {
 			return false;
 		}
 		const auto mission_time_end = obj->get_mission_time_end();
-		if(utc_now <= mission_time_end){
+		if(utc_now < mission_time_end){
 			return false;
 		}
 
@@ -207,7 +210,7 @@ namespace {
 
 		obj->set_mission(Castle::MIS_NONE);
 		obj->set_mission_duration(0);
-		obj->set_mission_time_end(utc_now);
+		obj->set_mission_time_end(0);
 
 		return true;
 	}
@@ -216,7 +219,7 @@ namespace {
 Castle::Castle(MapObjectUuid map_object_uuid,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
 	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
-		owner_uuid, parent_object_uuid, std::move(name), coord, created_time)
+		owner_uuid, parent_object_uuid, std::move(name), coord, created_time, false)
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
@@ -268,7 +271,7 @@ void Castle::pump_status(){
 
 	bool dirty = false;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(check_building_mission(it->second, utc_now)){
+		if(check_building_mission(it->second, get_owner_uuid(), utc_now)){
 			++dirty;
 		}
 	}
@@ -449,6 +452,7 @@ void Castle::check_init_buildings(){
 	PROFILE_ME;
 
 	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: map_object_uuid = ", get_map_object_uuid());
+	bool dirty = false;
 	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
 	Data::CastleBuildingBase::get_init(init_buildings);
 	for(auto dit = init_buildings.begin(); dit != init_buildings.end(); ++dit){
@@ -500,6 +504,11 @@ void Castle::check_init_buildings(){
 			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
 		obj->async_save(true);
 		m_buildings.emplace(building_base_id, std::move(obj));
+
+		++dirty;
+	}
+	if(dirty){
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 }
 
@@ -615,7 +624,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
-	if(check_building_mission(obj, utc_now)){
+	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
 		recalculate_attributes();
 	}
 
@@ -655,7 +664,7 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(utc_now);
 
-	// check_building_mission(obj, utc_now);
+	// check_building_mission(obj, get_owner_uuid(), utc_now);
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -690,7 +699,7 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, std::uin
 
 	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
-	if(check_building_mission(obj, utc_now)){
+	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
 		recalculate_attributes();
 	}
 
@@ -721,7 +730,7 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	if(check_building_mission(it->second, utc_now)){
+	if(check_building_mission(it->second, get_owner_uuid(), utc_now)){
 		recalculate_attributes();
 	}
 }
@@ -754,6 +763,17 @@ void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, c
 	Msg::SC_CastleBuildingBase msg;
 	fill_building_message(msg, it->second, utc_now);
 	session->send(msg);
+}
+
+void Castle::accumulate_building_levels(boost::container::flat_map<BuildingId, boost::container::flat_map<unsigned, std::size_t>> &ret) const {
+	PROFILE_ME;
+
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		const unsigned level = it->second->get_building_level();
+		auto &count = ret[building_id][level];
+		++count;
+	}
 }
 
 unsigned Castle::get_max_level(BuildingId building_id) const {
@@ -839,6 +859,26 @@ bool Castle::is_battalion_production_in_progress(BuildingBaseId building_base_id
 	}
 	return false;
 }
+std::uint64_t Castle::get_max_battalion_count() const {
+	PROFILE_ME;
+
+	std::uint64_t count = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != BuildingTypeIds::ID_PARADE_GROUND){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		if(current_level == 0){
+			continue;
+		}
+		const auto upgrade_data = Data::CastleUpgradeParadeGround::require(current_level);
+		count = saturated_add(count, upgrade_data->max_battalion_count);
+	}
+	return count;
+}
+
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;
 
@@ -1290,7 +1330,7 @@ void Castle::enable_battalion(MapObjectTypeId map_object_type_id){
 	}
 }
 
-MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<BattalionTransactionElement> &transaction,
+MapObjectTypeId Castle::commit_soldier_transaction_nothrow(const std::vector<SoldierTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
@@ -1300,7 +1340,7 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleBattalion>, std::uint64_t /* new_count */> temp_result_map;
 	temp_result_map.reserve(transaction.size());
 
-	const FlagGuard transaction_guard(m_locked_by_battalion_transaction);
+	const FlagGuard transaction_guard(m_locked_by_soldier_transaction);
 
 	const auto map_object_uuid = get_map_object_uuid();
 	const auto owner_uuid = get_owner_uuid();
@@ -1320,10 +1360,10 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 		const auto param3 = tit->m_param3;
 
 		switch(operation){
-		case BattalionTransactionElement::OP_NONE:
+		case SoldierTransactionElement::OP_NONE:
 			break;
 
-		case BattalionTransactionElement::OP_ADD:
+		case SoldierTransactionElement::OP_ADD:
 			{
 				boost::shared_ptr<MySql::Center_CastleBattalion> obj;
 				{
@@ -1354,12 +1394,12 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 			}
 			break;
 
-		case BattalionTransactionElement::OP_REMOVE:
-		case BattalionTransactionElement::OP_REMOVE_SATURATED:
+		case SoldierTransactionElement::OP_REMOVE:
+		case SoldierTransactionElement::OP_REMOVE_SATURATED:
 			{
 				const auto it = m_battalions.find(map_object_type_id);
 				if(it == m_battalions.end()){
-					if(operation != BattalionTransactionElement::OP_REMOVE_SATURATED){
+					if(operation != SoldierTransactionElement::OP_REMOVE_SATURATED){
 						LOG_EMPERY_CENTER_DEBUG("Battalion not found: map_object_type_id = ", map_object_type_id);
 						return map_object_type_id;
 					}
@@ -1374,7 +1414,7 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 				if(temp_it->second >= delta_count){
 					temp_it->second -= delta_count;
 				} else {
-					if(operation != BattalionTransactionElement::OP_REMOVE_SATURATED){
+					if(operation != SoldierTransactionElement::OP_REMOVE_SATURATED){
 						LOG_EMPERY_CENTER_DEBUG("No enough battalions: map_object_type_id = ", map_object_type_id,
 							", temp_count = ", temp_it->second, ", delta_count = ", delta_count);
 						return map_object_type_id;
@@ -1426,12 +1466,12 @@ MapObjectTypeId Castle::commit_battalion_transaction_nothrow(const std::vector<B
 
 	return { };
 }
-void Castle::commit_battalion_transaction(const std::vector<BattalionTransactionElement> &transaction,
+void Castle::commit_soldier_transaction(const std::vector<SoldierTransactionElement> &transaction,
 	const boost::function<void ()> &callback)
 {
 	PROFILE_ME;
 
-	const auto insuff_id = commit_battalion_transaction_nothrow(transaction, callback);
+	const auto insuff_id = commit_soldier_transaction_nothrow(transaction, callback);
 	if(insuff_id != MapObjectTypeId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient battalions in castle: map_object_uuid = ", get_map_object_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient battalions in castle"));
@@ -1574,7 +1614,7 @@ void Castle::speed_up_battalion_production(BuildingBaseId building_base_id, std:
 	}
 }
 
-void Castle::harvest_battalion(BuildingBaseId building_base_id){
+std::uint64_t Castle::harvest_battalion(BuildingBaseId building_base_id){
 	PROFILE_ME;
 
 	const auto it = m_battalion_production.find(building_base_id);
@@ -1600,10 +1640,10 @@ void Castle::harvest_battalion(BuildingBaseId building_base_id){
 		DEBUG_THROW(Exception, sslit("Battalion production incomplete"));
 	}
 
-	std::vector<BattalionTransactionElement> transaction;
-	transaction.emplace_back(BattalionTransactionElement::OP_ADD, map_object_type_id, count,
+	std::vector<SoldierTransactionElement> transaction;
+	transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, count,
 		ReasonIds::ID_HARVEST_BATTALION, map_object_type_id.get(), count, 0);
-	commit_battalion_transaction(transaction,
+	commit_soldier_transaction(transaction,
 		[&]{
 			obj->set_map_object_type_id(0);
 			obj->set_count(0);
@@ -1623,6 +1663,8 @@ void Castle::harvest_battalion(BuildingBaseId building_base_id){
 			session->shutdown(e.what());
 		}
 	}
+
+	return count;
 }
 
 void Castle::synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {

@@ -119,7 +119,7 @@ boost::shared_ptr<TaskBox> TaskBoxMap::get(AccountUuid account_uuid){
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
 
 			auto task_box = boost::make_shared<TaskBox>(account_uuid, *(it->sink));
-			task_box->check_init_tasks();
+			task_box->check_primary_tasks();
 
 			const auto task_box_refresh_interval = get_config<std::uint64_t>("task_box_refresh_interval", 60000);
 			auto timer = Poseidon::TimerDaemon::register_timer(0, task_box_refresh_interval,

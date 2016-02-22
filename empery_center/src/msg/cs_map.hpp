@@ -89,6 +89,41 @@ namespace Msg {
 	FIELD_VUINT         (direction)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapDismissBattalion
+#define MESSAGE_ID      310
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MapEvacuateFromCastle
+#define MESSAGE_ID      311
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MapRefillBattalion
+#define MESSAGE_ID      312
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (soldier_count)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MapLoadMinimap
+#define MESSAGE_ID      313
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (left)	\
+	FIELD_VINT          (bottom)	\
+	FIELD_VUINT         (width)	\
+	FIELD_VUINT         (height)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MapHarvestMapCell
+#define MESSAGE_ID      314
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

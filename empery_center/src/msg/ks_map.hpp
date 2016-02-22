@@ -50,8 +50,7 @@ namespace Msg {
 #define MESSAGE_NAME    KS_MapEnterCastle
 #define MESSAGE_ID      32305
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_STRING        (castle_uuid)
+	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KS_MapAttack

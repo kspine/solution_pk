@@ -17,8 +17,6 @@
 #include "../data/global.hpp"
 #include <poseidon/json.hpp>
 #include "../map_utilities.hpp"
-#include "../transaction_element.hpp"
-#include "../reason_ids.hpp"
 #include "../attribute_ids.hpp"
 #include "../announcement.hpp"
 #include "../singletons/announcement_map.hpp"
@@ -68,7 +66,6 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 	if(cluster != test_cluster){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
-
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(req.attributes.size());
@@ -226,7 +223,7 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
 
-	const auto castle_uuid = MapObjectUuid(req.castle_uuid);
+	const auto castle_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
@@ -248,18 +245,7 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
 	}
 
-	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
-	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
-
-	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
-	if(soldier_count < 1){
-		soldier_count = 1;
-	}
-	std::vector<BattalionTransactionElement> transaction;
-	transaction.emplace_back(BattalionTransactionElement::OP_ADD, map_object->get_map_object_type_id(), soldier_count,
-		ReasonIds::ID_ENTER_CASTLE, castle_uuid_head, battalion_uuid_head, 0);
-	castle->commit_battalion_transaction(transaction,
-		[&]{ map_object->delete_from_game(); });
+	map_object->set_garrisoned(true);
 
 	return Response();
 }

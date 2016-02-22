@@ -193,7 +193,7 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    CS_CastleDismissBattalion
+#define MESSAGE_NAME    CS_CastleCreateBattalion
 #define MESSAGE_ID      423
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
@@ -201,12 +201,11 @@ namespace Msg {
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    CS_CastleRallyBattalion
+#define MESSAGE_NAME    CS_CastleCompleteBattalionProductionImmediately
 #define MESSAGE_ID      424
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (map_object_type_id)	\
-	FIELD_VUINT         (count)
+	FIELD_VUINT         (building_base_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

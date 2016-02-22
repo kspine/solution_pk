@@ -88,12 +88,24 @@ void MailBox::pump_status(){
 		auto it = m_mails.begin();
 		while(it != m_mails.end()){
 			const auto &obj = it->second;
-			if(obj->get_system() || (utc_now < obj->get_expiry_time()) || !obj->get_read() || !obj->get_attachments_fetched()){
+			if(obj->get_system()){
 				++it;
-			} else {
-				LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
-				it = m_mails.erase(it);
+				continue;
 			}
+			if(utc_now < obj->get_expiry_time()){
+				++it;
+				continue;
+			}
+			if(!obj->get_read()){
+				++it;
+				continue;
+			}
+			if(!obj->get_attachments_fetched()){
+				++it;
+				continue;
+			}
+			LOG_EMPERY_CENTER_DEBUG("> Removing expired mail: account_uuid = ", get_account_uuid(), ", mail_uuid = ", it->first);
+			it = m_mails.erase(it);
 		}
 	}
 }

@@ -44,10 +44,10 @@ struct WorldMap {
 	static void remove_map_object(MapObjectUuid map_object_uuid) noexcept;
 
 	static void get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret);
-	static void get_map_objects_by_owner_and_type(std::vector<boost::shared_ptr<MapObject>> &ret,
-		AccountUuid owner_uuid, MapObjectTypeId type);
+	static void get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);
 	static void get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
+	static MapObjectUuid get_primary_castle_uuid(AccountUuid owner_uuid);
 
 	// PlayerSession
 	static void get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle);

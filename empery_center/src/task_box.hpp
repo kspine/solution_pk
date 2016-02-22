@@ -15,13 +15,21 @@ namespace MySql {
 	class Center_Task;
 }
 
+class Castle;
 class PlayerSession;
 
 class TaskBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum Category {
+		CAT_NULL        = 0,
 		CAT_PRIMARY     = 1,
 		CAT_DAILY       = 2,
+	};
+
+	enum CastleCategory {
+		TCC_PRIMARY     = 1,
+		TCC_ALL         = 2,
+		TCC_NON_PRIMARY = 3,
 	};
 
 	using Progress = boost::container::flat_map<std::uint64_t, std::uint64_t>;
@@ -56,7 +64,8 @@ public:
 		return m_account_uuid;
 	}
 
-	void check_init_tasks();
+	void check_primary_tasks();
+	void check_daily_tasks();
 
 	TaskInfo get(TaskId task_id) const;
 	void get_all(std::vector<TaskInfo> &ret) const;
@@ -67,7 +76,9 @@ public:
 
 	bool has_been_accomplished(TaskId task_id) const;
 	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-		bool is_primary_castle, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3);
+		CastleCategory castle_category, std::int64_t param1, std::int64_t param2, std::int64_t param3);
+	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+		const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2, std::int64_t param3);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

@@ -18,8 +18,10 @@ namespace {
 
 	template<typename ElementT>
 	void read_task_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
-		csv.get(elem.task_id, "task_id");
-		csv.get(elem.type,    "task_type");
+		csv.get(elem.task_id,         "task_id");
+		csv.get(elem.castle_category, "task_city");
+		csv.get(elem.type,            "task_type");
+		csv.get(elem.accumulative,    "accumulation");
 
 		Poseidon::JsonObject object;
 		csv.get(object, "task_need");
@@ -27,7 +29,7 @@ namespace {
 		for(auto it = object.begin(); it != object.end(); ++it){
 			const auto key = boost::lexical_cast<std::uint64_t>(it->first);
 			const auto &value_array = it->second.get<Poseidon::JsonArray>();
-			std::vector<std::uint64_t> values;
+			std::vector<double> values;
 			values.reserve(value_array.size());
 			for(auto vit = value_array.begin(); vit != value_array.end(); ++vit){
 				values.emplace_back(vit->get<double>());

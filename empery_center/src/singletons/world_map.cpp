@@ -883,9 +883,7 @@ void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &re
 		ret.emplace_back(it->map_object);
 	}
 }
-void WorldMap::get_map_objects_by_owner_and_type(std::vector<boost::shared_ptr<MapObject>> &ret,
-	AccountUuid owner_uuid, MapObjectTypeId map_object_type_id)
-{
+void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -897,9 +895,6 @@ void WorldMap::get_map_objects_by_owner_and_type(std::vector<boost::shared_ptr<M
 	const auto range = map_object_map->equal_range<2>(owner_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
-		if(it->map_object->get_map_object_type_id() != map_object_type_id){
-			continue;
-		}
 		ret.emplace_back(it->map_object);
 	}
 }
@@ -948,6 +943,32 @@ void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObj
 	}
 _exit_while:
 	;
+}
+MapObjectUuid WorldMap::get_primary_castle_uuid(AccountUuid owner_uuid){
+	PROFILE_ME;
+
+	MapObjectUuid min_castle_uuid;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return min_castle_uuid;
+	}
+
+	const auto range = map_object_map->equal_range<2>(owner_uuid);
+	for(auto it = range.first; it != range.second; ++it){
+		const auto &map_object = it->map_object;
+		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		const auto castle_uuid = map_object->get_map_object_uuid();
+		if(min_castle_uuid && (min_castle_uuid > castle_uuid)){
+			continue;
+		}
+		min_castle_uuid = castle_uuid;
+	}
+
+	return min_castle_uuid;
 }
 
 void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle){
@@ -1058,6 +1079,9 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 			const auto &map_object = *it;
 			if(map_object->is_virtually_removed()){
+				continue;
+			}
+			if(map_object->is_garrisoned()){
 				continue;
 			}
 			synchronize_map_object_with_player(map_object, session);
