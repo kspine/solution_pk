@@ -533,7 +533,6 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	}
 	if(out_of_scope){
 		LOG_EMPERY_CLUSTER_DEBUG("Map object is out of the scope of its master: map_object_uuid = ", map_object_uuid);
-		map_object_map->erase<1>(it);
 	} else {
 		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
 			", old_coord = ", old_coord, ", new_coord = ", new_coord);
