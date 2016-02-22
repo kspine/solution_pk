@@ -470,7 +470,7 @@ void WorldMap::replace_map_object_no_synchronize(const boost::shared_ptr<Cluster
 		map_object_map->replace(result.first, MapObjectElement(map_object, master));
 	}
 }
-void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterClient> & /* master */, MapObjectUuid map_object_uuid) noexcept {
+void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterClient> &master, MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -484,6 +484,12 @@ void WorldMap::remove_map_object_no_synchronize(const boost::weak_ptr<ClusterCli
 		LOG_EMPERY_CLUSTER_TRACE("Map object not found: map_object_uuid = ", map_object_uuid);
 		return;
 	}
+	const bool out_of_scope = (master < it->master || it->master < master);
+	if(out_of_scope){
+		LOG_EMPERY_CLUSTER_DEBUG("Map object is out of the scope of its master: map_object_uuid = ", map_object_uuid);
+		return;
+	}
+
 	const auto map_object = it->map_object;
 	const auto old_coord  = it->coord;
 

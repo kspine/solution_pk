@@ -62,7 +62,6 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
 
-
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
