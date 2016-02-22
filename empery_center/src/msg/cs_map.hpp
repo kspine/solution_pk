@@ -117,6 +117,13 @@ namespace Msg {
 	FIELD_VUINT         (height)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapHarvestMapCell
+#define MESSAGE_ID      314
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

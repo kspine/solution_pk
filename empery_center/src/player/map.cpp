@@ -25,6 +25,9 @@
 #include "../overlay.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../attribute_ids.hpp"
+#include "../singletons/task_box_map.hpp"
+#include "../task_box.hpp"
+#include "../task_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -670,6 +673,51 @@ PLAYER_SERVLET(Msg::CS_MapLoadMinimap, account, session, req){
 		elem.owner_uuid = map_object->get_owner_uuid().str();
 	}
 	session->send(msg);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	const auto coord = Coord(req.x, req.y);
+	const auto map_cell = WorldMap::get_map_cell(coord);
+	if(!map_cell){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
+	}
+	if(map_cell->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
+	}
+
+	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
+	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<parent_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+	if(!castle){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
+	}
+
+	map_cell->pump_status();
+
+	if(map_cell->get_resource_amount() != 0){
+		const auto resource_id = map_cell->get_production_resource_id();
+		const auto amount_harvested = map_cell->harvest(false);
+		if(amount_harvested == 0){
+			return Response(Msg::ERR_WAREHOUSE_FULL);
+		}
+		try {
+			task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested,
+				castle, 0, 0, 0);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
 
 	return Response();
 }
