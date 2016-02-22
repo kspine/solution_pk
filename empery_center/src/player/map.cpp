@@ -4,6 +4,7 @@
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
 #include "../msg/err_castle.hpp"
+#include "../msg/kill.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_utilities.hpp"
 #include "../map_object.hpp"
@@ -92,7 +93,9 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	auto kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
-		return std::move(kresult);
+		// return std::move(kresult);
+		cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
@@ -273,6 +276,7 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 		const auto kresult = cluster->send_and_wait(kreq);
 		if(kresult.first != Msg::ST_OK){
 			LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+			cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
 			continue;
 		}
 
@@ -347,7 +351,8 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	auto kresult = old_cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
-		return std::move(kresult);
+		old_cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
