@@ -189,6 +189,15 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		if(!cluster){
 			break;
 		}
+		const auto parent_map_object = WorldMap::get_map_object(m_parent_object_uuid);
+		if(!parent_map_object){
+			result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<m_parent_object_uuid;
+			break;
+		}
+		if(parent_map_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
+			result = Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<parent_map_object->get_map_object_type_id();
+			break;
+		}
 		Msg::KS_MapEnterCastle sreq;
 		sreq.map_object_uuid = map_object_uuid.str();
 		auto sresult = cluster->send_and_wait(sreq);
@@ -197,6 +206,9 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			result = std::move(sresult);
 			break;
 		}
+		const auto new_coord = parent_map_object->get_coord();
+		LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
+		set_coord(new_coord);
 	}
 //=============================================================================
 #undef ON_ACTION
