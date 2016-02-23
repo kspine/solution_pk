@@ -62,7 +62,7 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x,
 	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 
 	const auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
-	Poseidon::JobDispatcher::yield(promise);
+	Poseidon::JobDispatcher::yield(promise, true);
 	LOG_EMPERY_CLUSTER_DEBUG("DNS lookup succeeded: host = ", host, ", ip = ", Poseidon::get_ip_port_from_sock_addr(*sock_addr).ip);
 
 	auto client = boost::shared_ptr<ClusterClient>(new ClusterClient(*sock_addr, use_ssl, keep_alive));
@@ -246,7 +246,7 @@ Result ClusterClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBu
 		if(!Poseidon::Cbpp::Client::send(Msg::G_PackedRequest(serial, message_id, body.dump()))){
 			DEBUG_THROW(Exception, sslit("Could not send data to center server"));
 		}
-		Poseidon::JobDispatcher::yield(promise);
+		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
 		m_requests.erase(serial);

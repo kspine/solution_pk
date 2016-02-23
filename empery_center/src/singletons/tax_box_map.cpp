@@ -113,7 +113,7 @@ boost::shared_ptr<TaxBox> TaxBoxMap::get(AccountUuid account_uuid){
 		// 复制一个智能指针，并且导致 use_count() 增加。
 		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
 		const auto promise = it->promise;
-		Poseidon::JobDispatcher::yield(promise);
+		Poseidon::JobDispatcher::yield(promise, true);
 
 		if(it->sink){
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
