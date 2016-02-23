@@ -38,9 +38,16 @@ MapObject::~MapObject(){
 std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::uint64_t /* now */){
 	PROFILE_ME;
 
-	const auto map_object_uuid = get_map_object_uuid();
-	const auto owner_uuid      = get_owner_uuid();
-	const auto coord           = get_coord();
+	const auto map_object_uuid    = get_map_object_uuid();
+	const auto owner_uuid         = get_owner_uuid();
+	const auto parent_object_uuid = get_parent_object_uuid();
+	const auto coord              = get_coord();
+
+	const auto parent_map_object = WorldMap::get_map_object(parent_object_uuid);
+	if(!parent_map_object){
+		result = Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
+		return UINT64_MAX;
+	}
 
 	// 移动。
 	if(!m_waypoints.empty()){
@@ -187,15 +194,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	ON_ACTION(ACT_ENTER_CASTLE){
 		const auto cluster = get_cluster();
 		if(!cluster){
-			break;
-		}
-		const auto parent_map_object = WorldMap::get_map_object(m_parent_object_uuid);
-		if(!parent_map_object){
-			result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<m_parent_object_uuid;
-			break;
-		}
-		if(parent_map_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE){
-			result = Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<parent_map_object->get_map_object_type_id();
 			break;
 		}
 		Msg::KS_MapEnterCastle sreq;
