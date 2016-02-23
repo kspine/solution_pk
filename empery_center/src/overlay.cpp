@@ -95,18 +95,18 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, st
 		LOG_EMPERY_CENTER_DEBUG("Harvest speed is zero: harvester_type_id = ", harvester_type_id);
 		return 0;
 	}
-	const auto amount_to_harvest = harvest_speed * duration / 60000.0 + m_harvest_remainder;
-	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto amount_remaining = get_resource_amount();
-	const auto amount_avail = std::min(rounded_amount_to_harvest, amount_remaining);
-	if(amount_avail == 0){
+	if(amount_remaining == 0){
 		LOG_EMPERY_CENTER_DEBUG("No resource available: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 		return 0;
 	}
+	const auto amount_to_harvest = harvest_speed * duration / 60000.0 + m_harvest_remainder;
+	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
+	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
 
 	const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id), castle->get_resource(resource_id).amount);
-	const auto amount_to_add = std::min(amount_avail, capacity_remaining);
-	const auto amount_to_remove = saturated ? amount_avail : amount_to_add;
+	const auto amount_to_add = std::min(rounded_amount_removable, capacity_remaining);
+	const auto amount_to_remove = saturated ? rounded_amount_removable : amount_to_add;
 	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,
 		", resource_id = ", resource_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
