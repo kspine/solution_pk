@@ -131,7 +131,7 @@ Poseidon::StreamBuffer SimpleHttpClientDaemon::sync_request(
 	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
 	{
 		const auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
-		Poseidon::JobDispatcher::yield(promise);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
@@ -155,7 +155,7 @@ Poseidon::StreamBuffer SimpleHttpClientDaemon::sync_request(
 		LOG_EMPERY_CENTER_WARNING("Failed to send data to remote server!");
 		DEBUG_THROW(Exception, sslit("Failed to send data to remote server"));
 	}
-	Poseidon::JobDispatcher::yield(promise);
+	Poseidon::JobDispatcher::yield(promise, true);
 
 	return std::move(client->get_buffer());
 }

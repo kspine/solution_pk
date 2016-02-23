@@ -287,7 +287,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 	if(m_send_queue.empty()){
 		Poseidon::JobDispatcher::enqueue(
 			boost::make_shared<QueueImpl>(virtual_shared_from_this<PlayerSession>()),
-			{ }, { });
+			{ });
 	}
 	m_send_queue.emplace_back(message_id, std::move(payload), false);
 	return true;
@@ -315,7 +315,7 @@ void PlayerSession::shutdown(int reason, const char *message) noexcept {
 		if(m_send_queue.empty()){
 			Poseidon::JobDispatcher::enqueue(
 				boost::make_shared<QueueImpl>(virtual_shared_from_this<PlayerSession>()),
-				{ }, { });
+				{ });
 		}
 		constexpr auto msg_id = Poseidon::Cbpp::ControlMessage::ID;
 		m_send_queue.emplace_back(msg_id, Poseidon::Cbpp::ControlMessage(msg_id, reason, message), true);

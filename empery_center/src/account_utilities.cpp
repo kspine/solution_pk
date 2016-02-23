@@ -142,10 +142,10 @@ try {
 		dividend_accumulated = my_max_dividend;
 
 		// 扣除个税即使没有上家（视为被系统回收）。
-		const auto tax_total = static_cast<std::uint64_t>(std::round(my_dividend * income_tax_ratio_total));
+		const auto tax_total = static_cast<std::uint64_t>(std::floor(my_dividend * income_tax_ratio_total + 0.001));
 		Poseidon::enqueue_async_job(
 			std::bind(send_tax_nothrow, referrer, ReasonIds::ID_LEVEL_BONUS, my_dividend - tax_total, account),
-			{ }, withdrawn);
+			withdrawn);
 
 		{
 			auto tit = g_income_tax_array.begin();
@@ -154,10 +154,10 @@ try {
 				if(next_referrer->get_promotion_level() <= 1){
 					continue;
 				}
-				const auto tax_amount = static_cast<std::uint64_t>(std::round(my_dividend * (*tit)));
+				const auto tax_amount = static_cast<std::uint64_t>(std::floor(my_dividend * (*tit) + 0.001));
 				Poseidon::enqueue_async_job(
 					std::bind(send_tax_nothrow, next_referrer, ReasonIds::ID_INCOME_TAX, tax_amount, referrer),
-					{ }, withdrawn);
+					withdrawn);
 				++tit;
 			}
 		}
@@ -169,10 +169,10 @@ try {
 				if(next_referrer->get_promotion_level() != g_level_bonus_array.size()){
 					continue;
 				}
-				const auto extra_amount = static_cast<std::uint64_t>(std::round(dividend_total * (*eit)));
+				const auto extra_amount = static_cast<std::uint64_t>(std::floor(dividend_total * (*eit) + 0.001));
 				Poseidon::enqueue_async_job(
 					std::bind(send_tax_nothrow, next_referrer, ReasonIds::ID_LEVEL_BONUS_EXTRA, extra_amount, referrer),
-					{ }, withdrawn);
+					withdrawn);
 				++eit;
 			}
 		}
