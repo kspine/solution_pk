@@ -39,6 +39,11 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
 
 CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
+	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	const auto owner_uuid         = AccountUuid(req.owner_uuid);
+	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
+	const bool garrisoned         = req.garrisoned;
+	const auto coord              = Coord(req.x, req.y);
 
 	auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(map_object){
@@ -48,12 +53,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 			map_object.reset();
 		}
 	}
-	if(!map_object){
-		const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-		const auto owner_uuid         = AccountUuid(req.owner_uuid);
-		const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
-		const auto coord              = Coord(req.x, req.y);
-
+	if(!map_object || (map_object->is_garrisoned() != garrisoned)){
 		boost::container::flat_map<AttributeId, std::int64_t> attributes;
 		attributes.reserve(req.attributes.size());
 		for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
@@ -61,9 +61,9 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 		}
 
 		LOG_EMPERY_CLUSTER_TRACE("Creating map object: map_object_uuid = ", map_object_uuid,
-			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", coord = ", coord);
-		map_object = boost::make_shared<MapObject>(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, cluster,
-			coord, std::move(attributes));
+			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", garrisoned = ", garrisoned, ", coord = ", coord);
+		map_object = boost::make_shared<MapObject>(map_object_uuid,
+			map_object_type_id, owner_uuid, parent_object_uuid, garrisoned, cluster, coord, std::move(attributes));
 		WorldMap::replace_map_object_no_synchronize(cluster, map_object);
 	}
 

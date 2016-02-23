@@ -25,10 +25,10 @@ namespace Msg {
 using Response = ::EmperyCenter::CbppResponse;
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, boost::weak_ptr<ClusterClient> cluster,
+	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes)
 	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id)
-	, m_owner_uuid(owner_uuid), m_parent_object_uuid(parent_object_uuid), m_cluster(std::move(cluster))
+	, m_owner_uuid(owner_uuid), m_parent_object_uuid(parent_object_uuid), m_garrisoned(garrisoned), m_cluster(std::move(cluster))
 	, m_coord(coord), m_attributes(std::move(attributes))
 {
 }
@@ -41,11 +41,16 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	const auto map_object_uuid    = get_map_object_uuid();
 	const auto owner_uuid         = get_owner_uuid();
 	const auto parent_object_uuid = get_parent_object_uuid();
+	const auto garrisoned         = is_garrisoned();
 	const auto coord              = get_coord();
 
 	const auto parent_map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!parent_map_object){
 		result = Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
+		return UINT64_MAX;
+	}
+	if(garrisoned){
+		result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 		return UINT64_MAX;
 	}
 
