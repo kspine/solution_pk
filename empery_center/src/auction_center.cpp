@@ -6,7 +6,6 @@
 #include "events/auction.hpp"
 #include "item_box.hpp"
 #include "castle.hpp"
-#include "singletons/world_map.hpp"
 #include "reason_ids.hpp"
 #include "data/castle.hpp"
 #include "data/item.hpp"
@@ -16,6 +15,7 @@
 #include "singletons/item_box_map.hpp"
 #include "player_session.hpp"
 #include "msg/sc_auction.hpp"
+#include "singletons/world_map.hpp"
 #include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
@@ -80,10 +80,16 @@ namespace {
 
 			const auto item_box = ItemBoxMap::require(auction_center->get_account_uuid());
 
-			const auto succeeded = auction_center->commit_transfer(map_object_uuid);
-			if(!succeeded){
+			const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+			if(!castle){
+				LOG_EMPERY_CENTER_ERROR("No such castle: map_object_uuid = ", map_object_uuid);
+				DEBUG_THROW(Exception, sslit("No such castle"));
+			}
+
+			const auto insuff_resource_id = auction_center->commit_transfer(castle);
+			if(insuff_resource_id){
 				LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
-				auction_center->cancel_transfer(map_object_uuid, item_box, true);
+				auction_center->cancel_transfer(castle, item_box, true);
 			}
 		};
 
@@ -316,23 +322,20 @@ void AuctionCenter::get_all_transfers(std::vector<AuctionCenter::TransferInfo> &
 		}
 	}
 }
-std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_object_uuid, const boost::shared_ptr<ItemBox> &item_box,
+std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box,
 	const boost::container::flat_map<ItemId, std::uint64_t> &items)
 {
 	PROFILE_ME;
 
 	const auto account_uuid = get_account_uuid();
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		LOG_EMPERY_CENTER_WARNING("Castle not found: map_object_uuid = ", map_object_uuid);
-		DEBUG_THROW(Exception, sslit("Castle not found"));
-	}
 
+	const auto map_object_uuid = castle->get_map_object_uuid();
 	auto tit = m_transfers.find(map_object_uuid);
 	if(tit == m_transfers.end()){
 		tit = m_transfers.emplace(map_object_uuid, decltype(tit->second)()).first;
 	}
-	for(auto it = tit->second.begin(); it != tit->second.end(); ++it){
+	auto &transfers = tit->second;
+	for(auto it = transfers.begin(); it != transfers.end(); ++it){
 		const auto &obj = it->second;
 		if(obj->get_created_time() == 0){
 			continue;
@@ -346,12 +349,12 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 	temp_result.reserve(items.size());
 	for(auto it = items.begin(); it != items.end(); ++it){
 		const auto item_id = it->first;
-		auto iit = tit->second.find(item_id);
-		if(iit == tit->second.end()){
+		auto iit = transfers.find(item_id);
+		if(iit == transfers.end()){
 			auto obj = boost::make_shared<MySql::Center_AuctionTransfer>(
 				account_uuid.get(), map_object_uuid.get(), item_id.get(), 0, 0, 0, 0, 0, 0, 0, 0);
 			obj->async_save(true);
-			iit = tit->second.emplace(item_id, std::move(obj)).first;
+			iit = transfers.emplace(item_id, std::move(obj)).first;
 		}
 		const auto &obj = iit->second;
 		temp_result.emplace(obj, TransferInfo());
@@ -375,7 +378,7 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 		const auto item_id = it->first;
 		const auto item_count = it->second;
 
-		auto &info = temp_result.at(tit->second.at(item_id));
+		auto &info = temp_result.at(transfers.at(item_id));
 		info.item_count = checked_add(info.item_count, item_count);
 
 		const auto item_data = Data::Item::require(item_id);
@@ -441,31 +444,28 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 		});
 	return std::make_pair(insuff_resource_id, insuff_item_id);
 }
-ResourceId AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
+ResourceId AuctionCenter::commit_transfer(const boost::shared_ptr<Castle> &castle){
 	PROFILE_ME;
 
 	const auto account_uuid = get_account_uuid();
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		LOG_EMPERY_CENTER_WARNING("Castle not found: map_object_uuid = ", map_object_uuid);
-		DEBUG_THROW(Exception, sslit("Castle not found"));
-	}
 
+	const auto map_object_uuid = castle->get_map_object_uuid();
 	const auto tit = m_transfers.find(map_object_uuid);
 	if(tit == m_transfers.end()){
 		LOG_EMPERY_CENTER_DEBUG("No auction transfer is in progress: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid);
 		return { };
 	}
+	auto &transfers = tit->second;
 
 	std::vector<boost::shared_ptr<MySql::Center_AuctionTransfer>> temp_result;
-	temp_result.reserve(tit->second.size());
+	temp_result.reserve(transfers.size());
 
 	std::vector<AuctionTransactionElement> auction_transaction;
 	auction_transaction.reserve(16);
 	std::vector<ResourceTransactionElement> resource_transaction;
 	resource_transaction.reserve(64);
 
-	for(auto it = tit->second.begin(); it != tit->second.end(); ++it){
+	for(auto it = transfers.begin(); it != transfers.end(); ++it){
 		const auto &obj = it->second;
 
 		if(obj->get_created_time() == 0){
@@ -521,31 +521,28 @@ ResourceId AuctionCenter::commit_transfer(MapObjectUuid map_object_uuid){
 		});
 	return insuff_resource_id;
 }
-void AuctionCenter::cancel_transfer(MapObjectUuid map_object_uuid, const boost::shared_ptr<ItemBox> &item_box, bool refund_fee){
+void AuctionCenter::cancel_transfer(const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box, bool refund_fee){
 	PROFILE_ME;
 
 	const auto account_uuid = get_account_uuid();
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		LOG_EMPERY_CENTER_WARNING("Castle not found: map_object_uuid = ", map_object_uuid);
-		DEBUG_THROW(Exception, sslit("Castle not found"));
-	}
 
+	const auto map_object_uuid = castle->get_map_object_uuid();
 	const auto tit = m_transfers.find(map_object_uuid);
 	if(tit == m_transfers.end()){
 		LOG_EMPERY_CENTER_DEBUG("No auction transfer is in progress: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid);
 		return;
 	}
+	auto &transfers = tit->second;
 
 	std::vector<boost::shared_ptr<MySql::Center_AuctionTransfer>> temp_result;
-	temp_result.reserve(tit->second.size());
+	temp_result.reserve(transfers.size());
 
 	std::vector<ResourceTransactionElement> resource_transaction;
 	resource_transaction.reserve(64);
 	std::vector<ItemTransactionElement> item_transaction;
 	item_transaction.reserve(16);
 
-	for(auto it = tit->second.begin(); it != tit->second.end(); ++it){
+	for(auto it = transfers.begin(); it != transfers.end(); ++it){
 		const auto &obj = it->second;
 
 		if(obj->get_created_time() == 0){

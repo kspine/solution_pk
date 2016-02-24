@@ -57,7 +57,7 @@ AUCTION_SERVLET("transfer/begin", root, session, params){
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
-	const auto result = auction_center->begin_transfer(castle->get_map_object_uuid(), item_box, items);
+	const auto result = auction_center->begin_transfer(castle, item_box, items);
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}
