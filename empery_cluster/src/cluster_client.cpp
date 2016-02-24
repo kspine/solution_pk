@@ -260,10 +260,18 @@ Result ClusterClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBu
 	return ret;
 }
 
-bool ClusterClient::send_notification(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body){
+bool ClusterClient::send_notification_by_account(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body){
 	PROFILE_ME;
 
-	return Poseidon::Cbpp::Client::send(Msg::G_PackedAccountNotification(account_uuid.str(), message_id, body.dump()));
+	return Poseidon::Cbpp::Client::send(Msg::G_PackedAccountNotification(
+		account_uuid.str(), message_id, body.dump()));
+}
+
+bool ClusterClient::send_notification_by_rectangle(Rectangle rectangle, std::uint16_t message_id, Poseidon::StreamBuffer body){
+	PROFILE_ME;
+
+	return Poseidon::Cbpp::Client::send(Msg::G_PackedRectangleNotification(
+		rectangle.left(), rectangle.bottom(), rectangle.width(), rectangle.height(), message_id, body.dump()));
 }
 
 }

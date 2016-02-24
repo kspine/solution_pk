@@ -34,6 +34,17 @@ namespace Msg {
 	FIELD_STRING        (payload)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    G_PackedRectangleNotification
+#define MESSAGE_ID      96
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (width)	\
+	FIELD_VUINT         (height)	\
+	FIELD_VUINT         (message_id)	\
+	FIELD_STRING        (payload)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
