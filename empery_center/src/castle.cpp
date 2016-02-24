@@ -931,7 +931,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 					if(it == m_resources.end()){
 						obj = boost::make_shared<MySql::Center_CastleResource>(
 							get_map_object_uuid().get(), resource_id.get(), 0);
-						obj->enable_auto_saving(); // obj->async_save(true);
+						obj->async_save(true);
 						m_resources.emplace(resource_id, obj);
 					} else {
 						obj = it->second;

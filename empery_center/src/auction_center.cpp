@@ -192,7 +192,7 @@ ItemId AuctionCenter::commit_item_transaction_nothrow(const std::vector<AuctionT
 				if(it == m_items.end()){
 					auto obj = boost::make_shared<MySql::Center_AuctionTransfer>(
 						account_uuid.get(), Poseidon::Uuid(), item_id.get(), 0, 0, 0, 0, 0, 0, 0, 0);
-					obj->enable_auto_saving(); // obj->async_save(true);
+					obj->async_save(true);
 					it = m_items.emplace_hint(it, item_id, std::move(obj));
 				}
 				const auto &obj = it->second;
@@ -350,7 +350,7 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(MapObjectUuid map_ob
 		if(iit == tit->second.end()){
 			auto obj = boost::make_shared<MySql::Center_AuctionTransfer>(
 				account_uuid.get(), map_object_uuid.get(), item_id.get(), 0, 0, 0, 0, 0, 0, 0, 0);
-			obj->enable_auto_saving(); // obj->async_save(true);
+			obj->async_save(true);
 			iit = tit->second.emplace(item_id, std::move(obj)).first;
 		}
 		const auto &obj = iit->second;
