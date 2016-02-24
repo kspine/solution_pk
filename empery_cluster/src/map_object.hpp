@@ -46,6 +46,7 @@ private:
 	const MapObjectTypeId m_map_object_type_id;
 	const AccountUuid m_owner_uuid;
 	const MapObjectUuid m_parent_object_uuid;
+	const bool m_garrisoned;
 	const boost::weak_ptr<ClusterClient> m_cluster;
 
 	Coord m_coord;
@@ -64,7 +65,7 @@ private:
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, boost::weak_ptr<ClusterClient> cluster,
+		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 		Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes);
 	~MapObject();
 
@@ -90,6 +91,9 @@ public:
 	}
 	MapObjectUuid get_parent_object_uuid() const {
 		return m_parent_object_uuid;
+	}
+	bool is_garrisoned() const {
+		return m_garrisoned;
 	}
 	boost::shared_ptr<ClusterClient> get_cluster() const {
 		return m_cluster.lock();

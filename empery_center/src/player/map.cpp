@@ -584,9 +584,8 @@ PLAYER_SERVLET(Msg::CS_MapEvacuateFromCastle, account, session, req){
 	}
 	const auto &coord = foundation.front();
 
-	map_object->set_coord(Coord(INT64_MAX, INT64_MAX));
-	map_object->set_garrisoned(false);
 	map_object->set_coord(coord);
+	map_object->set_garrisoned(false);
 
 	return Response();
 }

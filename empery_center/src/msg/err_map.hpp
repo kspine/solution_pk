@@ -52,6 +52,7 @@ namespace Msg {
 		ERR_TOO_FAR_FROM_CASTLE                 = 71341,
 		ERR_MAP_OBJECT_IS_NOT_GARRISONED        = 71342,
 		ERR_NO_ATTACK_TARGT                     = 71343,
+		ERR_MAP_OBJECT_IS_GARRISONED            = 71345,
 	};
 }
 

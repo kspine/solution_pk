@@ -213,7 +213,7 @@ Result ClusterSession::send_and_wait(std::uint16_t message_id, Poseidon::StreamB
 		if(!Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()))){
 			DEBUG_THROW(Exception, sslit("Could not send data to cluster server"));
 		}
-		Poseidon::JobDispatcher::yield(promise);
+		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
 		m_requests.erase(serial);

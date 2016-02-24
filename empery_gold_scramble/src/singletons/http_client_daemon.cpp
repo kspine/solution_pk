@@ -125,7 +125,7 @@ namespace {
 					delete param;
 					throw;
 				}
-				Poseidon::JobDispatcher::yield(promise);
+				Poseidon::JobDispatcher::yield(promise, true);
 			}
 
 			const auto promise = boost::make_shared<Poseidon::JobPromise>();
@@ -133,7 +133,7 @@ namespace {
 			                    // boost::make_shared<HttpClient>(sock_addr, use_ssl, promise);
 			client->go_resident();
 			client->Poseidon::Http::ClientWriter::put_request(std::move(request_headers), std::move(entity));
-			Poseidon::JobDispatcher::yield(promise);
+			Poseidon::JobDispatcher::yield(promise, true);
 			return std::move(client->m_response);
 		}
 

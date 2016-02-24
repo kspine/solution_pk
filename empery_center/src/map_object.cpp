@@ -258,6 +258,7 @@ void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession>
 		msg.map_object_type_id = get_map_object_type_id().get();
 		msg.owner_uuid         = get_owner_uuid().str();
 		msg.parent_object_uuid = get_parent_object_uuid().str();
+		msg.garrisoned         = is_garrisoned();
 		msg.x                  = get_coord().x();
 		msg.y                  = get_coord().y();
 		msg.attributes.reserve(m_attributes.size());

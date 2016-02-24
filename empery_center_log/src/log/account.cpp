@@ -38,7 +38,7 @@ LOG_SERVLET("account/realtime_online", root, session, params){
 				counters.interval = conn->get_unsigned("interval");
 				counters.account_count = conn->get_unsigned("account_count");
 			}, "CenterLog_AccountNumberOnline", oss.str());
-		Poseidon::JobDispatcher::yield(promise);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 
 	Poseidon::JsonArray realtime_online;
@@ -89,7 +89,7 @@ LOG_SERVLET("account/daily_logged_in", root, session, params){
 				counters.accounts.insert(conn->get_string("account_uuid"));
 				counters.ips.insert(conn->get_string("remote_ip"));
 			}, "CenterLog_AccountLoggedIn", oss.str());
-		Poseidon::JobDispatcher::yield(promise);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 
 	Poseidon::JsonArray daily_logged_in;
@@ -144,7 +144,7 @@ LOG_SERVLET("account/daily_created", root, session, params){
 				counters.accounts.insert(conn->get_string("account_uuid"));
 				counters.ips.insert(conn->get_string("remote_ip"));
 			}, "CenterLog_AccountNumberOnline", oss.str());
-		Poseidon::JobDispatcher::yield(promise);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 
 	Poseidon::JsonArray daily_created;
