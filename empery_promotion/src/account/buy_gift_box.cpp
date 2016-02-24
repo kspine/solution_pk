@@ -58,8 +58,8 @@ ACCOUNT_SERVLET("buyGiftBox", session, params){
 		return ret;
 	}
 
-	if(info.level < level){
-		AccountMap::set_level(info.account_id, level);
+	if(info.level < promotion_data->level){
+		AccountMap::set_level(info.account_id, promotion_data->level);
 	}
 	check_auto_upgradeable(info.referrer_id);
 
