@@ -45,7 +45,7 @@ void GlobalStatus::reserve(GlobalStatus::Slot slot){
 	const auto it = g_global_status_map->find(slot);
 	if(it == g_global_status_map->end()){
 		auto obj = boost::make_shared<MySql::Center_GlobalStatus>((unsigned)slot, std::string());
-		obj->enable_auto_saving(); // obj->async_save(true);
+		obj->async_save(true);
 		g_global_status_map->emplace(slot, std::move(obj));
 	}
 }
