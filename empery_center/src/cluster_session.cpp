@@ -8,6 +8,7 @@
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
 #include "singletons/player_session_map.hpp"
+#include "singletons/world_map.hpp"
 #include "player_session.hpp"
 
 namespace EmperyCenter {
@@ -151,13 +152,29 @@ void ClusterSession::on_sync_data_message(std::uint16_t message_id, Poseidon::St
 		}
 	} else if(message_id == Msg::G_PackedAccountNotification::ID){
 		Msg::G_PackedAccountNotification packed(std::move(payload));
-		LOG_EMPERY_CENTER_TRACE("Forwarding message: account_uuid = ", packed.account_uuid,
-			", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
 		const auto account_uuid = AccountUuid(packed.account_uuid);
+		LOG_EMPERY_CENTER_TRACE("Forwarding message: account_uuid = ", account_uuid,
+			", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
 		const auto session = PlayerSessionMap::get(account_uuid);
 		if(!session){
 			LOG_EMPERY_CENTER_TRACE("Player is not online: account_uuid = ", account_uuid);
 		} else {
+			try {
+				session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+	} else if(message_id == Msg::G_PackedRectangleNotification::ID){
+		Msg::G_PackedRectangleNotification packed(std::move(payload));
+		const auto rectangle = Rectangle(packed.x, packed.y, packed.width, packed.height);
+		LOG_EMPERY_CENTER_TRACE("Forwarding message: rectangle = ", rectangle,
+			", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
+		std::vector<boost::shared_ptr<PlayerSession>> sessions;
+		WorldMap::get_players_viewing_rectangle(sessions, rectangle);
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = *it;
 			try {
 				session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
 			} catch(std::exception &e){

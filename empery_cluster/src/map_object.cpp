@@ -371,7 +371,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 						msg.param           = std::move(old_param);
 						msg.error_code      = result.first;
 						msg.error_message   = std::move(result.second);
-						cluster->send_notification(get_owner_uuid(), msg);
+						cluster->send_notification_by_account(get_owner_uuid(), msg);
 					} catch(std::exception &e){
 						LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
 						cluster->shutdown(e.what());

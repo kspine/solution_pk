@@ -9,6 +9,7 @@
 #include <boost/container/flat_map.hpp>
 #include <utility>
 #include "id_types.hpp"
+#include "rectangle.hpp"
 
 namespace EmperyCluster {
 
@@ -74,11 +75,18 @@ public:
 		return send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 
-	bool send_notification(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send_notification_by_account(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body);
 
 	template<typename MsgT>
-	bool send_notification(AccountUuid account_uuid, const MsgT &msg){
-		return send_notification(account_uuid, MsgT::ID, Poseidon::StreamBuffer(msg));
+	bool send_notification_by_account(AccountUuid account_uuid, const MsgT &msg){
+		return send_notification_by_account(account_uuid, MsgT::ID, Poseidon::StreamBuffer(msg));
+	}
+
+	bool send_notification_by_rectangle(Rectangle rectangle, std::uint16_t message_id, Poseidon::StreamBuffer body);
+
+	template<typename MsgT>
+	bool send_notification_by_rectangle(Rectangle rectangle, const MsgT &msg){
+		return send_notification_by_rectangle(rectangle, MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 };
 
