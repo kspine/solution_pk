@@ -351,8 +351,9 @@ void commit_first_balance_bonus(){
 							// 首次结算从自己开始，以后从推荐人开始。
 							info.account_id, new_level);
 					}
-					if(old_level < new_level){
-						AccountMap::set_level(info.account_id, new_level);
+					const auto promotion_data = Data::Promotion::require(new_level);
+					if(old_level < promotion_data->level){
+						AccountMap::set_level(info.account_id, promotion_data->level);
 					}
 					check_auto_upgradeable(info.referrer_id);
 				} catch(std::exception &e){
