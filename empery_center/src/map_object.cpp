@@ -181,7 +181,7 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 		if(obj_it == m_attributes.end()){
 			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(
 				get_map_object_uuid().get(), it->first.get(), 0);
-			obj->enable_auto_saving(); // obj->async_save(true);
+			obj->async_save(true);
 			m_attributes.emplace(it->first, std::move(obj));
 		}
 	}
