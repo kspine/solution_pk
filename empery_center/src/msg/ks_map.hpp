@@ -50,8 +50,21 @@ namespace Msg {
 #define MESSAGE_NAME    KS_MapEnterCastle
 #define MESSAGE_ID      32305
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_STRING        (castle_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    KS_MapAttack
+#define MESSAGE_ID      32306
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (attacking_uuid)	\
+	FIELD_STRING        (attacked_uuid)	\
+	FIELD_VUINT         (impact)		\
+	FIELD_VUINT         (damage)		\
+	FIELD_VINT          (x)				\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

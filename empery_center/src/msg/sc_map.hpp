@@ -105,7 +105,16 @@ namespace Msg {
 	FIELD_STRING        (error_message)
 #include <poseidon/cbpp/message_generator.hpp>
 
-// 390
+#define MESSAGE_NAME    SC_MapObjectAttack
+#define MESSAGE_ID      390
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (attacking_uuid)	\
+	FIELD_STRING        (attacked_uuid)	\
+	FIELD_VUINT         (impact)	\
+	FIELD_VUINT         (damage)	\
+	FIELD_VINT          (x)			\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapMinimap
 #define MESSAGE_ID      389
