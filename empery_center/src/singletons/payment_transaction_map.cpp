@@ -66,7 +66,7 @@ namespace {
 		for(auto it = erased.begin(); it != erased.end(); ++it){
 			const auto &payment_transaction = *it;
 			try {
-				if(!payment_transaction->is_virtually_removed()){
+				if(!payment_transaction->has_been_committed() && !payment_transaction->has_been_cancelled()){
 					payment_transaction->cancel("Payment transaction expired");
 				}
 			} catch(std::exception &e){
