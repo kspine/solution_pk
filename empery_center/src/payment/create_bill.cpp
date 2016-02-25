@@ -40,7 +40,7 @@ namespace {
 			const auto &payment_transaction = existent_bills.at(i);
 			LOG_EMPERY_CENTER_WARNING("Erasing payment transaction: account_uuid = ", account_uuid,
 				", serial = ", payment_transaction->get_serial());
-			if(!payment_transaction->is_virtually_removed()){
+			if(!payment_transaction->has_been_committed() && !payment_transaction->has_been_cancelled()){
 				payment_transaction->cancel("Max number of bills per account exceeded");
 			}
 		}

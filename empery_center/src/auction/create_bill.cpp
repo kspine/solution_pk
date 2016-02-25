@@ -54,7 +54,7 @@ AUCTION_SERVLET("create_bill", root, session, params){
 		const auto &auction_transaction = existent_bills.at(i);
 		LOG_EMPERY_CENTER_WARNING("Erasing auction transaction: account_uuid = ", account_uuid,
 			", serial = ", auction_transaction->get_serial());
-		if(!auction_transaction->is_virtually_removed()){
+		if(!auction_transaction->has_been_committed() && !auction_transaction->has_been_cancelled()){
 			auction_transaction->cancel("Max number of bills per account exceeded");
 		}
 	}
