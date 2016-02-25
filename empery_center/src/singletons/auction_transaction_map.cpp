@@ -66,7 +66,7 @@ namespace {
 		for(auto it = erased.begin(); it != erased.end(); ++it){
 			const auto &auction_transaction = *it;
 			try {
-				if(!auction_transaction->is_virtually_removed()){
+				if(!auction_transaction->has_been_committed() && !auction_transaction->has_been_cancelled()){
 					auction_transaction->cancel("Auction transaction expired");
 				}
 			} catch(std::exception &e){
