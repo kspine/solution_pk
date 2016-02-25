@@ -84,6 +84,7 @@ namespace {
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_AuctionTransaction` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now)
 		    <<"  AND `cancelled` = 0";
+		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_AuctionTransaction>();
 			obj->fetch(conn);
