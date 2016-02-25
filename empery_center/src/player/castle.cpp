@@ -113,16 +113,18 @@ namespace {
 					});
 			});
 
-		try {
-			for(auto it = resources.begin(); it != resources.end(); ++it){
-				if(it->second == 0){
-					continue;
+		if(!insuff_resource_id && !insuff_item_id){
+			try {
+				for(auto it = resources.begin(); it != resources.end(); ++it){
+					if(it->second == 0){
+						continue;
+					}
+					task_box->check(TaskTypeIds::ID_CONSUME_RESOURCE, it->first.get(), it->second,
+						castle, 0, 0, 0);
 				}
-				task_box->check(TaskTypeIds::ID_CONSUME_RESOURCE, it->first.get(), it->second,
-					castle, 0, 0, 0);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 
 		return std::make_pair(insuff_resource_id, insuff_item_id);
