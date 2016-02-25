@@ -7,10 +7,21 @@
 #include <deque>
 #include "id_types.hpp"
 #include "coord.hpp"
-#include "ai/ai_map_object.hpp"
-#include "ai/ai_map_troops_object.hpp"
 
 namespace EmperyCluster {
+
+class MapObject;
+class AiControl{
+public:
+	AiControl(boost::weak_ptr<MapObject> parent);
+public:
+	std::uint64_t move(std::pair<long, std::string> &result);
+	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
+private:
+	boost::weak_ptr<MapObject> m_parent_object;
+};
 
 class ClusterClient;
 
@@ -61,11 +72,11 @@ private:
 	Action m_action = ACT_GUARD;
 	std::string m_action_param;
 	
-	boost::shared_ptr<AI_MapObject> m_ai_mapObject;
+	boost::shared_ptr<AiControl> m_ai_control;
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
-		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
+		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 		Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes);
 	~MapObject();
 
@@ -73,10 +84,13 @@ private:
 	// 返回下一个动作的延迟。如果返回 UINT64_MAX 则当前动作被取消。
 	std::uint64_t pump_action(std::pair<long, std::string> &result, std::uint64_t now);
 public:
-	void 	init_map_object_ai();
+	bool is_die();
+	bool is_in_attack_scope(MapObjectUuid targetUuid);
+public:
+	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
-	std::uint64_t combat(std::pair<long, std::string> &result, std::uint64_t now);
-	std::uint64_t on_combat(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
 	
 public:
@@ -92,7 +106,7 @@ public:
 	MapObjectUuid get_parent_object_uuid() const {
 		return m_parent_object_uuid;
 	}
-	bool is_garrisoned() const {
+	bool is_garrisoned() const{
 		return m_garrisoned;
 	}
 	boost::shared_ptr<ClusterClient> get_cluster() const {

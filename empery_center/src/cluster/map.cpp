@@ -67,6 +67,7 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
 
+
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
@@ -269,6 +270,7 @@ CLUSTER_SERVLET(Msg::KS_MapAttack, cluster, req){
 	
 	const auto attacked_uuid = MapObjectUuid(req.attacked_uuid);
 	const auto map_attacked_object = WorldMap::get_map_object(attacked_uuid);
+	const auto attacked_coord = map_attacked_object->get_coord();
 	if(!map_attacked_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) << attacked_uuid;
 	}
@@ -292,6 +294,8 @@ CLUSTER_SERVLET(Msg::KS_MapAttack, cluster, req){
 	attackMsg.attacked_uuid   = attacked_uuid.str();
 	attackMsg.impact          = req.impact;
 	attackMsg.damage          = req.damage;
+	attackMsg.x = attacked_coord.x();
+	attackMsg.y = attacked_coord.y();
 	
 	std::vector<boost::shared_ptr<PlayerSession>> other_sessions;
 	WorldMap::get_players_viewing_rectangle(other_sessions,
@@ -303,59 +307,6 @@ CLUSTER_SERVLET(Msg::KS_MapAttack, cluster, req){
 		}
 	}
 	return Response();
-
-}
-
-CLUSTER_SERVLET(Msg::KS_MapRequestAttack, cluster, req){
-	const auto attacking_uuid = MapObjectUuid(req.attacking_uuid);
-	const auto map_attacking_object = WorldMap::get_map_object(attacking_uuid);
-	if(!map_attacking_object){
-		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) << attacking_uuid;
-	}
-	
-	const auto attacking_coord = map_attacking_object->get_coord();
-	const auto test_cluster = WorldMap::get_cluster(attacking_coord);
-	if(cluster != test_cluster){
-		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
-	}
-	/*
-	const auto map_attacking_object_type_id = map_attacking_object->get_map_object_type_id();
-	if(map_attacking_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS){
-		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_IMMIGRANTS) << map_attacking_object_type_id;
-	}
-	*/
-	
-	
-	const auto attacked_uuid = MapObjectUuid(req.attacked_uuid);
-	const auto map_attacked_object = WorldMap::get_map_object(attacked_uuid);
-	if(!map_attacked_object){
-		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) << attacked_uuid;
-	}
-	const auto test_cluster_attacked = WorldMap::get_cluster(map_attacked_object->get_coord());
-	if(cluster != test_cluster_attacked){
-		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
-	}
-	/*
-	const auto map_attacked_object_type_id = map_attacked_object->get_map_object_type_id();
-	if(map_stricke_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS){
-		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_IMMIGRANTS) << map_stricke_object_type_id;
-	}
-	*/
-
-	const auto session = PlayerSessionMap::get(map_attacked_object->get_owner_uuid());
-	if(session){
-		try {
-			Msg::SC_MapObjectRequestAttack requestAttackMsg;
-			requestAttackMsg.attacked_uuid = attacked_uuid.str();
-			session->send(requestAttackMsg);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
-	
-	return Response();
-
 }
 
 }
