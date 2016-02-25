@@ -96,10 +96,13 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 {
 	PROFILE_ME;
 
-	if(is_virtually_removed()){
-		LOG_EMPERY_CENTER_ERROR("Auction transaction has been virtually removed: serial = ", get_serial(),
-			", expiry_time = ", get_expiry_time(), ", committed = ", has_been_committed(), ", cancelled = ", has_been_cancelled());
-		DEBUG_THROW(Exception, sslit("Auction transaction has been virtually removed"));
+	if(has_been_committed()){
+		LOG_EMPERY_CENTER_ERROR("Auction transaction has been committed: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Auction transaction has been committed"));
+	}
+	if(has_been_cancelled()){
+		LOG_EMPERY_CENTER_ERROR("Auction transaction has been cancelled: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Auction transaction has been cancelled"));
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -176,10 +179,13 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 void AuctionTransaction::cancel(std::string operation_remarks){
 	PROFILE_ME;
 
-	if(is_virtually_removed()){
-		LOG_EMPERY_CENTER_ERROR("Auction transaction has been virtually removed: serial = ", get_serial(),
-			", expiry_time = ", get_expiry_time(), ", committed = ", has_been_committed(), ", cancelled = ", has_been_cancelled());
-		DEBUG_THROW(Exception, sslit("Auction transaction has been virtually removed"));
+	if(has_been_committed()){
+		LOG_EMPERY_CENTER_ERROR("Auction transaction has been committed: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Auction transaction has been committed"));
+	}
+	if(has_been_cancelled()){
+		LOG_EMPERY_CENTER_ERROR("Auction transaction has been cancelled: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Auction transaction has been cancelled"));
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -194,9 +200,6 @@ void AuctionTransaction::cancel(std::string operation_remarks){
 bool AuctionTransaction::is_virtually_removed() const {
 	PROFILE_ME;
 
-	if(has_been_committed()){
-		return true;
-	}
 	if(has_been_cancelled()){
 		return true;
 	}

@@ -83,7 +83,7 @@ namespace {
 		const auto utc_now = Poseidon::get_utc_time();
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_PaymentTransaction` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now)
-		    <<"  AND `committed` = 0 AND `cancelled` = 0";
+		    <<"  AND `cancelled` = 0";
 		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_PaymentTransaction>();

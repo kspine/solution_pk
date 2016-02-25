@@ -56,11 +56,15 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED);
 	}
 
-	Poseidon::sync_raise_event(
-		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
-			boost::shared_ptr<long>(), account->get_platform_id(), account->get_login_name(), std::string()));
+	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
+	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
+	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
 
 	payment_transaction->commit(item_box, mail_box, remarks);
+
+	Poseidon::async_raise_event(
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
+			boost::shared_ptr<long>(), account->get_platform_id(), account->get_login_name(), std::string()));
 
 	return Response();
 }
