@@ -114,10 +114,13 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 {
 	PROFILE_ME;
 
-	if(is_virtually_removed()){
-		LOG_EMPERY_CENTER_ERROR("Payment transaction has been virtually removed: serial = ", get_serial(),
-			", expiry_time = ", get_expiry_time(), ", committed = ", has_been_committed(), ", cancelled = ", has_been_cancelled());
-		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
+	if(has_been_committed()){
+		LOG_EMPERY_CENTER_ERROR("Payment transaction has been committed: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Payment transaction has been "));
+	}
+	if(has_been_cancelled()){
+		LOG_EMPERY_CENTER_ERROR("Payment transaction has been cancelled: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Payment transaction has been "));
 	}
 
 	const auto account_uuid = get_account_uuid();
@@ -194,10 +197,13 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 void PaymentTransaction::cancel(std::string operation_remarks){
 	PROFILE_ME;
 
-	if(is_virtually_removed()){
-		LOG_EMPERY_CENTER_ERROR("Payment transaction has been virtually removed: serial = ", get_serial(),
-			", expiry_time = ", get_expiry_time(), ", committed = ", has_been_committed(), ", cancelled = ", has_been_cancelled());
-		DEBUG_THROW(Exception, sslit("Payment transaction has been virtually removed"));
+	if(has_been_committed()){
+		LOG_EMPERY_CENTER_ERROR("Payment transaction has been committed: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Payment transaction has been "));
+	}
+	if(has_been_cancelled()){
+		LOG_EMPERY_CENTER_ERROR("Payment transaction has been cancelled: serial = ", get_serial());
+		DEBUG_THROW(Exception, sslit("Payment transaction has been "));
 	}
 
 	m_obj->set_cancelled(true);
@@ -216,9 +222,6 @@ void PaymentTransaction::set_remarks(std::string remarks){
 bool PaymentTransaction::is_virtually_removed() const {
 	PROFILE_ME;
 
-	if(has_been_committed()){
-		return true;
-	}
 	if(has_been_cancelled()){
 		return true;
 	}
