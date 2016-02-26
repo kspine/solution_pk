@@ -330,11 +330,7 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 	const auto account_uuid = get_account_uuid();
 
 	const auto map_object_uuid = castle->get_map_object_uuid();
-	auto tit = m_transfers.find(map_object_uuid);
-	if(tit == m_transfers.end()){
-		tit = m_transfers.emplace(map_object_uuid, decltype(tit->second)()).first;
-	}
-	auto &transfers = tit->second;
+	auto &transfers = m_transfers[map_object_uuid];
 	for(auto it = transfers.begin(); it != transfers.end(); ++it){
 		const auto &obj = it->second;
 		if(obj->get_created_time() == 0){

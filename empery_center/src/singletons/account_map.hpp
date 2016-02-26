@@ -11,6 +11,7 @@ namespace EmperyCenter {
 
 class Account;
 class PlayerSession;
+class ItemBox;
 
 struct AccountMap {
 	static boost::shared_ptr<Account> get(AccountUuid account_uuid);
@@ -30,12 +31,11 @@ struct AccountMap {
 	static void update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists = true);
 
 	static void synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items) noexcept;
+		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept;
+
 	static void cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items) noexcept;
-	static void cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept {
-		cached_synchronize_account_with_player(account_uuid, session, true, true, false, false);
-	}
+		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept;
+	static void cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept;
 
 private:
 	AccountMap() = delete;
