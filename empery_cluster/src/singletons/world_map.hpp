@@ -7,6 +7,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/container/flat_map.hpp>
 #include <vector>
+#include <string>
 
 namespace EmperyCluster {
 

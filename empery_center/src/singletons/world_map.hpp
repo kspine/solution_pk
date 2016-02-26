@@ -8,6 +8,7 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/function.hpp>
 #include <vector>
+#include <string>
 
 namespace EmperyCenter {
 
