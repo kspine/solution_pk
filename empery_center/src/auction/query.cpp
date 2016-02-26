@@ -26,9 +26,8 @@ AUCTION_SERVLET("query/account", root, session, params){
 	}
 
 	const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
-	auction_center->pump_status();
-
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	auction_center->pump_status();
 	item_box->pump_status();
 
 	// 获取账号状态。
