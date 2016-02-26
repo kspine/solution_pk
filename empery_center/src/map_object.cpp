@@ -200,6 +200,8 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 		return;
 	}
 
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
