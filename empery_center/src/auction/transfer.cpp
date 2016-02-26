@@ -25,6 +25,10 @@ AUCTION_SERVLET("transfer/begin", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
 
+	const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	auction_center->pump_transfer_status(map_object_uuid);
+
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
@@ -32,9 +36,6 @@ AUCTION_SERVLET("transfer/begin", root, session, params){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
-
-	const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
-	auction_center->pump_transfer_status(map_object_uuid);
 
 	std::vector<AuctionCenter::TransferInfo> transfers;
 	auction_center->get_transfer(transfers, map_object_uuid);
@@ -54,8 +55,6 @@ AUCTION_SERVLET("transfer/begin", root, session, params){
 	if(items.empty()){
 		return Response(Msg::ERR_AUCTION_TRANSFER_EMPTY);
 	}
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto result = auction_center->begin_transfer(castle, item_box, items);
 	if(result.first){

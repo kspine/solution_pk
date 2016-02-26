@@ -47,13 +47,13 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 		return Response(Msg::ERR_PAYMENT_CHECKSUM_ERROR);
 	}
 
-	if(payment_transaction->has_been_committed()){
-		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED);
-	}
-
 	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
 	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
 	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
+
+	if(payment_transaction->has_been_committed()){
+		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED);
+	}
 
 	payment_transaction->commit(item_box, mail_box, remarks);
 

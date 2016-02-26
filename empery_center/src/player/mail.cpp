@@ -66,6 +66,9 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<to_account_uuid;
 	}
 
+	const auto to_mail_box = MailBoxMap::require(to_account->get_account_uuid());
+	to_mail_box->pump_status();
+
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	segments.reserve(req.segments.size());
 	for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
@@ -77,9 +80,6 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 	}
 
 	boost::container::flat_map<ItemId, std::uint64_t> attachments;
-
-	const auto to_mail_box = MailBoxMap::require(to_account->get_account_uuid());
-	to_mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 	const auto language_id = LanguageId(req.language_id);
@@ -148,6 +148,7 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 	const auto language_id = LanguageId(req.language_id);
 
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(req.mail_uuid);
@@ -158,8 +159,6 @@ PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 	if(info.attachments_fetched){
 		return Response(Msg::ERR_ATTACHMENTS_FETCHED) <<mail_uuid;
 	}
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	really_fetch_attachments(item_box, mail_box, info, language_id);
 
@@ -191,9 +190,8 @@ PLAYER_SERVLET(Msg::CS_MailBatchReadAndFetchAttachments, account, session, req){
 	const auto language_id = LanguageId(req.language_id);
 
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
-	mail_box->pump_status();
-
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	mail_box->pump_status();
 
 	std::vector<MailBox::MailInfo> mail_infos;
 	mail_box->get_all(mail_infos);

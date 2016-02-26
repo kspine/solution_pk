@@ -128,6 +128,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto resource_id = ResourceId(req.resource_id);
 
 	const auto resource_data = Data::CastleResource::get(resource_id);
@@ -192,8 +194,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		}
 	}
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
@@ -207,6 +207,8 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
@@ -226,8 +228,6 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 		return Response(Msg::ERR_MAX_MAP_CELL_LEVEL_EXCEEDED);
 	}
 	const auto new_ticket_item_id = new_ticket_data->item_id;
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_LAND_UPGRADE_TICKET, 1,
@@ -283,6 +283,8 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
@@ -299,8 +301,6 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 	if(map_cell->is_acceleration_card_applied()){
 		return Response(Msg::ERR_ACCELERATION_CARD_APPLIED) <<coord;
 	}
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCELERATION_CARD, 1,

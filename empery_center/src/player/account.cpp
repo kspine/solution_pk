@@ -117,7 +117,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 
 	PlayerSessionMap::add(account, session);
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
-	AccountMap::synchronize_account_with_player(account_uuid, session, true, true, true, false);
+	AccountMap::synchronize_account_with_player(account_uuid, session, true, true, true, { });
 
 	return Response();
 }
@@ -164,8 +164,9 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, account, session, req){
 	for(auto it = accounts.begin(); it != accounts.end(); ++it){
 		const auto &other_account = *it;
 		const auto other_account_uuid = other_account->get_account_uuid();
+		const auto other_item_box = ItemBoxMap::require(other_account_uuid);
 
-		AccountMap::synchronize_account_with_player(other_account_uuid, session, true, true, false, true);
+		AccountMap::synchronize_account_with_player(other_account_uuid, session, true, true, false, other_item_box);
 	}
 
 	return Response();
@@ -189,12 +190,19 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
 		if(other_account){
 			continue;
 		}
+
 		const bool wants_nick               = Poseidon::has_any_flags_of(it->detail_flags, FL_NICK);
 		const bool wants_attributes         = Poseidon::has_any_flags_of(it->detail_flags, FL_ATTRIBUTES);
 		const bool wants_private_attributes = wants_attributes && (other_account_uuid == account->get_account_uuid());
+
+		boost::shared_ptr<ItemBox> other_item_box;
 		const bool wants_items              = Poseidon::has_any_flags_of(it->detail_flags, FL_ITEMS);
+		if(wants_items){
+			other_item_box = ItemBoxMap::require(other_account_uuid);
+		}
+
 		AccountMap::synchronize_account_with_player(other_account_uuid, session,
-			wants_nick, wants_attributes, wants_private_attributes, wants_items);
+			wants_nick, wants_attributes, wants_private_attributes, other_item_box);
 		elem.error_code = Msg::ST_OK;
 	}
 	session->send(msg);
