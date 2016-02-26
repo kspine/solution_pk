@@ -352,73 +352,81 @@ namespace {
 	}
 
 	template<typename T>
-	void synchronize_all(const boost::shared_ptr<T> &ptr, Coord old_coord, Coord new_coord,
+	void synchronize_with_all_players(const boost::shared_ptr<T> &ptr, Coord old_coord, Coord new_coord,
 		const boost::shared_ptr<PlayerSession> &excluded_session) noexcept
 	{
 		PROFILE_ME;
 
 		const auto player_view_map = g_player_view_map.lock();
-		if(player_view_map){
-			const auto synchronize_in_sector = [&](Coord sector_coord){
-				const auto range = player_view_map->equal_range<1>(sector_coord);
-				for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
-					const auto session = it->session.lock();
-					if(!session){
-						player_view_map->erase<1>(it);
-						continue;
-					}
-					if(session == excluded_session){
-						continue;
-					}
-					if(it->view.hit_test(new_coord)){
-						try {
-							ptr->synchronize_with_player(session);
-						} catch(std::exception &e){
-							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-							session->shutdown(e.what());
-						}
-					}
-				}
-			};
-
-			const auto old_sector_coord = get_sector_coord_from_world_coord(old_coord);
-			synchronize_in_sector(old_sector_coord);
-
-			const auto new_sector_coord = get_sector_coord_from_world_coord(new_coord);
-			if(new_sector_coord != old_sector_coord){
-				synchronize_in_sector(new_sector_coord);
-			}
+		if(!player_view_map){
+			return;
 		}
 
-		const auto cluster_map = g_cluster_map.lock();
-		if(cluster_map){
-			const auto synchronize_in_cluster = [&](Coord cluster_coord){
-				const auto range = cluster_map->equal_range<0>(cluster_coord);
-				for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
-					const auto cluster = it->cluster.lock();
-					if(!cluster){
-						cluster_map->erase<0>(it);
-						continue;
-					}
-					const auto scope = WorldMap::get_cluster_scope(it->cluster_coord);
-					if(scope.hit_test(new_coord)){
-						try {
-							ptr->synchronize_with_cluster(cluster);
-						} catch(std::exception &e){
-							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-							cluster->shutdown(e.what());
-						}
+		const auto synchronize_in_sector = [&](Coord sector_coord){
+			const auto range = player_view_map->equal_range<1>(sector_coord);
+			for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
+				const auto session = it->session.lock();
+				if(!session){
+					player_view_map->erase<1>(it);
+					continue;
+				}
+				if(session == excluded_session){
+					continue;
+				}
+				if(it->view.hit_test(new_coord)){
+					try {
+						ptr->synchronize_with_player(session);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						session->shutdown(e.what());
 					}
 				}
-			};
-
-			const auto old_cluster_coord = get_cluster_coord_from_world_coord(old_coord);
-			synchronize_in_cluster(old_cluster_coord);
-
-			const auto new_cluster_coord = get_cluster_coord_from_world_coord(new_coord);
-			if(new_cluster_coord != old_cluster_coord){
-				synchronize_in_cluster(new_cluster_coord);
 			}
+		};
+
+		const auto old_sector_coord = get_sector_coord_from_world_coord(old_coord);
+		synchronize_in_sector(old_sector_coord);
+
+		const auto new_sector_coord = get_sector_coord_from_world_coord(new_coord);
+		if(new_sector_coord != old_sector_coord){
+			synchronize_in_sector(new_sector_coord);
+		}
+	}
+	template<typename T>
+	void synchronize_with_all_clusters(const boost::shared_ptr<T> &ptr, Coord old_coord, Coord new_coord) noexcept {
+		PROFILE_ME;
+
+		const auto cluster_map = g_cluster_map.lock();
+		if(!cluster_map){
+			return;
+		}
+
+		const auto synchronize_in_cluster = [&](Coord cluster_coord){
+			const auto range = cluster_map->equal_range<0>(cluster_coord);
+			for(auto next = range.first, it = next; (next != range.second) && (++next, true); it = next){
+				const auto cluster = it->cluster.lock();
+				if(!cluster){
+					cluster_map->erase<0>(it);
+					continue;
+				}
+				const auto scope = WorldMap::get_cluster_scope(it->cluster_coord);
+				if(scope.hit_test(new_coord)){
+					try {
+						ptr->synchronize_with_cluster(cluster);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						cluster->shutdown(e.what());
+					}
+				}
+			}
+		};
+
+		const auto old_cluster_coord = get_cluster_coord_from_world_coord(old_coord);
+		synchronize_in_cluster(old_cluster_coord);
+
+		const auto new_cluster_coord = get_cluster_coord_from_world_coord(new_coord);
+		if(new_cluster_coord != old_cluster_coord){
+			synchronize_in_cluster(new_cluster_coord);
 		}
 	}
 }
@@ -476,7 +484,8 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 			session->shutdown(e.what());
 		}
 	}
-	synchronize_all(map_cell, coord, coord, session);
+	synchronize_with_all_players(map_cell, coord, coord, session);
+	synchronize_with_all_clusters(map_cell, coord, coord);
 }
 void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -514,7 +523,8 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 			session->shutdown(e.what());
 		}
 	}
-	synchronize_all(map_cell, coord, coord, session);
+	synchronize_with_all_players(map_cell, coord, coord, session);
+	synchronize_with_all_clusters(map_cell, coord, coord);
 }
 
 void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
@@ -637,7 +647,7 @@ void WorldMap::insert_overlay(const boost::shared_ptr<Overlay> &overlay){
 		DEBUG_THROW(Exception, sslit("Overlay already exists"));
 	}
 
-	synchronize_all(overlay, coord, coord, { });
+	synchronize_with_all_players(overlay, coord, coord, { });
 }
 void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -683,7 +693,7 @@ void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool th
 
 	LOG_EMPERY_CENTER_DEBUG("Updating overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 
-	synchronize_all(overlay, coord, coord, { });
+	synchronize_with_all_players(overlay, coord, coord, { });
 }
 
 void WorldMap::get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle){
@@ -782,7 +792,8 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 			session->shutdown(e.what());
 		}
 	}
-	synchronize_all(map_object, new_coord, new_coord, session);
+	synchronize_with_all_players(map_object, new_coord, new_coord, session);
+	synchronize_with_all_clusters(map_object, new_coord, new_coord);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -834,7 +845,8 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 			session->shutdown(e.what());
 		}
 	}
-	synchronize_all(map_object, old_coord, new_coord, session);
+	synchronize_with_all_players(map_object, old_coord, new_coord, session);
+	synchronize_with_all_clusters(map_object, old_coord, new_coord);
 }
 void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 	PROFILE_ME;
@@ -866,7 +878,8 @@ void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
 			session->shutdown(e.what());
 		}
 	}
-	synchronize_all(map_object, old_coord, old_coord, session);
+	synchronize_with_all_players(map_object, old_coord, old_coord, session);
+	synchronize_with_all_clusters(map_object, old_coord, old_coord);
 }
 
 void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret){
@@ -1211,16 +1224,6 @@ void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &clus
 				continue;
 			}
 			synchronize_map_cell_with_cluster(map_cell, cluster);
-		}
-
-		std::vector<boost::shared_ptr<Overlay>> overlays;
-		get_overlays_by_rectangle(overlays, view);
-		for(auto it = overlays.begin(); it != overlays.end(); ++it){
-			const auto &overlay = *it;
-			if(overlay->is_virtually_removed()){
-				continue;
-			}
-			synchronize_overlay_with_cluster(overlay, cluster);
 		}
 
 		std::vector<boost::shared_ptr<MapObject>> map_objects;

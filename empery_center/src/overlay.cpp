@@ -3,7 +3,6 @@
 #include "mysql/overlay.hpp"
 #include "singletons/world_map.hpp"
 #include "player_session.hpp"
-#include "cluster_session.hpp"
 #include "msg/sc_map.hpp"
 #include "msg/sk_map.hpp"
 #include "transaction_element.hpp"
@@ -143,17 +142,6 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		msg.resource_amount    = get_resource_amount();
 		session->send(msg);
 	}
-}
-void Overlay::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {
-	PROFILE_ME;
-
-	Msg::SK_MapAddOverlay msg;
-	msg.cluster_x          = get_cluster_coord().x();
-	msg.cluster_y          = get_cluster_coord().y();
-	msg.overlay_group_name = get_overlay_group_name();
-	msg.overlay_id         = get_overlay_id().get();
-	msg.resource_amount    = get_resource_amount();
-	cluster->send(msg);
 }
 
 }
