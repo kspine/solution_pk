@@ -22,12 +22,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ChatBoxMapContainer, ChatBoxElement,
+	MULTI_INDEX_MAP(ChatBoxContainer, ChatBoxElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<ChatBoxMapContainer> g_chat_box_map;
+	boost::weak_ptr<ChatBoxContainer> g_chat_box_map;
 
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
@@ -55,7 +55,7 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto chat_box_map = boost::make_shared<ChatBoxMapContainer>();
+		const auto chat_box_map = boost::make_shared<ChatBoxContainer>();
 		g_chat_box_map = chat_box_map;
 		handles.push(chat_box_map);
 

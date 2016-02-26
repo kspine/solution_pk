@@ -37,13 +37,13 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapCellMapContainer, MapCellElement,
+	MULTI_INDEX_MAP(MapCellContainer, MapCellElement,
 		MULTI_MEMBER_INDEX(master)
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 	)
 
-	boost::weak_ptr<MapCellMapContainer> g_map_cell_map;
+	boost::weak_ptr<MapCellContainer> g_map_cell_map;
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -61,14 +61,14 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapObjectMapContainer, MapObjectElement,
+	MULTI_INDEX_MAP(MapObjectContainer, MapObjectElement,
 		MULTI_MEMBER_INDEX(master)
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
 	)
 
-	boost::weak_ptr<MapObjectMapContainer> g_map_object_map;
+	boost::weak_ptr<MapObjectContainer> g_map_object_map;
 
 	std::uint32_t g_map_width  = 270;
 	std::uint32_t g_map_height = 240;
@@ -83,12 +83,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ClusterMapContainer, ClusterElement,
+	MULTI_INDEX_MAP(ClusterContainer, ClusterElement,
 		UNIQUE_MEMBER_INDEX(cluster_coord)
 		UNIQUE_MEMBER_INDEX(cluster)
 	)
 
-	boost::weak_ptr<ClusterMapContainer> g_cluster_map;
+	boost::weak_ptr<ClusterContainer> g_cluster_map;
 
 	void gc_timer_proc(std::uint64_t /* now */){
 		PROFILE_ME;
@@ -172,11 +172,11 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5300){
-		const auto map_cell_map = boost::make_shared<MapCellMapContainer>();
+		const auto map_cell_map = boost::make_shared<MapCellContainer>();
 		g_map_cell_map = map_cell_map;
 		handles.push(map_cell_map);
 
-		const auto map_object_map = boost::make_shared<MapObjectMapContainer>();
+		const auto map_object_map = boost::make_shared<MapObjectContainer>();
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
 
@@ -185,7 +185,7 @@ namespace {
 		g_map_height = map_size.at(1).get<double>();
 		LOG_EMPERY_CLUSTER_DEBUG("> Map width = ", g_map_width, ", map height = ", g_map_height);
 
-		const auto cluster_map = boost::make_shared<ClusterMapContainer>();
+		const auto cluster_map = boost::make_shared<ClusterContainer>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 

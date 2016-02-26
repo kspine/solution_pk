@@ -28,12 +28,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(TaxBoxMapContainer, TaxBoxElement,
+	MULTI_INDEX_MAP(TaxBoxContainer, TaxBoxElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<TaxBoxMapContainer> g_tax_box_map;
+	boost::weak_ptr<TaxBoxContainer> g_tax_box_map;
 
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
@@ -62,7 +62,7 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto tax_box_map = boost::make_shared<TaxBoxMapContainer>();
+		const auto tax_box_map = boost::make_shared<TaxBoxContainer>();
 		g_tax_box_map = tax_box_map;
 		handles.push(tax_box_map);
 

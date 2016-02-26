@@ -25,12 +25,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ActivationCodeMapContainer, ActivationCodeElement,
+	MULTI_INDEX_MAP(ActivationCodeContainer, ActivationCodeElement,
 		MULTI_MEMBER_INDEX(code_hash)
 		MULTI_MEMBER_INDEX(expiry_time)
 	)
 
-	boost::weak_ptr<ActivationCodeMapContainer> g_activation_code_map;
+	boost::weak_ptr<ActivationCodeContainer> g_activation_code_map;
 
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
@@ -59,7 +59,7 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 2000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto activation_code_map = boost::make_shared<ActivationCodeMapContainer>();
+		const auto activation_code_map = boost::make_shared<ActivationCodeContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading activation codes...");
 		std::ostringstream oss;
 		const auto utc_now = Poseidon::get_utc_time();

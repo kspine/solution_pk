@@ -23,18 +23,18 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AnnouncementMapContainer, AnnouncementElement,
+	MULTI_INDEX_MAP(AnnouncementContainer, AnnouncementElement,
 		UNIQUE_MEMBER_INDEX(announcement_uuid)
 		MULTI_MEMBER_INDEX(language_id)
 	)
 
-	boost::weak_ptr<AnnouncementMapContainer> g_announcement_map;
+	boost::weak_ptr<AnnouncementContainer> g_announcement_map;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 		const auto utc_now = Poseidon::get_utc_time();
 
-		const auto announcement_map = boost::make_shared<AnnouncementMapContainer>();
+		const auto announcement_map = boost::make_shared<AnnouncementContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading announcements...");
 		conn->execute_sql("SELECT * FROM `Center_Announcement`");
 		while(conn->fetch_row()){

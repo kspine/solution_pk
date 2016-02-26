@@ -102,5 +102,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/auction_transaction.cpp	\
 	src/tax_box.cpp	\
 	src/task_box.cpp	\
+	src/strategic_resource.cpp	\
 	src/map_event.cpp	\
 	src/mmain.cpp

@@ -28,12 +28,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(PlayerSessionMapContainer, SessionElement,
+	MULTI_INDEX_MAP(PlayerSessionContainer, SessionElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		UNIQUE_MEMBER_INDEX(weak_session)
 	)
 
-	boost::shared_ptr<PlayerSessionMapContainer> g_session_map;
+	boost::shared_ptr<PlayerSessionContainer> g_session_map;
 
 	using SessionIterator = typename std::decay<decltype(g_session_map->begin<1>())>::type;
 
@@ -90,7 +90,7 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 8000){
-		const auto session_map = boost::make_shared<PlayerSessionMapContainer>();
+		const auto session_map = boost::make_shared<PlayerSessionContainer>();
 		g_session_map = session_map;
 		handles.push(session_map);
 

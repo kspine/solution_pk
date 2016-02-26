@@ -13,8 +13,9 @@
 namespace EmperyCenter {
 
 class MapCell;
-class Overlay;
 class MapObject;
+class Overlay;
+class StrategicResource;
 class ClusterSession;
 class PlayerSession;
 class Castle;
@@ -30,14 +31,6 @@ struct WorldMap {
 	static void get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
 
-	// Overlay
-	static boost::shared_ptr<Overlay> get_overlay(Coord cluster_coord, const std::string &overlay_group_name);
-	static boost::shared_ptr<Overlay> require_overlay(Coord cluster_coord, const std::string &overlay_group_name);
-	static void insert_overlay(const boost::shared_ptr<Overlay> &overlay);
-	static void update_overlay(const boost::shared_ptr<Overlay> &overlay, bool throws_if_not_exists = true);
-
-	static void get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle);
-
 	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
 	static void insert_map_object(const boost::shared_ptr<MapObject> &map_object);
@@ -49,6 +42,22 @@ struct WorldMap {
 	static void get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 	static MapObjectUuid get_primary_castle_uuid(AccountUuid owner_uuid);
+
+	// Overlay
+	static boost::shared_ptr<Overlay> get_overlay(Coord cluster_coord, const std::string &overlay_group_name);
+	static boost::shared_ptr<Overlay> require_overlay(Coord cluster_coord, const std::string &overlay_group_name);
+	static void insert_overlay(const boost::shared_ptr<Overlay> &overlay);
+	static void update_overlay(const boost::shared_ptr<Overlay> &overlay, bool throws_if_not_exists = true);
+
+	static void get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle);
+
+	// StrategicResource
+	static boost::shared_ptr<StrategicResource> get_strategic_resource(Coord coord);
+	static boost::shared_ptr<StrategicResource> require_strategic_resource(Coord coord);
+	static void insert_strategic_resource(const boost::shared_ptr<StrategicResource> &strategic_resource);
+	static void update_strategic_resource(const boost::shared_ptr<StrategicResource> &strategic_resource, bool throws_if_not_exists = true);
+
+	static void get_strategic_resources_by_rectangle(std::vector<boost::shared_ptr<StrategicResource>> &ret, Rectangle rectangle);
 
 	// PlayerSession
 	static void get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle);

@@ -39,7 +39,7 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AccountMapContainer, AccountElement,
+	MULTI_INDEX_MAP(AccountContainer, AccountElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(platform_id_login_name_hash)
 		MULTI_MEMBER_INDEX(nick_hash)
@@ -48,7 +48,7 @@ namespace {
 		MULTI_MEMBER_INDEX(quieted_until)
 	)
 
-	boost::shared_ptr<AccountMapContainer> g_account_map;
+	boost::shared_ptr<AccountContainer> g_account_map;
 
 	enum CacheType : std::uint64_t {
 		CT_NONE       = 0x0000, // Silent the warning.
@@ -112,7 +112,7 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading account attributes.");
 
-		const auto account_map = boost::make_shared<AccountMapContainer>();
+		const auto account_map = boost::make_shared<AccountContainer>();
 		for(auto it = temp_account_map.begin(); it != temp_account_map.end(); ++it){
 			auto account = boost::make_shared<Account>(std::move(it->second.obj), it->second.attributes);
 

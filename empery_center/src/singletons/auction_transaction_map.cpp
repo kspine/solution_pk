@@ -27,13 +27,13 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AuctionTransactionMapContainer, AuctionTransactionElement,
+	MULTI_INDEX_MAP(AuctionTransactionContainer, AuctionTransactionElement,
 		MULTI_MEMBER_INDEX(serial_hash)
 		MULTI_MEMBER_INDEX(account_uuid_created_time)
 		MULTI_MEMBER_INDEX(expiry_time)
 	)
 
-	boost::weak_ptr<AuctionTransactionMapContainer> g_auction_transaction_map;
+	boost::weak_ptr<AuctionTransactionContainer> g_auction_transaction_map;
 
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
@@ -78,7 +78,7 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 2000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto auction_transaction_map = boost::make_shared<AuctionTransactionMapContainer>();
+		const auto auction_transaction_map = boost::make_shared<AuctionTransactionContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading auction transactions...");
 		const auto utc_now = Poseidon::get_utc_time();
 		std::ostringstream oss;

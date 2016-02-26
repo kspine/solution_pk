@@ -27,13 +27,13 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(PaymentTransactionMapContainer, PaymentTransactionElement,
+	MULTI_INDEX_MAP(PaymentTransactionContainer, PaymentTransactionElement,
 		MULTI_MEMBER_INDEX(serial_hash)
 		MULTI_MEMBER_INDEX(account_uuid_created_time)
 		MULTI_MEMBER_INDEX(expiry_time)
 	)
 
-	boost::weak_ptr<PaymentTransactionMapContainer> g_payment_transaction_map;
+	boost::weak_ptr<PaymentTransactionContainer> g_payment_transaction_map;
 
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
@@ -78,7 +78,7 @@ namespace {
 	MODULE_RAII_PRIORITY(handles, 2000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto payment_transaction_map = boost::make_shared<PaymentTransactionMapContainer>();
+		const auto payment_transaction_map = boost::make_shared<PaymentTransactionContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading payment transactions...");
 		const auto utc_now = Poseidon::get_utc_time();
 		std::ostringstream oss;
