@@ -25,9 +25,8 @@ AUCTION_SERVLET("transfer/begin", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	auction_center->pump_transfer_status(map_object_uuid);
 
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));

@@ -65,6 +65,12 @@ namespace Msg {
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    KS_MapHarvestStrategicResource
+#define MESSAGE_ID      32307
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (interval)
+#include <poseidon/cbpp/message_generator.hpp>
 
 }
 

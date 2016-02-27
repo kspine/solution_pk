@@ -29,12 +29,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AuctionCenterMapContainer, AuctionCenterElement,
+	MULTI_INDEX_MAP(AuctionCenterContainer, AuctionCenterElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<AuctionCenterMapContainer> g_auction_center_map;
+	boost::weak_ptr<AuctionCenterContainer> g_auction_center_map;
 
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
@@ -63,7 +63,7 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto auction_center_map = boost::make_shared<AuctionCenterMapContainer>();
+		const auto auction_center_map = boost::make_shared<AuctionCenterContainer>();
 		g_auction_center_map = auction_center_map;
 		handles.push(auction_center_map);
 

@@ -206,7 +206,7 @@ void TaskBox::check_daily_tasks(){
 
 	if(!m_stamps){
 		auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, std::string(), false);
-		obj->async_save(true);
+		obj->enable_auto_saving(); // obj->async_save(true);
 		m_stamps = std::move(obj);
 	}
 	// 特殊：
@@ -355,7 +355,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 	}
 	const auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), task_id.get(),
 		info.category, info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
-	obj->async_save(true);
+	obj->enable_auto_saving(); // obj->async_save(true);
 	const auto pair = boost::make_shared<TaskObjectPair>(obj, std::move(progress));
 	m_tasks.emplace(task_id, pair);
 

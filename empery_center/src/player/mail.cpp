@@ -118,9 +118,8 @@ PLAYER_SERVLET(Msg::CS_MailMarkAsRead, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_MailFetchAttachments, account, session, req){
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
-	mail_box->pump_status();
-
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	mail_box->pump_status();
 
 	const auto mail_uuid = MailUuid(req.mail_uuid);
 	const auto language_id = LanguageId(req.language_id);
@@ -182,9 +181,8 @@ PLAYER_SERVLET(Msg::CS_MailBatchReadAndFetchAttachments, account, session, req){
 	const auto language_id = LanguageId(req.language_id);
 
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
-	mail_box->pump_status();
-
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	mail_box->pump_status();
 
 	boost::container::flat_map<std::pair<MailUuid, LanguageId>, boost::shared_ptr<MailData>> mail_datas;
 	{

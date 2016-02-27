@@ -13,6 +13,7 @@
 #include "../data/map.hpp"
 #include "../castle.hpp"
 #include "../overlay.hpp"
+#include "../strategic_resource.hpp"
 #include "../data/map_object.hpp"
 #include "../data/global.hpp"
 #include <poseidon/json.hpp>
@@ -306,6 +307,54 @@ CLUSTER_SERVLET(Msg::KS_MapAttack, cluster, req){
 			other_session->send(attackMsg);
 		}
 	}
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto parent_object_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
+	}
+
+	const auto coord = map_object->get_coord();
+
+	const auto strategic_resource = WorldMap::get_strategic_resource(coord);
+	if(!strategic_resource){
+		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
+	}
+	const auto resource_amount = strategic_resource->get_resource_amount();
+	if(resource_amount == 0){
+		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
+	}
+//	const auto resource_id = strategic_resource->get_resource_id();
+
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
+	if(soldier_count < 1){
+		soldier_count = 1;
+	}
+	const auto harvest_speed = soldier_count * map_object_type_data->harvest_speed;
+	if(harvest_speed <= 0){
+		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+	}
+
+	const auto interval = req.interval;
+	const auto harvested_amount = strategic_resource->harvest(map_object, interval, true);
+	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
+		", harvest_speed = ", harvest_speed, ", interval = ", interval, ", harvested_amount = ", harvested_amount);
+
 	return Response();
 }
 

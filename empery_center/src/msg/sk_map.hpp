@@ -63,7 +63,7 @@ namespace Msg {
 	FIELD_VUINT         (action)	\
 	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
-
+/*
 #define MESSAGE_NAME    SK_MapAddOverlay
 #define MESSAGE_ID      32394
 #define MESSAGE_FIELDS  \
@@ -74,7 +74,7 @@ namespace Msg {
 	FIELD_VUINT         (resource_id)	\
 	FIELD_VUINT         (resource_amount)
 #include <poseidon/cbpp/message_generator.hpp>
-
+*/
 }
 
 }

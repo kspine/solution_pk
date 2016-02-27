@@ -7,14 +7,14 @@
 namespace EmperyCenter {
 
 namespace {
-	using GlobalStatusMapContainer = boost::container::flat_map<GlobalStatus::Slot, boost::shared_ptr<MySql::Center_GlobalStatus>>;
+	using GlobalStatusContainer = boost::container::flat_map<GlobalStatus::Slot, boost::shared_ptr<MySql::Center_GlobalStatus>>;
 
-	boost::shared_ptr<GlobalStatusMapContainer> g_global_status_map;
+	boost::shared_ptr<GlobalStatusContainer> g_global_status_map;
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		const auto global_status_map = boost::make_shared<GlobalStatusMapContainer>();
+		const auto global_status_map = boost::make_shared<GlobalStatusContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading global status...");
 		conn->execute_sql("SELECT * FROM `Center_GlobalStatus`");
 		while(conn->fetch_row()){

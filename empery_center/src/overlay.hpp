@@ -14,7 +14,6 @@ namespace MySql {
 
 class MapObject;
 class PlayerSession;
-class ClusterSession;
 
 class Overlay : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
@@ -24,7 +23,8 @@ private:
 	double m_harvest_remainder = 0;
 
 public:
-	Overlay(Coord cluster_coord, std::string overlay_group_name, OverlayId overlay_id);
+	Overlay(Coord cluster_coord, std::string overlay_group_name,
+		OverlayId overlay_id, ResourceId resource_id, std::uint64_t resource_amount);
 	explicit Overlay(boost::shared_ptr<MySql::Center_Overlay> obj);
 	~Overlay();
 
@@ -40,7 +40,6 @@ public:
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
-	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
 };
 
 inline void synchronize_overlay_with_player(const boost::shared_ptr<const Overlay> &overlay,
@@ -52,16 +51,6 @@ inline void synchronize_overlay_with_player(const boost::shared_ptr<Overlay> &ov
 	const boost::shared_ptr<PlayerSession> &session)
 {
 	overlay->synchronize_with_player(session);
-}
-inline void synchronize_overlay_with_cluster(const boost::shared_ptr<const Overlay> &overlay,
-	const boost::shared_ptr<ClusterSession> &cluster)
-{
-	overlay->synchronize_with_cluster(cluster);
-}
-inline void synchronize_overlay_with_cluster(const boost::shared_ptr<Overlay> &overlay,
-	const boost::shared_ptr<ClusterSession> &cluster)
-{
-	overlay->synchronize_with_cluster(cluster);
 }
 
 }

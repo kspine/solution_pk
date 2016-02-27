@@ -39,7 +39,7 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(AccountMapContainer, AccountElement,
+	MULTI_INDEX_MAP(AccountContainer, AccountElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(platform_id_login_name_hash)
 		MULTI_MEMBER_INDEX(nick_hash)
@@ -48,7 +48,7 @@ namespace {
 		MULTI_MEMBER_INDEX(quieted_until)
 	)
 
-	boost::shared_ptr<AccountMapContainer> g_account_map;
+	boost::shared_ptr<AccountContainer> g_account_map;
 
 	enum CacheType : std::uint64_t {
 		CT_NONE       = 0x0000, // Silent the warning.
@@ -112,7 +112,7 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading account attributes.");
 
-		const auto account_map = boost::make_shared<AccountMapContainer>();
+		const auto account_map = boost::make_shared<AccountContainer>();
 		for(auto it = temp_account_map.begin(); it != temp_account_map.end(); ++it){
 			auto account = boost::make_shared<Account>(std::move(it->second.obj), it->second.attributes);
 
@@ -155,7 +155,8 @@ namespace {
 	}
 
 	void synchronize_account_and_update_cache(std::uint64_t now, std::uint64_t cache_timeout,
-		const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags) noexcept
+		const boost::shared_ptr<Account> &account, const boost::shared_ptr<ItemBox> &item_box,
+		const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags) noexcept
 	try {
 		PROFILE_ME;
 
@@ -203,8 +204,6 @@ namespace {
 
 		// items
 		if(flags & CT_ITEMS){
-			const auto item_box = ItemBoxMap::require(account_uuid);
-
 			std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 			Data::Item::get_public(items_to_check);
 			msg.public_items.reserve(items_to_check.size());
@@ -379,7 +378,7 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 }
 
 void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items) noexcept
+	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept
 {
 	PROFILE_ME;
 
@@ -394,14 +393,15 @@ void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const
 
 	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
 
-	synchronize_account_and_update_cache(now, cache_timeout, account, session,
+	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,
 		(wants_nick               ? CT_NICK       : CT_NONE) |
 		(wants_attributes         ? CT_ATTRS      : CT_NONE) |
 		(wants_private_attributes ? CT_PRIV_ATTRS : CT_NONE) |
-		(wants_items              ? CT_ITEMS      : CT_NONE));
+		(item_box                 ? CT_ITEMS      : CT_NONE));
 }
+
 void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, bool wants_items) noexcept
+	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept
 {
 	PROFILE_ME;
 
@@ -420,11 +420,14 @@ void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid
 		return g_info_cache_map->find<1>(std::make_tuple(account_uuid, session, type)) == g_info_cache_map->end<1>();
 	};
 
-	synchronize_account_and_update_cache(now, cache_timeout, account, session,
+	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,
 		(wants_nick               && is_miss(CT_NICK      ) ? CT_NICK       : CT_NONE) |
 		(wants_attributes         && is_miss(CT_ATTRS     ) ? CT_ATTRS      : CT_NONE) |
 		(wants_private_attributes && is_miss(CT_PRIV_ATTRS) ? CT_PRIV_ATTRS : CT_NONE) |
-		(wants_items              && is_miss(CT_ITEMS     ) ? CT_ITEMS      : CT_NONE));
+		(item_box                 && is_miss(CT_ITEMS     ) ? CT_ITEMS      : CT_NONE));
+}
+void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept {
+	return cached_synchronize_account_with_player(account_uuid, session, true, true, false, { });
 }
 
 }

@@ -29,12 +29,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(TaskBoxMapContainer, TaskBoxElement,
+	MULTI_INDEX_MAP(TaskBoxContainer, TaskBoxElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(unload_time)
 	)
 
-	boost::weak_ptr<TaskBoxMapContainer> g_task_box_map;
+	boost::weak_ptr<TaskBoxContainer> g_task_box_map;
 
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
@@ -63,7 +63,7 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
-		const auto task_box_map = boost::make_shared<TaskBoxMapContainer>();
+		const auto task_box_map = boost::make_shared<TaskBoxContainer>();
 		g_task_box_map = task_box_map;
 		handles.push(task_box_map);
 

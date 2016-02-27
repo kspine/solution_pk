@@ -3,6 +3,7 @@
 #include "mmain.hpp"
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
+#include <poseidon/json.hpp>
 #include "cluster_client.hpp"
 #include "singletons/world_map.hpp"
 #include "checked_arithmetic.hpp"
@@ -10,6 +11,7 @@
 #include "map_cell.hpp"
 #include "data/map.hpp"
 #include "data/map_object.hpp"
+#include "data/global.hpp"
 #include "../../empery_center/src/msg/sc_map.hpp"
 #include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
@@ -17,6 +19,8 @@
 #include "../../empery_center/src/map_object_type_ids.hpp"
 #include "../../empery_center/src/cbpp_response.hpp"
 #include "../../empery_center/src/attribute_ids.hpp"
+
+
 
 namespace EmperyCluster {
 
@@ -110,6 +114,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		if(!target_object){
 			break;
 		}
+		
 		// TODO 战斗。
 		return require_ai_control()->attack(result,now);
 	}
@@ -173,14 +178,13 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 }
 
 std::uint64_t MapObject::move(std::pair<long, std::string> &result){
-	const auto map_object_uuid = get_map_object_uuid();
+	//const auto map_object_uuid = get_map_object_uuid();
 	const auto owner_uuid      = get_owner_uuid();
 	const auto coord           = get_coord();
 	
 	const auto waypoint  = m_waypoints.front();
 	const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
 	const auto delay     = waypoint.delay;
-
 	// 检测阻挡。
 	const auto new_map_cell = WorldMap::get_map_cell(new_coord);
 	if(new_map_cell){
@@ -249,7 +253,6 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 			}
 		}
 	}
-	LOG_EMPERY_CLUSTER_DEBUG("Setting new coord: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
 	set_coord(new_coord);
 
 	m_waypoints.pop_front();
@@ -344,7 +347,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 				}
 				break;
 			}
-
+			
 			std::uint64_t delay = UINT64_MAX;
 			std::pair<long, std::string> result;
 			try {
@@ -438,18 +441,29 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		return UINT64_MAX;
 	}
 	const auto attack_speed = map_object_type_data->attack_speed * 1000;
+	const auto shoot_range = map_object_type_data->shoot_range;
 	
 	const auto emempy_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
 	if(!emempy_type_data){
 		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_object->get_map_object_type_id();
 		return UINT64_MAX;
 	}
+	if((m_action != ACT_ATTACK) || (!m_waypoints.empty())){
+		return UINT64_MAX;
+	}
+	if(!is_in_attack_scope(target_object_uuid)){
+		return UINT64_MAX;
+	}
+	LOG_EMPERY_CLUSTER_DEBUG("xxxxxSet new attack : attack_object_uuid = ", get_map_object_uuid(), " action = " ,m_action);
 	
-	Msg::KS_MapAttack msgAttack;
+	//直接发送到客户端
+	Msg::SC_MapObjectAttack msgAttack;
 	msgAttack.attacking_uuid  = m_map_object_uuid.str();
 	msgAttack.attacked_uuid =  target_object_uuid.str();
 	msgAttack.impact = IMPACT_NORMAL;
 	msgAttack.damage = 0;
+	msgAttack.attacked_x = target_object->get_coord().x();
+	msgAttack.attacked_y = target_object->get_coord().y();
 	
 	bool bDodge = false;
 	bool bCritical = false;
@@ -483,14 +497,16 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		}
 	}
 	
-	
+	std::int64_t new_ememy_solider_count = ememy_solider_count - static_cast<std::int64_t>(damage);
+	new_ememy_solider_count = (new_ememy_solider_count >= 0) ? new_ememy_solider_count : 0;
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers.emplace(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT, new_ememy_solider_count);
+	target_object->set_attributes(std::move(modifiers));
 	const auto cluster = get_cluster();
 	if(cluster){
-	auto sresult = cluster->send_and_wait(msgAttack);
-		if(sresult.first != Msg::ST_OK){
-			return UINT64_MAX;
-		}
+		cluster->send_notification_by_rectangle(Rectangle(get_coord(), shoot_range + 1, shoot_range + 1),msgAttack);
 	}
+	
 	
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
@@ -503,11 +519,9 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 
 std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
 	//如果没有在攻击，则判断攻击者是否在自己的攻击范围之内，是则执行攻击，否则小范围内寻路攻击
-	if(m_action != ACT_ATTACK ){
+	if(m_action != ACT_ATTACK && m_waypoints.empty() ){
 		if(is_in_attack_scope(attacker->get_map_object_uuid())){
-			m_waypoints.clear();
-			m_action = ACT_ATTACK;
-			m_action_param = attacker->get_map_object_uuid().str();
+			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),attacker->get_map_object_uuid().str());
 		}else{
 			
 		}
@@ -516,6 +530,7 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 }
 
 std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
+	WorldMap::remove_map_object(get_map_object_uuid());
 	return UINT64_MAX;
 }
 
@@ -536,16 +551,11 @@ bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 		return false;
 	}
 	const auto coord    = get_coord();
+	
+	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
 	//攻击范围之内的军队
-	std::vector<boost::shared_ptr<MapObject>> adjacent_troops;
-	WorldMap::get_map_objects_by_rectangle(adjacent_troops,
-	Rectangle(Coord(coord.x() - shoot_range - 2, coord.y() - shoot_range - 2), Coord(coord.x() + shoot_range + 2, coord.y() + shoot_range + 2)));
-	for(auto it = adjacent_troops.begin(); it != adjacent_troops.end(); ++it){
-		const auto &other_object = *it;
-		const auto other_map_object_uuid = other_object->get_map_object_uuid();
-		if(other_map_object_uuid == target_object_uuid){
-			return true;
-		}
+	if(distance <= shoot_range){
+		return true;
 	}
 	return false;
 }
