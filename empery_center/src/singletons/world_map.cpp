@@ -121,15 +121,11 @@ namespace {
 	}
 
 	struct PlayerViewElement {
-		Rectangle view;
-
 		boost::weak_ptr<PlayerSession> session;
 		Coord sector_coord;
 
-		PlayerViewElement(Rectangle view_,
-			boost::weak_ptr<PlayerSession> session_, Coord sector_coord_)
-			: view(view_)
-			, session(std::move(session_)), sector_coord(sector_coord_)
+		PlayerViewElement(boost::weak_ptr<PlayerSession> session_, Coord sector_coord_)
+			: session(std::move(session_)), sector_coord(sector_coord_)
 		{
 		}
 	};
@@ -416,7 +412,8 @@ namespace {
 				if(session == excluded_session){
 					continue;
 				}
-				if(it->view.hit_test(new_coord)){
+				const auto view = session->get_view();
+				if(view.hit_test(new_coord)){
 					try {
 						ptr->synchronize_with_player(session);
 					} catch(std::exception &e){
@@ -1156,7 +1153,7 @@ void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<Playe
 					player_view_map->erase<1>(it);
 					continue;
 				}
-				const auto &view = it->view;
+				const auto view = session->get_view();
 				if((view.left() < rectangle.right()) && (rectangle.left() < view.right()) &&
 					(view.bottom() < rectangle.top()) && (rectangle.bottom() < view.top()))
 				{
@@ -1195,7 +1192,7 @@ void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &sessio
 	try {
 		for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); sector_x += SECTOR_SIDE_LENGTH){
 			for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); sector_y += SECTOR_SIDE_LENGTH){
-				player_view_map->insert(PlayerViewElement(view, session, Coord(sector_x, sector_y)));
+				player_view_map->insert(PlayerViewElement(session, Coord(sector_x, sector_y)));
 			}
 		}
 	} catch(std::exception &e){
