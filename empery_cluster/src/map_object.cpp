@@ -479,8 +479,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	msgAttack.attacked_uuid =  target_object_uuid.str();
 	msgAttack.impact = IMPACT_NORMAL;
 	msgAttack.damage = 0;
-	msgAttack.attacked_x = target_object->get_coord().x();
-	msgAttack.attacked_y = target_object->get_coord().y();
 	
 	bool bDodge = false;
 	bool bCritical = false;
