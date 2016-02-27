@@ -12,6 +12,7 @@ namespace Data {
 		enum Slot {
 			SLOT_MAP_SIZE                                           = 100003,
 			SLOT_MAP_BORDER_THICKNESS                               = 100025,
+			SLOT_ADJACENT_CHAT_RANGE                                = 100035,
 		};
 
 	public:
