@@ -165,6 +165,23 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 	}
+	ON_ACTION(ACT_HARVEST_STRATEGIC_RESOURCE){
+		const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
+		const auto cluster = get_cluster();
+		if(!cluster){
+			break;
+		}
+		Msg::KS_MapHarvestStrategicResource sreq;
+		sreq.map_object_uuid = map_object_uuid.str();
+		sreq.interval        = harvest_interval;
+		auto sresult = cluster->send_and_wait(sreq);
+		if(sresult.first != Msg::ST_OK){
+			LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+			result = std::move(sresult);
+			break;
+		}
+		return harvest_interval;
+	}
 //=============================================================================
 #undef ON_ACTION
 		}

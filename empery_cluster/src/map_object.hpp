@@ -28,14 +28,15 @@ class ClusterClient;
 class MapObject : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum Action {
-		ACT_GUARD               = 0,
-		ACT_ATTACK              = 1,
-		ACT_DEPLOY_INTO_CASTLE  = 2,
-		ACT_HARVEST_OVERLAY     = 3,
-		ACT_ENTER_CASTLE        = 4,
+		ACT_GUARD                      = 0,
+		ACT_ATTACK                     = 1,
+		ACT_DEPLOY_INTO_CASTLE         = 2,
+		ACT_HARVEST_OVERLAY            = 3,
+		ACT_ENTER_CASTLE               = 4,
+		ACT_HARVEST_STRATEGIC_RESOURCE = 5,
 	};
-	
-	enum ATTACK_IMPACT{
+
+	enum ATTACK_IMPACT {
 		IMPACT_NORMAL            = 0,
 		IMPACT_MISS              = 1,
 		IMPACT_CRITICAL          = 2,

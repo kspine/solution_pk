@@ -11,7 +11,6 @@
 namespace EmperyCluster {
 
 class MapCell;
-class Overlay;
 class MapObject;
 class ClusterClient;
 
@@ -22,13 +21,6 @@ struct WorldMap {
 	static void replace_map_cell_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapCell> &map_cell);
 
 	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
-
-	// Overlay
-	static boost::shared_ptr<Overlay> get_overlay(Coord coord, const std::string &overlay_group_name);
-	static boost::shared_ptr<Overlay> require_overlay(Coord coord, const std::string &overlay_group_name);
-	static void replace_overlay_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<Overlay> &overlay);
-
-	static void get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle);
 
 	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);

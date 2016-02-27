@@ -9,7 +9,6 @@
 #include "../../../empery_center/src/msg/ks_map.hpp"
 #include "../coord.hpp"
 #include "../map_cell.hpp"
-#include "../overlay.hpp"
 #include "../map_object.hpp"
 #include "../rectangle.hpp"
 #include "../cluster_client.hpp"
@@ -38,34 +37,13 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapCellMapContainer, MapCellElement,
+	MULTI_INDEX_MAP(MapCellContainer, MapCellElement,
 		MULTI_MEMBER_INDEX(master)
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 	)
 
-	boost::weak_ptr<MapCellMapContainer> g_map_cell_map;
-
-	struct OverlayElement {
-		boost::shared_ptr<Overlay> overlay;
-
-		boost::weak_ptr<ClusterClient> master;
-		std::pair<Coord, SharedNts> cluster_coord_group_name;
-
-		OverlayElement(boost::shared_ptr<Overlay> overlay_, boost::weak_ptr<ClusterClient> master_)
-			: overlay(std::move(overlay_))
-			, master(std::move(master_))
-			, cluster_coord_group_name(overlay->get_cluster_coord(), SharedNts(overlay->get_overlay_group_name()))
-		{
-		}
-	};
-
-	MULTI_INDEX_MAP(OverlayMapContainer, OverlayElement,
-		MULTI_MEMBER_INDEX(master)
-		MULTI_MEMBER_INDEX(cluster_coord_group_name)
-	)
-
-	boost::weak_ptr<OverlayMapContainer> g_overlay_map;
+	boost::weak_ptr<MapCellContainer> g_map_cell_map;
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -83,14 +61,14 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(MapObjectMapContainer, MapObjectElement,
+	MULTI_INDEX_MAP(MapObjectContainer, MapObjectElement,
 		MULTI_MEMBER_INDEX(master)
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
 	)
 
-	boost::weak_ptr<MapObjectMapContainer> g_map_object_map;
+	boost::weak_ptr<MapObjectContainer> g_map_object_map;
 
 	std::uint32_t g_map_width  = 270;
 	std::uint32_t g_map_height = 240;
@@ -105,12 +83,12 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(ClusterMapContainer, ClusterElement,
+	MULTI_INDEX_MAP(ClusterContainer, ClusterElement,
 		UNIQUE_MEMBER_INDEX(cluster_coord)
 		UNIQUE_MEMBER_INDEX(cluster)
 	)
 
-	boost::weak_ptr<ClusterMapContainer> g_cluster_map;
+	boost::weak_ptr<ClusterContainer> g_cluster_map;
 
 	void gc_timer_proc(std::uint64_t /* now */){
 		PROFILE_ME;
@@ -194,15 +172,11 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5300){
-		const auto map_cell_map = boost::make_shared<MapCellMapContainer>();
+		const auto map_cell_map = boost::make_shared<MapCellContainer>();
 		g_map_cell_map = map_cell_map;
 		handles.push(map_cell_map);
 
-		const auto overlay_map = boost::make_shared<OverlayMapContainer>();
-		g_overlay_map = overlay_map;
-		handles.push(overlay_map);
-
-		const auto map_object_map = boost::make_shared<MapObjectMapContainer>();
+		const auto map_object_map = boost::make_shared<MapObjectContainer>();
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
 
@@ -211,7 +185,7 @@ namespace {
 		g_map_height = map_size.at(1).get<double>();
 		LOG_EMPERY_CLUSTER_DEBUG("> Map width = ", g_map_width, ", map height = ", g_map_height);
 
-		const auto cluster_map = boost::make_shared<ClusterMapContainer>();
+		const auto cluster_map = boost::make_shared<ClusterContainer>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 
@@ -344,96 +318,6 @@ void WorldMap::get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>
 	}
 _exit_while:
 	;
-}
-
-boost::shared_ptr<Overlay> WorldMap::get_overlay(Coord coord, const std::string &overlay_group_name){
-	PROFILE_ME;
-
-	const auto overlay_map = g_overlay_map.lock();
-	if(!overlay_map){
-		LOG_EMPERY_CLUSTER_WARNING("Overlay map not loaded.");
-		return { };
-	}
-
-	const auto it = overlay_map->find<1>(std::make_pair(coord, SharedNts::view(overlay_group_name.c_str())));
-	if(it == overlay_map->end<1>()){
-		LOG_EMPERY_CLUSTER_TRACE("Overlay not found: coord = ", coord, ", overlay_group_name = ", overlay_group_name);
-		return { };
-	}
-	if(it->master.expired()){
-		LOG_EMPERY_CLUSTER_DEBUG("Master expired: coord = ", coord, ", overlay_group_name = ", overlay_group_name);
-		return { };
-	}
-	return it->overlay;
-}
-boost::shared_ptr<Overlay> WorldMap::require_overlay(Coord coord, const std::string &overlay_group_name){
-	PROFILE_ME;
-
-	auto ret = require_overlay(coord, overlay_group_name);
-	if(!ret){
-		DEBUG_THROW(Exception, sslit("Overlay not found"));
-	}
-	return ret;
-}
-void WorldMap::replace_overlay_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<Overlay> &overlay){
-	PROFILE_ME;
-
-	const auto overlay_map = g_overlay_map.lock();
-	if(!overlay_map){
-		LOG_EMPERY_CLUSTER_WARNING("Overlay map not loaded.");
-		DEBUG_THROW(Exception, sslit("Overlay map not loaded"));
-	}
-
-	const auto result = overlay_map->insert(OverlayElement(overlay, master));
-	if(!result.second){
-		overlay_map->replace(result.first, OverlayElement(overlay, master));
-	}
-}
-
-void WorldMap::get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle){
-	PROFILE_ME;
-
-	const auto map_cell_map = g_map_cell_map.lock();
-	if(!map_cell_map){
-		LOG_EMPERY_CLUSTER_WARNING("Map cell map not loaded.");
-		return;
-	}
-
-	boost::container::flat_set<boost::shared_ptr<Overlay>> temp;
-
-	auto x = rectangle.left();
-	while(x < rectangle.right()){
-		auto it = map_cell_map->lower_bound<1>(Coord(x, rectangle.bottom()));
-		for(;;){
-			if(it == map_cell_map->end<1>()){
-				goto _exit_while;
-			}
-			if(it->coord.x() != x){
-				x = it->coord.x();
-				break;
-			}
-			if(it->coord.y() >= rectangle.top()){
-				++x;
-				break;
-			}
-			const auto cluster_coord = get_cluster_coord_from_world_coord(it->coord);
-			const auto map_x = static_cast<unsigned>(it->coord.x() - cluster_coord.x());
-			const auto map_y = static_cast<unsigned>(it->coord.y() - cluster_coord.y());
-			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
-			if(!basic_data->overlay_group_name.empty()){
-				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
-				if(overlay){
-					temp.insert(std::move(overlay));
-				}
-			}
-			++it;
-		}
-	}
-_exit_while:
-	;
-
-	ret.reserve(ret.size() + temp.size());
-	std::copy(temp.begin(), temp.end(), std::back_inserter(ret));
 }
 
 boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_uuid){

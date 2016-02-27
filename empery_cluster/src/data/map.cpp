@@ -9,7 +9,6 @@ namespace EmperyCluster {
 namespace {
 	MULTI_INDEX_MAP(BasicMap, Data::MapCellBasic,
 		UNIQUE_MEMBER_INDEX(map_coord)
-		MULTI_MEMBER_INDEX(overlay_group_name)
 	)
 	boost::weak_ptr<const BasicMap> g_basic_map;
 	const char BASIC_FILE[] = "map";
@@ -33,8 +32,6 @@ namespace {
 			elem.map_coord = std::make_pair(x, y);
 
 			csv.get(elem.terrain_id,         "property_id");
-			csv.get(elem.overlay_id,         "remove_id");
-			csv.get(elem.overlay_group_name, "group_id");
 
 			if(!basic_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapCellBasic: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);
@@ -88,22 +85,6 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("MapCellBasic not found"));
 		}
 		return ret;
-	}
-
-	void MapCellBasic::get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group_name){
-		PROFILE_ME;
-
-		const auto basic_map = g_basic_map.lock();
-		if(!basic_map){
-			LOG_EMPERY_CLUSTER_WARNING("MapCellBasicMap has not been loaded.");
-			return;
-		}
-
-		const auto range = basic_map->equal_range<1>(overlay_group_name);
-		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-		for(auto it = range.first; it != range.second; ++it){
-			ret.emplace_back(basic_map, &*it);
-		}
 	}
 
 	boost::shared_ptr<const MapTerrain> MapTerrain::get(TerrainId terrain_id){

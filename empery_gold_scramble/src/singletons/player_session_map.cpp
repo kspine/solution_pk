@@ -23,16 +23,16 @@ namespace {
 		}
 	};
 
-	MULTI_INDEX_MAP(PlayerSessionMapContainer, SessionElement,
+	MULTI_INDEX_MAP(PlayerSessionContainer, SessionElement,
 		UNIQUE_MEMBER_INDEX(login_name)
 		MULTI_MEMBER_INDEX(nick)
 		UNIQUE_MEMBER_INDEX(weak_session)
 	)
 
-	boost::shared_ptr<PlayerSessionMapContainer> g_session_map;
+	boost::shared_ptr<PlayerSessionContainer> g_session_map;
 
 	MODULE_RAII_PRIORITY(handles, 8000){
-		const auto session_map = boost::make_shared<PlayerSessionMapContainer>();
+		const auto session_map = boost::make_shared<PlayerSessionContainer>();
 		g_session_map = session_map;
 		handles.push(session_map);
 	}

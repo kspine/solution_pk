@@ -4,7 +4,6 @@
 #include "../../../empery_center/src/msg/err_map.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_cell.hpp"
-#include "../overlay.hpp"
 #include "../map_object.hpp"
 
 namespace EmperyCluster {
@@ -92,22 +91,6 @@ CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
 		waypoints.emplace_back(it->delay, it->dx, it->dy);
 	}
 	map_object->set_action(from_coord, std::move(waypoints), static_cast<MapObject::Action>(req.action), std::move(req.param));
-
-	return Response();
-}
-
-CLUSTER_SERVLET(Msg::SK_MapAddOverlay, cluster, req){
-	auto cluster_coord      = Coord(req.cluster_x, req.cluster_y);
-	auto overlay_group_name = std::move(req.overlay_group_name);
-	auto overlay_id         = OverlayId(req.overlay_id);
-	auto resource_id        = ResourceId(req.resource_id);
-	auto resource_amount    = req.resource_amount;
-
-	LOG_EMPERY_CLUSTER_TRACE("Creating map overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name,
-		", overlay_id = ", overlay_id, ", resource_id = ", resource_id, ", resource_amount = ", resource_amount);
-	const auto overlay = boost::make_shared<Overlay>(
-		cluster_coord, std::move(overlay_group_name), overlay_id, resource_id, resource_amount);
-	WorldMap::replace_overlay_no_synchronize(cluster, overlay);
 
 	return Response();
 }
