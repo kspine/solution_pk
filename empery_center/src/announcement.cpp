@@ -56,7 +56,7 @@ Announcement::Announcement(AnnouncementUuid announcement_uuid, LanguageId langua
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Announcement>(announcement_uuid.get(), language_id.get(), created_time,
 				expiry_time, period, encode_segments(segments));
-			obj->enable_auto_saving(); // obj->async_save(true);
+			obj->async_save(true);
 			return obj;
 		}())
 	, m_segments(std::move(segments))
