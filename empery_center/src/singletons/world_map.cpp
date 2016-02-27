@@ -108,6 +108,18 @@ namespace {
 
 	boost::weak_ptr<StrategicResourceContainer> g_strategic_resource_map;
 
+	constexpr unsigned SECTOR_SIDE_LENGTH = 32;
+
+	inline Coord get_sector_coord_from_world_coord(Coord coord){
+		const auto mask_x = coord.x() >> 63;
+		const auto mask_y = coord.y() >> 63;
+
+		const auto cluster_x = ((coord.x() ^ mask_x) / SECTOR_SIDE_LENGTH ^ mask_x) * SECTOR_SIDE_LENGTH;
+		const auto cluster_y = ((coord.y() ^ mask_y) / SECTOR_SIDE_LENGTH ^ mask_y) * SECTOR_SIDE_LENGTH;
+
+		return Coord(cluster_x, cluster_y);
+	}
+
 	struct PlayerViewElement {
 		Rectangle view;
 
@@ -132,6 +144,16 @@ namespace {
 	std::uint32_t g_map_width  = 270;
 	std::uint32_t g_map_height = 240;
 
+	inline Coord get_cluster_coord_from_world_coord(Coord coord){
+		const auto mask_x = coord.x() >> 63;
+		const auto mask_y = coord.y() >> 63;
+
+		const auto cluster_x = ((coord.x() ^ mask_x) / g_map_width  ^ mask_x) * g_map_width;
+		const auto cluster_y = ((coord.y() ^ mask_y) / g_map_height ^ mask_y) * g_map_height;
+
+		return Coord(cluster_x, cluster_y);
+	}
+
 	struct ClusterElement {
 		Coord cluster_coord;
 		boost::weak_ptr<ClusterSession> cluster;
@@ -150,19 +172,6 @@ namespace {
 	)
 
 	boost::weak_ptr<ClusterContainer> g_cluster_map;
-
-	inline Coord get_sector_coord_from_world_coord(Coord coord){
-		return Coord(coord.x() & -32, coord.y() & -32);
-	}
-	inline Coord get_cluster_coord_from_world_coord(Coord coord){
-		const auto mask_x = coord.x() >> 63;
-		const auto mask_y = coord.y() >> 63;
-
-		const auto cluster_x = ((coord.x() ^ mask_x) / g_map_width  ^ mask_x) * g_map_width;
-		const auto cluster_y = ((coord.y() ^ mask_y) / g_map_height ^ mask_y) * g_map_height;
-
-		return Coord(cluster_x, cluster_y);
-	}
 
 	MODULE_RAII_PRIORITY(handles, 5300){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
@@ -1136,8 +1145,8 @@ void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<Playe
 
 	const auto sector_bottom_left = get_sector_coord_from_world_coord(Coord(rectangle.left(), rectangle.bottom()));
 	const auto sector_upper_right = get_sector_coord_from_world_coord(Coord(rectangle.right() - 1, rectangle.top() - 1));
-	for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); ++sector_x){
-		for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); ++sector_y){
+	for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); sector_x += SECTOR_SIDE_LENGTH){
+		for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); sector_y += SECTOR_SIDE_LENGTH){
 			const auto sector_coord = Coord(sector_x, sector_y);
 			const auto range = player_view_map->equal_range<1>(sector_coord);
 			temp.reserve(temp.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
@@ -1184,8 +1193,8 @@ void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &sessio
 	LOG_EMPERY_CENTER_DEBUG("Set player view: view = ", view,
 		", sector_bottom_left = ", sector_bottom_left, ", sector_upper_right = ", sector_upper_right);
 	try {
-		for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); ++sector_x){
-			for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); ++sector_y){
+		for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); sector_x += SECTOR_SIDE_LENGTH){
+			for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); sector_y += SECTOR_SIDE_LENGTH){
 				player_view_map->insert(PlayerViewElement(view, session, Coord(sector_x, sector_y)));
 			}
 		}
