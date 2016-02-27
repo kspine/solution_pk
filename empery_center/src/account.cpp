@@ -101,7 +101,7 @@ Account::Account(AccountUuid account_uuid, PlatformId platformId, std::string lo
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Account>(account_uuid.get(), platformId.get(), std::move(login_name),
 				referrer_uuid.get(), promotion_level, created_time, std::move(nick), false, 0, 0);
-			obj->async_save(true);
+			obj->enable_auto_saving(); // obj->async_save(true);
 			return obj;
 		}())
 {
@@ -257,7 +257,7 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 		if(obj_it == m_attributes.end()){
 			auto obj = boost::make_shared<MySql::Center_AccountAttribute>(m_obj->get_account_uuid(),
 				it->first.get(), std::string());
-			obj->async_save(true);
+			obj->enable_auto_saving(); // obj->async_save(true);
 			m_attributes.emplace(it->first, std::move(obj));
 		}
 	}

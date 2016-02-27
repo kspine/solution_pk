@@ -37,7 +37,7 @@ AuctionTransaction::AuctionTransaction(std::string serial, AccountUuid account_u
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_AuctionTransaction>(std::move(serial), account_uuid.get(), static_cast<unsigned>(operation),
 				created_time, expiry_time, item_id.get(), item_count, std::move(remarks), false, false, std::string());
-			obj->async_save(true);
+			obj->enable_auto_saving(); // obj->async_save(true);
 			return obj;
 		}())
 {

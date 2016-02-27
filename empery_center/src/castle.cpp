@@ -224,7 +224,7 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 			", building_base_id = ", building_base_id, ", building_id = ", building_id);
 		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
 			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
-		obj->async_save(true);
+		obj->enable_auto_saving(); // obj->async_save(true);
 		m_buildings.emplace(building_base_id, std::move(obj));
 	}
 
@@ -236,7 +236,7 @@ Castle::Castle(MapObjectUuid map_object_uuid,
 		const auto resource_id = resource_data->resource_id;
 		auto obj = boost::make_shared<MySql::Center_CastleResource>(
 			get_map_object_uuid().get(), resource_id.get(), resource_data->init_amount);
-		obj->async_save(true);
+		obj->enable_auto_saving(); // obj->async_save(true);
 		m_resources.emplace(resource_id, std::move(obj));
 	}
 }
@@ -398,7 +398,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	if(it == m_buildings.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
 			get_map_object_uuid().get(), building_base_id.get(), 0, 0, MIS_NONE, 0, 0, 0);
-		obj->async_save(true);
+		obj->enable_auto_saving(); // obj->async_save(true);
 		it = m_buildings.emplace(building_base_id, obj).first;
 	}
 	const auto &obj = it->second;
@@ -693,7 +693,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 	if(it == m_techs.end()){
 		auto obj = boost::make_shared<MySql::Center_CastleTech>(
 			get_map_object_uuid().get(), tech_id.get(), 0, MIS_NONE, 0, 0, 0);
-		obj->async_save(true);
+		obj->enable_auto_saving(); // obj->async_save(true);
 		it = m_techs.emplace(tech_id, obj).first;
 	}
 	const auto &obj = it->second;
@@ -931,7 +931,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 					if(it == m_resources.end()){
 						obj = boost::make_shared<MySql::Center_CastleResource>(
 							get_map_object_uuid().get(), resource_id.get(), 0);
-						obj->async_save(true);
+						obj->enable_auto_saving(); // obj->async_save(true);
 						m_resources.emplace(resource_id, obj);
 					} else {
 						obj = it->second;

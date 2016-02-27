@@ -61,7 +61,7 @@ void ItemBox::pump_status(){
 		auto it = m_items.find(item_data->item_id);
 		if(it == m_items.end()){
 			auto obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_data->item_id.get(), 0, 0);
-			obj->async_save(true);
+			obj->enable_auto_saving(); // obj->async_save(true);
 			it = m_items.emplace(item_data->item_id, std::move(obj)).first;
 		}
 		const auto &obj = it->second;
@@ -220,7 +220,7 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 				auto it = m_items.find(item_id);
 				if(it == m_items.end()){
 					auto obj = boost::make_shared<MySql::Center_Item>(account_uuid.get(), item_id.get(), 0, 0);
-					obj->async_save(true);
+					obj->enable_auto_saving(); // obj->async_save(true);
 					it = m_items.emplace_hint(it, item_id, std::move(obj));
 				}
 				const auto &obj = it->second;
