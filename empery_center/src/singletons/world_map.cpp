@@ -114,10 +114,10 @@ namespace {
 		const auto mask_x = coord.x() >> 63;
 		const auto mask_y = coord.y() >> 63;
 
-		const auto cluster_x = ((coord.x() ^ mask_x) / SECTOR_SIDE_LENGTH ^ mask_x) * SECTOR_SIDE_LENGTH;
-		const auto cluster_y = ((coord.y() ^ mask_y) / SECTOR_SIDE_LENGTH ^ mask_y) * SECTOR_SIDE_LENGTH;
+		const auto sector_x = ((coord.x() ^ mask_x) / SECTOR_SIDE_LENGTH ^ mask_x) * SECTOR_SIDE_LENGTH;
+		const auto sector_y = ((coord.y() ^ mask_y) / SECTOR_SIDE_LENGTH ^ mask_y) * SECTOR_SIDE_LENGTH;
 
-		return Coord(cluster_x, cluster_y);
+		return Coord(sector_x, sector_y);
 	}
 
 	struct PlayerViewElement {
