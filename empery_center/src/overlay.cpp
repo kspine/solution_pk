@@ -22,7 +22,7 @@ Overlay::Overlay(Coord cluster_coord, std::string overlay_group_name,
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Overlay>(cluster_coord.x(), cluster_coord.y(), std::move(overlay_group_name),
 				overlay_id.get(), resource_id.get(), resource_amount);
-			obj->enable_auto_saving(); // obj->async_save(true);
+			obj->async_save(true);
 			return obj;
 		}())
 {

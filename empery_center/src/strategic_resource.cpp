@@ -22,7 +22,7 @@ StrategicResource::StrategicResource(Coord coord, ResourceId resource_id, std::u
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_StrategicResource>(coord.x(), coord.y(),
 				resource_id.get(), resource_amount, created_time, expiry_time);
-			obj->enable_auto_saving(); // obj->async_save(true);
+			obj->async_save(true);
 			return obj;
 		}())
 {
