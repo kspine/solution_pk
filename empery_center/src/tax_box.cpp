@@ -75,7 +75,7 @@ void TaxBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 	const auto obj = boost::make_shared<MySql::Center_TaxRecord>(Poseidon::Uuid::random(),
 		get_account_uuid().get(), timestamp, from_account_uuid.get(),
 		reason.get(), old_amount, new_amount, static_cast<std::int64_t>(new_amount - old_amount), false);
-	obj->async_save(true);
+	obj->enable_auto_saving(); // obj->async_save(true);
 	m_records.emplace_back(obj);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
