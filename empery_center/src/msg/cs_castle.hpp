@@ -208,6 +208,15 @@ namespace Msg {
 	FIELD_VUINT         (building_base_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleCreateChildCastle
+#define MESSAGE_ID      425
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_STRING        (name)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
