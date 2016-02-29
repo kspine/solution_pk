@@ -214,8 +214,10 @@ namespace IdTypes {
 	using TaskId              = GenericId<std::uint32_t, 120014>;
 	using TaskTypeId          = GenericId<std::uint32_t, 120015>;
 	using BuildingTypeId      = GenericId<std::uint32_t, 120016>;
-	using ArmTypeId			  = GenericId<std::uint32_t, 120017>;
-	
+	using ArmTypeId           = GenericId<std::uint32_t, 120017>;
+	using MapEventId          = GenericId<std::uint32_t, 120018>;
+	using MapEventCircleId    = GenericId<std::uint32_t, 120019>;
+
 	using AccountUuid         = GenericUuid<210001>;
 	using MapObjectUuid       = GenericUuid<210002>;
 	using MailUuid            = GenericUuid<210003>;
