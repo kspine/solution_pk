@@ -34,6 +34,12 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shar
 		if(!terrain_data->buildable){
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<foundation_coord;
 		}
+		const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
+		if((map_x < border_thickness) || (map_x >= cluster_scope.width() - border_thickness) ||
+			(map_y < border_thickness) || (map_y >= cluster_scope.height() - border_thickness))
+		{
+			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<foundation_coord;
+		}
 
 		std::vector<boost::shared_ptr<MapCell>> map_cells;
 		WorldMap::get_map_cells_by_rectangle(map_cells, Rectangle(foundation_coord, 1, 1));

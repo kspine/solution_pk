@@ -231,6 +231,14 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
 		return UINT64_MAX;
 	}
+	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
+	if((map_x < border_thickness) || (map_x >= new_cluster_scope.width() - border_thickness) ||
+		(map_y < border_thickness) || (map_y >= new_cluster_scope.height() - border_thickness))
+	{
+		LOG_EMPERY_CLUSTER_DEBUG("Blocked by map border: new_coord = ", new_coord);
+		result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<new_coord;
+		return UINT64_MAX;
+	}
 
 	std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
 	WorldMap::get_map_objects_by_rectangle(adjacent_objects,

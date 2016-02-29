@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "../msg/cs_castle.hpp"
 #include "../msg/err_castle.hpp"
+#include "../msg/err_map.hpp"
 #include "../singletons/world_map.hpp"
 #include "../castle.hpp"
 #include "../data/castle.hpp"
@@ -23,6 +24,11 @@
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
+#include "../castle_utilities.hpp"
+#include "../announcement.hpp"
+#include "../singletons/announcement_map.hpp"
+#include "../chat_message_type_ids.hpp"
+#include "../chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -377,8 +383,6 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -387,6 +391,8 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 	castle->pump_building_status(building_base_id);
@@ -551,8 +557,6 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -561,6 +565,8 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTechImmediately, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto tech_id = TechId(req.tech_id);
 	castle->pump_tech_status(tech_id);
@@ -700,8 +706,6 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -710,6 +714,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto castle_level = castle->get_level();
 	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
@@ -793,8 +799,6 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -803,6 +807,8 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 	castle->pump_building_status(building_base_id);
@@ -840,8 +846,6 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -850,6 +854,8 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto tech_id = TechId(req.tech_id);
 	castle->pump_tech_status(tech_id);
@@ -887,8 +893,6 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -897,6 +901,8 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto item_id = ItemId(req.item_id);
 	const auto item_data = Data::Item::require(item_id);
@@ -1269,6 +1275,111 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBattalionProductionImmediately, account, se
 		[&]{ castle->speed_up_battalion_production(building_base_id, UINT64_MAX); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	const auto coord = Coord(req.x, req.y);
+	const auto test_cluster = WorldMap::get_cluster(coord);
+	if(!test_cluster){
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
+	}
+
+	const auto castle_level = castle->get_level();
+	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+	if(upgrade_data->max_immigrant_group_count == 0){
+		return Response(Msg::ERR_CASTLE_LEVEL_TOO_LOW);
+	}
+
+	std::size_t immigrant_group_count = 0;
+	std::vector<boost::shared_ptr<MapObject>> temp_map_objects;
+	WorldMap::get_map_objects_by_parent_object(temp_map_objects, map_object_uuid);
+	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
+		const auto &child_object = *it;
+		const auto child_object_type_id = child_object->get_map_object_type_id();
+		if((child_object_type_id != MapObjectTypeIds::ID_CASTLE) && (child_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("Found child castle or immigrant group: map_object_uuid = ", map_object_uuid,
+			", child_object_uuid = ", child_object->get_map_object_uuid(), ", child_object_type_id = ", child_object_type_id);
+		++immigrant_group_count;
+	}
+	if(immigrant_group_count >= upgrade_data->max_immigrant_group_count){
+		return Response(Msg::ERR_MAX_NUMBER_OF_IMMIGRANT_GROUPS) <<upgrade_data->max_immigrant_group_count;
+	}
+
+	immigrant_group_count = 0;
+	temp_map_objects.clear();
+	WorldMap::get_map_objects_by_owner(temp_map_objects, account->get_account_uuid());
+	for(auto it = temp_map_objects.begin(); it != temp_map_objects.end(); ++it){
+		const auto &other_object = *it;
+		const auto other_object_type_id = other_object->get_map_object_type_id();
+		if((other_object_type_id != MapObjectTypeIds::ID_CASTLE) && (other_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS)){
+			continue;
+		}
+		LOG_EMPERY_CENTER_DEBUG("Found another castle or immigrant group: map_object_uuid = ", map_object_uuid,
+			", other_object_uuid = ", other_object->get_map_object_uuid(), ", other_object_type_id = ", other_object_type_id);
+		++immigrant_group_count;
+	}
+	const auto vip_data = Data::Vip::require(account->get_promotion_level());
+	if(immigrant_group_count >= vip_data->max_castle_count + 1){
+		return Response(Msg::ERR_ACCOUNT_MAX_IMMIGRANT_GROUPS) <<vip_data->max_castle_count;
+	}
+
+	auto deploy_result = can_deploy_castle_at(coord, { });
+	if(deploy_result.first != Msg::ST_OK){
+		return std::move(deploy_result);
+	}
+
+	const auto child_castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
+	const auto utc_now = Poseidon::get_utc_time();
+
+	std::vector<ItemTransactionElement> transaction;
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_IMMIGRANT_CREATION_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{
+			const auto child_castle = boost::make_shared<Castle>(child_castle_uuid,
+				account->get_account_uuid(), castle->get_map_object_uuid(), std::move(req.name), coord, utc_now);
+			child_castle->pump_status();
+			child_castle->recalculate_attributes();
+			WorldMap::insert_map_object(castle);
+			LOG_EMPERY_CENTER_INFO("Created castle: child_castle_uuid = ", child_castle_uuid,
+				", owner_uuid = ", account->get_account_uuid(), ", coord = ", coord);
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	try {
+		const auto announcement_uuid = AnnouncementUuid(Poseidon::Uuid::random());
+		const auto language_id       = LanguageId();
+
+		std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+		segments.reserve(4);
+		segments.emplace_back(ChatMessageSlotIds::ID_NEW_CASTLE_OWNER,   account->get_account_uuid().str());
+		segments.emplace_back(ChatMessageSlotIds::ID_NEW_CASTLE_COORD_X, boost::lexical_cast<std::string>(coord.x()));
+		segments.emplace_back(ChatMessageSlotIds::ID_NEW_CASTLE_COORD_Y, boost::lexical_cast<std::string>(coord.y()));
+
+		const auto announcement = boost::make_shared<Announcement>(announcement_uuid, language_id, utc_now,
+			utc_now + 1000, 0, ChatMessageTypeIds::ID_NEW_CASTLE_NOTIFICATION, std::move(segments));
+		AnnouncementMap::insert(announcement);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
 
 	return Response();
