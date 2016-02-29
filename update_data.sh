@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 prefix="../svn/paike_Numerical"
 destination="./etc/poseidon/empery_center_data"
 
