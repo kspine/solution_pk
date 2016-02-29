@@ -458,7 +458,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		return UINT64_MAX;
 	}
 	const auto attack_speed = map_object_type_data->attack_speed * 1000;
-	const auto shoot_range = map_object_type_data->shoot_range;
 	
 	const auto emempy_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
 	if(!emempy_type_data){
@@ -471,7 +470,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	if(!is_in_attack_scope(target_object_uuid)){
 		return UINT64_MAX;
 	}
-	LOG_EMPERY_CLUSTER_DEBUG("xxxxxSet new attack : attack_object_uuid = ", get_map_object_uuid(), " action = " ,m_action);
 	
 	//直接发送到客户端
 	Msg::SC_MapObjectAttack msgAttack;
@@ -479,16 +477,22 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	msgAttack.attacked_uuid =  target_object_uuid.str();
 	msgAttack.impact = IMPACT_NORMAL;
 	msgAttack.damage = 0;
+	msgAttack.x = target_object->get_coord().x();
+	msgAttack.y = target_object->get_coord().y();
 	
 	bool bDodge = false;
 	bool bCritical = false;
 	std::uint64_t damage = 0;
 	double addition_params = 1.0;//加成参数
 	double damage_reduce_rate = 0.0;//伤害减免率
+	double doge_rate = 0.30;
+	double critical_rate = 0.30;
+	double critical_demage_plus_rate = 0.30;
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->arm_type_id,emempy_type_data->arm_type_id);
 	//计算闪避，闪避成功，
+	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 	
 	if(bDodge){
 		msgAttack.impact = IMPACT_MISS;
@@ -496,19 +500,20 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	}else{
 		//伤害计算
 		if(target_object->get_map_object_type_id() == EmperyCenter::MapObjectTypeIds::ID_CASTLE ){
-			damage = (1 +(soldier_count/10000) + (soldier_count - ememy_solider_count)/10000 * 0.5*relative_rate*
-			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1+damage_reduce_rate));
+			damage = (1.0 +(soldier_count/10000.0) + (soldier_count - ememy_solider_count)/10000.0 * 0.5*relative_rate*
+			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate));
 		}else{
-			damage =  (1 +(soldier_count/10000)*relative_rate*
-			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1+damage_reduce_rate));
+			damage =  (1.0 +(soldier_count/10000.0)*relative_rate*
+			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate));
 		}
 		msgAttack.impact = IMPACT_NORMAL;
 		msgAttack.damage = damage;
 		//暴击计算
-	
+		bCritical = Poseidon::rand32()%100 < critical_rate*100;
 		if(bCritical){
 			msgAttack.impact = IMPACT_CRITICAL;
-			msgAttack.damage = 0;
+			damage = damage*(1.0+critical_demage_plus_rate);
+			msgAttack.damage = damage;
 		}
 	}
 	
@@ -517,9 +522,19 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.emplace(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT, new_ememy_solider_count);
 	target_object->set_attributes(std::move(modifiers));
+	std::int64_t min_x,min_y,x,y,target_x,target_y;
+	std::uint64_t width,height;
+	x = get_coord().x();
+	y = get_coord().y();
+	target_x = target_object->get_coord().x();
+	target_y = target_object->get_coord().y();
+	min_x = (x < target_x) ? x:target_x;
+	min_y = (y < target_y) ? y:target_y;
+	width = static_cast<std::uint64_t>(abs(x-target_x));
+	height = static_cast<std::uint64_t>(abs(y-target_y));
 	const auto cluster = get_cluster();
 	if(cluster){
-		cluster->send_notification_by_rectangle(Rectangle(get_coord(), shoot_range + 1, shoot_range + 1),msgAttack);
+		cluster->send_notification_by_rectangle(Rectangle(Coord(min_x,min_y), width, height),msgAttack);
 	}
 	
 	

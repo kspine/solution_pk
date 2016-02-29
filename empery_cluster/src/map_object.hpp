@@ -36,7 +36,7 @@ public:
 		ACT_HARVEST_STRATEGIC_RESOURCE = 5,
 	};
 
-	enum ATTACK_IMPACT {
+	enum Attackimpact {
 		IMPACT_NORMAL            = 0,
 		IMPACT_MISS              = 1,
 		IMPACT_CRITICAL          = 2,

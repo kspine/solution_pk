@@ -1157,7 +1157,9 @@ void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<Playe
 				if((view.left() < rectangle.right()) && (rectangle.left() < view.right()) &&
 					(view.bottom() < rectangle.top()) && (rectangle.bottom() < view.top()))
 				{
+
 					temp.emplace(std::move(session));
+					
 				}
 			}
 		}
@@ -1192,6 +1194,7 @@ void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &sessio
 	try {
 		for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); sector_x += SECTOR_SIDE_LENGTH){
 			for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); sector_y += SECTOR_SIDE_LENGTH){
+				LOG_EMPERY_CENTER_FATAL("Adding session into sector: session = ", (void *)session.get(), ", sector_coord = ", Coord(sector_x, sector_y));
 				player_view_map->insert(PlayerViewElement(session, Coord(sector_x, sector_y)));
 			}
 		}
