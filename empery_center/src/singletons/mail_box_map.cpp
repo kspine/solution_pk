@@ -67,44 +67,53 @@ namespace {
 		LOG_EMPERY_CENTER_TRACE("Mail box gc timer: now = ", now);
 
 		const auto mail_box_map = g_mail_box_map.lock();
-		if(mail_box_map){
-			for(;;){
-				const auto it = mail_box_map->begin<1>();
-				if(it == mail_box_map->end<1>()){
-					break;
-				}
-				if(now < it->unload_time){
-					break;
-				}
-
-				// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-				if((it->promise.use_count() <= 1) && it->mail_box && it->mail_box.unique()){
-					LOG_EMPERY_CENTER_DEBUG("Reclaiming mail box: account_uuid = ", it->account_uuid);
-					mail_box_map->erase<1>(it);
-				} else {
-					mail_box_map->set_key<1, 1>(it, now + 1000);
-				}
-			}
+		if(!mail_box_map){
+			return;
 		}
 
-		const auto mail_data_map = g_mail_data_map.lock();
-		if(mail_data_map){
-			for(;;){
-				const auto it = mail_data_map->begin<1>();
-				if(it == mail_data_map->end<1>()){
-					break;
-				}
-				if(now < it->unload_time){
-					break;
-				}
+		for(;;){
+			const auto it = mail_box_map->begin<1>();
+			if(it == mail_box_map->end<1>()){
+				break;
+			}
+			if(now < it->unload_time){
+				break;
+			}
 
-				// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-				if((it->promise.use_count() <= 1) && it->mail_data && it->mail_data.unique()){
-					LOG_EMPERY_CENTER_DEBUG("Reclaiming mail data: mail_uuid = ", it->pkey.first);
-					mail_data_map->erase<1>(it);
-				} else {
-					mail_data_map->set_key<1, 1>(it, now + 1000);
-				}
+			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
+			if((it->promise.use_count() <= 1) && it->mail_box && it->mail_box.unique()){
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail box: account_uuid = ", it->account_uuid);
+				mail_box_map->erase<1>(it);
+			} else {
+				mail_box_map->set_key<1, 1>(it, now + 1000);
+			}
+		}
+	}
+
+	void data_gc_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Mail data gc timer: now = ", now);
+
+		const auto mail_data_map = g_mail_data_map.lock();
+		if(!mail_data_map){
+			return;
+		}
+
+		for(;;){
+			const auto it = mail_data_map->begin<1>();
+			if(it == mail_data_map->end<1>()){
+				break;
+			}
+			if(now < it->unload_time){
+				break;
+			}
+
+			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
+			if((it->promise.use_count() <= 1) && it->mail_data && it->mail_data.unique()){
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail data: mail_uuid = ", it->pkey.first);
+				mail_data_map->erase<1>(it);
+			} else {
+				mail_data_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}
@@ -119,8 +128,13 @@ namespace {
 		handles.push(mail_data_map);
 
 		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
+
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+
+		timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
+			std::bind(&data_gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 	}
 

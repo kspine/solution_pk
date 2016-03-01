@@ -41,23 +41,25 @@ namespace {
 		LOG_EMPERY_CENTER_TRACE("Task box gc timer: now = ", now);
 
 		const auto task_box_map = g_task_box_map.lock();
-		if(task_box_map){
-			for(;;){
-				const auto it = task_box_map->begin<1>();
-				if(it == task_box_map->end<1>()){
-					break;
-				}
-				if(now < it->unload_time){
-					break;
-				}
+		if(!task_box_map){
+			return;
+		}
 
-				// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-				if((it->promise.use_count() <= 1) && it->task_box && it->task_box.unique()){
-					LOG_EMPERY_CENTER_DEBUG("Reclaiming task box: account_uuid = ", it->account_uuid);
-					task_box_map->erase<1>(it);
-				} else {
-					task_box_map->set_key<1, 1>(it, now + 1000);
-				}
+		for(;;){
+			const auto it = task_box_map->begin<1>();
+			if(it == task_box_map->end<1>()){
+				break;
+			}
+			if(now < it->unload_time){
+				break;
+			}
+
+			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
+			if((it->promise.use_count() <= 1) && it->task_box && it->task_box.unique()){
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming task box: account_uuid = ", it->account_uuid);
+				task_box_map->erase<1>(it);
+			} else {
+				task_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}

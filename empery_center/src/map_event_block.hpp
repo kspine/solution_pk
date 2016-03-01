@@ -39,7 +39,7 @@ private:
 		boost::shared_ptr<MySql::Center_MapEvent>> m_events;
 
 public:
-	explicit MapEventBlock(Coord coord);
+	explicit MapEventBlock(Coord block_coord);
 	MapEventBlock(boost::shared_ptr<MySql::Center_MapEventBlock> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapEvent>> &events);
 	~MapEventBlock();

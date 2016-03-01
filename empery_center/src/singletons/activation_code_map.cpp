@@ -36,23 +36,25 @@ namespace {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Activation code gc timer: now = ", now);
 
+		const auto activation_code_map = g_activation_code_map.lock();
+		if(!activation_code_map){
+			return;
+		}
+
 		const auto utc_now = Poseidon::get_utc_time();
 
-		const auto activation_code_map = g_activation_code_map.lock();
-		if(activation_code_map){
-			for(;;){
-				const auto it = activation_code_map->begin<1>();
-				if(it == activation_code_map->end<1>()){
-					break;
-				}
-				if(utc_now < it->expiry_time){
-					break;
-				}
-
-				const auto activation_code = it->activation_code;
-				LOG_EMPERY_CENTER_DEBUG("Reclaiming activation code: code = ", activation_code->get_code());
-				activation_code_map->erase<1>(it);
+		for(;;){
+			const auto it = activation_code_map->begin<1>();
+			if(it == activation_code_map->end<1>()){
+				break;
 			}
+			if(utc_now < it->expiry_time){
+				break;
+			}
+
+			const auto activation_code = it->activation_code;
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming activation code: code = ", activation_code->get_code());
+			activation_code_map->erase<1>(it);
 		}
 	}
 

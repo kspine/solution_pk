@@ -39,28 +39,29 @@ namespace {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Auction transaction gc timer: now = ", now);
 
+		const auto auction_transaction_map = g_auction_transaction_map.lock();
+		if(!auction_transaction_map){
+		    return;
+		}
+
 		const auto utc_now = Poseidon::get_utc_time();
 
 		std::vector<boost::shared_ptr<AuctionTransaction>> erased;
+		erased.reserve(auction_transaction_map->size());
 
-		const auto auction_transaction_map = g_auction_transaction_map.lock();
-		if(auction_transaction_map){
-			erased.reserve(auction_transaction_map->size());
-
-			for(;;){
-				const auto it = auction_transaction_map->begin<2>();
-				if(it == auction_transaction_map->end<2>()){
-					break;
-				}
-				if(utc_now < it->expiry_time){
-					break;
-				}
-				const auto &auction_transaction = it->auction_transaction;
-
-				LOG_EMPERY_CENTER_DEBUG("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
-				erased.emplace_back(auction_transaction);
-				auction_transaction_map->erase<2>(it);
+		for(;;){
+			const auto it = auction_transaction_map->begin<2>();
+			if(it == auction_transaction_map->end<2>()){
+				break;
 			}
+			if(utc_now < it->expiry_time){
+				break;
+			}
+			const auto &auction_transaction = it->auction_transaction;
+
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
+			erased.emplace_back(auction_transaction);
+			auction_transaction_map->erase<2>(it);
 		}
 
 		for(auto it = erased.begin(); it != erased.end(); ++it){

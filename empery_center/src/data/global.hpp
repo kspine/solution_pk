@@ -12,7 +12,7 @@ namespace Data {
 		enum Slot {
 			SLOT_CASTLE_UPGRADE_CANCELLATION_REFUND_RATIO           = 100001,
 			SLOT_DEFAULT_MAIL_EXPIRY_DURATION                       = 100002,
-			SLOT_MAP_SIZE                                           = 100003,
+			// SLOT_MAP_SIZE                                           = 100003,
 			SLOT_NON_BEST_RESOURCE_PRODUCTION_RATE_MODIFIER         = 100004,
 			SLOT_NON_BEST_RESOURCE_CAPACITY_MODIFIER                = 100005,
 			SLOT_ACCELERATION_CARD_PRODUCTION_RATE_MODIFIER         = 100006,

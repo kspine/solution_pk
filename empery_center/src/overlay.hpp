@@ -29,6 +29,8 @@ public:
 	~Overlay();
 
 public:
+	virtual void pump_status();
+
 	Coord get_cluster_coord() const;
 	const std::string &get_overlay_group_name() const;
 	OverlayId get_overlay_id() const;

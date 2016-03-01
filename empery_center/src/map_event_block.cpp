@@ -3,6 +3,7 @@
 #include "mysql/map_event.hpp"
 #include "data/map_event.hpp"
 #include "data/global.hpp"
+#include "singletons/map_event_block_map.hpp"
 #include "singletons/world_map.hpp"
 #include "strategic_resource.hpp"
 #include "map_object.hpp"
@@ -21,10 +22,10 @@ namespace {
 	}
 }
 
-MapEventBlock::MapEventBlock(Coord coord)
+MapEventBlock::MapEventBlock(Coord block_coord)
 	: m_obj(
 		[&]{
-			auto obj = boost::make_shared<MySql::Center_MapEventBlock>(coord.x(), coord.y(), 0);
+			auto obj = boost::make_shared<MySql::Center_MapEventBlock>(block_coord.x(), block_coord.y(), 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -81,6 +82,7 @@ void MapEventBlock::pump_status(){
 
 void MapEventBlock::refresh_events(bool first_time){
 	PROFILE_ME;
+	LOG_EMPERY_CENTER_DEBUG("Refresh map events: block_coord = ", get_block_coord(), ", first_time = ", first_time);
 
 	
 }
