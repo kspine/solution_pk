@@ -5,6 +5,7 @@
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
 #include "../msg/err_castle.hpp"
+#include "../msg/err_account.hpp"
 #include "../msg/kill.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
@@ -25,6 +26,9 @@
 #include "../chat_message_slot_ids.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
+#include "../singletons/account_map.hpp"
+#include "../account_attribute_ids.hpp"
+#include "../account.hpp"
 
 namespace EmperyCenter {
 
@@ -296,6 +300,29 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		", harvest_speed = ", harvest_speed, ", interval = ", interval, ", harvested_amount = ", harvested_amount);
 
 	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
+	const auto account_uuid = AccountUuid(req.owner_uuid);
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		LOG_EMPERY_CENTER_WARNING("Account not found: account_uuid = ", account_uuid);
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT);
+	}
+
+	const auto last_show_blood  = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_BLOOD_DISPLAY)- 1*1000*1000;
+	const auto utc_now = Poseidon::get_utc_time();
+	//提前1秒钟通知
+	if(utc_now < last_show_blood){
+		return Response();
+	}
+	const auto display_blood_time = utc_now + Data::Global::as_unsigned(Data::Global::SLOT_DISPLAY_BLOOD_TIME)*60*1000*1000;
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers[AccountAttributeIds::ID_LAST_BLOOD_DISPLAY] = boost::lexical_cast<std::string>(display_blood_time);
+	account->set_attributes(std::move(modifiers));
+	
+	return Response();
+	
 }
 
 }

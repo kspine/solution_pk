@@ -45,6 +45,7 @@ namespace Data {
 			SLOT_BATTALION_PRODUCTION_CANCELLATION_REFUND_RATIO     = 100037,
 			SLOT_MAX_DAILY_TASK_COUNT                               = 100038,
 			SLOT_CASTLE_IMMEDIATE_BATTALION_PRODUCTION_TRADE_ID     = 100039,
+			SLOT_DISPLAY_BLOOD_TIME                                 = 100041,
 		};
 
 	public:

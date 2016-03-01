@@ -478,7 +478,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	if(!is_in_attack_scope(target_object_uuid)){
 		return UINT64_MAX;
 	}
-	
+	display_blood();
 	//直接发送到客户端
 	Msg::SC_MapObjectAttack msgAttack;
 	msgAttack.attacking_uuid  = m_map_object_uuid.str();
@@ -560,6 +560,7 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	if(m_action != ACT_ATTACK && m_waypoints.empty() ){
 		if(is_in_attack_scope(attacker->get_map_object_uuid())){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),attacker->get_map_object_uuid().str());
+			display_blood();
 		}else{
 			
 		}
@@ -596,6 +597,15 @@ bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 		return true;
 	}
 	return false;
+}
+
+void MapObject::display_blood(){
+	Msg::KS_DisplayBlood msgDisplayBlood;
+	msgDisplayBlood.owner_uuid = get_owner_uuid().str();
+	const auto cluster = get_cluster();
+	if(cluster){
+		cluster->send(msgDisplayBlood);
+	}
 }
 
 }

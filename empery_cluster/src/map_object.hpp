@@ -93,6 +93,7 @@ public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
+	void          display_blood();
 	
 public:
 	MapObjectUuid get_map_object_uuid() const {
