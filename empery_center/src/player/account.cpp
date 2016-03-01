@@ -113,6 +113,8 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	}
 	const auto account_uuid = account->get_account_uuid();
 
+	session->send(Msg::SC_AccountSynchronizeSystemClock(std::string(), utc_now));
+
 	get_signed_in(account);
 
 	PlayerSessionMap::add(account, session);
@@ -249,7 +251,9 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account, session, req){
 }
 
 PLAYER_SERVLET_RAW(Msg::CS_AccountSynchronizeSystemClock, session, req){
-	session->send(Msg::SC_AccountSynchronizeSystemClock(std::move(req.context), Poseidon::get_utc_time()));
+	const auto utc_now = Poseidon::get_utc_time();
+
+	session->send(Msg::SC_AccountSynchronizeSystemClock(std::move(req.context), utc_now));
 
 	return Response();
 }
