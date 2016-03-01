@@ -120,10 +120,6 @@ MailBox::MailInfo MailBox::get(MailUuid mail_uuid) const {
 	if(it == m_mails.end()){
 		return info;
 	}
-	const auto utc_now = Poseidon::get_utc_time();
-	if(it->second->get_expiry_time() < utc_now){
-		return info;
-	}
 	fill_mail_info(info, it->second);
 	return info;
 }
@@ -131,18 +127,14 @@ void MailBox::get_all(std::vector<MailBox::MailInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_mails.size());
-	const auto utc_now = Poseidon::get_utc_time();
 	for(auto it = m_mails.begin(); it != m_mails.end(); ++it){
-		if(it->second->get_expiry_time() < utc_now){
-			continue;
-		}
 		MailInfo info;
 		fill_mail_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
 }
 
-void MailBox::insert(MailInfo info){
+void MailBox::insert(MailBox::MailInfo info){
 	PROFILE_ME;
 
 	const auto mail_uuid = info.mail_uuid;
@@ -175,7 +167,7 @@ void MailBox::insert(MailInfo info){
 		}
 	}
 }
-void MailBox::update(MailInfo info, bool throws_if_not_exists){
+void MailBox::update(MailBox::MailInfo info, bool throws_if_not_exists){
 	PROFILE_ME;
 
 	const auto mail_uuid = info.mail_uuid;

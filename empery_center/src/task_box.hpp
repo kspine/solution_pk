@@ -49,8 +49,7 @@ private:
 	boost::shared_ptr<MySql::Center_Task> m_stamps;
 
 	boost::container::flat_map<TaskId,
-		boost::shared_ptr<std::pair<boost::shared_ptr<MySql::Center_Task>, Progress>>
-		> m_tasks;
+		boost::shared_ptr<std::pair<boost::shared_ptr<MySql::Center_Task>, Progress>>> m_tasks;
 
 public:
 	TaskBox(AccountUuid account_uuid,

@@ -16,7 +16,8 @@ namespace MySql {
 
 class Account : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
-	boost::shared_ptr<MySql::Center_Account> m_obj;
+	const boost::shared_ptr<MySql::Center_Account> m_obj;
+
 	boost::container::flat_map<AccountAttributeId,
 		boost::shared_ptr<MySql::Center_AccountAttribute>> m_attributes;
 

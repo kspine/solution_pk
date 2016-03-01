@@ -13,6 +13,8 @@ namespace Data {
 		static boost::shared_ptr<const MapEventBlock> get(unsigned num_x, unsigned num_y);
 		static boost::shared_ptr<const MapEventBlock> require(unsigned num_x, unsigned num_y);
 
+		static void get_all(std::vector<boost::shared_ptr<const MapEventBlock>> &ret);
+
 	public:
 		std::pair<unsigned, unsigned> num_coord;
 		MapEventCircleId map_event_circle_id;

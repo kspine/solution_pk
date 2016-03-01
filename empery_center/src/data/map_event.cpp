@@ -153,6 +153,21 @@ namespace Data {
 		return ret;
 	}
 
+	void MapEventBlock::get_all(std::vector<boost::shared_ptr<const MapEventBlock>> &ret){
+		PROFILE_ME;
+
+		const auto map_event_block_map = g_map_event_block_map.lock();
+		if(!map_event_block_map){
+			LOG_EMPERY_CENTER_WARNING("MapEventBlockMap has not been loaded.");
+			return;
+		}
+
+		ret.reserve(ret.size() + map_event_block_map->size());
+		for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+			ret.emplace_back(map_event_block_map, &*it);
+		}
+	}
+
 	boost::shared_ptr<const MapEventGeneration> MapEventGeneration::get(MapEventCircleId map_event_circle_id, MapEventId map_event_id){
 		PROFILE_ME;
 

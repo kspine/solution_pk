@@ -17,7 +17,7 @@ class PlayerSession;
 
 class StrategicResource : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
-	boost::shared_ptr<MySql::Center_StrategicResource> m_obj;
+	const boost::shared_ptr<MySql::Center_StrategicResource> m_obj;
 
 	// 非持久化数据。
 	double m_harvest_remainder = 0;
@@ -34,6 +34,9 @@ public:
 	std::uint64_t get_resource_amount() const;
 	std::uint64_t get_created_time() const;
 	std::uint64_t get_expiry_time() const;
+
+	bool has_been_deleted() const;
+	void delete_from_game() noexcept;
 
 	std::uint64_t harvest(const boost::shared_ptr<MapObject> &harvester, std::uint64_t duration, bool saturated);
 

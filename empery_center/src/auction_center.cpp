@@ -363,7 +363,7 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 	const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
 
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto due_time = saturated_add(utc_now, saturated_mul(transfer_duration, (std::uint64_t)60000));
+	const auto due_time = saturated_add(utc_now, saturated_mul<std::uint64_t>(transfer_duration, 60000));
 
 	std::vector<ResourceTransactionElement> resource_transaction;
 	resource_transaction.reserve(64);

@@ -34,7 +34,7 @@ namespace {
 			LOG_EMPERY_CENTER_ERROR("Sign-in item is not daily-reset?");
 			DEBUG_THROW(Exception, sslit("Sign-in item is not daily-reset"));
 		}
-		const auto auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
+		const auto auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
 		LOG_EMPERY_CENTER_DEBUG("Retrieved daily sign-in offset: auto_inc_offset = ", auto_inc_offset);
 
 		const auto utc_now = Poseidon::get_utc_time();

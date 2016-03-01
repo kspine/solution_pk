@@ -826,7 +826,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 3)){
 		return Response(Msg::ERR_NOT_BUILDING_UPGRADE_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -873,7 +873,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 4)){
 		return Response(Msg::ERR_NOT_TECH_UPGRADE_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -1096,7 +1096,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 2)){
 		return Response(Msg::ERR_NOT_BATTALION_PRODUCTION_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
