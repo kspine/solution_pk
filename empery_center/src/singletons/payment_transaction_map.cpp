@@ -39,28 +39,29 @@ namespace {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Payment transaction gc timer: now = ", now);
 
+		const auto payment_transaction_map = g_payment_transaction_map.lock();
+		if(!payment_transaction_map){
+			return;
+		}
+
 		const auto utc_now = Poseidon::get_utc_time();
 
 		std::vector<boost::shared_ptr<PaymentTransaction>> erased;
+		erased.reserve(payment_transaction_map->size());
 
-		const auto payment_transaction_map = g_payment_transaction_map.lock();
-		if(payment_transaction_map){
-			erased.reserve(payment_transaction_map->size());
-
-			for(;;){
-				const auto it = payment_transaction_map->begin<2>();
-				if(it == payment_transaction_map->end<2>()){
-					break;
-				}
-				if(utc_now < it->expiry_time){
-					break;
-				}
-				const auto &payment_transaction = it->payment_transaction;
-
-				LOG_EMPERY_CENTER_DEBUG("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
-				erased.emplace_back(payment_transaction);
-				payment_transaction_map->erase<2>(it);
+		for(;;){
+			const auto it = payment_transaction_map->begin<2>();
+			if(it == payment_transaction_map->end<2>()){
+				break;
 			}
+			if(utc_now < it->expiry_time){
+				break;
+			}
+			const auto &payment_transaction = it->payment_transaction;
+
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
+			erased.emplace_back(payment_transaction);
+			payment_transaction_map->erase<2>(it);
 		}
 
 		for(auto it = erased.begin(); it != erased.end(); ++it){

@@ -2,6 +2,7 @@
 #define EMPERY_CENTER_COORD_HPP_
 
 #include <cstdint>
+#include <climits>
 #include <iosfwd>
 
 namespace EmperyCenter {
@@ -12,6 +13,10 @@ private:
 	std::int64_t m_y;
 
 public:
+	constexpr Coord() noexcept
+		: m_x(INT64_MIN), m_y(INT64_MIN)
+	{
+	}
 	constexpr Coord(std::int64_t x, std::int64_t y) noexcept
 		: m_x(x), m_y(y)
 	{

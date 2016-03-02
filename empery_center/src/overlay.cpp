@@ -34,6 +34,9 @@ Overlay::Overlay(boost::shared_ptr<MySql::Center_Overlay> obj)
 Overlay::~Overlay(){
 }
 
+void Overlay::pump_status(){
+}
+
 Coord Overlay::get_cluster_coord() const {
 	return Coord(m_obj->get_cluster_x(), m_obj->get_cluster_y());
 }

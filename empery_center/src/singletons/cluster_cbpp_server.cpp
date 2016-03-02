@@ -7,18 +7,18 @@
 namespace EmperyCenter {
 
 namespace {
-    class ClusterServer : public Poseidon::TcpServerBase {
-    public:
-        ClusterServer(const Poseidon::IpPort &bind_addr, const std::string &cert, const std::string &private_key)
-            : Poseidon::TcpServerBase(bind_addr, cert.c_str(), private_key.c_str())
-        {
-        }
+	class ClusterServer : public Poseidon::TcpServerBase {
+	public:
+		ClusterServer(const Poseidon::IpPort &bind_addr, const std::string &cert, const std::string &private_key)
+			: Poseidon::TcpServerBase(bind_addr, cert.c_str(), private_key.c_str())
+		{
+		}
 
-    protected:
-        boost::shared_ptr<Poseidon::TcpSessionBase> on_client_connect(Poseidon::UniqueFile client) const override {
-            return boost::make_shared<ClusterSession>(std::move(client));
-        }
-    };
+	protected:
+		boost::shared_ptr<Poseidon::TcpSessionBase> on_client_connect(Poseidon::UniqueFile client) const override {
+			return boost::make_shared<ClusterSession>(std::move(client));
+		}
+	};
 }
 
 MODULE_RAII_PRIORITY(handles, 9000){

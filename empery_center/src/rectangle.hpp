@@ -11,6 +11,10 @@ private:
 	Coord m_tr;
 
 public:
+	constexpr Rectangle() noexcept
+		: m_bl(), m_tr()
+	{
+	}
 	constexpr Rectangle(const Coord &bl, const Coord &tr) noexcept
 		: m_bl(bl)
 		, m_tr((tr.x() >= bl.x()) ? tr.x() : bl.x(),
@@ -21,8 +25,7 @@ public:
 		: Rectangle(
 			Coord(l, b),
 			Coord(static_cast<std::int64_t>(static_cast<std::uint64_t>(l) + w),
-			      static_cast<std::int64_t>(static_cast<std::uint64_t>(b) + h))
-			)
+			      static_cast<std::int64_t>(static_cast<std::uint64_t>(b) + h)))
 	{
 	}
 	constexpr Rectangle(const Coord &bl, std::uint64_t w, std::uint64_t h) noexcept

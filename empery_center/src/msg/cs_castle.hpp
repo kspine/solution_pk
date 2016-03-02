@@ -217,6 +217,14 @@ namespace Msg {
 	FIELD_STRING        (name)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleDissolveBattalion
+#define MESSAGE_ID      426
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_VUINT         (count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

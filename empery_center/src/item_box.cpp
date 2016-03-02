@@ -70,18 +70,18 @@ void ItemBox::pump_status(){
 		switch(item_data->auto_inc_type){
 		case Data::Item::AIT_HOURLY:
 			auto_inc_period = 3600 * 1000;
-			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
+			auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
 			break;
 		case Data::Item::AIT_DAILY:
 			auto_inc_period = 24 * 3600 * 1000;
-			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
+			auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
 			break;
 		case Data::Item::AIT_WEEKLY:
 			auto_inc_period = 7 * 24 * 3600 * 1000;
-			auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000) + 3 * 24 * 3600 * 1000; // 注意 1970-01-01 是星期四。
+			auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000) + 3 * 24 * 3600 * 1000; // 注意 1970-01-01 是星期四。
 			break;
 		case Data::Item::AIT_PERIODIC:
-			auto_inc_period = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
+			auto_inc_period = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
 			auto_inc_offset = utc_now + 1; // 当前时间永远是区间中的最后一秒。
 			break;
 		default:

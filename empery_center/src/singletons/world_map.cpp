@@ -6,6 +6,7 @@
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
 #include "player_session_map.hpp"
+#include "map_event_block_map.hpp"
 #include "../msg/kill.hpp"
 #include "../data/global.hpp"
 #include "../data/map.hpp"
@@ -23,6 +24,7 @@
 #include "../player_session.hpp"
 #include "../cluster_session.hpp"
 #include "../castle_utilities.hpp"
+#include "../map_event_block.hpp"
 
 namespace EmperyCenter {
 
@@ -108,7 +110,12 @@ namespace {
 
 	boost::weak_ptr<StrategicResourceContainer> g_strategic_resource_map;
 
-	constexpr unsigned SECTOR_SIDE_LENGTH = 32;
+	enum : unsigned {
+		MAP_WIDTH          = 600,
+		MAP_HEIGHT         = 640,
+
+		SECTOR_SIDE_LENGTH = 32,
+	};
 
 	inline Coord get_sector_coord_from_world_coord(Coord coord){
 		const auto mask_x = coord.x() >> 63;
@@ -137,15 +144,12 @@ namespace {
 
 	boost::weak_ptr<PlayerViewContainer> g_player_view_map;
 
-	std::uint32_t g_map_width  = 270;
-	std::uint32_t g_map_height = 240;
-
 	inline Coord get_cluster_coord_from_world_coord(Coord coord){
 		const auto mask_x = coord.x() >> 63;
 		const auto mask_y = coord.y() >> 63;
 
-		const auto cluster_x = ((coord.x() ^ mask_x) / g_map_width  ^ mask_x) * g_map_width;
-		const auto cluster_y = ((coord.y() ^ mask_y) / g_map_height ^ mask_y) * g_map_height;
+		const auto cluster_x = ((coord.x() ^ mask_x) / MAP_WIDTH  ^ mask_x) * MAP_WIDTH;
+		const auto cluster_y = ((coord.y() ^ mask_y) / MAP_HEIGHT ^ mask_y) * MAP_HEIGHT;
 
 		return Coord(cluster_x, cluster_y);
 	}
@@ -366,11 +370,6 @@ namespace {
 		handles.push(player_view_map);
 
 		// ClusterSession
-		const auto map_size = Data::Global::as_array(Data::Global::SLOT_MAP_SIZE);
-		g_map_width  = map_size.at(0).get<double>();
-		g_map_height = map_size.at(1).get<double>();
-		LOG_EMPERY_CENTER_DEBUG("> Map width = ", g_map_width, ", map height = ", g_map_height);
-
 		const auto cluster_map = boost::make_shared<ClusterContainer>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
@@ -1157,9 +1156,7 @@ void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<Playe
 				if((view.left() < rectangle.right()) && (rectangle.left() < view.right()) &&
 					(view.bottom() < rectangle.top()) && (rectangle.bottom() < view.top()))
 				{
-
 					temp.emplace(std::move(session));
-					
 				}
 			}
 		}
@@ -1194,7 +1191,6 @@ void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &sessio
 	try {
 		for(auto sector_x = sector_bottom_left.x(); sector_x <= sector_upper_right.x(); sector_x += SECTOR_SIDE_LENGTH){
 			for(auto sector_y = sector_bottom_left.y(); sector_y <= sector_upper_right.y(); sector_y += SECTOR_SIDE_LENGTH){
-				LOG_EMPERY_CENTER_FATAL("Adding session into sector: session = ", (void *)session.get(), ", sector_coord = ", Coord(sector_x, sector_y));
 				player_view_map->insert(PlayerViewElement(session, Coord(sector_x, sector_y)));
 			}
 		}
@@ -1260,7 +1256,7 @@ void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &s
 Rectangle WorldMap::get_cluster_scope(Coord coord){
 	PROFILE_ME;
 
-	return Rectangle(get_cluster_coord_from_world_coord(coord), g_map_width, g_map_height);
+	return Rectangle(get_cluster_coord_from_world_coord(coord), MAP_WIDTH, MAP_HEIGHT);
 }
 
 boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
@@ -1340,6 +1336,7 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 			auto map_cell = get_map_cell(coord);
 			if(!map_cell){
 				map_cell = boost::make_shared<MapCell>(coord);
+				map_cell->pump_status();
 				insert_map_cell(map_cell);
 			}
 
@@ -1359,8 +1356,17 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 					}
 					overlay = boost::make_shared<Overlay>(cluster_coord, basic_data->overlay_group_name,
 						basic_data->overlay_id, overlay_data->reward_resource_id, resource_amount);
+					overlay->pump_status();
 					insert_overlay(overlay);
 				}
+			}
+
+			const auto event_block_coord = MapEventBlockMap::get_block_coord_from_world_coord(coord);
+			auto map_event_block = MapEventBlockMap::get(event_block_coord);
+			if(!map_event_block){
+				map_event_block = boost::make_shared<MapEventBlock>(event_block_coord);
+				map_event_block->pump_status();
+				MapEventBlockMap::insert(map_event_block);
 			}
 		}
 	}

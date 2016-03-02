@@ -19,7 +19,8 @@ class ClusterSession;
 
 class MapCell : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
-	boost::shared_ptr<MySql::Center_MapCell> m_obj;
+	const boost::shared_ptr<MySql::Center_MapCell> m_obj;
+
 	boost::container::flat_map<AttributeId,
 		boost::shared_ptr<MySql::Center_MapCellAttribute>> m_attributes;
 

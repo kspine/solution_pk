@@ -41,23 +41,25 @@ namespace {
 		LOG_EMPERY_CENTER_TRACE("Auction center gc timer: now = ", now);
 
 		const auto auction_center_map = g_auction_center_map.lock();
-		if(auction_center_map){
-			for(;;){
-				const auto it = auction_center_map->begin<1>();
-				if(it == auction_center_map->end<1>()){
-					break;
-				}
-				if(now < it->unload_time){
-					break;
-				}
+		if(!auction_center_map){
+			return;
+		}
 
-				// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-				if((it->promise.use_count() <= 1) && it->auction_center && it->auction_center.unique()){
-					LOG_EMPERY_CENTER_DEBUG("Reclaiming auction center: account_uuid = ", it->account_uuid);
-					auction_center_map->erase<1>(it);
-				} else {
-					auction_center_map->set_key<1, 1>(it, now + 1000);
-				}
+		for(;;){
+			const auto it = auction_center_map->begin<1>();
+			if(it == auction_center_map->end<1>()){
+				break;
+			}
+			if(now < it->unload_time){
+				break;
+			}
+
+			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
+			if((it->promise.use_count() <= 1) && it->auction_center && it->auction_center.unique()){
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming auction center: account_uuid = ", it->account_uuid);
+				auction_center_map->erase<1>(it);
+			} else {
+				auction_center_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}

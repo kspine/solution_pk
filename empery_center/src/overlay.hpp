@@ -17,7 +17,7 @@ class PlayerSession;
 
 class Overlay : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
-	boost::shared_ptr<MySql::Center_Overlay> m_obj;
+	const boost::shared_ptr<MySql::Center_Overlay> m_obj;
 
 	// 非持久化数据。
 	double m_harvest_remainder = 0;
@@ -29,6 +29,8 @@ public:
 	~Overlay();
 
 public:
+	virtual void pump_status();
+
 	Coord get_cluster_coord() const;
 	const std::string &get_overlay_group_name() const;
 	OverlayId get_overlay_id() const;

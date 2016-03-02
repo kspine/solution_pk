@@ -98,111 +98,109 @@ namespace {
 }
 
 namespace Data {
+	boost::shared_ptr<const TaskAbstract> TaskAbstract::get(TaskId task_id){
+		PROFILE_ME;
 
-boost::shared_ptr<const TaskAbstract> TaskAbstract::get(TaskId task_id){
-	PROFILE_ME;
-
-	boost::shared_ptr<const TaskAbstract> ret;
-	if(!!(ret = TaskPrimary::get(task_id))){
+		boost::shared_ptr<const TaskAbstract> ret;
+		if(!!(ret = TaskPrimary::get(task_id))){
+			return ret;
+		}
+		if(!!(ret = TaskDaily::get(task_id))){
+			return ret;
+		}
 		return ret;
 	}
-	if(!!(ret = TaskDaily::get(task_id))){
-		return ret;
-	}
-	return ret;
-}
-boost::shared_ptr<const TaskAbstract> TaskAbstract::require(TaskId task_id){
-    PROFILE_ME;
+	boost::shared_ptr<const TaskAbstract> TaskAbstract::require(TaskId task_id){
+    	PROFILE_ME;
 
-    auto ret = get(task_id);
-    if(!ret){
-        DEBUG_THROW(Exception, sslit("TaskAbstract not found"));
-    }
-    return ret;
-}
-
-boost::shared_ptr<const TaskPrimary> TaskPrimary::get(TaskId task_id){
-	PROFILE_ME;
-
-	const auto task_primary_map = g_task_primary_map.lock();
-	if(!task_primary_map){
-		LOG_EMPERY_CENTER_WARNING("TaskPrimaryMap has not been loaded.");
-		return { };
+    	auto ret = get(task_id);
+    	if(!ret){
+        	DEBUG_THROW(Exception, sslit("TaskAbstract not found"));
+    	}
+    	return ret;
 	}
 
-	const auto it = task_primary_map->find(task_id);
-	if(it == task_primary_map->end()){
-		LOG_EMPERY_CENTER_DEBUG("TaskPrimary not found: task_id = ", task_id);
-		return { };
+	boost::shared_ptr<const TaskPrimary> TaskPrimary::get(TaskId task_id){
+		PROFILE_ME;
+
+		const auto task_primary_map = g_task_primary_map.lock();
+		if(!task_primary_map){
+			LOG_EMPERY_CENTER_WARNING("TaskPrimaryMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = task_primary_map->find(task_id);
+		if(it == task_primary_map->end()){
+			LOG_EMPERY_CENTER_DEBUG("TaskPrimary not found: task_id = ", task_id);
+			return { };
+		}
+		return boost::shared_ptr<const TaskPrimary>(task_primary_map, &(it->second));
 	}
-	return boost::shared_ptr<const TaskPrimary>(task_primary_map, &(it->second));
-}
-boost::shared_ptr<const TaskPrimary> TaskPrimary::require(TaskId task_id){
-    PROFILE_ME;
+	boost::shared_ptr<const TaskPrimary> TaskPrimary::require(TaskId task_id){
+    	PROFILE_ME;
 
-    auto ret = get(task_id);
-    if(!ret){
-        DEBUG_THROW(Exception, sslit("TaskPrimary not found"));
-    }
-    return ret;
-}
-
-void TaskPrimary::get_all(std::vector<boost::shared_ptr<const TaskPrimary>> &ret){
-	PROFILE_ME;
-
-	const auto task_primary_map = g_task_primary_map.lock();
-	if(!task_primary_map){
-		LOG_EMPERY_CENTER_WARNING("TaskPrimaryMap has not been loaded.");
-		return;
-	}
-
-	ret.reserve(ret.size() + task_primary_map->size());
-	for(auto it = task_primary_map->begin(); it != task_primary_map->end(); ++it){
-		ret.emplace_back(task_primary_map, &(it->second));
-	}
-}
-
-boost::shared_ptr<const TaskDaily> TaskDaily::get(TaskId task_id){
-	PROFILE_ME;
-
-	const auto task_daily_map = g_task_daily_map.lock();
-	if(!task_daily_map){
-		LOG_EMPERY_CENTER_WARNING("TaskDailyMap has not been loaded.");
-		return { };
+    	auto ret = get(task_id);
+    	if(!ret){
+        	DEBUG_THROW(Exception, sslit("TaskPrimary not found"));
+    	}
+    	return ret;
 	}
 
-	const auto it = task_daily_map->find(task_id);
-	if(it == task_daily_map->end()){
-		LOG_EMPERY_CENTER_DEBUG("TaskDaily not found: task_id = ", task_id);
-		return { };
-	}
-	return boost::shared_ptr<const TaskDaily>(task_daily_map, &(it->second));
-}
-boost::shared_ptr<const TaskDaily> TaskDaily::require(TaskId task_id){
-    PROFILE_ME;
+	void TaskPrimary::get_all(std::vector<boost::shared_ptr<const TaskPrimary>> &ret){
+		PROFILE_ME;
 
-    auto ret = get(task_id);
-    if(!ret){
-        DEBUG_THROW(Exception, sslit("TaskDaily not found"));
-    }
-    return ret;
-}
+		const auto task_primary_map = g_task_primary_map.lock();
+		if(!task_primary_map){
+			LOG_EMPERY_CENTER_WARNING("TaskPrimaryMap has not been loaded.");
+			return;
+		}
 
-void TaskDaily::get_all(std::vector<boost::shared_ptr<const TaskDaily>> &ret){
-	PROFILE_ME;
-
-	const auto task_daily_map = g_task_daily_map.lock();
-	if(!task_daily_map){
-		LOG_EMPERY_CENTER_WARNING("TaskDailyMap has not been loaded.");
-		return;
+		ret.reserve(ret.size() + task_primary_map->size());
+		for(auto it = task_primary_map->begin(); it != task_primary_map->end(); ++it){
+			ret.emplace_back(task_primary_map, &(it->second));
+		}
 	}
 
-	ret.reserve(ret.size() + task_daily_map->size());
-	for(auto it = task_daily_map->begin(); it != task_daily_map->end(); ++it){
-		ret.emplace_back(task_daily_map, &(it->second));
-	}
-}
+	boost::shared_ptr<const TaskDaily> TaskDaily::get(TaskId task_id){
+		PROFILE_ME;
 
+		const auto task_daily_map = g_task_daily_map.lock();
+		if(!task_daily_map){
+			LOG_EMPERY_CENTER_WARNING("TaskDailyMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = task_daily_map->find(task_id);
+		if(it == task_daily_map->end()){
+			LOG_EMPERY_CENTER_DEBUG("TaskDaily not found: task_id = ", task_id);
+			return { };
+		}
+		return boost::shared_ptr<const TaskDaily>(task_daily_map, &(it->second));
+	}
+	boost::shared_ptr<const TaskDaily> TaskDaily::require(TaskId task_id){
+    	PROFILE_ME;
+
+    	auto ret = get(task_id);
+    	if(!ret){
+        	DEBUG_THROW(Exception, sslit("TaskDaily not found"));
+    	}
+    	return ret;
+	}
+
+	void TaskDaily::get_all(std::vector<boost::shared_ptr<const TaskDaily>> &ret){
+		PROFILE_ME;
+
+		const auto task_daily_map = g_task_daily_map.lock();
+		if(!task_daily_map){
+			LOG_EMPERY_CENTER_WARNING("TaskDailyMap has not been loaded.");
+			return;
+		}
+
+		ret.reserve(ret.size() + task_daily_map->size());
+		for(auto it = task_daily_map->begin(); it != task_daily_map->end(); ++it){
+			ret.emplace_back(task_daily_map, &(it->second));
+		}
+	}
 }
 
 }

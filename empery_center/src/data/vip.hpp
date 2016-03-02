@@ -8,8 +8,8 @@ namespace EmperyCenter {
 namespace Data {
 	class Vip {
 	public:
-		static boost::shared_ptr<const Vip> get(unsigned sequential_days);
-		static boost::shared_ptr<const Vip> require(unsigned sequential_days);
+		static boost::shared_ptr<const Vip> get(unsigned vip_level);
+		static boost::shared_ptr<const Vip> require(unsigned vip_level);
 
 	public:
 		unsigned vip_level;

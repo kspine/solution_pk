@@ -32,6 +32,7 @@ constexpr ReasonId
 	ID_POPULATION_CONSUMPTION        ( 672020 ), // 时间区间（毫秒）    0                   0
 	ID_INIT_RESOURCES                ( 672021 ), // 初始数量            0                   0
 	ID_HARVEST_STRATEGIC_RESOURCE    ( 672022 ), // 世界坐标 X          世界坐标 Y          战略资源创建时间
+	ID_DISSOLVE_BATTALION            ( 672023 ), // 0                   0                   0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0

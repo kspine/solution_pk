@@ -34,22 +34,24 @@ namespace {
 		LOG_EMPERY_CENTER_TRACE("Chat box gc timer: now = ", now);
 
 		const auto chat_box_map = g_chat_box_map.lock();
-		if(chat_box_map){
-			for(;;){
-				const auto it = chat_box_map->begin<1>();
-				if(it == chat_box_map->end<1>()){
-					break;
-				}
-				if(now < it->unload_time){
-					break;
-				}
+		if(!chat_box_map){
+			return;
+		}
 
-				if(it->chat_box && it->chat_box.unique()){
-					LOG_EMPERY_CENTER_DEBUG("Reclaiming chat box: account_uuid = ", it->account_uuid);
-					chat_box_map->erase<1>(it);
-				} else {
-					chat_box_map->set_key<1, 1>(it, now + 1000);
-				}
+		for(;;){
+			const auto it = chat_box_map->begin<1>();
+			if(it == chat_box_map->end<1>()){
+				break;
+			}
+			if(now < it->unload_time){
+				break;
+			}
+
+			if(it->chat_box && it->chat_box.unique()){
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming chat box: account_uuid = ", it->account_uuid);
+				chat_box_map->erase<1>(it);
+			} else {
+				chat_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}

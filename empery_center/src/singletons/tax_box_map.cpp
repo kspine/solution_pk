@@ -40,23 +40,25 @@ namespace {
 		LOG_EMPERY_CENTER_TRACE("Tax box gc timer: now = ", now);
 
 		const auto tax_box_map = g_tax_box_map.lock();
-		if(tax_box_map){
-			for(;;){
-				const auto it = tax_box_map->begin<1>();
-				if(it == tax_box_map->end<1>()){
-					break;
-				}
-				if(now < it->unload_time){
-					break;
-				}
+		if(!tax_box_map){
+			return;
+		}
 
-				// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-				if((it->promise.use_count() <= 1) && it->tax_box && it->tax_box.unique()){
-					LOG_EMPERY_CENTER_DEBUG("Reclaiming tax box: account_uuid = ", it->account_uuid);
-					tax_box_map->erase<1>(it);
-				} else {
-					tax_box_map->set_key<1, 1>(it, now + 1000);
-				}
+		for(;;){
+			const auto it = tax_box_map->begin<1>();
+			if(it == tax_box_map->end<1>()){
+				break;
+			}
+			if(now < it->unload_time){
+				break;
+			}
+
+			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
+			if((it->promise.use_count() <= 1) && it->tax_box && it->tax_box.unique()){
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming tax box: account_uuid = ", it->account_uuid);
+				tax_box_map->erase<1>(it);
+			} else {
+				tax_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}

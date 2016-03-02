@@ -826,7 +826,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 3)){
 		return Response(Msg::ERR_NOT_BUILDING_UPGRADE_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -873,7 +873,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpTechUpgrade, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 4)){
 		return Response(Msg::ERR_NOT_TECH_UPGRADE_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -1096,7 +1096,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 	if((item_data->type.second != 1) && (item_data->type.second != 2)){
 		return Response(Msg::ERR_NOT_BATTALION_PRODUCTION_ITEM) <<item_id;
 	}
-	const auto turbo_milliseconds = saturated_mul(item_data->value, (std::uint64_t)60000);
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -1226,7 +1226,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	std::vector<SoldierTransactionElement> transaction;
 	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, count,
 		ReasonIds::ID_CREATE_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
-	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
+	const auto insuff_soldier_id = castle->commit_soldier_transaction_nothrow(transaction,
 		[&]{
 			const auto battalion = boost::make_shared<MapObject>(battalion_uuid, map_object_type_id,
 				account->get_account_uuid(), map_object_uuid, std::string(), castle->get_coord(), utc_now, true);
@@ -1237,8 +1237,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 			LOG_EMPERY_CENTER_DEBUG("Created battalion: battalion_uuid = ", battalion_uuid,
 				", account_uuid = ", account->get_account_uuid());
 		});
-	if(insuff_battalion_id){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
+	if(insuff_soldier_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_soldier_id;
 	}
 
 	return Response();
@@ -1380,6 +1380,35 @@ PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
 		AnnouncementMap::insert(announcement);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleDissolveBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	const auto count = req.count;
+
+	const auto map_object_type_data = Data::MapObjectType::get(map_object_type_id);
+	if(!map_object_type_data){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
+	}
+
+	std::vector<SoldierTransactionElement> transaction;
+	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, count,
+		ReasonIds::ID_DISSOLVE_BATTALION, 0, 0, 0);
+	const auto insuff_soldier_id = castle->commit_soldier_transaction_nothrow(transaction);
+	if(insuff_soldier_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_soldier_id;
 	}
 
 	return Response();

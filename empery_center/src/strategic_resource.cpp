@@ -50,6 +50,15 @@ std::uint64_t StrategicResource::get_expiry_time() const {
 	return m_obj->get_expiry_time();
 }
 
+bool StrategicResource::has_been_deleted() const {
+	return m_obj->get_resource_amount() == 0;
+}
+void StrategicResource::delete_from_game() noexcept {
+	m_obj->set_resource_amount(0);
+
+	WorldMap::update_strategic_resource(virtual_shared_from_this<StrategicResource>(), false);
+}
+
 std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &harvester, std::uint64_t duration, bool saturated){
 	PROFILE_ME;
 
@@ -105,7 +114,7 @@ std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &har
 }
 
 bool StrategicResource::is_virtually_removed() const {
-	return get_resource_amount() == 0;
+	return has_been_deleted();
 }
 void StrategicResource::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;

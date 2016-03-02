@@ -34,7 +34,7 @@ namespace {
 			LOG_EMPERY_CENTER_ERROR("Sign-in item is not daily-reset?");
 			DEBUG_THROW(Exception, sslit("Sign-in item is not daily-reset"));
 		}
-		const auto auto_inc_offset = checked_mul(item_data->auto_inc_offset, (std::uint64_t)60000);
+		const auto auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
 		LOG_EMPERY_CENTER_DEBUG("Retrieved daily sign-in offset: auto_inc_offset = ", auto_inc_offset);
 
 		const auto utc_now = Poseidon::get_utc_time();
@@ -112,6 +112,8 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
 	const auto account_uuid = account->get_account_uuid();
+
+	session->send(Msg::SC_AccountSynchronizeSystemClock(std::string(), utc_now));
 
 	get_signed_in(account);
 
@@ -249,7 +251,9 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account, session, req){
 }
 
 PLAYER_SERVLET_RAW(Msg::CS_AccountSynchronizeSystemClock, session, req){
-	session->send(Msg::SC_AccountSynchronizeSystemClock(std::move(req.context), Poseidon::get_utc_time()));
+	const auto utc_now = Poseidon::get_utc_time();
+
+	session->send(Msg::SC_AccountSynchronizeSystemClock(std::move(req.context), utc_now));
 
 	return Response();
 }
