@@ -20,6 +20,9 @@ namespace Data {
 		double              attack_speed;
 		double              first_attack;
 		double              attack_plus;
+		double              doge_rate;
+		double              critical_rate;
+		double              critical_damage_plus_rate;
 	};
 	
 	class MapObjectRelative {

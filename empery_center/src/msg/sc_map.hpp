@@ -146,6 +146,13 @@ namespace Msg {
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_EnemyBloodShow
+#define MESSAGE_ID      386
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (enemy_uuid)	\
+	FIELD_VUINT         (finish_time)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -54,6 +54,7 @@ namespace Msg {
 	FIELD_STRING        (castle_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+/*
 #define MESSAGE_NAME    KS_MapAttack
 #define MESSAGE_ID      32306
 #define MESSAGE_FIELDS  \
@@ -64,12 +65,20 @@ namespace Msg {
 	FIELD_VINT          (x)				\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
+*/
 
 #define MESSAGE_NAME    KS_MapHarvestStrategicResource
 #define MESSAGE_ID      32307
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (interval)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    KS_DisplayBlood
+#define MESSAGE_ID      32308
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (owner_uuid)\
+	FIELD_STRING        (enemy_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

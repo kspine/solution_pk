@@ -37,7 +37,6 @@ constexpr AccountAttributeId
 	ID_LOGIN_TOKEN                    ( 504 ),
 	ID_LOGIN_TOKEN_EXPIRY_TIME        ( 505 ),
 	ID_SAVED_THIRD_TOKEN              ( 506 );
-
 }
 
 }

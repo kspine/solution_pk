@@ -5,6 +5,7 @@
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
 #include "../msg/err_castle.hpp"
+#include "../msg/err_account.hpp"
 #include "../msg/kill.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
@@ -25,6 +26,8 @@
 #include "../chat_message_slot_ids.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
+#include "../singletons/account_map.hpp"
+#include "../singletons/base_fight_map.hpp"
 
 namespace EmperyCenter {
 
@@ -249,66 +252,6 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::KS_MapAttack, cluster, req){
-	const auto attacking_uuid = MapObjectUuid(req.attacking_uuid);
-	const auto map_attacking_object = WorldMap::get_map_object(attacking_uuid);
-	if(!map_attacking_object){
-		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) << attacking_uuid;
-	}
-	
-	const auto attack_coord = map_attacking_object->get_coord();
-	const auto test_cluster = WorldMap::get_cluster(attack_coord);
-	if(cluster != test_cluster){
-		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
-	}
-	/*
-	const auto map_attacking_object_type_id = map_attacking_object->get_map_object_type_id();
-	if(map_attacking_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS){
-		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_IMMIGRANTS) << map_attacking_object_type_id;
-	}
-	*/
-	
-	
-	const auto attacked_uuid = MapObjectUuid(req.attacked_uuid);
-	const auto map_attacked_object = WorldMap::get_map_object(attacked_uuid);
-	const auto attacked_coord = map_attacked_object->get_coord();
-	if(!map_attacked_object){
-		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) << attacked_uuid;
-	}
-	const auto test_cluster_attacked = WorldMap::get_cluster(map_attacked_object->get_coord());
-	if(cluster != test_cluster_attacked){
-		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
-	}
-	/*
-	const auto map_attacked_object_type_id = map_attacked_object->get_map_object_type_id();
-	if(map_attacked_object_type_id != MapObjectTypeIds::ID_IMMIGRANTS){
-		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_IMMIGRANTS) << map_attacked_object_type_id;
-	}
-	*/
-	
-	const auto range = Data::Global::as_array(Data::Global::SLOT_ADJACENT_CHAT_RANGE);
-	const auto width  = static_cast<std::uint64_t>(range.at(0).get<double>());
-	const auto height = static_cast<std::uint64_t>(range.at(1).get<double>());
-
-	Msg::SC_MapObjectAttack attackMsg;
-	attackMsg.attacking_uuid  = attacking_uuid.str();
-	attackMsg.attacked_uuid   = attacked_uuid.str();
-	attackMsg.impact          = req.impact;
-	attackMsg.damage          = req.damage;
-	attackMsg.x = attacked_coord.x();
-	attackMsg.y = attacked_coord.y();
-	
-	std::vector<boost::shared_ptr<PlayerSession>> other_sessions;
-	WorldMap::get_players_viewing_rectangle(other_sessions,
-				Rectangle(attack_coord.x() - static_cast<std::int64_t>(width / 2), attack_coord.y() - static_cast<std::int64_t>(height / 2), width, height));
-	for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){
-		const auto &other_session = *it;
-		if(other_session){
-			other_session->send(attackMsg);
-		}
-	}
-	return Response();
-}
 
 CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
@@ -356,6 +299,44 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		", harvest_speed = ", harvest_speed, ", interval = ", interval, ", harvested_amount = ", harvested_amount);
 
 	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
+	const auto account_uuid = AccountUuid(req.owner_uuid);
+	const auto enemy_uuid = AccountUuid(req.enemy_uuid);
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		LOG_EMPERY_CENTER_WARNING("Account not found: account_uuid = ", account_uuid);
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT);
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto display_blood_time = utc_now + Data::Global::as_unsigned(Data::Global::SLOT_DISPLAY_BLOOD_TIME)*60*1000;
+	const auto last_show_blood  = BaseFightMap::get_last_finish_show_blood_time(account_uuid,enemy_uuid);
+	bool notify_sides = false;
+	if(0 == last_show_blood || (last_show_blood < utc_now + 1*1000)){
+		BaseFightMap::update_attack_info(account_uuid,enemy_uuid,utc_now,display_blood_time);
+		notify_sides = true;
+	}else{
+		BaseFightMap::update_attack_info(account_uuid,enemy_uuid,utc_now,0);
+	}
+	if(!notify_sides){
+		return Response();
+	}
+	const auto session_own = PlayerSessionMap::get(account_uuid);
+	const auto session_enemy = PlayerSessionMap::get(enemy_uuid);
+	Msg::SC_EnemyBloodShow msgBloodShow;
+	msgBloodShow.finish_time = display_blood_time;
+	if(session_own){
+		msgBloodShow.enemy_uuid = enemy_uuid.str();
+		session_own->send(msgBloodShow);
+	}
+	if(session_enemy){
+		msgBloodShow.enemy_uuid = account_uuid.str();
+		session_enemy->send(msgBloodShow);
+	}
+	
+	return Response();
+	
 }
 
 }
