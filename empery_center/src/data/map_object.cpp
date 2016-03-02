@@ -23,7 +23,6 @@ namespace {
 		csv.get(elem.map_object_category_id, "arm_type");
 
 		csv.get(elem.speed,                  "speed");
-		csv.get(elem.harvest_speed,          "collect_speed");
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){
@@ -33,6 +32,8 @@ namespace {
 			Data::MapObjectTypeBattalion elem = { };
 
 			read_map_object_type_abstract(elem, csv);
+
+			csv.get(elem.harvest_speed,          "collect_speed");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "arm_need");

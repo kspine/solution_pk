@@ -17,7 +17,6 @@ namespace Data {
 		MapObjectCategoryId map_object_category_id;
 
 		double speed;
-		double harvest_speed;
 	};
 
 	class MapObjectTypeBattalion : public MapObjectTypeAbstract {
@@ -26,6 +25,8 @@ namespace Data {
 		static boost::shared_ptr<const MapObjectTypeBattalion> require(MapObjectTypeId map_object_type_id);
 
 	public:
+		double harvest_speed;
+
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		boost::container::flat_map<ResourceId, std::uint64_t> enability_cost;
 

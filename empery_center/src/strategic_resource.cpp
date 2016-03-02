@@ -79,7 +79,7 @@ std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &har
 	}
 
 	const auto harvester_type_id = harvester->get_map_object_type_id();
-	const auto harvester_type_data = Data::MapObjectTypeAbstract::require(harvester_type_id);
+	const auto harvester_type_data = Data::MapObjectTypeBattalion::require(harvester_type_id);
 	const auto harvest_speed = harvester_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		LOG_EMPERY_CENTER_DEBUG("Harvest speed is zero: harvester_type_id = ", harvester_type_id);
