@@ -39,6 +39,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/tax_box_map.cpp	\
 	src/singletons/task_box_map.cpp	\
 	src/singletons/map_event_map.cpp	\
+	src/singletons/base_fight_map.cpp  \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\

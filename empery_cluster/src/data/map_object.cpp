@@ -26,16 +26,16 @@ namespace {
 		const auto map_object_map = boost::make_shared<MapObjectTypeMap>();
 		while(csv.fetch_row()){
 			Data::MapObjectType elem = { };
-			csv.get(elem.map_object_type_id,  "arm_id");
-			csv.get(elem.arm_type_id,         "arm_type");
-			csv.get(elem.attack,              "attack");
-			csv.get(elem.defence,             "defence");
-			csv.get(elem.shoot_range,         "shoot_range");
-			csv.get(elem.attack_speed,        "attack_speed");
-			csv.get(elem.first_attack,        "first_attack");
-			csv.get(elem.attack_plus,        "attack_plus");
-			
-			
+			csv.get(elem.map_object_type_id,                "arm_id");
+			csv.get(elem.arm_type_id,                       "arm_type");
+			csv.get(elem.attack,                            "attack");
+			csv.get(elem.defence,                           "defence");
+			csv.get(elem.shoot_range,                       "shoot_range");
+			csv.get(elem.attack_speed,                      "attack_speed");
+			csv.get(elem.first_attack,                      "first_attack");
+			csv.get(elem.doge_rate,                         "arm_dodge");
+			csv.get(elem.critical_rate,                     "arm_crit");
+			csv.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);

@@ -77,7 +77,8 @@ namespace Msg {
 #define MESSAGE_NAME    KS_DisplayBlood
 #define MESSAGE_ID      32308
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (owner_uuid)
+	FIELD_STRING        (owner_uuid)\
+	FIELD_STRING        (enemy_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

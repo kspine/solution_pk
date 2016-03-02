@@ -93,6 +93,10 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	 	result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 	 	return UINT64_MAX;
 	}
+	if((m_action == ACT_ATTACK)&&(is_in_attack_scope(MapObjectUuid(m_action_param)))){
+		//在攻击范围之内，直接进行攻击
+		m_waypoints.clear();
+	}
 	// 移动。
 	if(!m_waypoints.empty()){
 		return require_ai_control()->move(result);
@@ -195,7 +199,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 }
 
 std::uint64_t MapObject::move(std::pair<long, std::string> &result){
-	//const auto map_object_uuid = get_map_object_uuid();
+	//const auto map_object_uuid = get_map_object_uuid();	
 	const auto owner_uuid      = get_owner_uuid();
 	const auto coord           = get_coord();
 	
@@ -282,19 +286,6 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 
 	m_waypoints.pop_front();
 	m_blocked_retry_count = 0;
-	
-	if((m_action == ACT_ATTACK)&&(is_in_attack_scope(MapObjectUuid(m_action_param)))){
-		//监测是否是在攻击范围之内
-		const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
-		if(!map_object_type_data){
-			result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
-			return delay;
-		}
-		const auto first_attack = map_object_type_data->first_attack*1000;
-		m_waypoints.clear();
-		return first_attack;
-	}
-	
 	return delay;
 }
 
@@ -493,9 +484,9 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	std::uint64_t damage = 0;
 	double addition_params = 1.0;//加成参数
 	double damage_reduce_rate = 0.0;//伤害减免率
-	double doge_rate = 0.30;
-	double critical_rate = 0.30;
-	double critical_demage_plus_rate = 0.30;
+	double doge_rate = emempy_type_data->doge_rate;
+	double critical_rate = map_object_type_data->critical_rate;
+	double critical_demage_plus_rate = map_object_type_data->critical_damage_plus_rate;
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->arm_type_id,emempy_type_data->arm_type_id);
@@ -560,7 +551,6 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	if(m_action != ACT_ATTACK && m_waypoints.empty() ){
 		if(is_in_attack_scope(attacker->get_map_object_uuid())){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),attacker->get_map_object_uuid().str());
-			display_blood();
 		}else{
 			
 		}
@@ -600,8 +590,15 @@ bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 }
 
 void MapObject::display_blood(){
+	const auto target_object_uuid = MapObjectUuid(m_action_param);
+	const auto target_object = WorldMap::get_map_object(target_object_uuid);
+	if(!target_object){
+		return;
+	}
+	
 	Msg::KS_DisplayBlood msgDisplayBlood;
 	msgDisplayBlood.owner_uuid = get_owner_uuid().str();
+	msgDisplayBlood.enemy_uuid = target_object->get_owner_uuid().str();
 	const auto cluster = get_cluster();
 	if(cluster){
 		cluster->send(msgDisplayBlood);
