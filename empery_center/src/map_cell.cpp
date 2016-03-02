@@ -95,6 +95,12 @@ std::uint64_t MapCell::get_resource_amount() const {
 void MapCell::pump_production(){
 	PROFILE_ME;
 
+	const auto ticket_item_id = get_ticket_item_id();
+	const auto last_production_time = get_last_production_time();
+	if(!ticket_item_id && (last_production_time == 0)){
+		return;
+	}
+
 	const auto coord = get_coord();
 	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
 	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
@@ -109,9 +115,9 @@ void MapCell::pump_production(){
 	double production_rate = 0;
 	double capacity = 0;
 
-	const bool acc_card_applied = m_obj->get_acceleration_card_applied();
-	const auto ticket_item_id = get_ticket_item_id();
 	const auto production_resource_id = get_production_resource_id();
+	const bool acc_card_applied = m_obj->get_acceleration_card_applied();
+
 	if(ticket_item_id && production_resource_id){
 		const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(get_parent_object_uuid()));
 		if(!castle){

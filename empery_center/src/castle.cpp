@@ -17,6 +17,7 @@
 #include "data/map_object.hpp"
 #include "building_type_ids.hpp"
 #include "account_utilities.hpp"
+#include "singletons/world_map.hpp"
 
 namespace EmperyCenter {
 
@@ -361,15 +362,33 @@ void Castle::pump_production(){
 	boost::container::flat_map<ResourceId, std::uint64_t> resources_to_consume_per_minute;
 	for(auto it = m_battalions.begin(); it != m_battalions.end(); ++it){
 		const auto &obj = it->second;
-		const auto count = obj->get_count();
-		if(count == 0){
+		const auto soldier_count = obj->get_count();
+		if(soldier_count == 0){
 			continue;
 		}
 		const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
 		const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
 		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
 			auto &amount_total = resources_to_consume_per_minute[rit->first];
-			amount_total = saturated_add(amount_total, saturated_mul(count, rit->second));
+			amount_total = saturated_add(amount_total, saturated_mul(soldier_count, rit->second));
+		}
+	}
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, get_map_object_uuid());
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		const auto map_object_type_id = child_object->get_map_object_type_id();
+		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		const auto soldier_count = static_cast<std::uint64_t>(child_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+		if(soldier_count == 0){
+			continue;
+		}
+		const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
+			auto &amount_total = resources_to_consume_per_minute[rit->first];
+			amount_total = saturated_add(amount_total, saturated_mul(soldier_count, rit->second));
 		}
 	}
 	const auto last_consumption_time = m_population_production_stamps->get_production_time_begin();
