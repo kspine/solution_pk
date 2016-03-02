@@ -70,9 +70,9 @@ namespace {
 			elem.event_circle_key.first  = MapEventCircleId(array.at(0).get<double>());
 			elem.event_circle_key.second = MapEventId(array.at(1).get<double>());
 
-			csv.get(elem.event_count, "event_quantity");
-			csv.get(elem.expiry_time, "event_active_time");
-			csv.get(elem.priority,    "priority");
+			csv.get(elem.event_count_multiplier, "event_quantity");
+			csv.get(elem.expiry_duration,        "event_active_time");
+			csv.get(elem.priority,               "priority");
 
 			if(!map_event_generation_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapEventGeneration: map_event_circle_id = ", elem.event_circle_key.first,

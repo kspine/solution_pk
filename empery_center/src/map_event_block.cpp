@@ -2,16 +2,21 @@
 #include "map_event_block.hpp"
 #include "mysql/map_event.hpp"
 #include "data/map_event.hpp"
+#include "data/map.hpp"
 #include "data/global.hpp"
 #include <poseidon/json.hpp>
 #include "singletons/map_event_block_map.hpp"
 #include "singletons/world_map.hpp"
 #include "strategic_resource.hpp"
+#include "map_cell.hpp"
 #include "map_object.hpp"
 #include "map_object_type_ids.hpp"
 #include "singletons/account_map.hpp"
 #include "account.hpp"
 #include "account_attribute_ids.hpp"
+#include "events/map.hpp"
+#include "map_utilities.hpp"
+#include "strategic_resource.hpp"
 
 namespace EmperyCenter {
 
@@ -24,6 +29,29 @@ namespace {
 		info.expiry_time  = obj->get_expiry_time();
 		info.map_event_id = MapEventId(obj->get_map_event_id());
 		info.meta_uuid    = obj->get_meta_uuid();
+	}
+
+	void really_create_map_event_at_coord(MapEventId map_event_id,
+		Coord coord, std::uint64_t created_time, std::uint64_t expiry_time, Poseidon::Uuid meta_uuid)
+	{
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("&& Creating map event: map_event_id = ", map_event_id, ", coord = ", coord);
+
+		const auto event_resource_data = Data::MapEventResource::get(map_event_id);
+		if(event_resource_data){
+			const auto strategic_resource = boost::make_shared<StrategicResource>(
+				coord, event_resource_data->resource_id, event_resource_data->resource_amount, created_time, expiry_time);
+			WorldMap::insert_strategic_resource(strategic_resource);
+			return;
+		}
+
+		const auto event_monster_data = Data::MapEventResource::get(map_event_id);
+		if(event_monster_data){
+			return;
+		}
+
+		LOG_EMPERY_CENTER_ERROR("Unknown map event type id: ", map_event_id);
+		DEBUG_THROW(Exception, sslit("Unknown map event type id"));
 	}
 }
 
@@ -90,7 +118,10 @@ void MapEventBlock::refresh_events(bool first_time){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
+	boost::container::flat_set<Coord> coords_avail;
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	std::vector<Coord> castle_foundation;
 
 	// 移除过期的地图事件。
 	std::vector<Coord> events_to_remove;
@@ -123,17 +154,20 @@ void MapEventBlock::refresh_events(bool first_time){
 
 	// 刷新新的地图事件。
 	const auto block_coord = get_block_coord();
+	const auto block_scope = Rectangle(block_coord, BLOCK_WIDTH, BLOCK_HEIGHT);
 	const auto cluster_scope = WorldMap::get_cluster_scope(block_coord);
 	const auto map_x = static_cast<unsigned>(block_coord.x() - cluster_scope.left());
 	const auto map_y = static_cast<unsigned>(block_coord.y() - cluster_scope.bottom());
 	const auto event_block_data = Data::MapEventBlock::require(map_x / BLOCK_WIDTH, map_y / BLOCK_HEIGHT);
 
 	const auto map_event_circle_id = event_block_data->map_event_circle_id;
-	LOG_EMPERY_CENTER_DEBUG("Calculating acitve account count: map_event_circle_id = ", map_event_circle_id);
+	LOG_EMPERY_CENTER_DEBUG("Calculating active account count: map_event_circle_id = ", map_event_circle_id);
 	char map_event_circle_id_str[32];
 	std::sprintf(map_event_circle_id_str, "%lu", (unsigned long)map_event_circle_id.get());
 	std::uint64_t active_castle_count = 0;
 	if(first_time){
+		LOG_EMPERY_CENTER_DEBUG("Performing one-shot initialization: block_scope = ", block_scope);
+
 		const auto &init_active_account_object = Data::Global::as_object(Data::Global::SLOT_INIT_ACTIVE_CASTLES_BY_MAP_EVENT_CIRCLE);
 		const auto init_active_castle_count = static_cast<std::uint64_t>(
 			init_active_account_object.at(SharedNts::view(map_event_circle_id_str)).get<double>());
@@ -149,7 +183,22 @@ void MapEventBlock::refresh_events(bool first_time){
 			if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
 				continue;
 			}
+			const auto coord = map_object->get_coord();
+			const auto num_x = static_cast<unsigned>(coord.x() - cluster_scope.left())   / BLOCK_WIDTH;
+			const auto num_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom()) / BLOCK_HEIGHT;
+			const auto test_block_data = Data::MapEventBlock::get(num_x, num_y);
+			if(!test_block_data){
+				LOG_EMPERY_CENTER_ERROR("MapEventBlock not found: num_x = ", num_x, ", num_y = ", num_y);
+				continue;
+			}
+			if(test_block_data->map_event_circle_id != map_event_circle_id){
+				continue;
+			}
 			const auto owner_account = AccountMap::require(map_object->get_owner_uuid());
+			const auto &last_logged_in_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_IN_TIME);
+			if(last_logged_in_time_str.empty()){
+				continue;
+			}
 			std::uint64_t last_logged_out_time = UINT64_MAX;
 			const auto &last_logged_out_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME);
 			if(!last_logged_out_time_str.empty()){
@@ -162,6 +211,7 @@ void MapEventBlock::refresh_events(bool first_time){
 			}
 			++active_castle_count;
 		}
+		LOG_EMPERY_CENTER_DEBUG("Active castles: block_scope = ", block_scope, ", active_castle_count = ", active_castle_count);
 
 		const auto &min_active_account_object = Data::Global::as_object(Data::Global::SLOT_MIN_ACTIVE_CASTLES_BY_MAP_EVENT_CIRCLE);
 		const auto min_active_castle_count = static_cast<std::uint64_t>(
@@ -176,23 +226,145 @@ void MapEventBlock::refresh_events(bool first_time){
 			active_castle_count = max_active_castle_count;
 		}
 	}
-	LOG_EMPERY_CENTER_DEBUG("Number of active castles in map event block: block_coord = ", block_coord,
-		", active_castle_count = ", active_castle_count);
+	LOG_EMPERY_CENTER_DEBUG("Virtual active castles: block_scope = ", block_scope, ", active_castle_count = ", active_castle_count);
 
-	std::vector<boost::shared_ptr<const Data::MapEventBlock>> map_event_block_data_all;
-	Data::MapEventBlock::get_all(map_event_block_data_all);
-	std::uint32_t block_count = 0;
-	for(auto it = map_event_block_data_all.begin(); it != map_event_block_data_all.end(); ++it){
-		const auto &map_event_block_data = *it;
-		if(map_event_block_data->map_event_circle_id != map_event_circle_id){
-			continue;
+	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
+
+	using GenerationDataPtr = boost::shared_ptr<const Data::MapEventGeneration>;
+	std::vector<GenerationDataPtr> generation_data_all;
+	Data::MapEventGeneration::get_by_map_event_circle_id(generation_data_all, map_event_circle_id);
+	std::sort(generation_data_all.begin(), generation_data_all.end(),
+		[](const GenerationDataPtr &lhs, const GenerationDataPtr &rhs){ return lhs->priority > rhs->priority; });
+	for(auto gdit = generation_data_all.begin(); gdit != generation_data_all.end(); ++gdit){
+		const auto generation_data = *gdit;
+		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier);
+
+		const auto event_id = generation_data->event_circle_key.second;
+		const auto event_data = Data::MapEventAbstract::require(event_id);
+
+		try {
+			m_events.reserve(events_to_refresh);
+
+			std::uint64_t events_retained = 0;
+			for(auto it = m_events.begin(); it != m_events.end(); ++it){
+				const auto &obj = it->second;
+				const auto old_event_id = MapEventId(obj->get_map_event_id());
+				if(old_event_id != event_id){
+					continue;
+				}
+				++events_retained;
+			}
+
+			// 删除不能刷事件的点。
+			coords_avail.reserve(BLOCK_WIDTH * BLOCK_HEIGHT);
+			for(unsigned y = 0; y < BLOCK_HEIGHT; ++y){
+				for(unsigned x = 0; x < BLOCK_WIDTH; ++x){
+					const auto coord = Coord(block_coord.x() + x, block_coord.y() + y);
+					const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+					const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+					if((map_x < border_thickness) || (map_x >= cluster_scope.width() - border_thickness) ||
+						(map_y < border_thickness) || (map_y >= cluster_scope.height() - border_thickness))
+					{
+						// 事件不能刷在地图边界以外。
+						continue;
+					}
+					coords_avail.emplace_hint(coords_avail.end(), coord);
+				}
+			}
+			map_cells.clear();
+			WorldMap::get_map_cells_by_rectangle(map_cells, block_scope);
+			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+				const auto &map_cell = *it;
+				const auto coord = map_cell->get_coord();
+				if(event_data->restricted_terrain_id){
+					const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+					const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+					const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
+					if(basic_data->terrain_id != event_data->restricted_terrain_id){
+						// 事件不能刷在非指定类型的土地上。
+						coords_avail.erase(coord);
+						continue;
+					}
+				}
+			}
+			LOG_EMPERY_CENTER_DEBUG("Number of coords statically available: event_id = ", event_id, ", coords_avail = ", coords_avail.size());
+			for(auto it = m_events.begin(); it != m_events.end(); ++it){
+				const auto coord = it->first;
+				// 事件不能刷在现有事件上。
+				coords_avail.erase(coord);
+			}
+			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+				const auto &map_cell = *it;
+				const auto coord = map_cell->get_coord();
+				if(map_cell->get_parent_object_uuid()){
+					// 事件不能刷在领地上。
+					coords_avail.erase(coord);
+					continue;
+				}
+			}
+			map_objects.clear();
+			WorldMap::get_map_objects_by_rectangle(map_objects, block_scope);
+			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+				const auto &map_object = *it;
+				const auto coord = map_object->get_coord();
+				// 事件不能刷在部队上。
+				coords_avail.erase(coord);
+
+				const auto map_object_type_id = map_object->get_map_object_type_id();
+				if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+					// 但是对于城堡，考虑其整个范围。
+					castle_foundation.clear();
+					get_castle_foundation(castle_foundation, coord, true);
+					for(auto fit = castle_foundation.begin(); fit != castle_foundation.end(); ++fit){
+						coords_avail.erase(*fit);
+					}
+				}
+			}
+			LOG_EMPERY_CENTER_DEBUG("About to refresh events: event_id = ", event_id, ", coords_avail = ", coords_avail.size(),
+				", events_retained = ", events_retained, ", events_to_refresh = ", events_to_refresh);
+
+			std::uint64_t events_created = 0;
+			for(std::uint64_t i = events_retained; i < events_to_refresh; ++i){
+				if(coords_avail.empty()){
+					LOG_EMPERY_CENTER_WARNING("No more coords available.");
+					break;
+				}
+				try {
+					const auto coord_it = coords_avail.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, coords_avail.size()));
+					const auto coord = *coord_it;
+
+					const auto created_time = utc_now;
+					const auto expiry_time = saturated_add(created_time, saturated_mul<std::uint64_t>(generation_data->expiry_duration, 60000));
+					const auto meta_uuid = Poseidon::Uuid::random();
+
+					auto obj = boost::make_shared<MySql::Center_MapEvent>(coord.x(), coord.y(),
+						created_time, expiry_time, event_id.get(), meta_uuid);
+					obj->async_save(true);
+
+					really_create_map_event_at_coord(event_id, coord, created_time, expiry_time, meta_uuid);
+
+					assert(m_events.find(coord) == m_events.end());
+
+					m_events.emplace(coord, std::move(obj));
+					coords_avail.erase(coord_it);
+					++events_created;
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				}
+			}
+
+			if(events_retained + events_created < events_to_refresh){
+				LOG_EMPERY_CENTER_WARNING("Map events overflowed: block_scope = ", block_scope, ", active_castle_count = ", active_castle_count,
+					", events_to_refresh = ", events_to_refresh, ", events_retained = ", events_retained, ", events_created = ", events_created);
+				Poseidon::async_raise_event(
+					boost::make_shared<Events::MapEventsOverflowed>(block_scope, active_castle_count,
+						events_to_refresh, events_retained, events_created),
+					{ });
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
-		++block_count;
 	}
-	LOG_EMPERY_CENTER_DEBUG("Number of blocks in map event circle: block_count = ", block_count,
-		", map_event_circle_id = ", map_event_circle_id);
-
-	
 }
 
 Coord MapEventBlock::get_block_coord() const {

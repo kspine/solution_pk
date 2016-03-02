@@ -31,8 +31,8 @@ namespace Data {
 
 	public:
 		std::pair<MapEventCircleId, MapEventId> event_circle_key;
-		std::uint64_t event_count;
-		std::uint64_t expiry_time;
+		double event_count_multiplier;
+		std::uint64_t expiry_duration;
 		unsigned priority;
 	};
 
