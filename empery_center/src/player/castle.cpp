@@ -960,7 +960,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	}
 
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	if(building_info.building_id != map_object_type_data->factory_id){
 		return Response(Msg::ERR_FACTORY_ID_MISMATCH) <<map_object_type_data->factory_id;
 	}
@@ -1017,7 +1017,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	}
 
 	const auto map_object_type_id = info.map_object_type_id;
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto count = info.count;
 
 	const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_UPGRADE_CANCELLATION_REFUND_RATIO);
@@ -1129,7 +1129,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto map_object_type_data = Data::MapObjectType::get(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}
@@ -1148,7 +1148,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	}
 	const auto previous_id = map_object_type_data->previous_id;
 	if(previous_id){
-		const auto prev_data = Data::MapObjectType::require(previous_id);
+		const auto prev_data = Data::MapObjectTypeBattalion::require(previous_id);
 		const auto prev_info = castle->get_battalion(previous_id);
 		if(!(prev_info.enabled || prev_data->enability_cost.empty())){
 			return Response(Msg::ERR_PREREQUISITE_BATTALION_NOT_MET) <<previous_id;
@@ -1189,7 +1189,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
 	const auto count = req.count;
 
-	const auto map_object_type_data = Data::MapObjectType::get(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}
@@ -1398,7 +1398,7 @@ PLAYER_SERVLET(Msg::CS_CastleDissolveBattalion, account, session, req){
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
 	const auto count = req.count;
 
-	const auto map_object_type_data = Data::MapObjectType::get(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}

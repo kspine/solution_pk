@@ -73,7 +73,7 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
 	const auto speed = map_object_type_data->speed;
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
@@ -333,7 +333,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
 	const auto speed = map_object_type_data->speed;
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
@@ -513,7 +513,7 @@ PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto speed = map_object_type_data->speed;
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
@@ -552,7 +552,7 @@ PLAYER_SERVLET(Msg::CS_MapEvacuateFromCastle, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto speed = map_object_type_data->speed;
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
@@ -600,7 +600,7 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto speed = map_object_type_data->speed;
 	if(speed <= 0){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;

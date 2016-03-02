@@ -27,7 +27,7 @@
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/account_map.hpp"
-#include "../singletons/base_fight_map.hpp"
+//#include "../singletons/base_fight_map.hpp"
 
 namespace EmperyCenter {
 
@@ -142,7 +142,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 //	const auto resource_id = overlay->get_resource_id();
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
 	if(soldier_count < 1){
 		soldier_count = 1;
@@ -283,7 +283,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 //	const auto resource_id = strategic_resource->get_resource_id();
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
 	if(soldier_count < 1){
 		soldier_count = 1;
@@ -303,13 +303,13 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 
 CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
 	const auto account_uuid = AccountUuid(req.owner_uuid);
-	const auto enemy_uuid = AccountUuid(req.enemy_uuid);
+//	const auto enemy_uuid = AccountUuid(req.enemy_uuid);
 	const auto account = AccountMap::get(account_uuid);
 	if(!account){
 		LOG_EMPERY_CENTER_WARNING("Account not found: account_uuid = ", account_uuid);
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT);
 	}
-	const auto utc_now = Poseidon::get_utc_time();
+/*	const auto utc_now = Poseidon::get_utc_time();
 	const auto display_blood_time = utc_now + Data::Global::as_unsigned(Data::Global::SLOT_DISPLAY_BLOOD_TIME)*60*1000;
 	const auto last_show_blood  = BaseFightMap::get_last_finish_show_blood_time(account_uuid,enemy_uuid);
 	bool notify_sides = false;
@@ -334,7 +334,7 @@ CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
 		msgBloodShow.enemy_uuid = account_uuid.str();
 		session_enemy->send(msgBloodShow);
 	}
-	
+*/	
 	return Response();
 	
 }

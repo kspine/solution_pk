@@ -56,7 +56,7 @@ namespace {
 			csvRelative.get(object, "anti_relative");
 			elem.arm_relative.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				const auto relative_arm_type_id = boost::lexical_cast<ArmTypeId>(it->first);
+				const auto relative_arm_type_id = boost::lexical_cast<MapObjectCategoryId>(it->first);
 				const auto relateive = it->second.get<double>();
 				if(!elem.arm_relative.emplace(relative_arm_type_id, relateive).second){
 					LOG_EMPERY_CLUSTER_ERROR("Duplicate arm  relateive: arm_type_id = ", elem.arm_type_id , "relative_arm_type_id =",relative_arm_type_id);
@@ -103,7 +103,7 @@ namespace Data {
 		return ret;
 	}
 	
-	double MapObjectRelative::get_relative(ArmTypeId map_object_arm_type_id,ArmTypeId relateive_arm_type_id){
+	double MapObjectRelative::get_relative(MapObjectCategoryId map_object_arm_type_id,MapObjectCategoryId relateive_arm_type_id){
 		PROFILE_ME;
 		const auto map_object_relative_map = g_map_object_relative_map.lock();
 		if(!map_object_relative_map){

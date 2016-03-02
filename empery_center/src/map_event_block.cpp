@@ -39,14 +39,18 @@ namespace {
 
 		const auto event_resource_data = Data::MapEventResource::get(map_event_id);
 		if(event_resource_data){
-			const auto strategic_resource = boost::make_shared<StrategicResource>(
-				coord, event_resource_data->resource_id, event_resource_data->resource_amount, created_time, expiry_time);
+			const auto strategic_resource = boost::make_shared<StrategicResource>(coord,
+				event_resource_data->resource_id, event_resource_data->resource_amount, created_time, expiry_time);
 			WorldMap::insert_strategic_resource(strategic_resource);
 			return;
 		}
 
-		const auto event_monster_data = Data::MapEventResource::get(map_event_id);
+		const auto event_monster_data = Data::MapEventMonster::get(map_event_id);
 		if(event_monster_data){
+			const auto monster = boost::make_shared<MapObject>(MapObjectUuid(meta_uuid), event_monster_data->monster_type_id,
+				AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
+			monster->pump_status();
+			WorldMap::insert_map_object(monster);
 			return;
 		}
 
