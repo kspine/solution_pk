@@ -47,7 +47,8 @@ namespace {
 
 		const auto event_monster_data = Data::MapEventMonster::get(map_event_id);
 		if(event_monster_data){
-			const auto monster = boost::make_shared<MapObject>(MapObjectUuid(meta_uuid), event_monster_data->monster_type_id,
+			const auto monster_uuid = MapObjectUuid(meta_uuid);
+			const auto monster = boost::make_shared<MapObject>(monster_uuid, event_monster_data->monster_type_id,
 				AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
 			monster->pump_status();
 			WorldMap::insert_map_object(monster);
@@ -56,6 +57,33 @@ namespace {
 
 		LOG_EMPERY_CENTER_ERROR("Unknown map event type id: ", map_event_id);
 		DEBUG_THROW(Exception, sslit("Unknown map event type id"));
+	}
+	void really_destroy_map_event_at_coord(MapEventId map_event_id,
+		Coord coord, Poseidon::Uuid meta_uuid)
+	{
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("&& Creating map event: map_event_id = ", map_event_id, ", coord = ", coord);
+
+		const auto event_resource_data = Data::MapEventResource::get(map_event_id);
+		if(event_resource_data){
+			const auto strategic_resource = WorldMap::get_strategic_resource(coord);
+			if(strategic_resource){
+				strategic_resource->delete_from_game();
+			}
+			return;
+		}
+
+		const auto event_monster_data = Data::MapEventMonster::get(map_event_id);
+		if(event_monster_data){
+			const auto monster_uuid = MapObjectUuid(meta_uuid);
+			const auto monster = WorldMap::get_map_object(monster_uuid);
+			if(monster){
+				monster->delete_from_game();
+			}
+			return;
+		}
+
+		LOG_EMPERY_CENTER_ERROR("Unknown map event type id: ", map_event_id);
 	}
 }
 
@@ -125,6 +153,7 @@ void MapEventBlock::refresh_events(bool first_time){
 	boost::container::flat_set<Coord> coords_avail;
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
 	std::vector<Coord> castle_foundation;
 
 	// 移除过期的地图事件。
@@ -243,8 +272,8 @@ void MapEventBlock::refresh_events(bool first_time){
 		const auto generation_data = *gdit;
 		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier);
 
-		const auto event_id = generation_data->event_circle_key.second;
-		const auto event_data = Data::MapEventAbstract::require(event_id);
+		const auto map_event_id = generation_data->event_circle_key.second;
+		const auto event_data = Data::MapEventAbstract::require(map_event_id);
 
 		try {
 			m_events.reserve(events_to_refresh);
@@ -252,8 +281,8 @@ void MapEventBlock::refresh_events(bool first_time){
 			std::uint64_t events_retained = 0;
 			for(auto it = m_events.begin(); it != m_events.end(); ++it){
 				const auto &obj = it->second;
-				const auto old_event_id = MapEventId(obj->get_map_event_id());
-				if(old_event_id != event_id){
+				const auto old_map_event_id = MapEventId(obj->get_map_event_id());
+				if(old_map_event_id != map_event_id){
 					continue;
 				}
 				++events_retained;
@@ -291,7 +320,7 @@ void MapEventBlock::refresh_events(bool first_time){
 					}
 				}
 			}
-			LOG_EMPERY_CENTER_DEBUG("Number of coords statically available: event_id = ", event_id, ", coords_avail = ", coords_avail.size());
+			LOG_EMPERY_CENTER_DEBUG("Number of coords statically available: map_event_id = ", map_event_id, ", coords_avail = ", coords_avail.size());
 			for(auto it = m_events.begin(); it != m_events.end(); ++it){
 				const auto coord = it->first;
 				// 事件不能刷在现有事件上。
@@ -324,7 +353,15 @@ void MapEventBlock::refresh_events(bool first_time){
 					}
 				}
 			}
-			LOG_EMPERY_CENTER_DEBUG("About to refresh events: event_id = ", event_id, ", coords_avail = ", coords_avail.size(),
+			strategic_resources.clear();
+			WorldMap::get_strategic_resources_by_rectangle(strategic_resources, block_scope);
+			for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
+				const auto &strategic_resource = *it;
+				const auto coord = strategic_resource->get_coord();
+				// 事件不能刷在战略资源上。
+				coords_avail.erase(coord);
+			}
+			LOG_EMPERY_CENTER_DEBUG("About to refresh events: map_event_id = ", map_event_id, ", coords_avail = ", coords_avail.size(),
 				", events_retained = ", events_retained, ", events_to_refresh = ", events_to_refresh);
 
 			std::uint64_t events_created = 0;
@@ -337,19 +374,16 @@ void MapEventBlock::refresh_events(bool first_time){
 					const auto coord_it = coords_avail.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, coords_avail.size()));
 					const auto coord = *coord_it;
 
-					const auto created_time = utc_now;
-					const auto expiry_time = saturated_add(created_time, saturated_mul<std::uint64_t>(generation_data->expiry_duration, 60000));
-					const auto meta_uuid = Poseidon::Uuid::random();
-
-					auto obj = boost::make_shared<MySql::Center_MapEvent>(coord.x(), coord.y(),
-						created_time, expiry_time, event_id.get(), meta_uuid);
-					obj->async_save(true);
-
-					really_create_map_event_at_coord(event_id, coord, created_time, expiry_time, meta_uuid);
-
 					assert(m_events.find(coord) == m_events.end());
 
-					m_events.emplace(coord, std::move(obj));
+					EventInfo info = { };
+					info.coord        = coord;
+					info.created_time = utc_now;
+					info.expiry_time  = saturated_add(utc_now, saturated_mul<std::uint64_t>(generation_data->expiry_duration, 60000));
+					info.map_event_id = map_event_id;
+					info.meta_uuid    = Poseidon::Uuid::random();
+					insert(std::move(info));
+
 					coords_avail.erase(coord_it);
 					++events_created;
 				} catch(std::exception &e){
@@ -406,7 +440,7 @@ void MapEventBlock::insert(MapEventBlock::EventInfo info){
 	PROFILE_ME;
 
 	const auto coord = info.coord;
-	const auto it = m_events.find(coord);
+	auto it = m_events.find(coord);
 	if(it != m_events.end()){
 		LOG_EMPERY_CENTER_WARNING("Map event exists: block_coord = ", get_block_coord(), ", coord = ", coord);
 		DEBUG_THROW(Exception, sslit("Map event exists"));
@@ -415,7 +449,14 @@ void MapEventBlock::insert(MapEventBlock::EventInfo info){
 	const auto obj = boost::make_shared<MySql::Center_MapEvent>(coord.x(), coord.y(),
 		info.created_time, info.expiry_time, info.map_event_id.get(), info.meta_uuid);
 	obj->async_save(true);
-	m_events.emplace(coord, obj);
+	it = m_events.emplace(coord, obj).first;
+
+	try {
+		really_create_map_event_at_coord(info.map_event_id, coord, info.created_time, info.expiry_time, info.meta_uuid);
+	} catch(...){
+		m_events.erase(it);
+		throw;
+	}
 }
 void MapEventBlock::update(EventInfo info, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -448,23 +489,9 @@ bool MapEventBlock::remove(Coord coord) noexcept {
 	obj->set_expiry_time(0);
 
 	const auto map_event_id = MapEventId(obj->get_map_event_id());
+	const auto meta_uuid = obj->unlocked_get_meta_uuid();
 
-	const auto resource_event_data = Data::MapEventResource::get(map_event_id);
-	if(resource_event_data){
-		const auto strategic_resource = WorldMap::get_strategic_resource(coord);
-		if(strategic_resource){
-			strategic_resource->delete_from_game();
-		}
-	}
-
-	const auto monster_event_data = Data::MapEventMonster::get(map_event_id);
-	if(monster_event_data){
-		const auto monster_uuid = MapObjectUuid(obj->unlocked_get_meta_uuid());
-		const auto monster = WorldMap::get_map_object(monster_uuid);
-		if(monster){
-			monster->delete_from_game();
-		}
-	}
+	really_destroy_map_event_at_coord(map_event_id, coord, meta_uuid);
 
 	return true;
 }
