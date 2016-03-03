@@ -27,7 +27,9 @@
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/account_map.hpp"
-#include "../singletons/base_fight_map.hpp"
+#include "../singletons/blood_display_map.hpp"
+#include "../account_attribute_ids.hpp"
+#include "../account.hpp"
 
 namespace EmperyCenter {
 
@@ -310,29 +312,41 @@ CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT);
 	}
 	const auto utc_now = Poseidon::get_utc_time();
+	const auto last_login_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_LOGGED_IN_TIME);
 	const auto display_blood_time = utc_now + Data::Global::as_unsigned(Data::Global::SLOT_DISPLAY_BLOOD_TIME)*60*1000;
-	const auto last_show_blood  = BaseFightMap::get_last_finish_show_blood_time(account_uuid,enemy_uuid);
+	std::uint64_t last_attack_time,last_finish_display_blood;
+	BloodDisplayMap::get_display_blood_time(account_uuid,enemy_uuid,last_attack_time,last_finish_display_blood);
 	bool notify_sides = false;
-	if(0 == last_show_blood || (last_show_blood < utc_now + 1*1000)){
-		BaseFightMap::update_attack_info(account_uuid,enemy_uuid,utc_now,display_blood_time);
+	if(0 == last_finish_display_blood || (last_finish_display_blood < utc_now + 1*1000 || (last_attack_time < last_login_time))){
+		BloodDisplayMap::update_attack_info(account_uuid,enemy_uuid,utc_now,display_blood_time);
 		notify_sides = true;
 	}else{
-		BaseFightMap::update_attack_info(account_uuid,enemy_uuid,utc_now,0);
+		BloodDisplayMap::update_attack_info(account_uuid,enemy_uuid,utc_now,0);
 	}
 	if(!notify_sides){
 		return Response();
 	}
 	const auto session_own = PlayerSessionMap::get(account_uuid);
 	const auto session_enemy = PlayerSessionMap::get(enemy_uuid);
-	Msg::SC_EnemyBloodShow msgBloodShow;
-	msgBloodShow.finish_time = display_blood_time;
+	Msg::SC_EnemyBloodShow msg;
+	msg.finish_time = display_blood_time;
 	if(session_own){
-		msgBloodShow.enemy_uuid = enemy_uuid.str();
-		session_own->send(msgBloodShow);
+		try {
+			msg.enemy_uuid = enemy_uuid.str();
+			session_own->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session_own->shutdown(e.what());
+		}
 	}
 	if(session_enemy){
-		msgBloodShow.enemy_uuid = account_uuid.str();
-		session_enemy->send(msgBloodShow);
+		try {
+			msg.enemy_uuid = account_uuid.str();
+			session_enemy->send(msg);
+		}catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session_own->shutdown(e.what());
+		}
 	}
 	
 	return Response();

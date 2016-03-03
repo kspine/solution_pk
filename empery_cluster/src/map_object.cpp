@@ -499,11 +499,11 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	}else{
 		//伤害计算
 		if(target_object->get_map_object_type_id() == EmperyCenter::MapObjectTypeIds::ID_CASTLE ){
-			damage = (1.0 +(soldier_count/10000.0) + (soldier_count - ememy_solider_count)/10000.0 * 0.5*relative_rate*
-			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate));
+			damage = (1.0 +(soldier_count/10000.0) + (soldier_count - ememy_solider_count)/10000.0 * 0.5)*relative_rate*
+			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}else{
-			damage =  (1.0 +(soldier_count/10000.0)*relative_rate*
-			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate));
+			damage =  (1.0 +(soldier_count/10000.0))*relative_rate*
+			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}
 		msgAttack.impact = IMPACT_NORMAL;
 		msgAttack.damage = damage;
@@ -515,7 +515,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 			msgAttack.damage = damage;
 		}
 	}
-	
 	std::int64_t new_ememy_solider_count = ememy_solider_count - static_cast<std::int64_t>(damage);
 	new_ememy_solider_count = (new_ememy_solider_count >= 0) ? new_ememy_solider_count : 0;
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
