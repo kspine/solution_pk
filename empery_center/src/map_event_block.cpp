@@ -173,8 +173,12 @@ void MapEventBlock::refresh_events(bool first_time){
 			map_objects.clear();
 			WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord, 1, 1));
 			if(!map_objects.empty()){
-				// 假设有部队正在采集。
-				continue;
+				const auto &map_object = map_objects.front();
+				const auto owner_uuid = map_object->get_owner_uuid();
+				if(owner_uuid){
+					// 假设有部队正在采集。
+					continue;
+				}
 			}
 		}
 		events_to_remove.emplace_back(it->first);
