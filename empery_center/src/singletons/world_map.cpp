@@ -345,6 +345,9 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto overlay = boost::make_shared<Overlay>(std::move(obj));
+			if(overlay->is_virtually_removed()){
+				continue;
+			}
 			overlay_map->insert(OverlayElement(std::move(overlay)));
 		}
 		g_overlay_map = overlay_map;
@@ -359,6 +362,9 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto strategic_resource = boost::make_shared<StrategicResource>(std::move(obj));
+			if(strategic_resource->is_virtually_removed()){
+				continue;
+			}
 			strategic_resource_map->insert(StrategicResourceElement(std::move(strategic_resource)));
 		}
 		g_strategic_resource_map = strategic_resource_map;
@@ -973,6 +979,11 @@ void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool th
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
+	if(overlay->is_virtually_removed()){
+		overlay_map->erase<0>(it);
+	} else {
+		overlay_map->replace<0>(it, OverlayElement(overlay));
+	}
 
 	synchronize_with_all_players(overlay, coord, coord, { });
 }
@@ -1092,6 +1103,11 @@ void WorldMap::update_strategic_resource(const boost::shared_ptr<StrategicResour
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating strategic resource: coord = ", coord, ", resource_id = ", strategic_resource->get_resource_id());
+	if(strategic_resource->is_virtually_removed()){
+		strategic_resource_map->erase<0>(it);
+	} else {
+		strategic_resource_map->replace<0>(it, StrategicResourceElement(strategic_resource));
+	}
 
 	synchronize_with_all_players(strategic_resource, coord, coord, { });
 }
