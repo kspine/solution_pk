@@ -143,11 +143,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
-	if(soldier_count < 1){
-		soldier_count = 1;
-	}
-	const auto harvest_speed = soldier_count * map_object_type_data->harvest_speed;
+	const auto harvest_speed = map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
@@ -284,11 +280,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
-	if(soldier_count < 1){
-		soldier_count = 1;
-	}
-	const auto harvest_speed = soldier_count * map_object_type_data->harvest_speed;
+	const auto harvest_speed = map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
