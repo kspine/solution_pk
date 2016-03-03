@@ -43,11 +43,11 @@ public:
 	};
 
 	struct Waypoint {
-		std::uint64_t delay;  // 毫秒
-		std::int64_t dx;      // 相对坐标 X
-		std::int64_t dy;      // 相对坐标 Y
+		std::uint64_t delay; // 毫秒
+		signed char dx;      // 相对坐标 X
+		signed char dy;      // 相对坐标 Y
 
-		Waypoint(std::uint64_t delay_, std::int64_t dx_, std::int64_t dy_)
+		Waypoint(std::uint64_t delay_, signed char dx_, signed char dy_)
 			: delay(delay_), dx(dx_), dy(dy_)
 		{
 		}
