@@ -93,63 +93,66 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 namespace {
 	struct AStarCoordElement {
 		Coord coord;
+		std::uint64_t distance_to_hint;
+
 		bool closed;
-		Coord parent_coord;
 		std::uint64_t distance_from;
-		std::uint64_t distance_to;
+		Coord parent_coord;
 	};
 
 	bool operator<(const AStarCoordElement &lhs, const AStarCoordElement &rhs){
-		return lhs.distance_from + lhs.distance_to > rhs.distance_to + rhs.distance_to;
+		return lhs.distance_to_hint + lhs.distance_from > rhs.distance_to_hint + rhs.distance_from;
 	}
 }
 
 bool find_path(std::vector<std::pair<signed char, signed char>> &path,
-	Coord from_coord, Coord to_coord, AccountUuid account_uuid, std::uint64_t radius_limit, std::uint64_t distance_close_enough)
+	Coord from_coord, Coord to_coord, AccountUuid account_uuid, std::uint64_t distance_limit, std::uint64_t distance_close_enough)
 {
 	PROFILE_ME;
 	LOG_EMPERY_CLUSTER_DEBUG("Pathfinding: from_coord = ", from_coord, ", to_coord = ", to_coord,
-		", radius_limit = ", radius_limit, ", distance_close_enough = ", distance_close_enough);
+		", distance_limit = ", distance_limit, ", distance_close_enough = ", distance_close_enough);
 
 	if(from_coord == to_coord){
 		return true;
 	}
 
 	boost::container::flat_map<Coord, AStarCoordElement> astar_coords;
-	astar_coords.reserve(radius_limit * radius_limit * 4);
+	astar_coords.reserve(distance_limit * distance_limit * 4);
 
-	const auto populate_coord = [&](Coord coord, bool closed_hint) -> AStarCoordElement & {
+	const auto populate_coord = [&](Coord coord, bool closed_hint,
+		std::uint64_t distance_from_hint, Coord parent_coord_hint) -> AStarCoordElement &
+	{
 		auto it = astar_coords.find(coord);
 		if(it == astar_coords.end()){
 			AStarCoordElement elem = { };
-			elem.coord         = coord;
+			elem.coord = coord;
 			if(closed_hint){
 				elem.closed = true;
 			} else {
-				const auto result = get_result(coord, account_uuid, true);
+				const auto result = get_move_result(coord, account_uuid, true);
 				elem.closed = (result.first != Msg::ST_OK) && (result.first != Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY);
 			}
-			elem.distance_from = get_distance(from_coord, coord);
-			elem.distance_to   = get_distance(coord, to_coord);
-			it = astar_coords.emplace(from_coord, elem).first;
+			elem.distance_from = distance_from_hint;
+			elem.parent_coord = parent_coord_hint;
+			elem.distance_to_hint = get_distance_of_coords(coord, to_coord);
+			it = astar_coords.emplace(coord, elem).first;
 		} else {
+			auto &elem = it->second;
 			if(closed_hint){
-				it->second.closed = true;
+				elem.closed = true;
+			}
+			if(elem.distance_from > distance_from_hint){
+				elem.distance_from = distance_from_hint;
+				elem.parent_coord = parent_coord_hint;
 			}
 		}
 		return it->second;
 	};
 
-	std::vector<Coord> coords_open;
-	coords_open.reserve(radius_limit * 2);
-
-	AStarCoordElement elem = { };
-	elem.coord         = from_coord;
-	elem.closed        = false;
-	elem.distance_from = 0;
-	elem.distance_to   = get_distance(from_coord, to_coord);
-	astar_coords.emplace(from_coord, elem);
-	coords_open.emplace_back(elem);
+	std::vector<AStarCoordElement> coords_open;
+	coords_open.reserve(distance_limit * 2);
+	const auto &init_elem = populate_coord(from_coord, false, 0, from_coord);
+	coords_open.emplace_back(init_elem);
 
 	std::vector<Coord> surrounding;
 
@@ -157,33 +160,46 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 		if(coords_open.empty()){
 			return false;
 		}
-		// 获得距离总和最小的一点。
-		const auto coord_popped = coords_open.front().coord;
-		
+
+		// 获得距离总和最小的一点，然后把它从队列中删除。注意维护优先级。
+		const auto elem_popped = coords_open.front();
+		astar_coords.at(elem_popped.coord).closed = true;
+
 		std::pop_heap(coords_open.begin(), coords_open.end());
 		coords_open.pop_back();
 
 		// 展开之。
-		surrounding.clear();
-		get_surrounding_coords(surrounding, elem_popped.coord, 1);
-
-		
+		if(elem_popped.distance_from < distance_limit){
+			surrounding.clear();
+			get_surrounding_coords(surrounding, elem_popped.coord, 1);
+			for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
+				const auto coord = *it;
+				const auto &new_elem = populate_coord(coord, false, elem_popped.distance_from + 1, elem_popped.coord);
+				if(new_elem.distance_to_hint <= distance_close_enough){
+					// 寻路成功。
+					std::deque<Coord> coord_queue;
+					auto current_coord = coord;
+					for(;;){
+						coord_queue.emplace_front(current_coord);
+						if(current_coord == from_coord){
+							break;
+						}
+						current_coord = astar_coords.at(current_coord).parent_coord;
+					}
+					assert(!coord_queue.empty());
+					path.reserve(path.size() + coord_queue.size() - 1);
+					for(auto qit = coord_queue.begin() + 1; qit != coord_queue.end(); ++qit){
+						path.emplace_back(qit[0].x() - qit[-1].x(), qit[0].y() - qit[-1].y());
+					}
+					return true;
+				}
+				if(!new_elem.closed){
+					coords_open.emplace_back(new_elem);
+					std::push_heap(coords_open.begin(), coords_open.end());
+				}
+			}
+		}
 	}
 }
 
-}
-#include <poseidon/singletons/timer_daemon.hpp>
-#include "mmain.hpp"
-MODULE_RAII(handles){
-	using namespace EmperyCluster;
-	handles.push(Poseidon::TimerDaemon::register_timer(10000, 0,
-		std::bind([]{
-			std::vector<std::pair<signed char, signed char>> path;
-			const bool ret = find_path(path, Coord(-207,624), Coord(-206,621), AccountUuid(), 20, 0);
-			LOG_EMPERY_CLUSTER_FATAL("Pathfinding result = ", ret);
-			for(auto it = path.begin(); it != path.end(); ++it){
-				LOG_EMPERY_CLUSTER_FATAL("> Path: dx = ", it->first, ", dy = ", it->second);
-			}
-		})
-	));
 }

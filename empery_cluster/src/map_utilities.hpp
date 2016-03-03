@@ -17,7 +17,7 @@ using ::EmperyCenter::get_castle_foundation;
 extern std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uuid, bool wait_for_moving_objects);
 
 extern bool find_path(std::vector<std::pair<signed char, signed char>> &path,
-	Coord from_coord, Coord to_coord, AccountUuid account_uuid, std::uint64_t radius_limit, std::uint64_t distance_close_enough);
+	Coord from_coord, Coord to_coord, AccountUuid account_uuid, std::uint64_t distance_limit, std::uint64_t distance_close_enough);
 
 }
 
