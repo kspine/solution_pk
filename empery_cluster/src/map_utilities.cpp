@@ -155,7 +155,8 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 	coords_open.reserve(distance_limit * 2);
 	const auto &init_elem = populate_coord(from_coord, true /* 实际上不会影响功能 */, 0, from_coord);
 	coords_open.emplace_back(init_elem);
-	do {
+
+	for(;;){
 		// 获得距离总和最小的一点，然后把它从队列中删除。注意维护优先级。
 		const auto elem_popped = coords_open.front();
 		astar_coords.at(elem_popped.coord).closed = true;
@@ -195,9 +196,11 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 				}
 			}
 		}
-	} while(!coords_open.empty());
 
-	return false;
+		if(coords_open.empty()){
+			return false;
+		}
+	}
 }
 
 }
