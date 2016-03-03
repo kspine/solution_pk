@@ -122,6 +122,9 @@ public:
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers);
 
+	bool is_moving() const {
+		return !m_waypoints.empty();
+	}
 	void set_action(Coord from_coord, std::deque<Waypoint> waypoints, Action action, std::string action_param);
 };
 

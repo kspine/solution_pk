@@ -70,8 +70,10 @@ namespace {
 
 	boost::weak_ptr<MapObjectContainer> g_map_object_map;
 
-	std::uint32_t g_map_width  = 270;
-	std::uint32_t g_map_height = 240;
+	enum : unsigned {
+		MAP_WIDTH          = 600,
+		MAP_HEIGHT         = 640,
+	};
 
 	struct ClusterElement {
 		Coord cluster_coord;
@@ -165,8 +167,8 @@ namespace {
 		const auto mask_x = (coord.x() >= 0) ? 0 : -1;
 		const auto mask_y = (coord.y() >= 0) ? 0 : -1;
 
-		const auto cluster_x = ((coord.x() ^ mask_x) / g_map_width  ^ mask_x) * g_map_width;
-		const auto cluster_y = ((coord.y() ^ mask_y) / g_map_height ^ mask_y) * g_map_height;
+		const auto cluster_x = ((coord.x() ^ mask_x) / MAP_WIDTH  ^ mask_x) * MAP_WIDTH;
+		const auto cluster_y = ((coord.y() ^ mask_y) / MAP_HEIGHT ^ mask_y) * MAP_HEIGHT;
 
 		return Coord(cluster_x, cluster_y);
 	}
@@ -179,11 +181,6 @@ namespace {
 		const auto map_object_map = boost::make_shared<MapObjectContainer>();
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
-
-		const auto map_size = Data::Global::as_array(Data::Global::SLOT_MAP_SIZE);
-		g_map_width  = map_size.at(0).get<double>();
-		g_map_height = map_size.at(1).get<double>();
-		LOG_EMPERY_CLUSTER_DEBUG("> Map width = ", g_map_width, ", map height = ", g_map_height);
 
 		const auto cluster_map = boost::make_shared<ClusterContainer>();
 		g_cluster_map = cluster_map;
@@ -499,7 +496,7 @@ _exit_while:
 Rectangle WorldMap::get_cluster_scope(Coord coord){
 	PROFILE_ME;
 
-	return Rectangle(get_cluster_coord_from_world_coord(coord), g_map_width, g_map_height);
+	return Rectangle(get_cluster_coord_from_world_coord(coord), MAP_WIDTH, MAP_HEIGHT);
 }
 
 boost::shared_ptr<ClusterClient> WorldMap::get_cluster(Coord coord){

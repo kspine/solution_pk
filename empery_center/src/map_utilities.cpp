@@ -88,7 +88,7 @@ void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, std::uint64_t
 			generate_surrounding_coords(new_table, Coord(0, 0), radius, in_odd_row);
 			table.swap(new_table);
 		} else {
-			LOG_EMPERY_CENTER_DEBUG("Using existent lookup table: radius = ", radius, ", in_odd_row = ", in_odd_row);
+			LOG_EMPERY_CENTER_TRACE("Using existent lookup table: radius = ", radius, ", in_odd_row = ", in_odd_row);
 		}
 		ret.reserve(ret.size() + table.size());
 		for(auto it = table.begin(); it != table.end(); ++it){
