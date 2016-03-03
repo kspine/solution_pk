@@ -301,42 +301,4 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
-	const auto account_uuid = AccountUuid(req.owner_uuid);
-//	const auto enemy_uuid = AccountUuid(req.enemy_uuid);
-	const auto account = AccountMap::get(account_uuid);
-	if(!account){
-		LOG_EMPERY_CENTER_WARNING("Account not found: account_uuid = ", account_uuid);
-		return Response(Msg::ERR_NO_SUCH_ACCOUNT);
-	}
-/*	const auto utc_now = Poseidon::get_utc_time();
-	const auto display_blood_time = utc_now + Data::Global::as_unsigned(Data::Global::SLOT_DISPLAY_BLOOD_TIME)*60*1000;
-	const auto last_show_blood  = BaseFightMap::get_last_finish_show_blood_time(account_uuid,enemy_uuid);
-	bool notify_sides = false;
-	if(0 == last_show_blood || (last_show_blood < utc_now + 1*1000)){
-		BaseFightMap::update_attack_info(account_uuid,enemy_uuid,utc_now,display_blood_time);
-		notify_sides = true;
-	}else{
-		BaseFightMap::update_attack_info(account_uuid,enemy_uuid,utc_now,0);
-	}
-	if(!notify_sides){
-		return Response();
-	}
-	const auto session_own = PlayerSessionMap::get(account_uuid);
-	const auto session_enemy = PlayerSessionMap::get(enemy_uuid);
-	Msg::SC_EnemyBloodShow msgBloodShow;
-	msgBloodShow.finish_time = display_blood_time;
-	if(session_own){
-		msgBloodShow.enemy_uuid = enemy_uuid.str();
-		session_own->send(msgBloodShow);
-	}
-	if(session_enemy){
-		msgBloodShow.enemy_uuid = account_uuid.str();
-		session_enemy->send(msgBloodShow);
-	}
-*/	
-	return Response();
-	
-}
-
 }

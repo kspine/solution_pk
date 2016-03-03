@@ -363,7 +363,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 				}
 				break;
 			}
-			
+
 			std::uint64_t delay = UINT64_MAX;
 			std::pair<long, std::string> result;
 			try {
@@ -429,6 +429,28 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 		}
 		if(m_next_action_time < now){
 			m_next_action_time = now;
+		}
+	}
+
+	const auto cluster = get_cluster();
+	if(cluster){
+		try {
+			Msg::SC_MapWaypointsSet msg;
+			msg.map_object_uuid = get_map_object_uuid().str();
+			msg.x               = get_coord().x();
+			msg.y               = get_coord().y();
+			msg.waypoints.reserve(waypoints.size());
+			for(auto it = waypoints.begin(); it != waypoints.end(); ++it){
+				auto &waypoint = *msg.waypoints.emplace(msg.waypoints.end());
+				waypoint.dx = it->dx;
+				waypoint.dy = it->dy;
+			}
+			msg.action          = static_cast<unsigned>(action);
+			msg.param           = action_param;
+			cluster->send_notification_by_account(get_owner_uuid(), msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
+			cluster->shutdown(e.what());
 		}
 	}
 
@@ -596,13 +618,13 @@ void MapObject::display_blood(){
 		return;
 	}
 	
-	Msg::KS_DisplayBlood msgDisplayBlood;
+/*	Msg::KS_DisplayBlood msgDisplayBlood;
 	msgDisplayBlood.owner_uuid = get_owner_uuid().str();
 	msgDisplayBlood.enemy_uuid = target_object->get_owner_uuid().str();
 	const auto cluster = get_cluster();
 	if(cluster){
 		cluster->send(msgDisplayBlood);
-	}
+	}*/
 }
 
 }
