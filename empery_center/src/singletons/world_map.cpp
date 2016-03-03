@@ -860,7 +860,7 @@ MapObjectUuid WorldMap::get_primary_castle_uuid(AccountUuid owner_uuid){
 			continue;
 		}
 		const auto castle_uuid = map_object->get_map_object_uuid();
-		if(min_castle_uuid && (min_castle_uuid > castle_uuid)){
+		if(min_castle_uuid && (min_castle_uuid <= castle_uuid)){
 			continue;
 		}
 		min_castle_uuid = castle_uuid;
