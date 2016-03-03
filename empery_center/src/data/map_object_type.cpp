@@ -22,6 +22,7 @@ namespace {
 		csv.get(elem.map_object_type_id,     "arm_id");
 		csv.get(elem.map_object_category_id, "arm_type");
 
+		csv.get(elem.max_soldier_count,      "force_mnax");
 		csv.get(elem.speed,                  "speed");
 	}
 
@@ -84,7 +85,6 @@ namespace {
 			csv.get(elem.previous_id,        "soldiers_need");
 			csv.get(elem.production_time,    "levy_time");
 			csv.get(elem.factory_id,         "city_camp");
-			csv.get(elem.max_soldier_count,  "force_mnax");
 
 			if(!map_object_type_battalion_map->emplace(elem.map_object_type_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeBattalion: map_object_type_id = ", elem.map_object_type_id);

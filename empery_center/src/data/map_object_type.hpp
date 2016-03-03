@@ -16,6 +16,7 @@ namespace Data {
 		MapObjectTypeId map_object_type_id;
 		MapObjectCategoryId map_object_category_id;
 
+		std::uint64_t max_soldier_count;
 		double speed;
 	};
 
@@ -36,7 +37,6 @@ namespace Data {
 		MapObjectTypeId previous_id;
 		double production_time;
 		BuildingId factory_id;
-		std::uint64_t max_soldier_count;
 	};
 
 	class MapObjectTypeMonster : public MapObjectTypeAbstract {

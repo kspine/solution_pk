@@ -17,6 +17,8 @@
 #include "events/map.hpp"
 #include "map_utilities.hpp"
 #include "strategic_resource.hpp"
+#include "data/map_object_type.hpp"
+#include "attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -47,10 +49,19 @@ namespace {
 
 		const auto event_monster_data = Data::MapEventMonster::get(map_event_id);
 		if(event_monster_data){
+			const auto monster_data = Data::MapObjectTypeMonster::require(event_monster_data->monster_type_id);
 			const auto monster_uuid = MapObjectUuid(meta_uuid);
+
+			boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+			modifiers.reserve(8);
+			modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(monster_data->max_soldier_count);
+			modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(monster_data->max_soldier_count);
+
 			const auto monster = boost::make_shared<MapObject>(monster_uuid, event_monster_data->monster_type_id,
 				AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
+			monster->set_attributes(std::move(modifiers));
 			monster->pump_status();
+
 			WorldMap::insert_map_object(monster);
 			return;
 		}
