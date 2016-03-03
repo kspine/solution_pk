@@ -149,18 +149,13 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 		return it->second;
 	};
 
-	std::vector<AStarCoordElement> coords_open;
-	coords_open.reserve(distance_limit * 2);
-	const auto &init_elem = populate_coord(from_coord, false, 0, from_coord);
-	coords_open.emplace_back(init_elem);
-
 	std::vector<Coord> surrounding;
 
-	for(;;){
-		if(coords_open.empty()){
-			return false;
-		}
-
+	std::vector<AStarCoordElement> coords_open;
+	coords_open.reserve(distance_limit * 2);
+	const auto &init_elem = populate_coord(from_coord, true /* 实际上不会影响功能 */, 0, from_coord);
+	coords_open.emplace_back(init_elem);
+	do {
 		// 获得距离总和最小的一点，然后把它从队列中删除。注意维护优先级。
 		const auto elem_popped = coords_open.front();
 		astar_coords.at(elem_popped.coord).closed = true;
@@ -200,7 +195,9 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 				}
 			}
 		}
-	}
+	} while(!coords_open.empty());
+
+	return false;
 }
 
 }
