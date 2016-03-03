@@ -508,9 +508,9 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			count_old = 0;
 		}
 		if(task_data->accumulative){
-			count_new = std::max(count_old, count);
-		} else {
 			count_new = saturated_add(count_old, count);
+		} else {
+			count_new = std::max(count_old, count);
 		}
 		const auto count_finish = static_cast<std::uint64_t>(oit->second.at(0));
 		if(count_new > count_finish){
@@ -529,14 +529,14 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 
 		const auto session = PlayerSessionMap::get(get_account_uuid());
 		if(session){
-	    	try {
-        		Msg::SC_TaskChanged msg;
-        		fill_task_message(msg, pair, utc_now);
-        		session->send(msg);
-    		} catch(std::exception &e){
-	        	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-    	    	session->shutdown(e.what());
-    		}
+			try {
+				Msg::SC_TaskChanged msg;
+				fill_task_message(msg, pair, utc_now);
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
 		}
 	}
 }
