@@ -15,7 +15,7 @@
 #include "../castle.hpp"
 #include "../overlay.hpp"
 #include "../strategic_resource.hpp"
-#include "../data/map_object.hpp"
+#include "../data/map_object_type.hpp"
 #include "../data/global.hpp"
 #include <poseidon/json.hpp>
 #include "../map_utilities.hpp"

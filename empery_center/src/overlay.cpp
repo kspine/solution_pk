@@ -12,7 +12,7 @@
 #include "data/map.hpp"
 #include "singletons/account_map.hpp"
 #include "data/global.hpp"
-#include "data/map_object.hpp"
+#include "data/map_object_type.hpp"
 
 namespace EmperyCenter {
 

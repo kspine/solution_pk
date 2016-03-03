@@ -10,7 +10,7 @@
 #include "../map_object.hpp"
 #include "../cluster_session.hpp"
 #include "../msg/sk_map.hpp"
-#include "../data/map_object.hpp"
+#include "../data/map_object_type.hpp"
 #include "../map_cell.hpp"
 #include "../castle.hpp"
 #include "../data/castle.hpp"

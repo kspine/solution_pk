@@ -15,7 +15,7 @@
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../data/item.hpp"
-#include "../data/map_object.hpp"
+#include "../data/map_object_type.hpp"
 #include "../msg/err_item.hpp"
 #include "../map_utilities.hpp"
 #include "../building_type_ids.hpp"

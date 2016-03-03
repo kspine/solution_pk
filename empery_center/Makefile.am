@@ -45,7 +45,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/item.cpp	\
 	src/data/signing_in.cpp	\
 	src/data/map.cpp	\
-	src/data/map_object.cpp	\
+	src/data/map_object_type.cpp	\
 	src/data/vip.cpp	\
 	src/data/task.cpp	\
 	src/data/map_event.cpp	\

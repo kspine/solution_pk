@@ -14,7 +14,7 @@
 #include "attribute_ids.hpp"
 #include "map_cell.hpp"
 #include "reason_ids.hpp"
-#include "data/map_object.hpp"
+#include "data/map_object_type.hpp"
 #include "building_type_ids.hpp"
 #include "account_utilities.hpp"
 #include "singletons/world_map.hpp"

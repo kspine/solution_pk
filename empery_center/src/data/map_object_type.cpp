@@ -1,5 +1,5 @@
 #include "../precompiled.hpp"
-#include "map_object.hpp"
+#include "map_object_type.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <string.h>
 #include <poseidon/csv_parser.hpp>
