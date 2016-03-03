@@ -174,7 +174,8 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 			get_surrounding_coords(surrounding, elem_popped.coord, 1);
 			for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
 				const auto coord = *it;
-				const auto &new_elem = populate_coord(coord, false, elem_popped.distance_from + 1, elem_popped.coord);
+				const auto new_distance_from = elem_popped.distance_from + 1;
+				const auto &new_elem = populate_coord(coord, false, new_distance_from, elem_popped.coord);
 				if(new_elem.distance_to_hint <= distance_close_enough){
 					// 寻路成功。
 					std::deque<Coord> coord_queue;
@@ -193,7 +194,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 					}
 					return true;
 				}
-				if(!new_elem.closed){
+				if((new_distance_from < distance_limit) && !new_elem.closed){
 					coords_open.emplace_back(new_elem);
 					std::push_heap(coords_open.begin(), coords_open.end());
 				}
