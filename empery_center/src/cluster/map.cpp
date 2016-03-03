@@ -15,7 +15,7 @@
 #include "../castle.hpp"
 #include "../overlay.hpp"
 #include "../strategic_resource.hpp"
-#include "../data/map_object.hpp"
+#include "../data/map_object_type.hpp"
 #include "../data/global.hpp"
 #include <poseidon/json.hpp>
 #include "../map_utilities.hpp"
@@ -144,7 +144,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 //	const auto resource_id = overlay->get_resource_id();
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
 	if(soldier_count < 1){
 		soldier_count = 1;
@@ -285,7 +285,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 //	const auto resource_id = strategic_resource->get_resource_id();
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
 	if(soldier_count < 1){
 		soldier_count = 1;
@@ -311,8 +311,8 @@ CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
 		LOG_EMPERY_CENTER_WARNING("Account not found: account_uuid = ", account_uuid);
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT);
 	}
-	const auto utc_now = Poseidon::get_utc_time();
 	const auto last_login_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_LOGGED_IN_TIME);
+	const auto utc_now = Poseidon::get_utc_time();
 	const auto display_blood_time = utc_now + Data::Global::as_unsigned(Data::Global::SLOT_DISPLAY_BLOOD_TIME)*60*1000;
 	std::uint64_t last_attack_time,last_finish_display_blood;
 	BloodDisplayMap::get_display_blood_time(account_uuid,enemy_uuid,last_attack_time,last_finish_display_blood);
@@ -345,10 +345,9 @@ CLUSTER_SERVLET(Msg::KS_DisplayBlood, cluster, req){
 			session_enemy->send(msg);
 		}catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session_own->shutdown(e.what());
+			session_enemy->shutdown(e.what());
 		}
 	}
-	
 	return Response();
 	
 }

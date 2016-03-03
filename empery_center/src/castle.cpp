@@ -14,7 +14,7 @@
 #include "attribute_ids.hpp"
 #include "map_cell.hpp"
 #include "reason_ids.hpp"
-#include "data/map_object.hpp"
+#include "data/map_object_type.hpp"
 #include "building_type_ids.hpp"
 #include "account_utilities.hpp"
 #include "singletons/world_map.hpp"
@@ -367,7 +367,7 @@ void Castle::pump_production(){
 			continue;
 		}
 		const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
-		const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
 			auto &amount_total = resources_to_consume_per_minute[rit->first];
 			amount_total = saturated_add(amount_total, saturated_mul(soldier_count, rit->second));
@@ -385,7 +385,7 @@ void Castle::pump_production(){
 		if(soldier_count == 0){
 			continue;
 		}
-		const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
 			auto &amount_total = resources_to_consume_per_minute[rit->first];
 			amount_total = saturated_add(amount_total, saturated_mul(soldier_count, rit->second));
@@ -1539,7 +1539,7 @@ void Castle::begin_battalion_production(BuildingBaseId building_base_id, MapObje
 		DEBUG_THROW(Exception, sslit("Battalion production conflict"));
 	}
 
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const std::uint64_t duration = std::ceil(map_object_type_data->production_time * 60000.0 * count - 0.001);
 
 	const auto utc_now = Poseidon::get_utc_time();
