@@ -59,7 +59,7 @@ namespace {
 
 		for(auto it = task_data->objective.begin(); it != task_data->objective.end(); ++it){
 			const auto key = it->first;
-			const auto count_finish = it->second.at(0);
+			const auto count_finish = static_cast<std::uint64_t>(it->second.at(0));
 
 			const auto pit = progress.find(key);
 			if(pit == progress.end()){
@@ -472,12 +472,17 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 		const auto task_id = it->first;
+		auto &pair = it->second;
+		const auto &obj = pair->first;
+
+		if(obj->get_rewarded()){
+			continue;
+		}
+
 		const auto task_data = Data::TaskAbstract::require(task_id);
 		if(task_data->type != type){
 			continue;
 		}
-		auto &pair = it->second;
-		const auto &obj = pair->first;
 		LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
 
 		const auto oit = task_data->objective.find(key);
