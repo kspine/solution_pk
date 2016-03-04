@@ -100,7 +100,7 @@ namespace {
 		Coord parent_coord;
 	};
 
-	bool operator<(const AStarCoordElement &lhs, const AStarCoordElement &rhs){
+	bool compare_astar_coords_by_distance_hint(const AStarCoordElement &lhs, const AStarCoordElement &rhs){
 		return lhs.distance_to_hint + lhs.distance_from > rhs.distance_to_hint + rhs.distance_from;
 	}
 }
@@ -161,7 +161,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 		const auto elem_popped = coords_open.front();
 		astar_coords.at(elem_popped.coord).closed = true;
 
-		std::pop_heap(coords_open.begin(), coords_open.end());
+		std::pop_heap(coords_open.begin(), coords_open.end(), &compare_astar_coords_by_distance_hint);
 		coords_open.pop_back();
 
 		// 展开之。
@@ -185,14 +185,14 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 					}
 					assert(!coord_queue.empty());
 					path.reserve(path.size() + coord_queue.size() - 1);
-					for(auto qit = coord_queue.begin() + 1; qit != coord_queue.end(); ++qit){
-						path.emplace_back(qit[0].x() - qit[-1].x(), qit[0].y() - qit[-1].y());
+					for(auto qit = coord_queue.begin(), qprev = qit++; qit != coord_queue.end(); qprev = qit++){
+						path.emplace_back(qit->x() - qprev->x(), qit->y() - qprev->y());
 					}
 					return true;
 				}
 				if((new_distance_from < distance_limit) && !new_elem.closed){
 					coords_open.emplace_back(new_elem);
-					std::push_heap(coords_open.begin(), coords_open.end());
+					std::push_heap(coords_open.begin(), coords_open.end(), &compare_astar_coords_by_distance_hint);
 				}
 			}
 		}

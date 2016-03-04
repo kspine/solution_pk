@@ -16,7 +16,8 @@ namespace {
 	const char MAP_EVENT_BLOCK_FILE[] = "event_circle";
 
 	MULTI_INDEX_MAP(MapEventGenerationMap, Data::MapEventGeneration,
-		UNIQUE_MEMBER_INDEX(event_circle_key)
+		UNIQUE_MEMBER_INDEX(unique_id)
+		MULTI_MEMBER_INDEX(map_event_circle_id)
 	)
 	boost::weak_ptr<const MapEventGenerationMap> g_map_event_generation_map;
 	const char MAP_EVENT_GENERATION_FILE[] = "event_fresh";
@@ -65,24 +66,21 @@ namespace {
 		while(csv.fetch_row()){
 			Data::MapEventGeneration elem = { };
 
-			Poseidon::JsonArray array;
-			csv.get(array, "resource_circle_id");
-			elem.event_circle_key.first  = MapEventCircleId(array.at(0).get<double>());
-			elem.event_circle_key.second = MapEventId(array.at(1).get<double>());
-
+			csv.get(elem.unique_id,              "id");
+			csv.get(elem.map_event_circle_id,    "resource_circle");
+			csv.get(elem.map_event_id,           "event_id");
 			csv.get(elem.event_count_multiplier, "event_quantity");
 			csv.get(elem.expiry_duration,        "event_active_time");
 			csv.get(elem.priority,               "priority");
 
 			if(!map_event_generation_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapEventGeneration: map_event_circle_id = ", elem.event_circle_key.first,
-					", map_event_id = ", elem.event_circle_key.second);
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapEventGeneration: unique_id = ", elem.unique_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapEventGeneration"));
 			}
 		}
 		g_map_event_generation_map = map_event_generation_map;
 		handles.push(map_event_generation_map);
-		servlet = DataSession::create_servlet(MAP_EVENT_GENERATION_FILE, Data::encode_csv_as_json(csv, "resource_circle_id"));
+		servlet = DataSession::create_servlet(MAP_EVENT_GENERATION_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(MAP_EVENT_RESOURCE_FILE);
@@ -168,7 +166,7 @@ namespace Data {
 		}
 	}
 
-	boost::shared_ptr<const MapEventGeneration> MapEventGeneration::get(MapEventCircleId map_event_circle_id, MapEventId map_event_id){
+	boost::shared_ptr<const MapEventGeneration> MapEventGeneration::get(std::uint64_t unique_id){
 		PROFILE_ME;
 
 		const auto map_event_generation_map = g_map_event_generation_map.lock();
@@ -177,17 +175,17 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = map_event_generation_map->find<0>(std::make_pair(map_event_circle_id, map_event_id));
+		const auto it = map_event_generation_map->find<0>(unique_id);
 		if(it == map_event_generation_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapEventGeneration not found: map_event_circle_id = ", map_event_circle_id, ", map_event_id = ", map_event_id);
+			LOG_EMPERY_CENTER_DEBUG("MapEventGeneration not found: unique_id = ", unique_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapEventGeneration>(map_event_generation_map, &*it);
 	}
-	boost::shared_ptr<const MapEventGeneration> MapEventGeneration::require(MapEventCircleId map_event_circle_id, MapEventId map_event_id){
+	boost::shared_ptr<const MapEventGeneration> MapEventGeneration::require(std::uint64_t unique_id){
 		PROFILE_ME;
 
-		auto ret = get(map_event_circle_id, map_event_id);
+		auto ret = get(unique_id);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("MapEventGeneration not found"));
 		}
@@ -205,10 +203,9 @@ namespace Data {
 			return;
 		}
 
-		const auto lower = map_event_generation_map->lower_bound<0>(std::make_pair(map_event_circle_id,     MapEventId()));
-		const auto upper = map_event_generation_map->lower_bound<0>(std::make_pair(map_event_circle_id + 1, MapEventId()));
-		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(lower, upper)));
-		for(auto it = lower; it != upper; ++it){
+		const auto range = map_event_generation_map->equal_range<1>(map_event_circle_id);
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
 			ret.emplace_back(map_event_generation_map, &*it);
 		}
 	}

@@ -287,7 +287,7 @@ void MapEventBlock::refresh_events(bool first_time){
 		const auto generation_data = *gdit;
 		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier);
 
-		const auto map_event_id = generation_data->event_circle_key.second;
+		const auto map_event_id = generation_data->map_event_id;
 		const auto event_data = Data::MapEventAbstract::require(map_event_id);
 
 		try {

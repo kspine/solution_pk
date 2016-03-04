@@ -52,7 +52,9 @@ namespace Msg {
 		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\
 	)	\
-	FIELD_VUINT         (garrisoned)
+	FIELD_VUINT         (garrisoned)	\
+	FIELD_VUINT         (action)    \
+	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectRemoved
@@ -105,15 +107,20 @@ namespace Msg {
 	FIELD_STRING        (error_message)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SC_MapObjectAttack
+#define MESSAGE_NAME    SC_MapObjectAttackResult
 #define MESSAGE_ID      390
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (attacking_uuid)	\
-	FIELD_STRING        (attacked_uuid)	\
-	FIELD_VUINT         (impact)	\
-	FIELD_VUINT         (damage)	\
-	FIELD_VINT          (x)			\
-	FIELD_VINT          (y)
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_STRING        (attacked_object_uuid)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VINT          (result_type)	\
+	FIELD_VINT          (result_param1)	\
+	FIELD_VINT          (result_param2)	\
+	FIELD_VUINT         (soldiers_damaged)	\
+	FIELD_VUINT         (soldiers_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapMinimap

@@ -6,8 +6,8 @@
 #include <poseidon/async_job.hpp>
 #include "singletons/account_map.hpp"
 #include "account.hpp"
-#include "singletons/tax_box_map.hpp"
-#include "tax_box.hpp"
+#include "singletons/tax_record_box_map.hpp"
+#include "tax_record_box.hpp"
 #include "singletons/item_box_map.hpp"
 #include "item_box.hpp"
 #include "item_ids.hpp"
@@ -79,7 +79,7 @@ try {
 		const auto taxer_uuid = taxer->get_account_uuid();
 
 		const auto item_box = ItemBoxMap::require(account_uuid);
-		const auto tax_box = TaxBoxMap::require(account_uuid);
+		const auto tax_record_box = TaxRecordBoxMap::require(account_uuid);
 
 		LOG_EMPERY_CENTER_DEBUG("Promotion tax: account_uuid = ", account_uuid,
 			", reason = ", reason, ", taxer_uuid = ", taxer_uuid, ", amount_to_add = ", amount_to_add);
@@ -94,7 +94,7 @@ try {
 		transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD, amount_to_add,
 			reason, taxer_uuid_head, account->get_promotion_level(), 0);
 		item_box->commit_transaction(transaction, false,
-			[&]{ tax_box->push(utc_now, taxer_uuid, reason, old_gold_amount, new_gold_amount); });
+			[&]{ tax_record_box->push(utc_now, taxer_uuid, reason, old_gold_amount, new_gold_amount); });
 	};
 
 	const auto withdrawn = boost::make_shared<bool>(true);

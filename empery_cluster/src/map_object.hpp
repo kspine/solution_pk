@@ -37,9 +37,9 @@ public:
 	};
 
 	enum Attackimpact {
-		IMPACT_NORMAL            = 0,
-		IMPACT_MISS              = 1,
-		IMPACT_CRITICAL          = 2,
+		IMPACT_NORMAL            = 1,
+		IMPACT_MISS              = 2,
+		IMPACT_CRITICAL          = 3,
 	};
 
 	struct Waypoint {

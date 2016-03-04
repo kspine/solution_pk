@@ -11,8 +11,8 @@ namespace {
 	struct DataStorage {
 		std::string str;
 
-		mutable std::pair<bool, std::int64_t>       i64;
-		mutable std::pair<bool, std::uint64_t>      u64;
+		mutable std::pair<bool, std::int64_t>         i64;
+		mutable std::pair<bool, std::uint64_t>        u64;
 		mutable std::pair<bool, double>               dbl;
 		mutable std::pair<bool, Poseidon::JsonArray>  arr;
 		mutable std::pair<bool, Poseidon::JsonObject> obj;

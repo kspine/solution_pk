@@ -1,15 +1,15 @@
 #include "precompiled.hpp"
-#include "tax_box.hpp"
+#include "tax_record_box.hpp"
 #include "mysql/tax_record.hpp"
 #include "data/global.hpp"
-#include "msg/sc_tax.hpp"
+#include "msg/sc_tax_record.hpp"
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
 
 namespace EmperyCenter {
 
 namespace {
-	void fill_record_info(TaxBox::RecordInfo &info, const boost::shared_ptr<MySql::Center_TaxRecord> &obj){
+	void fill_record_info(TaxRecordBox::RecordInfo &info, const boost::shared_ptr<MySql::Center_TaxRecord> &obj){
 		PROFILE_ME;
 
 		info.auto_uuid         = obj->unlocked_get_auto_uuid();
@@ -21,7 +21,7 @@ namespace {
 	}
 }
 
-TaxBox::TaxBox(AccountUuid account_uuid,
+TaxRecordBox::TaxRecordBox(AccountUuid account_uuid,
 	const std::vector<boost::shared_ptr<MySql::Center_TaxRecord>> &records)
 	: m_account_uuid(account_uuid)
 {
@@ -34,10 +34,10 @@ TaxBox::TaxBox(AccountUuid account_uuid,
 			return lhs->unlocked_get_auto_uuid() < rhs->unlocked_get_auto_uuid();
 		});
 }
-TaxBox::~TaxBox(){
+TaxRecordBox::~TaxRecordBox(){
 }
 
-void TaxBox::pump_status(){
+void TaxRecordBox::pump_status(){
 	PROFILE_ME;
 
 	const auto expiry_days = Data::Global::as_unsigned(Data::Global::SLOT_TAX_RECORD_EXPIRY_DAYS);
@@ -50,14 +50,14 @@ void TaxBox::pump_status(){
 		if(obj->get_timestamp() >= expired_before){
 			break;
 		}
-		LOG_EMPERY_CENTER_DEBUG("Removing expired tax record: account_uuid = ", obj->unlocked_get_account_uuid(),
+		LOG_EMPERY_CENTER_DEBUG("Removing expired tax record: account_uuid = ", get_account_uuid(),
 			", auto_uuid = ", obj->unlocked_get_auto_uuid());
-		obj->set_deleted(true);
 		m_records.pop_front();
+		obj->set_deleted(true);
 	}
 }
 
-void TaxBox::get_all(std::vector<TaxBox::RecordInfo> &ret) const {
+void TaxRecordBox::get_all(std::vector<TaxRecordBox::RecordInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_records.size());
@@ -67,7 +67,7 @@ void TaxBox::get_all(std::vector<TaxBox::RecordInfo> &ret) const {
 		ret.emplace_back(std::move(info));
 	}
 }
-void TaxBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
+void TaxRecordBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 	ReasonId reason, std::uint64_t old_amount, std::uint64_t new_amount)
 {
 	PROFILE_ME;
@@ -77,11 +77,18 @@ void TaxBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 		reason.get(), old_amount, new_amount, static_cast<std::int64_t>(new_amount - old_amount), false);
 	obj->async_save(true);
 	m_records.emplace_back(obj);
-
+/*
+	const auto max_record_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_TAX_RECORD_COUNT);
+	while(m_records.size() > max_record_count){
+		const auto obj = std::move(m_records.front());
+		m_records.pop_front();
+		obj->set_deleted(true);
+	}
+*/
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
-			Msg::SC_TaxNewRecord msg;
+			Msg::SC_TaxRecordReceivedNew msg;
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

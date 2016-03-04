@@ -1,4 +1,4 @@
-resource_circle_id,event_quantity,event_active_time,priority
-"[1001,3101001]",0.01,60,1
-"[1002,3101004]",0.02,60,2
-"[1003,3101002]",0.2,60,3
+id,resource_circle,event_id,event_quantity,event_active_time,priority
+1,1001,3101001,0.01,60,1
+2,1002,3101004,0.02,60,2
+3,1003,3101002,0.2,60,3
