@@ -9,6 +9,8 @@
 #include "checked_arithmetic.hpp"
 #include "map_utilities.hpp"
 #include "map_cell.hpp"
+#include "map_object_type_ids.hpp"
+#include "map_object_category_ids.hpp"
 #include "data/map.hpp"
 #include "data/map_object.hpp"
 #include "data/global.hpp"
@@ -16,7 +18,6 @@
 #include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
 #include "../../empery_center/src/msg/err_castle.hpp"
-#include "../../empery_center/src/map_object_type_ids.hpp"
 #include "../../empery_center/src/cbpp_response.hpp"
 #include "../../empery_center/src/attribute_ids.hpp"
 
@@ -84,8 +85,14 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	const auto parent_object_uuid = get_parent_object_uuid();
 	const auto garrisoned         = is_garrisoned();
 	
+	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	if(!map_object_type_data){
+		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
+		return UINT64_MAX;
+	}
+	
 	const auto parent_map_object = WorldMap::get_map_object(parent_object_uuid);
-	if(!parent_map_object){
+	if(!parent_map_object && (MapObjectCategoryIds::ID_MONSTER != map_object_type_data->category_id)){
 		result = Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) << parent_object_uuid;
 		return UINT64_MAX;
 	}
@@ -511,7 +518,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	double critical_demage_plus_rate = map_object_type_data->critical_damage_plus_rate;
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->arm_type_id,emempy_type_data->arm_type_id);
+	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->category_id,emempy_type_data->category_id);
 	//计算闪避，闪避成功，
 	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 	
