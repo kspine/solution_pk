@@ -460,13 +460,12 @@ bool TaskBox::has_been_accomplished(TaskId task_id) const {
 	return has_task_been_accomplished(task_data.get(), it->second->second);
 }
 void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-	CastleCategory castle_category, std::int64_t param1, std::int64_t param2, std::int64_t param3)
+	TaskBox::CastleCategory castle_category, std::int64_t param1, std::int64_t param2)
 {
 	PROFILE_ME;
 
 	(void)param1;
 	(void)param2;
-	(void)param3;
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -546,14 +545,14 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 	}
 }
 void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-	const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2, std::int64_t param3)
+	const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2)
 {
 	PROFILE_ME;
 
 	const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(castle->get_owner_uuid());
 
 	check(type, key, count,
-		(castle->get_map_object_uuid() == primary_castle_uuid) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2, param3);
+		(castle->get_map_object_uuid() == primary_castle_uuid) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2);
 }
 
 void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {

@@ -29,6 +29,9 @@
 #include "../singletons/account_map.hpp"
 #include "../singletons/battle_record_box_map.hpp"
 #include "../battle_record_box.hpp"
+#include "../singletons/task_box_map.hpp"
+#include "../task_box.hpp"
+#include "../task_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -313,64 +316,99 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
+#define ENQUEU_JOB_SWALLOWING_EXCEPTIONS(func_)	\
+	try {	\
+		Poseidon::enqueue_async_job(func_);	\
+	} catch(std::exception &e){	\
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());	\
+	}
+
 	// 通知客户端。
-	Poseidon::enqueue_async_job(
-		[=]{
-			PROFILE_ME;
+	const auto notify_clients = [=]{
+		PROFILE_ME;
 
-			Msg::SC_MapObjectAttackResult msg;
-			msg.attacking_object_uuid = attacking_object_uuid.str();
-			msg.attacking_coord_x     = attacking_coord.x();
-			msg.attacking_coord_y     = attacking_coord.y();
-			msg.attacked_object_uuid  = attacked_object_uuid.str();
-			msg.attacked_coord_x      = attacked_coord.x();
-			msg.attacked_coord_y      = attacked_coord.y();
-			msg.result_type           = result_type;
-			msg.result_param1         = result_param1;
-			msg.result_param2         = result_param2;
-			msg.soldiers_damaged      = soldiers_damaged;
-			msg.soldiers_remaining    = soldiers_remaining;
-			LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
+		Msg::SC_MapObjectAttackResult msg;
+		msg.attacking_object_uuid = attacking_object_uuid.str();
+		msg.attacking_coord_x     = attacking_coord.x();
+		msg.attacking_coord_y     = attacking_coord.y();
+		msg.attacked_object_uuid  = attacked_object_uuid.str();
+		msg.attacked_coord_x      = attacked_coord.x();
+		msg.attacked_coord_y      = attacked_coord.y();
+		msg.result_type           = result_type;
+		msg.result_param1         = result_param1;
+		msg.result_param2         = result_param2;
+		msg.soldiers_damaged      = soldiers_damaged;
+		msg.soldiers_remaining    = soldiers_remaining;
+		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
 
-			const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
-			const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
-			const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
-			const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
-			std::vector<boost::shared_ptr<PlayerSession>> sessions;
-			WorldMap::get_players_viewing_rectangle(sessions,
-				Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
-			for(auto it = sessions.begin(); it != sessions.end(); ++it){
-				const auto &session = *it;
-				try {
-					session->send(msg);
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				}
+		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
+		const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
+		const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
+		const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
+		std::vector<boost::shared_ptr<PlayerSession>> sessions;
+		WorldMap::get_players_viewing_rectangle(sessions,
+			Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = *it;
+			try {
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
-		});
+		}
+	};
+	ENQUEU_JOB_SWALLOWING_EXCEPTIONS(notify_clients);
 
 	// 战报。
 	if(attacking_account_uuid){
-		Poseidon::enqueue_async_job(
-			[=]{
-				PROFILE_ME;
+		const auto create_attacking_record = [=]{
+			PROFILE_ME;
 
-				const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
-				battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
-					attacked_account_uuid, attacked_object_type_id, attacked_coord,
-					result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
-			});
+			const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
+			battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
+				attacked_account_uuid, attacked_object_type_id, attacked_coord,
+				result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(create_attacking_record);
 	}
 	if(attacked_account_uuid){
-		Poseidon::enqueue_async_job(
-			[=]{
-				PROFILE_ME;
+		const auto create_attacked_record = [=]{
+			PROFILE_ME;
 
-				const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
-				battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
-					attacking_account_uuid, attacking_object_type_id, attacking_coord,
-					-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
-			});
+			const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
+			battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
+				attacking_account_uuid, attacking_object_type_id, attacking_coord,
+				-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(create_attacked_record);
+	}
+
+	// 任务。
+	if(attacking_account_uuid && (soldiers_remaining == 0)){
+		const auto check_mission = [=]{
+			PROFILE_ME;
+
+			const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
+			if(!attacking_object){
+				LOG_EMPERY_CENTER_DEBUG("Attacking map object is gone: attacking_object_uuid = ", attacking_object_uuid);
+				return;
+			}
+			const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(attacking_account_uuid);
+
+			const auto task_box = TaskBoxMap::require(attacking_account_uuid);
+
+			auto task_type_id = TaskTypeIds::ID_WIPE_OUT_MONSTERS;
+			if(attacked_account_uuid){
+				task_type_id = TaskTypeIds::ID_WIPE_OUT_ENEMY_BATTALIONS;
+			}
+			auto castle_category = TaskBox::TCC_PRIMARY;
+			if(attacking_object->get_parent_object_uuid() != primary_castle_uuid){
+				castle_category = TaskBox::TCC_NON_PRIMARY;
+			}
+			task_box->check(task_type_id, attacked_object_type_id.get(), 1,
+				castle_category, 0, 0);
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(check_mission);
 	}
 
 	return Response();

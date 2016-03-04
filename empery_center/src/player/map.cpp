@@ -712,8 +712,8 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 			return Response(Msg::ERR_WAREHOUSE_FULL);
 		}
 		try {
-			task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested,
-				castle, 0, 0, 0);
+			task_box->check(TaskTypeIds::ID_HARVEST_RESOURCES, resource_id.get(), amount_harvested,
+				castle, 0, 0);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}

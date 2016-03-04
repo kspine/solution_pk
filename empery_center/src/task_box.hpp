@@ -75,9 +75,9 @@ public:
 
 	bool has_been_accomplished(TaskId task_id) const;
 	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-		CastleCategory castle_category, std::int64_t param1, std::int64_t param2, std::int64_t param3);
+		CastleCategory castle_category, std::int64_t param1, std::int64_t param2);
 	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-		const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2, std::int64_t param3);
+		const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

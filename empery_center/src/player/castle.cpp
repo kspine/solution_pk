@@ -125,8 +125,8 @@ namespace {
 					if(it->second == 0){
 						continue;
 					}
-					task_box->check(TaskTypeIds::ID_CONSUME_RESOURCE, it->first.get(), it->second,
-						castle, 0, 0, 0);
+					task_box->check(TaskTypeIds::ID_CONSUME_RESOURCES, it->first.get(), it->second,
+						castle, 0, 0);
 				}
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -666,8 +666,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 				continue;
 			}
 			try {
-				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested,
-					castle, 0, 0, 0);
+				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCES, resource_id.get(), amount_harvested,
+					castle, 0, 0);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
@@ -1060,8 +1060,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 	const auto count_harvested = castle->harvest_battalion(building_base_id);
 
 	try {
-		task_box->check(TaskTypeIds::ID_HARVEST_BATTALION, info.map_object_type_id.get(), count_harvested,
-			castle, 0, 0, 0);
+		task_box->check(TaskTypeIds::ID_HARVEST_SOLDIERS, info.map_object_type_id.get(), count_harvested,
+			castle, 0, 0);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
