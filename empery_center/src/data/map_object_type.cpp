@@ -107,13 +107,13 @@ namespace {
 
 			Poseidon::JsonObject object;
 			csv.get(object, "drop");
-			elem.reward.reserve(object.size());
+			elem.reward_set.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto &set_name = it->first;
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.reward.emplace(item_id, count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate reward item: item_id = ", item_id);
-					DEBUG_THROW(Exception, sslit("Duplicate reward item"));
+				if(!elem.reward_set.emplace(set_name, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: set_name = ", set_name);
+					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}
 

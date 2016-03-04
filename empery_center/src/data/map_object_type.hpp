@@ -47,7 +47,7 @@ namespace Data {
 	public:
 		std::uint64_t return_range;
 
-		boost::container::flat_map<ItemId, std::uint64_t> reward;
+		boost::container::flat_map<SharedNts, std::uint64_t> reward_set;
 	};
 }
 
