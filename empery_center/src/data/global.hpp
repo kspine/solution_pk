@@ -48,6 +48,8 @@ namespace Data {
 			SLOT_MIN_ACTIVE_CASTLES_BY_MAP_EVENT_CIRCLE             = 100043,
 			SLOT_MAX_ACTIVE_CASTLES_BY_MAP_EVENT_CIRCLE             = 100044,
 			SLOT_INIT_ACTIVE_CASTLES_BY_MAP_EVENT_CIRCLE            = 100045,
+			SLOT_MAX_BATTLE_RECORD_COUNT                            = 100047,
+			SLOT_BATTLE_RECORD_EXPIRY_DAYS                          = 100048,
 		};
 
 	public:

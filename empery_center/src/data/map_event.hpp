@@ -23,14 +23,16 @@ namespace Data {
 
 	class MapEventGeneration {
 	public:
-		static boost::shared_ptr<const MapEventGeneration> get(MapEventCircleId map_event_circle_id, MapEventId map_event_id);
-		static boost::shared_ptr<const MapEventGeneration> require(MapEventCircleId map_event_circle_id, MapEventId map_event_id);
+		static boost::shared_ptr<const MapEventGeneration> get(std::uint64_t unique_id);
+		static boost::shared_ptr<const MapEventGeneration> require(std::uint64_t unique_id);
 
 		static void get_by_map_event_circle_id(std::vector<boost::shared_ptr<const MapEventGeneration>> &ret,
 			MapEventCircleId map_event_circle_id);
 
 	public:
-		std::pair<MapEventCircleId, MapEventId> event_circle_key;
+		std::uint64_t unique_id;
+		MapEventCircleId map_event_circle_id;
+		MapEventId map_event_id;
 		double event_count_multiplier;
 		std::uint64_t expiry_duration;
 		unsigned priority;

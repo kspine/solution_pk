@@ -244,6 +244,8 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 			attribute.value        = it->second->get_value();
 		}
 		msg.garrisoned         = is_garrisoned();
+		msg.action             = get_action();
+		msg.param              = get_action_param();
 		session->send(msg);
 	}
 }

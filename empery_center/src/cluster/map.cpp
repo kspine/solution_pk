@@ -24,10 +24,10 @@
 #include "../singletons/announcement_map.hpp"
 #include "../chat_message_type_ids.hpp"
 #include "../chat_message_slot_ids.hpp"
-#include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/account_map.hpp"
-//#include "../singletons/base_fight_map.hpp"
+#include "../singletons/battle_record_box_map.hpp"
+#include "../battle_record_box.hpp"
 
 namespace EmperyCenter {
 
@@ -71,7 +71,6 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
 
-
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
@@ -82,6 +81,8 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 	const auto old_coord = map_object->get_coord();
 	const auto new_coord = Coord(req.x, req.y);
 	map_object->set_coord(new_coord); // noexcept
+
+	map_object->set_action(req.action, std::move(req.param));
 
 	const auto new_cluster = WorldMap::get_cluster(new_coord);
 	if(!new_cluster){
@@ -248,7 +249,6 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 	return Response();
 }
 
-
 CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
@@ -289,6 +289,85 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto harvested_amount = strategic_resource->harvest(map_object, interval, true);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", interval, ", harvested_amount = ", harvested_amount);
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
+	const auto attacking_account_uuid   = AccountUuid(req.attacking_account_uuid);
+	const auto attacking_object_uuid    = MapObjectUuid(req.attacking_object_uuid);
+	const auto attacking_object_type_id = MapObjectTypeId(req.attacking_object_type_id);
+	const auto attacking_coord          = Coord(req.attacking_coord_x, req.attacking_coord_y);
+
+	const auto attacked_account_uuid    = AccountUuid(req.attacked_account_uuid);
+	const auto attacked_object_uuid     = MapObjectUuid(req.attacked_object_uuid);
+	const auto attacked_object_type_id  = MapObjectTypeId(req.attacked_object_type_id);
+	const auto attacked_coord           = Coord(req.attacked_coord_x, req.attacked_coord_y);
+
+	const auto result_type              = req.result_type;
+	const auto result_param1            = req.result_param1;
+	const auto result_param2            = req.result_param2;
+	const auto soldiers_damaged         = req.soldiers_damaged;
+	const auto soldiers_remaining       = req.soldiers_remaining;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	// 战报。
+	if(attacking_account_uuid){
+		try {
+			const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
+			battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
+				attacked_account_uuid, attacked_object_type_id, attacked_coord,
+				result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+	if(attacked_account_uuid){
+		try {
+			const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
+			battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
+				attacking_account_uuid, attacking_object_type_id, attacking_coord,
+				-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+
+	// 通知客户端。
+	try {
+		Msg::SC_MapObjectAttackResult msg;
+		msg.attacking_object_uuid = attacking_object_uuid.str();
+		msg.attacking_coord_x     = attacking_coord.x();
+		msg.attacking_coord_y     = attacking_coord.y();
+		msg.attacked_object_uuid  = attacked_object_uuid.str();
+		msg.attacked_coord_x      = attacked_coord.x();
+		msg.attacked_coord_y      = attacked_coord.y();
+		msg.result_type           = result_type;
+		msg.result_param1         = result_param1;
+		msg.result_param2         = result_param2;
+		msg.soldiers_damaged      = soldiers_damaged;
+		msg.soldiers_remaining    = soldiers_remaining;
+		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
+
+		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
+		const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
+		const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
+		const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
+		std::vector<boost::shared_ptr<PlayerSession>> sessions;
+		WorldMap::get_players_viewing_rectangle(sessions,
+			Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = *it;
+			try {
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
 
 	return Response();
 }

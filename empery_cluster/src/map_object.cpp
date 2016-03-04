@@ -475,11 +475,16 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	}
 	const auto target_object = WorldMap::get_map_object(target_object_uuid);
 	if(!target_object){
-		result = Response(Msg::ERR_NO_ATTACK_TARGT) << target_object_uuid;
+		result = Response(Msg::ERR_ATTACK_TARGET_LOST) << target_object_uuid;
+		return UINT64_MAX;
+	}
+	const auto cluster = get_cluster();
+	if(!cluster){
+		result = Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
 		return UINT64_MAX;
 	}
 	const auto attack_speed = map_object_type_data->attack_speed * 1000;
-	
+
 	const auto emempy_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
 	if(!emempy_type_data){
 		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_object->get_map_object_type_id();
@@ -492,17 +497,10 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		return UINT64_MAX;
 	}
 	display_blood();
-	//直接发送到客户端
-	Msg::SC_MapObjectAttack msgAttack;
-	msgAttack.attacking_uuid  = m_map_object_uuid.str();
-	msgAttack.attacked_uuid =  target_object_uuid.str();
-	msgAttack.impact = IMPACT_NORMAL;
-	msgAttack.damage = 0;
-	msgAttack.x = target_object->get_coord().x();
-	msgAttack.y = target_object->get_coord().y();
-	
+
 	bool bDodge = false;
 	bool bCritical = false;
+	int result_type = IMPACT_NORMAL;
 	std::uint64_t damage = 0;
 	double addition_params = 1.0;//加成参数
 	double damage_reduce_rate = 0.0;//伤害减免率
@@ -516,8 +514,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 	
 	if(bDodge){
-		msgAttack.impact = IMPACT_MISS;
-		msgAttack.damage = 0;
+		result_type = IMPACT_MISS;
 	}else{
 		//伤害计算
 		if(target_object->get_map_object_type_id() == EmperyCenter::MapObjectTypeIds::ID_CASTLE ){
@@ -527,36 +524,39 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 			damage =  (1.0 +(soldier_count/10000.0))*relative_rate*
 			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}
-		msgAttack.impact = IMPACT_NORMAL;
-		msgAttack.damage = damage;
+		result_type = IMPACT_NORMAL;
+		damage = damage;
 		//暴击计算
 		bCritical = Poseidon::rand32()%100 < critical_rate*100;
 		if(bCritical){
-			msgAttack.impact = IMPACT_CRITICAL;
+			result_type = IMPACT_CRITICAL;
 			damage = damage*(1.0+critical_demage_plus_rate);
-			msgAttack.damage = damage;
 		}
 	}
 	std::int64_t new_ememy_solider_count = ememy_solider_count - static_cast<std::int64_t>(damage);
 	new_ememy_solider_count = (new_ememy_solider_count >= 0) ? new_ememy_solider_count : 0;
-	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers.emplace(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT, new_ememy_solider_count);
-	target_object->set_attributes(std::move(modifiers));
-	std::int64_t min_x,min_y,x,y,target_x,target_y;
-	std::uint64_t width,height;
-	x = get_coord().x();
-	y = get_coord().y();
-	target_x = target_object->get_coord().x();
-	target_y = target_object->get_coord().y();
-	min_x = (x < target_x) ? x:target_x;
-	min_y = (y < target_y) ? y:target_y;
-	width = static_cast<std::uint64_t>(abs(x-target_x));
-	height = static_cast<std::uint64_t>(abs(y-target_y));
-	const auto cluster = get_cluster();
-	if(cluster){
-		cluster->send_notification_by_rectangle(Rectangle(Coord(min_x,min_y), width, height),msgAttack);
+	if(damage > 0){
+		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+		modifiers.emplace(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT, new_ememy_solider_count);
+		target_object->set_attributes(std::move(modifiers));
 	}
-	
+
+	Msg::KS_MapObjectAttackAction msg;
+	msg.attacking_account_uuid = get_owner_uuid().str();
+	msg.attacking_object_uuid = get_map_object_uuid().str();
+	msg.attacking_object_type_id = get_map_object_type_id().get();
+	msg.attacking_coord_x = get_coord().x();
+	msg.attacking_coord_y = get_coord().y();
+	msg.attacked_account_uuid = target_object->get_owner_uuid().str();
+	msg.attacked_object_uuid = target_object->get_map_object_uuid().str();
+	msg.attacked_object_type_id = target_object->get_map_object_type_id().get();
+	msg.attacked_coord_x = target_object->get_coord().x();
+	msg.attacked_coord_y = target_object->get_coord().y();
+	msg.result_type = result_type;
+	msg.soldiers_damaged = damage;
+	msg.soldiers_remaining = (std::uint64_t)new_ememy_solider_count;
+	cluster->send(msg);
+
 	
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){

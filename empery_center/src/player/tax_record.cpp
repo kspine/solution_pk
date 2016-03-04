@@ -1,19 +1,19 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../mmain.hpp"
-#include "../msg/cs_tax.hpp"
-#include "../msg/sc_tax.hpp"
-#include "../singletons/tax_box_map.hpp"
-#include "../tax_box.hpp"
+#include "../msg/cs_tax_record.hpp"
+#include "../msg/sc_tax_record.hpp"
+#include "../singletons/tax_record_box_map.hpp"
+#include "../tax_record_box.hpp"
 
 namespace EmperyCenter {
 
-PLAYER_SERVLET(Msg::CS_TaxGetRecordsPaged, account, session, req){
-	const auto tax_box = TaxBoxMap::require(account->get_account_uuid());
-	tax_box->pump_status();
+PLAYER_SERVLET(Msg::CS_TaxRecordGetPagedRecords, account, session, req){
+	const auto tax_record_box = TaxRecordBoxMap::require(account->get_account_uuid());
+	tax_record_box->pump_status();
 
-	std::vector<TaxBox::RecordInfo> records;
-	tax_box->get_all(records);
+	std::vector<TaxRecordBox::RecordInfo> records;
+	tax_record_box->get_all(records);
 
 	auto rbegin = records.rend(), rend = records.rend();
 	if(req.begin < records.size()){
@@ -23,7 +23,7 @@ PLAYER_SERVLET(Msg::CS_TaxGetRecordsPaged, account, session, req){
 		rend = rbegin + static_cast<std::ptrdiff_t>(req.count);
 	}
 
-	Msg::SC_TaxRecordsPaged msg;
+	Msg::SC_TaxRecordPagedRecords msg;
 	msg.total_count = records.size();
 	msg.begin = req.begin;
 	msg.records.reserve(static_cast<std::size_t>(rend - rbegin));

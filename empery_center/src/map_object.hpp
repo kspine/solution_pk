@@ -24,6 +24,10 @@ private:
 	boost::container::flat_map<AttributeId,
 		boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
+	// 非持久化数据。
+	unsigned m_action = 0;
+	std::string m_action_param;
+
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,
 		std::string name, Coord coord, std::uint64_t created_time, bool garrisoned);
@@ -57,6 +61,17 @@ public:
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
+
+	unsigned get_action() const {
+		return m_action;
+	}
+	const std::string &get_action_param() const {
+		return m_action_param;
+	}
+	void set_action(unsigned action, std::string action_param){
+		m_action       = action;
+		m_action_param = std::move(action_param);
+	}
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

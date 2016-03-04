@@ -1,5 +1,5 @@
-#ifndef EMPERY_CENTER_MSG_SC_TAX_HPP_
-#define EMPERY_CENTER_MSG_SC_TAX_HPP_
+#ifndef EMPERY_CENTER_MSG_SC_TAX_RECORD_HPP_
+#define EMPERY_CENTER_MSG_SC_TAX_RECORD_HPP_
 
 #include <poseidon/cbpp/message_base.hpp>
 
@@ -7,7 +7,7 @@ namespace EmperyCenter {
 
 namespace Msg {
 
-#define MESSAGE_NAME    SC_TaxRecordsPaged
+#define MESSAGE_NAME    SC_TaxRecordPagedRecords
 #define MESSAGE_ID      1199
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (total_count)	\
@@ -22,7 +22,7 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SC_TaxNewRecord
+#define MESSAGE_NAME    SC_TaxRecordReceivedNew
 #define MESSAGE_ID      1199
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (reserved)

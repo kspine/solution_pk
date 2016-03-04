@@ -1,5 +1,5 @@
-#ifndef EMPERY_CENTER_TAX_BOX_HPP_
-#define EMPERY_CENTER_TAX_BOX_HPP_
+#ifndef EMPERY_CENTER_TAX_RECORD_BOX_HPP_
+#define EMPERY_CENTER_TAX_RECORD_BOX_HPP_
 
 #include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
@@ -15,7 +15,7 @@ namespace MySql {
 	class Center_TaxRecord;
 }
 
-class TaxBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+class TaxRecordBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct RecordInfo {
 		Poseidon::Uuid auto_uuid;
@@ -32,9 +32,9 @@ private:
 	std::deque<boost::shared_ptr<MySql::Center_TaxRecord>> m_records;
 
 public:
-	TaxBox(AccountUuid account_uuid,
+	TaxRecordBox(AccountUuid account_uuid,
 		const std::vector<boost::shared_ptr<MySql::Center_TaxRecord>> &records);
-	~TaxBox();
+	~TaxRecordBox();
 
 public:
 	virtual void pump_status();
