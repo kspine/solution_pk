@@ -7,6 +7,8 @@
 #include "../msg/err_castle.hpp"
 #include "../msg/err_account.hpp"
 #include "../msg/kill.hpp"
+#include <poseidon/json.hpp>
+#include <poseidon/async_job.hpp>
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
@@ -17,7 +19,6 @@
 #include "../strategic_resource.hpp"
 #include "../data/map_object_type.hpp"
 #include "../data/global.hpp"
-#include <poseidon/json.hpp>
 #include "../map_utilities.hpp"
 #include "../attribute_ids.hpp"
 #include "../announcement.hpp"
@@ -312,61 +313,64 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
+	// 通知客户端。
+	Poseidon::enqueue_async_job(
+		[=]{
+			PROFILE_ME;
+
+			Msg::SC_MapObjectAttackResult msg;
+			msg.attacking_object_uuid = attacking_object_uuid.str();
+			msg.attacking_coord_x     = attacking_coord.x();
+			msg.attacking_coord_y     = attacking_coord.y();
+			msg.attacked_object_uuid  = attacked_object_uuid.str();
+			msg.attacked_coord_x      = attacked_coord.x();
+			msg.attacked_coord_y      = attacked_coord.y();
+			msg.result_type           = result_type;
+			msg.result_param1         = result_param1;
+			msg.result_param2         = result_param2;
+			msg.soldiers_damaged      = soldiers_damaged;
+			msg.soldiers_remaining    = soldiers_remaining;
+			LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
+
+			const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
+			const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
+			const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
+			const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
+			std::vector<boost::shared_ptr<PlayerSession>> sessions;
+			WorldMap::get_players_viewing_rectangle(sessions,
+				Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
+			for(auto it = sessions.begin(); it != sessions.end(); ++it){
+				const auto &session = *it;
+				try {
+					session->send(msg);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				}
+			}
+		});
+
 	// 战报。
 	if(attacking_account_uuid){
-		try {
-			const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
-			battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
-				attacked_account_uuid, attacked_object_type_id, attacked_coord,
-				result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-		}
+		Poseidon::enqueue_async_job(
+			[=]{
+				PROFILE_ME;
+
+				const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
+				battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
+					attacked_account_uuid, attacked_object_type_id, attacked_coord,
+					result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+			});
 	}
 	if(attacked_account_uuid){
-		try {
-			const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
-			battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
-				attacking_account_uuid, attacking_object_type_id, attacking_coord,
-				-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-		}
-	}
+		Poseidon::enqueue_async_job(
+			[=]{
+				PROFILE_ME;
 
-	// 通知客户端。
-	try {
-		Msg::SC_MapObjectAttackResult msg;
-		msg.attacking_object_uuid = attacking_object_uuid.str();
-		msg.attacking_coord_x     = attacking_coord.x();
-		msg.attacking_coord_y     = attacking_coord.y();
-		msg.attacked_object_uuid  = attacked_object_uuid.str();
-		msg.attacked_coord_x      = attacked_coord.x();
-		msg.attacked_coord_y      = attacked_coord.y();
-		msg.result_type           = result_type;
-		msg.result_param1         = result_param1;
-		msg.result_param2         = result_param2;
-		msg.soldiers_damaged      = soldiers_damaged;
-		msg.soldiers_remaining    = soldiers_remaining;
-		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
-
-		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
-		const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
-		const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
-		const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
-		std::vector<boost::shared_ptr<PlayerSession>> sessions;
-		WorldMap::get_players_viewing_rectangle(sessions,
-			Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
-		for(auto it = sessions.begin(); it != sessions.end(); ++it){
-			const auto &session = *it;
-			try {
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			}
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
+				battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
+					attacking_account_uuid, attacking_object_type_id, attacking_coord,
+					-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+			});
 	}
 
 	return Response();
