@@ -74,36 +74,36 @@ namespace {
 		return true;
 	}
 
-	using TaskObjectPair = std::pair<boost::shared_ptr<MySql::Center_Task>, TaskBox::Progress>;
+	using TaskObjectPair = std::pair<boost::shared_ptr<MySql::Center_Task>, boost::shared_ptr<TaskBox::Progress>>;
 
-	void fill_task_info(TaskBox::TaskInfo &info, const boost::shared_ptr<TaskObjectPair> &pair){
+	void fill_task_info(TaskBox::TaskInfo &info, const TaskObjectPair &pair){
 		PROFILE_ME;
 
-		const auto &obj = pair->first;
-		const auto &progress = pair->second;
+		const auto &obj = pair.first;
+		const auto &progress = pair.second;
 
 		info.task_id      = TaskId(obj->get_task_id());
 		info.category     = TaskBox::Category(obj->get_category());
 		info.created_time = obj->get_created_time();
 		info.expiry_time  = obj->get_expiry_time();
-		info.progress     = boost::shared_ptr<const TaskBox::Progress>(pair, &progress);
+		info.progress     = progress;
 		info.rewarded     = obj->get_rewarded();
 	}
 
-	void fill_task_message(Msg::SC_TaskChanged &msg, const boost::shared_ptr<TaskObjectPair> &pair, std::uint64_t utc_now){
+	void fill_task_message(Msg::SC_TaskChanged &msg, const TaskObjectPair &pair, std::uint64_t utc_now){
 		PROFILE_ME;
 
-		const auto &obj = pair->first;
-		const auto &progress = pair->second;
+		const auto &obj = pair.first;
+		const auto &progress = pair.second;
 
 		msg.task_id         = obj->get_task_id();
 		msg.category        = obj->get_category();
 		msg.created_time    = obj->get_created_time();
 		msg.expiry_duration = saturated_sub(obj->get_expiry_time(), utc_now);
-		msg.progress.reserve(progress.size());
-		for(auto it = progress.begin(); it != progress.end(); ++it){
+		msg.progress.reserve(progress->size());
+		for(auto it = progress->begin(); it != progress->end(); ++it){
 			auto &elem = *msg.progress.emplace(msg.progress.end());
-			elem.key = it->first;
+			elem.key   = it->first;
 			elem.count = it->second;
 		}
 		msg.rewarded        = obj->get_rewarded();
@@ -120,7 +120,7 @@ TaskBox::TaskBox(AccountUuid account_uuid,
 		if(!task_id){
 			m_stamps = obj;
 		} else {
-			m_tasks.emplace(task_id, boost::make_shared<TaskObjectPair>(obj, decode_progress(obj->unlocked_get_progress())));
+			m_tasks.emplace(task_id, std::make_pair(obj, boost::make_shared<Progress>(decode_progress(obj->unlocked_get_progress()))));
 		}
 	}
 }
@@ -136,13 +136,14 @@ void TaskBox::pump_status(){
 	auto it = m_tasks.begin();
 	while(it != m_tasks.end()){
 		const auto task_id = it->first;
-		const auto &obj = it->second->first;
+		const auto &obj = it->second.first;
 		if(utc_now < obj->get_expiry_time()){
 			++it;
 			continue;
 		}
+		const auto &progress = it->second.second;
 		const auto task_data = Data::TaskAbstract::require(task_id);
-		if(has_task_been_accomplished(task_data.get(), it->second->second) && !obj->get_rewarded()){
+		if(has_task_been_accomplished(task_data.get(), *progress) && !obj->get_rewarded()){
 			++it;
 			continue;
 		}
@@ -170,8 +171,8 @@ void TaskBox::check_primary_tasks(){
 			if(pit == m_tasks.end()){
 				continue;
 			}
-			const auto &pobj = pit->second->first;
-			if(!pobj->get_rewarded()){
+			const auto &obj = pit->second.first;
+			if(!obj->get_rewarded()){
 				continue;
 			}
 		}
@@ -259,7 +260,7 @@ void TaskBox::check_daily_tasks(){
 		// 1. 如果有完成但是未领奖的每日任务，把它们先从随机集合里面去掉。
 		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 			const auto task_id = it->first;
-			const auto &obj = it->second->first;
+			const auto &obj = it->second.first;
 			const auto category = Category(obj->get_category());
 			if(category != CAT_DAILY){
 				continue;
@@ -278,7 +279,7 @@ void TaskBox::check_daily_tasks(){
 		// 3. 把刚才删掉的任务排在其他任务前面。
 		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 			const auto task_id = it->first;
-			const auto &obj = it->second->first;
+			const auto &obj = it->second.first;
 			const auto category = Category(obj->get_category());
 			if(category != CAT_DAILY){
 				continue;
@@ -340,7 +341,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 	PROFILE_ME;
 
 	const auto task_id = info.task_id;
-	const auto it = m_tasks.find(task_id);
+	auto it = m_tasks.find(task_id);
 	if(it != m_tasks.end()){
 		LOG_EMPERY_CENTER_WARNING("Task exists: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
 		DEBUG_THROW(Exception, sslit("Task exists"));
@@ -349,15 +350,14 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 	const auto task_data = Data::TaskAbstract::require(task_id);
 	const auto utc_now = Poseidon::get_utc_time();
 
-	Progress progress;
+	const auto progress = boost::make_shared<Progress>();
 	if(info.progress){
-		progress = *info.progress;
+		*progress = *info.progress;
 	}
 	const auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), task_id.get(),
-		info.category, info.created_time, info.expiry_time, encode_progress(progress), info.rewarded);
+		info.category, info.created_time, info.expiry_time, encode_progress(*progress), info.rewarded);
 	obj->async_save(true);
-	const auto pair = boost::make_shared<TaskObjectPair>(obj, std::move(progress));
-	m_tasks.emplace(task_id, pair);
+	it = m_tasks.emplace(task_id, std::make_pair(obj, progress)).first;
 
 	if(task_data->accumulative){
 		if(task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL){
@@ -369,7 +369,7 @@ void TaskBox::insert(TaskBox::TaskInfo info){
 	if(session){
 		try {
 			Msg::SC_TaskChanged msg;
-			fill_task_message(msg, pair, utc_now);
+			fill_task_message(msg, it->second, utc_now);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -390,23 +390,24 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 		return;
 	}
 	const auto &pair = it->second;
+	const auto &obj = pair.first;
 
 	const auto utc_now = Poseidon::get_utc_time();
 
 	std::string progress_str;
 	bool reset_progress = false;
-	if(pair.owner_before(info.progress) || info.progress.owner_before(pair)){
+	if(pair.second != info.progress){
 		progress_str = encode_progress(*info.progress);
 		reset_progress = true;
 	}
 
-	pair->first->set_category(info.category);
-	pair->first->set_created_time(info.created_time);
-	pair->first->set_expiry_time(info.expiry_time);
+	obj->set_category(info.category);
+	obj->set_created_time(info.created_time);
+	obj->set_expiry_time(info.expiry_time);
 	if(reset_progress){
-		pair->first->set_progress(std::move(progress_str));
+		obj->set_progress(std::move(progress_str));
 	}
-	pair->first->set_rewarded(info.rewarded);
+	obj->set_rewarded(info.rewarded);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
@@ -429,10 +430,11 @@ bool TaskBox::remove(TaskId task_id) noexcept {
 	}
 	const auto pair = std::move(it->second);
 	m_tasks.erase(it);
+	const auto &obj = pair.first;
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	pair->first->set_expiry_time(0);
+	obj->set_expiry_time(0);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
@@ -457,7 +459,7 @@ bool TaskBox::has_been_accomplished(TaskId task_id) const {
 		return false;
 	}
 	const auto task_data = Data::TaskAbstract::require(task_id);
-	return has_task_been_accomplished(task_data.get(), it->second->second);
+	return has_task_been_accomplished(task_data.get(), *(it->second.second));
 }
 void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 	TaskBox::CastleCategory castle_category, std::int64_t param1, std::int64_t param2)
@@ -472,7 +474,7 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 		const auto task_id = it->first;
 		auto &pair = it->second;
-		const auto &obj = pair->first;
+		const auto &obj = pair.first;
 
 		if(obj->get_rewarded()){
 			continue;
@@ -504,9 +506,11 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			continue;
 		}
 
+		const auto old_progress = pair.second;
+
 		std::uint64_t count_old, count_new;
-		const auto cit = pair->second.find(key);
-		if(cit != pair->second.end()){
+		const auto cit = old_progress->find(key);
+		if(cit != old_progress->end()){
 			count_old = cit->second;
 		} else {
 			count_old = 0;
@@ -524,12 +528,12 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			continue;
 		}
 
-		auto progress = pair->second;
-		progress[key] = count_new;
-		auto progress_str = encode_progress(progress);
+		auto new_progress = boost::make_shared<Progress>(*old_progress);
+		(*new_progress)[key] = count_new;
+		auto new_progress_str = encode_progress(*new_progress);
 
-		pair->second = std::move(progress);
-		obj->set_progress(std::move(progress_str));
+		pair.second = std::move(new_progress);
+		obj->set_progress(std::move(new_progress_str));
 
 		const auto session = PlayerSessionMap::get(get_account_uuid());
 		if(session){
@@ -561,7 +565,7 @@ void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
-		const auto &obj = it->second->first;
+		const auto &obj = it->second.first;
 		const auto category = Category(obj->get_category());
 		if((category == CAT_PRIMARY) && obj->get_rewarded()){
 			continue;
