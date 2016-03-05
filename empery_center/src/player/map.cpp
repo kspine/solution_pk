@@ -543,7 +543,7 @@ PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapEvacuateFromCastle, account, session, req){
+PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){

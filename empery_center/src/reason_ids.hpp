@@ -15,7 +15,7 @@ constexpr ReasonId
 	ID_UPGRADE_TECH                  ( 672003 ), // 科技 ID             等级                0
 	ID_CANCEL_UPGRADE_TECH           ( 672004 ), // 科技 ID             等级                0
 	ID_HARVEST_MAP_CELL              ( 672005 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
-	ID_HARVEST_OVERLAY               ( 672006 ), // 世界坐标 X          世界坐标 Y          覆盖图 id
+//	ID_HARVEST_OVERLAY               ( 672006 ), // 世界坐标 X          世界坐标 Y          覆盖图 id
 	ID_SPEED_UP_BUILDING_UPGRADE     ( 672007 ), // 建筑 ID             等级                0
 	ID_SPEED_UP_TECH_UPGRADE         ( 672008 ), // 科技 ID             等级                0
 	ID_UNPACK_INTO_CASTLE            ( 672009 ), // 城堡 UUID 高位      道具 ID             重复次数
@@ -31,8 +31,9 @@ constexpr ReasonId
 	ID_REFILL_BATTALION              ( 672019 ), // 城堡 UUID 高位      部队 UUID 高位      0
 	ID_POPULATION_CONSUMPTION        ( 672020 ), // 时间区间（毫秒）    0                   0
 	ID_INIT_RESOURCES                ( 672021 ), // 初始数量            0                   0
-	ID_HARVEST_STRATEGIC_RESOURCE    ( 672022 ), // 世界坐标 X          世界坐标 Y          战略资源创建时间
+//	ID_HARVEST_STRATEGIC_RESOURCE    ( 672022 ), // 世界坐标 X          世界坐标 Y          战略资源创建时间
 	ID_DISSOLVE_BATTALION            ( 672023 ), // 0                   0                   0
+	ID_BATTALION_UNLOAD              ( 672024 ), // 部队 UUID 高位      0                   0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0

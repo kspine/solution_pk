@@ -9,6 +9,7 @@
 #include "msg/sk_map.hpp"
 #include "singletons/account_map.hpp"
 #include "attribute_ids.hpp"
+#include "data/castle.hpp"
 
 namespace EmperyCenter {
 
@@ -211,6 +212,25 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 			session->shutdown(e.what());
 		}
 	}
+}
+
+std::uint64_t MapObject::get_resource_amount_carried() const {
+	PROFILE_ME;
+
+	std::uint64_t amount_total = 0;
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		const auto attribute_id = it->first;
+		const auto value = it->second->get_value();
+		if(value <= 0){
+			continue;
+		}
+		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+		if(!resource_data){
+			continue;
+		}
+		amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(value));
+	}
+	return amount_total;
 }
 
 bool MapObject::is_virtually_removed() const {

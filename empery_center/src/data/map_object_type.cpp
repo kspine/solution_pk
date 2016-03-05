@@ -35,6 +35,7 @@ namespace {
 			read_map_object_type_abstract(elem, csv);
 
 			csv.get(elem.harvest_speed,          "collect_speed");
+			csv.get(elem.resource_carriable,     "arm_load");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "arm_need");

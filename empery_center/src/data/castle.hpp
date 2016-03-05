@@ -174,12 +174,15 @@ namespace Data {
 
 		static void get_all(std::vector<boost::shared_ptr<const CastleResource>> &ret);
 
+		static boost::shared_ptr<const CastleResource> get_by_carried_attribute_id(AttributeId attribute_id);
+
 	public:
 		ResourceId resource_id;
 		std::uint64_t init_amount;
 		bool producible;
 		ResourceId locked_resource_id;
 		ItemId undeployed_item_id;
+		AttributeId carried_attribute_id;
 	};
 }
 

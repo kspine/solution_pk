@@ -75,6 +75,7 @@ namespace {
 	MULTI_INDEX_MAP(CastleResourceMap, Data::CastleResource,
 		UNIQUE_MEMBER_INDEX(resource_id)
 		MULTI_MEMBER_INDEX(locked_resource_id)
+		MULTI_MEMBER_INDEX(carried_attribute_id)
 	)
 	boost::weak_ptr<const CastleResourceMap> g_resource_map;
 	const char RESOURCE_FILE[] = "initial_material";
@@ -470,11 +471,12 @@ namespace {
 		while(csv.fetch_row()){
 			Data::CastleResource elem = { };
 
-			csv.get(elem.resource_id,        "material_id");
-			csv.get(elem.init_amount,        "number");
-			csv.get(elem.producible,         "producible");
-			csv.get(elem.locked_resource_id, "lock_material_id");
-			csv.get(elem.undeployed_item_id, "item_id");
+			csv.get(elem.resource_id,          "material_id");
+			csv.get(elem.init_amount,          "number");
+			csv.get(elem.producible,           "producible");
+			csv.get(elem.locked_resource_id,   "lock_material_id");
+			csv.get(elem.undeployed_item_id,   "item_id");
+			csv.get(elem.carried_attribute_id, "weight_id");
 
 			if(!resource_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate initial resource: resource_id = ", elem.resource_id,
@@ -978,6 +980,23 @@ namespace Data {
 		for(auto it = resource_map->begin<0>(); it != resource_map->end<0>(); ++it){
 			ret.emplace_back(resource_map, &*it);
 		}
+	}
+
+	boost::shared_ptr<const CastleResource> CastleResource::get_by_carried_attribute_id(AttributeId attribute_id){
+		PROFILE_ME;
+
+		const auto resource_map = g_resource_map.lock();
+		if(!resource_map){
+			LOG_EMPERY_CENTER_WARNING("CastleResourceMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = resource_map->find<2>(attribute_id);
+		if(it == resource_map->end<2>()){
+			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: attribute_id = ", attribute_id);
+			return { };
+		}
+		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
 	}
 }
 

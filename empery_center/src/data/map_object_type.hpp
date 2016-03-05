@@ -27,6 +27,7 @@ namespace Data {
 
 	public:
 		double harvest_speed;
+		double resource_carriable;
 
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		boost::container::flat_map<ResourceId, std::uint64_t> enability_cost;

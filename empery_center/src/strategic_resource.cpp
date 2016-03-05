@@ -5,15 +5,14 @@
 #include "player_session.hpp"
 #include "msg/sc_map.hpp"
 #include "msg/sk_map.hpp"
-#include "transaction_element.hpp"
-#include "reason_ids.hpp"
-#include "castle.hpp"
 #include "checked_arithmetic.hpp"
 #include "data/map.hpp"
 #include "singletons/account_map.hpp"
 #include "data/global.hpp"
 #include "data/map_object_type.hpp"
+#include "data/castle.hpp"
 #include "attribute_ids.hpp"
+#include "map_object.hpp"
 
 namespace EmperyCenter {
 
@@ -63,19 +62,17 @@ void StrategicResource::delete_from_game() noexcept {
 std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &harvester, std::uint64_t duration, bool saturated){
 	PROFILE_ME;
 
-	const auto parent_object_uuid = harvester->get_parent_object_uuid();
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
-	if(!castle){
-		LOG_EMPERY_CENTER_DEBUG("No parent castle: harvester_uuid = ", harvester->get_map_object_uuid(),
-			", parent_object_uuid = ", parent_object_uuid);
-		return 0;
-	}
-
 	const auto coord = get_coord();
 
 	const auto resource_id = get_resource_id();
 	if(!resource_id){
 		LOG_EMPERY_CENTER_DEBUG("No resource id: coord = ", coord);
+		return 0;
+	}
+	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto carried_attribute_id = resource_data->carried_attribute_id;
+	if(!carried_attribute_id){
+		LOG_EMPERY_CENTER_DEBUG("Resource is not harvestable: resource_id = ", resource_id);
 		return 0;
 	}
 
@@ -92,21 +89,24 @@ std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &har
 		return 0;
 	}
 	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(harvester->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+
 	const auto amount_to_harvest = harvest_speed * soldier_count * duration / 60000.0 + m_harvest_remainder;
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
 
-	const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id), castle->get_resource(resource_id).amount);
+	const auto resource_capacity = static_cast<std::uint64_t>(harvester_type_data->resource_carriable * soldier_count);
+	const auto resource_amount_carried = harvester->get_resource_amount_carried();
+	const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);
 	const auto amount_to_add = std::min(rounded_amount_removable, capacity_remaining);
 	const auto amount_to_remove = saturated ? rounded_amount_removable : amount_to_add;
-	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord,
-		", resource_id = ", resource_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
+	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", resource_id = ", resource_id,
+		", carried_attribute_id = ", carried_attribute_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
-	std::vector<ResourceTransactionElement> transaction;
-	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add,
-		ReasonIds::ID_HARVEST_STRATEGIC_RESOURCE, coord.x(), coord.y(), get_created_time());
-	castle->commit_resource_transaction(transaction,
-		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove)); });
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[carried_attribute_id] = harvester->get_attribute(carried_attribute_id) + static_cast<std::int64_t>(amount_to_add);
+
+	harvester->set_attributes(std::move(modifiers));
+	m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove));
 
 	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
 
