@@ -14,6 +14,7 @@
 #include "../transaction_element.hpp"
 #include "../checked_arithmetic.hpp"
 #include "../events/account.hpp"
+#include "../singletons/war_status_map.hpp"
 
 namespace EmperyCenter {
 
@@ -213,11 +214,13 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSignIn, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto account_uuid = account->get_account_uuid();
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
 	item_box->pump_status();
 
 	const auto signed_in = get_signed_in(account);
-	LOG_EMPERY_CENTER_DEBUG("Retrieved signed-in info: account_uuid = ", account->get_account_uuid(),
+	LOG_EMPERY_CENTER_DEBUG("Retrieved signed-in info: account_uuid = ", account_uuid,
 		", last_signed_in_time = ", signed_in.last_signed_in_time, ", last_signed_in_day = ", signed_in.last_signed_in_day,
 		", today = ", signed_in.today, ", sequential_days = ", signed_in.sequential_days);
 
@@ -254,6 +257,26 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountSynchronizeSystemClock, session, req){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	session->send(Msg::SC_AccountSynchronizeSystemClock(std::move(req.context), utc_now));
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_AccountGetWarStatus, account, session, /* req */){
+	const auto account_uuid = account->get_account_uuid();
+	const auto utc_now = Poseidon::get_utc_time();
+
+	std::vector<WarStatusMap::StatusInfo> war_status_all;
+	WarStatusMap::get_all(war_status_all, account_uuid);
+	for(auto it = war_status_all.begin(); it != war_status_all.end(); ++it){
+		Msg::SC_AccountWarStatus msg;
+		if(it->less_account_uuid != account_uuid){
+			msg.enemy_account_uuid = it->less_account_uuid.str();
+		} else {
+			msg.enemy_account_uuid = it->greater_account_uuid.str();
+		}
+		msg.expiry_duration = saturated_sub(it->expiry_time, utc_now);
+		session->send(msg);
+	}
 
 	return Response();
 }

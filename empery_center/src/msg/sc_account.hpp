@@ -46,6 +46,13 @@ namespace Msg {
 	FIELD_VUINT         (timestamp)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_AccountWarStatus
+#define MESSAGE_ID      295
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (enemy_account_uuid)	\
+	FIELD_VUINT         (expiry_duration)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
