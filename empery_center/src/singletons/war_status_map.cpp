@@ -3,13 +3,29 @@
 #include "../mmain.hpp"
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/multi_index_map.hpp>
+#include "../msg/sc_account.hpp"
+#include "player_session_map.hpp"
+#include "../player_session.hpp"
 
 namespace EmperyCenter {
 
-using StatusInfo = WarStatusMap::StatusInfo;
-/*
 namespace {
-	MULTI_INDEX_MAP(WarStatusContainer, StatusInfo,
+	struct WarStatusElement {
+		std::pair<AccountUuid, AccountUuid> account_uuid_pair;
+		AccountUuid less_account_uuid;
+		AccountUuid greater_account_uuid;
+		std::uint64_t expiry_time;
+
+		WarStatusElement(AccountUuid less_account_uuid_, AccountUuid greater_account_uuid_, std::uint64_t expiry_time_)
+			: account_uuid_pair(less_account_uuid_, greater_account_uuid_)
+			, less_account_uuid(less_account_uuid_), greater_account_uuid(greater_account_uuid_), expiry_time(expiry_time_)
+		{
+			assert(less_account_uuid < greater_account_uuid);
+		}
+	};
+
+	MULTI_INDEX_MAP(WarStatusContainer, WarStatusElement,
+		UNIQUE_MEMBER_INDEX(account_uuid_pair)
 		MULTI_MEMBER_INDEX(less_account_uuid)
 		MULTI_MEMBER_INDEX(greater_account_uuid)
 		MULTI_MEMBER_INDEX(expiry_time)
@@ -17,35 +33,193 @@ namespace {
 
 	boost::weak_ptr<WarStatusContainer> g_war_status_map;
 
+	void fill_status_info(WarStatusMap::StatusInfo &info, const WarStatusElement &elem){
+		PROFILE_ME;
+
+		info.less_account_uuid    = elem.less_account_uuid;
+		info.greater_account_uuid = elem.greater_account_uuid;
+		info.expiry_time          = elem.expiry_time;
+	}
+	void fill_status_msg(Msg::SC_AccountWarStatus &msg, const WarStatusElement &elem, std::uint64_t utc_now, AccountUuid self_uuid){
+		PROFILE_ME;
+
+		if(elem.less_account_uuid != self_uuid){
+			msg.enemy_account_uuid = elem.less_account_uuid.str();
+		} else {
+			msg.enemy_account_uuid = elem.greater_account_uuid.str();
+		}
+		msg.expiry_duration = saturated_sub(elem.expiry_time, utc_now);
+	}
+
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("War status gc timer: now = ", now);
 
-war_status_refresh_interval
+		const auto war_status_map = g_war_status_map.lock();
+		if(!war_status_map){
+			return;
+		}
 
-const auto mail_box_map = g_mail_box_map.lock();
-if(!mail_box_map){
-return;
+		for(;;){
+			const auto it = war_status_map->begin<3>();
+			if(it == war_status_map->end<3>()){
+				break;
+			}
+			if(now < it->expiry_time){
+				break;
+			}
+
+			war_status_map->erase<3>(it);
+		}
+	}
+
+	MODULE_RAII_PRIORITY(handles, 5000){
+		const auto war_status_map = boost::make_shared<WarStatusContainer>();
+		g_war_status_map = war_status_map;
+		handles.push(war_status_map);
+
+		const auto gc_interval = get_config<std::uint64_t>("war_status_refresh_interval", 60000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
+			std::bind(&gc_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+	}
 }
 
-for(;;){
-const auto it = mail_box_map->begin<1>();
-if(it == mail_box_map->end<1>()){
-break;
+WarStatusMap::StatusInfo WarStatusMap::get(AccountUuid first_account_uuid, AccountUuid second_account_uuid){
+	PROFILE_ME;
+
+	AccountUuid less_account_uuid, greater_account_uuid;
+	if(first_account_uuid < second_account_uuid){
+		less_account_uuid    = first_account_uuid;
+		greater_account_uuid = second_account_uuid;
+	} else {
+		less_account_uuid    = second_account_uuid;
+		greater_account_uuid = first_account_uuid;
+	}
+
+	StatusInfo info = { };
+	info.less_account_uuid    = less_account_uuid;
+	info.greater_account_uuid = greater_account_uuid;
+
+	const auto war_status_map = g_war_status_map.lock();
+	if(!war_status_map){
+		LOG_EMPERY_CENTER_WARNING("War status map is not loaded.");
+		return info;
+	}
+
+	const auto it = war_status_map->find<0>(std::make_pair(less_account_uuid, greater_account_uuid));
+	if(it == war_status_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("War status not found: less_account_uuid = ", less_account_uuid, ", greater_account_uuid = ", greater_account_uuid);
+		return info;
+	}
+	fill_status_info(info, *it);
+	return info;
 }
-if(now < it->unload_time){
-break;
+void WarStatusMap::WarStatusMap::get_all(std::vector<WarStatusMap::StatusInfo> &ret, AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto war_status_map = g_war_status_map.lock();
+	if(!war_status_map){
+		LOG_EMPERY_CENTER_WARNING("War status map is not loaded.");
+		return;
+	}
+
+	const auto range1 = war_status_map->equal_range<1>(account_uuid);
+	const auto range2 = war_status_map->equal_range<2>(account_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range1.first, range1.second))
+	                       + static_cast<std::size_t>(std::distance(range2.first, range2.second)));
+	for(auto it = range1.first; it != range1.second; ++it){
+		StatusInfo info;
+		fill_status_info(info, *it);
+		ret.emplace_back(std::move(info));
+	}
+	for(auto it = range2.first; it != range2.second; ++it){
+		StatusInfo info;
+		fill_status_info(info, *it);
+		ret.emplace_back(std::move(info));
+	}
 }
 
-// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-if((it->promise.use_count() <= 1) && it->mail_box && it->mail_box.unique()){
-LOG_EMPERY_CENTER_DEBUG("Reclaiming mail box: account_uuid = ", it->account_uuid);
-mail_box_map->erase<1>(it);
-} else {
-mail_box_map->set_key<1, 1>(it, now + 1000);
+void WarStatusMap::set(AccountUuid first_account_uuid, AccountUuid second_account_uuid, std::uint64_t expiry_time){
+	PROFILE_ME;
+
+	if(first_account_uuid == second_account_uuid){
+		LOG_EMPERY_CENTER_WARNING("Attempting to set reflexive war status? first_account_uuid = ", first_account_uuid);
+		DEBUG_THROW(Exception, sslit("Attempting to set reflexive war status"));
+	}
+
+	const auto war_status_map = g_war_status_map.lock();
+	if(!war_status_map){
+		LOG_EMPERY_CENTER_WARNING("War status map is not loaded.");
+		DEBUG_THROW(Exception, sslit("War status map is not loaded"));
+	}
+
+	AccountUuid less_account_uuid, greater_account_uuid;
+	if(first_account_uuid < second_account_uuid){
+		less_account_uuid    = first_account_uuid;
+		greater_account_uuid = second_account_uuid;
+	} else {
+		less_account_uuid    = second_account_uuid;
+		greater_account_uuid = first_account_uuid;
+	}
+
+	auto it = war_status_map->find<0>(std::make_pair(less_account_uuid, greater_account_uuid));
+	if(it == war_status_map->end<0>()){
+		it = war_status_map->insert<0>(WarStatusElement(less_account_uuid, greater_account_uuid, expiry_time)).first;
+	} else {
+		war_status_map->replace<0>(it, WarStatusElement(less_account_uuid, greater_account_uuid, expiry_time));
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto less_session = PlayerSessionMap::get(less_account_uuid);
+	if(less_session){
+		try {
+			Msg::SC_AccountWarStatus msg;
+			fill_status_msg(msg, *it, utc_now, less_account_uuid);
+			less_session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			less_session->shutdown(e.what());
+		}
+	}
+
+	const auto greater_session = PlayerSessionMap::get(greater_account_uuid);
+	if(greater_session){
+		try {
+			Msg::SC_AccountWarStatus msg;
+			fill_status_msg(msg, *it, utc_now, greater_account_uuid);
+			greater_session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			greater_session->shutdown(e.what());
+		}
+	}
 }
+
+void WarStatusMap::synchronize_with_player_by_account(const boost::shared_ptr<PlayerSession> &session, AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto war_status_map = g_war_status_map.lock();
+	if(!war_status_map){
+		LOG_EMPERY_CENTER_WARNING("War status map is not loaded.");
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto range1 = war_status_map->equal_range<1>(account_uuid);
+	for(auto it = range1.first; it != range1.second; ++it){
+		Msg::SC_AccountWarStatus msg;
+		fill_status_msg(msg, *it, utc_now, account_uuid);
+		session->send(msg);
+	}
+	const auto range2 = war_status_map->equal_range<2>(account_uuid);
+	for(auto it = range2.first; it != range2.second; ++it){
+		Msg::SC_AccountWarStatus msg;
+		fill_status_msg(msg, *it, utc_now, account_uuid);
+		session->send(msg);
+	}
 }
-}
-}
-*/
+
 }

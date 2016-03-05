@@ -7,6 +7,8 @@
 
 namespace EmperyCenter {
 
+class PlayerSession;
+
 struct WarStatusMap {
 	struct StatusInfo {
 		AccountUuid less_account_uuid;
@@ -18,6 +20,8 @@ struct WarStatusMap {
 	static void get_all(std::vector<StatusInfo> &ret, AccountUuid account_uuid);
 
 	static void set(AccountUuid first_account_uuid, AccountUuid second_account_uuid, std::uint64_t expiry_time);
+
+	static void synchronize_with_player_by_account(const boost::shared_ptr<PlayerSession> &session, AccountUuid account_uuid);
 
 private:
 	WarStatusMap() = delete;

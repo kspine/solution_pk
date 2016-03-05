@@ -32,6 +32,7 @@
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
+#include "../singletons/war_status_map.hpp"
 
 namespace EmperyCenter {
 
@@ -317,11 +318,13 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto utc_now = Poseidon::get_utc_time();
 
 #define ENQUEU_JOB_SWALLOWING_EXCEPTIONS(func_)	\
-	try {	\
-		Poseidon::enqueue_async_job(func_);	\
-	} catch(std::exception &e){	\
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());	\
-	}
+	[&]{	\
+		try {	\
+			Poseidon::enqueue_async_job(func_);	\
+		} catch(std::exception &e){	\
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());	\
+		}	\
+	}()
 
 	// 通知客户端。
 	const auto notify_clients = [=]{
@@ -358,6 +361,19 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		}
 	};
 	ENQUEU_JOB_SWALLOWING_EXCEPTIONS(notify_clients);
+
+	// 更新交战状态。
+	if(attacking_account_uuid && attacked_account_uuid){
+		const auto update_war_status = [=]{
+			PROFILE_ME;
+
+			const auto state_persistence_duration = Data::Global::as_unsigned(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
+
+			WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
+				saturated_mul<std::uint64_t>(state_persistence_duration, 60000));
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(update_war_status);
+	}
 
 	// 战报。
 	if(attacking_account_uuid){

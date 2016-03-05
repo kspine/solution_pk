@@ -262,21 +262,7 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountSynchronizeSystemClock, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountGetWarStatus, account, session, /* req */){
-	const auto account_uuid = account->get_account_uuid();
-	const auto utc_now = Poseidon::get_utc_time();
-
-	std::vector<WarStatusMap::StatusInfo> war_status_all;
-	WarStatusMap::get_all(war_status_all, account_uuid);
-	for(auto it = war_status_all.begin(); it != war_status_all.end(); ++it){
-		Msg::SC_AccountWarStatus msg;
-		if(it->less_account_uuid != account_uuid){
-			msg.enemy_account_uuid = it->less_account_uuid.str();
-		} else {
-			msg.enemy_account_uuid = it->greater_account_uuid.str();
-		}
-		msg.expiry_duration = saturated_sub(it->expiry_time, utc_now);
-		session->send(msg);
-	}
+	WarStatusMap::synchronize_with_player_by_account(session, account->get_account_uuid());
 
 	return Response();
 }
