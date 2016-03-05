@@ -185,7 +185,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 					}
 					assert(!coord_queue.empty());
 					path.reserve(path.size() + coord_queue.size() - 1);
-					for(auto qit = coord_queue.begin(), qprev = qit++; qit != coord_queue.end(); qprev = qit++){
+					for(auto qit = coord_queue.begin(), qprev = qit; ++qit != coord_queue.end(); qprev = qit){
 						path.emplace_back(qit->x() - qprev->x(), qit->y() - qprev->y());
 					}
 					return true;

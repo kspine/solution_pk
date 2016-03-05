@@ -199,23 +199,13 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 }
 
 std::uint64_t MapObject::move(std::pair<long, std::string> &result){
-	//const auto map_object_uuid = get_map_object_uuid();	
+	// const auto map_object_uuid = get_map_object_uuid();
 	const auto owner_uuid      = get_owner_uuid();
 	const auto coord           = get_coord();
-	
+
 	const auto waypoint  = m_waypoints.front();
 	const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
 	const auto delay     = waypoint.delay;
-	// 检测阻挡。
-	const auto new_map_cell = WorldMap::get_map_cell(new_coord);
-	if(new_map_cell){
-		const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
-		if(cell_owner_uuid && (owner_uuid != cell_owner_uuid)){
-			LOG_EMPERY_CLUSTER_DEBUG("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
-			result = Response(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
-			return UINT64_MAX;
-		}
-	}
 
 	const auto new_cluster = WorldMap::get_cluster(new_coord);
 	if(!new_cluster){
@@ -224,64 +214,20 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		return UINT64_MAX;
 	}
 
-	const auto new_cluster_scope = WorldMap::get_cluster_scope(new_coord);
-	const auto map_x = static_cast<unsigned>(new_coord.x() - new_cluster_scope.left());
-	const auto map_y = static_cast<unsigned>(new_coord.y() - new_cluster_scope.bottom());
-	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
-	const auto terrain_id = cell_data->terrain_id;
-	const auto terrain_data = Data::MapTerrain::require(terrain_id);
-	if(!terrain_data->passable){
-		LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
-		result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
-		return UINT64_MAX;
+	const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
+	const auto wait_for_moving_objects = (m_blocked_retry_count < retry_max_count);
+	result = get_move_result(new_coord, owner_uuid, wait_for_moving_objects);
+	if(result.first == Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY){
+		const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
+		++m_blocked_retry_count;
+		return retry_delay;
 	}
-	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
-	if((map_x < border_thickness) || (map_x >= new_cluster_scope.width() - border_thickness) ||
-		(map_y < border_thickness) || (map_y >= new_cluster_scope.height() - border_thickness))
-	{
-		LOG_EMPERY_CLUSTER_DEBUG("Blocked by map border: new_coord = ", new_coord);
-		result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<new_coord;
+	m_blocked_retry_count = 0;
+
+	if(result.first != Msg::ST_OK){
 		return UINT64_MAX;
 	}
 
-	std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
-	WorldMap::get_map_objects_by_rectangle(adjacent_objects,
-		Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 4, new_coord.y() + 4)));
-	std::vector<Coord> foundation;
-	for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
-		const auto &other_object = *it;
-		const auto other_map_object_uuid = other_object->get_map_object_uuid();
-		const auto other_coord = other_object->get_coord();
-		if(new_coord == other_coord){
-			LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
-			if(!other_object->m_waypoints.empty()){
-				const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
-				const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
-				LOG_EMPERY_CLUSTER_DEBUG("Should we retry? blocked_retry_count = ", m_blocked_retry_count,
-					", retry_max_count = ", retry_max_count, ", retry_delay = ", retry_delay);
-				if(m_blocked_retry_count < retry_max_count){
-					++m_blocked_retry_count;
-					return retry_delay;
-				}
-				LOG_EMPERY_CLUSTER_DEBUG("Give up the path.");
-			}
-			result = Response(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
-			return UINT64_MAX;
-		}
-		const auto other_owner_uuid = other_object->get_owner_uuid();
-		const auto other_object_type_id = other_object->get_map_object_type_id();
-		if((other_owner_uuid != owner_uuid) && (other_object_type_id == EmperyCenter::MapObjectTypeIds::ID_CASTLE)){
-			foundation.clear();
-			get_castle_foundation(foundation, other_coord, false);
-			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
-				if(new_coord == *fit){
-					LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
-					result = Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
-					return UINT64_MAX;
-				}
-			}
-		}
-	}
 	set_coord(new_coord);
 
 	m_waypoints.pop_front();
