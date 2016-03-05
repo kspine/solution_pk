@@ -357,13 +357,13 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 	}
 
 	const auto transfer_fee_ratio = Data::Global::as_double(Data::Global::SLOT_AUCTION_TRANSFER_FEE_RATIO);
-	const auto transfer_duration  = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_DURATION);
+	const auto transfer_duration  = Data::Global::as_double(Data::Global::SLOT_AUCTION_TRANSFER_DURATION);
 
 	const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
 	const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
 
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto due_time = saturated_add(utc_now, saturated_mul<std::uint64_t>(transfer_duration, 60000));
+	const auto due_time = saturated_add(utc_now, static_cast<std::uint64_t>(transfer_duration * 60000));
 
 	std::vector<ResourceTransactionElement> resource_transaction;
 	resource_transaction.reserve(64);

@@ -84,8 +84,8 @@ PLAYER_SERVLET(Msg::CS_MailWriteToAccount, account, session, req){
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 	const auto language_id = LanguageId(req.language_id);
 
-	const auto default_mail_expiry_duration = Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
-	const auto expiry_duration = checked_mul<std::uint64_t>(default_mail_expiry_duration, 60000);
+	const auto default_mail_expiry_duration = Data::Global::as_double(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
+	const auto expiry_duration = static_cast<std::uint64_t>(default_mail_expiry_duration * 60000);
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
