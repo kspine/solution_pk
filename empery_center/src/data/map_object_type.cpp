@@ -109,10 +109,10 @@ namespace {
 			csv.get(object, "drop");
 			elem.reward_set.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				const auto &set_name = it->first;
+				auto name = std::string(it->first.get());
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.reward_set.emplace(set_name, count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: set_name = ", set_name);
+				if(!elem.reward_set.emplace(std::move(name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: name = ", name);
 					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}
