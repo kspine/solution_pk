@@ -368,9 +368,10 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			PROFILE_ME;
 
 			const auto state_persistence_duration = Data::Global::as_unsigned(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
+			const auto utc_now = Poseidon::get_utc_time();
 
 			WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
-				saturated_mul<std::uint64_t>(state_persistence_duration, 60000));
+				saturated_add(utc_now, saturated_mul<std::uint64_t>(state_persistence_duration, 60000)));
 		};
 		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(update_war_status);
 	}
