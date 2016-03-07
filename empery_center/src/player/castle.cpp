@@ -17,7 +17,7 @@
 #include "../data/item.hpp"
 #include "../data/map_object_type.hpp"
 #include "../msg/err_item.hpp"
-#include "../map_utilities.hpp"
+#include "../castle_utilities.hpp"
 #include "../building_type_ids.hpp"
 #include "../account_attribute_ids.hpp"
 #include "../attribute_ids.hpp"

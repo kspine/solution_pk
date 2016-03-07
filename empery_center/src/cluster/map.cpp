@@ -13,6 +13,7 @@
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../map_utilities.hpp"
+#include "../castle_utilities.hpp"
 #include "../data/map.hpp"
 #include "../castle.hpp"
 #include "../overlay.hpp"
