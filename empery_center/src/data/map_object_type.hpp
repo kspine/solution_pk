@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include <boost/container/flat_map.hpp>
+#include <boost/container/flat_set.hpp>
 
 namespace EmperyCenter {
 
@@ -51,12 +52,12 @@ namespace Data {
 		boost::container::flat_map<std::string, std::uint64_t> monster_reward_set;
 	};
 
-	class MapMonsterReward {
+	class MapObjectTypeMonsterReward {
 	public:
-		static boost::shared_ptr<const MapMonsterReward> get(std::uint64_t unique_id);
-		static boost::shared_ptr<const MapMonsterReward> require(std::uint64_t unique_id);
+		static boost::shared_ptr<const MapObjectTypeMonsterReward> get(std::uint64_t unique_id);
+		static boost::shared_ptr<const MapObjectTypeMonsterReward> require(std::uint64_t unique_id);
 
-		static void get_by_name(std::vector<boost::shared_ptr<const MapMonsterReward>> &ret,
+		static void get_by_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
 			const std::string &name);
 
 	public:
@@ -64,6 +65,24 @@ namespace Data {
 		std::string name;
 		double weight;
 		boost::container::flat_map<ItemId, std::uint64_t> reward_items;
+	};
+
+	class MapObjectTypeMonsterRewardExtra {
+	public:
+		static boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> get(std::uint64_t unique_id);
+		static boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> require(std::uint64_t unique_id);
+
+		static void get_available(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
+			MapObjectTypeId monster_type_id, std::uint64_t utc_now);
+
+	public:
+		std::uint64_t unique_id;
+		boost::container::flat_map<std::string, std::uint64_t> monster_reward_set;
+		boost::container::flat_set<MapObjectTypeId> monster_type_ids;
+		std::uint64_t available_since;
+		std::uint64_t available_until;
+		std::uint64_t duration;
+		std::uint64_t period;
 	};
 }
 

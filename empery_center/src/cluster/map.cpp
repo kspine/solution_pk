@@ -12,14 +12,13 @@
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
-#include "../castle_utilities.hpp"
+#include "../map_utilities.hpp"
 #include "../data/map.hpp"
 #include "../castle.hpp"
 #include "../overlay.hpp"
 #include "../strategic_resource.hpp"
 #include "../data/map_object_type.hpp"
 #include "../data/global.hpp"
-#include "../map_utilities.hpp"
 #include "../attribute_ids.hpp"
 #include "../announcement.hpp"
 #include "../singletons/announcement_map.hpp"
@@ -193,7 +192,7 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 	}
 
 	const auto coord = map_object->get_coord();
-	auto result = can_deploy_castle_at(coord, map_object);
+	auto result = can_deploy_castle_at(coord, map_object->get_map_object_uuid());
 	if(result.first != 0){
 		return std::move(result);
 	}

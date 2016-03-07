@@ -23,7 +23,7 @@
 #include "../mysql/strategic_resource.hpp"
 #include "../player_session.hpp"
 #include "../cluster_session.hpp"
-#include "../castle_utilities.hpp"
+#include "../map_utilities.hpp"
 #include "../map_event_block.hpp"
 
 namespace EmperyCenter {
