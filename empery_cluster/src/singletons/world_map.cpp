@@ -337,6 +337,20 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 	}
 	return it->map_object;
 }
+
+void WorldMap::get_map_objects_by_account(std::vector<boost::shared_ptr<MapObject>> &ret,AccountUuid owner_uuid){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
+	}
+	
+	const auto range = map_object_map->equal_range<3>(owner_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->map_object);
+	}
+}
+
 void WorldMap::replace_map_object_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapObject> &map_object){
 	PROFILE_ME;
 
