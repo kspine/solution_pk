@@ -48,7 +48,22 @@ namespace Data {
 	public:
 		std::uint64_t return_range;
 
-		boost::container::flat_map<std::string, std::uint64_t> reward_set;
+		boost::container::flat_map<std::string, std::uint64_t> monster_reward_set;
+	};
+
+	class MapMonsterReward {
+	public:
+		static boost::shared_ptr<const MapMonsterReward> get(std::uint64_t unique_id);
+		static boost::shared_ptr<const MapMonsterReward> require(std::uint64_t unique_id);
+
+		static void get_by_name(std::vector<boost::shared_ptr<const MapMonsterReward>> &ret,
+			const std::string &name);
+
+	public:
+		std::uint64_t unique_id;
+		std::string name;
+		double weight;
+		boost::container::flat_map<ItemId, std::uint64_t> reward_items;
 	};
 }
 

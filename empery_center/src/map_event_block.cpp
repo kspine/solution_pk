@@ -209,6 +209,10 @@ void MapEventBlock::refresh_events(bool first_time){
 	const auto event_block_data = Data::MapEventBlock::require(map_x / BLOCK_WIDTH, map_y / BLOCK_HEIGHT);
 
 	const auto map_event_circle_id = event_block_data->map_event_circle_id;
+	if(!map_event_circle_id){
+		LOG_EMPERY_CENTER_DEBUG("Null map event circle id: map_x = ", map_x, ", map_y = ", map_y);
+		return;
+	}
 	LOG_EMPERY_CENTER_DEBUG("Calculating active account count: map_event_circle_id = ", map_event_circle_id);
 	char map_event_circle_id_str[32];
 	std::sprintf(map_event_circle_id_str, "%lu", (unsigned long)map_event_circle_id.get());
