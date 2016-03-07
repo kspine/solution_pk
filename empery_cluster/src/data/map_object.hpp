@@ -16,6 +16,7 @@ namespace Data {
 		MapObjectCategoryId category_id;
 		double              attack;
 		double              defence;
+		double              speed;
 		unsigned            shoot_range;
 		double              attack_speed;
 		double              attack_plus;

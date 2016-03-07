@@ -104,7 +104,7 @@ namespace {
 			read_map_object_type_abstract(elem, csv);
 
 			csv.get(elem.return_range,       "return_range");
-
+/*
 			Poseidon::JsonObject object;
 			csv.get(object, "drop");
 			elem.reward.reserve(object.size());
@@ -116,7 +116,7 @@ namespace {
 					DEBUG_THROW(Exception, sslit("Duplicate reward item"));
 				}
 			}
-
+*/
 			if(!map_object_type_monster_map->emplace(elem.map_object_type_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeMonster: map_object_type_id = ", elem.map_object_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeMonster"));

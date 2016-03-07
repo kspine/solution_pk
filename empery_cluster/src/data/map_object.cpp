@@ -32,6 +32,7 @@ namespace {
 			csv.get(elem.category_id,                       "arm_type");
 			csv.get(elem.attack,                            "attack");
 			csv.get(elem.defence,                           "defence");
+			csv.get(elem.speed,                             "speed");
 			csv.get(elem.shoot_range,                       "shoot_range");
 			csv.get(elem.attack_speed,                      "attack_speed");
 			csv.get(elem.attack_plus,                      "attack_plus");
@@ -52,6 +53,7 @@ namespace {
 			csvMonster.get(elem.category_id,                       "arm_type");
 			csvMonster.get(elem.attack,                            "attack");
 			csvMonster.get(elem.defence,                           "defence");
+			csvMonster.get(elem.speed,                             "speed");
 			csvMonster.get(elem.shoot_range,                       "shoot_range");
 			csvMonster.get(elem.attack_speed,                      "attack_speed");
 			csvMonster.get(elem.attack_plus,                      "attack_plus");

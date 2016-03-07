@@ -15,8 +15,8 @@ class AiControl{
 public:
 	AiControl(boost::weak_ptr<MapObject> parent);
 public:
-	std::uint64_t move(std::pair<long, std::string> &result);
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
+	void          troops_attack();
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
 private:
@@ -86,15 +86,19 @@ private:
 	std::uint64_t pump_action(std::pair<long, std::string> &result, std::uint64_t now);
 public:
 	bool is_die();
-	bool is_in_attack_scope(MapObjectUuid targetUuid);
+	bool is_in_attack_scope(MapObjectUuid target_uuid);
+	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
+	void          troops_attack();
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
-	void          display_blood();
-	
+private:
+	void          notify_way_points(std::deque<Waypoint> &waypoints,MapObject::Action &action, std::string &action_param);
+	void          fix_attack_action();
+	bool          find_way_points(std::deque<Waypoint> &waypoints,Coord from_coord,Coord target_coord);
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
@@ -124,6 +128,10 @@ public:
 
 	bool is_moving() const {
 		return !m_waypoints.empty();
+	}
+	
+	bool is_idle() const {
+		return (m_action == ACT_GUARD)&&(m_waypoints.empty());
 	}
 	void set_action(Coord from_coord, std::deque<Waypoint> waypoints, Action action, std::string action_param);
 };
