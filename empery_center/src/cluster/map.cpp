@@ -148,13 +148,24 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	if(resource_amount == 0){
 		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
 	}
-//	const auto resource_id = overlay->get_resource_id();
+	const auto resource_id = overlay->get_resource_id();
+	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto carried_attribute_id = resource_data->carried_attribute_id;
+	if(!carried_attribute_id){
+		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
+	}
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto harvest_speed = map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+	}
+	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+	const auto resource_carried = map_object->get_resource_amount_carried();
+	if(resource_carried >= resource_capacity){
+		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 	}
 
 	const auto interval = req.interval;
@@ -306,13 +317,24 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	if(resource_amount == 0){
 		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
 	}
-//	const auto resource_id = strategic_resource->get_resource_id();
+	const auto resource_id = strategic_resource->get_resource_id();
+	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto carried_attribute_id = resource_data->carried_attribute_id;
+	if(!carried_attribute_id){
+		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
+	}
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto harvest_speed = map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+	}
+	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+	const auto resource_carried = map_object->get_resource_amount_carried();
+	if(resource_carried >= resource_capacity){
+		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 	}
 
 	const auto interval = req.interval;
