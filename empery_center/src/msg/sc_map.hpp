@@ -156,7 +156,7 @@ namespace Msg {
 // 386
 
 #define MESSAGE_NAME    SC_MapWaypointsSet
-#define MESSAGE_ID      386
+#define MESSAGE_ID      385
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)   \
 	FIELD_VINT          (x)    \
