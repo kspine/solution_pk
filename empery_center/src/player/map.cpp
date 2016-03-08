@@ -543,7 +543,7 @@ PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_MapEvacuateFromCastle, account, session, req){
+PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
@@ -712,8 +712,8 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 			return Response(Msg::ERR_WAREHOUSE_FULL);
 		}
 		try {
-			task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested,
-				castle, 0, 0, 0);
+			task_box->check(TaskTypeIds::ID_HARVEST_RESOURCES, resource_id.get(), amount_harvested,
+				castle, 0, 0);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}

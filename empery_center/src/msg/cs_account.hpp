@@ -55,6 +55,12 @@ namespace Msg {
 	FIELD_STRING        (context)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_AccountGetWarStatus
+#define MESSAGE_ID      207
+#define MESSAGE_FIELDS  \
+	//
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

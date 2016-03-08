@@ -62,6 +62,8 @@ public:
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
 
+	std::uint64_t get_resource_amount_carried() const;
+
 	unsigned get_action() const {
 		return m_action;
 	}

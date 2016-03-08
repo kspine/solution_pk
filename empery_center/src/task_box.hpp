@@ -49,7 +49,7 @@ private:
 	boost::shared_ptr<MySql::Center_Task> m_stamps;
 
 	boost::container::flat_map<TaskId,
-		boost::shared_ptr<std::pair<boost::shared_ptr<MySql::Center_Task>, Progress>>> m_tasks;
+		std::pair<boost::shared_ptr<MySql::Center_Task>, boost::shared_ptr<Progress>>> m_tasks;
 
 public:
 	TaskBox(AccountUuid account_uuid,
@@ -75,9 +75,9 @@ public:
 
 	bool has_been_accomplished(TaskId task_id) const;
 	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-		CastleCategory castle_category, std::int64_t param1, std::int64_t param2, std::int64_t param3);
+		CastleCategory castle_category, std::int64_t param1, std::int64_t param2);
 	void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
-		const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2, std::int64_t param3);
+		const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

@@ -35,6 +35,7 @@ namespace {
 			read_map_object_type_abstract(elem, csv);
 
 			csv.get(elem.harvest_speed,          "collect_speed");
+			csv.get(elem.resource_carriable,     "arm_load");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "arm_need");
@@ -107,13 +108,13 @@ namespace {
 /*
 			Poseidon::JsonObject object;
 			csv.get(object, "drop");
-			elem.reward.reserve(object.size());
+			elem.reward_set.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				auto name = std::string(it->first.get());
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.reward.emplace(item_id, count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate reward item: item_id = ", item_id);
-					DEBUG_THROW(Exception, sslit("Duplicate reward item"));
+				if(!elem.reward_set.emplace(std::move(name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: name = ", name);
+					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}
 */

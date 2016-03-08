@@ -114,8 +114,8 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 			const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 			const auto language_id = LanguageId(); // neutral
 
-			const auto default_mail_expiry_duration = Data::Global::as_unsigned(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
-			const auto expiry_duration = checked_mul<std::uint64_t>(default_mail_expiry_duration, 60000);
+			const auto default_mail_expiry_duration = Data::Global::as_double(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
+			const auto expiry_duration = static_cast<std::uint64_t>(default_mail_expiry_duration * 60000);
 
 			const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
 			const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);

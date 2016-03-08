@@ -60,19 +60,25 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 
 namespace {
 	template<typename CallbackT>
-	std::pair<ResourceId, ItemId> try_decrement_resources(
-		const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box, const boost::shared_ptr<TaskBox> &task_box,
-		boost::container::flat_map<ResourceId, std::uint64_t> resources, boost::container::flat_map<ItemId, std::uint64_t> tokens,
+	std::pair<ResourceId, ItemId> try_decrement_resources(const boost::shared_ptr<Castle> &castle,
+		const boost::shared_ptr<ItemBox> &item_box, const boost::shared_ptr<TaskBox> &task_box,
+		const boost::container::flat_map<ResourceId, std::uint64_t> &resources_to_consume,
+		const boost::container::flat_map<ItemId, std::uint64_t> &tokens_to_consume,
 		ReasonId reason, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3, CallbackT &&callback)
 	{
 		PROFILE_ME;
 
-		std::vector<ResourceTransactionElement> resource_transaction;
-		resource_transaction.reserve(resources.size());
-		std::vector<ItemTransactionElement> item_transaction;
-		item_transaction.reserve(tokens.size());
+		boost::container::flat_map<ResourceId, std::uint64_t> resources_consumed;
+		resources_consumed = resources_to_consume; // resources_consumed.reserve(resources_to_consume.size());
+		boost::container::flat_map<ItemId, std::uint64_t> tokens_consumed;
+		tokens_consumed.reserve(tokens_to_consume.size());
 
-		for(auto it = tokens.begin(); it != tokens.end(); ++it){
+		std::vector<ResourceTransactionElement> resource_transaction;
+		resource_transaction.reserve(resources_to_consume.size());
+		std::vector<ItemTransactionElement> item_transaction;
+		item_transaction.reserve(tokens_to_consume.size());
+
+		for(auto it = tokens_to_consume.begin(); it != tokens_to_consume.end(); ++it){
 			const auto item_id = it->first;
 			const auto item_data = Data::Item::require(item_id);
 			if(item_data->type.first != Data::Item::CAT_RESOURCE_TOKEN){
@@ -80,60 +86,60 @@ namespace {
 				DEBUG_THROW(Exception, sslit("The specified item is not a resource token"));
 			}
 			const auto resource_id = ResourceId(item_data->type.second);
-			const auto rit = resources.find(resource_id);
-			if(rit == resources.end()){
+			const auto cit = resources_consumed.find(resource_id);
+			if(cit == resources_consumed.end()){
 				LOG_EMPERY_CENTER_DEBUG("$$ Unneeded token: item_id = ", item_id);
-				// 不扣减资源代币。
-				it->second = 0;
 				continue;
 			}
-			const auto max_count_needed = checked_add(rit->second, item_data->value - 1) / item_data->value;
+			const auto max_count_needed = checked_add(cit->second, item_data->value - 1) / item_data->value;
 			LOG_EMPERY_CENTER_DEBUG("$$ Use token: item_id = ", item_id, ", count = ", it->second, ", max_count_needed = ", max_count_needed);
-			const auto tokens_to_consume = std::min(it->second, max_count_needed);
-			rit->second = saturated_sub(rit->second, checked_mul(item_data->value, tokens_to_consume));
-			it->second = tokens_to_consume;
+			const auto count_consumed = std::min(it->second, max_count_needed);
+			cit->second = saturated_sub(cit->second, item_data->value * count_consumed);
+			tokens_consumed.emplace(item_id, count_consumed);
 		}
 
-		for(auto it = resources.begin(); it != resources.end(); ++it){
-			if(it->second == 0){
-				continue;
-			}
+		for(auto it = resources_to_consume.begin(); it != resources_to_consume.end(); ++it){
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
 				reason, param1, param2, param3);
 		}
-		for(auto it = tokens.begin(); it != tokens.end(); ++it){
-			if(it->second == 0){
-				continue;
-			}
+		for(auto it = tokens_to_consume.begin(); it != tokens_to_consume.end(); ++it){
 			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
 				reason, param1, param2, param3);
 		}
 
-		ResourceId insuff_resource_id;
-		ItemId insuff_item_id;
-		insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
-			[&]{
-				insuff_item_id = item_box->commit_transaction_nothrow(item_transaction, true,
-					[&]{
-						std::forward<CallbackT>(callback)();
-					});
-			});
-
-		if(!insuff_resource_id && !insuff_item_id){
-			try {
-				for(auto it = resources.begin(); it != resources.end(); ++it){
-					if(it->second == 0){
-						continue;
+		try {
+			const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
+				[&]{
+					const auto insuff_item_id = item_box->commit_transaction_nothrow(item_transaction, true,
+						[&]{
+							std::forward<CallbackT>(callback)();
+						});
+					if(insuff_item_id){
+						throw insuff_item_id;
 					}
-					task_box->check(TaskTypeIds::ID_CONSUME_RESOURCE, it->first.get(), it->second,
-						castle, 0, 0, 0);
-				}
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			});
+			if(insuff_resource_id){
+				throw insuff_resource_id;
 			}
+		} catch(ResourceId &insuff_resource_id){
+			return std::make_pair(insuff_resource_id, ItemId());
+		} catch(ItemId &insuff_item_id){
+			return std::make_pair(ResourceId(), insuff_item_id);
 		}
 
-		return std::make_pair(insuff_resource_id, insuff_item_id);
+		try {
+			for(auto it = resources_to_consume.begin(); it != resources_to_consume.end(); ++it){
+				if(it->second == 0){
+					continue;
+				}
+				task_box->check(TaskTypeIds::ID_CONSUME_RESOURCES, it->first.get(), it->second,
+					castle, 0, 0);
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+
+		return { };
 	}
 }
 
@@ -202,8 +208,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, task_box,
-		upgrade_data->upgrade_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
 		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
 		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_CONSTRUCT, building_data->building_id); });
 	if(result.first){
@@ -316,8 +321,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, task_box,
-		upgrade_data->upgrade_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
 		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
 		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, { }); });
 	if(result.first){
@@ -508,8 +512,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, task_box,
-		tech_data->upgrade_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box, tech_data->upgrade_cost, tokens,
 		ReasonIds::ID_UPGRADE_TECH, tech_data->tech_id_level.first.get(), tech_data->tech_id_level.second, 0,
 		[&]{ castle->create_tech_mission(tech_id, Castle::MIS_UPGRADE); });
 	if(result.first){
@@ -666,8 +669,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 				continue;
 			}
 			try {
-				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCE, resource_id.get(), amount_harvested,
-					castle, 0, 0, 0);
+				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCES, resource_id.get(), amount_harvested,
+					castle, 0, 0);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
@@ -985,8 +988,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, task_box,
-		std::move(production_cost), std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box, production_cost, tokens,
 		ReasonIds::ID_PRODUCE_BATTALION, map_object_type_id.get(), count, 0,
 		[&]{ castle->begin_battalion_production(building_base_id, map_object_type_id, count); });
 	if(result.first){
@@ -1060,8 +1062,8 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 	const auto count_harvested = castle->harvest_battalion(building_base_id);
 
 	try {
-		task_box->check(TaskTypeIds::ID_HARVEST_BATTALION, info.map_object_type_id.get(), count_harvested,
-			castle, 0, 0, 0);
+		task_box->check(TaskTypeIds::ID_HARVEST_SOLDIERS, info.map_object_type_id.get(), count_harvested,
+			castle, 0, 0);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
@@ -1162,8 +1164,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 		count_total = checked_add<std::uint64_t>(count_total, it->count);
 	}
 
-	const auto result = try_decrement_resources(castle, item_box, task_box,
-		map_object_type_data->enability_cost, std::move(tokens),
+	const auto result = try_decrement_resources(castle, item_box, task_box, map_object_type_data->enability_cost, tokens,
 		ReasonIds::ID_ENABLE_BATTALION, map_object_type_id.get(), 0, 0,
 		[&]{ castle->enable_battalion(map_object_type_id); });
 	if(result.first){

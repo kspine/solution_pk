@@ -357,13 +357,13 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 	}
 
 	const auto transfer_fee_ratio = Data::Global::as_double(Data::Global::SLOT_AUCTION_TRANSFER_FEE_RATIO);
-	const auto transfer_duration  = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_DURATION);
+	const auto transfer_duration  = Data::Global::as_double(Data::Global::SLOT_AUCTION_TRANSFER_DURATION);
 
 	const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
 	const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
 
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto due_time = saturated_add(utc_now, saturated_mul<std::uint64_t>(transfer_duration, 60000));
+	const auto due_time = saturated_add(utc_now, static_cast<std::uint64_t>(transfer_duration * 60000));
 
 	std::vector<ResourceTransactionElement> resource_transaction;
 	resource_transaction.reserve(64);
@@ -418,27 +418,38 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 		}
 	}
 
-	ResourceId insuff_resource_id;
-	ItemId insuff_item_id;
-	insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
-		[&]{
-			insuff_item_id = item_box->commit_transaction_nothrow(item_transaction, false,
-				[&]{
-					for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
-						const auto &obj = it->first;
-						const auto &info = it->second;
-						obj->set_item_count             (info.item_count);
-						obj->set_item_count_locked      (info.item_count_locked);
-						obj->set_item_count_fee         (info.item_count_fee);
-						obj->set_resource_id            (info.resource_id.get());
-						obj->set_resource_amount_locked (info.resource_amount_locked);
-						obj->set_resource_amount_fee    (info.resource_amount_fee);
-						obj->set_created_time           (utc_now);
-						obj->set_due_time               (due_time);
-					}
-				});
-		});
-	return std::make_pair(insuff_resource_id, insuff_item_id);
+	try {
+		const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
+			[&]{
+				const auto insuff_item_id = item_box->commit_transaction_nothrow(item_transaction, false,
+					[&]{
+						for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+							const auto &obj = it->first;
+							const auto &info = it->second;
+							obj->set_item_count             (info.item_count);
+							obj->set_item_count_locked      (info.item_count_locked);
+							obj->set_item_count_fee         (info.item_count_fee);
+							obj->set_resource_id            (info.resource_id.get());
+							obj->set_resource_amount_locked (info.resource_amount_locked);
+							obj->set_resource_amount_fee    (info.resource_amount_fee);
+							obj->set_created_time           (utc_now);
+							obj->set_due_time               (due_time);
+						}
+					});
+				if(insuff_item_id){
+					throw insuff_item_id;
+				}
+			});
+		if(insuff_resource_id){
+			throw insuff_resource_id;
+		}
+	} catch(ResourceId &insuff_resource_id){
+		return std::make_pair(insuff_resource_id, ItemId());
+	} catch(ItemId &insuff_item_id){
+		return std::make_pair(ResourceId(), insuff_item_id);
+	}
+
+	return { };
 }
 ResourceId AuctionCenter::commit_transfer(const boost::shared_ptr<Castle> &castle){
 	PROFILE_ME;
@@ -498,24 +509,31 @@ ResourceId AuctionCenter::commit_transfer(const boost::shared_ptr<Castle> &castl
 		temp_result.emplace_back(obj);
 	}
 
-	ResourceId insuff_resource_id;
-	commit_item_transaction(auction_transaction,
-		[&]{
-			insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
-				[&]{
-					for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
-						const auto &obj = *it;
-						obj->set_item_count             (0);
-						obj->set_item_count_locked      (0);
-						obj->set_item_count_fee         (0);
-						obj->set_resource_amount_locked (0);
-						obj->set_resource_amount_fee    (0);
-						obj->set_created_time           (0);
-						obj->set_due_time               (0);
-					}
-				});
-		});
-	return insuff_resource_id;
+	try {
+		commit_item_transaction(auction_transaction,
+			[&]{
+				const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
+					[&]{
+						for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+							const auto &obj = *it;
+							obj->set_item_count             (0);
+							obj->set_item_count_locked      (0);
+							obj->set_item_count_fee         (0);
+							obj->set_resource_amount_locked (0);
+							obj->set_resource_amount_fee    (0);
+							obj->set_created_time           (0);
+							obj->set_due_time               (0);
+						}
+					});
+				if(insuff_resource_id){
+					throw insuff_resource_id;
+				}
+			});
+	} catch(ResourceId &insuff_resource_id){
+		return insuff_resource_id;
+	}
+
+	return { };
 }
 void AuctionCenter::cancel_transfer(const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box, bool refund_fee){
 	PROFILE_ME;

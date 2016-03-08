@@ -94,7 +94,7 @@ namespace Data {
 		const auto it = global_map->find(slot);
 		if(it == global_map->end()){
 			LOG_EMPERY_CENTER_WARNING("Global config not found: slot = ", slot);
-			DEBUG_THROW(Exception, sslit("Global confignot found"));
+			DEBUG_THROW(Exception, sslit("Global config not found"));
 		}
 		if(!it->second.u64.first){
 			const auto val = boost::lexical_cast<std::uint64_t>(it->second.str);

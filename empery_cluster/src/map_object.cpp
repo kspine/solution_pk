@@ -34,7 +34,7 @@ using Response = ::EmperyCenter::CbppResponse;
 AiControl::AiControl(boost::weak_ptr<MapObject> parent)
 :m_parent_object(parent)
 {
-	
+
 }
 
 std::uint64_t AiControl::attack(std::pair<long, std::string> &result, std::uint64_t now){
@@ -45,12 +45,12 @@ std::uint64_t AiControl::attack(std::pair<long, std::string> &result, std::uint6
 	return parent_object->attack(result,now);
 }
 
-void          AiControl::troops_attack(){
+void          AiControl::troops_attack(bool passive){
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return;
 	}
-	parent_object->troops_attack();
+	parent_object->troops_attack(passive);
 	return ;
 }
 
@@ -87,13 +87,13 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	const auto map_object_uuid    = get_map_object_uuid();
 	const auto parent_object_uuid = get_parent_object_uuid();
 	const auto garrisoned         = is_garrisoned();
-	
+
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
 		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
-	
+
 	const auto parent_map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!parent_map_object && (MapObjectCategoryIds::ID_MONSTER != map_object_type_data->category_id)){
 		result = Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) << parent_object_uuid;
@@ -104,8 +104,10 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	 	return UINT64_MAX;
 	}
 	//修正action
-	fix_attack_action();
-	
+	if(!fix_attack_action()){
+		return UINT64_MAX;
+	}
+
 	// 移动。
 	if(!m_waypoints.empty()){
 		return move(result);
@@ -127,7 +129,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		if(!target_object){
 			break;
 		}
-		
 		// TODO 战斗。
 		require_ai_control()->troops_attack();
 		return require_ai_control()->attack(result,now);
@@ -209,23 +210,13 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 }
 
 std::uint64_t MapObject::move(std::pair<long, std::string> &result){
-	//const auto map_object_uuid = get_map_object_uuid();
+	// const auto map_object_uuid = get_map_object_uuid();
 	const auto owner_uuid      = get_owner_uuid();
 	const auto coord           = get_coord();
-	
+
 	const auto waypoint  = m_waypoints.front();
 	const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
 	const auto delay     = waypoint.delay;
-	// 检测阻挡。
-	const auto new_map_cell = WorldMap::get_map_cell(new_coord);
-	if(new_map_cell){
-		const auto cell_owner_uuid = new_map_cell->get_owner_uuid();
-		if(cell_owner_uuid && (owner_uuid != cell_owner_uuid)){
-			LOG_EMPERY_CLUSTER_DEBUG("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
-			result = Response(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
-			return UINT64_MAX;
-		}
-	}
 
 	const auto new_cluster = WorldMap::get_cluster(new_coord);
 	if(!new_cluster){
@@ -234,64 +225,20 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		return UINT64_MAX;
 	}
 
-	const auto new_cluster_scope = WorldMap::get_cluster_scope(new_coord);
-	const auto map_x = static_cast<unsigned>(new_coord.x() - new_cluster_scope.left());
-	const auto map_y = static_cast<unsigned>(new_coord.y() - new_cluster_scope.bottom());
-	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
-	const auto terrain_id = cell_data->terrain_id;
-	const auto terrain_data = Data::MapTerrain::require(terrain_id);
-	if(!terrain_data->passable){
-		LOG_EMPERY_CLUSTER_DEBUG("Blocked by terrain: terrain_id = ", terrain_id);
-		result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
-		return UINT64_MAX;
+	const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
+	const auto wait_for_moving_objects = (m_blocked_retry_count < retry_max_count);
+	result = get_move_result(new_coord, owner_uuid, wait_for_moving_objects);
+	if(result.first == Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY){
+		const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
+		++m_blocked_retry_count;
+		return retry_delay;
 	}
-	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
-	if((map_x < border_thickness) || (map_x >= new_cluster_scope.width() - border_thickness) ||
-		(map_y < border_thickness) || (map_y >= new_cluster_scope.height() - border_thickness))
-	{
-		LOG_EMPERY_CLUSTER_DEBUG("Blocked by map border: new_coord = ", new_coord);
-		result = Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<new_coord;
+	m_blocked_retry_count = 0;
+
+	if(result.first != Msg::ST_OK){
 		return UINT64_MAX;
 	}
 
-	std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
-	WorldMap::get_map_objects_by_rectangle(adjacent_objects,
-		Rectangle(Coord(new_coord.x() - 3, new_coord.y() - 3), Coord(new_coord.x() + 4, new_coord.y() + 4)));
-	std::vector<Coord> foundation;
-	for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
-		const auto &other_object = *it;
-		const auto other_map_object_uuid = other_object->get_map_object_uuid();
-		const auto other_coord = other_object->get_coord();
-		if(new_coord == other_coord){
-			LOG_EMPERY_CLUSTER_DEBUG("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
-			if(!other_object->m_waypoints.empty()){
-				const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
-				const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
-				LOG_EMPERY_CLUSTER_DEBUG("Should we retry? blocked_retry_count = ", m_blocked_retry_count,
-					", retry_max_count = ", retry_max_count, ", retry_delay = ", retry_delay);
-				if(m_blocked_retry_count < retry_max_count){
-					++m_blocked_retry_count;
-					return retry_delay;
-				}
-				LOG_EMPERY_CLUSTER_DEBUG("Give up the path.");
-			}
-			result = Response(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
-			return UINT64_MAX;
-		}
-		const auto other_owner_uuid = other_object->get_owner_uuid();
-		const auto other_object_type_id = other_object->get_map_object_type_id();
-		if((other_owner_uuid != owner_uuid) && (other_object_type_id == EmperyCenter::MapObjectTypeIds::ID_CASTLE)){
-			foundation.clear();
-			get_castle_foundation(foundation, other_coord, false);
-			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
-				if(new_coord == *fit){
-					LOG_EMPERY_CLUSTER_DEBUG("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
-					result = Response(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
-					return UINT64_MAX;
-				}
-			}
-		}
-	}
 	set_coord(new_coord);
 
 	m_waypoints.pop_front();
@@ -311,6 +258,15 @@ void MapObject::set_coord(Coord coord){
 	m_coord = coord;
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+}
+
+
+std::uint64_t MapObject::get_attack(){
+	return 0;
+}
+
+std::uint64_t MapObject::get_defense(){
+	return 0;
 }
 
 std::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
@@ -441,7 +397,7 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 			m_next_action_time = now;
 		}
 	}
-	
+
 	notify_way_points(waypoints,action,action_param);
 
 	m_waypoints    = std::move(waypoints);
@@ -557,20 +513,28 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 }
 
 std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
+	if(!attacker){
+		return UINT64_MAX;
+	}
 	//如果没有在攻击，则判断攻击者是否在自己的攻击范围之内，是则执行攻击，否则小范围内寻路攻击
 	if(m_action != ACT_ATTACK && m_waypoints.empty() ){
-		if(is_in_attack_scope(attacker->get_map_object_uuid())){
-			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),attacker->get_map_object_uuid().str());
-		}else{
-			if(find_way_points(m_waypoints,get_coord(),attacker->get_coord())){
-				set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),attacker->get_map_object_uuid().str());
-			}
-		}
+		attack_new_target(attacker);
+		troops_attack(true);
 	}
 	return UINT64_MAX;
 }
 
 std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
+	if(!attacker){
+		return UINT64_MAX;
+	}
+	boost::shared_ptr<MapObject> enemy_map_object;
+	bool get_new_enemy = attacker->get_new_enemy(virtual_shared_from_this<MapObject>(),enemy_map_object);
+	if(get_new_enemy){
+		attacker->attack_new_target(enemy_map_object);
+	}else{
+		attacker->lost_target();
+	}
 	WorldMap::remove_map_object(get_map_object_uuid());
 	return UINT64_MAX;
 }
@@ -605,17 +569,10 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 	if(!target_object){
 		return false;
 	}
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
-	if(!map_object_type_data){
-		return false;
-	}
-	const auto view_range = map_object_type_data->shoot_range + 1;
 	
-	const auto target_map_object_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
-	if(!target_map_object_type_data){
-		return false;
-	}
-	const auto target_view_range = target_map_object_type_data->shoot_range + 1;
+	const auto view_range = get_view_range();
+
+	const auto target_view_range = target_object->get_view_range();
 	const auto troops_view_range = view_range > target_view_range ? view_range:target_view_range;
 	
 	const auto coord    = get_coord();
@@ -627,32 +584,35 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 	return false;
 }
 
-void MapObject::troops_attack(){
-	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
-	if(!target_object){
-		return;
+std::uint64_t MapObject::get_view_range(){
+	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	if(!map_object_type_data){
+		return 0;
 	}
-	Coord target_coord = target_object->get_coord();
-	
+	return map_object_type_data->shoot_range + 1;
+}
+
+void MapObject::troops_attack(bool passive){
+
 	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
 	WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
 	if(friendly_map_objects.empty()){
 		return;
 	}
-	
 	for(auto it = friendly_map_objects.begin(); it != friendly_map_objects.end(); ++it){
 		auto map_object = *it;
 		if(!map_object || !map_object->is_idle() || !is_in_group_view_scope(map_object)){
 			continue;
 		}
-		std::deque<MapObject::Waypoint> waypoints;
-		if(map_object->is_in_attack_scope(MapObjectUuid(m_action_param))){
-			map_object->set_action(map_object->get_coord(),std::move(waypoints),ACT_ATTACK,m_action_param);
-			continue;
+		const auto enemy_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
+		if(!enemy_object){
+			return;
 		}
-		Coord from_coord = map_object->get_coord();
-		if(find_way_points(waypoints,from_coord,target_coord)){
-			map_object->set_action(from_coord,std::move(waypoints),ACT_ATTACK,m_action_param);
+		boost::shared_ptr<MapObject> near_enemy_object;
+		if(passive&&get_new_enemy(enemy_object,near_enemy_object)){
+			map_object->attack_new_target(near_enemy_object);
+		}else{
+			map_object->attack_new_target(enemy_object);
 		}
 	}
 }
@@ -681,53 +641,91 @@ void   MapObject::notify_way_points(std::deque<Waypoint> &waypoints,MapObject::A
 	}
 }
 
-void    MapObject::fix_attack_action(){
+bool    MapObject::fix_attack_action(){
 	if(m_action != ACT_ATTACK){
-		return;
+		return true;
 	}
-	
+
 	//在攻击范围之内，直接进行攻击
 	bool in_attack_scope = is_in_attack_scope(MapObjectUuid(m_action_param));
 	if(in_attack_scope){
 		m_waypoints.clear();
 		notify_way_points(m_waypoints,m_action,m_action_param);
 	}
-	
+
 	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 	if(!target_object){
-		return;
+		return false;
 	}
-	
+
 	if(!in_attack_scope&&m_waypoints.empty()){
 		if(find_way_points(m_waypoints,get_coord(),target_object->get_coord())){
 			notify_way_points(m_waypoints,m_action,m_action_param);
+		}else{
+			return false;
 		}
 	}
+	return true;
 }
 
 bool    MapObject::find_way_points(std::deque<Waypoint> &waypoints,Coord from_coord,Coord target_coord){
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
-		return false;;
+		return false;
 	}
-	
+
 	double speed = map_object_type_data->speed ;
 	if(speed <= 0){
 		return false;
 	}
-	
+
 	if(0 == speed){
 		return false;
 	}
 	std::uint64_t delay = 1000/speed;
 	std::vector<std::pair<signed char, signed char>> path;
-	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 500, 10)){
+	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 100, map_object_type_data->shoot_range)){
 		for(auto it = path.begin(); it != path.end(); ++it){
 			waypoints.emplace_back(delay, it->first, it->second);
 		}
 		return true;
 	}
 	return false;
+}
+
+bool    MapObject::get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object){
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_map_objects_surrounding(map_objects,get_coord(),get_view_range());
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+
+		if(map_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		if(map_object->get_owner_uuid() == enemy_map_object->get_owner_uuid()){
+			new_enemy_map_object = map_object;
+			return true;
+		}
+	}
+	return false;
+}
+
+void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object){
+	if(!enemy_map_object)
+		return;
+	if(is_in_attack_scope(enemy_map_object->get_map_object_uuid())){
+			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
+		}else{
+			if(find_way_points(m_waypoints,get_coord(),enemy_map_object->get_coord())){
+				set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
+			}
+		}
+}
+
+void   MapObject::lost_target(){
+	m_waypoints.clear();
+	m_action = ACT_GUARD;
+	m_action_param.clear();
 }
 
 

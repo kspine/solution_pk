@@ -16,7 +16,7 @@ public:
 	AiControl(boost::weak_ptr<MapObject> parent);
 public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
-	void          troops_attack();
+	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
 private:
@@ -72,7 +72,7 @@ private:
 	// 移动完毕后动作。
 	Action m_action = ACT_GUARD;
 	std::string m_action_param;
-	
+
 	boost::shared_ptr<AiControl> m_ai_control;
 
 public:
@@ -88,17 +88,21 @@ public:
 	bool is_die();
 	bool is_in_attack_scope(MapObjectUuid target_uuid);
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
+	std::uint64_t get_view_range();
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
-	void          troops_attack();
+	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
 private:
 	void          notify_way_points(std::deque<Waypoint> &waypoints,MapObject::Action &action, std::string &action_param);
-	void          fix_attack_action();
+	bool          fix_attack_action();
 	bool          find_way_points(std::deque<Waypoint> &waypoints,Coord from_coord,Coord target_coord);
+	bool          get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object);
+	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
+	void          lost_target();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
@@ -121,6 +125,10 @@ public:
 
 	Coord get_coord() const;
 	void set_coord(Coord coord);
+
+	std::uint64_t get_attack();
+
+	std::uint64_t get_defense();
 
 	std::int64_t get_attribute(AttributeId map_object_attr_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;

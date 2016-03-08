@@ -29,6 +29,13 @@
 #include "../singletons/account_map.hpp"
 #include "../singletons/battle_record_box_map.hpp"
 #include "../battle_record_box.hpp"
+#include "../singletons/task_box_map.hpp"
+#include "../task_box.hpp"
+#include "../task_type_ids.hpp"
+#include "../singletons/war_status_map.hpp"
+#include "../data/castle.hpp"
+#include "../transaction_element.hpp"
+#include "../reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -141,13 +148,24 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	if(resource_amount == 0){
 		return Response(Msg::ERR_OVERLAY_ALREADY_REMOVED) <<coord;
 	}
-//	const auto resource_id = overlay->get_resource_id();
+	const auto resource_id = overlay->get_resource_id();
+	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto carried_attribute_id = resource_data->carried_attribute_id;
+	if(!carried_attribute_id){
+		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
+	}
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto harvest_speed = map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+	}
+	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+	const auto resource_carried = map_object->get_resource_amount_carried();
+	if(resource_carried >= resource_capacity){
+		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 	}
 
 	const auto interval = req.interval;
@@ -245,6 +263,28 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
 	}
 
+	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	std::vector<ResourceTransactionElement> transaction;
+	boost::container::flat_map<AttributeId, std::int64_t> attributes, modifiers;
+	map_object->get_attributes(attributes);
+	for(auto it = attributes.begin(); it != attributes.end(); ++it){
+		const auto attribute_id = it->first;
+		const auto value = it->second;
+		if(value <= 0){
+			continue;
+		}
+		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+		if(!resource_data){
+			continue;
+		}
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_data->resource_id, static_cast<std::uint64_t>(value),
+			ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
+		modifiers.emplace(attribute_id, 0);
+	}
+	castle->commit_resource_transaction(transaction,
+		[&]{ map_object->set_attributes(std::move(modifiers)); });
+
 	map_object->set_garrisoned(true);
 
 	return Response();
@@ -277,13 +317,24 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	if(resource_amount == 0){
 		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
 	}
-//	const auto resource_id = strategic_resource->get_resource_id();
+	const auto resource_id = strategic_resource->get_resource_id();
+	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto carried_attribute_id = resource_data->carried_attribute_id;
+	if(!carried_attribute_id){
+		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
+	}
 
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto harvest_speed = map_object_type_data->harvest_speed;
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+	}
+	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+	const auto resource_carried = map_object->get_resource_amount_carried();
+	if(resource_carried >= resource_capacity){
+		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 	}
 
 	const auto interval = req.interval;
@@ -313,64 +364,115 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
+#define ENQUEU_JOB_SWALLOWING_EXCEPTIONS(func_)	\
+	[&]{	\
+		try {	\
+			Poseidon::enqueue_async_job(func_);	\
+		} catch(std::exception &e){	\
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());	\
+		}	\
+	}()
+
 	// 通知客户端。
-	Poseidon::enqueue_async_job(
-		[=]{
+	const auto notify_clients = [=]{
+		PROFILE_ME;
+
+		Msg::SC_MapObjectAttackResult msg;
+		msg.attacking_object_uuid = attacking_object_uuid.str();
+		msg.attacking_coord_x     = attacking_coord.x();
+		msg.attacking_coord_y     = attacking_coord.y();
+		msg.attacked_object_uuid  = attacked_object_uuid.str();
+		msg.attacked_coord_x      = attacked_coord.x();
+		msg.attacked_coord_y      = attacked_coord.y();
+		msg.result_type           = result_type;
+		msg.result_param1         = result_param1;
+		msg.result_param2         = result_param2;
+		msg.soldiers_damaged      = soldiers_damaged;
+		msg.soldiers_remaining    = soldiers_remaining;
+		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
+
+		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
+		const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
+		const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
+		const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
+		std::vector<boost::shared_ptr<PlayerSession>> sessions;
+		WorldMap::get_players_viewing_rectangle(sessions,
+			Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = *it;
+			try {
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+	};
+	ENQUEU_JOB_SWALLOWING_EXCEPTIONS(notify_clients);
+
+	// 更新交战状态。
+	if(attacking_account_uuid && attacked_account_uuid){
+		const auto update_war_status = [=]{
 			PROFILE_ME;
 
-			Msg::SC_MapObjectAttackResult msg;
-			msg.attacking_object_uuid = attacking_object_uuid.str();
-			msg.attacking_coord_x     = attacking_coord.x();
-			msg.attacking_coord_y     = attacking_coord.y();
-			msg.attacked_object_uuid  = attacked_object_uuid.str();
-			msg.attacked_coord_x      = attacked_coord.x();
-			msg.attacked_coord_y      = attacked_coord.y();
-			msg.result_type           = result_type;
-			msg.result_param1         = result_param1;
-			msg.result_param2         = result_param2;
-			msg.soldiers_damaged      = soldiers_damaged;
-			msg.soldiers_remaining    = soldiers_remaining;
-			LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
+			const auto state_persistence_duration = Data::Global::as_double(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
+			const auto utc_now = Poseidon::get_utc_time();
 
-			const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
-			const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
-			const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
-			const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
-			std::vector<boost::shared_ptr<PlayerSession>> sessions;
-			WorldMap::get_players_viewing_rectangle(sessions,
-				Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
-			for(auto it = sessions.begin(); it != sessions.end(); ++it){
-				const auto &session = *it;
-				try {
-					session->send(msg);
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				}
-			}
-		});
+			WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
+				saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(update_war_status);
+	}
 
 	// 战报。
 	if(attacking_account_uuid){
-		Poseidon::enqueue_async_job(
-			[=]{
-				PROFILE_ME;
+		const auto create_attacking_record = [=]{
+			PROFILE_ME;
 
-				const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
-				battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
-					attacked_account_uuid, attacked_object_type_id, attacked_coord,
-					result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
-			});
+			const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
+			battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
+				attacked_account_uuid, attacked_object_type_id, attacked_coord,
+				result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(create_attacking_record);
 	}
 	if(attacked_account_uuid){
-		Poseidon::enqueue_async_job(
-			[=]{
-				PROFILE_ME;
+		const auto create_attacked_record = [=]{
+			PROFILE_ME;
 
-				const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
-				battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
-					attacking_account_uuid, attacking_object_type_id, attacking_coord,
-					-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
-			});
+			const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
+			battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
+				attacking_account_uuid, attacking_object_type_id, attacking_coord,
+				-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(create_attacked_record);
+	}
+
+	// 任务。
+	if(attacking_account_uuid && (soldiers_remaining == 0)){
+		const auto check_mission = [=]{
+			PROFILE_ME;
+
+			const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
+			if(!attacking_object){
+				LOG_EMPERY_CENTER_DEBUG("Attacking map object is gone: attacking_object_uuid = ", attacking_object_uuid);
+				return;
+			}
+			const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(attacking_account_uuid);
+
+			const auto task_box = TaskBoxMap::require(attacking_account_uuid);
+
+			auto task_type_id = TaskTypeIds::ID_WIPE_OUT_MONSTERS;
+			if(attacked_account_uuid){
+				task_type_id = TaskTypeIds::ID_WIPE_OUT_ENEMY_BATTALIONS;
+			}
+			auto castle_category = TaskBox::TCC_PRIMARY;
+			if(attacking_object->get_parent_object_uuid() != primary_castle_uuid){
+				castle_category = TaskBox::TCC_NON_PRIMARY;
+			}
+			task_box->check(task_type_id, attacked_object_type_id.get(), 1,
+				castle_category, 0, 0);
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(check_mission);
 	}
 
 	return Response();

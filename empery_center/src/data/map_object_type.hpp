@@ -27,6 +27,7 @@ namespace Data {
 
 	public:
 		double harvest_speed;
+		double resource_carriable;
 
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		boost::container::flat_map<ResourceId, std::uint64_t> enability_cost;
@@ -47,7 +48,7 @@ namespace Data {
 	public:
 		std::uint64_t return_range;
 
-		boost::container::flat_map<ItemId, std::uint64_t> reward;
+		boost::container::flat_map<std::string, std::uint64_t> reward_set;
 	};
 }
 

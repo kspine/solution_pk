@@ -6,6 +6,7 @@
 #include <poseidon/json.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
+#include "../map_utilities.hpp"
 #include "../../../empery_center/src/msg/ks_map.hpp"
 #include "../coord.hpp"
 #include "../map_cell.hpp"
@@ -348,6 +349,23 @@ void WorldMap::get_map_objects_by_account(std::vector<boost::shared_ptr<MapObjec
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->map_object);
+	}
+}
+
+void WorldMap::get_map_objects_surrounding(std::vector<boost::shared_ptr<MapObject>> &ret,Coord origin,std::uint64_t radius){
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
+		return;
+	}
+	std::vector<Coord> surrounding;
+	get_surrounding_coords(surrounding,origin,radius);
+	for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
+		const auto coord = *it;
+		const auto it_map_object = map_object_map->find<2>(coord);
+		if(it_map_object != map_object_map->end<2>()){
+			ret.emplace_back(it_map_object->map_object);
+		}
 	}
 }
 

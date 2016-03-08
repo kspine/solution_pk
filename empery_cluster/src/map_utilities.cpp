@@ -48,6 +48,7 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 	const auto terrain_data = Data::MapTerrain::require(terrain_id);
 	if(!terrain_data->passable){
 		LOG_EMPERY_CLUSTER_TRACE("Blocked by terrain: terrain_id = ", terrain_id);
+		LOG_EMPERY_CLUSTER_FATAL("XXXBlocked by terrain: terrain_id = ", terrain_id, "Coord = ", coord);
 		return Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
 	}
 	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
@@ -55,6 +56,7 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 		(map_y < border_thickness) || (map_y >= cluster_scope.height() - border_thickness))
 	{
 		LOG_EMPERY_CLUSTER_TRACE("Blocked by map border: coord = ", coord);
+		LOG_EMPERY_CLUSTER_FATAL("XXXBlocked by map border: coord = ",coord);
 		return Response(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<coord;
 	}
 
@@ -185,7 +187,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 					}
 					assert(!coord_queue.empty());
 					path.reserve(path.size() + coord_queue.size() - 1);
-					for(auto qit = coord_queue.begin(), qprev = qit++; qit != coord_queue.end(); qprev = qit++){
+					for(auto qit = coord_queue.begin(), qprev = qit; ++qit != coord_queue.end(); qprev = qit){
 						path.emplace_back(qit->x() - qprev->x(), qit->y() - qprev->y());
 					}
 					return true;

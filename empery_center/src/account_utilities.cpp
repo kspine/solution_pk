@@ -232,7 +232,7 @@ try {
 				LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", account_uuid, ", castle_category = ", (unsigned)castle_category,
 					", building_id = ", it->first, ", count = ", lvit->second, ", level = ", lvit->first);
 				task_box->check(TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL, it->first.get(), lvit->second,
-					castle_category, lvit->first, 0, 0);
+					castle_category, lvit->first, 0);
 			}
 		}
 	};
