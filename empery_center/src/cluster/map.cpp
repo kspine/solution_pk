@@ -36,6 +36,8 @@
 #include "../data/castle.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
+#include "../singletons/item_box_map.hpp"
+#include "../item_box.hpp"
 
 namespace EmperyCenter {
 
@@ -447,6 +449,59 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(create_attacked_record);
 	}
 
+	// 怪物掉落。
+	if(attacking_account_uuid && (soldiers_remaining == 0)){
+		const auto send_monster_reward = [=]{
+			PROFILE_ME;
+
+			const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
+			if(!monster_type_data){
+				return;
+			}
+
+			const auto item_box = ItemBoxMap::require(attacking_account_uuid);
+
+			const auto utc_now = Poseidon::get_utc_time();
+
+			std::vector<ItemTransactionElement> transaction;
+			transaction.reserve(16);
+			const auto push_monster_rewards = [&](const boost::container::flat_map<std::string, std::uint64_t> &monster_rewards,
+				ReasonId reason, std::int64_t param3)
+			{
+				for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
+					const auto &collection_name = rit->first;
+					const auto repeat_count = rit->second;
+					for(std::size_t i = 0; i < repeat_count; ++i){
+						const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
+						if(!reward_data){
+							LOG_EMPERY_CENTER_WARNING("Error getting random reward: attacked_object_type_id = ", attacked_object_type_id,
+								", collection_name = ", collection_name);
+							continue;
+						}
+						for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
+							const auto item_id = it->first;
+							const auto count = it->second;
+							transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+								reason, attacked_object_type_id.get(), static_cast<std::int64_t>(reward_data->unique_id), param3);
+						}
+					}
+				}
+			};
+
+			push_monster_rewards(monster_type_data->monster_rewards, ReasonIds::ID_MONSTER_REWARD, 0);
+
+			std::vector<boost::shared_ptr<const Data::MapObjectTypeMonsterRewardExtra>> extra_rewards;
+			Data::MapObjectTypeMonsterRewardExtra::get_available(extra_rewards, utc_now, attacked_object_type_id);
+			for(auto it = extra_rewards.begin(); it != extra_rewards.end(); ++it){
+				const auto &extra_reward_data = *it;
+				push_monster_rewards(extra_reward_data->monster_rewards, ReasonIds::ID_MONSTER_REWARD_EXTRA, 0);
+			}
+
+			item_box->commit_transaction(transaction, false);
+		};
+		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(send_monster_reward);
+	}
+
 	// 任务。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		const auto check_mission = [=]{
@@ -457,16 +512,17 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 				LOG_EMPERY_CENTER_DEBUG("Attacking map object is gone: attacking_object_uuid = ", attacking_object_uuid);
 				return;
 			}
-			const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(attacking_account_uuid);
 
 			const auto task_box = TaskBoxMap::require(attacking_account_uuid);
+
+			const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(attacking_account_uuid);
 
 			auto task_type_id = TaskTypeIds::ID_WIPE_OUT_MONSTERS;
 			if(attacked_account_uuid){
 				task_type_id = TaskTypeIds::ID_WIPE_OUT_ENEMY_BATTALIONS;
 			}
 			auto castle_category = TaskBox::TCC_PRIMARY;
-			if(attacking_object->get_parent_object_uuid() != primary_castle_uuid){
+			if((attacking_object_uuid != primary_castle_uuid) && (attacking_object->get_parent_object_uuid() != primary_castle_uuid)){
 				castle_category = TaskBox::TCC_NON_PRIMARY;
 			}
 			task_box->check(task_type_id, attacked_object_type_id.get(), 1,

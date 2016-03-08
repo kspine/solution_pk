@@ -19,7 +19,7 @@ namespace {
 
 	MULTI_INDEX_MAP(MonsterRewardMap, Data::MapObjectTypeMonsterReward,
 		UNIQUE_MEMBER_INDEX(unique_id)
-		MULTI_MEMBER_INDEX(name)
+		MULTI_MEMBER_INDEX(collection_name)
 	)
 	boost::weak_ptr<const MonsterRewardMap> g_monster_reward_map;
 	const char MONSTER_REWARD_FILE[] = "monster_reward";
@@ -124,10 +124,10 @@ namespace {
 			csv.get(object, "drop");
 			elem.monster_rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				auto name = std::string(it->first.get());
+				auto collection_name = std::string(it->first.get());
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.monster_rewards.emplace(std::move(name), count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: name = ", name);
+				if(!elem.monster_rewards.emplace(std::move(collection_name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: collection_name = ", collection_name);
 					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}
@@ -147,9 +147,9 @@ namespace {
 		while(csv.fetch_row()){
 			Data::MapObjectTypeMonsterReward elem = { };
 
-			csv.get(elem.unique_id,    "id");
-			csv.get(elem.name,         "name");
-			csv.get(elem.weight,       "probability");
+			csv.get(elem.unique_id,       "id");
+			csv.get(elem.collection_name, "collection_name");
+			csv.get(elem.weight,          "probability");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "item");
@@ -184,10 +184,10 @@ namespace {
 			csv.get(object, "drop");
 			elem.monster_rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				auto name = std::string(it->first.get());
+				auto collection_name = std::string(it->first.get());
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.monster_rewards.emplace(std::move(name), count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: name = ", name);
+				if(!elem.monster_rewards.emplace(std::move(collection_name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: collection_name = ", collection_name);
 					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}
@@ -325,7 +325,9 @@ namespace Data {
 		return ret;
 	}
 
-	void MapObjectTypeMonsterReward::get_by_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret, const std::string &name){
+	void MapObjectTypeMonsterReward::get_by_collection_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
+		const std::string &collection_name)
+	{
 		PROFILE_ME;
 
 		const auto monster_reward_map = g_monster_reward_map.lock();
@@ -334,13 +336,13 @@ namespace Data {
 			return;
 		}
 
-		const auto range = monster_reward_map->equal_range<1>(name);
+		const auto range = monster_reward_map->equal_range<1>(collection_name);
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 		for(auto it = range.first; it != range.second; ++it){
 			ret.emplace_back(monster_reward_map, &*it);
 		}
 	}
-	boost::shared_ptr<const MapObjectTypeMonsterReward> MapObjectTypeMonsterReward::random_by_name(const std::string &name){
+	boost::shared_ptr<const MapObjectTypeMonsterReward> MapObjectTypeMonsterReward::random_by_collection_name(const std::string &collection_name){
 		PROFILE_ME;
 
 		const auto monster_reward_map = g_monster_reward_map.lock();
@@ -349,28 +351,33 @@ namespace Data {
 			return { };
 		}
 
-		const auto range = monster_reward_map->equal_range<1>(name);
-		LOG_EMPERY_CENTER_DEBUG("Get a random monster reward: name = ", name, ", count = ", std::distance(range.first, range.second));
-		double weight_total = 0;
-		for(auto it = range.first; it != range.second; ++it){
-			weight_total += it->weight;
-		}
-		if(weight_total <= 0){
-			LOG_EMPERY_CENTER_DEBUG("Sum of weight is zero: name = ", name);
+		const auto range = monster_reward_map->equal_range<1>(collection_name);
+		const auto count = static_cast<std::size_t>(std::distance(range.first, range.second));
+		LOG_EMPERY_CENTER_DEBUG("Get a random monster reward: collection_name = ", collection_name, ", count = ", count);
+		if(count == 1){
+			const auto it = range.first;
+			LOG_EMPERY_CENTER_DEBUG("Fast generation: unique_id = ", it->unique_id);
+			return boost::shared_ptr<const MapObjectTypeMonsterReward>(monster_reward_map, &*it);
+		} else {
+			double weight_total = 0;
+			for(auto it = range.first; it != range.second; ++it){
+				weight_total += it->weight;
+			}
+			if(weight_total <= 0){
+				LOG_EMPERY_CENTER_DEBUG("> Sum of weight is zero: collection_name = ", collection_name);
+				return { };
+			}
+			auto random_weight = Poseidon::rand_double(0, weight_total);
+			LOG_EMPERY_CENTER_DEBUG("> Generated a random weight: random_weight = ", random_weight, ", weight_total = ", weight_total);
+			for(auto it = range.first; it != range.second; ++it){
+				random_weight -= it->weight;
+				if(random_weight <= 0){
+					LOG_EMPERY_CENTER_DEBUG("Picking monster reward: unique_id = ", it->unique_id);
+					return boost::shared_ptr<const MapObjectTypeMonsterReward>(monster_reward_map, &*it);
+				}
+			}
 			return { };
 		}
-		auto random_weight = Poseidon::rand_double(0, weight_total);
-		LOG_EMPERY_CENTER_DEBUG("Generated a random weight: random_weight = ", random_weight, ", weight_total = ", weight_total);
-		boost::shared_ptr<const MapObjectTypeMonsterReward> data;
-		for(auto it = range.first; it != range.second; ++it){
-			random_weight -= it->weight;
-			if(random_weight <= 0){
-				LOG_EMPERY_CENTER_DEBUG("Picking monster reward: unique_id = ", it->unique_id);
-				data = decltype(data)(monster_reward_map, &*it);
-				break;
-			}
-		}
-		return std::move(data);
 	}
 
 	boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> MapObjectTypeMonsterRewardExtra::get(std::uint64_t unique_id){
