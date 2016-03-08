@@ -1356,8 +1356,9 @@ PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
 		[&]{
 			const auto child_castle = boost::make_shared<Castle>(child_castle_uuid,
 				account->get_account_uuid(), castle->get_map_object_uuid(), std::move(req.name), coord, utc_now);
+			child_castle->check_init_buildings();
+			child_castle->check_init_resources();
 			child_castle->pump_status();
-			child_castle->recalculate_attributes();
 			WorldMap::insert_map_object(child_castle);
 			LOG_EMPERY_CENTER_INFO("Created castle: child_castle_uuid = ", child_castle_uuid,
 				", owner_uuid = ", account->get_account_uuid(), ", coord = ", coord);
