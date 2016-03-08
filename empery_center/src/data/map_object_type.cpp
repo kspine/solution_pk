@@ -148,7 +148,7 @@ namespace {
 			Data::MapObjectTypeMonsterReward elem = { };
 
 			csv.get(elem.unique_id,       "id");
-			csv.get(elem.collection_name, "collection_name");
+			csv.get(elem.collection_name, "name");
 			csv.get(elem.weight,          "probability");
 
 			Poseidon::JsonObject object;
