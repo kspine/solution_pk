@@ -395,7 +395,7 @@ void Castle::pump_production(){
 	const auto consumption_minutes = saturated_sub(utc_now, last_consumption_time) / 60000;
 	const auto consumption_duration = consumption_minutes * 60000;
 	if(consumption_minutes > 0){
-		LOG_EMPERY_CENTER_DEBUG("Checking population consumption: map_object_uuid = ", get_map_object_uuid(),
+		LOG_EMPERY_CENTER_TRACE("Checking population consumption: map_object_uuid = ", get_map_object_uuid(),
 			", consumption_minutes = ", consumption_minutes);
 		std::vector<ResourceTransactionElement> transaction;
 		transaction.reserve(resources_to_consume_per_minute.size());
@@ -440,7 +440,7 @@ void Castle::pump_production(){
 		if(capacity < 0){
 			capacity = 0;
 		}
-		LOG_EMPERY_CENTER_DEBUG("Checking population production: map_object_uuid = ", get_map_object_uuid(),
+		LOG_EMPERY_CENTER_TRACE("Checking population production: map_object_uuid = ", get_map_object_uuid(),
 			", production_rate = ", production_rate, ", capacity = ", capacity);
 
 		const auto old_last_production_time = m_population_production_stamps->get_production_time_end();
