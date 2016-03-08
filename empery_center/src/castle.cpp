@@ -470,7 +470,7 @@ void Castle::pump_production(){
 void Castle::check_init_buildings(){
 	PROFILE_ME;
 
-	LOG_EMPERY_CENTER_DEBUG("Checking for init buildings: map_object_uuid = ", get_map_object_uuid());
+	LOG_EMPERY_CENTER_TRACE("Checking for init buildings: map_object_uuid = ", get_map_object_uuid());
 	bool dirty = false;
 	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
 	Data::CastleBuildingBase::get_init(init_buildings);
@@ -1105,7 +1105,7 @@ void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_pt
 void Castle::check_init_resources(){
 	PROFILE_ME;
 
-	LOG_EMPERY_CENTER_DEBUG("Checking for init resources: map_object_uuid = ", get_map_object_uuid());
+	LOG_EMPERY_CENTER_TRACE("Checking for init resources: map_object_uuid = ", get_map_object_uuid());
 	std::vector<ResourceTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::CastleResource>> resource_data_all;
 	Data::CastleResource::get_all(resource_data_all);
