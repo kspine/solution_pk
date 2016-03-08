@@ -15,7 +15,7 @@ constexpr ReasonId
 	ID_UPGRADE_TECH                  ( 672003 ), // 科技 ID             等级                0
 	ID_CANCEL_UPGRADE_TECH           ( 672004 ), // 科技 ID             等级                0
 	ID_HARVEST_MAP_CELL              ( 672005 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
-//	ID_HARVEST_OVERLAY               ( 672006 ), // 世界坐标 X          世界坐标 Y          覆盖图 id
+//	ID_HARVEST_OVERLAY               ( 672006 ), // 世界坐标 X          世界坐标 Y          覆盖图 ID
 	ID_SPEED_UP_BUILDING_UPGRADE     ( 672007 ), // 建筑 ID             等级                0
 	ID_SPEED_UP_TECH_UPGRADE         ( 672008 ), // 科技 ID             等级                0
 	ID_UNPACK_INTO_CASTLE            ( 672009 ), // 城堡 UUID 高位      道具 ID             重复次数
@@ -48,6 +48,8 @@ constexpr ReasonId
 	ID_LEVEL_BONUS                   ( 673011 ), // 纳税账号 UUID 高位  税收等级            0
 	ID_INCOME_TAX                    ( 673012 ), // 纳税账号 UUID 高位  税收等级            0
 	ID_LEVEL_BONUS_EXTRA             ( 673013 ), // 纳税账号 UUID 高位  税收等级            0
+	ID_MONSTER_REWARD                ( 673014 ), // 怪物兵种 ID         配置表内的 ID       0
+	ID_MONSTER_REWARD_EXTRA          ( 673015 ), // 物兵种 ID           配置表内的 ID       0
 
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0

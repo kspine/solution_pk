@@ -9,9 +9,7 @@
 
 namespace EmperyCenter {
 
-class MapObject;
-
-extern std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shared_ptr<MapObject> &excluding_map_object);
+extern std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid excluding_map_object_uuid);
 
 }
 

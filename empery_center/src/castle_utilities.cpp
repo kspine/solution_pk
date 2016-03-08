@@ -13,7 +13,7 @@
 
 namespace EmperyCenter {
 
-std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shared_ptr<MapObject> &excluding_map_object){
+std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid excluding_map_object_uuid){
 	PROFILE_ME;
 
 	using Response = CbppResponse;
@@ -32,12 +32,6 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shar
 		const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
 		const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
 		if(!terrain_data->buildable){
-			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<foundation_coord;
-		}
-		const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
-		if((map_x < border_thickness) || (map_x >= cluster_scope.width() - border_thickness) ||
-			(map_y < border_thickness) || (map_y >= cluster_scope.height() - border_thickness))
-		{
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<foundation_coord;
 		}
 
@@ -63,7 +57,7 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, const boost::shar
 		WorldMap::get_map_objects_by_rectangle(other_map_objects, Rectangle(foundation_coord, 1, 1));
 		for(auto oit = other_map_objects.begin(); oit != other_map_objects.end(); ++oit){
 			const auto &other_object = *oit;
-			if(other_object == excluding_map_object){
+			if(other_object->get_map_object_uuid() == excluding_map_object_uuid){
 				continue;
 			}
 			if(!other_object->is_virtually_removed()){

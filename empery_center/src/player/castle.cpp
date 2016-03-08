@@ -17,14 +17,14 @@
 #include "../data/item.hpp"
 #include "../data/map_object_type.hpp"
 #include "../msg/err_item.hpp"
-#include "../map_utilities.hpp"
+#include "../castle_utilities.hpp"
 #include "../building_type_ids.hpp"
 #include "../account_attribute_ids.hpp"
 #include "../attribute_ids.hpp"
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
-#include "../castle_utilities.hpp"
+#include "../map_utilities.hpp"
 #include "../announcement.hpp"
 #include "../singletons/announcement_map.hpp"
 #include "../chat_message_type_ids.hpp"
@@ -1358,7 +1358,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
 				account->get_account_uuid(), castle->get_map_object_uuid(), std::move(req.name), coord, utc_now);
 			child_castle->pump_status();
 			child_castle->recalculate_attributes();
-			WorldMap::insert_map_object(castle);
+			WorldMap::insert_map_object(child_castle);
 			LOG_EMPERY_CENTER_INFO("Created castle: child_castle_uuid = ", child_castle_uuid,
 				", owner_uuid = ", account->get_account_uuid(), ", coord = ", coord);
 		});
