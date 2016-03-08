@@ -389,7 +389,9 @@ namespace {
 					if(!castle){
 						continue;
 					}
-					castle->recalculate_attributes();
+					castle->check_init_buildings();
+					castle->check_init_resources();
+					castle->pump_status();
 				}
 				LOG_EMPERY_CENTER_DEBUG("Done recalculating castle attributes.");
 			});
