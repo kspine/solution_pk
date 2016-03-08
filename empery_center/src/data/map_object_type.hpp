@@ -57,8 +57,8 @@ namespace Data {
 		static boost::shared_ptr<const MapObjectTypeMonsterReward> get(std::uint64_t unique_id);
 		static boost::shared_ptr<const MapObjectTypeMonsterReward> require(std::uint64_t unique_id);
 
-		static void get_by_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
-			const std::string &name);
+		static void get_by_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret, const std::string &name);
+		static boost::shared_ptr<const MapObjectTypeMonsterReward> random_by_name(const std::string &name);
 
 	public:
 		std::uint64_t unique_id;

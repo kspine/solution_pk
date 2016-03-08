@@ -325,9 +325,7 @@ namespace Data {
 		return ret;
 	}
 
-	void MapObjectTypeMonsterReward::get_by_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
-		const std::string &name)
-	{
+	void MapObjectTypeMonsterReward::get_by_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret, const std::string &name){
 		PROFILE_ME;
 
 		const auto monster_reward_map = g_monster_reward_map.lock();
@@ -341,6 +339,38 @@ namespace Data {
 		for(auto it = range.first; it != range.second; ++it){
 			ret.emplace_back(monster_reward_map, &*it);
 		}
+	}
+	boost::shared_ptr<const MapObjectTypeMonsterReward> MapObjectTypeMonsterReward::random_by_name(const std::string &name){
+		PROFILE_ME;
+
+		const auto monster_reward_map = g_monster_reward_map.lock();
+		if(!monster_reward_map){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterRewardMap has not been loaded.");
+			return { };
+		}
+
+		const auto range = monster_reward_map->equal_range<1>(name);
+		LOG_EMPERY_CENTER_DEBUG("Get a random monster reward: name = ", name, ", count = ", std::distance(range.first, range.second));
+		double weight_total = 0;
+		for(auto it = range.first; it != range.second; ++it){
+			weight_total += it->weight;
+		}
+		if(weight_total <= 0){
+			LOG_EMPERY_CENTER_DEBUG("Sum of weight is zero: name = ", name);
+			return { };
+		}
+		auto random_weight = Poseidon::rand_double(0, weight_total);
+		LOG_EMPERY_CENTER_DEBUG("Generated a random weight: random_weight = ", random_weight, ", weight_total = ", weight_total);
+		boost::shared_ptr<const MapObjectTypeMonsterReward> data;
+		for(auto it = range.first; it != range.second; ++it){
+			random_weight -= it->weight;
+			if(random_weight <= 0){
+				LOG_EMPERY_CENTER_DEBUG("Picking monster reward: unique_id = ", it->unique_id);
+				data = decltype(data)(monster_reward_map, &*it);
+				break;
+			}
+		}
+		return std::move(data);
 	}
 
 	boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> MapObjectTypeMonsterRewardExtra::get(std::uint64_t unique_id){
