@@ -49,7 +49,7 @@ namespace Data {
 	public:
 		std::uint64_t return_range;
 
-		boost::container::flat_map<std::string, std::uint64_t> monster_reward_set;
+		boost::container::flat_map<std::string, std::uint64_t> monster_rewards;
 	};
 
 	class MapObjectTypeMonsterReward {
@@ -72,17 +72,17 @@ namespace Data {
 		static boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> get(std::uint64_t unique_id);
 		static boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> require(std::uint64_t unique_id);
 
-		static void get_available(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
-			MapObjectTypeId monster_type_id, std::uint64_t utc_now);
+		static void get_available(std::vector<boost::shared_ptr<const MapObjectTypeMonsterRewardExtra>> &ret,
+			std::uint64_t utc_now, MapObjectTypeId monster_type_id);
 
 	public:
 		std::uint64_t unique_id;
-		boost::container::flat_map<std::string, std::uint64_t> monster_reward_set;
+		boost::container::flat_map<std::string, std::uint64_t> monster_rewards;
 		boost::container::flat_set<MapObjectTypeId> monster_type_ids;
 		std::uint64_t available_since;
 		std::uint64_t available_until;
-		std::uint64_t duration;
-		std::uint64_t period;
+		std::uint64_t available_period;
+		std::uint64_t available_duration;
 	};
 }
 

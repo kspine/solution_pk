@@ -9,13 +9,27 @@
 namespace EmperyCenter {
 
 namespace {
-	using MapObjectTypeBattalionMap = boost::container::flat_map<MapObjectTypeId, Data::MapObjectTypeBattalion>;
-	boost::weak_ptr<const MapObjectTypeBattalionMap> g_map_object_type_battalion_map;
-	const char MAP_OBJECT_TYPE_BATTALION_FILE[] = "Arm";
+	using BattalionMap = boost::container::flat_map<MapObjectTypeId, Data::MapObjectTypeBattalion>;
+	boost::weak_ptr<const BattalionMap> g_battalion_map;
+	const char BATTALION_FILE[] = "Arm";
 
-	using MapObjectTypeMonsterMap = boost::container::flat_map<MapObjectTypeId, Data::MapObjectTypeMonster>;
-	boost::weak_ptr<const MapObjectTypeMonsterMap> g_map_object_type_monster_map;
-	const char MAP_OBJECT_TYPE_MONSTER_FILE[] = "monster";
+	using MonsterMap = boost::container::flat_map<MapObjectTypeId, Data::MapObjectTypeMonster>;
+	boost::weak_ptr<const MonsterMap> g_monster_map;
+	const char MONSTER_FILE[] = "monster";
+
+	MULTI_INDEX_MAP(MonsterRewardMap, Data::MapObjectTypeMonsterReward,
+		UNIQUE_MEMBER_INDEX(unique_id)
+		MULTI_MEMBER_INDEX(name)
+	)
+	boost::weak_ptr<const MonsterRewardMap> g_monster_reward_map;
+	const char MONSTER_REWARD_FILE[] = "monster_reward";
+
+	MULTI_INDEX_MAP(MonsterRewardExtraMap, Data::MapObjectTypeMonsterRewardExtra,
+		UNIQUE_MEMBER_INDEX(unique_id)
+		MULTI_MEMBER_INDEX(available_since)
+	)
+	boost::weak_ptr<const MonsterRewardExtraMap> g_monster_reward_extra_map;
+	const char MONSTER_REWARD_EXTRA_FILE[] = "monster_activity";
 
 	template<typename ElementT>
 	void read_map_object_type_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
@@ -27,8 +41,8 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		auto csv = Data::sync_load_data(MAP_OBJECT_TYPE_BATTALION_FILE);
-		const auto map_object_type_battalion_map = boost::make_shared<MapObjectTypeBattalionMap>();
+		auto csv = Data::sync_load_data(BATTALION_FILE);
+		const auto battalion_map = boost::make_shared<BattalionMap>();
 		while(csv.fetch_row()){
 			Data::MapObjectTypeBattalion elem = { };
 
@@ -87,45 +101,125 @@ namespace {
 			csv.get(elem.production_time,    "levy_time");
 			csv.get(elem.factory_id,         "city_camp");
 
-			if(!map_object_type_battalion_map->emplace(elem.map_object_type_id, std::move(elem)).second){
+			if(!battalion_map->emplace(elem.map_object_type_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeBattalion: map_object_type_id = ", elem.map_object_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeBattalion"));
 			}
 		}
-		g_map_object_type_battalion_map = map_object_type_battalion_map;
-		handles.push(map_object_type_battalion_map);
-		auto servlet = DataSession::create_servlet(MAP_OBJECT_TYPE_BATTALION_FILE, Data::encode_csv_as_json(csv, "arm_id"));
+		g_battalion_map = battalion_map;
+		handles.push(battalion_map);
+		auto servlet = DataSession::create_servlet(BATTALION_FILE, Data::encode_csv_as_json(csv, "arm_id"));
 		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(MAP_OBJECT_TYPE_MONSTER_FILE);
-		const auto map_object_type_monster_map = boost::make_shared<MapObjectTypeMonsterMap>();
+		csv = Data::sync_load_data(MONSTER_FILE);
+		const auto monster_map = boost::make_shared<MonsterMap>();
 		while(csv.fetch_row()){
 			Data::MapObjectTypeMonster elem = { };
 
 			read_map_object_type_abstract(elem, csv);
 
 			csv.get(elem.return_range,       "return_range");
-/*
+
 			Poseidon::JsonObject object;
 			csv.get(object, "drop");
-			elem.monster_reward_set.reserve(object.size());
+			elem.monster_rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto name = std::string(it->first.get());
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.monster_reward_set.emplace(std::move(name), count).second){
+				if(!elem.monster_rewards.emplace(std::move(name), count).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: name = ", name);
 					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}
-*/
-			if(!map_object_type_monster_map->emplace(elem.map_object_type_id, std::move(elem)).second){
+
+			if(!monster_map->emplace(elem.map_object_type_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeMonster: map_object_type_id = ", elem.map_object_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeMonster"));
 			}
 		}
-		g_map_object_type_monster_map = map_object_type_monster_map;
-		handles.push(map_object_type_monster_map);
-		servlet = DataSession::create_servlet(MAP_OBJECT_TYPE_MONSTER_FILE, Data::encode_csv_as_json(csv, "arm_id"));
+		g_monster_map = monster_map;
+		handles.push(monster_map);
+		servlet = DataSession::create_servlet(MONSTER_FILE, Data::encode_csv_as_json(csv, "arm_id"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(MONSTER_REWARD_FILE);
+		const auto monster_reward_map = boost::make_shared<MonsterRewardMap>();
+		while(csv.fetch_row()){
+			Data::MapObjectTypeMonsterReward elem = { };
+
+			csv.get(elem.unique_id,    "id");
+			csv.get(elem.name,         "name");
+			csv.get(elem.weight,       "probability");
+
+			Poseidon::JsonObject object;
+			csv.get(object, "item");
+			elem.reward_items.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.reward_items.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward item: item_id = ", item_id);
+					DEBUG_THROW(Exception, sslit("Duplicate reward item"));
+				}
+			}
+
+			if(!monster_reward_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeMonsterReward: unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeMonsterReward"));
+			}
+		}
+		g_monster_reward_map = monster_reward_map;
+		handles.push(monster_reward_map);
+		servlet = DataSession::create_servlet(MONSTER_REWARD_FILE, Data::encode_csv_as_json(csv, "id"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(MONSTER_REWARD_EXTRA_FILE);
+		const auto monster_reward_extra_map = boost::make_shared<MonsterRewardExtraMap>();
+		while(csv.fetch_row()){
+			Data::MapObjectTypeMonsterRewardExtra elem = { };
+
+			csv.get(elem.unique_id,    "id");
+
+			Poseidon::JsonObject object;
+			csv.get(object, "drop");
+			elem.monster_rewards.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto name = std::string(it->first.get());
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.monster_rewards.emplace(std::move(name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: name = ", name);
+					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
+				}
+			}
+
+			Poseidon::JsonArray array;
+			csv.get(array, "monste_id");
+			elem.monster_type_ids.reserve(array.size());
+			for(auto it = array.begin(); it != array.end(); ++it){
+				const auto monster_type_id = MapObjectTypeId(it->get<double>());
+				if(!elem.monster_type_ids.insert(monster_type_id).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate monster: monster_type_id = ", monster_type_id);
+					DEBUG_THROW(Exception, sslit("Duplicate monster"));
+				}
+			}
+
+			std::string str;
+			csv.get(str, "start_time");
+			elem.available_since = Poseidon::scan_time(str.c_str());
+			csv.get(str, "end_time");
+			elem.available_until = Poseidon::scan_time(str.c_str());
+
+			csv.get(elem.available_period,   "refresh_time");
+			csv.get(elem.available_duration, "continued_time");
+
+			if(!monster_reward_extra_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeMonsterRewardExtra: unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeMonsterRewardExtra"));
+			}
+		}
+		g_monster_reward_extra_map = monster_reward_extra_map;
+		handles.push(monster_reward_extra_map);
+		servlet = DataSession::create_servlet(MONSTER_REWARD_EXTRA_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -156,18 +250,18 @@ namespace Data {
 	boost::shared_ptr<const MapObjectTypeBattalion> MapObjectTypeBattalion::get(MapObjectTypeId map_object_type_id){
 		PROFILE_ME;
 
-		const auto map_object_type_battalion_map = g_map_object_type_battalion_map.lock();
-		if(!map_object_type_battalion_map){
+		const auto battalion_map = g_battalion_map.lock();
+		if(!battalion_map){
 			LOG_EMPERY_CENTER_WARNING("MapObjectTypeBattalionMap has not been loaded.");
 			return { };
 		}
 
-		const auto it = map_object_type_battalion_map->find(map_object_type_id);
-		if(it == map_object_type_battalion_map->end()){
+		const auto it = battalion_map->find(map_object_type_id);
+		if(it == battalion_map->end()){
 			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeBattalion not found: map_object_type_id = ", map_object_type_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapObjectTypeBattalion>(map_object_type_battalion_map, &(it->second));
+		return boost::shared_ptr<const MapObjectTypeBattalion>(battalion_map, &(it->second));
 	}
 	boost::shared_ptr<const MapObjectTypeBattalion> MapObjectTypeBattalion::require(MapObjectTypeId map_object_type_id){
 		PROFILE_ME;
@@ -182,18 +276,18 @@ namespace Data {
 	boost::shared_ptr<const MapObjectTypeMonster> MapObjectTypeMonster::get(MapObjectTypeId map_object_type_id){
 		PROFILE_ME;
 
-		const auto map_object_type_monster_map = g_map_object_type_monster_map.lock();
-		if(!map_object_type_monster_map){
+		const auto monster_map = g_monster_map.lock();
+		if(!monster_map){
 			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterMap has not been loaded.");
 			return { };
 		}
 
-		const auto it = map_object_type_monster_map->find(map_object_type_id);
-		if(it == map_object_type_monster_map->end()){
+		const auto it = monster_map->find(map_object_type_id);
+		if(it == monster_map->end()){
 			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeMonster not found: map_object_type_id = ", map_object_type_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapObjectTypeMonster>(map_object_type_monster_map, &(it->second));
+		return boost::shared_ptr<const MapObjectTypeMonster>(monster_map, &(it->second));
 	}
 	boost::shared_ptr<const MapObjectTypeMonster> MapObjectTypeMonster::require(MapObjectTypeId map_object_type_id){
 		PROFILE_ME;
@@ -203,6 +297,110 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("MapObjectTypeMonster not found"));
 		}
 		return ret;
+	}
+
+	boost::shared_ptr<const MapObjectTypeMonsterReward> MapObjectTypeMonsterReward::get(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		const auto monster_reward_map = g_monster_reward_map.lock();
+		if(!monster_reward_map){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterRewardMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = monster_reward_map->find<0>(unique_id);
+		if(it == monster_reward_map->end<0>()){
+			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeMonsterReward not found: unique_id = ", unique_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapObjectTypeMonsterReward>(monster_reward_map, &*it);
+	}
+	boost::shared_ptr<const MapObjectTypeMonsterReward> MapObjectTypeMonsterReward::require(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		auto ret = get(unique_id);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("MapObjectTypeMonsterReward not found"));
+		}
+		return ret;
+	}
+
+	void MapObjectTypeMonsterReward::get_by_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
+		const std::string &name)
+	{
+		PROFILE_ME;
+
+		const auto monster_reward_map = g_monster_reward_map.lock();
+		if(!monster_reward_map){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterRewardMap has not been loaded.");
+			return;
+		}
+
+		const auto range = monster_reward_map->equal_range<1>(name);
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			ret.emplace_back(monster_reward_map, &*it);
+		}
+	}
+
+	boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> MapObjectTypeMonsterRewardExtra::get(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		const auto monster_reward_extra_map = g_monster_reward_extra_map.lock();
+		if(!monster_reward_extra_map){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterRewardExtraMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = monster_reward_extra_map->find<0>(unique_id);
+		if(it == monster_reward_extra_map->end<0>()){
+			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeMonsterRewardExtra not found: unique_id = ", unique_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapObjectTypeMonsterRewardExtra>(monster_reward_extra_map, &*it);
+	}
+	boost::shared_ptr<const MapObjectTypeMonsterRewardExtra> MapObjectTypeMonsterRewardExtra::require(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		auto ret = get(unique_id);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("MapObjectTypeMonsterRewardExtra not found"));
+		}
+		return ret;
+	}
+
+	void MapObjectTypeMonsterRewardExtra::get_available(std::vector<boost::shared_ptr<const MapObjectTypeMonsterRewardExtra>> &ret,
+		std::uint64_t utc_now, MapObjectTypeId monster_type_id)
+	{
+		PROFILE_ME;
+
+		const auto monster_reward_extra_map = g_monster_reward_extra_map.lock();
+		if(!monster_reward_extra_map){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterRewardExtraMap has not been loaded.");
+			return;
+		}
+
+		const auto range = std::make_pair(monster_reward_extra_map->begin<1>(), monster_reward_extra_map->upper_bound<1>(utc_now));
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			if(utc_now >= it->available_until){
+				continue;
+			}
+			if(it->available_period != 0){
+				const auto period   = checked_mul<std::uint64_t>(it->available_period,   60000);
+				const auto duration = checked_mul<std::uint64_t>(it->available_duration, 60000);
+
+				const auto begin_offset = it->available_since % period;
+				const auto delta_from_offset = saturated_sub(utc_now, begin_offset) % period;
+				if(delta_from_offset >= duration){
+					continue;
+				}
+			}
+			if(it->monster_type_ids.find(monster_type_id) == it->monster_type_ids.end()){
+				continue;
+			}
+			ret.emplace_back(monster_reward_extra_map, &*it);
+		}
 	}
 }
 
