@@ -413,18 +413,16 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	ENQUEU_JOB_SWALLOWING_EXCEPTIONS(notify_clients);
 
 	// 更新交战状态。
-	if(attacking_account_uuid && attacked_account_uuid){
-		const auto update_war_status = [=]{
-			PROFILE_ME;
+	const auto update_war_status = [=]{
+		PROFILE_ME;
 
-			const auto state_persistence_duration = Data::Global::as_double(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
-			const auto utc_now = Poseidon::get_utc_time();
+		const auto state_persistence_duration = Data::Global::as_double(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
+		const auto utc_now = Poseidon::get_utc_time();
 
-			WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
-				saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
-		};
-		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(update_war_status);
-	}
+		WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
+			saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
+	};
+	ENQUEU_JOB_SWALLOWING_EXCEPTIONS(update_war_status);
 
 	// 战报。
 	if(attacking_account_uuid){

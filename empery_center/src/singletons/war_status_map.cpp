@@ -163,36 +163,41 @@ void WarStatusMap::set(AccountUuid first_account_uuid, AccountUuid second_accoun
 		greater_account_uuid = first_account_uuid;
 	}
 
+	auto elem = WarStatusElement(less_account_uuid, greater_account_uuid, expiry_time);
 	auto it = war_status_map->find<0>(std::make_pair(less_account_uuid, greater_account_uuid));
 	if(it == war_status_map->end<0>()){
-		it = war_status_map->insert<0>(WarStatusElement(less_account_uuid, greater_account_uuid, expiry_time)).first;
+		it = war_status_map->insert<0>(std::move(elem)).first;
 	} else {
-		war_status_map->replace<0>(it, WarStatusElement(less_account_uuid, greater_account_uuid, expiry_time));
+		war_status_map->replace<0>(it, std::move(elem));
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto less_session = PlayerSessionMap::get(less_account_uuid);
-	if(less_session){
-		try {
-			Msg::SC_AccountWarStatus msg;
-			fill_status_msg(msg, *it, utc_now, less_account_uuid);
-			less_session->send(msg);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			less_session->shutdown(e.what());
+	if(less_account_uuid){
+		const auto session = PlayerSessionMap::get(less_account_uuid);
+		if(session){
+			try {
+				Msg::SC_AccountWarStatus msg;
+				fill_status_msg(msg, *it, utc_now, less_account_uuid);
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
 		}
 	}
 
-	const auto greater_session = PlayerSessionMap::get(greater_account_uuid);
-	if(greater_session){
-		try {
-			Msg::SC_AccountWarStatus msg;
-			fill_status_msg(msg, *it, utc_now, greater_account_uuid);
-			greater_session->send(msg);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			greater_session->shutdown(e.what());
+	if(greater_account_uuid){
+		const auto session = PlayerSessionMap::get(greater_account_uuid);
+		if(session){
+			try {
+				Msg::SC_AccountWarStatus msg;
+				fill_status_msg(msg, *it, utc_now, greater_account_uuid);
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
 		}
 	}
 }

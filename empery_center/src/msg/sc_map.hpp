@@ -61,8 +61,8 @@ namespace Msg {
 #define MESSAGE_ID      396
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (object_uuid)	\
-	FIELD_VUINT         (reason)	\
-	FIELD_STRING        (param)
+	FIELD_VUINT         (object_type_id)	\
+	FIELD_VUINT         (reserved)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapCellRemoved
