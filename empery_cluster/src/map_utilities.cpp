@@ -120,44 +120,18 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 
 	boost::container::flat_map<Coord, AStarCoordElement> astar_coords;
 	astar_coords.reserve(distance_limit * distance_limit * 4);
-
-	const auto populate_coord = [&](Coord coord, bool closed_hint,
-		std::uint64_t distance_from_hint, Coord parent_coord_hint) -> AStarCoordElement &
-	{
-		auto it = astar_coords.find(coord);
-		if(it == astar_coords.end()){
-			AStarCoordElement elem = { };
-			elem.coord = coord;
-			if(closed_hint){
-				elem.closed = true;
-			} else {
-				const auto result = get_move_result(coord, account_uuid, true);
-				elem.closed = (result.first != Msg::ST_OK) && (result.first != Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY);
-			}
-			elem.distance_from = distance_from_hint;
-			elem.parent_coord = parent_coord_hint;
-			elem.distance_to_hint = get_distance_of_coords(coord, to_coord);
-			it = astar_coords.emplace(coord, elem).first;
-		} else {
-			auto &elem = it->second;
-			if(closed_hint){
-				elem.closed = true;
-			}
-			if(elem.distance_from > distance_from_hint){
-				elem.distance_from = distance_from_hint;
-				elem.parent_coord = parent_coord_hint;
-			}
-		}
-		return it->second;
-	};
-
-	std::vector<Coord> surrounding;
-
 	std::vector<AStarCoordElement> coords_open;
 	coords_open.reserve(distance_limit * 2);
-	const auto &init_elem = populate_coord(from_coord, true /* 实际上不会影响功能 */, 0, from_coord);
+
+	AStarCoordElement init_elem = { };
+	init_elem.coord            = from_coord;
+	init_elem.closed           = false;
+	init_elem.distance_from    = 0;
+	init_elem.distance_to_hint = UINT64_MAX;
+	astar_coords.emplace(from_coord, init_elem);
 	coords_open.emplace_back(init_elem);
 
+	std::vector<Coord> surrounding;
 	for(;;){
 		// 获得距离总和最小的一点，然后把它从队列中删除。注意维护优先级。
 		const auto elem_popped = coords_open.front();
@@ -172,8 +146,29 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 			get_surrounding_coords(surrounding, elem_popped.coord, 1);
 			for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
 				const auto coord = *it;
+
+				auto cit = astar_coords.find(coord);
+				if(cit == astar_coords.end()){
+					AStarCoordElement elem = { };
+					elem.coord            = coord;
+					const auto result = get_move_result(coord, account_uuid, true);
+					elem.closed           = (result.first != Msg::ST_OK) && (result.first != Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY);
+					elem.distance_from    = UINT64_MAX;
+					elem.distance_to_hint = get_distance_of_coords(coord, to_coord);
+					cit = astar_coords.emplace(coord, elem).first;
+				}
+				auto &new_elem = cit->second;
+				if(new_elem.closed){
+					continue;
+				}
+
 				const auto new_distance_from = elem_popped.distance_from + 1;
-				const auto &new_elem = populate_coord(coord, false, new_distance_from, elem_popped.coord);
+				if(new_elem.distance_from <= new_distance_from){
+					continue;
+				}
+				new_elem.distance_from = new_distance_from;
+				new_elem.parent_coord = elem_popped.coord;
+
 				if(new_elem.distance_to_hint <= distance_close_enough){
 					// 寻路成功。
 					std::deque<Coord> coord_queue;
@@ -192,7 +187,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 					}
 					return true;
 				}
-				if((new_distance_from < distance_limit) && !new_elem.closed){
+				if(new_distance_from < distance_limit){
 					coords_open.emplace_back(new_elem);
 					std::push_heap(coords_open.begin(), coords_open.end(), &compare_astar_coords_by_distance_hint);
 				}
