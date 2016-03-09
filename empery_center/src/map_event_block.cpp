@@ -198,7 +198,7 @@ void MapEventBlock::refresh_events(bool first_time){
 	}
 	for(auto it = events_to_remove.begin(); it != events_to_remove.end(); ++it){
 		const auto coord = *it;
-		LOG_EMPERY_CENTER_DEBUG("Removing expired map event: coord = ", coord);
+		LOG_EMPERY_CENTER_TRACE("Removing expired map event: coord = ", coord);
 		remove(coord);
 	}
 
