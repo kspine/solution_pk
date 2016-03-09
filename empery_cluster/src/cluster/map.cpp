@@ -72,7 +72,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 CLUSTER_SERVLET(Msg::SK_MapRemoveMapObject, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 
-	LOG_EMPERY_CLUSTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid);
+	LOG_EMPERY_CLUSTER_TRACE("Removing map object: map_object_uuid = ", map_object_uuid);
 	WorldMap::remove_map_object_no_synchronize(cluster, map_object_uuid);
 
 	return Response();
