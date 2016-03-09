@@ -34,6 +34,7 @@ public:
 		ACT_HARVEST_OVERLAY            = 3,
 		ACT_ENTER_CASTLE               = 4,
 		ACT_HARVEST_STRATEGIC_RESOURCE = 5,
+		ACT_MONTER_REGRESS             = 6,
 	};
 
 	enum Attackimpact {
@@ -72,7 +73,6 @@ private:
 	// 移动完毕后动作。
 	Action m_action = ACT_GUARD;
 	std::string m_action_param;
-
 	boost::shared_ptr<AiControl> m_ai_control;
 
 public:
@@ -103,6 +103,9 @@ private:
 	bool          get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object);
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
 	void          lost_target();
+	void          monster_regress();
+	bool          is_monster();
+	bool          attacked_able();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
@@ -126,10 +129,6 @@ public:
 	Coord get_coord() const;
 	void set_coord(Coord coord);
 
-	std::uint64_t get_attack();
-
-	std::uint64_t get_defense();
-
 	std::int64_t get_attribute(AttributeId map_object_attr_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers);
@@ -137,7 +136,7 @@ public:
 	bool is_moving() const {
 		return !m_waypoints.empty();
 	}
-	
+
 	bool is_idle() const {
 		return (m_action == ACT_GUARD)&&(m_waypoints.empty());
 	}

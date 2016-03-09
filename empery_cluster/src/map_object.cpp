@@ -95,7 +95,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	}
 
 	const auto parent_map_object = WorldMap::get_map_object(parent_object_uuid);
-	if(!parent_map_object && (MapObjectCategoryIds::ID_MONSTER != map_object_type_data->category_id)){
+	if(!parent_map_object && !is_monster()){
 		result = Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) << parent_object_uuid;
 		return UINT64_MAX;
 	}
@@ -180,6 +180,9 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 	}
+	ON_ACTION(ACT_MONTER_REGRESS){
+		return UINT64_MAX;
+	}
 	ON_ACTION(ACT_HARVEST_STRATEGIC_RESOURCE){
 		const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
 		const auto cluster = get_cluster();
@@ -258,15 +261,6 @@ void MapObject::set_coord(Coord coord){
 	m_coord = coord;
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-}
-
-
-std::uint64_t MapObject::get_attack(){
-	return 0;
-}
-
-std::uint64_t MapObject::get_defense(){
-	return 0;
 }
 
 std::int64_t MapObject::get_attribute(AttributeId map_object_attr_id) const {
@@ -534,6 +528,9 @@ std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
 		attacker->attack_new_target(enemy_map_object);
 	}else{
 		attacker->lost_target();
+		if(attacker->is_monster()){
+			attacker->monster_regress();
+		}
 	}
 	WorldMap::remove_map_object(get_map_object_uuid());
 	return UINT64_MAX;
@@ -550,13 +547,11 @@ bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 		return false;
 	}
 	const auto shoot_range = map_object_type_data->shoot_range;
-	
 	const auto target_object = WorldMap::get_map_object(target_object_uuid);
 	if(!target_object){
 		return false;
 	}
 	const auto coord    = get_coord();
-	
 	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
 	//攻击范围之内的军队
 	if(distance <= shoot_range){
@@ -569,12 +564,10 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 	if(!target_object){
 		return false;
 	}
-	
 	const auto view_range = get_view_range();
 
 	const auto target_view_range = target_object->get_view_range();
 	const auto troops_view_range = view_range > target_view_range ? view_range:target_view_range;
-	
 	const auto coord    = get_coord();
 	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
 
@@ -657,6 +650,9 @@ bool    MapObject::fix_attack_action(){
 	if(!target_object){
 		return false;
 	}
+	if(!target_object->attacked_able()){
+		return false;
+	}
 
 	if(!in_attack_scope&&m_waypoints.empty()){
 		if(find_way_points(m_waypoints,get_coord(),target_object->get_coord())){
@@ -684,9 +680,11 @@ bool    MapObject::find_way_points(std::deque<Waypoint> &waypoints,Coord from_co
 	}
 	std::uint64_t delay = 1000/speed;
 	std::vector<std::pair<signed char, signed char>> path;
-	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 100, map_object_type_data->shoot_range)){
+	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, map_object_type_data->shoot_range)){
+		LOG_EMPERY_CLUSTER_FATAL("find the path from: ", from_coord ,"to_coord: ", target_coord );
 		for(auto it = path.begin(); it != path.end(); ++it){
 			waypoints.emplace_back(delay, it->first, it->second);
+			LOG_EMPERY_CLUSTER_FATAL("the path dx:", it->first ," dy: ", it->second);
 		}
 		return true;
 	}
@@ -718,6 +716,8 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 		}else{
 			if(find_way_points(m_waypoints,get_coord(),enemy_map_object->get_coord())){
 				set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
+			}else{
+				lost_target();
 			}
 		}
 }
@@ -727,6 +727,28 @@ void   MapObject::lost_target(){
 	m_action = ACT_GUARD;
 	m_action_param.clear();
 }
+
+void   MapObject::monster_regress(){
+	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
+	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+	if(find_way_points(m_waypoints,get_coord(),Coord(birth_x,birth_y))){
+		set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
+	}
+}
+
+bool  MapObject::is_monster(){
+	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	if(!map_object_type_data){
+		return false;
+	}
+	return MapObjectCategoryIds::ID_MONSTER == map_object_type_data->category_id;
+}
+
+bool  MapObject::attacked_able(){
+	return !( is_monster() && (m_action == ACT_MONTER_REGRESS));
+}
+
+
 
 
 }
