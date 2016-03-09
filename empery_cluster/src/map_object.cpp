@@ -716,6 +716,8 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 		}else{
 			if(find_way_points(m_waypoints,get_coord(),enemy_map_object->get_coord())){
 				set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
+			}else{
+				lost_target();
 			}
 		}
 }
@@ -727,8 +729,8 @@ void   MapObject::lost_target(){
 }
 
 void   MapObject::monster_regress(){
-	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_BIRTH_X);
-	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_BIRTH_Y);
+	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
+	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
 	if(find_way_points(m_waypoints,get_coord(),Coord(birth_x,birth_y))){
 		set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
 	}
