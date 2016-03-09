@@ -20,7 +20,9 @@ constexpr AttributeId
 	ID_PRAIRIE_DEVELOPMENT          ( 2500010 ),
 	ID_SOLDIER_COUNT                ( 2500011 ),
 	ID_SOLDIER_COUNT_MAX            ( 2500077 ),
-	ID_COMBAT_VALUE                 ( 2500103 );
+	ID_COMBAT_VALUE                 ( 2500103 ),
+	ID_MONSTER_START_POINT_X        ( 2500104 ),
+	ID_MONSTER_START_POINT_Y        ( 2500105 );
 
 }
 

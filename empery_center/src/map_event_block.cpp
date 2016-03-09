@@ -54,8 +54,10 @@ namespace {
 
 			boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 			modifiers.reserve(8);
-			modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(monster_data->max_soldier_count);
-			modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(monster_data->max_soldier_count);
+			modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(monster_data->max_soldier_count);
+			modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(monster_data->max_soldier_count);
+			modifiers[AttributeIds::ID_MONSTER_START_POINT_X] = coord.x();
+			modifiers[AttributeIds::ID_MONSTER_START_POINT_Y] = coord.y();
 
 			const auto monster = boost::make_shared<MapObject>(monster_uuid, event_monster_data->monster_type_id,
 				AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
