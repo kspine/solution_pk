@@ -710,10 +710,8 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 
 	std::vector<std::pair<signed char, signed char>> path;
 	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, map_object_type_data->shoot_range)){
-		LOG_EMPERY_CLUSTER_FATAL("find the path from: ", from_coord ,"to_coord: ", target_coord );
 		for(auto it = path.begin(); it != path.end(); ++it){
 			waypoints.emplace_back(it->first, it->second);
-			LOG_EMPERY_CLUSTER_FATAL("the path dx:", it->first ," dy: ", it->second);
 		}
 		return true;
 	}
