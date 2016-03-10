@@ -11,6 +11,7 @@ namespace Data {
 	public:
 		enum Slot {
 			SLOT_MAP_BORDER_THICKNESS                               = 100025,
+			SLOT_MAP_MONSTER_ACTIVE_SCOPE                           = 100050,
 		};
 
 	public:

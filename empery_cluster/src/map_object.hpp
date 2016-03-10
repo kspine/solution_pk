@@ -35,6 +35,7 @@ public:
 		ACT_ENTER_CASTLE               = 4,
 		ACT_HARVEST_STRATEGIC_RESOURCE = 5,
 		ACT_MONTER_REGRESS             = 6,
+		ACT_STAND_BY                   = 7,
 	};
 
 	enum Attackimpact {

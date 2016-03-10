@@ -38,6 +38,7 @@ AiControl::AiControl(boost::weak_ptr<MapObject> parent)
 }
 
 std::uint64_t AiControl::attack(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return UINT64_MAX;
@@ -46,6 +47,7 @@ std::uint64_t AiControl::attack(std::pair<long, std::string> &result, std::uint6
 }
 
 void          AiControl::troops_attack(bool passive){
+	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return;
@@ -55,6 +57,7 @@ void          AiControl::troops_attack(bool passive){
 }
 
 std::uint64_t AiControl::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage){
+	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return UINT64_MAX;
@@ -63,6 +66,7 @@ std::uint64_t AiControl::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 }
 
 std::uint64_t AiControl::on_die(boost::shared_ptr<MapObject> attacker){
+	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return UINT64_MAX;
@@ -183,6 +187,10 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	ON_ACTION(ACT_MONTER_REGRESS){
 		return UINT64_MAX;
 	}
+	ON_ACTION(ACT_STAND_BY){
+		const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+		return stand_by_interval;
+	}
 	ON_ACTION(ACT_HARVEST_STRATEGIC_RESOURCE){
 		const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
 		const auto cluster = get_cluster();
@@ -213,6 +221,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 }
 
 std::uint64_t MapObject::move(std::pair<long, std::string> &result){
+	PROFILE_ME;
 	// const auto map_object_uuid = get_map_object_uuid();
 	const auto owner_uuid      = get_owner_uuid();
 	const auto coord           = get_coord();
@@ -220,6 +229,18 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	const auto waypoint  = m_waypoints.front();
 	const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
 	const auto delay     = waypoint.delay;
+
+	if(is_monster()){
+		const unsigned monster_active_scope = Data::Global::as_unsigned(Data::Global::SLOT_MAP_MONSTER_ACTIVE_SCOPE);
+		auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
+		auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+		const auto distance = get_distance_of_coords(new_coord, Coord(birth_x,birth_y));
+		if(distance >= monster_active_scope){
+			lost_target();
+			monster_regress();
+			return delay;
+		}
+	}
 
 	const auto new_cluster = WorldMap::get_cluster(new_coord);
 	if(!new_cluster){
@@ -400,6 +421,8 @@ void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, Map
 }
 
 boost::shared_ptr<AiControl>  MapObject::require_ai_control(){
+	PROFILE_ME;
+
 	if(!m_ai_control){
 		m_ai_control = boost::make_shared<AiControl>(virtual_weak_from_this<MapObject>());
 	}
@@ -407,6 +430,8 @@ boost::shared_ptr<AiControl>  MapObject::require_ai_control(){
 }
 
 std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
 	const auto target_object_uuid = MapObjectUuid(m_action_param);
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
@@ -451,7 +476,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->category_id,emempy_type_data->category_id);
 	//计算闪避，闪避成功，
 	bDodge = Poseidon::rand32()%100 < doge_rate*100;
-	
+
 	if(bDodge){
 		result_type = IMPACT_MISS;
 	}else{
@@ -496,7 +521,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	msg.soldiers_remaining = (std::uint64_t)new_ememy_solider_count;
 	cluster->send(msg);
 
-	
+
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<MapObject>(),damage);
@@ -507,6 +532,8 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 }
 
 std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
+	PROFILE_ME;
+
 	if(!attacker){
 		return UINT64_MAX;
 	}
@@ -519,6 +546,8 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 }
 
 std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
+	PROFILE_ME;
+
 	if(!attacker){
 		return UINT64_MAX;
 	}
@@ -537,11 +566,15 @@ std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
 }
 
 bool MapObject::is_die(){
+	PROFILE_ME;
+
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	return (soldier_count > 0 ) ? false:true;
 }
 
 bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
+	PROFILE_ME;
+
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
 		return false;
@@ -561,6 +594,8 @@ bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 }
 
 bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object){
+	PROFILE_ME;
+
 	if(!target_object){
 		return false;
 	}
@@ -578,6 +613,8 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 }
 
 std::uint64_t MapObject::get_view_range(){
+	PROFILE_ME;
+
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
 		return 0;
@@ -586,6 +623,7 @@ std::uint64_t MapObject::get_view_range(){
 }
 
 void MapObject::troops_attack(bool passive){
+	PROFILE_ME;
 
 	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
 	WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
@@ -611,6 +649,8 @@ void MapObject::troops_attack(bool passive){
 }
 
 void   MapObject::notify_way_points(std::deque<Waypoint> &waypoints,MapObject::Action &action, std::string &action_param){
+	PROFILE_ME;
+
 	const auto cluster = get_cluster();
 	if(cluster){
 		try {
@@ -635,6 +675,8 @@ void   MapObject::notify_way_points(std::deque<Waypoint> &waypoints,MapObject::A
 }
 
 bool    MapObject::fix_attack_action(){
+	PROFILE_ME;
+
 	if(m_action != ACT_ATTACK){
 		return true;
 	}
@@ -665,6 +707,8 @@ bool    MapObject::fix_attack_action(){
 }
 
 bool    MapObject::find_way_points(std::deque<Waypoint> &waypoints,Coord from_coord,Coord target_coord){
+	PROFILE_ME;
+
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
 		return false;
@@ -692,6 +736,8 @@ bool    MapObject::find_way_points(std::deque<Waypoint> &waypoints,Coord from_co
 }
 
 bool    MapObject::get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object){
+	PROFILE_ME;
+
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_surrounding(map_objects,get_coord(),get_view_range());
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
@@ -709,34 +755,53 @@ bool    MapObject::get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,b
 }
 
 void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object){
+	PROFILE_ME;
+
 	if(!enemy_map_object)
 		return;
 	if(is_in_attack_scope(enemy_map_object->get_map_object_uuid())){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
-			if(find_way_points(m_waypoints,get_coord(),enemy_map_object->get_coord())){
-				set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
+			std::deque<Waypoint> waypoints;
+			if(find_way_points(waypoints,get_coord(),enemy_map_object->get_coord())){
+				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 			}else{
-				lost_target();
+				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
 			}
 		}
 }
 
 void   MapObject::lost_target(){
+	PROFILE_ME;
+
 	m_waypoints.clear();
 	m_action = ACT_GUARD;
 	m_action_param.clear();
+	notify_way_points(m_waypoints,m_action,m_action_param);
 }
 
 void   MapObject::monster_regress(){
+	PROFILE_ME;
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers.reserve(1);
+	auto max_solider = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT_MAX);
+	modifiers[EmperyCenter::AttributeIds::ID_SOLDIER_COUNT]  = max_solider;
+	set_attributes(std::move(modifiers));
+
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
-	if(find_way_points(m_waypoints,get_coord(),Coord(birth_x,birth_y))){
-		set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
+	std::deque<Waypoint> waypoints;
+	if(find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y))){
+		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
+	}else{
+		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
 	}
 }
 
 bool  MapObject::is_monster(){
+	PROFILE_ME;
+
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
 		return false;
@@ -745,6 +810,8 @@ bool  MapObject::is_monster(){
 }
 
 bool  MapObject::attacked_able(){
+	PROFILE_ME;
+
 	return !( is_monster() && (m_action == ACT_MONTER_REGRESS));
 }
 
