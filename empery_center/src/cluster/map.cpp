@@ -163,7 +163,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
-	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
 	const auto resource_carried = map_object->get_resource_amount_carried();
 	if(resource_carried >= resource_capacity){
@@ -333,7 +333,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
-	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
 	const auto resource_carried = map_object->get_resource_amount_carried();
 	if(resource_carried >= resource_capacity){
