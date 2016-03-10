@@ -288,7 +288,7 @@ void MapEventBlock::refresh_events(bool first_time){
 	std::vector<GenerationDataPtr> generation_data_all;
 	Data::MapEventGeneration::get_by_map_event_circle_id(generation_data_all, map_event_circle_id);
 	std::sort(generation_data_all.begin(), generation_data_all.end(),
-		[](const GenerationDataPtr &lhs, const GenerationDataPtr &rhs){ return lhs->priority > rhs->priority; });
+		[](const GenerationDataPtr &lhs, const GenerationDataPtr &rhs){ return lhs->priority < rhs->priority; });
 	for(auto gdit = generation_data_all.begin(); gdit != generation_data_all.end(); ++gdit){
 		const auto generation_data = *gdit;
 		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier);
