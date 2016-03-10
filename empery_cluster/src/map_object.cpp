@@ -789,7 +789,7 @@ bool  MapObject::is_monster(){
 	if(!map_object_type_data){
 		return false;
 	}
-	return MapObjectCategoryIds::ID_MONSTER == map_object_type_data->category_id; // FIXME 这什么鬼。
+	return MapObjectWeaponId(2603101) == map_object_type_data->category_id; // FIXME 这什么鬼。
 }
 
 bool  MapObject::attacked_able(){
