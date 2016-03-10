@@ -292,6 +292,9 @@ void MapEventBlock::refresh_events(bool first_time){
 	for(auto gdit = generation_data_all.begin(); gdit != generation_data_all.end(); ++gdit){
 		const auto generation_data = *gdit;
 		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier);
+		if(events_to_refresh == 0){
+			continue;
+		}
 
 		const auto map_event_id = generation_data->map_event_id;
 		const auto event_data = Data::MapEventAbstract::require(map_event_id);
