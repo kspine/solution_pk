@@ -189,40 +189,40 @@ std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &uuid){
 }
 
 namespace IdTypes {
-	using PlatformId          = GenericId<std::uint32_t, 110001>;
-	using LanguageId          = GenericId<std::uint32_t, 110002>;
-	using AccountAttributeId  = GenericId<std::uint32_t, 110003>;
-	using ReasonId            = GenericId<std::uint32_t, 110004>;
-	// using ChatMessageTypeId          = GenericId<std::uint32_t, 110005>;
-	using ChatChannelId       = GenericId<std::uint32_t, 110006>;
-	using ChatMessageTypeId   = GenericId<std::uint32_t, 110007>;
-	using ChatMessageSlotId   = GenericId<std::uint32_t, 110008>;
+	using PlatformId                = GenericId<std::uint32_t, 110001>;
+	using LanguageId                = GenericId<std::uint32_t, 110002>;
+	using AccountAttributeId        = GenericId<std::uint32_t, 110003>;
+	using ReasonId                  = GenericId<std::uint32_t, 110004>;
+	using ChatChannelId             = GenericId<std::uint32_t, 110006>;
+	using ChatMessageTypeId         = GenericId<std::uint32_t, 110007>;
+	using ChatMessageSlotId         = GenericId<std::uint32_t, 110008>;
 
-	using TerrainId           = GenericId<std::uint32_t, 120001>;
-	using OverlayId           = GenericId<std::uint32_t, 120002>;
-	using ResourceId          = GenericId<std::uint32_t, 120003>;
-	using MapObjectTypeId     = GenericId<std::uint32_t, 120004>;
-	using AttributeId         = GenericId<std::uint32_t, 120005>;
-	using BuildingBaseId      = GenericId<std::uint32_t, 120006>;
-	using BuildingId          = GenericId<std::uint32_t, 120007>;
-	using TechId              = GenericId<std::uint32_t, 120008>;
-	using ItemId              = GenericId<std::uint32_t, 120009>;
-	using TradeId             = GenericId<std::uint32_t, 120010>;
-	using RechargeId          = GenericId<std::uint32_t, 120011>;
-	using ShopId              = GenericId<std::uint32_t, 120012>;
-	using StartPointId        = GenericId<std::uint32_t, 120013>;
-	using TaskId              = GenericId<std::uint32_t, 120014>;
-	using TaskTypeId          = GenericId<std::uint32_t, 120015>;
-	using BuildingTypeId      = GenericId<std::uint32_t, 120016>;
-	using MapObjectCategoryId = GenericId<std::uint32_t, 120017>;
-	using MapEventId          = GenericId<std::uint32_t, 120018>;
-	using MapEventCircleId    = GenericId<std::uint32_t, 120019>;
+	using TerrainId                 = GenericId<std::uint32_t, 120001>;
+	using OverlayId                 = GenericId<std::uint32_t, 120002>;
+	using ResourceId                = GenericId<std::uint32_t, 120003>;
+	using MapObjectTypeId           = GenericId<std::uint32_t, 120004>;
+	using AttributeId               = GenericId<std::uint32_t, 120005>;
+	using BuildingBaseId            = GenericId<std::uint32_t, 120006>;
+	using BuildingId                = GenericId<std::uint32_t, 120007>;
+	using TechId                    = GenericId<std::uint32_t, 120008>;
+	using ItemId                    = GenericId<std::uint32_t, 120009>;
+	using TradeId                   = GenericId<std::uint32_t, 120010>;
+	using RechargeId                = GenericId<std::uint32_t, 120011>;
+	using ShopId                    = GenericId<std::uint32_t, 120012>;
+	using StartPointId              = GenericId<std::uint32_t, 120013>;
+	using TaskId                    = GenericId<std::uint32_t, 120014>;
+	using TaskTypeId                = GenericId<std::uint32_t, 120015>;
+	using BuildingTypeId            = GenericId<std::uint32_t, 120016>;
+	using MapObjectWeaponId         = GenericId<std::uint32_t, 120017>;
+	using MapEventId                = GenericId<std::uint32_t, 120018>;
+	using MapEventCircleId          = GenericId<std::uint32_t, 120019>;
+	using MapObjectChassisId        = GenericId<std::uint32_t, 120020>;
 
-	using AccountUuid         = GenericUuid<210001>;
-	using MapObjectUuid       = GenericUuid<210002>;
-	using MailUuid            = GenericUuid<210003>;
-	using ChatMessageUuid     = GenericUuid<210004>;
-	using AnnouncementUuid    = GenericUuid<210005>;
+	using AccountUuid               = GenericUuid<210001>;
+	using MapObjectUuid             = GenericUuid<210002>;
+	using MailUuid                  = GenericUuid<210003>;
+	using ChatMessageUuid           = GenericUuid<210004>;
+	using AnnouncementUuid          = GenericUuid<210005>;
 }
 
 using namespace IdTypes;

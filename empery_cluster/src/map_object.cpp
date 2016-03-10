@@ -10,7 +10,6 @@
 #include "map_utilities.hpp"
 #include "map_cell.hpp"
 #include "map_object_type_ids.hpp"
-#include "map_object_category_ids.hpp"
 #include "data/map.hpp"
 #include "data/map_object.hpp"
 #include "data/global.hpp"
@@ -741,7 +740,7 @@ bool  MapObject::is_monster(){
 	if(!map_object_type_data){
 		return false;
 	}
-	return MapObjectCategoryIds::ID_MONSTER == map_object_type_data->category_id;
+	return true; // MapObjectCategoryIds::ID_MONSTER == map_object_type_data->category_id; // FIXME 这什么鬼。
 }
 
 bool  MapObject::attacked_able(){

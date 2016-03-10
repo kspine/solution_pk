@@ -31,10 +31,18 @@ namespace {
 	boost::weak_ptr<const MonsterRewardExtraMap> g_monster_reward_extra_map;
 	const char MONSTER_REWARD_EXTRA_FILE[] = "monster_activity";
 
+	MULTI_INDEX_MAP(AttributeBonusMap, Data::MapObjectTypeAttributeBonus,
+		UNIQUE_MEMBER_INDEX(unique_id)
+		MULTI_MEMBER_INDEX(applicability_key)
+	)
+	boost::weak_ptr<const AttributeBonusMap> g_attribute_bonus_map;
+	const char ATTRIBUTE_BONUS_FILE[] = "attribute";
+
 	template<typename ElementT>
 	void read_map_object_type_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
 		csv.get(elem.map_object_type_id,     "arm_id");
-		csv.get(elem.map_object_category_id, "arm_type");
+		csv.get(elem.map_object_weapon_id,   "arm_type");
+		csv.get(elem.map_object_chassis_id,  "arm_class");
 
 		csv.get(elem.max_soldier_count,      "force_mnax");
 		csv.get(elem.speed,                  "speed");
@@ -48,8 +56,8 @@ namespace {
 
 			read_map_object_type_abstract(elem, csv);
 
-			csv.get(elem.harvest_speed,          "collect_speed");
-			csv.get(elem.resource_carriable,     "arm_load");
+			csv.get(elem.harvest_speed,      "collect_speed");
+			csv.get(elem.resource_carriable, "arm_load");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "arm_need");
@@ -220,6 +228,27 @@ namespace {
 		g_monster_reward_extra_map = monster_reward_extra_map;
 		handles.push(monster_reward_extra_map);
 		servlet = DataSession::create_servlet(MONSTER_REWARD_EXTRA_FILE, Data::encode_csv_as_json(csv, "id"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(ATTRIBUTE_BONUS_FILE);
+		const auto attribute_bonus_map = boost::make_shared<AttributeBonusMap>();
+		while(csv.fetch_row()){
+			Data::MapObjectTypeAttributeBonus elem = { };
+
+			csv.get(elem.unique_id,                "id");
+			csv.get(elem.applicability_key.first,  "type");
+			csv.get(elem.applicability_key.second, "arm_id");
+			csv.get(elem.tech_attribute_id,        "science_id");
+			csv.get(elem.bonus_attribute_id,       "attribute_id");
+
+			if(!attribute_bonus_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeAttributeBonus: unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeAttributeBonus"));
+			}
+		}
+		g_attribute_bonus_map = attribute_bonus_map;
+		handles.push(attribute_bonus_map);
+		servlet = DataSession::create_servlet(ATTRIBUTE_BONUS_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -442,6 +471,52 @@ namespace Data {
 				continue;
 			}
 			ret.emplace_back(monster_reward_extra_map, &*it);
+		}
+	}
+
+	boost::shared_ptr<const MapObjectTypeAttributeBonus> MapObjectTypeAttributeBonus::get(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		const auto attribute_bonus_map = g_attribute_bonus_map.lock();
+		if(!attribute_bonus_map){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeAttributeBonusMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = attribute_bonus_map->find<0>(unique_id);
+		if(it == attribute_bonus_map->end<0>()){
+			LOG_EMPERY_CENTER_TRACE("MapObjectTypeAttributeBonus not found: unique_id = ", unique_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapObjectTypeAttributeBonus>(attribute_bonus_map, &*it);
+	}
+	boost::shared_ptr<const MapObjectTypeAttributeBonus> MapObjectTypeAttributeBonus::require(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		auto ret = get(unique_id);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeAttributeBonus not found: unique_id = ", unique_id);
+			DEBUG_THROW(Exception, sslit("MapObjectTypeAttributeBonus not found"));
+		}
+		return ret;
+	}
+
+	void MapObjectTypeAttributeBonus::get_applicable(std::vector<boost::shared_ptr<const MapObjectTypeAttributeBonus>> &ret,
+		MapObjectTypeAttributeBonus::ApplicabilityKeyType applicability_key_type, std::uint64_t applicability_key_value)
+	{
+		PROFILE_ME;
+
+		const auto attribute_bonus_map = g_attribute_bonus_map.lock();
+		if(!attribute_bonus_map){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeAttributeBonusMap has not been loaded.");
+			return;
+		}
+
+		const auto range = attribute_bonus_map->equal_range<1>(
+			std::make_pair(static_cast<unsigned>(applicability_key_type), applicability_key_value));
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			ret.emplace_back(attribute_bonus_map, &*it);
 		}
 	}
 }

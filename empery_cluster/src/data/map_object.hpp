@@ -13,7 +13,7 @@ namespace Data {
 		static boost::shared_ptr<const MapObjectType> require(MapObjectTypeId map_object_type_id);
 	public:
 		MapObjectTypeId     map_object_type_id;
-		MapObjectCategoryId category_id;
+		MapObjectWeaponId category_id;
 		double              attack;
 		double              defence;
 		double              speed;
@@ -27,10 +27,10 @@ namespace Data {
 	
 	class MapObjectRelative {
 	public:
-		static double get_relative(MapObjectCategoryId map_object_category_id,MapObjectCategoryId relateive_category_id);
+		static double get_relative(MapObjectWeaponId map_object_category_id,MapObjectWeaponId relateive_category_id);
 	public:
-		MapObjectCategoryId           category_id;
-		boost::container::flat_map<MapObjectCategoryId, double> arm_relative;
+		MapObjectWeaponId           category_id;
+		boost::container::flat_map<MapObjectWeaponId, double> arm_relative;
 	};
 }
 

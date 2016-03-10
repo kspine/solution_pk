@@ -15,7 +15,8 @@ namespace Data {
 
 	public:
 		MapObjectTypeId map_object_type_id;
-		MapObjectCategoryId map_object_category_id;
+		MapObjectWeaponId map_object_weapon_id;
+		MapObjectChassisId map_object_chassis_id;
 
 		std::uint64_t max_soldier_count;
 		double speed;
@@ -84,6 +85,29 @@ namespace Data {
 		std::uint64_t available_until;
 		std::uint64_t available_period;
 		std::uint64_t available_duration;
+	};
+
+	class MapObjectTypeAttributeBonus {
+	public:
+		enum ApplicabilityKeyType {
+			AKT_ALL                 = 1,
+			AKT_CHASSIS_ID          = 2,
+			AKT_WEAPON_ID           = 3,
+			AKT_MAP_OBJECT_TYPE_ID  = 4,
+		};
+
+	public:
+		static boost::shared_ptr<const MapObjectTypeAttributeBonus> get(std::uint64_t unique_id);
+		static boost::shared_ptr<const MapObjectTypeAttributeBonus> require(std::uint64_t unique_id);
+
+		static void get_applicable(std::vector<boost::shared_ptr<const MapObjectTypeAttributeBonus>> &ret,
+			ApplicabilityKeyType applicability_key_type, std::uint64_t applicability_key_value);
+
+	public:
+		std::uint64_t unique_id;
+		std::pair<unsigned, std::uint64_t> applicability_key;
+		AttributeId tech_attribute_id;
+		AttributeId bonus_attribute_id;
 	};
 }
 
