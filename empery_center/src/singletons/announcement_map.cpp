@@ -85,7 +85,7 @@ boost::shared_ptr<Announcement> AnnouncementMap::get(AnnouncementUuid announceme
 
 	const auto it = announcement_map->find<0>(announcement_uuid);
 	if(it == announcement_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Announcement not found: announcement_uuid = ", announcement_uuid);
+		LOG_EMPERY_CENTER_TRACE("Announcement not found: announcement_uuid = ", announcement_uuid);
 		return { };
 	}
 	return it->announcement;

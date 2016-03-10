@@ -256,7 +256,7 @@ boost::shared_ptr<Account> AccountMap::get(AccountUuid account_uuid){
 
 	const auto it = g_account_map->find<0>(account_uuid);
 	if(it == g_account_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
+		LOG_EMPERY_CENTER_TRACE("Account not found: account_uuid = ", account_uuid);
 		return { };
 	}
 	return it->account;

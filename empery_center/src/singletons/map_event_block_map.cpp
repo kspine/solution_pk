@@ -124,6 +124,7 @@ boost::shared_ptr<MapEventBlock> MapEventBlockMap::require(Coord coord){
 
 	auto ret = get(coord);
 	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Map event block not found: coord = ", coord);
 		DEBUG_THROW(Exception, sslit("Map event block map not found"));
 	}
 	return ret;

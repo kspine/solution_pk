@@ -127,6 +127,7 @@ boost::shared_ptr<AuctionTransaction> AuctionTransactionMap::require(const std::
 
 	auto ret = get(serial);
 	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Auction transaction not found: serial = ", serial);
 		DEBUG_THROW(Exception, sslit("Auction transaction not found"));
 	}
 	return ret;

@@ -108,6 +108,7 @@ boost::shared_ptr<ActivationCode> ActivationCodeMap::require(const std::string &
 
 	auto ret = get(code);
 	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Activation code not found: code = ", code);
 		DEBUG_THROW(Exception, sslit("Activation code not found"));
 	}
 	return ret;

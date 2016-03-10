@@ -499,6 +499,7 @@ boost::shared_ptr<MapCell> WorldMap::require_map_cell(Coord coord){
 
 	auto ret = get_map_cell(coord);
 	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Map cell not found: coord = ", coord);
 		DEBUG_THROW(Exception, sslit("Map cell not found"));
 	}
 	return ret;
@@ -721,7 +722,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto old_coord = it->coord;
 	const auto new_coord = map_object->get_coord();
 
-	LOG_EMPERY_CENTER_DEBUG("Updating map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord, ", new_coord = ", new_coord);
+	LOG_EMPERY_CENTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord, ", new_coord = ", new_coord);
 	if(map_object->is_virtually_removed()){
 		map_object_map->erase<0>(it);
 	} else {
@@ -898,6 +899,7 @@ boost::shared_ptr<Overlay> WorldMap::require_overlay(Coord cluster_coord, const 
 
 	auto ret = get_overlay(cluster_coord, overlay_group_name);
 	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Overlay not found: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 		DEBUG_THROW(Exception, sslit("Overlay not found"));
 	}
 	return ret;
@@ -1057,6 +1059,7 @@ boost::shared_ptr<StrategicResource> WorldMap::require_strategic_resource(Coord 
 
 	auto ret = get_strategic_resource(coord);
 	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Strategic resource not found: coord = ", coord);
 		DEBUG_THROW(Exception, sslit("Strategic resource not found"));
 	}
 	return ret;
@@ -1104,7 +1107,7 @@ void WorldMap::update_strategic_resource(const boost::shared_ptr<StrategicResour
 		return;
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Updating strategic resource: coord = ", coord, ", resource_id = ", strategic_resource->get_resource_id());
+	LOG_EMPERY_CENTER_TRACE("Updating strategic resource: coord = ", coord, ", resource_id = ", strategic_resource->get_resource_id());
 	if(strategic_resource->is_virtually_removed()){
 		strategic_resource_map->erase<0>(it);
 	} else {
