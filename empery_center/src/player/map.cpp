@@ -523,10 +523,7 @@ PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
 	const auto castle_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
 	if(castle && map_object->is_garrisoned()){
-		auto soldier_count = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
-		if(soldier_count < 0){
-			soldier_count = 0;
-		}
+		const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 
 		const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
 		const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));

@@ -84,7 +84,7 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, st
 		LOG_EMPERY_CENTER_DEBUG("No resource available: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
 		return 0;
 	}
-	const auto soldier_count = static_cast<std::uint64_t>(std::max<std::int64_t>(harvester->get_attribute(AttributeIds::ID_SOLDIER_COUNT), 0));
+	const auto soldier_count = static_cast<std::uint64_t>(harvester->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto amount_to_harvest = harvest_speed * soldier_count * duration / 60000.0 + m_harvest_remainder;
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
