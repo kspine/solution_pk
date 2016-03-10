@@ -242,6 +242,7 @@ namespace Data {
 
 		auto ret = get(map_object_type_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeAbstract not found: map_object_type_id = ", map_object_type_id);;
 			DEBUG_THROW(Exception, sslit("MapObjectTypeAbstract not found"));
 		}
 		return ret;
@@ -258,7 +259,7 @@ namespace Data {
 
 		const auto it = battalion_map->find(map_object_type_id);
 		if(it == battalion_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeBattalion not found: map_object_type_id = ", map_object_type_id);
+			LOG_EMPERY_CENTER_TRACE("MapObjectTypeBattalion not found: map_object_type_id = ", map_object_type_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapObjectTypeBattalion>(battalion_map, &(it->second));
@@ -268,6 +269,7 @@ namespace Data {
 
 		auto ret = get(map_object_type_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeBattalion not found: map_object_type_id = ", map_object_type_id);
 			DEBUG_THROW(Exception, sslit("MapObjectTypeBattalion not found"));
 		}
 		return ret;
@@ -284,7 +286,7 @@ namespace Data {
 
 		const auto it = monster_map->find(map_object_type_id);
 		if(it == monster_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeMonster not found: map_object_type_id = ", map_object_type_id);
+			LOG_EMPERY_CENTER_TRACE("MapObjectTypeMonster not found: map_object_type_id = ", map_object_type_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapObjectTypeMonster>(monster_map, &(it->second));
@@ -294,6 +296,7 @@ namespace Data {
 
 		auto ret = get(map_object_type_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonster not found: map_object_type_id = ", map_object_type_id);
 			DEBUG_THROW(Exception, sslit("MapObjectTypeMonster not found"));
 		}
 		return ret;
@@ -310,7 +313,7 @@ namespace Data {
 
 		const auto it = monster_reward_map->find<0>(unique_id);
 		if(it == monster_reward_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeMonsterReward not found: unique_id = ", unique_id);
+			LOG_EMPERY_CENTER_TRACE("MapObjectTypeMonsterReward not found: unique_id = ", unique_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapObjectTypeMonsterReward>(monster_reward_map, &*it);
@@ -320,6 +323,7 @@ namespace Data {
 
 		auto ret = get(unique_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterReward not found: unique_id = ", unique_id);
 			DEBUG_THROW(Exception, sslit("MapObjectTypeMonsterReward not found"));
 		}
 		return ret;
@@ -391,7 +395,7 @@ namespace Data {
 
 		const auto it = monster_reward_extra_map->find<0>(unique_id);
 		if(it == monster_reward_extra_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapObjectTypeMonsterRewardExtra not found: unique_id = ", unique_id);
+			LOG_EMPERY_CENTER_TRACE("MapObjectTypeMonsterRewardExtra not found: unique_id = ", unique_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapObjectTypeMonsterRewardExtra>(monster_reward_extra_map, &*it);
@@ -401,6 +405,7 @@ namespace Data {
 
 		auto ret = get(unique_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonsterRewardExtra not found: unique_id = ", unique_id);
 			DEBUG_THROW(Exception, sslit("MapObjectTypeMonsterRewardExtra not found"));
 		}
 		return ret;

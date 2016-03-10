@@ -115,6 +115,7 @@ namespace Data {
 
     	auto ret = get(task_id);
     	if(!ret){
+    		LOG_EMPERY_CENTER_WARNING("TaskAbstract not found: task_id = ", task_id);
         	DEBUG_THROW(Exception, sslit("TaskAbstract not found"));
     	}
     	return ret;
@@ -131,7 +132,7 @@ namespace Data {
 
 		const auto it = task_primary_map->find(task_id);
 		if(it == task_primary_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("TaskPrimary not found: task_id = ", task_id);
+			LOG_EMPERY_CENTER_TRACE("TaskPrimary not found: task_id = ", task_id);
 			return { };
 		}
 		return boost::shared_ptr<const TaskPrimary>(task_primary_map, &(it->second));
@@ -141,6 +142,7 @@ namespace Data {
 
     	auto ret = get(task_id);
     	if(!ret){
+			LOG_EMPERY_CENTER_WARNING("TaskPrimary not found: task_id = ", task_id);
         	DEBUG_THROW(Exception, sslit("TaskPrimary not found"));
     	}
     	return ret;
@@ -172,7 +174,7 @@ namespace Data {
 
 		const auto it = task_daily_map->find(task_id);
 		if(it == task_daily_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("TaskDaily not found: task_id = ", task_id);
+			LOG_EMPERY_CENTER_TRACE("TaskDaily not found: task_id = ", task_id);
 			return { };
 		}
 		return boost::shared_ptr<const TaskDaily>(task_daily_map, &(it->second));
@@ -182,6 +184,7 @@ namespace Data {
 
     	auto ret = get(task_id);
     	if(!ret){
+			LOG_EMPERY_CENTER_WARNING("TaskDaily not found: task_id = ", task_id);
         	DEBUG_THROW(Exception, sslit("TaskDaily not found"));
     	}
     	return ret;

@@ -136,7 +136,7 @@ namespace Data {
 
 		const auto it = map_event_block_map->find<0>(std::make_pair(num_x, num_y));
 		if(it == map_event_block_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapEventBlock not found: num_x = ", num_x, ", num_y = ", num_y);
+			LOG_EMPERY_CENTER_TRACE("MapEventBlock not found: num_x = ", num_x, ", num_y = ", num_y);
 			return { };
 		}
 		return boost::shared_ptr<const MapEventBlock>(map_event_block_map, &*it);
@@ -146,6 +146,7 @@ namespace Data {
 
 		auto ret = get(num_x, num_y);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapEventBlock not found: num_x = ", num_x, ", num_y = ", num_y);
 			DEBUG_THROW(Exception, sslit("MapEventBlock not found"));
 		}
 		return ret;
@@ -177,7 +178,7 @@ namespace Data {
 
 		const auto it = map_event_generation_map->find<0>(unique_id);
 		if(it == map_event_generation_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapEventGeneration not found: unique_id = ", unique_id);
+			LOG_EMPERY_CENTER_TRACE("MapEventGeneration not found: unique_id = ", unique_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapEventGeneration>(map_event_generation_map, &*it);
@@ -187,6 +188,7 @@ namespace Data {
 
 		auto ret = get(unique_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapEventGeneration not found: unique_id = ", unique_id);
 			DEBUG_THROW(Exception, sslit("MapEventGeneration not found"));
 		}
 		return ret;
@@ -227,6 +229,7 @@ namespace Data {
 
 		auto ret = get(map_event_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapEventAbstract not found: map_event_id = ", map_event_id);
 			DEBUG_THROW(Exception, sslit("MapEventAbstract not found"));
 		}
 		return ret;
@@ -243,7 +246,7 @@ namespace Data {
 
 		const auto it = map_event_resource_map->find(map_event_id);
 		if(it == map_event_resource_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("MapEventResource not found: map_event_id = ", map_event_id);
+			LOG_EMPERY_CENTER_TRACE("MapEventResource not found: map_event_id = ", map_event_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapEventResource>(map_event_resource_map, &it->second);
@@ -253,6 +256,7 @@ namespace Data {
 
 		auto ret = get(map_event_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapEventResource not found: map_event_id = ", map_event_id);
 			DEBUG_THROW(Exception, sslit("MapEventResource not found"));
 		}
 		return ret;
@@ -269,7 +273,7 @@ namespace Data {
 
 		const auto it = map_event_monster_map->find(map_event_id);
 		if(it == map_event_monster_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("MapEventMonster not found: map_event_id = ", map_event_id);
+			LOG_EMPERY_CENTER_TRACE("MapEventMonster not found: map_event_id = ", map_event_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapEventMonster>(map_event_monster_map, &it->second);
@@ -279,6 +283,7 @@ namespace Data {
 
 		auto ret = get(map_event_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapEventMonster not found: map_event_id = ", map_event_id);
 			DEBUG_THROW(Exception, sslit("MapEventMonster not found"));
 		}
 		return ret;

@@ -503,7 +503,7 @@ namespace Data {
 
 		const auto it = building_base_map->find<0>(building_base_id);
 		if(it == building_base_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleBuildingBase not found: building_base_id = ", building_base_id);
+			LOG_EMPERY_CENTER_TRACE("CastleBuildingBase not found: building_base_id = ", building_base_id);
 			return { };
 		}
 		return boost::shared_ptr<const CastleBuildingBase>(building_base_map, &*it);
@@ -513,6 +513,7 @@ namespace Data {
 
 		auto ret = get(building_base_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleBuildingBase not found: building_base_id = ", building_base_id);
 			DEBUG_THROW(Exception, sslit("CastleBuildingBase not found"));
 		}
 		return ret;
@@ -545,7 +546,7 @@ namespace Data {
 
 		const auto it = building_map->find<0>(building_id);
 		if(it == building_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleBuilding not found: building_id = ", building_id);
+			LOG_EMPERY_CENTER_TRACE("CastleBuilding not found: building_id = ", building_id);
 			return { };
 		}
 		return boost::shared_ptr<const CastleBuilding>(building_map, &*it);
@@ -555,6 +556,7 @@ namespace Data {
 
 		auto ret = get(building_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleBuilding not found: building_id = ", building_id);
 			DEBUG_THROW(Exception, sslit("CastleBuilding base not found"));
 		}
 		return ret;
@@ -598,6 +600,7 @@ namespace Data {
 
 		auto ret = get(type, building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeAbstract not found: type = ", type, ", building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeAbstract not found"));
 		}
 		return ret;
@@ -614,7 +617,7 @@ namespace Data {
 
 		const auto it = upgrade_primary_map->find(building_level);
 		if(it == upgrade_primary_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradePrimary not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradePrimary not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradePrimary>(upgrade_primary_map, &(it->second));
@@ -624,6 +627,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradePrimary not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradePrimary not found"));
 		}
 		return ret;
@@ -640,7 +644,7 @@ namespace Data {
 
 		const auto it = upgrade_stables_map->find(building_level);
 		if(it == upgrade_stables_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeStables not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeStables not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeStables>(upgrade_stables_map, &(it->second));
@@ -650,6 +654,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeStables not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeStables not found"));
 		}
 		return ret;
@@ -666,7 +671,7 @@ namespace Data {
 
 		const auto it = upgrade_barracks_map->find(building_level);
 		if(it == upgrade_barracks_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeBarracks not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeBarracks not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeBarracks>(upgrade_barracks_map, &(it->second));
@@ -676,6 +681,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeBarracks not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeBarracks not found"));
 		}
 		return ret;
@@ -692,7 +698,7 @@ namespace Data {
 
 		const auto it = upgrade_archer_barracks_map->find(building_level);
 		if(it == upgrade_archer_barracks_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeArcherBarracks not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeArcherBarracks not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeArcherBarracks>(upgrade_archer_barracks_map, &(it->second));
@@ -702,6 +708,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeArcherBarracks not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeArcherBarracks not found"));
 		}
 		return ret;
@@ -718,7 +725,7 @@ namespace Data {
 
 		const auto it = upgrade_weaponry_map->find(building_level);
 		if(it == upgrade_weaponry_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeWeaponry not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeWeaponry not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeWeaponry>(upgrade_weaponry_map, &(it->second));
@@ -728,6 +735,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeWeaponry not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeWeaponry not found"));
 		}
 		return ret;
@@ -744,7 +752,7 @@ namespace Data {
 
 		const auto it = upgrade_academy_map->find(building_level);
 		if(it == upgrade_academy_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeAcademy not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeAcademy not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeAcademy>(upgrade_academy_map, &(it->second));
@@ -754,6 +762,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeAcademy not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeAcademy not found"));
 		}
 		return ret;
@@ -770,7 +779,7 @@ namespace Data {
 
 		const auto it = upgrade_civilian_map->find(building_level);
 		if(it == upgrade_civilian_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeCivilian not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeCivilian not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeCivilian>(upgrade_civilian_map, &(it->second));
@@ -780,6 +789,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeCivilian not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeCivilian not found"));
 		}
 		return ret;
@@ -796,7 +806,7 @@ namespace Data {
 
 		const auto it = upgrade_warehouse_map->find(building_level);
 		if(it == upgrade_warehouse_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeWarehouse not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeWarehouse not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeWarehouse>(upgrade_warehouse_map, &(it->second));
@@ -806,6 +816,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeWarehouse not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeWarehouse not found"));
 		}
 		return ret;
@@ -822,7 +833,7 @@ namespace Data {
 
 		const auto it = upgrade_citadel_wall_map->find(building_level);
 		if(it == upgrade_citadel_wall_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeCitadelWall not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeCitadelWall not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeCitadelWall>(upgrade_citadel_wall_map, &(it->second));
@@ -832,6 +843,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeCitadelWall not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeCitadelWall not found"));
 		}
 		return ret;
@@ -848,7 +860,7 @@ namespace Data {
 
 		const auto it = upgrade_defense_tower_map->find(building_level);
 		if(it == upgrade_defense_tower_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeDefenseTower not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeDefenseTower not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeDefenseTower>(upgrade_defense_tower_map, &(it->second));
@@ -858,6 +870,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeDefenseTower not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeDefenseTower not found"));
 		}
 		return ret;
@@ -874,7 +887,7 @@ namespace Data {
 
 		const auto it = upgrade_parade_ground_map->find(building_level);
 		if(it == upgrade_parade_ground_map->end()){
-			LOG_EMPERY_CENTER_DEBUG("CastleUpgradeParadeGround not found: building_level = ", building_level);
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeParadeGround not found: building_level = ", building_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleUpgradeParadeGround>(upgrade_parade_ground_map, &(it->second));
@@ -884,6 +897,7 @@ namespace Data {
 
 		auto ret = get(building_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeParadeGround not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeParadeGround not found"));
 		}
 		return ret;
@@ -900,7 +914,7 @@ namespace Data {
 
 		const auto it = tech_map->find<0>(std::make_pair(tech_id, tech_level));
 		if(it == tech_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleTech not found: tech_id = ", tech_id, ", tech_level = ", tech_level);
+			LOG_EMPERY_CENTER_TRACE("CastleTech not found: tech_id = ", tech_id, ", tech_level = ", tech_level);
 			return { };
 		}
 		return boost::shared_ptr<const CastleTech>(tech_map, &*it);
@@ -910,6 +924,7 @@ namespace Data {
 
 		auto ret = get(tech_id, tech_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleTech not found: tech_id = ", tech_id, ", tech_level = ", tech_level);
 			DEBUG_THROW(Exception, sslit("CastleTech not found"));
 		}
 		return ret;
@@ -926,7 +941,7 @@ namespace Data {
 
 		const auto it = resource_map->find<0>(resource_id);
 		if(it == resource_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: resource_id = ", resource_id);
+			LOG_EMPERY_CENTER_TRACE("CastleResource not found: resource_id = ", resource_id);
 			return { };
 		}
 		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
@@ -936,6 +951,7 @@ namespace Data {
 
 		auto ret = get(resource_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleResource not found: resource_id = ", resource_id);
 			DEBUG_THROW(Exception, sslit("CastleResource not found"));
 		}
 		return ret;
@@ -952,7 +968,7 @@ namespace Data {
 
 		const auto it = resource_map->find<1>(locked_resource_id);
 		if(it == resource_map->end<1>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: locked_resource_id = ", locked_resource_id);
+			LOG_EMPERY_CENTER_TRACE("CastleResource not found: locked_resource_id = ", locked_resource_id);
 			return { };
 		}
 		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
@@ -962,6 +978,7 @@ namespace Data {
 
 		auto ret = get_by_locked_resource_id(locked_resource_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleResource not found: locked_resource_id = ", locked_resource_id);
 			DEBUG_THROW(Exception, sslit("CastleResource not found"));
 		}
 		return ret;
@@ -993,7 +1010,7 @@ namespace Data {
 
 		const auto it = resource_map->find<2>(attribute_id);
 		if(it == resource_map->end<2>()){
-			LOG_EMPERY_CENTER_DEBUG("CastleResource not found: attribute_id = ", attribute_id);
+			LOG_EMPERY_CENTER_TRACE("CastleResource not found: attribute_id = ", attribute_id);
 			return { };
 		}
 		return boost::shared_ptr<const CastleResource>(resource_map, &*it);

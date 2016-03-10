@@ -48,7 +48,7 @@ namespace Data {
 
 		const auto it = signing_in_map->find<0>(sequential_days);
 		if(it == signing_in_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("SigningIn not found: sequential_days = ", sequential_days);
+			LOG_EMPERY_CENTER_TRACE("SigningIn not found: sequential_days = ", sequential_days);
 			return { };
 		}
 		return boost::shared_ptr<const SigningIn>(signing_in_map, &*it);
@@ -58,6 +58,7 @@ namespace Data {
 
 		auto ret = get(sequential_days);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("SigningIn not found: sequential_days = ", sequential_days);
 			DEBUG_THROW(Exception, sslit("SigningIn not found"));
 		}
 		return ret;

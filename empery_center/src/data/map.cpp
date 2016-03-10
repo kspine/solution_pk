@@ -163,7 +163,7 @@ namespace Data {
 
 		const auto it = basic_map->find<0>(std::make_pair(map_x, map_y));
 		if(it == basic_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapCellBasic not found: map_x = ", map_x, ", map_y = ", map_y);
+			LOG_EMPERY_CENTER_TRACE("MapCellBasic not found: map_x = ", map_x, ", map_y = ", map_y);
 			return { };
 		}
 		return boost::shared_ptr<const MapCellBasic>(basic_map, &*it);
@@ -173,6 +173,7 @@ namespace Data {
 
 		auto ret = get(map_x, map_y);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapCellBasic not found: map_x = ", map_x, ", map_y = ", map_y);
 			DEBUG_THROW(Exception, sslit("MapCellBasic not found"));
 		}
 		return ret;
@@ -205,7 +206,7 @@ namespace Data {
 
 		const auto it = ticket_map->find<0>(ticket_item_id);
 		if(it == ticket_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapCellTicket not found: ticket_item_id = ", ticket_item_id);
+			LOG_EMPERY_CENTER_TRACE("MapCellTicket not found: ticket_item_id = ", ticket_item_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapCellTicket>(ticket_map, &*it);
@@ -215,6 +216,7 @@ namespace Data {
 
 		auto ret = get(ticket_item_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapCellTicket not found: ticket_item_id = ", ticket_item_id);
 			DEBUG_THROW(Exception, sslit("MapCellTicket not found"));
 		}
 		return ret;
@@ -231,7 +233,7 @@ namespace Data {
 
 		const auto it = terrain_map->find<0>(terrain_id);
 		if(it == terrain_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapTerrain not found: terrain_id = ", terrain_id);
+			LOG_EMPERY_CENTER_TRACE("MapTerrain not found: terrain_id = ", terrain_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapTerrain>(terrain_map, &*it);
@@ -241,6 +243,7 @@ namespace Data {
 
 		auto ret = get(terrain_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapTerrain not found: terrain_id = ", terrain_id);
 			DEBUG_THROW(Exception, sslit("MapTerrain not found"));
 		}
 		return ret;
@@ -257,7 +260,7 @@ namespace Data {
 
 		const auto it = overlay_map->find<0>(overlay_id);
 		if(it == overlay_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapOverlay not found: overlay_id = ", overlay_id);
+			LOG_EMPERY_CENTER_TRACE("MapOverlay not found: overlay_id = ", overlay_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapOverlay>(overlay_map, &*it);
@@ -267,6 +270,7 @@ namespace Data {
 
 		auto ret = get(overlay_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapOverlay not found: overlay_id = ", overlay_id);
 			DEBUG_THROW(Exception, sslit("MapOverlay not found"));
 		}
 		return ret;
@@ -283,7 +287,7 @@ namespace Data {
 
 		const auto it = start_point_map->find<0>(start_point_id);
 		if(it == start_point_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("MapStartPoint not found: start_point_id = ", start_point_id);
+			LOG_EMPERY_CENTER_TRACE("MapStartPoint not found: start_point_id = ", start_point_id);
 			return { };
 		}
 		return boost::shared_ptr<const MapStartPoint>(start_point_map, &*it);
@@ -293,6 +297,7 @@ namespace Data {
 
 		auto ret = get(start_point_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapStartPoint not found: start_point_id = ", start_point_id);
 			DEBUG_THROW(Exception, sslit("MapStartPoint not found"));
 		}
 		return ret;

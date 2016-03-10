@@ -49,7 +49,7 @@ namespace Data {
 
 		const auto it = vip_map->find<0>(vip_level);
 		if(it == vip_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("Vip not found: vip_level = ", vip_level);
+			LOG_EMPERY_CENTER_TRACE("Vip not found: vip_level = ", vip_level);
 			return { };
 		}
 		return boost::shared_ptr<const Vip>(vip_map, &*it);
@@ -59,6 +59,7 @@ namespace Data {
 
 		auto ret = get(vip_level);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("Vip not found: vip_level = ", vip_level);
 			DEBUG_THROW(Exception, sslit("Vip not found"));
 		}
 		return ret;

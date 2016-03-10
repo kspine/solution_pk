@@ -180,7 +180,7 @@ namespace Data {
 
 		const auto it = item_map->find<0>(item_id);
 		if(it == item_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("Item not found: item_id = ", item_id);
+			LOG_EMPERY_CENTER_TRACE("Item not found: item_id = ", item_id);
 			return { };
 		}
 		return boost::shared_ptr<const Item>(item_map, &*it);
@@ -190,6 +190,7 @@ namespace Data {
 
 		auto ret = get(item_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("Item not found: item_id = ", item_id);
 			DEBUG_THROW(Exception, sslit("Item not found"));
 		}
 		return ret;
@@ -206,7 +207,7 @@ namespace Data {
 
 		const auto it = item_map->find<1>(std::make_pair(category, type));
 		if(it == item_map->end<1>()){
-			LOG_EMPERY_CENTER_DEBUG("Item not found: category = ", (unsigned)category, ", type = ", type);
+			LOG_EMPERY_CENTER_TRACE("Item not found: category = ", (unsigned)category, ", type = ", type);
 			return { };
 		}
 		return boost::shared_ptr<const Item>(item_map, &*it);
@@ -216,6 +217,7 @@ namespace Data {
 
 		auto ret = get_by_type(category, type);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("Item not found: category = ", (unsigned)category, ", type = ", type);
 			DEBUG_THROW(Exception, sslit("Item not found"));
 		}
 		return ret;
@@ -281,7 +283,7 @@ namespace Data {
 
 		const auto it = trade_map->find<0>(trade_id);
 		if(it == trade_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("ItemTrade not found: trade_id = ", trade_id);
+			LOG_EMPERY_CENTER_TRACE("ItemTrade not found: trade_id = ", trade_id);
 			return { };
 		}
 		return boost::shared_ptr<const ItemTrade>(trade_map, &*it);
@@ -291,6 +293,7 @@ namespace Data {
 
 		auto ret = get(trade_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("ItemTrade not found: trade_id = ", trade_id);
 			DEBUG_THROW(Exception, sslit("ItemTrade not found"));
 		}
 		return ret;
@@ -307,7 +310,7 @@ namespace Data {
 
 		const auto it = recharge_map->find<0>(recharge_id);
 		if(it == recharge_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("ItemRecharge not found: recharge_id = ", recharge_id);
+			LOG_EMPERY_CENTER_TRACE("ItemRecharge not found: recharge_id = ", recharge_id);
 			return { };
 		}
 		return boost::shared_ptr<const ItemRecharge>(recharge_map, &*it);
@@ -317,6 +320,7 @@ namespace Data {
 
 		auto ret = get(recharge_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("ItemRecharge not found: recharge_id = ", recharge_id);
 			DEBUG_THROW(Exception, sslit("ItemRecharge not found"));
 		}
 		return ret;
@@ -333,7 +337,7 @@ namespace Data {
 
 		const auto it = shop_map->find<0>(shop_id);
 		if(it == shop_map->end<0>()){
-			LOG_EMPERY_CENTER_DEBUG("ItemShop not found: shop_id = ", shop_id);
+			LOG_EMPERY_CENTER_TRACE("ItemShop not found: shop_id = ", shop_id);
 			return { };
 		}
 		return boost::shared_ptr<const ItemShop>(shop_map, &*it);
@@ -343,6 +347,7 @@ namespace Data {
 
 		auto ret = get(shop_id);
 		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("ItemShop not found: shop_id = ", shop_id);
 			DEBUG_THROW(Exception, sslit("ItemShop not found"));
 		}
 		return ret;
