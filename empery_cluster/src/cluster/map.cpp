@@ -48,7 +48,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 	{
 		auto old_map_object = WorldMap::get_map_object(map_object_uuid);
 		if(old_map_object){
-			const auto old_cluster = WorldMap::get_cluster(map_object->get_coord());
+			const auto old_cluster = WorldMap::get_cluster(old_map_object->get_coord());
 			if(old_cluster == cluster){
 				// 替换旧的。
 				map_object = std::move(old_map_object);
