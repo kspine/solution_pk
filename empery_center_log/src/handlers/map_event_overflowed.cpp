@@ -12,6 +12,7 @@ MODULE_RAII_PRIORITY(handles, 5000){
 		[](const boost::shared_ptr<Events::MapEventsOverflowed> &event){
 			const auto obj = boost::make_shared<MySql::CenterLog_MapEventsOverflowed>(Poseidon::get_utc_time(),
 				event->block_scope.left(), event->block_scope.bottom(), event->block_scope.width(), event->block_scope.height(),
+				event->active_castle_count, event->map_event_id.get(),
 				event->events_to_refresh, event->events_retained, event->events_created);
 			obj->async_save(false, true);
 		});

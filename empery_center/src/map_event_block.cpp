@@ -416,10 +416,11 @@ void MapEventBlock::refresh_events(bool first_time){
 			}
 
 			if(events_retained + events_created < events_to_refresh){
-				LOG_EMPERY_CENTER_WARNING("Map events overflowed: block_scope = ", block_scope, ", active_castle_count = ", active_castle_count,
+				LOG_EMPERY_CENTER_WARNING("Map events overflowed: block_scope = ", block_scope,
+					", active_castle_count = ", active_castle_count, ", map_event_id = ", map_event_id,
 					", events_to_refresh = ", events_to_refresh, ", events_retained = ", events_retained, ", events_created = ", events_created);
 				Poseidon::async_raise_event(
-					boost::make_shared<Events::MapEventsOverflowed>(block_scope, active_castle_count,
+					boost::make_shared<Events::MapEventsOverflowed>(block_scope, active_castle_count, map_event_id,
 						events_to_refresh, events_retained, events_created),
 					{ });
 			}
