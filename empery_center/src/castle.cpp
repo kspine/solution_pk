@@ -290,12 +290,6 @@ void Castle::recalculate_attributes(){
 
 	MapObject::recalculate_attributes();
 
-	std::vector<boost::shared_ptr<MapCell>> map_cells;
-	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-		const auto &map_cell = *it;
-		map_cell->pump_status();
-	}
-
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(32);
 
@@ -340,7 +334,39 @@ void Castle::recalculate_attributes(){
 		}
 	}
 
+	std::vector<boost::shared_ptr<MapCell>> child_cells;
+	WorldMap::get_map_cells_by_parent_object(child_cells, get_map_object_uuid());
+
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, get_map_object_uuid());
+
+	// 使用旧的产率更新产出。
+	for(auto it = child_cells.begin(); it != child_cells.end(); ++it){
+		const auto &child_cell = *it;
+		try {
+			child_cell->pump_status();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+
+	// 提交新的属性。注意该行前后城堡属性发生变化。
 	set_attributes(std::move(modifiers));
+
+	// 更新新的部队属性。
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		if(child_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		assert(child_object.get() != this);
+		try {
+			child_object->pump_status();
+			child_object->recalculate_attributes();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
 }
 
 void Castle::pump_production(){

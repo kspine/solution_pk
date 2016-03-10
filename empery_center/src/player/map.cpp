@@ -582,6 +582,8 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 	map_object->set_coord(coord);
 	map_object->set_garrisoned(false);
 
+	map_object->pump_status();
+
 	return Response();
 }
 

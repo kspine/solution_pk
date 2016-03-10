@@ -9,6 +9,7 @@
 #include "msg/sk_map.hpp"
 #include "singletons/account_map.hpp"
 #include "attribute_ids.hpp"
+#include "data/map_object_type.hpp"
 #include "data/castle.hpp"
 
 namespace EmperyCenter {
@@ -38,12 +39,54 @@ MapObject::~MapObject(){
 void MapObject::pump_status(){
 	PROFILE_ME;
 
-	// 无事可做。
+	recalculate_attributes();
 }
 void MapObject::recalculate_attributes(){
 	PROFILE_ME;
 
-	// 无事可做。
+	const auto map_object_type_id = get_map_object_type_id();
+	const auto map_object_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers.reserve(32);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_BONUS,                     0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DEFENSE_BONUS,                    0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DODGING_RATIO_BONUS,              0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS,      0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS, 0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_RANGE_BONUS,               0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SIGHT_RANGE_BONUS,                0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_RATE_OF_FIRE_BONUS,               0);
+	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SPEED_BONUS,                      0);
+
+	boost::shared_ptr<MapObject> parent_object;
+	const auto parent_object_uuid = get_parent_object_uuid();
+	if(parent_object_uuid){
+		parent_object = WorldMap::get_map_object(parent_object_uuid);
+	}
+	if(parent_object){
+		LOG_EMPERY_CENTER_TRACE("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
+			", parent_object_uuid = ", parent_object_uuid);
+
+		std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
+		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+			Data::MapObjectTypeAttributeBonus::AKT_ALL, 0);
+		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+			Data::MapObjectTypeAttributeBonus::AKT_CHASSIS_ID, map_object_data->map_object_chassis_id.get());
+		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+			Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
+		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+			Data::MapObjectTypeAttributeBonus::AKT_MAP_OBJECT_TYPE_ID, map_object_data->map_object_type_id.get());
+		for(auto it = attribute_bonus_applicable_data.begin(); it != attribute_bonus_applicable_data.end(); ++it){
+			const auto &attribute_bonus_data = *it;
+			const auto tech_attribute_id = attribute_bonus_data->tech_attribute_id;
+			const auto bonus_attribute_id = attribute_bonus_data->bonus_attribute_id;
+			const auto tech_attribute_value = parent_object->get_attribute(tech_attribute_id);
+			LOG_EMPERY_CENTER_TRACE("> Applying attribute bonus: tech_attribute_id = ", tech_attribute_id,
+				", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
+			modifiers[bonus_attribute_id] += tech_attribute_value;
+		}
+	}
 }
 
 MapObjectUuid MapObject::get_map_object_uuid() const {
