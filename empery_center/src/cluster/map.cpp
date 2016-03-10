@@ -70,7 +70,7 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	return Response();
 }
 
-CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
+CLUSTER_SERVLET(Msg::KS_MapUpdateMapObjectAction, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
@@ -80,13 +80,6 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObject, cluster, req){
 	if(cluster != test_cluster){
 		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
 	}
-
-	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers.reserve(req.attributes.size());
-	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
-		modifiers.emplace(AttributeId(it->attribute_id), it->value);
-	}
-	map_object->set_attributes(modifiers);
 
 	const auto old_coord = map_object->get_coord();
 	const auto new_coord = Coord(req.x, req.y);
@@ -363,7 +356,23 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto result_param1            = req.result_param1;
 	const auto result_param2            = req.result_param2;
 	const auto soldiers_damaged         = req.soldiers_damaged;
-	const auto soldiers_remaining       = req.soldiers_remaining;
+
+	// 结算战斗伤害。
+	const auto attacked_object = WorldMap::get_map_object(attacked_object_uuid);
+	if(!attacked_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
+	}
+	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto soldiers_remaining = saturated_sub(soldiers_current, soldiers_damaged);
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
+	attacked_object->set_attributes(std::move(modifiers));
+
+	if(soldiers_remaining <= 0){
+		LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_object_uuid = ", attacked_object_uuid);
+		attacked_object->delete_from_game();
+	}
 
 	const auto utc_now = Poseidon::get_utc_time();
 

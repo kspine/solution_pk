@@ -56,7 +56,6 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_ARRAY         (waypoints,	\
-		FIELD_VUINT         (delay)	\
 		FIELD_VINT          (dx)	\
 		FIELD_VINT          (dy)	\
 	)	\

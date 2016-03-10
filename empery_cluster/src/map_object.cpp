@@ -226,8 +226,18 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	const auto coord           = get_coord();
 
 	const auto waypoint  = m_waypoints.front();
-	const auto new_coord = Coord(coord.x() + waypoint.dx, coord.y() + waypoint.dy);
-	const auto delay     = waypoint.delay;
+	const auto new_coord = Coord(coord.x() + waypoint.first, coord.y() + waypoint.second);
+
+	const auto map_object_type_id = get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+
+	std::uint64_t delay;
+	const auto speed = map_object_type_data->speed + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0;
+	if(speed <= 0){
+		delay = UINT64_MAX;
+	} else {
+		delay = static_cast<std::uint64_t>(std::round(1000 / speed));
+	}
 
 	if(is_monster()){
 		const unsigned monster_active_scope = Data::Global::as_unsigned(Data::Global::SLOT_MAP_MONSTER_ACTIVE_SCOPE);
@@ -300,30 +310,23 @@ void MapObject::get_attributes(boost::container::flat_map<AttributeId, std::int6
 		ret[it->first] = it->second;
 	}
 }
-void MapObject::set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers){
+void MapObject::set_attributes_no_synchronize(boost::container::flat_map<AttributeId, std::int64_t> modifiers){
 	PROFILE_ME;
 
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
 		m_attributes.emplace(it->first, 0);
 	}
 
-	bool dirty = false;
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
 		auto &value = m_attributes.at(it->first);
 		if(value == it->second){
 			continue;
 		}
 		value = it->second;
-		++dirty;
 	}
-	if(!dirty){
-	    return;
-	}
-
-	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
 
-void MapObject::set_action(Coord from_coord, std::deque<Waypoint> waypoints, MapObject::Action action, std::string action_param){
+void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, signed char>> waypoints, MapObject::Action action, std::string action_param){
 	PROFILE_ME;
 
 	const auto timer_proc = [this](const boost::weak_ptr<MapObject> &weak, std::uint64_t now){
@@ -496,13 +499,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 			damage = damage*(1.0+critical_demage_plus_rate);
 		}
 	}
-	std::int64_t new_ememy_solider_count = ememy_solider_count - static_cast<std::int64_t>(damage);
-	new_ememy_solider_count = (new_ememy_solider_count >= 0) ? new_ememy_solider_count : 0;
-	if(damage > 0){
-		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-		modifiers.emplace(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT, new_ememy_solider_count);
-		target_object->set_attributes(std::move(modifiers));
-	}
 
 	Msg::KS_MapObjectAttackAction msg;
 	msg.attacking_account_uuid = get_owner_uuid().str();
@@ -517,7 +513,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	msg.attacked_coord_y = target_object->get_coord().y();
 	msg.result_type = result_type;
 	msg.soldiers_damaged = damage;
-	msg.soldiers_remaining = (std::uint64_t)new_ememy_solider_count;
 	cluster->send(msg);
 
 
@@ -647,7 +642,7 @@ void MapObject::troops_attack(bool passive){
 	}
 }
 
-void   MapObject::notify_way_points(std::deque<Waypoint> &waypoints,MapObject::Action &action, std::string &action_param){
+void   MapObject::notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param){
 	PROFILE_ME;
 
 	const auto cluster = get_cluster();
@@ -660,8 +655,8 @@ void   MapObject::notify_way_points(std::deque<Waypoint> &waypoints,MapObject::A
 			msg.waypoints.reserve(waypoints.size());
 			for(auto it = waypoints.begin(); it != waypoints.end(); ++it){
 				auto &waypoint = *msg.waypoints.emplace(msg.waypoints.end());
-				waypoint.dx = it->dx;
-				waypoint.dy = it->dy;
+				waypoint.dx = it->first;
+				waypoint.dy = it->second;
 			}
 			msg.action          = static_cast<unsigned>(action);
 			msg.param           = action_param;
@@ -705,7 +700,7 @@ bool    MapObject::fix_attack_action(){
 	return true;
 }
 
-bool    MapObject::find_way_points(std::deque<Waypoint> &waypoints,Coord from_coord,Coord target_coord){
+bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord){
 	PROFILE_ME;
 
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
@@ -713,20 +708,11 @@ bool    MapObject::find_way_points(std::deque<Waypoint> &waypoints,Coord from_co
 		return false;
 	}
 
-	double speed = map_object_type_data->speed ;
-	if(speed <= 0){
-		return false;
-	}
-
-	if(0 == speed){
-		return false;
-	}
-	std::uint64_t delay = 1000/speed;
 	std::vector<std::pair<signed char, signed char>> path;
 	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, map_object_type_data->shoot_range)){
 		LOG_EMPERY_CLUSTER_FATAL("find the path from: ", from_coord ,"to_coord: ", target_coord );
 		for(auto it = path.begin(); it != path.end(); ++it){
-			waypoints.emplace_back(delay, it->first, it->second);
+			waypoints.emplace_back(it->first, it->second);
 			LOG_EMPERY_CLUSTER_FATAL("the path dx:", it->first ," dy: ", it->second);
 		}
 		return true;
@@ -761,7 +747,7 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 	if(is_in_attack_scope(enemy_map_object->get_map_object_uuid())){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
-			std::deque<Waypoint> waypoints;
+			std::deque<std::pair<signed char, signed char>> waypoints;
 			if(find_way_points(waypoints,get_coord(),enemy_map_object->get_coord())){
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 			}else{
@@ -781,16 +767,16 @@ void   MapObject::lost_target(){
 
 void   MapObject::monster_regress(){
 	PROFILE_ME;
-
+/*
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(1);
 	auto max_solider = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT_MAX);
 	modifiers[EmperyCenter::AttributeIds::ID_SOLDIER_COUNT]  = max_solider;
-	set_attributes(std::move(modifiers));
-
+	set_attributes(std::move(modifiers)); // TODO
+*/
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
-	std::deque<Waypoint> waypoints;
+	std::deque<std::pair<signed char, signed char>> waypoints;
 	if(find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y))){
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
 	}else{

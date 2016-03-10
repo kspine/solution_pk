@@ -15,16 +15,12 @@ namespace Msg {
 	FIELD_STRING        (name)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    KS_MapUpdateMapObject
+#define MESSAGE_NAME    KS_MapUpdateMapObjectAction
 #define MESSAGE_ID      32301
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
-	FIELD_ARRAY         (attributes,	\
-		FIELD_VUINT         (attribute_id)	\
-		FIELD_VINT          (value)	\
-	)	\
 	FIELD_VUINT         (action)	\
 	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -83,8 +79,7 @@ namespace Msg {
 	FIELD_VINT          (result_type)	\
 	FIELD_VINT          (result_param1)	\
 	FIELD_VINT          (result_param2)	\
-	FIELD_VUINT         (soldiers_damaged)	\
-	FIELD_VUINT         (soldiers_remaining)
+	FIELD_VUINT         (soldiers_damaged)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

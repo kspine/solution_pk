@@ -79,8 +79,6 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
 	}
 
-	const auto ms_per_cell = static_cast<std::uint64_t>(std::round(1000 / speed));
-
 	auto old_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(old_coord);
 	if(!cluster){
@@ -120,7 +118,6 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		last_coord = next_coord;
 
 		auto &waypoint = *kreq.waypoints.emplace(kreq.waypoints.end());
-		waypoint.delay = ms_per_cell;
 		waypoint.dx    = step.dx;
 		waypoint.dy    = step.dy;
 	}

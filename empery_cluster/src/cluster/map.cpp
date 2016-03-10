@@ -44,26 +44,33 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 	const bool garrisoned         = req.garrisoned;
 	const auto coord              = Coord(req.x, req.y);
 
-	auto map_object = WorldMap::get_map_object(map_object_uuid);
-	if(map_object){
-		const auto old_cluster = WorldMap::get_cluster(map_object->get_coord());
-		if(old_cluster != cluster){
-			// 替换旧的。
-			map_object.reset();
+	boost::shared_ptr<MapObject> map_object;
+	{
+		auto old_map_object = WorldMap::get_map_object(map_object_uuid);
+		if(old_map_object){
+			const auto old_cluster = WorldMap::get_cluster(map_object->get_coord());
+			if(old_cluster == cluster){
+				// 替换旧的。
+				map_object = std::move(old_map_object);
+			}
 		}
 	}
-	if(!map_object || (map_object->is_garrisoned() != garrisoned)){
-		boost::container::flat_map<AttributeId, std::int64_t> attributes;
-		attributes.reserve(req.attributes.size());
-		for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
-			attributes.emplace(AttributeId(it->attribute_id), it->value);
-		}
 
-		LOG_EMPERY_CLUSTER_TRACE("Creating map object: map_object_uuid = ", map_object_uuid,
+	boost::container::flat_map<AttributeId, std::int64_t> attributes;
+	attributes.reserve(req.attributes.size());
+	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
+		attributes.emplace(AttributeId(it->attribute_id), it->value);
+	}
+	if(!map_object || (map_object->is_garrisoned() != garrisoned)){
+		LOG_EMPERY_CLUSTER_TRACE("Replacing map object: map_object_uuid = ", map_object_uuid,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", garrisoned = ", garrisoned, ", coord = ", coord);
 		map_object = boost::make_shared<MapObject>(map_object_uuid,
 			map_object_type_id, owner_uuid, parent_object_uuid, garrisoned, cluster, coord, std::move(attributes));
 		WorldMap::replace_map_object_no_synchronize(cluster, map_object);
+	} else {
+		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
+			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", garrisoned = ", garrisoned, ", coord = ", coord);
+		map_object->set_attributes_no_synchronize(std::move(attributes));
 	}
 
 	return Response();
@@ -86,9 +93,9 @@ CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
 	}
 
 	const auto from_coord = Coord(req.x, req.y);
-	std::deque<MapObject::Waypoint> waypoints;
+	std::deque<std::pair<signed char, signed char>> waypoints;
 	for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
-		waypoints.emplace_back(it->delay, it->dx, it->dy);
+		waypoints.emplace_back(it->dx, it->dy);
 	}
 	map_object->set_action(from_coord, std::move(waypoints), static_cast<MapObject::Action>(req.action), std::move(req.param));
 

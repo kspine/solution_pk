@@ -44,17 +44,6 @@ public:
 		IMPACT_CRITICAL          = 3,
 	};
 
-	struct Waypoint {
-		std::uint64_t delay; // 毫秒
-		signed char dx;      // 相对坐标 X
-		signed char dy;      // 相对坐标 Y
-
-		Waypoint(std::uint64_t delay_, signed char dx_, signed char dy_)
-			: delay(delay_), dx(dx_), dy(dy_)
-		{
-		}
-	};
-
 private:
 	const MapObjectUuid m_map_object_uuid;
 	const MapObjectTypeId m_map_object_type_id;
@@ -69,7 +58,7 @@ private:
 	boost::shared_ptr<Poseidon::TimerItem> m_action_timer;
 	std::uint64_t m_next_action_time = 0;
 	// 移动。
-	std::deque<Waypoint> m_waypoints;
+	std::deque<std::pair<signed char, signed char>> m_waypoints;
 	unsigned m_blocked_retry_count = 0;
 	// 移动完毕后动作。
 	Action m_action = ACT_GUARD;
@@ -98,9 +87,9 @@ public:
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
 private:
-	void          notify_way_points(std::deque<Waypoint> &waypoints,MapObject::Action &action, std::string &action_param);
+	void          notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param);
 	bool          fix_attack_action();
-	bool          find_way_points(std::deque<Waypoint> &waypoints,Coord from_coord,Coord target_coord);
+	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord);
 	bool          get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object);
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
 	void          lost_target();
@@ -120,7 +109,7 @@ public:
 	MapObjectUuid get_parent_object_uuid() const {
 		return m_parent_object_uuid;
 	}
-	bool is_garrisoned() const{
+	bool is_garrisoned() const {
 		return m_garrisoned;
 	}
 	boost::shared_ptr<ClusterClient> get_cluster() const {
@@ -132,7 +121,7 @@ public:
 
 	std::int64_t get_attribute(AttributeId map_object_attr_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
-	void set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers);
+	void set_attributes_no_synchronize(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
 
 	bool is_moving() const {
 		return !m_waypoints.empty();
@@ -141,7 +130,14 @@ public:
 	bool is_idle() const {
 		return (m_action == ACT_GUARD)&&(m_waypoints.empty());
 	}
-	void set_action(Coord from_coord, std::deque<Waypoint> waypoints, Action action, std::string action_param);
+
+	Action get_action() const {
+		return m_action;
+	}
+	const std::string &get_action_param() const {
+		return m_action_param;
+	}
+	void set_action(Coord from_coord, std::deque<std::pair<signed char, signed char>> waypoints, Action action, std::string action_param);
 };
 
 }

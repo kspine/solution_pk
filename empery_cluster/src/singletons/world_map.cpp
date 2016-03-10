@@ -221,16 +221,12 @@ namespace {
 		boost::container::flat_map<AttributeId, std::int64_t> attributes;
 		map_object->get_attributes(attributes);
 
-		Msg::KS_MapUpdateMapObject msg;
+		Msg::KS_MapUpdateMapObjectAction msg;
 		msg.map_object_uuid = map_object->get_map_object_uuid().str();
 		msg.x               = map_object->get_coord().x();
 		msg.y               = map_object->get_coord().y();
-		msg.attributes.reserve(attributes.size());
-		for(auto it = attributes.begin(); it != attributes.end(); ++it){
-			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
-			attribute.attribute_id = it->first.get();
-			attribute.value        = it->second;
-		}
+		msg.action          = map_object->get_action();
+		msg.param           = map_object->get_action_param();
 		cluster->send(msg);
 	}
 	void notify_cluster_map_object_removed(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<ClusterClient> &cluster){
