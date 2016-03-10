@@ -105,7 +105,7 @@ void MapCell::pump_production(){
 	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
 	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
 	const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
-	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope,
+	LOG_EMPERY_CENTER_TRACE("Updating map cell: coord = ", coord, ", cluster_scope = ", cluster_scope,
 		", map_x = ", map_x, ", map_y = ", map_y);
 	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
 	const auto terrain_id = cell_data->terrain_id;
@@ -195,7 +195,7 @@ void MapCell::pump_production(){
 		if(capacity < 0){
 			capacity = 0;
 		}
-		LOG_EMPERY_CENTER_DEBUG("Checking map cell production: coord = ", get_coord(),
+		LOG_EMPERY_CENTER_TRACE("Checking map cell production: coord = ", get_coord(),
 			", terrain_id = ", terrain_id, ", acc_card_applied = ", acc_card_applied,
 			", ticket_item_id = ", ticket_item_id, ", production_resource_id = ", production_resource_id,
 			", production_rate = ", production_rate, ", capacity = ", capacity);
