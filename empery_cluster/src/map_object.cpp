@@ -232,7 +232,7 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
 
 	std::uint64_t delay;
-	const auto speed = map_object_type_data->speed + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0;
+	const auto speed = map_object_type_data->speed * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0);
 	if(speed <= 0){
 		delay = UINT64_MAX;
 	} else {
