@@ -48,24 +48,26 @@ void MapObject::recalculate_attributes(){
 	const auto map_object_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers.reserve(32);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_BONUS,                     0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DEFENSE_BONUS,                    0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DODGING_RATIO_BONUS,              0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS,      0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS, 0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_RANGE_BONUS,               0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SIGHT_RANGE_BONUS,                0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_RATE_OF_FIRE_BONUS,               0);
-	modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SPEED_BONUS,                      0);
 
 	boost::shared_ptr<MapObject> parent_object;
 	const auto parent_object_uuid = get_parent_object_uuid();
 	if(parent_object_uuid){
 		parent_object = WorldMap::get_map_object(parent_object_uuid);
 	}
-	if(parent_object){
-		LOG_EMPERY_CENTER_TRACE("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
+	if(parent_object && (m_last_updated_time < parent_object->m_last_updated_time)){
+		modifiers.clear();
+		modifiers.reserve(32);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_BONUS,                     0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DEFENSE_BONUS,                    0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DODGING_RATIO_BONUS,              0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS,      0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS, 0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_RANGE_BONUS,               0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SIGHT_RANGE_BONUS,                0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_RATE_OF_FIRE_BONUS,               0);
+		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SPEED_BONUS,                      0);
+
+		LOG_EMPERY_CENTER_DEBUG("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
 			", parent_object_uuid = ", parent_object_uuid);
 
 		std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
@@ -86,6 +88,8 @@ void MapObject::recalculate_attributes(){
 				", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
 			modifiers[bonus_attribute_id] += tech_attribute_value;
 		}
+
+		set_attributes(std::move(modifiers));
 	}
 }
 
@@ -243,6 +247,9 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 	if(!dirty){
 		return;
 	}
+
+	const auto now = Poseidon::get_fast_mono_clock();
+	m_last_updated_time = now;
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 
