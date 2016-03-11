@@ -801,8 +801,13 @@ bool  MapObject::is_monster(){
 
 bool  MapObject::attacked_able(){
 	PROFILE_ME;
-
-	return !( is_monster() && (m_action == ACT_MONTER_REGRESS));
+	if(is_garrisoned()){
+		return false;
+	}
+	if(is_monster() && (m_action == ACT_MONTER_REGRESS)){
+		return false;
+	}
+	return true;
 }
 
 
