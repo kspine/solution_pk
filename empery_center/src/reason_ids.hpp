@@ -48,8 +48,9 @@ constexpr ReasonId
 	ID_LEVEL_BONUS                   ( 673011 ), // 纳税账号 UUID 高位  税收等级            0
 	ID_INCOME_TAX                    ( 673012 ), // 纳税账号 UUID 高位  税收等级            0
 	ID_LEVEL_BONUS_EXTRA             ( 673013 ), // 纳税账号 UUID 高位  税收等级            0
-	ID_MONSTER_REWARD                ( 673014 ), // 怪物兵种 ID         配置表内的 ID       0
-	ID_MONSTER_REWARD_EXTRA          ( 673015 ), // 物兵种 ID           配置表内的 ID       0
+	ID_MONSTER_REWARD                ( 673014 ), // 怪物兵种 ID         掉落表内的 ID       0
+	ID_MONSTER_REWARD_EXTRA          ( 673015 ), // 怪物兵种 ID         额外掉落表内的 ID   0
+	ID_MONSTER_REWARD_COUNT          ( 673016 ), // 怪物兵种 ID         0                   0
 
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0

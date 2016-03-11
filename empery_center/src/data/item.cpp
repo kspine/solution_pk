@@ -47,7 +47,7 @@ namespace {
 
 			csv.get(elem.item_id, "itemid");
 
-			unsigned category = Data::Item::CAT_UNKNOWN;
+			unsigned category = elem.CAT_UNKNOWN;
 			std::uint32_t type = 0;
 			csv.get(category,     "class");
 			csv.get(type,         "type");
@@ -60,15 +60,15 @@ namespace {
 			std::string str;
 			csv.get(str, "autoinc_type");
 			if(::strcasecmp(str.c_str(), "none") == 0){
-				elem.auto_inc_type = Data::Item::AIT_NONE;
+				elem.auto_inc_type = elem.AIT_NONE;
 			} else if(::strcasecmp(str.c_str(), "hourly") == 0){
-				elem.auto_inc_type = Data::Item::AIT_HOURLY;
+				elem.auto_inc_type = elem.AIT_HOURLY;
 			} else if(::strcasecmp(str.c_str(), "daily") == 0){
-				elem.auto_inc_type = Data::Item::AIT_DAILY;
+				elem.auto_inc_type = elem.AIT_DAILY;
 			} else if(::strcasecmp(str.c_str(), "weekly") == 0){
-				elem.auto_inc_type = Data::Item::AIT_WEEKLY;
+				elem.auto_inc_type = elem.AIT_WEEKLY;
 			} else if(::strcasecmp(str.c_str(), "periodic") == 0){
-				elem.auto_inc_type = Data::Item::AIT_PERIODIC;
+				elem.auto_inc_type = elem.AIT_PERIODIC;
 			} else {
 				LOG_EMPERY_CENTER_WARNING("Unknown item auto increment type: ", str);
 				DEBUG_THROW(Exception, sslit("Unknown item auto increment type"));
@@ -255,6 +255,7 @@ namespace Data {
 			ret.emplace_back(item_map, &*it);
 		}
 	}
+
 	void Item::get_public(std::vector<boost::shared_ptr<const Item>> &ret){
 		PROFILE_ME;
 

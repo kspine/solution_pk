@@ -1,6 +1,7 @@
 #include "../precompiled.hpp"
 #include "castle.hpp"
 #include <poseidon/multi_index_map.hpp>
+#include <string.h>
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
 #include "../data_session.hpp"
@@ -76,6 +77,8 @@ namespace {
 		UNIQUE_MEMBER_INDEX(resource_id)
 		MULTI_MEMBER_INDEX(locked_resource_id)
 		MULTI_MEMBER_INDEX(carried_attribute_id)
+		MULTI_MEMBER_INDEX(init_amount)
+		MULTI_MEMBER_INDEX(auto_inc_type)
 	)
 	boost::weak_ptr<const CastleResourceMap> g_resource_map;
 	const char RESOURCE_FILE[] = "initial_material";
@@ -472,11 +475,34 @@ namespace {
 			Data::CastleResource elem = { };
 
 			csv.get(elem.resource_id,          "material_id");
+
 			csv.get(elem.init_amount,          "number");
 			csv.get(elem.producible,           "producible");
+
 			csv.get(elem.locked_resource_id,   "lock_material_id");
 			csv.get(elem.undeployed_item_id,   "item_id");
+
 			csv.get(elem.carried_attribute_id, "weight_id");
+
+			std::string str;
+			csv.get(str, "autoinc_type");
+			if(::strcasecmp(str.c_str(), "none") == 0){
+				elem.auto_inc_type = elem.AIT_NONE;
+			} else if(::strcasecmp(str.c_str(), "hourly") == 0){
+				elem.auto_inc_type = elem.AIT_HOURLY;
+			} else if(::strcasecmp(str.c_str(), "daily") == 0){
+				elem.auto_inc_type = elem.AIT_DAILY;
+			} else if(::strcasecmp(str.c_str(), "weekly") == 0){
+				elem.auto_inc_type = elem.AIT_WEEKLY;
+			} else if(::strcasecmp(str.c_str(), "periodic") == 0){
+				elem.auto_inc_type = elem.AIT_PERIODIC;
+			} else {
+				LOG_EMPERY_CENTER_WARNING("Unknown resource auto increment type: ", str);
+				DEBUG_THROW(Exception, sslit("Unknown resource auto increment type"));
+			}
+			csv.get(elem.auto_inc_offset,      "autoinc_time");
+			csv.get(elem.auto_inc_step,        "autoinc_step");
+			csv.get(elem.auto_inc_bound,       "autoinc_bound");
 
 			if(!resource_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate initial resource: resource_id = ", elem.resource_id,
@@ -1014,6 +1040,39 @@ namespace Data {
 			return { };
 		}
 		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
+	}
+
+	void CastleResource::get_init(std::vector<boost::shared_ptr<const CastleResource>> &ret){
+		PROFILE_ME;
+
+		const auto resource_map = g_resource_map.lock();
+		if(!resource_map){
+			LOG_EMPERY_CENTER_WARNING("CastleResourceMap has not been loaded.");
+			return;
+		}
+
+		const auto begin = resource_map->upper_bound<3>(0);
+		const auto end = resource_map->end<3>();
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
+		for(auto it = begin; it != end; ++it){
+			ret.emplace_back(resource_map, &*it);
+		}
+	}
+	void CastleResource::get_auto_inc(std::vector<boost::shared_ptr<const CastleResource>> &ret){
+		PROFILE_ME;
+
+		const auto resource_map = g_resource_map.lock();
+		if(!resource_map){
+			LOG_EMPERY_CENTER_WARNING("CastleResourceMap has not been loaded.");
+			return;
+		}
+
+		const auto begin = resource_map->upper_bound<4>(AIT_NONE);
+		const auto end = resource_map->end<4>();
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
+		for(auto it = begin; it != end; ++it){
+			ret.emplace_back(resource_map, &*it);
+		}
 	}
 }
 

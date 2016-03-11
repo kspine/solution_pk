@@ -166,6 +166,15 @@ namespace Data {
 
 	class CastleResource {
 	public:
+		 enum AutoIncType {
+		 	AIT_NONE     = 0,
+		 	AIT_HOURLY   = 1,
+		 	AIT_DAILY    = 2,
+		 	AIT_WEEKLY   = 3,
+		 	AIT_PERIODIC = 4,
+		 };
+
+	public:
 		static boost::shared_ptr<const CastleResource> get(ResourceId resource_id);
 		static boost::shared_ptr<const CastleResource> require(ResourceId resource_id);
 
@@ -176,13 +185,24 @@ namespace Data {
 
 		static boost::shared_ptr<const CastleResource> get_by_carried_attribute_id(AttributeId attribute_id);
 
+		static void get_init(std::vector<boost::shared_ptr<const CastleResource>> &ret);
+		static void get_auto_inc(std::vector<boost::shared_ptr<const CastleResource>> &ret);
+
 	public:
 		ResourceId resource_id;
+
 		std::uint64_t init_amount;
 		bool producible;
+
 		ResourceId locked_resource_id;
 		ItemId undeployed_item_id;
+
 		AttributeId carried_attribute_id;
+
+		AutoIncType auto_inc_type;
+		std::uint64_t auto_inc_offset;
+		std::int64_t auto_inc_step;
+		std::uint64_t auto_inc_bound;
 	};
 }
 
