@@ -32,6 +32,13 @@ namespace Data {
 		MapObjectWeaponId           category_id;
 		boost::container::flat_map<MapObjectWeaponId, double> arm_relative;
 	};
+	
+	class MapObjectTypeMonster{
+	public:
+		static boost::shared_ptr<const MapObjectTypeMonster> get(MapObjectTypeId map_object_type_id);
+		public:
+		MapObjectTypeId     map_object_type_id;
+	};
 }
 
 }

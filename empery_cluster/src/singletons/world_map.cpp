@@ -355,12 +355,14 @@ void WorldMap::get_map_objects_surrounding(std::vector<boost::shared_ptr<MapObje
 		return;
 	}
 	std::vector<Coord> surrounding;
-	get_surrounding_coords(surrounding,origin,radius);
-	for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
-		const auto coord = *it;
-		const auto it_map_object = map_object_map->find<2>(coord);
-		if(it_map_object != map_object_map->end<2>()){
-			ret.emplace_back(it_map_object->map_object);
+	for(std::uint64_t i = 0; i <= radius; i++){
+		get_surrounding_coords(surrounding,origin,i);
+		for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
+			const auto coord = *it;
+			const auto it_map_object = map_object_map->find<2>(coord);
+			if(it_map_object != map_object_map->end<2>()){
+				ret.emplace_back(it_map_object->map_object);
+			}
 		}
 	}
 }

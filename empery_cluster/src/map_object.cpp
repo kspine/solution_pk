@@ -634,7 +634,7 @@ void MapObject::troops_attack(bool passive){
 			return;
 		}
 		boost::shared_ptr<MapObject> near_enemy_object;
-		if(passive&&get_new_enemy(enemy_object,near_enemy_object)){
+		if(passive&&map_object->get_new_enemy(enemy_object,near_enemy_object)){
 			map_object->attack_new_target(near_enemy_object);
 		}else{
 			map_object->attack_new_target(enemy_object);
@@ -723,6 +723,7 @@ bool    MapObject::get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,b
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_surrounding(map_objects,get_coord(),get_view_range());
+	auto min_distance = UINT64_MAX;
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
 
@@ -730,9 +731,15 @@ bool    MapObject::get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,b
 			continue;
 		}
 		if(map_object->get_owner_uuid() == enemy_map_object->get_owner_uuid()){
-			new_enemy_map_object = map_object;
-			return true;
+			auto distance = get_distance_of_coords(get_coord(),map_object->get_coord());
+			if(distance < min_distance){
+				new_enemy_map_object = map_object;
+				min_distance = distance;
+			}
 		}
+	}
+	if(min_distance != UINT64_MAX){
+		return true;
 	}
 	return false;
 }
@@ -785,11 +792,11 @@ void   MapObject::monster_regress(){
 bool  MapObject::is_monster(){
 	PROFILE_ME;
 
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
-	if(!map_object_type_data){
+	const auto map_object_type_monster_data = Data::MapObjectTypeMonster::get(get_map_object_type_id());
+	if(!map_object_type_monster_data){
 		return false;
 	}
-	return MapObjectCategoryIds::ID_MONSTER == map_object_type_data->category_id; // FIXME 这什么鬼。
+	return true;
 }
 
 bool  MapObject::attacked_able(){
