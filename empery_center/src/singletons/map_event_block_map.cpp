@@ -4,7 +4,6 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
-#include <poseidon/async_job.hpp>
 #include "../map_event_block.hpp"
 #include "../mysql/map_event.hpp"
 
