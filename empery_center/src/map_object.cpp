@@ -39,15 +39,7 @@ MapObject::~MapObject(){
 void MapObject::pump_status(){
 	PROFILE_ME;
 
-	recalculate_attributes();
-}
-void MapObject::recalculate_attributes(){
-	PROFILE_ME;
-
-	const auto map_object_type_id = get_map_object_type_id();
-	const auto map_object_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
-
-	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	bool dirty = false;
 
 	boost::shared_ptr<MapObject> parent_object;
 	const auto parent_object_uuid = get_parent_object_uuid();
@@ -55,8 +47,27 @@ void MapObject::recalculate_attributes(){
 		parent_object = WorldMap::get_map_object(parent_object_uuid);
 	}
 	if(parent_object && (m_last_updated_time < parent_object->m_last_updated_time)){
-		modifiers.clear();
-		modifiers.reserve(32);
+		++dirty;
+	}
+	if(dirty){
+		recalculate_attributes();
+	}
+}
+void MapObject::recalculate_attributes(){
+	PROFILE_ME;
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers.reserve(32);
+
+	const auto map_object_type_id = get_map_object_type_id();
+	const auto map_object_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
+
+	boost::shared_ptr<MapObject> parent_object;
+	const auto parent_object_uuid = get_parent_object_uuid();
+	if(parent_object_uuid){
+		parent_object = WorldMap::get_map_object(parent_object_uuid);
+	}
+	if(parent_object){
 		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_BONUS,                     0);
 		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DEFENSE_BONUS,                    0);
 		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DODGING_RATIO_BONUS,              0);
@@ -88,9 +99,9 @@ void MapObject::recalculate_attributes(){
 				", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
 			modifiers[bonus_attribute_id] += tech_attribute_value;
 		}
-
-		set_attributes(std::move(modifiers));
 	}
+
+	set_attributes(std::move(modifiers));
 }
 
 MapObjectUuid MapObject::get_map_object_uuid() const {
@@ -248,8 +259,8 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 		return;
 	}
 
-	const auto now = Poseidon::get_fast_mono_clock();
-	m_last_updated_time = now;
+	const auto hi_res_now = Poseidon::get_hi_res_mono_clock();
+	m_last_updated_time = hi_res_now;
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 
