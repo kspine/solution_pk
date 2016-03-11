@@ -349,6 +349,17 @@ void Castle::recalculate_attributes(){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		if(child_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		try {
+			child_object->pump_status();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
 
 	// 提交新的属性。注意该行前后城堡属性发生变化。
 	set_attributes(std::move(modifiers));
@@ -359,9 +370,7 @@ void Castle::recalculate_attributes(){
 		if(child_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		assert(child_object.get() != this);
 		try {
-			child_object->pump_status();
 			child_object->recalculate_attributes();
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
