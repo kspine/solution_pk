@@ -1,6 +1,7 @@
 #include "../precompiled.hpp"
 #include "world_map.hpp"
-#include <boost/container/flat_set.hpp>
+#include "../mmain.hpp"
+#include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/async_job.hpp>
@@ -72,6 +73,21 @@ namespace {
 	)
 
 	boost::weak_ptr<MapObjectContainer> g_map_object_map;
+
+	void map_object_refresh_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Map object refresh timer: now = ", now);
+
+		const auto map_object_map = g_map_object_map.lock();
+		if(!map_object_map){
+			return;
+		}
+
+		for(auto it = map_object_map->begin<0>(); it != map_object_map->end<0>(); ++it){
+			const auto &map_object = it->map_object;
+			map_object->pump_status();
+		}
+	}
 
 	struct OverlayElement {
 		boost::shared_ptr<Overlay> overlay;
@@ -394,6 +410,11 @@ namespace {
 				}
 				LOG_EMPERY_CENTER_DEBUG("Done recalculating castle attributes.");
 			});
+
+		const auto map_object_refresh_interval = get_config<std::uint64_t>("map_object_refresh_interval", 300000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
+			std::bind(&map_object_refresh_timer_proc, std::placeholders::_2));
+		handles.push(timer);
 	}
 
 	template<typename T>

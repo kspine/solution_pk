@@ -25,6 +25,8 @@ private:
 		boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 	// 非持久化数据。
+	double m_last_updated_time = 0;
+
 	unsigned m_action = 0;
 	std::string m_action_param;
 
