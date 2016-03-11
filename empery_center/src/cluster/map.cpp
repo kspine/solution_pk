@@ -98,7 +98,7 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObjectAction, cluster, req){
 
 	return Response();
 }
-
+/*
 CLUSTER_SERVLET(Msg::KS_MapRemoveMapObject, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
@@ -114,7 +114,7 @@ CLUSTER_SERVLET(Msg::KS_MapRemoveMapObject, cluster, req){
 
 	return Response();
 }
-
+*/
 CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
@@ -575,6 +575,29 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		};
 		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(check_mission);
 	}
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapHealMonster, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto monster_data = Data::MapObjectTypeMonster::require(map_object_type_id);
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers.reserve(8);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(monster_data->max_soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(monster_data->max_soldier_count);
+	map_object->set_attributes(std::move(modifiers));
 
 	return Response();
 }

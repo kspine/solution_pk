@@ -51,7 +51,7 @@ protected:
 			}
 			auto read = Poseidon::StreamBuffer::ReadIterator(payload);
 			std::uint64_t message_id64;
-			if(!Poseidon::vuint50_from_binary(message_id64, read, payload.size())){
+			if(!Poseidon::vuint64_from_binary(message_id64, read, payload.size())){
 				LOG_EMPERY_GOLD_SCRAMBLE_WARNING("Packet too small");
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
@@ -245,7 +245,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 
 	Poseidon::StreamBuffer whole;
 	auto wit = Poseidon::StreamBuffer::WriteIterator(whole);
-	Poseidon::vuint50_to_binary(message_id, wit);
+	Poseidon::vuint64_to_binary(message_id, wit);
 	whole.splice(payload);
 	return impl->send(std::move(whole), true);
 }
