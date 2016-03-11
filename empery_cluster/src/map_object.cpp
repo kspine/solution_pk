@@ -103,9 +103,14 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		return UINT64_MAX;
 	}
 	if(garrisoned){
-	 	result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
-	 	return UINT64_MAX;
+		result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
+		return lost_target();
 	}
+
+	if(is_lost_attacked_target()){
+		return lost_target();
+	}
+
 	//修正action
 	if(!fix_attack_action()){
 		return UINT64_MAX;
@@ -246,7 +251,6 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		const auto distance = get_distance_of_coords(new_coord, Coord(birth_x,birth_y));
 		if(distance >= monster_active_scope){
 			lost_target();
-			monster_regress();
 			return delay;
 		}
 	}
@@ -551,9 +555,6 @@ std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
 		attacker->attack_new_target(enemy_map_object);
 	}else{
 		attacker->lost_target();
-		if(attacker->is_monster()){
-			attacker->monster_regress();
-		}
 	}
 	// WorldMap::remove_map_object(get_map_object_uuid()); // TODO 应当不再需要，需要测试。HP 扣减为零时中央服务器应当发送删除物体通知。
 	return UINT64_MAX;
@@ -618,7 +619,6 @@ std::uint64_t MapObject::get_view_range(){
 
 void MapObject::troops_attack(bool passive){
 	PROFILE_ME;
-	
 	if(is_monster()){
 		return;
 	}
@@ -685,11 +685,11 @@ bool    MapObject::fix_attack_action(){
 		m_waypoints.clear();
 		notify_way_points(m_waypoints,m_action,m_action_param);
 	}
-
 	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 	if(!target_object){
 		return false;
 	}
+
 	if(!target_object->attacked_able()){
 		return false;
 	}
@@ -769,13 +769,19 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 		}
 }
 
-void   MapObject::lost_target(){
+std::uint64_t   MapObject::lost_target(){
 	PROFILE_ME;
 
-	m_waypoints.clear();
-	m_action = ACT_GUARD;
-	m_action_param.clear();
-	notify_way_points(m_waypoints,m_action,m_action_param);
+	if(is_monster()){
+		monster_regress();
+	}else{
+		m_waypoints.clear();
+		m_action = ACT_GUARD;
+		m_action_param.clear();
+		notify_way_points(m_waypoints,m_action,m_action_param);
+	}
+	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+	return stand_by_interval;
 }
 
 void   MapObject::monster_regress(){
@@ -822,6 +828,18 @@ bool  MapObject::attacked_able(){
 		return false;
 	}
 	return true;
+}
+
+bool  MapObject::is_lost_attacked_target(){
+	PROFILE_ME;
+	if(m_action != ACT_ATTACK){
+		return false;
+	}
+	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
+	if(!target_object){
+		return true;
+	}
+	return false;
 }
 
 

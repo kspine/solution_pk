@@ -92,10 +92,11 @@ private:
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
 	bool          get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object);
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
-	void          lost_target();
+	std::uint64_t lost_target();
 	void          monster_regress();
 	bool          is_monster();
 	bool          attacked_able();
+	bool          is_lost_attacked_target();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
