@@ -48,7 +48,33 @@ ItemBox::~ItemBox(){
 
 void ItemBox::pump_status(){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Checking for auto increment items: account_uuid = ", get_account_uuid());
+
+	check_auto_inc_items();
+}
+
+void ItemBox::check_init_items(){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking init items: account_uuid = ", get_account_uuid());
+
+	std::vector<ItemTransactionElement> transaction;
+	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
+	Data::Item::get_init(items_to_check);
+	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
+		const auto &item_data = *dit;
+		const auto item_id = item_data->item_id;
+		const auto iit = m_items.find(item_id);
+		if(iit != m_items.end()){
+			continue;
+		}
+		LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_id, ", init_count = ", item_data->init_count);
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, item_data->init_count,
+			ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
+	}
+	commit_transaction(transaction, false);
+}
+void ItemBox::check_auto_inc_items(){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking auto increment items: account_uuid = ", get_account_uuid());
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -58,11 +84,12 @@ void ItemBox::pump_status(){
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_Item>, std::uint64_t> new_timestamps;
 	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
 		const auto &item_data = *dit;
-		auto it = m_items.find(item_data->item_id);
+		const auto item_id = item_data->item_id;
+		auto it = m_items.find(item_id);
 		if(it == m_items.end()){
-			auto obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_data->item_id.get(), 0, 0);
+			auto obj = boost::make_shared<MySql::Center_Item>(get_account_uuid().get(), item_id.get(), 0, 0);
 			obj->async_save(true);
-			it = m_items.emplace(item_data->item_id, std::move(obj)).first;
+			it = m_items.emplace(item_id, std::move(obj)).first;
 		}
 		const auto &obj = it->second;
 
@@ -90,7 +117,7 @@ void ItemBox::pump_status(){
 			break;
 		}
 		if(auto_inc_period == 0){
-			LOG_EMPERY_CENTER_WARNING("Item auto increment period is zero? item_id = ", item_data->item_id);
+			LOG_EMPERY_CENTER_WARNING("Item auto increment period is zero? item_id = ", item_id);
 			continue;
 		}
 		auto_inc_offset %= auto_inc_period;
@@ -100,7 +127,7 @@ void ItemBox::pump_status(){
 
 		const auto prev_interval = checked_sub(checked_add(old_updated_time, auto_inc_period), auto_inc_offset) / auto_inc_period;
 		const auto cur_interval = checked_sub(utc_now, auto_inc_offset) / auto_inc_period;
-		LOG_EMPERY_CENTER_TRACE("> Checking item: item_id = ", item_data->item_id,
+		LOG_EMPERY_CENTER_TRACE("> Checking item: item_id = ", item_id,
 			", prev_interval = ", prev_interval, ", cur_interval = ", cur_interval);
 		if(cur_interval <= prev_interval){
 			continue;
@@ -111,17 +138,18 @@ void ItemBox::pump_status(){
 			if(old_count < item_data->auto_inc_bound){
 				const auto count_to_add = saturated_mul(static_cast<std::uint64_t>(item_data->auto_inc_step), interval_count);
 				const auto new_count = std::min(saturated_add(old_count, count_to_add), item_data->auto_inc_bound);
-				LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
-				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_data->item_id, new_count - old_count,
+				LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_id,
+					", old_count = ", old_count, ", new_count = ", new_count);
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, new_count - old_count,
 					ReasonIds::ID_AUTO_INCREMENT, item_data->auto_inc_type, item_data->auto_inc_offset, 0);
 			}
 		} else {
 			if(old_count > item_data->auto_inc_bound){
-				LOG_EMPERY_CENTER_TRACE("> Removing items: item_id = ", item_data->item_id, ", init_count = ", item_data->init_count);
 				const auto count_to_remove = saturated_mul(static_cast<std::uint64_t>(-(item_data->auto_inc_step)), interval_count);
 				const auto new_count = std::max(saturated_sub(old_count, count_to_remove), item_data->auto_inc_bound);
-				LOG_EMPERY_CENTER_TRACE("> Removing items: item_id = ", item_data->item_id, ", old_count = ", old_count, ", new_count = ", new_count);
-				transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_data->item_id, old_count - new_count,
+				LOG_EMPERY_CENTER_TRACE("> Removing items: item_id = ", item_id,
+					", old_count = ", old_count, ", new_count = ", new_count);
+				transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, old_count - new_count,
 					ReasonIds::ID_AUTO_INCREMENT, item_data->auto_inc_type, item_data->auto_inc_offset, 0);
 			}
 		}
@@ -134,27 +162,6 @@ void ItemBox::pump_status(){
 				it->first->set_updated_time(it->second);
 			}
 		});
-}
-
-void ItemBox::check_init_items(){
-	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Checking for init items: account_uuid = ", get_account_uuid());
-
-	std::vector<ItemTransactionElement> transaction;
-	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
-	Data::Item::get_init(items_to_check);
-	for(auto dit = items_to_check.begin(); dit != items_to_check.end(); ++dit){
-		const auto &item_data = *dit;
-		const auto item_id = item_data->item_id;
-		const auto iit = m_items.find(item_id);
-		if(iit != m_items.end()){
-			continue;
-		}
-		LOG_EMPERY_CENTER_TRACE("> Adding items: item_id = ", item_id, ", init_count = ", item_data->init_count);
-		transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, item_data->init_count,
-			ReasonIds::ID_INIT_ITEMS, item_data->init_count, 0, 0);
-	}
-	commit_transaction(transaction, false);
 }
 
 ItemBox::ItemInfo ItemBox::get(ItemId item_id) const {

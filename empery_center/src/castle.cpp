@@ -284,6 +284,8 @@ void Castle::pump_status(){
 	if(dirty){
 		recalculate_attributes();
 	}
+
+	check_auto_inc_resources();
 }
 void Castle::recalculate_attributes(){
 	PROFILE_ME;
@@ -504,8 +506,8 @@ void Castle::pump_production(){
 
 void Castle::check_init_buildings(){
 	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking init buildings: map_object_uuid = ", get_map_object_uuid());
 
-	LOG_EMPERY_CENTER_TRACE("Checking for init buildings: map_object_uuid = ", get_map_object_uuid());
 	bool dirty = false;
 	std::vector<boost::shared_ptr<const Data::CastleBuildingBase>> init_buildings;
 	Data::CastleBuildingBase::get_init(init_buildings);
@@ -1139,8 +1141,8 @@ void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_pt
 
 void Castle::check_init_resources(){
 	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking init resources: map_object_uuid = ", get_map_object_uuid());
 
-	LOG_EMPERY_CENTER_TRACE("Checking for init resources: map_object_uuid = ", get_map_object_uuid());
 	std::vector<ResourceTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::CastleResource>> resource_data_all;
 	Data::CastleResource::get_all(resource_data_all);
@@ -1156,6 +1158,97 @@ void Castle::check_init_resources(){
 			ReasonIds::ID_INIT_RESOURCES, resource_data->init_amount, 0, 0);
 	}
 	commit_resource_transaction(transaction);
+}
+void Castle::check_auto_inc_resources(){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Checking auto increment resources: map_object_uuid = ", get_map_object_uuid());
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	std::vector<ResourceTransactionElement> transaction;
+	std::vector<boost::shared_ptr<const Data::CastleResource>> resources_to_check;
+	Data::CastleResource::get_auto_inc(resources_to_check);
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t> new_timestamps;
+	for(auto dit = resources_to_check.begin(); dit != resources_to_check.end(); ++dit){
+		const auto &resource_data = *dit;
+		const auto resource_id = resource_data->resource_id;
+		auto it = m_resources.find(resource_id);
+		if(it == m_resources.end()){
+			auto obj = boost::make_shared<MySql::Center_CastleResource>(get_map_object_uuid().get(), resource_id.get(), 0, 0);
+			obj->async_save(true);
+			it = m_resources.emplace(resource_id, std::move(obj)).first;
+		}
+		const auto &obj = it->second;
+
+		std::uint64_t auto_inc_period, auto_inc_offset;
+		switch(resource_data->auto_inc_type){
+		case Data::CastleResource::AIT_HOURLY:
+			auto_inc_period = 3600 * 1000;
+			auto_inc_offset = checked_mul<std::uint64_t>(resource_data->auto_inc_offset, 60000);
+			break;
+		case Data::CastleResource::AIT_DAILY:
+			auto_inc_period = 24 * 3600 * 1000;
+			auto_inc_offset = checked_mul<std::uint64_t>(resource_data->auto_inc_offset, 60000);
+			break;
+		case Data::CastleResource::AIT_WEEKLY:
+			auto_inc_period = 7 * 24 * 3600 * 1000;
+			auto_inc_offset = checked_mul<std::uint64_t>(resource_data->auto_inc_offset, 60000) + 3 * 24 * 3600 * 1000; // 注意 1970-01-01 是星期四。
+			break;
+		case Data::CastleResource::AIT_PERIODIC:
+			auto_inc_period = checked_mul<std::uint64_t>(resource_data->auto_inc_offset, 60000);
+			auto_inc_offset = utc_now + 1; // 当前时间永远是区间中的最后一秒。
+			break;
+		default:
+			auto_inc_period = 0;
+			auto_inc_offset = 0;
+			break;
+		}
+		if(auto_inc_period == 0){
+			LOG_EMPERY_CENTER_WARNING("Castle resource auto increment period is zero? resource_id = ", resource_id);
+			continue;
+		}
+		auto_inc_offset %= auto_inc_period;
+
+		const auto old_amount = obj->get_amount();
+		const auto old_updated_time = obj->get_updated_time();
+
+		const auto prev_interval = checked_sub(checked_add(old_updated_time, auto_inc_period), auto_inc_offset) / auto_inc_period;
+		const auto cur_interval = checked_sub(utc_now, auto_inc_offset) / auto_inc_period;
+		LOG_EMPERY_CENTER_TRACE("> Checking resource: resource_id = ", resource_id,
+			", prev_interval = ", prev_interval, ", cur_interval = ", cur_interval);
+		if(cur_interval <= prev_interval){
+			continue;
+		}
+		const auto interval_count = cur_interval - prev_interval;
+
+		if(resource_data->auto_inc_step >= 0){
+			if(old_amount < resource_data->auto_inc_bound){
+				const auto amount_to_add = saturated_mul(static_cast<std::uint64_t>(resource_data->auto_inc_step), interval_count);
+				const auto new_amount = std::min(saturated_add(old_amount, amount_to_add), resource_data->auto_inc_bound);
+				LOG_EMPERY_CENTER_TRACE("> Adding resource: resource_id = ", resource_id,
+					", old_amount = ", old_amount, ", new_amount = ", new_amount);
+				transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, new_amount - old_amount,
+					ReasonIds::ID_AUTO_INCREMENT, resource_data->auto_inc_type, resource_data->auto_inc_offset, 0);
+			}
+		} else {
+			if(old_amount > resource_data->auto_inc_bound){
+				const auto amount_to_remove = saturated_mul(static_cast<std::uint64_t>(-(resource_data->auto_inc_step)), interval_count);
+				const auto new_amount = std::max(saturated_sub(old_amount, amount_to_remove), resource_data->auto_inc_bound);
+				LOG_EMPERY_CENTER_TRACE("> Removing resource: resource_id = ", resource_id,
+					", old_amount = ", old_amount, ", new_amount = ", new_amount);
+				transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, old_amount - new_amount,
+					ReasonIds::ID_AUTO_INCREMENT, resource_data->auto_inc_type, resource_data->auto_inc_offset, 0);
+			}
+		}
+		const auto new_updated_time = saturated_add(old_updated_time, saturated_mul(auto_inc_period, interval_count));
+		new_timestamps.emplace(obj, new_updated_time);
+	}
+	commit_resource_transaction(transaction,
+		[&]{
+			for(auto it = new_timestamps.begin(); it != new_timestamps.end(); ++it){
+				it->first->set_updated_time(it->second);
+			}
+		});
 }
 
 Castle::ResourceInfo Castle::get_resource(ResourceId resource_id) const {
@@ -1189,7 +1282,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 
 	std::vector<boost::shared_ptr<Poseidon::EventBaseWithoutId>> events;
 	events.reserve(transaction.size());
-	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t /* new_count */> temp_result_map;
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t /* new_amount */> temp_result_map;
 	temp_result_map.reserve(transaction.size());
 
 	const FlagGuard transaction_guard(m_locked_by_resource_transaction);
@@ -1221,8 +1314,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 				{
 					const auto it = m_resources.find(resource_id);
 					if(it == m_resources.end()){
-						obj = boost::make_shared<MySql::Center_CastleResource>(
-							get_map_object_uuid().get(), resource_id.get(), 0);
+						obj = boost::make_shared<MySql::Center_CastleResource>(get_map_object_uuid().get(), resource_id.get(), 0, 0);
 						obj->async_save(true);
 						m_resources.emplace(resource_id, obj);
 					} else {

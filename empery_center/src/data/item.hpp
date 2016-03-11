@@ -46,6 +46,7 @@ namespace Data {
 
 		static void get_init(std::vector<boost::shared_ptr<const Item>> &ret);
 		static void get_auto_inc(std::vector<boost::shared_ptr<const Item>> &ret);
+
 		static void get_public(std::vector<boost::shared_ptr<const Item>> &ret);
 
 	public:

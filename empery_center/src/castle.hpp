@@ -156,6 +156,7 @@ public:
 	void synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	void check_init_resources();
+	void check_auto_inc_resources();
 
 	ResourceInfo get_resource(ResourceId resource_id) const;
 	void get_all_resources(std::vector<ResourceInfo> &ret) const;

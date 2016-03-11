@@ -34,7 +34,8 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (map_object_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (resource_id)	\
-	FIELD_BIGINT_UNSIGNED   (amount)
+	FIELD_BIGINT_UNSIGNED   (amount)	\
+	FIELD_DATETIME          (updated_time)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_CastleBattalion

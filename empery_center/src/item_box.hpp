@@ -46,6 +46,7 @@ public:
 	}
 
 	void check_init_items();
+	void check_auto_inc_items();
 
 	ItemInfo get(ItemId item_id) const;
 	void get_all(std::vector<ItemInfo> &ret) const;
