@@ -97,9 +97,12 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	 	result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 	 	return UINT64_MAX;
 	}
+	
 	if(is_lost_attacked_target()){
 		return search_attack();
 	}
+	
+	
 	//修正action
 	if(!fix_attack_action()){
 		return UINT64_MAX;
@@ -712,6 +715,9 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 		if(map_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
+		if(!map_object->attacked_able()){
+			continue;
+		}
 		if(map_object->get_owner_uuid() == owner_uuid){
 			auto distance = get_distance_of_coords(get_coord(),map_object->get_coord());
 			if(distance < min_distance){
@@ -813,6 +819,7 @@ bool  MapObject::is_lost_attacked_target(){
 	if(!target_object){
 		return true;
 	}
+	
 	if(target_object->is_garrisoned()){
 		return true;
 	}
