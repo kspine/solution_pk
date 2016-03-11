@@ -18,7 +18,6 @@ public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
-	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
 private:
 	boost::weak_ptr<MapObject> m_parent_object;
 };
@@ -63,6 +62,7 @@ private:
 	// 移动完毕后动作。
 	Action m_action = ACT_GUARD;
 	std::string m_action_param;
+	AccountUuid m_target_own_uuid;
 	boost::shared_ptr<AiControl> m_ai_control;
 
 public:
@@ -85,18 +85,20 @@ public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
-	std::uint64_t on_die(boost::shared_ptr<MapObject> attacker);
 private:
 	void          notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param);
 	bool          fix_attack_action();
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
-	bool          get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object);
+	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object);
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
 	std::uint64_t lost_target();
 	void          monster_regress();
 	bool          is_monster();
 	bool          attacked_able();
 	bool          is_lost_attacked_target();
+	void          reset_attack_target_own_uuid();
+	AccountUuid   get_attack_target_own_uuid(); 
+	std::uint64_t search_attack();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
