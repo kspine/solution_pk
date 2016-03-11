@@ -700,7 +700,7 @@ bool    MapObject::fix_attack_action(){
 	return true;
 }
 
-bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord){
+bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise){
 	PROFILE_ME;
 
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
@@ -709,7 +709,11 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 	}
 
 	std::vector<std::pair<signed char, signed char>> path;
-	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, map_object_type_data->shoot_range)){
+	std::uint64_t distance_close_enough = 0;
+	if(!precise){
+		distance_close_enough = map_object_type_data->shoot_range;
+	}
+	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, distance_close_enough)){
 		for(auto it = path.begin(); it != path.end(); ++it){
 			waypoints.emplace_back(it->first, it->second);
 		}
@@ -782,7 +786,7 @@ void   MapObject::monster_regress(){
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
 	std::deque<std::pair<signed char, signed char>> waypoints;
-	if(find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y))){
+	if(find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y),true)){
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
 	}else{
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
