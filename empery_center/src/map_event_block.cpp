@@ -126,39 +126,6 @@ void MapEventBlock::pump_status(){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	// 移除过期的地图事件。
-	std::deque<Coord> events_to_remove;
-	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	for(auto it = m_events.begin(); it != m_events.end(); ++it){
-		const auto &obj = it->second;
-		const auto expiry_time = obj->get_expiry_time();
-		if(utc_now < expiry_time){
-			continue;
-		}
-		const auto coord = it->first;
-		const auto map_event_id = MapEventId(obj->get_map_event_id());
-		// 判定是否应当移除事件。
-		const auto resource_event_data = Data::MapEventResource::get(map_event_id);
-		if(resource_event_data){
-			map_objects.clear();
-			WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord, 1, 1));
-			if(!map_objects.empty()){
-				const auto &map_object = map_objects.front();
-				const auto owner_uuid = map_object->get_owner_uuid();
-				if(owner_uuid){
-					// 假设有部队正在采集。
-					continue;
-				}
-			}
-		}
-		events_to_remove.emplace_back(it->first);
-	}
-	for(auto it = events_to_remove.begin(); it != events_to_remove.end(); ++it){
-		const auto coord = *it;
-		LOG_EMPERY_CENTER_TRACE("Removing expired map event: coord = ", coord);
-		remove(coord);
-	}
-
 	const auto old_next_refresh_time = m_obj->get_next_refresh_time();
 	if(utc_now < old_next_refresh_time){
 		return;
@@ -202,6 +169,38 @@ void MapEventBlock::refresh_events(bool first_time){
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
 	std::vector<Coord> castle_foundation;
+
+	// 移除过期的地图事件。
+	std::deque<Coord> events_to_remove;
+	for(auto it = m_events.begin(); it != m_events.end(); ++it){
+		const auto &obj = it->second;
+		const auto expiry_time = obj->get_expiry_time();
+		if(utc_now < expiry_time){
+			continue;
+		}
+		const auto coord = it->first;
+		const auto map_event_id = MapEventId(obj->get_map_event_id());
+		// 判定是否应当移除事件。
+		const auto resource_event_data = Data::MapEventResource::get(map_event_id);
+		if(resource_event_data){
+			map_objects.clear();
+			WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord, 1, 1));
+			if(!map_objects.empty()){
+				const auto &map_object = map_objects.front();
+				const auto owner_uuid = map_object->get_owner_uuid();
+				if(owner_uuid){
+					// 假设有部队正在采集。
+					continue;
+				}
+			}
+		}
+		events_to_remove.emplace_back(it->first);
+	}
+	for(auto it = events_to_remove.begin(); it != events_to_remove.end(); ++it){
+		const auto coord = *it;
+		LOG_EMPERY_CENTER_TRACE("Removing expired map event: coord = ", coord);
+		remove(coord);
+	}
 
 	// 刷新新的地图事件。
 	const auto block_coord = get_block_coord();
