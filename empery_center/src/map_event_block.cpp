@@ -125,6 +125,7 @@ void MapEventBlock::pump_status(){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
+
 	const auto old_next_refresh_time = m_obj->get_next_refresh_time();
 	if(utc_now < old_next_refresh_time){
 		return;
@@ -170,8 +171,7 @@ void MapEventBlock::refresh_events(bool first_time){
 	std::vector<Coord> castle_foundation;
 
 	// 移除过期的地图事件。
-	std::vector<Coord> events_to_remove;
-	events_to_remove.reserve(m_events.size());
+	std::deque<Coord> events_to_remove;
 	for(auto it = m_events.begin(); it != m_events.end(); ++it){
 		const auto &obj = it->second;
 		const auto expiry_time = obj->get_expiry_time();
@@ -229,7 +229,7 @@ void MapEventBlock::refresh_events(bool first_time){
 	} else {
 		const auto active_account_threshold_days = Data::Global::as_unsigned(Data::Global::SLOT_ACTIVE_CASTLE_THRESHOLD_DAYS);
 		// 统计当前地图上同一圈内的总活跃城堡数。
-		std::vector<boost::shared_ptr<MapObject>> map_objects;
+		map_objects.clear();
 		WorldMap::get_map_objects_by_rectangle(map_objects, cluster_scope);
 		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 			const auto &map_object = *it;
@@ -416,10 +416,11 @@ void MapEventBlock::refresh_events(bool first_time){
 			}
 
 			if(events_retained + events_created < events_to_refresh){
-				LOG_EMPERY_CENTER_WARNING("Map events overflowed: block_scope = ", block_scope, ", active_castle_count = ", active_castle_count,
+				LOG_EMPERY_CENTER_WARNING("Map events overflowed: block_scope = ", block_scope,
+					", active_castle_count = ", active_castle_count, ", map_event_id = ", map_event_id,
 					", events_to_refresh = ", events_to_refresh, ", events_retained = ", events_retained, ", events_created = ", events_created);
 				Poseidon::async_raise_event(
-					boost::make_shared<Events::MapEventsOverflowed>(block_scope, active_castle_count,
+					boost::make_shared<Events::MapEventsOverflowed>(block_scope, active_castle_count, map_event_id,
 						events_to_refresh, events_retained, events_created),
 					{ });
 			}

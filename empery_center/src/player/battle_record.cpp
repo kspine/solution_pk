@@ -41,7 +41,7 @@ PLAYER_SERVLET(Msg::CS_BattleRecordGetPagedRecords, account, session, req){
 		record.second_object_type_id = it->second_object_type_id.get();
 		record.second_coord_x        = it->second_coord.x();
 		record.second_coord_y        = it->second_coord.y();
-		record.result_type           = static_cast<unsigned>(it->result_type);
+		record.result_type           = it->result_type;
 		record.result_param1         = it->result_param1;
 		record.result_param2         = it->result_param2;
 		record.soldiers_damaged      = it->soldiers_damaged;

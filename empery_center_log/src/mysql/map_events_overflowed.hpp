@@ -14,6 +14,8 @@ namespace MySql {
 	FIELD_BIGINT            (block_y)	\
 	FIELD_INTEGER_UNSIGNED  (width)	\
 	FIELD_INTEGER_UNSIGNED  (height)	\
+	FIELD_INTEGER_UNSIGNED  (active_castle_count)	\
+	FIELD_INTEGER_UNSIGNED  (map_event_id)	\
 	FIELD_BIGINT_UNSIGNED   (events_to_refresh)	\
 	FIELD_BIGINT_UNSIGNED   (events_retained)	\
 	FIELD_BIGINT_UNSIGNED   (events_created)

@@ -3,7 +3,6 @@
 #include <boost/container/flat_set.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
-#include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
 #include "player_session_map.hpp"
 #include "map_event_block_map.hpp"
@@ -381,7 +380,7 @@ namespace {
 		handles.push(cluster_map);
 
 		Poseidon::enqueue_async_job(
-			[map_object_map]{
+			[=]{
 				PROFILE_ME;
 				LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
 				for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
