@@ -39,6 +39,7 @@
 #include "../reason_ids.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
+#include "../resource_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -470,7 +471,27 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 
 			const auto item_box = ItemBoxMap::require(attacking_account_uuid);
 
+			const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
+			if(!attacking_object){
+				return;
+			}
+			const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
+			const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+			if(!parent_castle){
+				LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
+				return;
+			}
+			const auto monster_reward_count = parent_castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
+			if(monster_reward_count <= 0){
+				LOG_EMPERY_CENTER_DEBUG("No monster reward count remaining: parent_object_uuid = ", parent_object_uuid);
+				return;
+			}
+
 			const auto utc_now = Poseidon::get_utc_time();
+
+			std::vector<ResourceTransactionElement> resource_transaction;
+			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
+				ReasonIds::ID_MONSTER_REWARD_COUNT, attacked_object_type_id.get(), 0, 0);
 
 			std::vector<ItemTransactionElement> transaction;
 			boost::container::flat_map<ItemId, std::uint64_t> items_basic, items_extra;
@@ -490,16 +511,15 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 							const auto item_id = it->first;
 							const auto count = it->second;
 
-							const std::int64_t param1 = attacked_object_type_id.get();
-							const std::int64_t param2 = static_cast<std::int64_t>(reward_data->unique_id);
-							const std::int64_t param3 = 0;
 							if(!extra){
 								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-									ReasonIds::ID_MONSTER_REWARD, param1, param2, param3);
+									ReasonIds::ID_MONSTER_REWARD, attacked_object_type_id.get(),
+									static_cast<std::int64_t>(reward_data->unique_id), 0);
 								items_basic[item_id] += count;
 							} else {
 								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-									ReasonIds::ID_MONSTER_REWARD_EXTRA, param1, param2, param3);
+									ReasonIds::ID_MONSTER_REWARD_EXTRA, attacked_object_type_id.get(),
+									static_cast<std::int64_t>(reward_data->unique_id), 0);
 								items_extra[item_id] += count;
 							}
 						}
@@ -516,7 +536,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 				push_monster_rewards(extra_reward_data->monster_rewards, true);
 			}
 
-			item_box->commit_transaction(transaction, false);
+			parent_castle->commit_resource_transaction(resource_transaction,
+				[&]{ item_box->commit_transaction(transaction, false); });
 
 			const auto session = PlayerSessionMap::get(attacking_account_uuid);
 			if(session){
