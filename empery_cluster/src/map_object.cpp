@@ -780,13 +780,7 @@ void   MapObject::lost_target(){
 
 void   MapObject::monster_regress(){
 	PROFILE_ME;
-/*
-	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers.reserve(1);
-	auto max_solider = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT_MAX);
-	modifiers[EmperyCenter::AttributeIds::ID_SOLDIER_COUNT]  = max_solider;
-	set_attributes(std::move(modifiers)); // TODO
-*/
+
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
 	std::deque<std::pair<signed char, signed char>> waypoints;
@@ -794,6 +788,18 @@ void   MapObject::monster_regress(){
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
 	}else{
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
+	}
+
+	const auto cluster = get_cluster();
+	if(cluster){
+		try {
+			Msg::KS_MapHealMonster msg;
+			msg.map_object_uuid = get_map_object_uuid().str();
+			cluster->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
+			cluster->shutdown(e.what());
+		}
 	}
 }
 
