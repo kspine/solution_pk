@@ -158,15 +158,31 @@ namespace Msg {
 #define MESSAGE_NAME    SC_MapWaypointsSet
 #define MESSAGE_ID      385
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)   \
-	FIELD_VINT          (x)    \
-	FIELD_VINT          (y)    \
-	FIELD_ARRAY         (waypoints, \
-		FIELD_VINT          (dx)    \
-		FIELD_VINT          (dy)    \
-	)   \
-	FIELD_VUINT         (action)    \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_ARRAY         (waypoints,	\
+		FIELD_VINT          (dx)	\
+		FIELD_VINT          (dy)	\
+	)	\
+	FIELD_VUINT         (action)	\
 	FIELD_STRING        (param)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_MapMonsterRewardGot
+#define MESSAGE_ID      384
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_ARRAY         (items_basic,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)	\
+	FIELD_ARRAY         (items_extra,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
