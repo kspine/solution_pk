@@ -64,15 +64,6 @@ std::uint64_t AiControl::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	return parent_object->on_attack(attacker,demage);
 }
 
-std::uint64_t AiControl::on_die(boost::shared_ptr<MapObject> attacker){
-	PROFILE_ME;
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return UINT64_MAX;
-	}
-	return parent_object->on_die(attacker);
-}
-
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes)
@@ -103,14 +94,12 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		return UINT64_MAX;
 	}
 	if(garrisoned){
-		result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
-		return lost_target();
+	 	result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
+	 	return UINT64_MAX;
 	}
-
 	if(is_lost_attacked_target()){
-		return lost_target();
+		return search_attack();
 	}
-
 	//修正action
 	if(!fix_attack_action()){
 		return UINT64_MAX;
@@ -424,6 +413,7 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_waypoints    = std::move(waypoints);
 	m_action       = action;
 	m_action_param = std::move(action_param);
+	reset_attack_target_own_uuid();
 }
 
 boost::shared_ptr<AiControl>  MapObject::require_ai_control(){
@@ -523,8 +513,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<MapObject>(),damage);
-	}else{
-		target_object->require_ai_control()->on_die(virtual_shared_from_this<MapObject>());
 	}
 	return attack_speed;
 }
@@ -543,22 +531,6 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	return UINT64_MAX;
 }
 
-std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
-	PROFILE_ME;
-
-	if(!attacker){
-		return UINT64_MAX;
-	}
-	boost::shared_ptr<MapObject> enemy_map_object;
-	bool get_new_enemy = attacker->get_new_enemy(virtual_shared_from_this<MapObject>(),enemy_map_object);
-	if(get_new_enemy){
-		attacker->attack_new_target(enemy_map_object);
-	}else{
-		attacker->lost_target();
-	}
-	// WorldMap::remove_map_object(get_map_object_uuid()); // TODO 应当不再需要，需要测试。HP 扣减为零时中央服务器应当发送删除物体通知。
-	return UINT64_MAX;
-}
 
 bool MapObject::is_die(){
 	PROFILE_ME;
@@ -619,6 +591,7 @@ std::uint64_t MapObject::get_view_range(){
 
 void MapObject::troops_attack(bool passive){
 	PROFILE_ME;
+	
 	if(is_monster()){
 		return;
 	}
@@ -638,7 +611,7 @@ void MapObject::troops_attack(bool passive){
 			return;
 		}
 		boost::shared_ptr<MapObject> near_enemy_object;
-		if(passive&&map_object->get_new_enemy(enemy_object,near_enemy_object)){
+		if(passive&&map_object->get_new_enemy(enemy_object->get_owner_uuid(),near_enemy_object)){
 			map_object->attack_new_target(near_enemy_object);
 		}else{
 			map_object->attack_new_target(enemy_object);
@@ -685,6 +658,7 @@ bool    MapObject::fix_attack_action(){
 		m_waypoints.clear();
 		notify_way_points(m_waypoints,m_action,m_action_param);
 	}
+	
 	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 	if(!target_object){
 		return false;
@@ -726,7 +700,7 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 	return false;
 }
 
-bool    MapObject::get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,boost::shared_ptr<MapObject> &new_enemy_map_object){
+bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object){
 	PROFILE_ME;
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
@@ -738,7 +712,7 @@ bool    MapObject::get_new_enemy(boost::shared_ptr<MapObject> enemy_map_object,b
 		if(map_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		if(map_object->get_owner_uuid() == enemy_map_object->get_owner_uuid()){
+		if(map_object->get_owner_uuid() == owner_uuid){
 			auto distance = get_distance_of_coords(get_coord(),map_object->get_coord());
 			if(distance < min_distance){
 				new_enemy_map_object = map_object;
@@ -839,7 +813,40 @@ bool  MapObject::is_lost_attacked_target(){
 	if(!target_object){
 		return true;
 	}
+	if(target_object->is_garrisoned()){
+		return true;
+	}
 	return false;
+}
+
+void  MapObject::reset_attack_target_own_uuid(){
+	PROFILE_ME;
+	if(m_action != ACT_ATTACK){
+		m_target_own_uuid = {};
+		return;
+	}
+	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
+	if(!target_object){
+		m_target_own_uuid = {};
+		return;
+	}
+	m_target_own_uuid = target_object->get_owner_uuid();
+}
+
+AccountUuid  MapObject::get_attack_target_own_uuid(){
+	return m_target_own_uuid;
+}
+
+std::uint64_t MapObject::search_attack(){
+	boost::shared_ptr<MapObject> near_enemy_object;
+	bool is_get_new_enemy = get_new_enemy(get_attack_target_own_uuid(),near_enemy_object);
+	if(is_get_new_enemy){
+		attack_new_target(near_enemy_object);
+	}else{
+		lost_target();
+	}
+	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+	return stand_by_interval;
 }
 
 
