@@ -25,6 +25,7 @@
 #include "../singletons/announcement_map.hpp"
 #include "../chat_message_type_ids.hpp"
 #include "../chat_message_slot_ids.hpp"
+#include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/account_map.hpp"
 #include "../singletons/battle_record_box_map.hpp"
@@ -472,10 +473,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			const auto utc_now = Poseidon::get_utc_time();
 
 			std::vector<ItemTransactionElement> transaction;
-			transaction.reserve(16);
-			const auto push_monster_rewards = [&](const boost::container::flat_map<std::string, std::uint64_t> &monster_rewards,
-				ReasonId reason, std::int64_t param3)
-			{
+			boost::container::flat_map<ItemId, std::uint64_t> items_basic, items_extra;
+
+			const auto push_monster_rewards = [&](const boost::container::flat_map<std::string, std::uint64_t> &monster_rewards, bool extra){
 				for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
 					const auto &collection_name = rit->first;
 					const auto repeat_count = rit->second;
@@ -489,23 +489,60 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 						for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
 							const auto item_id = it->first;
 							const auto count = it->second;
-							transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-								reason, attacked_object_type_id.get(), static_cast<std::int64_t>(reward_data->unique_id), param3);
+
+							const std::int64_t param1 = attacked_object_type_id.get();
+							const std::int64_t param2 = static_cast<std::int64_t>(reward_data->unique_id);
+							const std::int64_t param3 = 0;
+							if(!extra){
+								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+									ReasonIds::ID_MONSTER_REWARD, param1, param2, param3);
+								items_basic[item_id] += count;
+							} else {
+								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+									ReasonIds::ID_MONSTER_REWARD_EXTRA, param1, param2, param3);
+								items_extra[item_id] += count;
+							}
 						}
 					}
 				}
 			};
 
-			push_monster_rewards(monster_type_data->monster_rewards, ReasonIds::ID_MONSTER_REWARD, 0);
+			push_monster_rewards(monster_type_data->monster_rewards, false);
 
 			std::vector<boost::shared_ptr<const Data::MapObjectTypeMonsterRewardExtra>> extra_rewards;
 			Data::MapObjectTypeMonsterRewardExtra::get_available(extra_rewards, utc_now, attacked_object_type_id);
 			for(auto it = extra_rewards.begin(); it != extra_rewards.end(); ++it){
 				const auto &extra_reward_data = *it;
-				push_monster_rewards(extra_reward_data->monster_rewards, ReasonIds::ID_MONSTER_REWARD_EXTRA, 0);
+				push_monster_rewards(extra_reward_data->monster_rewards, true);
 			}
 
 			item_box->commit_transaction(transaction, false);
+
+			const auto session = PlayerSessionMap::get(attacking_account_uuid);
+			if(session){
+				try {
+					Msg::SC_MapMonsterRewardGot msg;
+					msg.x                  = attacked_coord.x();
+					msg.y                  = attacked_coord.y();
+					msg.map_object_type_id = attacked_object_type_id.get();
+					msg.items_basic.reserve(items_basic.size());
+					for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
+						auto &elem = *msg.items_basic.emplace(msg.items_basic.end());
+						elem.item_id = it->first.get();
+						elem.count   = it->second;
+					}
+					msg.items_extra.reserve(items_extra.size());
+					for(auto it = items_extra.begin(); it != items_extra.end(); ++it){
+						auto &elem = *msg.items_extra.emplace(msg.items_extra.end());
+						elem.item_id = it->first.get();
+						elem.count   = it->second;
+					}
+					session->send(msg);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
+			}
 		};
 		ENQUEU_JOB_SWALLOWING_EXCEPTIONS(send_monster_reward);
 	}
