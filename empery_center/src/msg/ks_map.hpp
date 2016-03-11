@@ -24,13 +24,13 @@ namespace Msg {
 	FIELD_VUINT         (action)	\
 	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
-
+/*
 #define MESSAGE_NAME    KS_MapRemoveMapObject
 #define MESSAGE_ID      32302
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
-
+*/
 #define MESSAGE_NAME    KS_MapHarvestOverlay
 #define MESSAGE_ID      32303
 #define MESSAGE_FIELDS  \
@@ -80,6 +80,12 @@ namespace Msg {
 	FIELD_VINT          (result_param1)	\
 	FIELD_VINT          (result_param2)	\
 	FIELD_VUINT         (soldiers_damaged)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    KS_MapHealMonster
+#define MESSAGE_ID      32310
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

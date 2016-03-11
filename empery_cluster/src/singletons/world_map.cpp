@@ -229,13 +229,6 @@ namespace {
 		msg.param           = map_object->get_action_param();
 		cluster->send(msg);
 	}
-	void notify_cluster_map_object_removed(const boost::shared_ptr<MapObject> &map_object, const boost::shared_ptr<ClusterClient> &cluster){
-		PROFILE_ME;
-
-		Msg::KS_MapRemoveMapObject msg;
-		msg.map_object_uuid = map_object->get_map_object_uuid().str();
-		cluster->send(msg);
-	}
 }
 
 boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
@@ -454,36 +447,6 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	if(old_cluster){
 		try {
 			notify_cluster_map_object_updated(map_object, old_cluster);
-		} catch(std::exception &e){
-			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
-			old_cluster->shutdown(e.what());
-		}
-	}
-}
-void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
-	PROFILE_ME;
-
-	const auto map_object_map = g_map_object_map.lock();
-	if(!map_object_map){
-		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
-		return;
-	}
-
-	const auto it = map_object_map->find<1>(map_object_uuid);
-	if(it == map_object_map->end<1>()){
-		LOG_EMPERY_CLUSTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
-		return;
-	}
-	const auto map_object = it->map_object;
-	const auto old_coord  = it->coord;
-
-	LOG_EMPERY_CLUSTER_TRACE("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
-	map_object_map->erase<1>(it);
-
-	const auto old_cluster = get_cluster(old_coord);
-	if(old_cluster){
-		try {
-			notify_cluster_map_object_removed(map_object, old_cluster);
 		} catch(std::exception &e){
 			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
 			old_cluster->shutdown(e.what());

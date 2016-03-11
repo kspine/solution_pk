@@ -56,7 +56,7 @@ protected:
 			}
 			auto read = Poseidon::StreamBuffer::ReadIterator(payload);
 			std::uint64_t message_id_64;
-			if(!Poseidon::vuint50_from_binary(message_id_64, read, payload.size())){
+			if(!Poseidon::vuint64_from_binary(message_id_64, read, payload.size())){
 				LOG_EMPERY_CENTER_WARNING("Packet too small");
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
@@ -153,8 +153,8 @@ public:
 				)
 			#include <poseidon/cbpp/message_generator.hpp>
 */
-			Poseidon::vuint50_to_binary(Msg::SC_PackedResponse::ID, wit);
-			Poseidon::vuint50_to_binary(queue.size(), wit);
+			Poseidon::vuint64_to_binary(Msg::SC_PackedResponse::ID, wit);
+			Poseidon::vuint64_to_binary(queue.size(), wit);
 			for(;;){
 				if(queue.empty()){
 					break;
@@ -162,8 +162,8 @@ public:
 				auto msg = std::move(queue.front());
 				queue.pop_front();
 
-				Poseidon::vuint50_to_binary(std::get<0>(msg), wit);
-				Poseidon::vuint50_to_binary(std::get<1>(msg).size(), wit);
+				Poseidon::vuint64_to_binary(std::get<0>(msg), wit);
+				Poseidon::vuint64_to_binary(std::get<1>(msg).size(), wit);
 				contents.splice(std::get<1>(msg));
 
 				if(std::get<2>(msg)){
@@ -278,7 +278,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 
 	Poseidon::StreamBuffer whole;
 	auto wit = Poseidon::StreamBuffer::WriteIterator(whole);
-	Poseidon::vuint50_to_binary(message_id, wit);
+	Poseidon::vuint64_to_binary(message_id, wit);
 	whole.splice(payload);
 	return impl->send(std::move(whole), true);
 */

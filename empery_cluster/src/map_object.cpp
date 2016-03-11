@@ -555,7 +555,7 @@ std::uint64_t MapObject::on_die(boost::shared_ptr<MapObject> attacker){
 			attacker->monster_regress();
 		}
 	}
-	WorldMap::remove_map_object(get_map_object_uuid());
+	// WorldMap::remove_map_object(get_map_object_uuid()); // TODO 应当不再需要，需要测试。HP 扣减为零时中央服务器应当发送删除物体通知。
 	return UINT64_MAX;
 }
 
