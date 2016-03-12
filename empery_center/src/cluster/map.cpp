@@ -283,6 +283,7 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 	castle->commit_resource_transaction(transaction,
 		[&]{ map_object->set_attributes(std::move(modifiers)); });
 
+	map_object->set_coord(castle->get_coord());
 	map_object->set_garrisoned(true);
 
 	return Response();
