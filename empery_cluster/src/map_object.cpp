@@ -719,6 +719,9 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 		if(!map_object->attacked_able()){
 			continue;
 		}
+		if(map_object->is_monster()){
+			continue;
+		}
 		if(map_object->get_owner_uuid() == owner_uuid){
 			auto distance = get_distance_of_coords(get_coord(),map_object->get_coord());
 			if(distance < min_distance){
@@ -834,7 +837,7 @@ void  MapObject::reset_attack_target_own_uuid(){
 		return;
 	}
 	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
-	if(!target_object){
+	if(!target_object || target_object->is_monster()){
 		m_target_own_uuid = {};
 		return;
 	}
