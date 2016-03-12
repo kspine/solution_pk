@@ -242,8 +242,7 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
 		const auto distance = get_distance_of_coords(new_coord, Coord(birth_x,birth_y));
 		if(distance >= monster_active_scope){
-			lost_target();
-			return delay;
+			return search_attack();
 		}
 	}
 
@@ -447,8 +446,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result = Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
 		return UINT64_MAX;
 	}
-	const auto attack_speed = map_object_type_data->attack_speed * 1000;
-
 	const auto emempy_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
 	if(!emempy_type_data){
 		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_object->get_map_object_type_id();
@@ -467,12 +464,19 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	std::uint64_t damage = 0;
 	double addition_params = 1.0;//加成参数
 	double damage_reduce_rate = 0.0;//伤害减免率
+	double attack_rate = map_object_type_data->attack_speed;
 	double doge_rate = emempy_type_data->doge_rate;
 	double critical_rate = map_object_type_data->critical_rate;
 	double critical_demage_plus_rate = map_object_type_data->critical_damage_plus_rate;
+	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0);
+	double total_defense = map_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0);
+	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->category_id,emempy_type_data->category_id);
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->category_id,emempy_type_data->category_id);
+	
+	if(attack_rate < 0.0001 && attack_rate > -0.0001){
+		return UINT64_MAX;
+	}
 	//计算闪避，闪避成功，
 	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 
@@ -480,12 +484,12 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result_type = IMPACT_MISS;
 	}else{
 		//伤害计算
-		if(target_object->get_map_object_type_id() == EmperyCenter::MapObjectTypeIds::ID_CASTLE ){
+		if(target_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE ){
 			damage = (1.0 +(soldier_count/10000.0) + (soldier_count - ememy_solider_count)/10000.0 * 0.5)*relative_rate*
-			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
+			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}else{
 			damage =  (1.0 +(soldier_count/10000.0))*relative_rate*
-			pow((map_object_type_data->attack*addition_params),2)/(map_object_type_data->attack*addition_params + emempy_type_data->defence*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
+			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}
 		result_type = IMPACT_NORMAL;
 		damage = damage;
@@ -517,7 +521,8 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<MapObject>(),damage);
 	}
-	return attack_speed;
+	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
+	return attack_delay;
 }
 
 std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
@@ -549,7 +554,7 @@ bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 	if(!map_object_type_data){
 		return false;
 	}
-	const auto shoot_range = map_object_type_data->shoot_range;
+	const auto shoot_range = get_shoot_range();
 	const auto target_object = WorldMap::get_map_object(target_object_uuid);
 	if(!target_object){
 		return false;
@@ -585,11 +590,7 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 std::uint64_t MapObject::get_view_range(){
 	PROFILE_ME;
 
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
-	if(!map_object_type_data){
-		return 0;
-	}
-	return map_object_type_data->shoot_range + 1;
+	return get_shoot_range() + 1;
 }
 
 void MapObject::troops_attack(bool passive){
@@ -692,7 +693,7 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 	std::vector<std::pair<signed char, signed char>> path;
 	std::uint64_t distance_close_enough = 0;
 	if(!precise){
-		distance_close_enough = map_object_type_data->shoot_range;
+		distance_close_enough = get_shoot_range();
 	}
 	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, distance_close_enough)){
 		for(auto it = path.begin(); it != path.end(); ++it){
@@ -854,6 +855,15 @@ std::uint64_t MapObject::search_attack(){
 	}
 	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 	return stand_by_interval;
+}
+
+std::uint64_t MapObject::get_shoot_range(){
+	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	if(!map_object_type_data){
+		return 0;
+	}
+	const auto shoot_range = map_object_type_data->shoot_range;
+	return shoot_range;
 }
 
 

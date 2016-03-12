@@ -79,6 +79,7 @@ public:
 	bool is_in_attack_scope(MapObjectUuid target_uuid);
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
 	std::uint64_t get_view_range();
+	std::uint64_t get_shoot_range();
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
