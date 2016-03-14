@@ -206,13 +206,14 @@ void MapEventBlock::refresh_events(bool first_time){
 	const auto block_coord = get_block_coord();
 	const auto block_scope = Rectangle(block_coord, BLOCK_WIDTH, BLOCK_HEIGHT);
 	const auto cluster_scope = WorldMap::get_cluster_scope(block_coord);
-	const auto map_x = static_cast<unsigned>(block_coord.x() - cluster_scope.left());
-	const auto map_y = static_cast<unsigned>(block_coord.y() - cluster_scope.bottom());
-	const auto event_block_data = Data::MapEventBlock::require(map_x / BLOCK_WIDTH, map_y / BLOCK_HEIGHT);
+	const auto block_num_x = static_cast<unsigned>(block_coord.x() - cluster_scope.left())   / BLOCK_WIDTH;
+	const auto block_num_y = static_cast<unsigned>(block_coord.y() - cluster_scope.bottom()) / BLOCK_HEIGHT;
+	const auto event_block_data = Data::MapEventBlock::require(block_num_x, block_num_y);
 
 	const auto map_event_circle_id = event_block_data->map_event_circle_id;
 	if(!map_event_circle_id){
-		LOG_EMPERY_CENTER_DEBUG("Null map event circle id: map_x = ", map_x, ", map_y = ", map_y);
+		LOG_EMPERY_CENTER_DEBUG("Null map event circle id: block_coord = ", block_coord,
+			", block_num_x = ", block_num_x, ", block_num_y = ", block_num_y);
 		return;
 	}
 	LOG_EMPERY_CENTER_DEBUG("Calculating active account count: map_event_circle_id = ", map_event_circle_id);
@@ -325,23 +326,13 @@ void MapEventBlock::refresh_events(bool first_time){
 						// 事件不能刷在地图边界以外。
 						continue;
 					}
-					coords_avail.emplace_hint(coords_avail.end(), coord);
-				}
-			}
-			map_cells.clear();
-			WorldMap::get_map_cells_by_rectangle(map_cells, block_scope);
-			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-				const auto &map_cell = *it;
-				const auto coord = map_cell->get_coord();
-				if(event_data->restricted_terrain_id){
-					const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
-					const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
 					const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
 					if(basic_data->terrain_id != event_data->restricted_terrain_id){
 						// 事件不能刷在非指定类型的土地上。
 						coords_avail.erase(coord);
 						continue;
 					}
+					coords_avail.emplace_hint(coords_avail.end(), coord);
 				}
 			}
 			LOG_EMPERY_CENTER_DEBUG("Number of coords statically available: map_event_id = ", map_event_id, ", coords_avail = ", coords_avail.size());
@@ -350,6 +341,8 @@ void MapEventBlock::refresh_events(bool first_time){
 				// 事件不能刷在现有事件上。
 				coords_avail.erase(coord);
 			}
+			map_cells.clear();
+			WorldMap::get_map_cells_by_rectangle(map_cells, block_scope);
 			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 				const auto &map_cell = *it;
 				const auto coord = map_cell->get_coord();
