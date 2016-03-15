@@ -51,6 +51,10 @@ namespace Data {
 			SLOT_INIT_ACTIVE_CASTLES_BY_MAP_EVENT_CIRCLE            = 100045,
 			SLOT_MAX_BATTLE_RECORD_COUNT                            = 100047,
 			SLOT_BATTLE_RECORD_EXPIRY_DAYS                          = 100048,
+			SLOT_AVATAR_MODIFICATION_TRADE_ID                       = 100052,
+			SLOT_NICK_MODIFICATION_TRADE_ID                         = 100053,
+			SLOT_CASTLE_NAME_MODIFICATION_TRADE_ID                  = 100054,
+			SLOT_SIGNATURE_MODIFICATION_TRADE_ID                    = 100055,
 		};
 
 	public:

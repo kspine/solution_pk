@@ -20,7 +20,6 @@ constexpr AccountAttributeId
 	ID_LAST_LOGGED_IN_TIME            ( 200 ),
 	ID_LAST_LOGGED_OUT_TIME           ( 201 ),
 
-	//
 	ID_LAST_SIGNED_IN_TIME            ( 302 ),
 	ID_SEQUENTIAL_SIGNED_IN_DAYS      ( 303 ),
 	ID_AUCTION_CENTER_ENABLED         ( 304 ),
@@ -36,7 +35,8 @@ constexpr AccountAttributeId
 	ID_CASTLE_HARVESTED_COOLDOWN      ( 503 ),
 	ID_LOGIN_TOKEN                    ( 504 ),
 	ID_LOGIN_TOKEN_EXPIRY_TIME        ( 505 ),
-	ID_SAVED_THIRD_TOKEN              ( 506 );
+	ID_SAVED_THIRD_TOKEN              ( 506 ),
+	ID_FIRST_NICK_SET                 ( 507 );
 }
 
 }

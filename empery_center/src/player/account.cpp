@@ -4,11 +4,13 @@
 #include "../msg/cs_account.hpp"
 #include "../msg/sc_account.hpp"
 #include "../msg/err_account.hpp"
+#include "../msg/err_item.hpp"
 #include "../account.hpp"
 #include "../account_attribute_ids.hpp"
 #include "../data/signing_in.hpp"
 #include "../item_ids.hpp"
 #include "../data/item.hpp"
+#include "../data/global.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../transaction_element.hpp"
@@ -126,16 +128,15 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
-	constexpr std::size_t MAX_ATTRIBUTE_LEN = 0xFFFF;
-
 	const auto account_attribute_id = AccountAttributeId(req.account_attribute_id);
 	auto &value = req.value;
 
-	if(account_attribute_id >= AccountAttributeIds::ID_CUSTOM_END){
-		return Response(Msg::ERR_ATTR_NOT_SETTABLE) <<account_attribute_id;
-	}
+	constexpr std::size_t MAX_ATTRIBUTE_LEN = 0xFFFF;
 	if(value.size() > MAX_ATTRIBUTE_LEN){
 		return Response(Msg::ERR_ATTR_TOO_LONG) <<MAX_ATTRIBUTE_LEN;
+	}
+	if(account_attribute_id >= AccountAttributeIds::ID_CUSTOM_END){
+		return Response(Msg::ERR_ATTR_NOT_SETTABLE) <<account_attribute_id;
 	}
 
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
@@ -146,15 +147,44 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
-	constexpr std::size_t MAX_NICK_LEN = 31;
-
 	auto &nick = req.nick;
 
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	constexpr std::size_t MAX_NICK_LEN = 31;
 	if(nick.size() > MAX_NICK_LEN){
 		return Response(Msg::ERR_NICK_TOO_LONG) <<MAX_NICK_LEN;
 	}
 
-	account->set_nick(std::move(nick));
+	std::vector<boost::shared_ptr<Account>> other_accounts;
+	AccountMap::get_by_nick(other_accounts, nick);
+	for(auto it = other_accounts.begin(); it != other_accounts.end(); ++it){
+		const auto &other_account = *it;
+		if(other_account != account){
+			LOG_EMPERY_CENTER_DEBUG("Nick conflict: nick = ", nick, ", account_uuid = ", account->get_account_uuid(),
+				", other_nick = ", other_account->get_nick(), ", other_account_uuid = ", other_account->get_account_uuid());
+			return Response(Msg::ERR_NICK_CONFLICT) <<other_account->get_nick();
+		}
+	}
+
+	std::vector<ItemTransactionElement> transaction;
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	const bool first_nick_set = account->cast_attribute<bool>(AccountAttributeIds::ID_FIRST_NICK_SET);
+	if(first_nick_set){
+		const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
+		const auto trade_data = Data::ItemTrade::require(trade_id);
+		Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	} else {
+		modifiers[AccountAttributeIds::ID_FIRST_NICK_SET] = "1";
+	}
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{
+			account->set_nick(std::move(nick));
+			account->set_attributes(std::move(modifiers));
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
 
 	return Response();
 }
@@ -237,7 +267,7 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account, session, req){
 	const auto trade_data = Data::ItemTrade::require(signing_in_data->trade_id);
 
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-	modifiers.reserve(2);
+	modifiers.reserve(8);
 	modifiers[AccountAttributeIds::ID_LAST_SIGNED_IN_TIME]       = boost::lexical_cast<std::string>(signed_in.now);
 	modifiers[AccountAttributeIds::ID_SEQUENTIAL_SIGNED_IN_DAYS] = boost::lexical_cast<std::string>(signed_in.sequential_days + 1);
 

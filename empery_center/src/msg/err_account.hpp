@@ -49,6 +49,7 @@ namespace Msg {
 		ERR_AUCTION_TRANSACTION_EXPIRED         = 71238,
 		ERR_AUCTION_TRANSACTION_COMMITTED       = 71239,
 		ERR_TOKEN_INVALIDATED                   = 71240,
+		ERR_NICK_CONFLICT                       = 71241,
 	};
 }
 
