@@ -31,6 +31,7 @@ ACCOUNT_SERVLET("getSharedRechargeList", session, params){
 		const auto recharge_to_account_id = it->recharge_to_account_id;
 		auto recharge_to_account_info = AccountMap::require(recharge_to_account_id);
 		object[sslit("rechargeToLoginName")] = std::move(recharge_to_account_info.login_name);
+		object[sslit("rechargeToNick")] = std::move(recharge_to_account_info.nick);
 		object[sslit("bankAccountName")] = AccountMap::get_attribute(recharge_to_account_id, AccountMap::ATTR_BANK_ACCOUNT_NAME);
 		object[sslit("bankName")] = AccountMap::get_attribute(recharge_to_account_id, AccountMap::ATTR_BANK_NAME);
 		object[sslit("bankAccountNumber")] = AccountMap::get_attribute(recharge_to_account_id, AccountMap::ATTR_BANK_ACCOUNT_NUMBER);
@@ -50,6 +51,7 @@ ACCOUNT_SERVLET("getSharedRechargeList", session, params){
 		const auto account_id = it->recharge_to_account_id;
 		auto account_info = AccountMap::require(account_id);
 		object[sslit("loginName")] = std::move(account_info.login_name);
+		object[sslit("nick")] = std::move(account_info.nick);
 		array.emplace_back(std::move(object));
 	}
 	ret[sslit("sharedRechargeListAccepted")] = std::move(array);
