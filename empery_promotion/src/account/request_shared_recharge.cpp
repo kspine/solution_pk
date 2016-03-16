@@ -38,6 +38,7 @@ ACCOUNT_SERVLET("requestSharedRecharge", session, params){
 		auto recharge_to_info = AccountMap::require(candidate_account_id);
 		Poseidon::JsonObject object;
 		object[sslit("rechargeToLoginName")] = std::move(recharge_to_info.login_name);
+		object[sslit("rechargeToNick")] = std::move(recharge_to_info.nick);
 		object[sslit("rechargeToPhoneNumber")] = std::move(recharge_to_info.phone_number);
 		array.emplace_back(std::move(object));
 	}
