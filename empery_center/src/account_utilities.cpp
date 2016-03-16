@@ -67,7 +67,7 @@ try {
 	PROFILE_ME;
 
 	const auto send_tax_nothrow = [](const boost::shared_ptr<Account> &account, ReasonId reason,
-		std::uint64_t amount_to_add, const boost::shared_ptr<Account> &taxer) noexcept
+		std::uint64_t amount_to_add, const boost::shared_ptr<Account> &taxer)
 	{
 		PROFILE_ME;
 
