@@ -442,6 +442,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			PROFILE_ME;
 
 			const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
+
 			battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
 				attacked_account_uuid, attacked_object_type_id, attacked_coord,
 				result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
@@ -453,6 +454,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			PROFILE_ME;
 
 			const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
+
 			battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
 				attacking_account_uuid, attacking_object_type_id, attacking_coord,
 				-result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining);
