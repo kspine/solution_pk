@@ -276,12 +276,7 @@ void SharedRechargeMap::decline(AccountId account_id, AccountId recharge_to_acco
 			", recharge_to_account_id = ", recharge_to_account_id, ", state = ", rit->obj->get_state());
 		DEBUG_THROW(Exception, sslit("No requesting shared recharge found"));
 	}
-	const auto amount = rit->obj->get_amount();
-
-	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, amount,
-		Events::ItemChanged::R_SHARED_RECHARGE_UNLOCK, account_id.get(), recharge_to_account_id.get(), 0, std::string());
-	ItemMap::commit_transaction(transaction.data(), transaction.size());
+//	const auto amount = rit->obj->get_amount();
 
 	rit->obj->set_state(ST_DELETED);
 }
