@@ -469,7 +469,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	double critical_rate = map_object_type_data->critical_rate;
 	double critical_demage_plus_rate = map_object_type_data->critical_damage_plus_rate;
 	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0);
-	double total_defense = map_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0);
+	double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0);
 	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->category_id,emempy_type_data->category_id);
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
@@ -492,7 +492,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}
 		result_type = IMPACT_NORMAL;
-		damage = damage;
+		damage = damage < 1 ? 1 : damage ;
 		//暴击计算
 		bCritical = Poseidon::rand32()%100 < critical_rate*100;
 		if(bCritical){
