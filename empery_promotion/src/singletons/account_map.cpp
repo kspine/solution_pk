@@ -31,12 +31,13 @@ namespace {
 		std::string phone_number;
 		std::string nick;
 		AccountId referrer_id;
+		std::uint64_t level;
 
 		explicit AccountElement(boost::shared_ptr<MySql::Promotion_Account> obj_)
 			: obj(std::move(obj_))
 			, account_id(obj->get_account_id()), login_name(obj->unlocked_get_login_name())
 			, phone_number(obj->unlocked_get_phone_number()), nick(obj->unlocked_get_nick())
-			, referrer_id(obj->get_referrer_id())
+			, referrer_id(obj->get_referrer_id()), level(obj->get_level())
 		{
 		}
 	};
@@ -47,6 +48,7 @@ namespace {
 		MULTI_MEMBER_INDEX(phone_number)
 		MULTI_MEMBER_INDEX(nick, StringCaseComparator)
 		MULTI_MEMBER_INDEX(referrer_id)
+		MULTI_MEMBER_INDEX(level)
 	)
 
 	boost::shared_ptr<AccountContainer> g_account_map;
@@ -282,6 +284,21 @@ void AccountMap::get_by_referrer_id(std::vector<AccountMap::AccountInfo> &ret, A
 	PROFILE_ME;
 
 	const auto range = g_account_map->equal_range<4>(referrer_id);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+			LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", it->obj->get_account_id());
+			continue;
+		}
+		AccountInfo info;
+		fill_account_info(info, it->obj);
+		ret.push_back(std::move(info));
+	}
+}
+void AccountMap::get_by_level(std::vector<AccountMap::AccountInfo> &ret, std::uint64_t level){
+	PROFILE_ME;
+
+	const auto range = g_account_map->equal_range<5>(level);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){

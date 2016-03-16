@@ -23,6 +23,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/singletons/account_map.cpp	\
 	src/singletons/item_map.cpp	\
 	src/singletons/global_status.cpp	\
+	src/singletons/shared_recharge_map.cpp	\
 	src/account/try_login_name.cpp	\
 	src/account/query_account_attributes.cpp	\
 	src/account/set_account_attributes.cpp	\
@@ -67,6 +68,13 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/auction_transfer_out.cpp	\
 	src/account/enable_auction_center.cpp	\
 	src/account/accumulate_balance_bonus.cpp	\
+	src/account/get_shared_recharge_list.cpp	\
+	src/account/get_shared_recharge_list_all.cpp	\
+	src/account/request_shared_recharge.cpp	\
+	src/account/accept_shared_recharge.cpp	\
+	src/account/decline_shared_recharge.cpp	\
+	src/account/commit_shared_recharge.cpp	\
+	src/account/rollback_shared_recharge.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\

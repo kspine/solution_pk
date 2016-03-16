@@ -33,6 +33,11 @@ namespace Events {
 			R_AUCTION_TRANSFER_OUT      = 201021, // 0               0               0
 			R_ENABLE_AUCTION_CENTER     = 201022, // 0               0               0
 			R_BUY_LARGE_GIFT_BOX        = 201023, // 买礼包等级      0               0
+			R_SHARED_RECHARGE_LOCK      = 201024, // 发起人账号      共享人账号      0
+			R_SHARED_RECHARGE_UNLOCK    = 201025, // 发起人账号      共享人账号      0
+			R_SHARED_RECHARGE_COMMIT    = 201026, // 发起人账号      共享人账号      0
+			R_SHARED_RECHARGE_REWARD    = 201027, // 发起人账号      共享人账号      0
+			R_SHARED_RECHARGE_ROLLBACK  = 201027, // 发起人账号      共享人账号      0
 		};
 
 		AccountId account_id;

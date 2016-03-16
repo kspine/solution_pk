@@ -2,6 +2,7 @@
 #define EMPERY_PROMOTION_DATA_SNG_LEVEL_HPP_
 
 #include "common.hpp"
+#include <vector>
 
 namespace EmperyPromotion {
 
@@ -10,6 +11,8 @@ namespace Data {
 	public:
 		static boost::shared_ptr<const Promotion> get(std::uint64_t level);
 		static boost::shared_ptr<const Promotion> require(std::uint64_t level);
+
+		static void get_all(std::vector<boost::shared_ptr<const Promotion>> &ret);
 
 		static boost::shared_ptr<const Promotion> get_first();
 		static boost::shared_ptr<const Promotion> get_next(std::uint64_t level);
@@ -24,6 +27,7 @@ namespace Data {
 		double immediate_discount;
 		unsigned auto_upgrade_count;
 		std::uint64_t large_gift_box_price;
+		bool shared_recharge_enabled;
 	};
 }
 

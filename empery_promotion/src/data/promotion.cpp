@@ -23,15 +23,16 @@ MODULE_RAII_PRIORITY(handles, 1000){
 	while(csv.fetch_row()){
 		Data::Promotion elem = { };
 
-		csv.get(elem.level,                "level");
-		csv.get(elem.display_level,        "displayLevel");
-		csv.get(elem.name,                 "name");
-		csv.get(elem.tax_ratio,            "taxRatio");
-		csv.get(elem.tax_extra,            "taxExtra");
-		csv.get(elem.immediate_price,      "immediatePrice");
-		csv.get(elem.immediate_discount,   "immediateDiscount");
-		csv.get(elem.auto_upgrade_count,   "autoUpgradeCount");
-		csv.get(elem.large_gift_box_price, "largeGiftBoxPrice");
+		csv.get(elem.level,                   "level");
+		csv.get(elem.display_level,           "displayLevel");
+		csv.get(elem.name,                    "name");
+		csv.get(elem.tax_ratio,               "taxRatio");
+		csv.get(elem.tax_extra,               "taxExtra");
+		csv.get(elem.immediate_price,         "immediatePrice");
+		csv.get(elem.immediate_discount,      "immediateDiscount");
+		csv.get(elem.auto_upgrade_count,      "autoUpgradeCount");
+		csv.get(elem.large_gift_box_price,    "largeGiftBoxPrice");
+		csv.get(elem.shared_recharge_enabled, "sharedRechargeEnabled");
 
 		if(!map->insert(std::move(elem)).second){
 			LOG_EMPERY_PROMOTION_ERROR("Duplicate promotion element: level = ", elem.level);
@@ -65,6 +66,19 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("Promotion element not found"));
 		}
 		return ret;
+	}
+
+	void Promotion::get_all(std::vector<boost::shared_ptr<const Promotion>> &ret){
+		auto map = g_map.lock();
+		if(!map){
+			LOG_EMPERY_PROMOTION_ERROR("Promotion data has not been loaded.");
+			return;
+		}
+
+		ret.reserve(ret.size() + map->size());
+		for(auto it = map->begin<0>(); it != map->end<0>(); ++it){
+			ret.emplace_back(std::move(map), &*it);
+		}
 	}
 
 	boost::shared_ptr<const Promotion> Promotion::get_first(){

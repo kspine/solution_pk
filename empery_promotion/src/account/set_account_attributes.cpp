@@ -25,6 +25,7 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	auto max_visible_subord_depth     = params.get("maxVisibleSubordDepth");
 	auto can_view_account_performance = params.get("canViewAccountPerformance");
 	auto is_auction_center_enabled    = params.get("isAuctionCenterEnabled");
+	auto is_shared_recharge_enabled   = params.get("isSharedRechargeEnabled");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);
@@ -78,6 +79,10 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		const auto enabled = boost::lexical_cast<bool>(is_auction_center_enabled);
 		is_auction_center_enabled = boost::lexical_cast<std::string>(enabled);
 	}
+	if(!is_shared_recharge_enabled.empty()){
+		const auto enabled = boost::lexical_cast<bool>(is_shared_recharge_enabled);
+		is_shared_recharge_enabled = boost::lexical_cast<std::string>(enabled);
+	}
 
 	if(!new_login_name.empty()){
 		AccountMap::set_login_name(info.account_id, std::move(new_login_name));
@@ -130,6 +135,9 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	}
 	if(!is_auction_center_enabled.empty()){
 		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_AUCTION_CENTER_ENABLED, std::move(is_auction_center_enabled));
+	}
+	if(!is_shared_recharge_enabled.empty()){
+		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_SHARED_RECHARGE_ENABLED, std::move(is_shared_recharge_enabled));
 	}
 
 	ret[sslit("errorCode")] = (int)Msg::ST_OK;

@@ -28,7 +28,9 @@ struct SharedRechargeMap {
 	static void get_by_account(std::vector<SharedRechargeInfo> &ret, AccountId account_id);
 	static void get_by_recharge_to_account(std::vector<SharedRechargeInfo> &ret, AccountId recharge_to_account_id);
 
-	static void add(AccountId account_id, AccountId recharge_to_account_id, std::uint64_t amount);
+	static void request(std::vector<SharedRechargeInfo> &recharge_to_accounts, AccountId account_id, std::uint64_t amount);
+	static void accept(AccountId account_id, AccountId recharge_to_account_id);
+	static void decline(AccountId account_id, AccountId recharge_to_account_id);
 	static void commit(AccountId account_id, AccountId recharge_to_account_id);
 	static void rollback(AccountId account_id, AccountId recharge_to_account_id);
 

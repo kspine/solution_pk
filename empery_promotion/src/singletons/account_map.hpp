@@ -29,6 +29,7 @@ struct AccountMap {
 		ATTR_MAX_VISIBLE_SUBORD_DEPTH     =  9,
 		ATTR_CAN_VIEW_ACCOUNT_PERFORMANCE = 10,
 		ATTR_AUCTION_CENTER_ENABLED       = 11,
+		ATTR_SHARED_RECHARGE_ENABLED      = 12,
 	};
 
 	struct AccountInfo {
@@ -60,6 +61,7 @@ struct AccountMap {
 
 	static void get_by_phone_number(std::vector<AccountInfo> &ret, const std::string &phone_number);
 	static void get_by_referrer_id(std::vector<AccountInfo> &ret, AccountId referrer_id);
+	static void get_by_level(std::vector<AccountInfo> &ret, std::uint64_t level);
 
 	static std::string get_password_hash(const std::string &password);
 
