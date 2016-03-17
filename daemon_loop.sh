@@ -3,9 +3,9 @@
 mkdir -p ./log/
 
 while [ 1 ]; do
-	prefix="./log/daemon_$(date +'%Y-%m-%d_%H-%M-%S')"
-	echo Starting server: log prefix = $prefix
-	./run_server.sh >"$prefix.out" 2>"$prefix.err"
-	echo Exited, error code was $?
-	sleep 5
+	echo $(date +'[%Y-%m-%d %H:%M:%S']) Starting server...
+	poseidon >>daemon.log 2>&1
+	exit_code=$?
+	echo $(date +'[%Y-%m-%d %H:%M:%S']) Exited, exit code was ${exit_code}.
+	sleep 1
 done
