@@ -38,7 +38,7 @@ ACCOUNT_SERVLET("acceptSharedRecharge", session, params){
 		return ret;
 	}
 	const auto balance_amount = ItemMap::get_count(recharge_to_account_id, ItemIds::ID_ACCOUNT_BALANCE);
-	if(balance_amount < balance_amount){
+	if(balance_amount < recharge_info.amount){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ITEMS;
 		ret[sslit("errorMessage")] = "No enough account balance";
 		return ret;
