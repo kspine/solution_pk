@@ -3,6 +3,8 @@
 #include "../singletons/account_map.hpp"
 #include "../singletons/shared_recharge_map.hpp"
 #include "../msg/err_account.hpp"
+#include "../singletons/item_map.hpp"
+#include "../item_ids.hpp"
 #include <poseidon/mysql/object_base.hpp>
 
 namespace EmperyPromotion {
@@ -33,6 +35,12 @@ ACCOUNT_SERVLET("acceptSharedRecharge", session, params){
 	if(recharge_info.state != SharedRechargeMap::ST_REQUESTING){
 		ret[sslit("errorCode")] = (int)Msg::ERR_SHARED_RECHARGE_NOT_REQUESTING;
 		ret[sslit("errorMessage")] = "No requesting shared recharge found";
+		return ret;
+	}
+	const auto balance_amount = ItemMap::get_count(recharge_to_account_id, ItemIds::ID_ACCOUNT_BALANCE);
+	if(balance_amount < balance_amount){
+		ret[sslit("errorCode")] = (int)Msg::ERR_NO_ENOUGH_ITEMS;
+		ret[sslit("errorMessage")] = "No enough account balance";
 		return ret;
 	}
 
