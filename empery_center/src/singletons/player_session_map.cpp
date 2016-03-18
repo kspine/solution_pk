@@ -43,6 +43,7 @@ namespace {
 		const auto account         = it->account;
 		const auto account_uuid    = account->get_account_uuid();
 		const auto online_duration = now - it->online_since;
+
 		const auto next = g_session_map->erase<1>(it);
 
 		try {
