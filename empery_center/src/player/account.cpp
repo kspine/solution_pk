@@ -1,6 +1,7 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include <poseidon/singletons/event_dispatcher.hpp>
+#include <poseidon/async_job.hpp>
 #include "../msg/cs_account.hpp"
 #include "../msg/sc_account.hpp"
 #include "../msg/err_account.hpp"
@@ -114,15 +115,18 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	if(utc_now < account->get_banned_until()){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
-	const auto account_uuid = account->get_account_uuid();
-
-	session->send(Msg::SC_AccountSynchronizeSystemClock(std::string(), utc_now));
-
-	get_signed_in(account);
 
 	PlayerSessionMap::add(account, session);
+
+	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
+
+	const auto account_uuid = account->get_account_uuid();
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
 	AccountMap::synchronize_account_with_player(account_uuid, session, true, true, true, { });
+
+	Poseidon::enqueue_async_job(
+		std::bind(&get_signed_in, account),
+		{ });
 
 	return Response();
 }
