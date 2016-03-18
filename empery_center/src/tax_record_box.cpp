@@ -85,7 +85,7 @@ void TaxRecordBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 		obj->set_deleted(true);
 	}
 
-	const auto session = PlayerSessionMap::get(get_account_uuid());
+/*	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
 			Msg::SC_TaxRecordReceivedNew msg;
@@ -94,7 +94,7 @@ void TaxRecordBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
 		}
-	}
+	}*/
 }
 
 }

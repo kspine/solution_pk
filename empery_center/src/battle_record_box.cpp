@@ -94,7 +94,7 @@ void BattleRecordBox::push(std::uint64_t timestamp, MapObjectTypeId first_object
 		obj->set_deleted(true);
 	}
 
-	const auto session = PlayerSessionMap::get(get_account_uuid());
+/*	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
 			Msg::SC_BattleRecordReceivedNew msg;
@@ -103,7 +103,7 @@ void BattleRecordBox::push(std::uint64_t timestamp, MapObjectTypeId first_object
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
 		}
-	}
+	}*/
 }
 
 }
