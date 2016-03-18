@@ -94,7 +94,6 @@ void BattleRecordBox::push(std::uint64_t timestamp, MapObjectTypeId first_object
 		obj->set_deleted(true);
 	}
 
-/*
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
@@ -105,7 +104,6 @@ void BattleRecordBox::push(std::uint64_t timestamp, MapObjectTypeId first_object
 			session->shutdown(e.what());
 		}
 	}
-*/
 }
 
 }
