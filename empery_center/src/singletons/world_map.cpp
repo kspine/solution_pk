@@ -92,10 +92,10 @@ namespace {
 			} else {
 				const auto ticket_item_id = it->map_cell->get_ticket_item_id();
 				if(ticket_item_id){
-					LOG_EMPERY_CENTER_DEBUG("Making map cell resident: coord = ", it->coord, ", ticket_item_id = ", ticket_item_id);
+					LOG_EMPERY_CENTER_TRACE("Making map cell resident: coord = ", it->coord, ", ticket_item_id = ", ticket_item_id);
 					map_cell_map->set_key<2, 2>(it, UINT64_MAX);
 				} else {
-					LOG_EMPERY_CENTER_DEBUG("Reclaiming map cell: coord = ", it->coord);
+					LOG_EMPERY_CENTER_TRACE("Reclaiming map cell: coord = ", it->coord);
 					map_cell_map->erase<2>(it);
 				}
 			}
