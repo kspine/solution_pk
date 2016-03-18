@@ -98,11 +98,11 @@ namespace {
 			tokens_consumed.emplace(item_id, count_consumed);
 		}
 
-		for(auto it = resources_to_consume.begin(); it != resources_to_consume.end(); ++it){
+		for(auto it = resources_consumed.begin(); it != resources_consumed.end(); ++it){
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
 				reason, param1, param2, param3);
 		}
-		for(auto it = tokens_to_consume.begin(); it != tokens_to_consume.end(); ++it){
+		for(auto it = tokens_consumed.begin(); it != tokens_consumed.end(); ++it){
 			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
 				reason, param1, param2, param3);
 		}
