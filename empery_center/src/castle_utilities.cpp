@@ -18,7 +18,9 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 
 	using Response = CbppResponse;
 
-	std::vector<boost::shared_ptr<MapObject>> other_map_objects;
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	std::vector<boost::shared_ptr<Overlay>> overlays;
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
 
 	std::vector<Coord> foundation;
 	get_castle_foundation(foundation, coord, true);
@@ -35,7 +37,7 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 			return Response(Msg::ERR_CANNOT_DEPLOY_IMMIGRANTS_HERE) <<foundation_coord;
 		}
 
-		std::vector<boost::shared_ptr<MapCell>> map_cells;
+		map_cells.clear();
 		WorldMap::get_map_cells_by_rectangle(map_cells, Rectangle(foundation_coord, 1, 1));
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 			const auto &map_cell = *it;
@@ -44,7 +46,7 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 			}
 		}
 
-		std::vector<boost::shared_ptr<Overlay>> overlays;
+		overlays.clear();
 		WorldMap::get_overlays_by_rectangle(overlays, Rectangle(foundation_coord, 1, 1));
 		for(auto it = overlays.begin(); it != overlays.end(); ++it){
 			const auto &overlay = *it;
@@ -53,9 +55,9 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 			}
 		}
 
-		other_map_objects.clear();
-		WorldMap::get_map_objects_by_rectangle(other_map_objects, Rectangle(foundation_coord, 1, 1));
-		for(auto oit = other_map_objects.begin(); oit != other_map_objects.end(); ++oit){
+		map_objects.clear();
+		WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(foundation_coord, 1, 1));
+		for(auto oit = map_objects.begin(); oit != map_objects.end(); ++oit){
 			const auto &other_object = *oit;
 			if(other_object->get_map_object_uuid() == excluding_map_object_uuid){
 				continue;
@@ -73,9 +75,9 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 	const auto other_bottom  = std::max(coord.y() - (min_distance - 1), cluster_scope.bottom());
 	const auto other_right   = std::min(coord.x() + (min_distance + 2), cluster_scope.right());
 	const auto other_top     = std::min(coord.y() + (min_distance + 2), cluster_scope.top());
-	other_map_objects.clear();
-	WorldMap::get_map_objects_by_rectangle(other_map_objects, Rectangle(Coord(other_left, other_bottom), Coord(other_right, other_top)));
-	for(auto it = other_map_objects.begin(); it != other_map_objects.end(); ++it){
+	map_objects.clear();
+	WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(Coord(other_left, other_bottom), Coord(other_right, other_top)));
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &other_object = *it;
 		const auto other_object_type_id = other_object->get_map_object_type_id();
 		if(other_object_type_id != MapObjectTypeIds::ID_CASTLE){

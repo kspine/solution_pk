@@ -52,13 +52,31 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account, session, /* req */){
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetView, account, session, req){
-	session->set_view(Rectangle(req.x, req.y, req.width, req.height));
+	const auto coord = Coord(req.x, req.y);
+	const unsigned width = req.width;
+	const unsigned height = req.height;
+
+	if(checked_mul(width, height) > 4096){
+		LOG_EMPERY_CENTER_WARNING("Player view is too large: width = ", width, ", height = ", height);
+		return Response(Msg::ST_FORBIDDEN);
+	}
+
+	session->set_view(Rectangle(coord, width, height));
 
 	return Response();
 }
 
 PLAYER_SERVLET(Msg::CS_MapRefreshView, account, session, req){
-	WorldMap::synchronize_player_view(session, Rectangle(req.x, req.y, req.width, req.height));
+	const auto coord = Coord(req.x, req.y);
+	const unsigned width = req.width;
+	const unsigned height = req.height;
+
+	if(checked_mul(width, height) > 4096){
+		LOG_EMPERY_CENTER_WARNING("Player view is too large: width = ", width, ", height = ", height);
+		return Response(Msg::ST_FORBIDDEN);
+	}
+
+	WorldMap::synchronize_player_view(session, Rectangle(coord, width, height));
 
 	return Response();
 }

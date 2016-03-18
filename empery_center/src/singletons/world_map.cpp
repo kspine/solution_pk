@@ -34,11 +34,10 @@ namespace {
 
 		Coord coord;
 		MapObjectUuid parent_object_uuid;
-		std::uint64_t unload_time;
 
-		MapCellElement(boost::shared_ptr<MapCell> map_cell_, std::uint64_t unload_time_)
+		explicit MapCellElement(boost::shared_ptr<MapCell> map_cell_)
 			: map_cell(std::move(map_cell_))
-			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid()), unload_time(unload_time_)
+			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid())
 		{
 		}
 	};
@@ -46,61 +45,9 @@ namespace {
 	MULTI_INDEX_MAP(MapCellContainer, MapCellElement,
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
-		MULTI_MEMBER_INDEX(unload_time)
 	)
 
 	boost::weak_ptr<MapCellContainer> g_map_cell_map;
-
-	boost::shared_ptr<MapCell> get_or_create_map_cell(const boost::shared_ptr<MapCellContainer> &map_cell_map, Coord coord){
-		PROFILE_ME;
-
-		const auto it = map_cell_map->find<0>(coord);
-		if(it == map_cell_map->end<0>()){
-			const auto cluster = WorldMap::get_cluster(coord);
-			if(!cluster){
-				LOG_EMPERY_CENTER_TRACE("No cluster at that coord: coord = ", coord);
-				return { };
-			}
-			auto map_cell = boost::make_shared<MapCell>(coord);
-			map_cell->pump_status();
-			WorldMap::insert_map_cell(map_cell);
-			return std::move(map_cell);
-		}
-		return it->map_cell;
-	}
-
-	void map_cell_gc_timer_proc(std::uint64_t now){
-		PROFILE_ME;
-		LOG_EMPERY_CENTER_TRACE("Map cell gc timer: now = ", now);
-
-		const auto map_cell_map = g_map_cell_map.lock();
-		if(!map_cell_map){
-			return;
-		}
-
-		for(;;){
-			const auto it = map_cell_map->begin<2>();
-			if(it == map_cell_map->end<2>()){
-				break;
-			}
-			if(now < it->unload_time){
-				break;
-			}
-
-			if((it->map_cell.use_count() > 1) || !it->map_cell.unique()){
-				map_cell_map->set_key<2, 2>(it, now + 1000);
-			} else {
-				const auto ticket_item_id = it->map_cell->get_ticket_item_id();
-				if(ticket_item_id){
-					LOG_EMPERY_CENTER_TRACE("Making map cell resident: coord = ", it->coord, ", ticket_item_id = ", ticket_item_id);
-					map_cell_map->set_key<2, 2>(it, UINT64_MAX);
-				} else {
-					LOG_EMPERY_CENTER_TRACE("Reclaiming map cell: coord = ", it->coord);
-					map_cell_map->erase<2>(it);
-				}
-			}
-		}
-	}
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -285,7 +232,7 @@ namespace {
 		for(auto it = temp_map_cell_map.begin(); it != temp_map_cell_map.end(); ++it){
 			auto map_cell = boost::make_shared<MapCell>(std::move(it->second.obj), it->second.attributes);
 
-			map_cell_map->insert(MapCellElement(std::move(map_cell), UINT64_MAX));
+			map_cell_map->insert(MapCellElement(std::move(map_cell)));
 		}
 		g_map_cell_map = map_cell_map;
 		handles.push(map_cell_map);
@@ -468,13 +415,8 @@ namespace {
 				LOG_EMPERY_CENTER_DEBUG("Done recalculating castle attributes.");
 			});
 
-		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
-			std::bind(&map_cell_gc_timer_proc, std::placeholders::_2));
-		handles.push(timer);
-
 		const auto map_object_refresh_interval = get_config<std::uint64_t>("map_object_refresh_interval", 300000);
-		timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
+		auto timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
 			std::bind(&map_object_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 	}
@@ -569,7 +511,12 @@ boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
 		return { };
 	}
 
-	return get_or_create_map_cell(map_cell_map, coord);
+	const auto it = map_cell_map->find<0>(coord);
+	if(it == map_cell_map->end<0>()){
+		LOG_EMPERY_CENTER_TRACE("Map cell not found: coord = ", coord);
+		return { };
+	}
+	return it->map_cell;
 }
 boost::shared_ptr<MapCell> WorldMap::require_map_cell(Coord coord){
 	PROFILE_ME;
@@ -592,11 +539,8 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 
 	const auto coord = map_cell->get_coord();
 
-	const auto now = Poseidon::get_fast_mono_clock();
-	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
-
 	LOG_EMPERY_CENTER_TRACE("Inserting map cell: coord = ", coord);
-	const auto result = map_cell_map->insert(MapCellElement(map_cell, saturated_add(now, gc_interval)));
+	const auto result = map_cell_map->insert(MapCellElement(map_cell));
 	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Map cell already exists: coord = ", coord);
 		DEBUG_THROW(Exception, sslit("Map cell already exists"));
@@ -638,11 +582,8 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 		return;
 	}
 
-	const auto now = Poseidon::get_fast_mono_clock();
-	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
-
 	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord);
-	map_cell_map->replace<0>(it, MapCellElement(map_cell, saturated_add(now, gc_interval)));
+	map_cell_map->replace<0>(it, MapCellElement(map_cell));
 
 	const auto owner_uuid = map_cell->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);
@@ -696,17 +637,27 @@ void WorldMap::get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>
 		return;
 	}
 
-	const auto map_cell_count = checked_mul<std::size_t>(rectangle.width(), rectangle.height());
-	ret.reserve(ret.size() + map_cell_count);
-	for(auto y = rectangle.bottom(); y != rectangle.top(); ++y){
-		for(auto x = rectangle.left(); x != rectangle.right(); ++x){
-			auto map_cell = get_or_create_map_cell(map_cell_map, Coord(x, y));
-			if(!map_cell){
-				continue;
+	auto x = rectangle.left();
+	while(x < rectangle.right()){
+		auto it = map_cell_map->lower_bound<0>(Coord(x, rectangle.bottom()));
+		for(;;){
+			if(it == map_cell_map->end<0>()){
+				goto _exit_while;
 			}
-			ret.emplace_back(std::move(map_cell));
+			if(it->coord.x() != x){
+				x = it->coord.x();
+				break;
+			}
+			if(it->coord.y() >= rectangle.top()){
+				++x;
+				break;
+			}
+			ret.emplace_back(it->map_cell);
+			++it;
 		}
 	}
+_exit_while:
+	;
 }
 
 boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_uuid){
@@ -1295,56 +1246,55 @@ void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &sessio
 	}
 }
 
-void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept {
+void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept
+try {
 	PROFILE_ME;
 
-	try {
-		std::vector<boost::shared_ptr<MapCell>> map_cells;
-		get_map_cells_by_rectangle(map_cells, view);
-		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-			const auto &map_cell = *it;
-			if(map_cell->is_virtually_removed()){
-				continue;
-			}
-			synchronize_map_cell_with_player(map_cell, session);
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	get_map_cells_by_rectangle(map_cells, view);
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		if(map_cell->is_virtually_removed()){
+			continue;
 		}
-
-		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		get_map_objects_by_rectangle(map_objects, view);
-		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			const auto &map_object = *it;
-			if(map_object->is_virtually_removed()){
-				continue;
-			}
-			if(map_object->is_garrisoned()){
-				continue;
-			}
-			synchronize_map_object_with_player(map_object, session);
-		}
-
-		std::vector<boost::shared_ptr<Overlay>> overlays;
-		get_overlays_by_rectangle(overlays, view);
-		for(auto it = overlays.begin(); it != overlays.end(); ++it){
-			const auto &overlay = *it;
-			if(overlay->is_virtually_removed()){
-				continue;
-			}
-			synchronize_overlay_with_player(overlay, session);
-		}
-
-		std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
-		get_strategic_resources_by_rectangle(strategic_resources, view);
-		for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
-			const auto &strategic_resource = *it;
-			if(strategic_resource->is_virtually_removed()){
-				continue;
-			}
-			synchronize_strategic_resource_with_player(strategic_resource, session);
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		session->shutdown(e.what());
+		synchronize_map_cell_with_player(map_cell, session);
 	}
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	get_map_objects_by_rectangle(map_objects, view);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		if(map_object->is_virtually_removed()){
+			continue;
+		}
+		if(map_object->is_garrisoned()){
+			continue;
+		}
+		synchronize_map_object_with_player(map_object, session);
+	}
+
+	std::vector<boost::shared_ptr<Overlay>> overlays;
+	get_overlays_by_rectangle(overlays, view);
+	for(auto it = overlays.begin(); it != overlays.end(); ++it){
+		const auto &overlay = *it;
+		if(overlay->is_virtually_removed()){
+			continue;
+		}
+		synchronize_overlay_with_player(overlay, session);
+	}
+
+	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
+	get_strategic_resources_by_rectangle(strategic_resources, view);
+	for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
+		const auto &strategic_resource = *it;
+		if(strategic_resource->is_virtually_removed()){
+			continue;
+		}
+		synchronize_strategic_resource_with_player(strategic_resource, session);
+	}
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	session->shutdown(e.what());
 }
 
 Rectangle WorldMap::get_cluster_scope(Coord coord){
@@ -1426,14 +1376,14 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	for(unsigned map_y = 0; map_y < scope.height(); ++map_y){
 		for(unsigned map_x = 0; map_x < scope.width(); ++map_x){
 			const auto coord = Coord(scope.left() + map_x, scope.bottom() + map_y);
-
+/*
 			auto map_cell = get_map_cell(coord);
 			if(!map_cell){
 				map_cell = boost::make_shared<MapCell>(coord);
 				map_cell->pump_status();
 				insert_map_cell(map_cell);
 			}
-
+*/
 			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
 			if(!basic_data->overlay_group_name.empty() && basic_data->overlay_id){
 				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
@@ -1475,33 +1425,32 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 		cluster_map->replace(result.first, ClusterElement(cluster_coord, cluster));
 	}
 }
-void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept {
+void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept
+try {
 	PROFILE_ME;
 
-	try {
-		std::vector<boost::shared_ptr<MapCell>> map_cells;
-		get_map_cells_by_rectangle(map_cells, view);
-		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-			const auto &map_cell = *it;
-			if(map_cell->is_virtually_removed()){
-				continue;
-			}
-			synchronize_map_cell_with_cluster(map_cell, cluster);
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	get_map_cells_by_rectangle(map_cells, view);
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		if(map_cell->is_virtually_removed()){
+			continue;
 		}
-
-		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		get_map_objects_by_rectangle(map_objects, view);
-		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			const auto &map_object = *it;
-			if(map_object->is_virtually_removed()){
-				continue;
-			}
-			synchronize_map_object_with_cluster(map_object, cluster);
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		cluster->shutdown(e.what());
+		synchronize_map_cell_with_cluster(map_cell, cluster);
 	}
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	get_map_objects_by_rectangle(map_objects, view);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		if(map_object->is_virtually_removed()){
+			continue;
+		}
+		synchronize_map_object_with_cluster(map_object, cluster);
+	}
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	cluster->shutdown(e.what());
 }
 
 boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
