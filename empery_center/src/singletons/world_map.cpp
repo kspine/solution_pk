@@ -34,10 +34,11 @@ namespace {
 
 		Coord coord;
 		MapObjectUuid parent_object_uuid;
+		std::uint64_t unload_time;
 
-		explicit MapCellElement(boost::shared_ptr<MapCell> map_cell_)
+		MapCellElement(boost::shared_ptr<MapCell> map_cell_, std::uint64_t unload_time_)
 			: map_cell(std::move(map_cell_))
-			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid())
+			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid()), unload_time(unload_time_)
 		{
 		}
 	};
@@ -45,9 +46,61 @@ namespace {
 	MULTI_INDEX_MAP(MapCellContainer, MapCellElement,
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
+		MULTI_MEMBER_INDEX(unload_time)
 	)
 
 	boost::weak_ptr<MapCellContainer> g_map_cell_map;
+
+	boost::shared_ptr<MapCell> get_or_create_map_cell(const boost::shared_ptr<MapCellContainer> &map_cell_map, Coord coord){
+		PROFILE_ME;
+
+		const auto it = map_cell_map->find<0>(coord);
+		if(it == map_cell_map->end<0>()){
+			const auto cluster = WorldMap::get_cluster(coord);
+			if(!cluster){
+				LOG_EMPERY_CENTER_TRACE("No cluster at that coord: coord = ", coord);
+				return { };
+			}
+			auto map_cell = boost::make_shared<MapCell>(coord);
+			map_cell->pump_status();
+			WorldMap::insert_map_cell(map_cell);
+			return std::move(map_cell);
+		}
+		return it->map_cell;
+	}
+
+	void map_cell_gc_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Map cell gc timer: now = ", now);
+
+		const auto map_cell_map = g_map_cell_map.lock();
+		if(!map_cell_map){
+			return;
+		}
+
+		for(;;){
+			const auto it = map_cell_map->begin<2>();
+			if(it == map_cell_map->end<2>()){
+				break;
+			}
+			if(now < it->unload_time){
+				break;
+			}
+
+			if((it->map_cell.use_count() > 1) || !it->map_cell.unique()){
+				map_cell_map->set_key<2, 2>(it, now + 1000);
+			} else {
+				const auto ticket_item_id = it->map_cell->get_ticket_item_id();
+				if(ticket_item_id){
+					LOG_EMPERY_CENTER_DEBUG("Making map cell resident: coord = ", it->coord, ", ticket_item_id = ", ticket_item_id);
+					map_cell_map->set_key<2, 2>(it, UINT64_MAX);
+				} else {
+					LOG_EMPERY_CENTER_DEBUG("Reclaiming map cell: coord = ", it->coord);
+					map_cell_map->erase<2>(it);
+				}
+			}
+		}
+	}
 
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
@@ -203,6 +256,10 @@ namespace {
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapCell>();
 			obj->fetch(conn);
+			const auto ticket_item_id = ItemId(obj->get_ticket_item_id());
+			if(!ticket_item_id){
+				continue;
+			}
 			obj->enable_auto_saving();
 			const auto coord = Coord(obj->get_x(), obj->get_y());
 			temp_map_cell_map[coord].obj = std::move(obj);
@@ -228,7 +285,7 @@ namespace {
 		for(auto it = temp_map_cell_map.begin(); it != temp_map_cell_map.end(); ++it){
 			auto map_cell = boost::make_shared<MapCell>(std::move(it->second.obj), it->second.attributes);
 
-			map_cell_map->insert(MapCellElement(std::move(map_cell)));
+			map_cell_map->insert(MapCellElement(std::move(map_cell), UINT64_MAX));
 		}
 		g_map_cell_map = map_cell_map;
 		handles.push(map_cell_map);
@@ -411,8 +468,13 @@ namespace {
 				LOG_EMPERY_CENTER_DEBUG("Done recalculating castle attributes.");
 			});
 
+		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
+			std::bind(&map_cell_gc_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+
 		const auto map_object_refresh_interval = get_config<std::uint64_t>("map_object_refresh_interval", 300000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
+		timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
 			std::bind(&map_object_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 	}
@@ -507,12 +569,7 @@ boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
 		return { };
 	}
 
-	const auto it = map_cell_map->find<0>(coord);
-	if(it == map_cell_map->end<0>()){
-		LOG_EMPERY_CENTER_TRACE("Map cell not found: coord = ", coord);
-		return { };
-	}
-	return it->map_cell;
+	return get_or_create_map_cell(map_cell_map, coord);
 }
 boost::shared_ptr<MapCell> WorldMap::require_map_cell(Coord coord){
 	PROFILE_ME;
@@ -535,8 +592,11 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 
 	const auto coord = map_cell->get_coord();
 
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
+
 	LOG_EMPERY_CENTER_TRACE("Inserting map cell: coord = ", coord);
-	const auto result = map_cell_map->insert(MapCellElement(map_cell));
+	const auto result = map_cell_map->insert(MapCellElement(map_cell, saturated_add(now, gc_interval)));
 	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Map cell already exists: coord = ", coord);
 		DEBUG_THROW(Exception, sslit("Map cell already exists"));
@@ -578,8 +638,11 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 		return;
 	}
 
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
+
 	LOG_EMPERY_CENTER_DEBUG("Updating map cell: coord = ", coord);
-	map_cell_map->replace<0>(it, MapCellElement(map_cell));
+	map_cell_map->replace<0>(it, MapCellElement(map_cell, saturated_add(now, gc_interval)));
 
 	const auto owner_uuid = map_cell->get_owner_uuid();
 	const auto session = PlayerSessionMap::get(owner_uuid);
@@ -633,27 +696,17 @@ void WorldMap::get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>
 		return;
 	}
 
-	auto x = rectangle.left();
-	while(x < rectangle.right()){
-		auto it = map_cell_map->lower_bound<0>(Coord(x, rectangle.bottom()));
-		for(;;){
-			if(it == map_cell_map->end<0>()){
-				goto _exit_while;
+	const auto map_cell_count = checked_mul<std::size_t>(rectangle.width(), rectangle.height());
+	ret.reserve(ret.size() + map_cell_count);
+	for(auto y = rectangle.bottom(); y != rectangle.top(); ++y){
+		for(auto x = rectangle.left(); x != rectangle.right(); ++x){
+			auto map_cell = get_or_create_map_cell(map_cell_map, Coord(x, y));
+			if(!map_cell){
+				continue;
 			}
-			if(it->coord.x() != x){
-				x = it->coord.x();
-				break;
-			}
-			if(it->coord.y() >= rectangle.top()){
-				++x;
-				break;
-			}
-			ret.emplace_back(it->map_cell);
-			++it;
+			ret.emplace_back(std::move(map_cell));
 		}
 	}
-_exit_while:
-	;
 }
 
 boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_uuid){
@@ -1305,14 +1358,14 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_DEBUG("Cluster map not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
 		return { };
 	}
 
 	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
 	const auto it = cluster_map->find<0>(cluster_coord);
 	if(it == cluster_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Cluster not found: coord = ", coord, ", cluster_coord = ", cluster_coord);
+		LOG_EMPERY_CENTER_TRACE("Cluster not found: coord = ", coord, ", cluster_coord = ", cluster_coord);
 		return { };
 	}
 	auto cluster = it->cluster.lock();
@@ -1328,7 +1381,7 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_DEBUG("Cluster map not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
 		return;
 	}
 
@@ -1373,14 +1426,14 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	for(unsigned map_y = 0; map_y < scope.height(); ++map_y){
 		for(unsigned map_x = 0; map_x < scope.width(); ++map_x){
 			const auto coord = Coord(scope.left() + map_x, scope.bottom() + map_y);
-
+/*
 			auto map_cell = get_map_cell(coord);
 			if(!map_cell){
 				map_cell = boost::make_shared<MapCell>(coord);
 				map_cell->pump_status();
 				insert_map_cell(map_cell);
 			}
-
+*/
 			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
 			if(!basic_data->overlay_group_name.empty() && basic_data->overlay_id){
 				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
