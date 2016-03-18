@@ -47,11 +47,11 @@ namespace {
 				break;
 			}
 
-			if(it->chat_box && it->chat_box.unique()){
+			if(!it->chat_box.unique()){
+				chat_box_map->set_key<1, 1>(it, now + 1000);
+			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming chat box: account_uuid = ", it->account_uuid);
 				chat_box_map->erase<1>(it);
-			} else {
-				chat_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}

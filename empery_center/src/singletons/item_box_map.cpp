@@ -55,11 +55,11 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() <= 1) && it->item_box && it->item_box.unique()){
+			if((it->promise.use_count() > 1) || !it->item_box.unique()){
+				item_box_map->set_key<1, 1>(it, now + 1000);
+			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming item box: account_uuid = ", it->account_uuid);
 				item_box_map->erase<1>(it);
-			} else {
-				item_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}
