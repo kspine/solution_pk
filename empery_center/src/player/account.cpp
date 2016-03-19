@@ -172,20 +172,11 @@ PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
 	}
 
 	std::vector<ItemTransactionElement> transaction;
-	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-	const bool first_nick_set = account->cast_attribute<bool>(AccountAttributeIds::ID_FIRST_NICK_SET);
-	if(first_nick_set){
-		const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
-		const auto trade_data = Data::ItemTrade::require(trade_id);
-		Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
-	} else {
-		modifiers[AccountAttributeIds::ID_FIRST_NICK_SET] = "1";
-	}
+//	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
+//	const auto trade_data = Data::ItemTrade::require(trade_id);
+//	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
-		[&]{
-			account->set_nick(std::move(nick));
-			account->set_attributes(std::move(modifiers));
-		});
+		[&]{ account->set_nick(std::move(nick)); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
