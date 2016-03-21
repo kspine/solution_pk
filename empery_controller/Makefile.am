@@ -16,4 +16,7 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-controller.la
 
 lib_libposeidon_empery_controller_la_SOURCES = \
+	src/singletons/controller_cbpp_server.cpp	\
+	src/controller/register_center.cpp	\
+	src/controller_session.cpp	\
 	src/mmain.cpp

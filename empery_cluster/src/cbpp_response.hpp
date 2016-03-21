@@ -1,9 +1,9 @@
-#ifndef EMPERY_CENTER_CBPP_RESPONSE_HPP_
-#define EMPERY_CENTER_CBPP_RESPONSE_HPP_
+#ifndef EMPERY_CLUSTER_CBPP_RESPONSE_HPP_
+#define EMPERY_CLUSTER_CBPP_RESPONSE_HPP_
 
 #include "../../empery_controller/src/cbpp_response.hpp"
 
-namespace EmperyCenter {
+namespace EmperyCluster {
 
 using CbppResponse = ::EmperyController::CbppResponse;
 

@@ -93,7 +93,7 @@ void check_auto_upgradeable(AccountId init_account_id){
 			std::vector<AccountMap::AccountInfo> subordinates;
 			AccountMap::get_by_referrer_id(subordinates, account_id);
 			for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
-				LOG_EMPERY_PROMOTION_DEBUG("> > Subordinate: account_id = ", it->account_id, ", max_level = ", it->max_level);
+				LOG_EMPERY_PROMOTION_DEBUG(">> Subordinate: account_id = ", it->account_id, ", max_level = ", it->max_level);
 				++subordinate_level_counts[it->max_level];
 			}
 		}
