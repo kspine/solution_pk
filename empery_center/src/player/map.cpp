@@ -203,7 +203,12 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		return Response(Msg::ERR_BAD_LAND_PURCHASE_TICKET_TYPE) <<item_data->type.first;
 	}
 
-	const auto map_cell = WorldMap::require_map_cell(coord);
+	auto map_cell = WorldMap::get_map_cell(coord);
+	if(!map_cell){
+		map_cell = boost::make_shared<MapCell>(coord);
+		map_cell->pump_status();
+		WorldMap::insert_map_cell(map_cell);
+	}
 	if(map_cell->get_owner_uuid()){
 		return Response(Msg::ERR_MAP_CELL_ALREADY_HAS_AN_OWNER) <<map_cell->get_owner_uuid();
 	}
