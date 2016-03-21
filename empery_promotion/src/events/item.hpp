@@ -37,7 +37,7 @@ namespace Events {
 			R_SHARED_RECHARGE_UNLOCK    = 201025, // 发起人账号      共享人账号      0
 			R_SHARED_RECHARGE_COMMIT    = 201026, // 发起人账号      共享人账号      0
 			R_SHARED_RECHARGE_REWARD    = 201027, // 发起人账号      共享人账号      0
-			R_SHARED_RECHARGE_ROLLBACK  = 201027, // 发起人账号      共享人账号      0
+			R_SHARED_RECHARGE_ROLLBACK  = 201028, // 发起人账号      共享人账号      0
 		};
 
 		AccountId account_id;

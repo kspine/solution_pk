@@ -95,6 +95,14 @@ MODULE_RAII_PRIORITY(handles, 9000){
 				case Events::ItemChanged::R_AUCTION_TRANSFER_OUT:
 				case Events::ItemChanged::R_ENABLE_AUCTION_CENTER:
 					break;
+				case Events::ItemChanged::R_SHARED_RECHARGE_LOCK:
+				case Events::ItemChanged::R_SHARED_RECHARGE_UNLOCK:
+				case Events::ItemChanged::R_SHARED_RECHARGE_COMMIT:
+				case Events::ItemChanged::R_SHARED_RECHARGE_REWARD:
+				case Events::ItemChanged::R_SHARED_RECHARGE_ROLLBACK:
+					PUT_ACCOUNT(param1)
+					PUT_ACCOUNT(param2)
+					break;
 				default:
 					LOG_EMPERY_PROMOTION_WARNING("Unknown reason: ", (unsigned)event->reason, ", param1 = ", event->param1,
 						", param2 = ", event->param2, ", param3 = ", event->param3, ", remarks = ", event->remarks);

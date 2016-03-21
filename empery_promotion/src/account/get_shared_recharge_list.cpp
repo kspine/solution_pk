@@ -52,6 +52,7 @@ ACCOUNT_SERVLET("getSharedRechargeList", session, params){
 		auto account_info = AccountMap::require(account_id);
 		object[sslit("loginName")] = std::move(account_info.login_name);
 		object[sslit("nick")] = std::move(account_info.nick);
+		object[sslit("level")] = account_info.level;
 		array.emplace_back(std::move(object));
 	}
 	ret[sslit("sharedRechargeListAccepted")] = std::move(array);

@@ -179,8 +179,12 @@ void SharedRechargeMap::request(std::vector<SharedRechargeMap::SharedRechargeInf
 		AccountMap::get_by_level(temp_accounts, promotion_data->level);
 		for(auto tit = temp_accounts.begin(); tit != temp_accounts.end(); ++tit){
 			const auto recharge_to_account_id = tit->account_id;
+			if(recharge_to_account_id == account_id){
+				continue;
+			}
 			const bool can_share = AccountMap::cast_attribute<bool>(recharge_to_account_id, AccountMap::ATTR_SHARED_RECHARGE_ENABLED);
 			if(!can_share){
+				LOG_EMPERY_PROMOTION_TRACE(">! Shared recharge not enabled: recharge_to_account_id = ", recharge_to_account_id);
 				continue;
 			}
 			const auto balance_amount = ItemMap::get_count(recharge_to_account_id, ItemIds::ID_ACCOUNT_BALANCE);
@@ -195,7 +199,7 @@ void SharedRechargeMap::request(std::vector<SharedRechargeMap::SharedRechargeInf
 
 	recharge_to_accounts.reserve(recharge_to_accounts.size() + candidate_accounts.size());
 	try {
-		for(auto tit = temp_accounts.begin(); tit != temp_accounts.end(); ++tit){
+		for(auto tit = candidate_accounts.begin(); tit != candidate_accounts.end(); ++tit){
 			const auto recharge_to_account_id = tit->account_id;
 			LOG_EMPERY_PROMOTION_DEBUG(">> Requesting: recharge_to_account_id = ", recharge_to_account_id);
 
