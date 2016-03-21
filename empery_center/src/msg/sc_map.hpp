@@ -86,7 +86,9 @@ namespace Msg {
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
 	FIELD_STRING        (overlay_group_name)	\
-	FIELD_VUINT         (resource_amount)
+	FIELD_VUINT         (resource_amount)	\
+	FIELD_STRING        (last_harvested_account_uuid)	\
+	FIELD_STRING        (last_harvested_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapOverlayRemoved
@@ -143,7 +145,9 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_VUINT         (resource_id)	\
-	FIELD_VUINT         (resource_amount)
+	FIELD_VUINT         (resource_amount)	\
+	FIELD_STRING        (last_harvested_account_uuid)	\
+	FIELD_STRING        (last_harvested_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapStrategicResourceRemoved

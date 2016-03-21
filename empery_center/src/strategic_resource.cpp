@@ -109,6 +109,8 @@ std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &har
 	m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove));
 
 	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
+	m_last_harvested_account_uuid = harvester->get_owner_uuid();
+	m_last_harvested_object_uuid = harvester->get_map_object_uuid();
 
 	WorldMap::update_strategic_resource(virtual_shared_from_this<StrategicResource>(), false);
 
@@ -123,15 +125,17 @@ void StrategicResource::synchronize_with_player(const boost::shared_ptr<PlayerSe
 
 	if(is_virtually_removed()){
 		Msg::SC_MapStrategicResourceRemoved msg;
-		msg.x               = get_coord().x();
-		msg.y               = get_coord().y();
+		msg.x                           = get_coord().x();
+		msg.y                           = get_coord().y();
 		session->send(msg);
 	} else {
 		Msg::SC_MapStrategicResourceInfo msg;
-		msg.x               = get_coord().x();
-		msg.y               = get_coord().y();
-		msg.resource_id     = get_resource_id().get();
-		msg.resource_amount = get_resource_amount();
+		msg.x                           = get_coord().x();
+		msg.y                           = get_coord().y();
+		msg.resource_id                 = get_resource_id().get();
+		msg.resource_amount             = get_resource_amount();
+		msg.last_harvested_account_uuid = get_last_harvested_account_uuid().str();
+		msg.last_harvested_object_uuid  = get_last_harvested_object_uuid().str();
 		session->send(msg);
 	}
 }
