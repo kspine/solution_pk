@@ -1,5 +1,5 @@
-#ifndef EMPERY_ACCOUNT_PRECOMPILED_HPP_
-#define EMPERY_ACCOUNT_PRECOMPILED_HPP_
+#ifndef EMPERY_CONTROLLER_PRECOMPILED_HPP_
+#define EMPERY_CONTROLLER_PRECOMPILED_HPP_
 
 #include <poseidon/precompiled.hpp>
 
@@ -17,7 +17,7 @@
 
 #include "log.hpp"
 
-namespace EmperyAccount {
+namespace EmperyController {
 
 using Poseidon::Exception;
 using Poseidon::SharedNts;

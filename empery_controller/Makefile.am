@@ -13,7 +13,7 @@ CLEANFILES = \
 	src/precompiled.hpp.gch
 
 lib_LTLIBRARIES = \
-	lib/libposeidon-empery-account.la
+	lib/libposeidon-empery-controller.la
 
-lib_libposeidon_empery_account_la_SOURCES = \
+lib_libposeidon_empery_controller_la_SOURCES = \
 	src/mmain.cpp
