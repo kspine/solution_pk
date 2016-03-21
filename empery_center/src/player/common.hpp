@@ -34,7 +34,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 			{	\
 				PROFILE_ME;	\
 				MsgType_ msg_;	\
-				msg_ <<payload_;	\
+				msg_.deserialize(payload_);	\
 				if(payload_.size() < ::EmperyCenter::PlayerSession::RED_ZONE_SIZE){	\
 					const auto bytes_underflowed = ::EmperyCenter::PlayerSession::RED_ZONE_SIZE - payload_.size();	\
 					LOG_EMPERY_CENTER_DEBUG("*** Buffer underflow: bytes_underflowed = ", bytes_underflowed);	\
@@ -67,7 +67,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 					return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::ERR_NOT_LOGGED_IN);	\
 				}	\
 				MsgType_ msg_;	\
-				msg_ <<payload_;	\
+				msg_.deserialize(payload_);	\
 				if(payload_.size() < ::EmperyCenter::PlayerSession::RED_ZONE_SIZE){	\
 					const auto bytes_underflowed = ::EmperyCenter::PlayerSession::RED_ZONE_SIZE - payload_.size();	\
 					LOG_EMPERY_CENTER_DEBUG("*** Buffer underflow: bytes_underflowed = ", bytes_underflowed);	\
