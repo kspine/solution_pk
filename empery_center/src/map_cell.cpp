@@ -338,6 +338,12 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		msg.y                         = get_coord().y();
 		session->send(msg);
 	} else {
+		boost::shared_ptr<MapObject> parent_object;
+		const auto parent_object_uuid = get_parent_object_uuid();
+		if(parent_object_uuid){
+			parent_object = WorldMap::get_map_object(parent_object_uuid);
+		}
+
 		const auto owner_uuid = get_owner_uuid();
 		if(owner_uuid){
 			AccountMap::cached_synchronize_account_with_player(owner_uuid, session);
@@ -346,7 +352,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		Msg::SC_MapCellInfo msg;
 		msg.x                         = get_coord().x();
 		msg.y                         = get_coord().y();
-		msg.parent_object_uuid        = get_parent_object_uuid().str();
+		msg.parent_object_uuid        = parent_object_uuid.str();
 		msg.owner_uuid                = owner_uuid.str();
 		msg.acceleration_card_applied = is_acceleration_card_applied();
 		msg.ticket_item_id            = get_ticket_item_id().get();
@@ -360,6 +366,10 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		}
 		msg.production_rate           = std::round(get_production_rate() * 1000);
 		msg.capacity                  = get_capacity();
+		if(parent_object){
+			msg.parent_object_x = parent_object->get_coord().x();
+			msg.parent_object_y = parent_object->get_coord().y();
+		}
 		session->send(msg);
 	}
 }

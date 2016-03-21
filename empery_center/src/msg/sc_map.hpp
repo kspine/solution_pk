@@ -35,7 +35,9 @@ namespace Msg {
 		FIELD_VINT          (value)	\
 	)	\
 	FIELD_VUINT         (production_rate)	\
-	FIELD_VUINT         (capacity)
+	FIELD_VUINT         (capacity)	\
+	FIELD_VINT          (parent_object_x)	\
+	FIELD_VINT          (parent_object_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectInfo
