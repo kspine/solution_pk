@@ -484,63 +484,62 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 				LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
 				return;
 			}
-			const auto monster_reward_count = parent_castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
-			if(monster_reward_count <= 0){
-				LOG_EMPERY_CENTER_DEBUG("No monster reward count remaining: parent_object_uuid = ", parent_object_uuid);
-				return;
-			}
 
 			const auto utc_now = Poseidon::get_utc_time();
 
-			std::vector<ResourceTransactionElement> resource_transaction;
-			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
-				ReasonIds::ID_MONSTER_REWARD_COUNT, attacked_object_type_id.get(), 0, 0);
-
-			std::vector<ItemTransactionElement> transaction;
 			boost::container::flat_map<ItemId, std::uint64_t> items_basic, items_extra;
 
-			const auto push_monster_rewards = [&](const boost::container::flat_map<std::string, std::uint64_t> &monster_rewards, bool extra){
-				for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
-					const auto &collection_name = rit->first;
-					const auto repeat_count = rit->second;
-					for(std::size_t i = 0; i < repeat_count; ++i){
-						const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
-						if(!reward_data){
-							LOG_EMPERY_CENTER_WARNING("Error getting random reward: attacked_object_type_id = ", attacked_object_type_id,
-								", collection_name = ", collection_name);
-							continue;
-						}
-						for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
-							const auto item_id = it->first;
-							const auto count = it->second;
+			const auto reward_counter = parent_castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
+			if(reward_counter > 0){
+				std::vector<ResourceTransactionElement> resource_transaction;
+				resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
+					ReasonIds::ID_MONSTER_REWARD_COUNT, attacked_object_type_id.get(), 0, 0);
 
-							if(!extra){
-								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-									ReasonIds::ID_MONSTER_REWARD, attacked_object_type_id.get(),
-									static_cast<std::int64_t>(reward_data->unique_id), 0);
-								items_basic[item_id] += count;
-							} else {
-								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-									ReasonIds::ID_MONSTER_REWARD_EXTRA, attacked_object_type_id.get(),
-									static_cast<std::int64_t>(reward_data->unique_id), 0);
-								items_extra[item_id] += count;
+				std::vector<ItemTransactionElement> transaction;
+
+				const auto push_monster_rewards = [&](const boost::container::flat_map<std::string, std::uint64_t> &monster_rewards, bool extra){
+					for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
+						const auto &collection_name = rit->first;
+						const auto repeat_count = rit->second;
+						for(std::size_t i = 0; i < repeat_count; ++i){
+							const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
+							if(!reward_data){
+								LOG_EMPERY_CENTER_WARNING("Error getting random reward: attacked_object_type_id = ", attacked_object_type_id,
+									", collection_name = ", collection_name);
+								continue;
+							}
+							for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
+								const auto item_id = it->first;
+								const auto count = it->second;
+
+								if(!extra){
+									transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+										ReasonIds::ID_MONSTER_REWARD, attacked_object_type_id.get(),
+										static_cast<std::int64_t>(reward_data->unique_id), 0);
+									items_basic[item_id] += count;
+								} else {
+									transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+										ReasonIds::ID_MONSTER_REWARD_EXTRA, attacked_object_type_id.get(),
+										static_cast<std::int64_t>(reward_data->unique_id), 0);
+									items_extra[item_id] += count;
+								}
 							}
 						}
 					}
+				};
+
+				push_monster_rewards(monster_type_data->monster_rewards, false);
+
+				std::vector<boost::shared_ptr<const Data::MapObjectTypeMonsterRewardExtra>> extra_rewards;
+				Data::MapObjectTypeMonsterRewardExtra::get_available(extra_rewards, utc_now, attacked_object_type_id);
+				for(auto it = extra_rewards.begin(); it != extra_rewards.end(); ++it){
+					const auto &extra_reward_data = *it;
+					push_monster_rewards(extra_reward_data->monster_rewards, true);
 				}
-			};
 
-			push_monster_rewards(monster_type_data->monster_rewards, false);
-
-			std::vector<boost::shared_ptr<const Data::MapObjectTypeMonsterRewardExtra>> extra_rewards;
-			Data::MapObjectTypeMonsterRewardExtra::get_available(extra_rewards, utc_now, attacked_object_type_id);
-			for(auto it = extra_rewards.begin(); it != extra_rewards.end(); ++it){
-				const auto &extra_reward_data = *it;
-				push_monster_rewards(extra_reward_data->monster_rewards, true);
+				parent_castle->commit_resource_transaction(resource_transaction,
+					[&]{ item_box->commit_transaction(transaction, false); });
 			}
-
-			parent_castle->commit_resource_transaction(resource_transaction,
-				[&]{ item_box->commit_transaction(transaction, false); });
 
 			const auto session = PlayerSessionMap::get(attacking_account_uuid);
 			if(session){
@@ -561,6 +560,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 						elem.item_id = it->first.get();
 						elem.count   = it->second;
 					}
+					msg.castle_uuid        = parent_castle->get_map_object_uuid().str();
+					msg.reward_counter     = reward_counter;
 					session->send(msg);
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
