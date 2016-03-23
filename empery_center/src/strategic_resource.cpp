@@ -94,13 +94,15 @@ std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &har
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
 
-	const auto resource_capacity = static_cast<std::uint64_t>(harvester_type_data->resource_carriable * soldier_count);
+	const auto resource_capacity = static_cast<std::uint64_t>(std::floor(harvester_type_data->resource_carriable * soldier_count + 0.001));
 	const auto resource_amount_carried = harvester->get_resource_amount_carried();
 	const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);
 	const auto amount_to_add = std::min(rounded_amount_removable, capacity_remaining);
 	const auto amount_to_remove = saturated ? rounded_amount_removable : amount_to_add;
 	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", resource_id = ", resource_id,
-		", carried_attribute_id = ", carried_attribute_id, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
+		", carried_attribute_id = ", carried_attribute_id, ", resource_capacity = ", resource_capacity,
+		", resource_amount_carried = ", resource_amount_carried, ", capacity_remaining = ", capacity_remaining,
+		", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[carried_attribute_id] = harvester->get_attribute(carried_attribute_id) + static_cast<std::int64_t>(amount_to_add);
