@@ -21,8 +21,7 @@ private:
 
 	// 非持久化数据。
 	double m_harvest_remainder = 0;
-	AccountUuid m_last_harvested_account_uuid;
-	MapObjectUuid m_last_harvested_object_uuid;
+	boost::weak_ptr<MapObject> m_last_harvester;
 
 public:
 	Overlay(Coord cluster_coord, std::string overlay_group_name,
@@ -40,11 +39,8 @@ public:
 	ResourceId get_resource_id() const;
 	std::uint64_t get_resource_amount() const;
 
-	AccountUuid get_last_harvested_account_uuid() const {
-		return m_last_harvested_account_uuid;
-	}
-	MapObjectUuid get_last_harvested_object_uuid() const {
-		return m_last_harvested_object_uuid;
+	boost::shared_ptr<MapObject> get_last_harvester() const {
+		return m_last_harvester.lock();
 	}
 
 	std::uint64_t harvest(const boost::shared_ptr<MapObject> &harvester, std::uint64_t duration, bool saturated);

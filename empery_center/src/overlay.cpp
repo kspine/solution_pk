@@ -105,8 +105,7 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, st
 	m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove));
 
 	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
-	m_last_harvested_account_uuid = harvester->get_owner_uuid();
-	m_last_harvested_object_uuid = harvester->get_map_object_uuid();
+	m_last_harvester = harvester;
 
 	WorldMap::update_overlay(virtual_shared_from_this<Overlay>(), false);
 
@@ -131,8 +130,11 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		msg.cluster_y                   = get_cluster_coord().y();
 		msg.overlay_group_name          = get_overlay_group_name();
 		msg.resource_amount             = get_resource_amount();
-		msg.last_harvested_account_uuid = get_last_harvested_account_uuid().str();
-		msg.last_harvested_object_uuid  = get_last_harvested_object_uuid().str();
+		const auto last_harvester = get_last_harvester();
+		if(last_harvester){
+			msg.last_harvested_account_uuid = last_harvester->get_owner_uuid().str();
+			msg.last_harvested_object_uuid  = last_harvester->get_map_object_uuid().str();
+		}
 		session->send(msg);
 	}
 }
