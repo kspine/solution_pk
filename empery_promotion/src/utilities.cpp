@@ -13,6 +13,7 @@
 #include <poseidon/string.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <string>
+#include <poseidon/singletons/job_dispatcher.hpp>
 
 namespace EmperyPromotion {
 
@@ -267,10 +268,15 @@ void commit_first_balance_bonus(){
 
 	std::map<AccountId, std::deque<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>>> recharge_history;
 	{
-		std::vector<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>> temp_objs;
-		MySql::Promotion_OutcomeBalanceHistory::batch_load(temp_objs,
-			"SELECT * FROM `Promotion_OutcomeBalanceHistory` ORDER BY `timestamp` ASC, `auto_id` ASC");
-		for(auto it = temp_objs.begin(); it != temp_objs.end(); ++it){
+		std::vector<boost::shared_ptr<MySql::Promotion_OutcomeBalanceHistory>> objs;
+		auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::Promotion_OutcomeBalanceHistory>();
+				obj->fetch(conn);
+				objs.emplace_back(std::move(obj));
+			}, "Promotion_OutcomeBalanceHistory", "SELECT * FROM `Promotion_OutcomeBalanceHistory` ORDER BY `timestamp` ASC, `auto_id` ASC");
+		Poseidon::JobDispatcher::yield(promise, true);
+		for(auto it = objs.begin(); it != objs.end(); ++it){
 			auto &obj = *it;
 			const auto account_id = AccountId(obj->get_account_id());
 			recharge_history[account_id].emplace_back(std::move(obj));

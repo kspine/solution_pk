@@ -3,6 +3,8 @@
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
 #include <poseidon/mysql/object_base.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
 
 namespace EmperyPromotion {
 
@@ -97,7 +99,13 @@ ACCOUNT_SERVLET("getBothBalanceHistory", session, params){
 			auto num_count = boost::lexical_cast<std::uint64_t>(count);
 			oss <<num_count;
 		}
-		MySql::BothBalanceHistoryResult::batch_load(objs, oss.str());
+		auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::BothBalanceHistoryResult>();
+				obj->fetch(conn);
+				objs.emplace_back(std::move(obj));
+			}, "BothBalanceHistoryResult", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
 
 		Poseidon::JsonArray history;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
@@ -123,11 +131,17 @@ ACCOUNT_SERVLET("getBothBalanceHistory", session, params){
 		}
 		ret[sslit("history")] = std::move(history);
 	} else {
-		std::vector<boost::shared_ptr<MySql::BothSumRows>> results;
-		MySql::BothSumRows::batch_load(results, oss.str());
+		std::vector<boost::shared_ptr<MySql::BothSumRows>> objs;
+		auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::BothSumRows>();
+				obj->fetch(conn);
+				objs.emplace_back(std::move(obj));
+			}, "BothSumRows", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
 		std::int64_t sum = 0;
 		std::uint64_t rows = 0;
-		for(auto it = results.begin(); it != results.end(); ++it){
+		for(auto it = objs.begin(); it != objs.end(); ++it){
 			const auto &obj = *it;
 			sum  += obj->get_sum();
 			rows += obj->get_rows();

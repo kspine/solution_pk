@@ -75,7 +75,7 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		)	\
 
 #define PLAYER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
-#define PLAYER_THROW(code_)             PLAYER_THROW_MSG(code_, sslit(""))
+#define PLAYER_THROW(code_)             PLAYER_THROW_MSG(code_, ::Poseidon::sslit(""))
 
 namespace EmperyGoldScramble {
 
