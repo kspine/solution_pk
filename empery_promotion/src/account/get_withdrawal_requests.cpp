@@ -5,6 +5,8 @@
 #include "../mysql/wd_slip.hpp"
 #include "../mysql/sum_rows.hpp"
 #include "../bill_states.hpp"
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
 
 namespace EmperyPromotion {
 
@@ -60,7 +62,13 @@ ACCOUNT_SERVLET("getWithdrawalRequests", session, params){
 			auto num_count = boost::lexical_cast<std::uint64_t>(count);
 			oss <<num_count;
 		}
-		MySql::Promotion_WdSlip::batch_load(objs, oss.str());
+		auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::Promotion_WdSlip>();
+				obj->fetch(conn);
+				objs.emplace_back(std::move(obj));
+			}, "Promotion_WdSlip", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
 
 		Poseidon::JsonArray requests;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
@@ -91,7 +99,8 @@ ACCOUNT_SERVLET("getWithdrawalRequests", session, params){
 		ret[sslit("requests")] = std::move(requests);
 	} else {
 		const auto obj = boost::make_shared<MySql::Promotion_SumRows>();
-		obj->load_and_wait(oss.str());
+		auto promise = Poseidon::MySqlDaemon::enqueue_for_loading(obj, oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
 		ret[sslit("sum")] = obj->get_sum();
 		ret[sslit("rows")] = obj->get_rows();
 	}
