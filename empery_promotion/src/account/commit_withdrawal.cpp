@@ -9,6 +9,8 @@
 #include "../mysql/wd_slip.hpp"
 #include "../bill_states.hpp"
 #include <poseidon/mysql/utilities.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
 
 namespace EmperyPromotion {
 
@@ -21,7 +23,13 @@ ACCOUNT_SERVLET("commitWithdrawal", session, params){
 	std::vector<boost::shared_ptr<MySql::Promotion_WdSlip>> objs;
 	std::ostringstream oss;
 	oss <<"SELECT * FROM `Promotion_WdSlip` WHERE `serial` = " <<Poseidon::MySql::StringEscaper(serial) <<" LIMIT 0, 1";
-	MySql::Promotion_WdSlip::batch_load(objs, oss.str());
+	auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+		[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			auto obj = boost::make_shared<MySql::Promotion_WdSlip>();
+			obj->fetch(conn);
+			objs.emplace_back(std::move(obj));
+		}, "Promotion_WdSlip", oss.str());
+	Poseidon::JobDispatcher::yield(promise, true);
 	if(objs.empty()){
 		ret[sslit("errorCode")] = (int)Msg::ERR_W_D_SLIP_NOT_FOUND;
 		ret[sslit("errorMessage")] = "Withdrawal slip is not found";

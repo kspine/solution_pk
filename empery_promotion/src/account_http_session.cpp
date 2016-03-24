@@ -44,20 +44,30 @@ boost::shared_ptr<const ServletCallback> AccountHttpSession::get_servlet(const s
 	return it->second.lock();
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AccountHttpSession::predispatch_request(
-	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
+boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AccountHttpSession::on_low_level_request(
+	Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity)
 {
-	Poseidon::OptionalMap headers;
-	headers.set(sslit("Access-Control-Allow-Origin"), "*");
-	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
-
-	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
+	if(request_headers.verb != Poseidon::Http::V_OPTIONS){
+		Poseidon::OptionalMap headers;
+		headers.set(sslit("Access-Control-Allow-Origin"), "*");
+		headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
+		check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
+	}
+	return Poseidon::Http::Session::on_low_level_request(std::move(request_headers), std::move(transfer_encoding), std::move(entity));
 }
 
 void AccountHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_PROMOTION(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted account HTTP request from ", get_remote_info());
+
+	Poseidon::OptionalMap headers;
+	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
+	headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
+	if(request_headers.verb == Poseidon::Http::V_OPTIONS){
+		send(Poseidon::Http::ST_OK, std::move(headers));
+		return;
+	}
 
 	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){
@@ -89,8 +99,6 @@ void AccountHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 	}
 	LOG_EMPERY_PROMOTION_DEBUG("Account response: uri = ", uri, ", result = ", result.dump());
-	Poseidon::OptionalMap headers;
-	headers.set(sslit("Access-Control-Allow-Origin"), "*");
 	headers.set(sslit("Content-Type"), "application/json; charset=utf-8");
 	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
 }

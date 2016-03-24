@@ -54,17 +54,16 @@ boost::shared_ptr<const ServletCallback> AuctionHttpSession::get_servlet(const s
 	return servlet;
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AuctionHttpSession::predispatch_request(
-	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
+boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AuctionHttpSession::on_low_level_request(
+	Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity)
 {
 	if(request_headers.verb != Poseidon::Http::V_OPTIONS){
 		Poseidon::OptionalMap headers;
-		headers.set(sslit("Access-Control-Allow-Origin"),  "*");
+		headers.set(sslit("Access-Control-Allow-Origin"), "*");
 		headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
 		check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 	}
-
-	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
+	return Poseidon::Http::Session::on_low_level_request(std::move(request_headers), std::move(transfer_encoding), std::move(entity));
 }
 
 void AuctionHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){

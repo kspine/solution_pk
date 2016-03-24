@@ -188,7 +188,9 @@ namespace Msg {
 	FIELD_ARRAY         (items_extra,	\
 		FIELD_VUINT         (item_id)	\
 		FIELD_VUINT         (count)	\
-	)
+	)	\
+	FIELD_STRING        (castle_uuid)	\
+	FIELD_VUINT         (reward_counter)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
