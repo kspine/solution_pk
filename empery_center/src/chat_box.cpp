@@ -147,7 +147,7 @@ bool ChatBox::remove(ChatMessageUuid chat_message_uuid) noexcept {
 	if(it == messages->end<0>()){
 		return false;
 	}
-	// const auto message = it->message;
+	// const auto message = std::move(it->message);
 	messages->erase(it);
 
 	return true;

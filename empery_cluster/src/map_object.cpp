@@ -13,11 +13,12 @@
 #include "data/map.hpp"
 #include "data/map_object.hpp"
 #include "data/global.hpp"
+#include "cbpp_response.hpp"
+
 #include "../../empery_center/src/msg/sc_map.hpp"
 #include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
 #include "../../empery_center/src/msg/err_castle.hpp"
-#include "../../empery_center/src/cbpp_response.hpp"
 #include "../../empery_center/src/attribute_ids.hpp"
 
 
@@ -27,8 +28,6 @@ namespace EmperyCluster {
 namespace Msg {
 	using namespace ::EmperyCenter::Msg;
 }
-
-using Response = ::EmperyCenter::CbppResponse;
 
 AiControl::AiControl(boost::weak_ptr<MapObject> parent)
 :m_parent_object(parent)
@@ -84,17 +83,17 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
-		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
+		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
 
 	const auto parent_map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!parent_map_object && !is_monster()){
-		result = Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) << parent_object_uuid;
+		result = CbppResponse(Msg::ERR_MAP_OBJECT_PARENT_GONE) << parent_object_uuid;
 		return UINT64_MAX;
 	}
 	if(garrisoned){
-	 	result = Response(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
+	 	result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 	 	return UINT64_MAX;
 	}
 	
@@ -210,7 +209,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		break;
 	default:
 		LOG_EMPERY_CLUSTER_WARNING("Unknown action: action = ", static_cast<unsigned>(m_action));
-		result = Response(Msg::ERR_UNKNOWN_MAP_OBJECT_ACTION) <<static_cast<unsigned>(m_action);
+		result = CbppResponse(Msg::ERR_UNKNOWN_MAP_OBJECT_ACTION) <<static_cast<unsigned>(m_action);
 		break;
 	}
 	return UINT64_MAX;
@@ -249,7 +248,7 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	const auto new_cluster = WorldMap::get_cluster(new_coord);
 	if(!new_cluster){
 		LOG_EMPERY_CLUSTER_DEBUG("Lost connection to center server: new_coord = ", new_coord);
-		result = Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_coord;
+		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_coord;
 		return UINT64_MAX;
 	}
 
@@ -433,22 +432,22 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	const auto target_object_uuid = MapObjectUuid(m_action_param);
 	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
 	if(!map_object_type_data){
-		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
+		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
 	const auto target_object = WorldMap::get_map_object(target_object_uuid);
 	if(!target_object){
-		result = Response(Msg::ERR_ATTACK_TARGET_LOST) << target_object_uuid;
+		result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST) << target_object_uuid;
 		return UINT64_MAX;
 	}
 	const auto cluster = get_cluster();
 	if(!cluster){
-		result = Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
+		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
 		return UINT64_MAX;
 	}
 	const auto emempy_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
 	if(!emempy_type_data){
-		result = Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_object->get_map_object_type_id();
+		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_object->get_map_object_type_id();
 		return UINT64_MAX;
 	}
 	if((m_action != ACT_ATTACK) || (!m_waypoints.empty())){

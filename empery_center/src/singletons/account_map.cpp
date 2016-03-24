@@ -59,22 +59,22 @@ namespace {
 	};
 
 	struct InfoCacheElement {
-		std::uint64_t expiry_time;
 		std::tuple<AccountUuid, boost::weak_ptr<PlayerSession>, CacheType> key;
+		std::uint64_t expiry_time;
 
-		InfoCacheElement(std::uint64_t expiry_time_,
-			AccountUuid account_uuid_, const boost::shared_ptr<PlayerSession> &session_, CacheType type_)
-			: expiry_time(expiry_time_), key(account_uuid_, session_, type_)
+		InfoCacheElement(AccountUuid account_uuid_, const boost::shared_ptr<PlayerSession> &session_, CacheType type_,
+			std::uint64_t expiry_time_)
+			: key(account_uuid_, session_, type_), expiry_time(expiry_time_)
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(InfoCacheContainer, InfoCacheElement,
-		MULTI_MEMBER_INDEX(expiry_time)
 		UNIQUE_MEMBER_INDEX(key)
+		MULTI_MEMBER_INDEX(expiry_time)
 	)
 
-	boost::shared_ptr<InfoCacheContainer> g_info_cache_map;
+	boost::weak_ptr<InfoCacheContainer> g_info_cache_map;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
@@ -223,27 +223,32 @@ namespace {
 
 		session->send(msg);
 
-		const auto update_cache = [&](CacheType type){
-			if(cache_timeout != 0){
-				const auto expiry_time = saturated_add(now, cache_timeout);
-				const auto result = g_info_cache_map->insert(InfoCacheElement(expiry_time, account_uuid, session, type));
-				if(!result.second){
-					g_info_cache_map->replace(result.first, InfoCacheElement(expiry_time, account_uuid, session, type));
+		const auto info_cache_map = g_info_cache_map.lock();
+		if(info_cache_map){
+			const auto update_cache = [&](CacheType type){
+				if(cache_timeout != 0){
+					auto elem = InfoCacheElement(account_uuid, session, type, saturated_add(now, cache_timeout));
+					auto it = info_cache_map->find<0>(elem.key);
+					if(it == info_cache_map->end<0>()){
+						info_cache_map->insert<0>(std::move(elem));
+					} else {
+						info_cache_map->replace<0>(it, std::move(elem));
+					}
 				}
-			}
-		};
+			};
 
-		if(flags & CT_NICK){
-			update_cache(CT_NICK);
-		}
-		if(flags & CT_ATTRS){
-			update_cache(CT_ATTRS);
-		}
-		if(flags & CT_PRIV_ATTRS){
-			update_cache(CT_PRIV_ATTRS);
-		}
-		if(flags & CT_ITEMS){
-			update_cache(CT_ITEMS);
+			if(flags & CT_NICK){
+				update_cache(CT_NICK);
+			}
+			if(flags & CT_ATTRS){
+				update_cache(CT_ATTRS);
+			}
+			if(flags & CT_PRIV_ATTRS){
+				update_cache(CT_PRIV_ATTRS);
+			}
+			if(flags & CT_ITEMS){
+				update_cache(CT_ITEMS);
+			}
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -391,7 +396,10 @@ void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const
 	const auto now = Poseidon::get_fast_mono_clock();
 	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
 
-	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
+	const auto info_cache_map = g_info_cache_map.lock();
+	if(info_cache_map){
+		info_cache_map->erase<1>(info_cache_map->begin<1>(), info_cache_map->upper_bound<1>(now));
+	}
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,
 		(wants_nick               ? CT_NICK       : CT_NONE) |
@@ -414,10 +422,21 @@ void AccountMap::cached_synchronize_account_with_player(AccountUuid account_uuid
 	const auto now = Poseidon::get_fast_mono_clock();
 	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
 
-	g_info_cache_map->erase<0>(g_info_cache_map->begin<0>(), g_info_cache_map->upper_bound<0>(now));
+	const auto info_cache_map = g_info_cache_map.lock();
+	if(info_cache_map){
+		info_cache_map->erase<1>(info_cache_map->begin<1>(), info_cache_map->upper_bound<1>(now));
+	}
 
 	const auto is_miss = [&](CacheType type){
-		return g_info_cache_map->find<1>(std::make_tuple(account_uuid, session, type)) == g_info_cache_map->end<1>();
+		if(!info_cache_map){
+			return true;
+		}
+		auto elem = InfoCacheElement(account_uuid, session, type, 0);
+		const auto it = info_cache_map->find<0>(elem.key);
+		if(it == info_cache_map->end<0>()){
+			return true;
+		}
+		return false;
 	};
 
 	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,

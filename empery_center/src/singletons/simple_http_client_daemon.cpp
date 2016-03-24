@@ -51,14 +51,14 @@ namespace {
 
 			if(!m_promise->is_satisfied()){
 				try {
-					m_promise->set_exception(boost::copy_exception(
-						Poseidon::SystemException(__FILE__, __LINE__, err_code)
-						));
+					try {
+						DEBUG_THROW(Poseidon::SystemException, err_code);
+					} catch(Poseidon::SystemException &e){
+						m_promise->set_exception(boost::copy_exception(e));
+					}
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-					m_promise->set_exception(boost::copy_exception(
-						std::bad_exception()
-						));
+					m_promise->set_exception(boost::copy_exception(std::bad_exception()));
 				}
 			}
 
@@ -94,8 +94,11 @@ namespace {
 			if(m_res_headers.status_code / 100 == 2){
 				m_promise->set_success();
 			} else {
-				m_promise->set_exception(boost::copy_exception(
-					Poseidon::Http::Exception(__FILE__, __LINE__, m_res_headers.status_code, { }, SharedNts(m_buffer.dump()))));
+				try {
+					DEBUG_THROW(Poseidon::Http::Exception, m_res_headers.status_code, { }, SharedNts(m_buffer.dump()));
+				} catch(Poseidon::Http::Exception &e){
+					m_promise->set_exception(boost::copy_exception(e));
+				}
 			}
 
 			return true;

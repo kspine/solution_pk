@@ -29,6 +29,12 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_BattleRecordReceivedNew
+#define MESSAGE_ID      1398
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (reserved)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

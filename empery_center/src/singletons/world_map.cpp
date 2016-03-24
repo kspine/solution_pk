@@ -203,6 +203,10 @@ namespace {
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapCell>();
 			obj->fetch(conn);
+			const auto ticket_item_id = ItemId(obj->get_ticket_item_id());
+			if(!ticket_item_id){
+				continue;
+			}
 			obj->enable_auto_saving();
 			const auto coord = Coord(obj->get_x(), obj->get_y());
 			temp_map_cell_map[coord].obj = std::move(obj);
@@ -595,7 +599,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	synchronize_with_all_clusters(map_cell, coord, coord);
 }
 
-void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
+/*void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
 	PROFILE_ME;
 
 	const auto map_cell_map = g_map_cell_map.lock();
@@ -608,7 +612,7 @@ void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
 	for(auto it = map_cell_map->begin<0>(); it != map_cell_map->end<0>(); ++it){
 		ret.emplace_back(it->map_cell);
 	}
-}
+}*/
 void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid){
 	PROFILE_ME;
 
@@ -1242,56 +1246,55 @@ void WorldMap::update_player_view(const boost::shared_ptr<PlayerSession> &sessio
 	}
 }
 
-void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept {
+void WorldMap::synchronize_player_view(const boost::shared_ptr<PlayerSession> &session, Rectangle view) noexcept
+try {
 	PROFILE_ME;
 
-	try {
-		std::vector<boost::shared_ptr<MapCell>> map_cells;
-		get_map_cells_by_rectangle(map_cells, view);
-		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-			const auto &map_cell = *it;
-			if(map_cell->is_virtually_removed()){
-				continue;
-			}
-			synchronize_map_cell_with_player(map_cell, session);
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	get_map_cells_by_rectangle(map_cells, view);
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		if(map_cell->is_virtually_removed()){
+			continue;
 		}
-
-		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		get_map_objects_by_rectangle(map_objects, view);
-		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			const auto &map_object = *it;
-			if(map_object->is_virtually_removed()){
-				continue;
-			}
-			if(map_object->is_garrisoned()){
-				continue;
-			}
-			synchronize_map_object_with_player(map_object, session);
-		}
-
-		std::vector<boost::shared_ptr<Overlay>> overlays;
-		get_overlays_by_rectangle(overlays, view);
-		for(auto it = overlays.begin(); it != overlays.end(); ++it){
-			const auto &overlay = *it;
-			if(overlay->is_virtually_removed()){
-				continue;
-			}
-			synchronize_overlay_with_player(overlay, session);
-		}
-
-		std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
-		get_strategic_resources_by_rectangle(strategic_resources, view);
-		for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
-			const auto &strategic_resource = *it;
-			if(strategic_resource->is_virtually_removed()){
-				continue;
-			}
-			synchronize_strategic_resource_with_player(strategic_resource, session);
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		session->shutdown(e.what());
+		synchronize_map_cell_with_player(map_cell, session);
 	}
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	get_map_objects_by_rectangle(map_objects, view);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		if(map_object->is_virtually_removed()){
+			continue;
+		}
+		if(map_object->is_garrisoned()){
+			continue;
+		}
+		synchronize_map_object_with_player(map_object, session);
+	}
+
+	std::vector<boost::shared_ptr<Overlay>> overlays;
+	get_overlays_by_rectangle(overlays, view);
+	for(auto it = overlays.begin(); it != overlays.end(); ++it){
+		const auto &overlay = *it;
+		if(overlay->is_virtually_removed()){
+			continue;
+		}
+		synchronize_overlay_with_player(overlay, session);
+	}
+
+	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
+	get_strategic_resources_by_rectangle(strategic_resources, view);
+	for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
+		const auto &strategic_resource = *it;
+		if(strategic_resource->is_virtually_removed()){
+			continue;
+		}
+		synchronize_strategic_resource_with_player(strategic_resource, session);
+	}
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	session->shutdown(e.what());
 }
 
 Rectangle WorldMap::get_cluster_scope(Coord coord){
@@ -1305,14 +1308,14 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_DEBUG("Cluster map not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
 		return { };
 	}
 
 	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
 	const auto it = cluster_map->find<0>(cluster_coord);
 	if(it == cluster_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Cluster not found: coord = ", coord, ", cluster_coord = ", cluster_coord);
+		LOG_EMPERY_CENTER_TRACE("Cluster not found: coord = ", coord, ", cluster_coord = ", cluster_coord);
 		return { };
 	}
 	auto cluster = it->cluster.lock();
@@ -1328,7 +1331,7 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
-		LOG_EMPERY_CENTER_DEBUG("Cluster map not loaded.");
+		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
 		return;
 	}
 
@@ -1373,14 +1376,14 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	for(unsigned map_y = 0; map_y < scope.height(); ++map_y){
 		for(unsigned map_x = 0; map_x < scope.width(); ++map_x){
 			const auto coord = Coord(scope.left() + map_x, scope.bottom() + map_y);
-
+/*
 			auto map_cell = get_map_cell(coord);
 			if(!map_cell){
 				map_cell = boost::make_shared<MapCell>(coord);
 				map_cell->pump_status();
 				insert_map_cell(map_cell);
 			}
-
+*/
 			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
 			if(!basic_data->overlay_group_name.empty() && basic_data->overlay_id){
 				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
@@ -1422,33 +1425,32 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 		cluster_map->replace(result.first, ClusterElement(cluster_coord, cluster));
 	}
 }
-void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept {
+void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept
+try {
 	PROFILE_ME;
 
-	try {
-		std::vector<boost::shared_ptr<MapCell>> map_cells;
-		get_map_cells_by_rectangle(map_cells, view);
-		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-			const auto &map_cell = *it;
-			if(map_cell->is_virtually_removed()){
-				continue;
-			}
-			synchronize_map_cell_with_cluster(map_cell, cluster);
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	get_map_cells_by_rectangle(map_cells, view);
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		if(map_cell->is_virtually_removed()){
+			continue;
 		}
-
-		std::vector<boost::shared_ptr<MapObject>> map_objects;
-		get_map_objects_by_rectangle(map_objects, view);
-		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-			const auto &map_object = *it;
-			if(map_object->is_virtually_removed()){
-				continue;
-			}
-			synchronize_map_object_with_cluster(map_object, cluster);
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		cluster->shutdown(e.what());
+		synchronize_map_cell_with_cluster(map_cell, cluster);
 	}
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	get_map_objects_by_rectangle(map_objects, view);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		if(map_object->is_virtually_removed()){
+			continue;
+		}
+		synchronize_map_object_with_cluster(map_object, cluster);
+	}
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	cluster->shutdown(e.what());
 }
 
 boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(

@@ -17,7 +17,7 @@ using Result          = ClusterSession::Result;
 using ServletCallback = ClusterSession::ServletCallback;
 
 namespace {
-	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback> > g_servlet_map;
+	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
 boost::shared_ptr<const ServletCallback> ClusterSession::create_servlet(std::uint16_t message_id, ServletCallback callback){

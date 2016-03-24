@@ -54,11 +54,11 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() <= 1) && it->battle_record_box && it->battle_record_box.unique()){
+			if((it->promise.use_count() > 1) || !it->battle_record_box.unique()){
+				battle_record_box_map->set_key<1, 1>(it, now + 1000);
+			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming battle record box: account_uuid = ", it->account_uuid);
 				battle_record_box_map->erase<1>(it);
-			} else {
-				battle_record_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}

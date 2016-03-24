@@ -3,6 +3,9 @@
 #include "../mysql/game_history.hpp"
 #include <poseidon/mysql/object_base.hpp>
 #include <poseidon/mysql/utilities.hpp>
+#include <poseidon/mysql/connection.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
 
 namespace EmperyGoldScramble {
 
@@ -66,7 +69,13 @@ PLAYER_HTTP_SERVLET("getGameHistory", session, params){
 	}
 	if(ids_only.empty()){
 		std::vector<boost::shared_ptr<MySql::GoldScramble_GameHistory>> objs;
-		MySql::GoldScramble_GameHistory::batch_load(objs, oss.str());
+		auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::GoldScramble_GameHistory>();
+				obj->fetch(conn);
+				objs.emplace_back(std::move(obj));
+			}, "GoldScramble_GameHistory", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
 
 		Poseidon::JsonArray history;
 		for(auto it = objs.begin(); it != objs.end(); ++it){
@@ -85,7 +94,13 @@ PLAYER_HTTP_SERVLET("getGameHistory", session, params){
 		ret[sslit("history")] = std::move(history);
 	} else {
 		std::vector<boost::shared_ptr<MySql::GameAutoIds>> objs;
-		MySql::GameAutoIds::batch_load(objs, oss.str());
+		auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::GameAutoIds>();
+				obj->fetch(conn);
+				objs.emplace_back(std::move(obj));
+			}, "GameAutoIds", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
 
 		Poseidon::JsonArray game_auto_ids;
 		for(auto it = objs.begin(); it != objs.end(); ++it){

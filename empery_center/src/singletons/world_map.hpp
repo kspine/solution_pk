@@ -27,7 +27,7 @@ struct WorldMap {
 	static void insert_map_cell(const boost::shared_ptr<MapCell> &map_cell);
 	static void update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool throws_if_not_exists = true);
 
-	static void get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret);
+//	static void get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret);
 	static void get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
 

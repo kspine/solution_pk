@@ -77,15 +77,15 @@ void TaxRecordBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 		reason.get(), old_amount, new_amount, static_cast<std::int64_t>(new_amount - old_amount), false);
 	obj->async_save(true);
 	m_records.emplace_back(obj);
-/*
+
 	const auto max_record_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_TAX_RECORD_COUNT);
 	while(m_records.size() > max_record_count){
 		const auto obj = std::move(m_records.front());
 		m_records.pop_front();
 		obj->set_deleted(true);
 	}
-*/
-	const auto session = PlayerSessionMap::get(get_account_uuid());
+
+/*	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
 			Msg::SC_TaxRecordReceivedNew msg;
@@ -94,7 +94,7 @@ void TaxRecordBox::push(std::uint64_t timestamp, AccountUuid from_account_uuid,
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
 		}
-	}
+	}*/
 }
 
 }

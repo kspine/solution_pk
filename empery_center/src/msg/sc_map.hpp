@@ -35,7 +35,9 @@ namespace Msg {
 		FIELD_VINT          (value)	\
 	)	\
 	FIELD_VUINT         (production_rate)	\
-	FIELD_VUINT         (capacity)
+	FIELD_VUINT         (capacity)	\
+	FIELD_VINT          (parent_object_x)	\
+	FIELD_VINT          (parent_object_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectInfo
@@ -86,7 +88,9 @@ namespace Msg {
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
 	FIELD_STRING        (overlay_group_name)	\
-	FIELD_VUINT         (resource_amount)
+	FIELD_VUINT         (resource_amount)	\
+	FIELD_STRING        (last_harvested_account_uuid)	\
+	FIELD_STRING        (last_harvested_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapOverlayRemoved
@@ -143,7 +147,9 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_VUINT         (resource_id)	\
-	FIELD_VUINT         (resource_amount)
+	FIELD_VUINT         (resource_amount)	\
+	FIELD_STRING        (last_harvested_account_uuid)	\
+	FIELD_STRING        (last_harvested_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapStrategicResourceRemoved
@@ -182,7 +188,9 @@ namespace Msg {
 	FIELD_ARRAY         (items_extra,	\
 		FIELD_VUINT         (item_id)	\
 		FIELD_VUINT         (count)	\
-	)
+	)	\
+	FIELD_STRING        (castle_uuid)	\
+	FIELD_VUINT         (reward_counter)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

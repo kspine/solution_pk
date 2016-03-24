@@ -11,7 +11,7 @@
 #include <poseidon/job_base.hpp>
 #include "../cluster_client.hpp"
 #include "../log.hpp"
-#include "../../../empery_center/src/cbpp_response.hpp"
+#include "../cbpp_response.hpp"
 #include "../../../empery_center/src/msg/kill.hpp"
 
 /*
@@ -52,7 +52,7 @@ namespace Msg {
 	using namespace ::EmperyCenter::Msg;
 }
 
-using Response = ::EmperyCenter::CbppResponse;
+using Response = CbppResponse;
 
 }
 

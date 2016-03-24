@@ -102,6 +102,9 @@ void MapObject::recalculate_attributes(){
 	}
 
 	set_attributes(std::move(modifiers));
+
+	const auto hi_res_now = Poseidon::get_hi_res_mono_clock();
+	m_last_updated_time = hi_res_now;
 }
 
 MapObjectUuid MapObject::get_map_object_uuid() const {
@@ -258,9 +261,6 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 	if(!dirty){
 		return;
 	}
-
-	const auto hi_res_now = Poseidon::get_hi_res_mono_clock();
-	m_last_updated_time = hi_res_now;
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 

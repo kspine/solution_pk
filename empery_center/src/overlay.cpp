@@ -89,13 +89,14 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, st
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
 
-	const auto resource_capacity = static_cast<std::uint64_t>(harvester_type_data->resource_carriable * soldier_count);
+	const auto resource_capacity = static_cast<std::uint64_t>(std::floor(harvester_type_data->resource_carriable * soldier_count + 0.001));
 	const auto resource_amount_carried = harvester->get_resource_amount_carried();
 	const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);
 	const auto amount_to_add = std::min(rounded_amount_removable, capacity_remaining);
 	const auto amount_to_remove = saturated ? rounded_amount_removable : amount_to_add;
 	LOG_EMPERY_CENTER_DEBUG("Harvesting overlay: cluster_coord = ", cluster_coord,
 		", overlay_group_name = ", overlay_group_name, ", resource_id = ", resource_id, ", carried_attribute_id = ", carried_attribute_id,
+		", resource_amount_carried = ", resource_amount_carried, ", capacity_remaining = ", capacity_remaining,
 		", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
@@ -105,6 +106,7 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, st
 	m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove));
 
 	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
+	m_last_harvester = harvester;
 
 	WorldMap::update_overlay(virtual_shared_from_this<Overlay>(), false);
 
@@ -119,16 +121,21 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 
 	if(is_virtually_removed()){
 		Msg::SC_MapOverlayRemoved msg;
-		msg.cluster_x          = get_cluster_coord().x();
-		msg.cluster_y          = get_cluster_coord().y();
-		msg.overlay_group_name = get_overlay_group_name();
+		msg.cluster_x                   = get_cluster_coord().x();
+		msg.cluster_y                   = get_cluster_coord().y();
+		msg.overlay_group_name          = get_overlay_group_name();
 		session->send(msg);
 	} else {
 		Msg::SC_MapOverlayInfo msg;
-		msg.cluster_x          = get_cluster_coord().x();
-		msg.cluster_y          = get_cluster_coord().y();
-		msg.overlay_group_name = get_overlay_group_name();
-		msg.resource_amount    = get_resource_amount();
+		msg.cluster_x                   = get_cluster_coord().x();
+		msg.cluster_y                   = get_cluster_coord().y();
+		msg.overlay_group_name          = get_overlay_group_name();
+		msg.resource_amount             = get_resource_amount();
+		const auto last_harvester = get_last_harvester();
+		if(last_harvester){
+			msg.last_harvested_account_uuid = last_harvester->get_owner_uuid().str();
+			msg.last_harvested_object_uuid  = last_harvester->get_map_object_uuid().str();
+		}
 		session->send(msg);
 	}
 }

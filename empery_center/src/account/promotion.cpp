@@ -452,8 +452,9 @@ ACCOUNT_SERVLET("promotion/reset_password", root, session, params){
 }
 
 ACCOUNT_SERVLET("promotion/activate", root, session, params){
-	const auto &login_name = params.at("loginName");
-	const auto &code       = params.at("activationCode");
+	const auto &login_name   = params.at("loginName");
+	const auto &code         = params.at("activationCode");
+	const auto &initial_nick = params.get("initialNick");
 
 	const auto account = AccountMap::get_by_login_name(g_platform_id, login_name);
 	if(!account){
@@ -465,6 +466,21 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 	const auto activation_code = ActivationCodeMap::get(code);
 	if(!activation_code || activation_code->is_virtually_removed()){
 		return Response(Msg::ERR_ACTIVATION_CODE_DELETED);
+	}
+
+	if(!initial_nick.empty()){
+		std::vector<boost::shared_ptr<Account>> other_accounts;
+		AccountMap::get_by_nick(other_accounts, initial_nick);
+		for(auto it = other_accounts.begin(); it != other_accounts.end(); ++it){
+			const auto &other_account = *it;
+			if(other_account != account){
+				LOG_EMPERY_CENTER_DEBUG("Nick conflict: initial_nick = ", initial_nick, ", account_uuid = ", account->get_account_uuid(),
+					", other_nick = ", other_account->get_nick(), ", other_account_uuid = ", other_account->get_account_uuid());
+				return Response(Msg::ERR_NICK_CONFLICT) <<other_account->get_nick();
+			}
+		}
+
+		account->set_nick(initial_nick);
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();

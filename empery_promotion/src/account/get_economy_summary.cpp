@@ -4,6 +4,8 @@
 #include "../item_ids.hpp"
 #include "../msg/err_account.hpp"
 #include <poseidon/mysql/object_base.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
 
 namespace EmperyPromotion {
 
@@ -23,7 +25,13 @@ ACCOUNT_SERVLET("getEconomySummary", session, /* params */){
 	Poseidon::JsonObject ret;
 
 	std::vector<boost::shared_ptr<MySql::EconomySummary>> objs;
-	MySql::EconomySummary::batch_load(objs, "SELECT `item_id`, SUM(`count`) AS `count` FROM `Promotion_Item` GROUP BY `item_id`");
+	auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+		[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			auto obj = boost::make_shared<MySql::EconomySummary>();
+			obj->fetch(conn);
+			objs.emplace_back(std::move(obj));
+		}, "EconomySummary", "SELECT `item_id`, SUM(`count`) AS `count` FROM `Promotion_Item` GROUP BY `item_id`");
+	Poseidon::JobDispatcher::yield(promise, true);
 
 	const auto get_total_item_count = [&](ItemId item_id) -> std::uint64_t {
 		for(auto it = objs.begin(); it != objs.end(); ++it){

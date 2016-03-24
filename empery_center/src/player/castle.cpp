@@ -98,11 +98,11 @@ namespace {
 			tokens_consumed.emplace(item_id, count_consumed);
 		}
 
-		for(auto it = resources_to_consume.begin(); it != resources_to_consume.end(); ++it){
+		for(auto it = resources_consumed.begin(); it != resources_consumed.end(); ++it){
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
 				reason, param1, param2, param3);
 		}
-		for(auto it = tokens_to_consume.begin(); it != tokens_to_consume.end(); ++it){
+		for(auto it = tokens_consumed.begin(); it != tokens_consumed.end(); ++it){
 			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
 				reason, param1, param2, param3);
 		}
@@ -1027,7 +1027,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	std::vector<ResourceTransactionElement> transaction;
 	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){
 		transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-			it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
+			it->first, checked_mul(static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)), count),
 			ReasonIds::ID_CANCEL_PRODUCE_BATTALION, map_object_type_id.get(), count, 0);
 	}
 	castle->commit_resource_transaction(transaction,

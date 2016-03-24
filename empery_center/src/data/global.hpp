@@ -55,6 +55,7 @@ namespace Data {
 			SLOT_NICK_MODIFICATION_TRADE_ID                         = 100053,
 			SLOT_CASTLE_NAME_MODIFICATION_TRADE_ID                  = 100054,
 			SLOT_SIGNATURE_MODIFICATION_TRADE_ID                    = 100055,
+			SLOT_MAX_TAX_RECORD_COUNT                               = 100058,
 		};
 
 	public:

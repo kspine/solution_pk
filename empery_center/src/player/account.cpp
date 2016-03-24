@@ -1,6 +1,7 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include <poseidon/singletons/event_dispatcher.hpp>
+#include <poseidon/async_job.hpp>
 #include "../msg/cs_account.hpp"
 #include "../msg/sc_account.hpp"
 #include "../msg/err_account.hpp"
@@ -114,15 +115,18 @@ PLAYER_SERVLET_RAW(Msg::CS_AccountLogin, session, req){
 	if(utc_now < account->get_banned_until()){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
-	const auto account_uuid = account->get_account_uuid();
-
-	session->send(Msg::SC_AccountSynchronizeSystemClock(std::string(), utc_now));
-
-	get_signed_in(account);
 
 	PlayerSessionMap::add(account, session);
+
+	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
+
+	const auto account_uuid = account->get_account_uuid();
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
 	AccountMap::synchronize_account_with_player(account_uuid, session, true, true, true, { });
+
+	Poseidon::enqueue_async_job(
+		std::bind(&get_signed_in, account),
+		{ });
 
 	return Response();
 }
@@ -168,20 +172,11 @@ PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
 	}
 
 	std::vector<ItemTransactionElement> transaction;
-	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-	const bool first_nick_set = account->cast_attribute<bool>(AccountAttributeIds::ID_FIRST_NICK_SET);
-	if(first_nick_set){
-		const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
-		const auto trade_data = Data::ItemTrade::require(trade_id);
-		Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
-	} else {
-		modifiers[AccountAttributeIds::ID_FIRST_NICK_SET] = "1";
-	}
+//	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
+//	const auto trade_data = Data::ItemTrade::require(trade_id);
+//	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
-		[&]{
-			account->set_nick(std::move(nick));
-			account->set_attributes(std::move(modifiers));
-		});
+		[&]{ account->set_nick(std::move(nick)); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}

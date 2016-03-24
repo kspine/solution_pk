@@ -81,11 +81,11 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() <= 1) && it->mail_box && it->mail_box.unique()){
+			if((it->promise.use_count() > 1) || !it->mail_box.unique()){
+				mail_box_map->set_key<1, 1>(it, now + 1000);
+			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail box: account_uuid = ", it->account_uuid);
 				mail_box_map->erase<1>(it);
-			} else {
-				mail_box_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}
@@ -109,11 +109,11 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() <= 1) && it->mail_data && it->mail_data.unique()){
+			if((it->promise.use_count() > 1) || !it->mail_data.unique()){
+				mail_data_map->set_key<1, 1>(it, now + 1000);
+			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail data: mail_uuid = ", it->pkey.first);
 				mail_data_map->erase<1>(it);
-			} else {
-				mail_data_map->set_key<1, 1>(it, now + 1000);
 			}
 		}
 	}

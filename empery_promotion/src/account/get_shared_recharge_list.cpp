@@ -48,10 +48,11 @@ ACCOUNT_SERVLET("getSharedRechargeList", session, params){
 		Poseidon::JsonObject object;
 		object[sslit("state")] = static_cast<unsigned>(it->state);
 		object[sslit("amount")] = it->amount;
-		const auto account_id = it->recharge_to_account_id;
+		const auto account_id = it->account_id;
 		auto account_info = AccountMap::require(account_id);
 		object[sslit("loginName")] = std::move(account_info.login_name);
 		object[sslit("nick")] = std::move(account_info.nick);
+		object[sslit("level")] = account_info.level;
 		array.emplace_back(std::move(object));
 	}
 	ret[sslit("sharedRechargeListAccepted")] = std::move(array);
