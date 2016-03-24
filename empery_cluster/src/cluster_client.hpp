@@ -1,7 +1,7 @@
 #ifndef EMPERY_CLUSTER_CLUSTER_CLIENT_HPP_
 #define EMPERY_CLUSTER_CLUSTER_CLIENT_HPP_
 
-#include <poseidon/cbpp/client.hpp>
+#include <poseidon/cbpp/low_level_client.hpp>
 #include <poseidon/fwd.hpp>
 #include <poseidon/mutex.hpp>
 #include <cstdint>
@@ -13,7 +13,10 @@
 
 namespace EmperyCluster {
 
-class ClusterClient : public Poseidon::Cbpp::Client {
+class ClusterClient : public Poseidon::Cbpp::LowLevelClient {
+private:
+	class SyncMessageJob;
+
 public:
 	using Result = std::pair<Poseidon::Cbpp::StatusCode, std::string>;
 
@@ -54,17 +57,19 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	void on_sync_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
-	void on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
-	void on_sync_data_message_end(std::uint64_t payload_size) override;
+	void on_low_level_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
+	void on_low_level_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
+	bool on_low_level_data_message_end(std::uint64_t payload_size) override;
+
+	bool on_low_level_error_message(std::uint16_t message_id, Poseidon::Cbpp::StatusCode status_code, std::string reason) override;
 
 public:
-	bool send(std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 	void shutdown(const char *message) noexcept;
 	void shutdown(int code, const char *message) noexcept;
 
 	// 警告：不能在 servlet 中调用，否则会造成死锁。
-	Result send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer body);
+	Result send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
@@ -75,14 +80,14 @@ public:
 		return send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 
-	bool send_notification_by_account(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send_notification_by_account(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<typename MsgT>
 	bool send_notification_by_account(AccountUuid account_uuid, const MsgT &msg){
 		return send_notification_by_account(account_uuid, MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 
-	bool send_notification_by_rectangle(Rectangle rectangle, std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send_notification_by_rectangle(Rectangle rectangle, std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<typename MsgT>
 	bool send_notification_by_rectangle(Rectangle rectangle, const MsgT &msg){

@@ -172,7 +172,7 @@ public:
 				}
 			}
 
-			impl->send(std::move(contents), true);
+			impl->send(Poseidon::WebSocket::OP_DATA_BIN, std::move(contents));
 			if(shutdown_it){
 				const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(session->get_upgraded_session());
 				if(impl){
@@ -234,8 +234,8 @@ void PlayerSession::on_close(int err_code) noexcept {
 	Poseidon::Http::Session::on_close(err_code);
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatch_request(
-	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
+boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::on_low_level_request(
+	Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity)
 {
 	PROFILE_ME;
 
@@ -258,7 +258,7 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatc
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 	}
 
-	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
+	return Poseidon::Http::Session::on_low_level_request(std::move(request_headers), std::move(transfer_encoding), std::move(entity));
 }
 
 void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders /* request_headers */, Poseidon::StreamBuffer /* entity */){
