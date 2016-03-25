@@ -29,6 +29,24 @@ namespace {
 		}
 
 	protected:
+		void on_close(int err_code) noexcept override {
+			PROFILE_ME;
+
+			if(!m_promise->is_satisfied()){
+				try {
+					try {
+						DEBUG_THROW(Exception, sslit("Lost connection to remote server before a response was received"));
+					} catch(Exception &e){
+						m_promise->set_exception(boost::copy_exception(e));
+					}
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				}
+			}
+
+			Poseidon::Http::Client::on_close(err_code);
+		}
+
 		void on_sync_response(Poseidon::Http::ResponseHeaders response_headers,
 			std::string transfer_encoding, Poseidon::StreamBuffer entity) override
 		{
@@ -37,6 +55,8 @@ namespace {
 			m_response_headers = std::move(response_headers);
 			m_transfer_encoding = std::move(transfer_encoding);
 			m_entity = std::move(entity);
+
+			m_promise->set_success();
 		}
 
 	public:
