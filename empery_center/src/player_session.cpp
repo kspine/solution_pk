@@ -50,7 +50,7 @@ protected:
 		unsigned message_id = UINT_MAX;
 		std::pair<long, std::string> result;
 		try {
-			if(opcode != Poseidon::WebSocket::OP_DATA_BIN){
+			if(opcode != Poseidon::WebSocket::OP_DATA_BINARY){
 				LOG_EMPERY_CENTER_WARNING("Invalid message type: opcode = ", opcode);
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
@@ -172,7 +172,7 @@ public:
 				}
 			}
 
-			impl->send(Poseidon::WebSocket::OP_DATA_BIN, std::move(contents));
+			impl->send(Poseidon::WebSocket::OP_DATA_BINARY, std::move(contents));
 			if(shutdown_it){
 				const auto impl = boost::dynamic_pointer_cast<WebSocketImpl>(session->get_upgraded_session());
 				if(impl){
