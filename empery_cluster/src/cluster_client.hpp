@@ -1,7 +1,7 @@
 #ifndef EMPERY_CLUSTER_CLUSTER_CLIENT_HPP_
 #define EMPERY_CLUSTER_CLUSTER_CLIENT_HPP_
 
-#include <poseidon/cbpp/low_level_client.hpp>
+#include <poseidon/cbpp/client.hpp>
 #include <poseidon/fwd.hpp>
 #include <poseidon/mutex.hpp>
 #include <cstdint>
@@ -13,10 +13,7 @@
 
 namespace EmperyCluster {
 
-class ClusterClient : public Poseidon::Cbpp::LowLevelClient {
-private:
-	class SyncMessageJob;
-
+class ClusterClient : public Poseidon::Cbpp::Client {
 public:
 	using Result = std::pair<Poseidon::Cbpp::StatusCode, std::string>;
 
@@ -57,11 +54,11 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	void on_low_level_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
-	void on_low_level_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
-	bool on_low_level_data_message_end(std::uint64_t payload_size) override;
+	void on_sync_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
+	void on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
+	void on_sync_data_message_end(std::uint64_t payload_size) override;
 
-	bool on_low_level_error_message(std::uint16_t message_id, Poseidon::Cbpp::StatusCode status_code, std::string reason) override;
+	void on_sync_error_message(std::uint16_t message_id, Poseidon::Cbpp::StatusCode status_code, std::string reason) override;
 
 public:
 	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);
