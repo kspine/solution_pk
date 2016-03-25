@@ -117,7 +117,7 @@ namespace {
 		unsigned retry_count = 3;
 	_retry:
 		auto response = HttpClientDaemon::get(promotion_server_host, promotion_server_port, promotion_server_use_ssl, promotion_server_auth,
- 			promotion_server_path + "notifyGoldScrambleReward", std::move(params));
+			promotion_server_path + "notifyGoldScrambleReward", std::move(params));
 		if(response.status_code != Poseidon::Http::ST_OK){
 			LOG_EMPERY_GOLD_SCRAMBLE_WARNING("Promotion server returned an HTTP error: status_code = ", response.status_code);
 			if(retry_count == 0){

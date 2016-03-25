@@ -111,14 +111,14 @@ namespace Data {
 		return ret;
 	}
 	boost::shared_ptr<const TaskAbstract> TaskAbstract::require(TaskId task_id){
-    	PROFILE_ME;
+		PROFILE_ME;
 
-    	auto ret = get(task_id);
-    	if(!ret){
-    		LOG_EMPERY_CENTER_WARNING("TaskAbstract not found: task_id = ", task_id);
-        	DEBUG_THROW(Exception, sslit("TaskAbstract not found"));
-    	}
-    	return ret;
+		auto ret = get(task_id);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("TaskAbstract not found: task_id = ", task_id);
+			DEBUG_THROW(Exception, sslit("TaskAbstract not found"));
+		}
+		return ret;
 	}
 
 	boost::shared_ptr<const TaskPrimary> TaskPrimary::get(TaskId task_id){
@@ -138,14 +138,14 @@ namespace Data {
 		return boost::shared_ptr<const TaskPrimary>(task_primary_map, &(it->second));
 	}
 	boost::shared_ptr<const TaskPrimary> TaskPrimary::require(TaskId task_id){
-    	PROFILE_ME;
+		PROFILE_ME;
 
-    	auto ret = get(task_id);
-    	if(!ret){
+		auto ret = get(task_id);
+		if(!ret){
 			LOG_EMPERY_CENTER_WARNING("TaskPrimary not found: task_id = ", task_id);
-        	DEBUG_THROW(Exception, sslit("TaskPrimary not found"));
-    	}
-    	return ret;
+			DEBUG_THROW(Exception, sslit("TaskPrimary not found"));
+		}
+		return ret;
 	}
 
 	void TaskPrimary::get_all(std::vector<boost::shared_ptr<const TaskPrimary>> &ret){
@@ -180,14 +180,14 @@ namespace Data {
 		return boost::shared_ptr<const TaskDaily>(task_daily_map, &(it->second));
 	}
 	boost::shared_ptr<const TaskDaily> TaskDaily::require(TaskId task_id){
-    	PROFILE_ME;
+		PROFILE_ME;
 
-    	auto ret = get(task_id);
-    	if(!ret){
+		auto ret = get(task_id);
+		if(!ret){
 			LOG_EMPERY_CENTER_WARNING("TaskDaily not found: task_id = ", task_id);
-        	DEBUG_THROW(Exception, sslit("TaskDaily not found"));
-    	}
-    	return ret;
+			DEBUG_THROW(Exception, sslit("TaskDaily not found"));
+		}
+		return ret;
 	}
 
 	void TaskDaily::get_all(std::vector<boost::shared_ptr<const TaskDaily>> &ret){
