@@ -166,13 +166,13 @@ namespace Data {
 
 	class CastleResource {
 	public:
-		 enum AutoIncType {
-		 	AIT_NONE     = 0,
-		 	AIT_HOURLY   = 1,
-		 	AIT_DAILY    = 2,
-		 	AIT_WEEKLY   = 3,
-		 	AIT_PERIODIC = 4,
-		 };
+		enum AutoIncType {
+			AIT_NONE     = 0,
+			AIT_HOURLY   = 1,
+			AIT_DAILY    = 2,
+			AIT_WEEKLY   = 3,
+			AIT_PERIODIC = 4,
+		};
 
 	public:
 		static boost::shared_ptr<const CastleResource> get(ResourceId resource_id);

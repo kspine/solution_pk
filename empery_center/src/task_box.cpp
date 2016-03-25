@@ -411,14 +411,14 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
-	    try {
-        	Msg::SC_TaskChanged msg;
-        	fill_task_message(msg, pair, utc_now);
-        	session->send(msg);
-    	} catch(std::exception &e){
-        	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-        	session->shutdown(e.what());
-    	}
+		try {
+			Msg::SC_TaskChanged msg;
+			fill_task_message(msg, pair, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
 	}
 }
 bool TaskBox::remove(TaskId task_id) noexcept {
