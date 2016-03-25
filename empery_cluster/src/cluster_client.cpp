@@ -132,8 +132,6 @@ bool ClusterClient::on_low_level_data_message_end(std::uint64_t payload_size){
 	LOG_EMPERY_CLUSTER_TRACE("Received data message from center server: remote = ", get_remote_info(),
 		", message_id = ", get_low_level_message_id(), ", size = ", payload_size);
 
-	const bool ret = Poseidon::Cbpp::Client::on_low_level_data_message_end(payload_size);
-
 	const auto message_id = get_low_level_message_id();
 	if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(get_low_level_payload());
@@ -153,7 +151,7 @@ bool ClusterClient::on_low_level_data_message_end(std::uint64_t payload_size){
 		}
 	}
 
-	return ret;
+	return Poseidon::Cbpp::Client::on_low_level_data_message_end(payload_size);
 }
 
 void ClusterClient::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
