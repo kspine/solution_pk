@@ -45,7 +45,7 @@ protected:
 		unsigned message_id = UINT_MAX;
 		std::pair<long, std::string> result;
 		try {
-			if(opcode != Poseidon::WebSocket::OP_DATA_BIN){
+			if(opcode != Poseidon::WebSocket::OP_DATA_BINARY){
 				LOG_EMPERY_GOLD_SCRAMBLE_WARNING("Invalid message type: opcode = ", opcode);
 				DEBUG_THROW(Poseidon::WebSocket::Exception, Poseidon::WebSocket::ST_INACCEPTABLE);
 			}
@@ -250,7 +250,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 	auto wit = Poseidon::StreamBuffer::WriteIterator(whole);
 	Poseidon::vuint64_to_binary(message_id, wit);
 	whole.splice(payload);
-	return impl->send(Poseidon::WebSocket::OP_DATA_BIN, std::move(whole));
+	return impl->send(Poseidon::WebSocket::OP_DATA_BINARY, std::move(whole));
 }
 
 void PlayerSession::shutdown(int reason, const char *message) noexcept {
