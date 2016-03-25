@@ -166,31 +166,34 @@ void PlayerSession::on_close(int err_code) noexcept {
 	Poseidon::Http::Session::on_close(err_code);
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::predispatch_request(
-	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
+boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::on_low_level_request_end(
+	std::uint64_t content_length, bool is_chunked, Poseidon::OptionalMap headers)
 {
 	PROFILE_ME;
 
+	auto upgraded_session = Poseidon::Http::Session::on_low_level_request_end(content_length, is_chunked, std::move(headers));
+	if(upgraded_session){
+		return std::move(upgraded_session);
+	}
+
+	const auto &request_headers = get_low_level_request_headers();
 	if(request_headers.verb != Poseidon::Http::V_GET){
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_IMPLEMENTED);
 	}
 	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if(uri == m_path){
 		if(::strcasecmp(request_headers.headers.get("Upgrade").c_str(), "websocket") == 0){
-			auto upgraded_session = boost::make_shared<WebSocketImpl>(virtual_shared_from_this<PlayerSession>());
-
+			upgraded_session = boost::make_shared<WebSocketImpl>(virtual_shared_from_this<PlayerSession>());
 			auto response_headers = Poseidon::WebSocket::make_handshake_response(request_headers);
 			if(response_headers.status_code != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
 				DEBUG_THROW(Poseidon::Http::Exception, response_headers.status_code);
 			}
 			Poseidon::Http::Session::send(std::move(response_headers), { });
-
 			return std::move(upgraded_session);
 		}
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 	}
-
-	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
+	return { };
 }
 
 void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
@@ -247,7 +250,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 	auto wit = Poseidon::StreamBuffer::WriteIterator(whole);
 	Poseidon::vuint64_to_binary(message_id, wit);
 	whole.splice(payload);
-	return impl->send(std::move(whole), true);
+	return impl->send(Poseidon::WebSocket::OP_DATA_BIN, std::move(whole));
 }
 
 void PlayerSession::shutdown(int reason, const char *message) noexcept {

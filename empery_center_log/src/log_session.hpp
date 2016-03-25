@@ -27,9 +27,6 @@ public:
 	~LogHttpSession();
 
 protected:
-	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatch_request(
-		Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity) override;
-
 	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 };
 

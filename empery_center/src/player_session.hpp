@@ -11,13 +11,13 @@
 #include <poseidon/ip_port.hpp>
 #include <poseidon/stream_buffer.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
-#include <poseidon/http/session.hpp>
+#include <poseidon/http/low_level_session.hpp>
 #include <poseidon/mutex.hpp>
 #include "rectangle.hpp"
 
 namespace EmperyCenter {
 
-class PlayerSession : public Poseidon::Http::Session {
+class PlayerSession : public Poseidon::Http::LowLevelSession {
 public:
 	enum : std::size_t {
 		RED_ZONE_SIZE = 64,
@@ -37,6 +37,8 @@ private:
 private:
 	const std::string m_path;
 
+	Poseidon::Http::RequestHeaders m_request_headers;
+
 	mutable Poseidon::Mutex m_send_queue_mutex;
 	std::deque<std::tuple<unsigned, Poseidon::StreamBuffer, bool>> m_send_queue;
 
@@ -49,10 +51,11 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> predispatch_request(
-		Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity) override;
-
-	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
+	void on_low_level_request_headers(Poseidon::Http::RequestHeaders request_headers,
+		std::string transfer_encoding, std::uint64_t content_length) override;
+	void on_low_level_request_entity(std::uint64_t entity_offset, bool is_chunked, Poseidon::StreamBuffer entity) override;
+	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> on_low_level_request_end(
+		std::uint64_t content_length, bool is_chunked, Poseidon::OptionalMap headers) override;
 
 public:
 	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);

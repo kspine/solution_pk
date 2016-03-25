@@ -44,20 +44,19 @@ boost::shared_ptr<const ServletCallback> AdminHttpSession::get_servlet(const std
 	return it->second.lock();
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> AdminHttpSession::predispatch_request(
-	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
-{
-	Poseidon::OptionalMap headers;
-	headers.set(sslit("Access-Control-Allow-Origin"), "*");
-	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
-
-	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
-}
-
 void AdminHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_PROMOTION(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted admin HTTP request from ", get_remote_info());
+
+	Poseidon::OptionalMap headers;
+	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
+	headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
+	if(request_headers.verb == Poseidon::Http::V_OPTIONS){
+		send(Poseidon::Http::ST_OK, std::move(headers));
+		return;
+	}
+	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 
 	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){
@@ -89,8 +88,6 @@ void AdminHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_he
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_INTERNAL_SERVER_ERROR);
 	}
 	LOG_EMPERY_PROMOTION_DEBUG("Admin response: uri = ", uri, ", result = ", result.dump());
-	Poseidon::OptionalMap headers;
-	headers.set(sslit("Access-Control-Allow-Origin"), "*");
 	headers.set(sslit("Content-Type"), "application/json; charset=utf-8");
 	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(result.dump()));
 }

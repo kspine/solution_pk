@@ -54,19 +54,6 @@ boost::shared_ptr<const ServletCallback> LogHttpSession::get_servlet(const std::
 	return servlet;
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> LogHttpSession::predispatch_request(
-	Poseidon::Http::RequestHeaders &request_headers, Poseidon::StreamBuffer &entity)
-{
-	if(request_headers.verb != Poseidon::Http::V_OPTIONS){
-		Poseidon::OptionalMap headers;
-		headers.set(sslit("Access-Control-Allow-Origin"),  "*");
-		headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
-		check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
-	}
-
-	return Poseidon::Http::Session::predispatch_request(request_headers, entity);
-}
-
 void LogHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_LOG(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
@@ -79,6 +66,7 @@ void LogHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_head
 		send(Poseidon::Http::ST_OK, std::move(headers));
 		return;
 	}
+	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 
 	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){

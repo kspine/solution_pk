@@ -3,6 +3,8 @@
 #include "mmain.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/job_base.hpp>
+#include <poseidon/job_promise.hpp>
 #include <poseidon/job_promise.hpp>
 #include <poseidon/atomic.hpp>
 #include <poseidon/cbpp/control_message.hpp>
@@ -49,7 +51,8 @@ boost::shared_ptr<const ServletCallback> ControllerSession::get_servlet(std::uin
 }
 
 ControllerSession::ControllerSession(Poseidon::UniqueFile socket)
-	: Poseidon::Cbpp::Session(std::move(socket), 0x1000000) // 16MiB
+	: Poseidon::Cbpp::Session(std::move(socket),
+		get_config<std::uint64_t>("cluster_session_max_packet_size", 0x1000000))
 	, m_serial(0)
 {
 	LOG_EMPERY_CONTROLLER_INFO("Controller session constructor: this = ", (void *)this);
@@ -83,7 +86,7 @@ void ControllerSession::on_close(int err_code) noexcept {
 			}
 			try {
 				try {
-					DEBUG_THROW(Exception, sslit("Lost connection to controller server"));
+					DEBUG_THROW(Exception, sslit("Lost connection to center server"));
 				} catch(Poseidon::Exception &e){
 					promise->set_exception(boost::copy_exception(e));
 				} catch(std::exception &e){
@@ -98,70 +101,101 @@ void ControllerSession::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Session::on_close(err_code);
 }
 
-void ControllerSession::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+bool ControllerSession::on_low_level_data_message_end(std::uint64_t payload_size){
 	PROFILE_ME;
-	LOG_EMPERY_CONTROLLER_TRACE("Received data message from controller server: remote = ", get_remote_info(),
-		", message_id = ", message_id, ", size = ", payload.size());
+	LOG_EMPERY_CONTROLLER_TRACE("Received data message from center server: remote = ", get_remote_info(),
+		", message_id = ", get_low_level_message_id(), ", size = ", payload_size);
 
-	if(message_id == Msg::G_PackedRequest::ID){
-		Msg::G_PackedRequest packed(std::move(payload));
-		Result result;
-		try {
-			const auto servlet = get_servlet(packed.message_id);
-			if(!servlet){
-				LOG_EMPERY_CONTROLLER_WARNING("No servlet found: message_id = ", packed.message_id);
-				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
+	const bool ret = Poseidon::Cbpp::Session::on_low_level_data_message_end(payload_size);
+
+	const auto message_id = get_low_level_message_id();
+	if(message_id == Msg::G_PackedResponse::ID){
+		Msg::G_PackedResponse packed(get_low_level_payload());
+
+		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+		const auto it = m_requests.find(packed.serial);
+		if(it != m_requests.end()){
+			const auto elem = std::move(it->second);
+			m_requests.erase(it);
+
+			if(elem.result){
+				*elem.result = std::make_pair(packed.code, std::move(packed.message));
 			}
-			result = (*servlet)(virtual_shared_from_this<ControllerSession>(), Poseidon::StreamBuffer(packed.payload));
-		} catch(Poseidon::Cbpp::Exception &e){
-			LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"Poseidon::Cbpp::Exception thrown: message_id = ", message_id, ", what = ", e.what());
-			result.first = e.status_code();
-			result.second = e.what();
-		} catch(std::exception &e){
-			LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"std::exception thrown: message_id = ", message_id, ", what = ", e.what());
-			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
-			result.second = e.what();
-		}
-		if(result.first != 0){
-			LOG_EMPERY_CONTROLLER_DEBUG("Sending response to controller server: message_id = ", message_id,
-				", code = ", result.first, ", message = ", result.second);
-		}
-		Poseidon::Cbpp::Session::send(Msg::G_PackedResponse(packed.serial, result.first, std::move(result.second)));
-		if(result.first < 0){
-			shutdown_read();
-			shutdown_write();
-		}
-	} else if(message_id == Msg::G_PackedResponse::ID){
-		Msg::G_PackedResponse packed(std::move(payload));
-		LOG_EMPERY_CONTROLLER_TRACE("Received response from controller server: code = ", packed.code, ", message = ", packed.message);
-		{
-			const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-			const auto it = m_requests.find(packed.serial);
-			if(it != m_requests.end()){
-				const auto elem = std::move(it->second);
-				m_requests.erase(it);
-
-				if(elem.result){
-					*elem.result = std::make_pair(packed.code, std::move(packed.message));
-				}
-				if(elem.promise){
-					elem.promise->set_success();
-				}
+			if(elem.promise){
+				elem.promise->set_success();
 			}
 		}
-	} else {
-		LOG_EMPERY_CONTROLLER_WARNING("Unknown message from controller server: remote = ", get_remote_info(), ", message_id = ", message_id);
-		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 	}
+
+	return ret;
 }
 
-bool ControllerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer body){
+void ControllerSession::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+	PROFILE_ME;
+	LOG_EMPERY_CONTROLLER_TRACE("Received data message from center server: remote = ", get_remote_info(),
+		", message_id = ", message_id, ", size = ", payload.size());
+
+	if(message_id != Msg::G_PackedResponse::ID){
+		if(message_id == Msg::G_PackedRequest::ID){
+			Msg::G_PackedRequest packed(std::move(payload));
+
+			Result result;
+			try {
+				const auto servlet = get_servlet(packed.message_id);
+				if(!servlet){
+					LOG_EMPERY_CONTROLLER_WARNING("No servlet found: message_id = ", packed.message_id);
+					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
+				}
+				result = (*servlet)(virtual_shared_from_this<ControllerSession>(), Poseidon::StreamBuffer(packed.payload));
+			} catch(Poseidon::Cbpp::Exception &e){
+				LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+					"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+				result.first = e.status_code();
+				result.second = e.what();
+			} catch(std::exception &e){
+				LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+					"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+				result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
+				result.second = e.what();
+			}
+			if(result.first != 0){
+				LOG_EMPERY_CONTROLLER_DEBUG("Sending response to center server: message_id = ", packed.message_id,
+					", code = ", result.first, ", message = ", result.second);
+			}
+
+			Msg::G_PackedResponse res;
+			res.serial  = packed.serial;
+			res.code    = result.first;
+			res.message = std::move(result.second);
+			Poseidon::Cbpp::Session::send(res.ID, Poseidon::StreamBuffer(res));
+
+			if(result.first < 0){
+				shutdown_read();
+				shutdown_write();
+			}
+		} else {
+			LOG_EMPERY_CONTROLLER_WARNING("Unknown message from center server: remote = ", get_remote_info(), ", message_id = ", message_id);
+			DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
+		}
+	}
+}
+void ControllerSession::on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param){
+	PROFILE_ME;
+	LOG_EMPERY_CONTROLLER_TRACE("Control message from center server: control_code = ", control_code,
+		", vint_param = ", vint_param, ", string_param = ", string_param);
+
+	Poseidon::Cbpp::Session::on_sync_control_message(control_code, vint_param, std::move(string_param));
+}
+
+bool ControllerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
 	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
-	return Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()));
+	Msg::G_PackedRequest msg;
+	msg.serial     = serial;
+	msg.message_id = message_id;
+	msg.payload    = payload.dump();
+	return Poseidon::Cbpp::Session::send(msg.ID, Poseidon::StreamBuffer(msg));
 }
 void ControllerSession::shutdown(const char *message) noexcept {
 	PROFILE_ME;
@@ -184,7 +218,7 @@ void ControllerSession::shutdown(int code, const char *message) noexcept {
 	}
 }
 
-Result ControllerSession::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer body){
+Result ControllerSession::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
 	Result ret;
@@ -196,8 +230,12 @@ Result ControllerSession::send_and_wait(std::uint16_t message_id, Poseidon::Stre
 		m_requests.emplace(serial, RequestElement(&ret, promise));
 	}
 	try {
-		if(!Poseidon::Cbpp::Session::send(Msg::G_PackedRequest(serial, message_id, body.dump()))){
-			DEBUG_THROW(Exception, sslit("Could not send data to controller server"));
+		Msg::G_PackedRequest msg;
+		msg.serial     = serial;
+		msg.message_id = message_id;
+		msg.payload    = payload.dump();
+		if(!Poseidon::Cbpp::Session::send(msg.ID, Poseidon::StreamBuffer(msg))){
+			DEBUG_THROW(Exception, sslit("Could not send data to center server"));
 		}
 		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){

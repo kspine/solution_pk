@@ -38,9 +38,6 @@ private:
 	};
 
 private:
-	unsigned m_message_id;
-	Poseidon::StreamBuffer m_payload;
-
 	volatile std::uint64_t m_serial;
 	mutable Poseidon::Mutex m_request_mutex;
 	boost::container::flat_multimap<std::uint64_t, RequestElement> m_requests;
@@ -54,17 +51,18 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	void on_sync_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
-	void on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
-	void on_sync_data_message_end(std::uint64_t payload_size) override;
+	bool on_low_level_data_message_end(std::uint64_t payload_size) override;
+
+	void on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload) override;
+	void on_sync_error_message(std::uint16_t message_id, Poseidon::Cbpp::StatusCode status_code, std::string reason) override;
 
 public:
-	bool send(std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 	void shutdown(const char *message) noexcept;
 	void shutdown(int code, const char *message) noexcept;
 
 	// 警告：不能在 servlet 中调用，否则会造成死锁。
-	Result send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer body);
+	Result send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
@@ -75,14 +73,14 @@ public:
 		return send_and_wait(MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 
-	bool send_notification_by_account(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send_notification_by_account(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<typename MsgT>
 	bool send_notification_by_account(AccountUuid account_uuid, const MsgT &msg){
 		return send_notification_by_account(account_uuid, MsgT::ID, Poseidon::StreamBuffer(msg));
 	}
 
-	bool send_notification_by_rectangle(Rectangle rectangle, std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send_notification_by_rectangle(Rectangle rectangle, std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<typename MsgT>
 	bool send_notification_by_rectangle(Rectangle rectangle, const MsgT &msg){

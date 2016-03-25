@@ -48,15 +48,18 @@ protected:
 	void on_connect() override;
 	void on_close(int err_code) noexcept override;
 
+	bool on_low_level_data_message_end(std::uint64_t payload_size) override;
+
 	void on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload) override;
+	void on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param) override;
 
 public:
-	bool send(std::uint16_t message_id, Poseidon::StreamBuffer body);
+	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 	void shutdown(const char *message) noexcept;
 	void shutdown(int code, const char *message) noexcept;
 
 	// 警告：不能在 servlet 中调用，否则会造成死锁。
-	Result send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer body);
+	Result send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload);
 
 	template<typename MsgT>
 	bool send(const MsgT &msg){
