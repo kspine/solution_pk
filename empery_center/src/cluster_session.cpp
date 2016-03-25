@@ -50,7 +50,8 @@ boost::shared_ptr<const ServletCallback> ClusterSession::get_servlet(std::uint16
 }
 
 ClusterSession::ClusterSession(Poseidon::UniqueFile socket)
-	: Poseidon::Cbpp::Session(std::move(socket), 0x1000000) // 16MiB
+	: Poseidon::Cbpp::Session(std::move(socket),
+		get_config<std::uint64_t>("cluster_session_max_packet_size", 0x1000000))
 	, m_serial(0)
 {
 	LOG_EMPERY_CENTER_INFO("Cluster session constructor: this = ", (void *)this);
@@ -99,13 +100,16 @@ void ClusterSession::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Session::on_close(err_code);
 }
 
-bool ClusterSession::on_low_level_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+bool ClusterSession::on_low_level_data_message_end(std::uint64_t payload_size){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_TRACE("Received data message from cluster client: remote = ", get_remote_info(),
-		", message_id = ", message_id, ", size = ", payload.size());
+		", message_id = ", get_low_level_message_id(), ", size = ", payload_size);
 
+	const bool ret = Poseidon::Cbpp::Session::on_low_level_data_message_end(payload_size);
+
+	const auto message_id = get_low_level_message_id();
 	if(message_id == Msg::G_PackedResponse::ID){
-		Msg::G_PackedResponse packed(std::move(payload));
+		Msg::G_PackedResponse packed(get_low_level_payload());
 
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
 		const auto it = m_requests.find(packed.serial);
@@ -122,7 +126,7 @@ bool ClusterSession::on_low_level_data_message(std::uint16_t message_id, Poseido
 		}
 	}
 
-	return Poseidon::Cbpp::Session::on_low_level_data_message(message_id, std::move(payload));
+	return ret;
 }
 
 void ClusterSession::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
@@ -208,7 +212,6 @@ void ClusterSession::on_sync_data_message(std::uint16_t message_id, Poseidon::St
 		}
 	}
 }
-
 void ClusterSession::on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_TRACE("Control message from cluster client: control_code = ", control_code,

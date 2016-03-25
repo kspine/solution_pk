@@ -48,7 +48,7 @@ protected:
 	void on_connect() override;
 	void on_close(int err_code) noexcept override;
 
-	bool on_low_level_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload) override;
+	bool on_low_level_data_message_end(std::uint64_t payload_size) override;
 
 	void on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload) override;
 	void on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param) override;

@@ -234,30 +234,54 @@ void PlayerSession::on_close(int err_code) noexcept {
 	Poseidon::Http::LowLevelSession::on_close(err_code);
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::on_low_level_request(
-	Poseidon::Http::RequestHeaders request_headers, std::string /* transfer_encoding */, Poseidon::StreamBuffer /* entity */)
+void PlayerSession::on_low_level_request_headers(Poseidon::Http::RequestHeaders request_headers,
+	std::string transfer_encoding, std::uint64_t content_length)
 {
 	PROFILE_ME;
 
-	if(request_headers.verb != Poseidon::Http::V_GET){
+	(void)transfer_encoding;
+	(void)content_length;
+
+	m_request_headers = std::move(request_headers);
+}
+void PlayerSession::on_low_level_request_entity(std::uint64_t entity_offset, bool is_chunked, Poseidon::StreamBuffer entity){
+	PROFILE_ME;
+
+	(void)entity_offset;
+	(void)is_chunked;
+	(void)entity;
+}
+boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::on_low_level_request_end(
+	std::uint64_t content_length, bool is_chunked, Poseidon::OptionalMap headers)
+{
+	PROFILE_ME;
+
+	(void)content_length;
+	(void)is_chunked;
+
+	for(auto it = headers.begin(); it != headers.end(); ++it){
+		m_request_headers.headers.append(it->first, std::move(it->second));
+	}
+
+	if(m_request_headers.verb != Poseidon::Http::V_GET){
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_IMPLEMENTED);
 	}
-	auto uri = Poseidon::Http::url_decode(request_headers.uri);
-	if(uri == m_path){
-		if(::strcasecmp(request_headers.headers.get("Upgrade").c_str(), "websocket") == 0){
-			auto upgraded_session = boost::make_shared<WebSocketImpl>(virtual_shared_from_this<PlayerSession>());
-
-			auto response_headers = Poseidon::WebSocket::make_handshake_response(request_headers);
-			if(response_headers.status_code != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
-				DEBUG_THROW(Poseidon::Http::Exception, response_headers.status_code);
-			}
-			Poseidon::Http::LowLevelSession::send(std::move(response_headers), { });
-
-			return std::move(upgraded_session);
-		}
+	auto uri = Poseidon::Http::url_decode(m_request_headers.uri);
+	if(uri != m_path){
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 
-	DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
+	if(::strcasecmp(m_request_headers.headers.get("Upgrade").c_str(), "websocket") != 0){
+		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
+	}
+
+	auto upgraded_session = boost::make_shared<WebSocketImpl>(virtual_shared_from_this<PlayerSession>());
+	auto response_headers = Poseidon::WebSocket::make_handshake_response(m_request_headers);
+	if(response_headers.status_code != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
+		DEBUG_THROW(Poseidon::Http::Exception, response_headers.status_code);
+	}
+	Poseidon::Http::LowLevelSession::send(std::move(response_headers), { });
+	return upgraded_session;
 }
 
 bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){

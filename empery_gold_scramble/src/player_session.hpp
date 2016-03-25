@@ -43,8 +43,8 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> on_low_level_request(
-		Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity) override;
+	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> on_low_level_request_end(
+		std::uint64_t content_length, bool is_chunked, Poseidon::OptionalMap headers) override;
 
 	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 

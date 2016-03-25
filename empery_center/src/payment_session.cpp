@@ -54,18 +54,6 @@ boost::shared_ptr<const ServletCallback> PaymentHttpSession::get_servlet(const s
 	return servlet;
 }
 
-boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PaymentHttpSession::on_low_level_request(
-	Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity)
-{
-	if(request_headers.verb != Poseidon::Http::V_OPTIONS){
-		Poseidon::OptionalMap headers;
-		headers.set(sslit("Access-Control-Allow-Origin"), "*");
-		headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
-		check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
-	}
-	return Poseidon::Http::Session::on_low_level_request(std::move(request_headers), std::move(transfer_encoding), std::move(entity));
-}
-
 void PaymentHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
@@ -78,6 +66,7 @@ void PaymentHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_
 		send(Poseidon::Http::ST_OK, std::move(headers));
 		return;
 	}
+	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 
 	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){

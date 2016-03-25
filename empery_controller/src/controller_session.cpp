@@ -51,7 +51,8 @@ boost::shared_ptr<const ServletCallback> ControllerSession::get_servlet(std::uin
 }
 
 ControllerSession::ControllerSession(Poseidon::UniqueFile socket)
-	: Poseidon::Cbpp::Session(std::move(socket), 0x1000000) // 16MiB
+	: Poseidon::Cbpp::Session(std::move(socket),
+		get_config<std::uint64_t>("cluster_session_max_packet_size", 0x1000000))
 	, m_serial(0)
 {
 	LOG_EMPERY_CONTROLLER_INFO("Controller session constructor: this = ", (void *)this);
@@ -85,7 +86,7 @@ void ControllerSession::on_close(int err_code) noexcept {
 			}
 			try {
 				try {
-					DEBUG_THROW(Exception, sslit("Lost connection to controller client"));
+					DEBUG_THROW(Exception, sslit("Lost connection to center server"));
 				} catch(Poseidon::Exception &e){
 					promise->set_exception(boost::copy_exception(e));
 				} catch(std::exception &e){
@@ -100,13 +101,16 @@ void ControllerSession::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Session::on_close(err_code);
 }
 
-bool ControllerSession::on_low_level_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+bool ControllerSession::on_low_level_data_message_end(std::uint64_t payload_size){
 	PROFILE_ME;
-	LOG_EMPERY_CONTROLLER_TRACE("Received data message from controller client: remote = ", get_remote_info(),
-		", message_id = ", message_id, ", size = ", payload.size());
+	LOG_EMPERY_CONTROLLER_TRACE("Received data message from center server: remote = ", get_remote_info(),
+		", message_id = ", get_low_level_message_id(), ", size = ", payload_size);
 
+	const bool ret = Poseidon::Cbpp::Session::on_low_level_data_message_end(payload_size);
+
+	const auto message_id = get_low_level_message_id();
 	if(message_id == Msg::G_PackedResponse::ID){
-		Msg::G_PackedResponse packed(std::move(payload));
+		Msg::G_PackedResponse packed(get_low_level_payload());
 
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
 		const auto it = m_requests.find(packed.serial);
@@ -123,12 +127,12 @@ bool ControllerSession::on_low_level_data_message(std::uint16_t message_id, Pose
 		}
 	}
 
-	return Poseidon::Cbpp::Session::on_low_level_data_message(message_id, std::move(payload));
+	return ret;
 }
 
 void ControllerSession::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
-	LOG_EMPERY_CONTROLLER_TRACE("Received data message from controller client: remote = ", get_remote_info(),
+	LOG_EMPERY_CONTROLLER_TRACE("Received data message from center server: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", size = ", payload.size());
 
 	if(message_id != Msg::G_PackedResponse::ID){
@@ -170,15 +174,14 @@ void ControllerSession::on_sync_data_message(std::uint16_t message_id, Poseidon:
 				shutdown_write();
 			}
 		} else {
-			LOG_EMPERY_CONTROLLER_WARNING("Unknown message from controller client: remote = ", get_remote_info(), ", message_id = ", message_id);
+			LOG_EMPERY_CONTROLLER_WARNING("Unknown message from center server: remote = ", get_remote_info(), ", message_id = ", message_id);
 			DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 		}
 	}
 }
-
 void ControllerSession::on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param){
 	PROFILE_ME;
-	LOG_EMPERY_CONTROLLER_TRACE("Control message from controller client: control_code = ", control_code,
+	LOG_EMPERY_CONTROLLER_TRACE("Control message from center server: control_code = ", control_code,
 		", vint_param = ", vint_param, ", string_param = ", string_param);
 
 	Poseidon::Cbpp::Session::on_sync_control_message(control_code, vint_param, std::move(string_param));
@@ -232,7 +235,7 @@ Result ControllerSession::send_and_wait(std::uint16_t message_id, Poseidon::Stre
 		msg.message_id = message_id;
 		msg.payload    = payload.dump();
 		if(!Poseidon::Cbpp::Session::send(msg.ID, Poseidon::StreamBuffer(msg))){
-			DEBUG_THROW(Exception, sslit("Could not send data to controller client"));
+			DEBUG_THROW(Exception, sslit("Could not send data to center server"));
 		}
 		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){

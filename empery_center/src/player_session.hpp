@@ -37,6 +37,8 @@ private:
 private:
 	const std::string m_path;
 
+	Poseidon::Http::RequestHeaders m_request_headers;
+
 	mutable Poseidon::Mutex m_send_queue_mutex;
 	std::deque<std::tuple<unsigned, Poseidon::StreamBuffer, bool>> m_send_queue;
 
@@ -49,8 +51,11 @@ public:
 protected:
 	void on_close(int err_code) noexcept override;
 
-	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> on_low_level_request(
-		Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity) override;
+	void on_low_level_request_headers(Poseidon::Http::RequestHeaders request_headers,
+		std::string transfer_encoding, std::uint64_t content_length) override;
+	void on_low_level_request_entity(std::uint64_t entity_offset, bool is_chunked, Poseidon::StreamBuffer entity) override;
+	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> on_low_level_request_end(
+		std::uint64_t content_length, bool is_chunked, Poseidon::OptionalMap headers) override;
 
 public:
 	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);

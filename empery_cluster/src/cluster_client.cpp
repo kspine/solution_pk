@@ -88,7 +88,6 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x,
 
 ClusterClient::ClusterClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)
 	: Poseidon::Cbpp::Client(sock_addr, use_ssl, keep_alive_interval)
-	, m_message_id(0), m_payload()
 	, m_serial(0)
 {
 	LOG_EMPERY_CLUSTER_INFO("Cluster client constructor: this = ", (void *)this);
@@ -128,27 +127,37 @@ void ClusterClient::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Client::on_close(err_code);
 }
 
-void ClusterClient::on_sync_data_message_header(std::uint16_t message_id, std::uint64_t payload_size){
+bool ClusterClient::on_low_level_data_message_end(std::uint64_t payload_size){
 	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_TRACE("Message header: message_id = ", message_id, ", payload_size = ", payload_size);
+	LOG_EMPERY_CLUSTER_TRACE("Received data message from center server: remote = ", get_remote_info(),
+		", message_id = ", get_low_level_message_id(), ", size = ", payload_size);
 
-	m_message_id = message_id;
-	m_payload.clear();
+	const bool ret = Poseidon::Cbpp::Client::on_low_level_data_message_end(payload_size);
+
+	const auto message_id = get_low_level_message_id();
+	if(message_id == Msg::G_PackedResponse::ID){
+		Msg::G_PackedResponse packed(get_low_level_payload());
+
+		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+		const auto it = m_requests.find(packed.serial);
+		if(it != m_requests.end()){
+			const auto elem = std::move(it->second);
+			m_requests.erase(it);
+
+			if(elem.result){
+				*elem.result = std::make_pair(packed.code, std::move(packed.message));
+			}
+			if(elem.promise){
+				elem.promise->set_success();
+			}
+		}
+	}
+
+	return ret;
 }
-void ClusterClient::on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload){
-	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_TRACE("Message payload: payload_offset = ", payload_offset, ", payload_size = ", payload.size());
 
-	m_payload.splice(payload);
-}
-void ClusterClient::on_sync_data_message_end(std::uint64_t payload_size){
+void ClusterClient::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
-	LOG_EMPERY_CLUSTER_TRACE("Message end: payload_size = ", payload_size);
-
-	auto message_id = m_message_id;
-	auto payload = std::move(m_payload);
-	m_message_id = 0;
-	m_payload.clear();
 	LOG_EMPERY_CLUSTER_TRACE("Received data message from center server: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", payload_size = ", payload.size());
 
