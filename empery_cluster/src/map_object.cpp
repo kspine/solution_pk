@@ -484,10 +484,10 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	}else{
 		//伤害计算
 		if(target_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE ){
-			damage = (1.0 +(soldier_count/10000.0) + (soldier_count - ememy_solider_count)/10000.0 * 0.5)*relative_rate*
+			damage = (1.0 +(soldier_count/20000.0) + (soldier_count - ememy_solider_count)/20000.0 )*relative_rate*
 			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}else{
-			damage =  (1.0 +(soldier_count/10000.0))*relative_rate*
+			damage =  (1.0 +(soldier_count/20000.0))*relative_rate*
 			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}
 		result_type = IMPACT_NORMAL;
