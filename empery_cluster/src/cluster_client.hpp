@@ -38,6 +38,9 @@ private:
 	};
 
 private:
+	unsigned m_low_level_message_id;
+	Poseidon::StreamBuffer m_low_level_payload;
+
 	unsigned m_message_id;
 	Poseidon::StreamBuffer m_payload;
 
@@ -53,6 +56,10 @@ public:
 
 protected:
 	void on_close(int err_code) noexcept override;
+
+	void on_low_level_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
+	void on_low_level_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
+	void on_low_level_data_message_end(std::uint64_t payload_size) override;
 
 	void on_sync_data_message_header(std::uint16_t message_id, std::uint64_t payload_size) override;
 	void on_sync_data_message_payload(std::uint64_t payload_offset, Poseidon::StreamBuffer payload) override;
