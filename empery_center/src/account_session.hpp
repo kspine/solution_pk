@@ -27,9 +27,6 @@ public:
 	~AccountHttpSession();
 
 protected:
-	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> on_low_level_request(
-		Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity) override;
-
 	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 };
 
