@@ -11,13 +11,13 @@
 #include <poseidon/ip_port.hpp>
 #include <poseidon/stream_buffer.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
-#include <poseidon/http/session.hpp>
+#include <poseidon/http/low_level_session.hpp>
 #include <poseidon/mutex.hpp>
 #include "rectangle.hpp"
 
 namespace EmperyCenter {
 
-class PlayerSession : public Poseidon::Http::Session {
+class PlayerSession : public Poseidon::Http::LowLevelSession {
 public:
 	enum : std::size_t {
 		RED_ZONE_SIZE = 64,
@@ -51,8 +51,6 @@ protected:
 
 	boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> on_low_level_request(
 		Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity) override;
-
-	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
 
 public:
 	bool send(std::uint16_t message_id, Poseidon::StreamBuffer payload);

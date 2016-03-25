@@ -204,6 +204,9 @@ bool ControllerSession::on_low_level_data_message(std::uint16_t message_id, Pose
 		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 	}
 
+	const auto keep_alive_timeout = get_config<std::uint64_t>("controller_session_keep_alive_timeout", 60000);
+	set_timeout(keep_alive_timeout);
+
 	return true;
 }
 
@@ -211,6 +214,9 @@ bool ControllerSession::on_low_level_control_message(Poseidon::Cbpp::ControlCode
 	PROFILE_ME;
 	LOG_EMPERY_CONTROLLER_TRACE("Control message from controller client: control_code = ", control_code,
 		", vint_param = ", vint_param, ", string_param = ", string_param);
+
+	const auto keep_alive_timeout = get_config<std::uint64_t>("controller_session_keep_alive_timeout", 60000);
+	set_timeout(keep_alive_timeout);
 
 	return true;
 }

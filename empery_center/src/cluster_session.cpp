@@ -236,6 +236,9 @@ bool ClusterSession::on_low_level_data_message(std::uint16_t message_id, Poseido
 		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 	}
 
+	const auto keep_alive_timeout = get_config<std::uint64_t>("cluster_session_keep_alive_timeout", 60000);
+	set_timeout(keep_alive_timeout);
+
 	return true;
 }
 
@@ -243,6 +246,9 @@ bool ClusterSession::on_low_level_control_message(Poseidon::Cbpp::ControlCode co
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_TRACE("Control message from cluster client: control_code = ", control_code,
 		", vint_param = ", vint_param, ", string_param = ", string_param);
+
+	const auto keep_alive_timeout = get_config<std::uint64_t>("cluster_session_keep_alive_timeout", 60000);
+	set_timeout(keep_alive_timeout);
 
 	return true;
 }

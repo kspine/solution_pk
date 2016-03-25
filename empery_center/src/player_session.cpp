@@ -217,7 +217,7 @@ boost::shared_ptr<const ServletCallback> PlayerSession::get_servlet(std::uint16_
 }
 
 PlayerSession::PlayerSession(Poseidon::UniqueFile socket, std::string path)
-	: Poseidon::Http::Session(std::move(socket))
+	: Poseidon::Http::LowLevelSession(std::move(socket))
 	, m_path(std::move(path))
 	, m_view(INT64_MIN, INT64_MIN, 0, 0)
 {
@@ -231,11 +231,11 @@ void PlayerSession::on_close(int err_code) noexcept {
 
 	PlayerSessionMap::async_begin_gc();
 
-	Poseidon::Http::Session::on_close(err_code);
+	Poseidon::Http::LowLevelSession::on_close(err_code);
 }
 
 boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::on_low_level_request(
-	Poseidon::Http::RequestHeaders request_headers, std::string transfer_encoding, Poseidon::StreamBuffer entity)
+	Poseidon::Http::RequestHeaders request_headers, std::string /* transfer_encoding */, Poseidon::StreamBuffer /* entity */)
 {
 	PROFILE_ME;
 
@@ -251,18 +251,11 @@ boost::shared_ptr<Poseidon::Http::UpgradedSessionBase> PlayerSession::on_low_lev
 			if(response_headers.status_code != Poseidon::Http::ST_SWITCHING_PROTOCOLS){
 				DEBUG_THROW(Poseidon::Http::Exception, response_headers.status_code);
 			}
-			Poseidon::Http::Session::send(std::move(response_headers), { });
+			Poseidon::Http::LowLevelSession::send(std::move(response_headers), { });
 
 			return std::move(upgraded_session);
 		}
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 	}
-
-	return Poseidon::Http::Session::on_low_level_request(std::move(request_headers), std::move(transfer_encoding), std::move(entity));
-}
-
-void PlayerSession::on_sync_request(Poseidon::Http::RequestHeaders /* request_headers */, Poseidon::StreamBuffer /* entity */){
-	PROFILE_ME;
 
 	DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_FORBIDDEN);
 }
@@ -321,7 +314,7 @@ void PlayerSession::shutdown(int reason, const char *message) noexcept {
 		m_send_queue.emplace_back(msg_id, Poseidon::Cbpp::ControlMessage(msg_id, reason, message), true);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-		Poseidon::Http::Session::force_shutdown();
+		force_shutdown();
 	}
 }
 
