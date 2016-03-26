@@ -303,7 +303,7 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 			continue;
 		}
 
-		auto &elem = *req.map_objects.emplace(req.map_objects.end());
+		auto &elem = *msg.map_objects.emplace(msg.map_objects.end());
 		elem.map_object_uuid = map_object_uuid.str();
 	}
 	session->send(msg);
