@@ -97,31 +97,29 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
 	}
 
-	auto old_coord = map_object->get_coord();
-	const auto cluster = WorldMap::get_cluster(old_coord);
+	const auto coord = map_object->get_coord();
+	const auto cluster = WorldMap::get_cluster(coord);
 	if(!cluster){
-		LOG_EMPERY_CENTER_DEBUG("No cluster server available: old_coord = ", old_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		LOG_EMPERY_CENTER_DEBUG("No cluster server available: coord = ", coord);
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
 	}
 
 	Msg::SK_MapSetAction kreq;
 	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
+	kreq.x = coord.x();
+	kreq.y = coord.y();
 	// 撤销当前的路径。
 	auto kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		// return std::move(kresult);
 		cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
 	}
-	// 重新计算坐标。
-	old_coord = map_object->get_coord();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
+	map_object->set_coord(coord);
+
 	kreq.waypoints.reserve(req.waypoints.size());
-	auto last_coord = old_coord;
+	auto last_coord = coord;
 	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
 		const auto &step = req.waypoints.at(i);
 		if((step.dx < -1) || (step.dx > 1) || (step.dy < -1) || (step.dy > 1)){

@@ -166,7 +166,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	}
 
 	const auto interval = req.interval;
-	const auto harvested_amount = overlay->harvest(map_object, interval, true);
+	const auto harvested_amount = overlay->harvest(map_object, interval, false);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", interval, ", harvested_amount = ", harvested_amount);
 
@@ -337,7 +337,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	}
 
 	const auto interval = req.interval;
-	const auto harvested_amount = strategic_resource->harvest(map_object, interval, true);
+	const auto harvested_amount = strategic_resource->harvest(map_object, interval, false);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", interval, ", harvested_amount = ", harvested_amount);
 
