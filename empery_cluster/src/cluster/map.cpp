@@ -86,7 +86,8 @@ CLUSTER_SERVLET(Msg::SK_MapRemoveMapObject, cluster, req){
 }
 
 CLUSTER_SERVLET(Msg::SK_MapSetAction, cluster, req){
-	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
