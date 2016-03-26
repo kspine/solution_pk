@@ -246,7 +246,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account, session, req){
 		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_BUILDING_UPGRADE_CANCELLATION_REFUND_RATIO);
 		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
+				it->first, static_cast<std::uint64_t>(it->second * refund_ratio + 0.001),
 				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.building_id.get(), info.building_level, 0);
 		}
 	}
@@ -549,7 +549,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_TECH_UPGRADE_CANCELLATION_REFUND_RATIO);
 		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)),
+				it->first, static_cast<std::uint64_t>(it->second * refund_ratio + 0.001),
 				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.tech_id.get(), info.tech_level, 0);
 		}
 	}
@@ -1027,7 +1027,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	std::vector<ResourceTransactionElement> transaction;
 	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){
 		transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-			it->first, checked_mul(static_cast<std::uint64_t>(std::floor(it->second * refund_ratio + 0.001)), count),
+			it->first, static_cast<std::uint64_t>(checked_mul(it->second, count) * refund_ratio + 0.001),
 			ReasonIds::ID_CANCEL_PRODUCE_BATTALION, map_object_type_id.get(), count, 0);
 	}
 	castle->commit_resource_transaction(transaction,
