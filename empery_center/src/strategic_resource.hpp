@@ -25,7 +25,7 @@ private:
 
 public:
 	StrategicResource(Coord coord, ResourceId resource_id, std::uint64_t resource_amount,
-		std::uint64_t created_time, std::uint64_t expiry_time);
+		std::uint64_t created_time, std::uint64_t expiry_time, MapEventId map_event_id);
 	explicit StrategicResource(boost::shared_ptr<MySql::Center_StrategicResource> obj);
 	~StrategicResource();
 
@@ -35,6 +35,7 @@ public:
 	std::uint64_t get_resource_amount() const;
 	std::uint64_t get_created_time() const;
 	std::uint64_t get_expiry_time() const;
+	MapEventId get_map_event_id() const;
 
 	bool has_been_deleted() const;
 	void delete_from_game() noexcept;

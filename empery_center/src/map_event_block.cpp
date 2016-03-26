@@ -42,7 +42,7 @@ namespace {
 		const auto event_resource_data = Data::MapEventResource::get(map_event_id);
 		if(event_resource_data){
 			const auto strategic_resource = boost::make_shared<StrategicResource>(coord,
-				event_resource_data->resource_id, event_resource_data->resource_amount, created_time, expiry_time);
+				event_resource_data->resource_id, event_resource_data->resource_amount, created_time, expiry_time, map_event_id);
 			WorldMap::insert_strategic_resource(strategic_resource);
 			return;
 		}

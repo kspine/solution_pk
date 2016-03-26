@@ -149,7 +149,8 @@ namespace Msg {
 	FIELD_VUINT         (resource_id)	\
 	FIELD_VUINT         (resource_amount)	\
 	FIELD_STRING        (last_harvested_account_uuid)	\
-	FIELD_STRING        (last_harvested_object_uuid)
+	FIELD_STRING        (last_harvested_object_uuid)	\
+	FIELD_VUINT         (map_event_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapStrategicResourceRemoved
