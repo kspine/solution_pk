@@ -126,15 +126,15 @@ void StrategicResource::synchronize_with_player(const boost::shared_ptr<PlayerSe
 
 	if(is_virtually_removed()){
 		Msg::SC_MapStrategicResourceRemoved msg;
-		msg.x                           = get_coord().x();
-		msg.y                           = get_coord().y();
+		msg.x               = get_coord().x();
+		msg.y               = get_coord().y();
 		session->send(msg);
 	} else {
 		Msg::SC_MapStrategicResourceInfo msg;
-		msg.x                           = get_coord().x();
-		msg.y                           = get_coord().y();
-		msg.resource_id                 = get_resource_id().get();
-		msg.resource_amount             = get_resource_amount();
+		msg.x               = get_coord().x();
+		msg.y               = get_coord().y();
+		msg.resource_id     = get_resource_id().get();
+		msg.resource_amount = get_resource_amount();
 		const auto last_harvester = get_last_harvester();
 		if(last_harvester){
 			msg.last_harvested_account_uuid = last_harvester->get_owner_uuid().str();
