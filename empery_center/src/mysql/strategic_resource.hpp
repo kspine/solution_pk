@@ -14,7 +14,8 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (resource_id)	\
 	FIELD_BIGINT_UNSIGNED   (resource_amount)	\
 	FIELD_DATETIME          (created_time)	\
-	FIELD_DATETIME          (expiry_time)
+	FIELD_DATETIME          (expiry_time)	\
+	FIELD_INTEGER_UNSIGNED  (map_event_id)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

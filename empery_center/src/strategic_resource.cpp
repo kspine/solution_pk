@@ -17,11 +17,11 @@
 namespace EmperyCenter {
 
 StrategicResource::StrategicResource(Coord coord, ResourceId resource_id, std::uint64_t resource_amount,
-	std::uint64_t created_time, std::uint64_t expiry_time)
+	std::uint64_t created_time, std::uint64_t expiry_time, MapEventId map_event_id)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_StrategicResource>(coord.x(), coord.y(),
-				resource_id.get(), resource_amount, created_time, expiry_time);
+				resource_id.get(), resource_amount, created_time, expiry_time, map_event_id.get());
 			obj->async_save(true);
 			return obj;
 		}())
@@ -48,6 +48,9 @@ std::uint64_t StrategicResource::get_created_time() const {
 }
 std::uint64_t StrategicResource::get_expiry_time() const {
 	return m_obj->get_expiry_time();
+}
+MapEventId StrategicResource::get_map_event_id() const {
+	return MapEventId(m_obj->get_map_event_id());
 }
 
 bool StrategicResource::has_been_deleted() const {
@@ -140,6 +143,7 @@ void StrategicResource::synchronize_with_player(const boost::shared_ptr<PlayerSe
 			msg.last_harvested_account_uuid = last_harvester->get_owner_uuid().str();
 			msg.last_harvested_object_uuid  = last_harvester->get_map_object_uuid().str();
 		}
+		msg.map_event_id    = get_map_event_id().get();
 		session->send(msg);
 	}
 }
