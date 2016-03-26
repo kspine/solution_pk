@@ -116,8 +116,6 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
 	}
-	map_object->set_coord(coord);
-
 	kreq.waypoints.reserve(req.waypoints.size());
 	auto last_coord = coord;
 	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
