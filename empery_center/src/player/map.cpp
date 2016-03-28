@@ -82,7 +82,6 @@ PLAYER_SERVLET(Msg::CS_MapRefreshView, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
-LOG_EMPERY_CENTER_ERROR("Received: ", req);
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
 	if(!map_object){
@@ -308,7 +307,6 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 		elem.map_object_uuid = map_object_uuid.str();
 	}
 	session->send(msg);
-LOG_EMPERY_CENTER_FATAL("Sent: ", msg);
 
 	return Response();
 }

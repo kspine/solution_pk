@@ -546,7 +546,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 	const auto tech_data = Data::CastleTech::require(info.tech_id, info.tech_level + 1);
 	std::vector<ResourceTransactionElement> transaction;
 	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_TECH_UPGRADE_CANCELLATION_REFUND_RATIO);
+		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_BATTALION_PRODUCTION_CANCELLATION_REFUND_RATIO);
 		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
 				it->first, static_cast<std::uint64_t>(it->second * refund_ratio + 0.001),
@@ -1022,7 +1022,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto count = info.count;
 
-	const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_BATTALION_PRODUCTION_CANCELLATION_REFUND_RATIO);
+	const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_TECH_UPGRADE_CANCELLATION_REFUND_RATIO);
 
 	std::vector<ResourceTransactionElement> transaction;
 	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){
