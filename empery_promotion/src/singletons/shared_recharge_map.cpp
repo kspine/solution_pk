@@ -65,6 +65,12 @@ namespace {
 	}
 }
 
+std::uint64_t SharedRechargeMap::get_reward_amount(std::uint64_t amount){
+	const auto reward_ratio = get_config<double>("shared_recharge_reward_ratio", 0.003);
+	const auto reward_amount = std::ceil(amount * reward_ratio - 0.001);
+	return reward_amount;
+}
+
 SharedRechargeMap::SharedRechargeInfo SharedRechargeMap::get(AccountId account_id, AccountId recharge_to_account_id){
 	PROFILE_ME;
 
@@ -165,6 +171,9 @@ void SharedRechargeMap::request(std::vector<SharedRechargeMap::SharedRechargeInf
 		}
 	}
 
+	const auto amount_reward = get_reward_amount(amount);
+	const auto amount_total = checked_add(amount, amount_reward);
+
 	std::vector<AccountMap::AccountInfo> candidate_accounts, temp_accounts;
 
 	std::vector<boost::shared_ptr<const Data::Promotion>> promotion_data_all;
@@ -188,7 +197,7 @@ void SharedRechargeMap::request(std::vector<SharedRechargeMap::SharedRechargeInf
 				continue;
 			}
 			const auto balance_amount = ItemMap::get_count(recharge_to_account_id, ItemIds::ID_ACCOUNT_BALANCE);
-			if(balance_amount < amount){
+			if(balance_amount < amount_total){
 				continue;
 			}
 			candidate_accounts.emplace_back(std::move(*tit));
@@ -248,9 +257,13 @@ void SharedRechargeMap::accept(AccountId account_id, AccountId recharge_to_accou
 		DEBUG_THROW(Exception, sslit("No requesting shared recharge found"));
 	}
 	const auto amount = rit->obj->get_amount();
+	const auto amount_reward = get_reward_amount(amount);
+	const auto amount_total = checked_add(amount, amount_reward);
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, amount,
+	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, amount_total,
+		Events::ItemChanged::R_SHARED_RECHARGE_LOCK, account_id.get(), recharge_to_account_id.get(), 0, std::string());
+	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_SHARED_BALANCE, amount_total,
 		Events::ItemChanged::R_SHARED_RECHARGE_LOCK, account_id.get(), recharge_to_account_id.get(), 0, std::string());
 	ItemMap::commit_transaction(transaction.data(), transaction.size());
 
@@ -305,14 +318,15 @@ void SharedRechargeMap::commit(AccountId account_id, AccountId recharge_to_accou
 		DEBUG_THROW(Exception, sslit("No formed shared recharge found"));
 	}
 	const auto amount = rit->obj->get_amount();
-
-	const auto reward_ratio = get_config<double>("shared_recharge_reward_ratio", 0.003);
-	const auto reward_amount = std::ceil(amount * reward_ratio - 0.001);
+	const auto amount_reward = get_reward_amount(amount);
+	const auto amount_total = checked_add(amount, amount_reward);
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, amount - reward_amount,
+	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_SHARED_BALANCE, amount_total,
 		Events::ItemChanged::R_SHARED_RECHARGE_COMMIT, account_id.get(), recharge_to_account_id.get(), 0, std::string());
-	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, reward_amount,
+	transaction.emplace_back(account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, amount,
+		Events::ItemChanged::R_SHARED_RECHARGE_COMMIT, account_id.get(), recharge_to_account_id.get(), 0, std::string());
+	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, amount_reward,
 		Events::ItemChanged::R_SHARED_RECHARGE_REWARD, account_id.get(), recharge_to_account_id.get(), 0, std::string());
 	ItemMap::commit_transaction(transaction.data(), transaction.size());
 
@@ -339,9 +353,13 @@ void SharedRechargeMap::rollback(AccountId account_id, AccountId recharge_to_acc
 		DEBUG_THROW(Exception, sslit("No formed shared recharge found"));
 	}
 	const auto amount = rit->obj->get_amount();
+	const auto amount_reward = get_reward_amount(amount);
+	const auto amount_total = checked_add(amount, amount_reward);
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, amount,
+	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_SHARED_BALANCE, amount_total,
+		Events::ItemChanged::R_SHARED_RECHARGE_ROLLBACK, account_id.get(), recharge_to_account_id.get(), 0, std::string());
+	transaction.emplace_back(recharge_to_account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, amount_total,
 		Events::ItemChanged::R_SHARED_RECHARGE_ROLLBACK, account_id.get(), recharge_to_account_id.get(), 0, std::string());
 	ItemMap::commit_transaction(transaction.data(), transaction.size());
 
