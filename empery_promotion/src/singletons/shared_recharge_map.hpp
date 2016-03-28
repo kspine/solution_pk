@@ -23,6 +23,8 @@ struct SharedRechargeMap {
 		std::uint64_t amount;
 	};
 
+	static std::uint64_t get_reward_amount(std::uint64_t amount);
+
 	static SharedRechargeInfo get(AccountId account_id, AccountId recharge_to_account_id);
 	static void get_all(std::vector<SharedRechargeInfo> &ret);
 	static void get_by_account(std::vector<SharedRechargeInfo> &ret, AccountId account_id);
