@@ -225,6 +225,14 @@ namespace Msg {
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleUseSoldierBox
+#define MESSAGE_ID      427
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (item_id)	\
+	FIELD_VUINT         (repeat_count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
