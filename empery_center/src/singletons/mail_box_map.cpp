@@ -44,7 +44,7 @@ namespace {
 		std::uint64_t unload_time;
 
 		mutable boost::shared_ptr<const Poseidon::JobPromise> promise;
-		mutable boost::shared_ptr<std::vector<boost::shared_ptr<MySql::Center_MailData>>> sink;
+		mutable boost::shared_ptr<boost::container::flat_map<LanguageId, boost::shared_ptr<MySql::Center_MailData>>> sink;
 
 		mutable boost::shared_ptr<MySql::Center_MailData> mail_data_obj;
 		mutable boost::shared_ptr<MailData> mail_data;
@@ -260,18 +260,16 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 		LOG_EMPERY_CENTER_DEBUG("Loading mail data: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 
 		if(!it->promise){
-			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MailData>>>();
+			auto sink = boost::make_shared<boost::container::flat_map<LanguageId, boost::shared_ptr<MySql::Center_MailData>>>();
 			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_MailData` WHERE "
-			    <<"  (`mail_uuid` = " <<Poseidon::MySql::UuidFormatter(mail_uuid.get()) <<" AND `language_id` = " <<language_id <<") OR "
-			    <<"    (`mail_uuid` = " <<Poseidon::MySql::UuidFormatter(mail_uuid.get()) <<" AND `language_id` = 0) "
-			    <<"  ORDER BY `language_id` DESC LIMIT 1";
+			oss <<"SELECT * FROM `Center_MailData` WHERE `mail_uuid` = " <<Poseidon::MySql::UuidFormatter(mail_uuid.get());
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 					auto obj = boost::make_shared<MySql::Center_MailData>();
 					obj->fetch(conn);
 					obj->enable_auto_saving();
-					sink->emplace_back(std::move(obj));
+					const auto language_id = LanguageId(obj->get_language_id());
+					sink->emplace(language_id, std::move(obj));
 				}, "Center_MailData", oss.str());
 			it->promise = std::move(promise);
 			it->sink    = std::move(sink);
@@ -282,21 +280,22 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 		Poseidon::JobDispatcher::yield(promise, true);
 
 		if(it->sink){
-			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed:  mail_uuid = ", mail_uuid, ", language_id = ", language_id,
-				", rows = ", it->sink->size());
+			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: mail_uuid = ", mail_uuid, ", rows = ", it->sink->size());
 
 			boost::shared_ptr<MySql::Center_MailData> obj;
-			if(it->sink->empty()){
-				// 创建一个空的。
-				obj = boost::make_shared<MySql::Center_MailData>(mail_uuid.get(), language_id.get(),
-					0, 0, Poseidon::Uuid(), std::string(), std::string(), std::string());
-				obj->async_save(true);
-			} else {
-				obj = std::move(it->sink->front());
-				obj->disable_auto_saving();
-				obj->set_language_id(language_id.get());
-				obj->enable_auto_saving();
+			decltype(it->sink->cbegin()) sit;
+			if((sit = it->sink->find(language_id)) != it->sink->end()){
+				obj = sit->second;
+			} else if((sit = it->sink->find(LanguageId(0))) != it->sink->end()){
+				obj = sit->second;
+			} else if((sit = it->sink->begin()) != it->sink->end()){
+				obj = sit->second;
 			}
+			if(!obj){
+				LOG_EMPERY_CENTER_WARNING("Mail data not found: mail_uuid = ", mail_uuid, ", rows = ", it->sink->size());
+				DEBUG_THROW(Exception, sslit("Mail data not found"));
+			}
+
 			auto mail_data = boost::make_shared<MailData>(std::move(obj));
 
 			it->promise.reset();
