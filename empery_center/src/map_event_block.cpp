@@ -292,12 +292,14 @@ void MapEventBlock::refresh_events(bool first_time){
 		[](const GenerationDataPtr &lhs, const GenerationDataPtr &rhs){ return lhs->priority < rhs->priority; });
 	for(auto gdit = generation_data_all.begin(); gdit != generation_data_all.end(); ++gdit){
 		const auto generation_data = *gdit;
-		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier);
+		const auto map_event_id = generation_data->map_event_id;
+
+		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier + 0.001);
 		if(events_to_refresh == 0){
+			LOG_EMPERY_CENTER_DEBUG("Event count is zero: active_castle_count = ", active_castle_count,
+				", map_event_id = ", map_event_id, ", event_count_multiplier = ", generation_data->event_count_multiplier);
 			continue;
 		}
-
-		const auto map_event_id = generation_data->map_event_id;
 		const auto event_data = Data::MapEventAbstract::require(map_event_id);
 
 		try {
