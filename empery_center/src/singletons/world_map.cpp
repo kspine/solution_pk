@@ -1021,8 +1021,8 @@ void WorldMap::get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>>
 
 	boost::container::flat_set<boost::shared_ptr<Overlay>> temp;
 	for(auto x = rectangle.left(); x < rectangle.right(); ++x){
-	    for(auto y = rectangle.bottom(); y < rectangle.top(); ++y){
-	    	const auto cluster_coord = get_cluster_coord_from_world_coord(Coord(x, y));
+		for(auto y = rectangle.bottom(); y < rectangle.top(); ++y){
+			const auto cluster_coord = get_cluster_coord_from_world_coord(Coord(x, y));
 			const auto map_x = static_cast<unsigned>(x - cluster_coord.x());
 			const auto map_y = static_cast<unsigned>(y - cluster_coord.y());
 			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
