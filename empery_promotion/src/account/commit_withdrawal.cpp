@@ -27,6 +27,7 @@ ACCOUNT_SERVLET("commitWithdrawal", session, params){
 		[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 			auto obj = boost::make_shared<MySql::Promotion_WdSlip>();
 			obj->fetch(conn);
+			obj->enable_auto_saving();
 			objs.emplace_back(std::move(obj));
 		}, "Promotion_WdSlip", oss.str());
 	Poseidon::JobDispatcher::yield(promise, true);
