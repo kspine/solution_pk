@@ -1019,32 +1019,12 @@ void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool th
 void WorldMap::get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
-	const auto map_cell_map = g_map_cell_map.lock();
-	if(!map_cell_map){
-		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
-		return;
-	}
-
 	boost::container::flat_set<boost::shared_ptr<Overlay>> temp;
-
-	auto x = rectangle.left();
-	while(x < rectangle.right()){
-		auto it = map_cell_map->lower_bound<0>(Coord(x, rectangle.bottom()));
-		for(;;){
-			if(it == map_cell_map->end<0>()){
-				goto _exit_while;
-			}
-			if(it->coord.x() != x){
-				x = it->coord.x();
-				break;
-			}
-			if(it->coord.y() >= rectangle.top()){
-				++x;
-				break;
-			}
-			const auto cluster_coord = get_cluster_coord_from_world_coord(it->coord);
-			const auto map_x = static_cast<unsigned>(it->coord.x() - cluster_coord.x());
-			const auto map_y = static_cast<unsigned>(it->coord.y() - cluster_coord.y());
+	for(auto x = rectangle.left(); x < rectangle.right(); ++x){
+	    for(auto y = rectangle.bottom(); y < rectangle.top(); ++y){
+	    	const auto cluster_coord = get_cluster_coord_from_world_coord(Coord(x, y));
+			const auto map_x = static_cast<unsigned>(x - cluster_coord.x());
+			const auto map_y = static_cast<unsigned>(y - cluster_coord.y());
 			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
 			if(!basic_data->overlay_group_name.empty()){
 				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
@@ -1052,14 +1032,10 @@ void WorldMap::get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>>
 					temp.insert(std::move(overlay));
 				}
 			}
-			++it;
 		}
 	}
-_exit_while:
-	;
-
 	ret.reserve(ret.size() + temp.size());
-	std::copy(temp.begin(), temp.end(), std::back_inserter(ret));
+	std::move(temp.begin(), temp.end(), std::back_inserter(ret));
 }
 
 boost::shared_ptr<StrategicResource> WorldMap::get_strategic_resource(Coord coord){
@@ -1347,16 +1323,6 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
 	PROFILE_ME;
 
-	const auto map_cell_map = g_map_cell_map.lock();
-	if(!map_cell_map){
-		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
-		DEBUG_THROW(Exception, sslit("Map cell map not loaded"));
-	}
-	const auto overlay_map = g_overlay_map.lock();
-	if(!overlay_map){
-		LOG_EMPERY_CENTER_WARNING("Overlay map not loaded.");
-		DEBUG_THROW(Exception, sslit("Overlay map not loaded"));
-	}
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
 		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
