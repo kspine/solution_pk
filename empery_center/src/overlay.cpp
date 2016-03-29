@@ -121,21 +121,34 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 
 	if(is_virtually_removed()){
 		Msg::SC_MapOverlayRemoved msg;
-		msg.cluster_x                   = get_cluster_coord().x();
-		msg.cluster_y                   = get_cluster_coord().y();
-		msg.overlay_group_name          = get_overlay_group_name();
+		msg.cluster_x          = get_cluster_coord().x();
+		msg.cluster_y          = get_cluster_coord().y();
+		msg.overlay_group_name = get_overlay_group_name();
 		session->send(msg);
 	} else {
 		Msg::SC_MapOverlayInfo msg;
-		msg.cluster_x                   = get_cluster_coord().x();
-		msg.cluster_y                   = get_cluster_coord().y();
-		msg.overlay_group_name          = get_overlay_group_name();
-		msg.resource_amount             = get_resource_amount();
+		msg.cluster_x          = get_cluster_coord().x();
+		msg.cluster_y          = get_cluster_coord().y();
+		msg.overlay_group_name = get_overlay_group_name();
+		msg.resource_amount    = get_resource_amount();
 		const auto last_harvester = get_last_harvester();
 		if(last_harvester){
 			msg.last_harvested_account_uuid = last_harvester->get_owner_uuid().str();
 			msg.last_harvested_object_uuid  = last_harvester->get_map_object_uuid().str();
 		}
+		std::vector<boost::shared_ptr<const Data::MapCellBasic>> cells_in_group;
+		Data::MapCellBasic::get_by_overlay_group(cells_in_group, get_overlay_group_name());
+		if(cells_in_group.empty()){
+			LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", get_overlay_group_name());
+		}
+		std::uint64_t sum_x = 0, sum_y = 0;
+		for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
+			const auto &basic_data = *it;
+			sum_x += basic_data->map_coord.first;
+			sum_y += basic_data->map_coord.second;
+		}
+		msg.coord_hint_x       = get_cluster_coord().x() + static_cast<unsigned>(sum_x / cells_in_group.size());
+		msg.coord_hint_y       = get_cluster_coord().y() + static_cast<unsigned>(sum_y / cells_in_group.size());
 		session->send(msg);
 	}
 }
