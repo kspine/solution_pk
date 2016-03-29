@@ -90,7 +90,9 @@ namespace Msg {
 	FIELD_STRING        (overlay_group_name)	\
 	FIELD_VUINT         (resource_amount)	\
 	FIELD_STRING        (last_harvested_account_uuid)	\
-	FIELD_STRING        (last_harvested_object_uuid)
+	FIELD_STRING        (last_harvested_object_uuid)	\
+	FIELD_VINT          (coord_hint_x)	\
+	FIELD_VINT          (coord_hint_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapOverlayRemoved
