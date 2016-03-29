@@ -66,10 +66,10 @@ sounds_id,sounds_name
 65,1204001_attacked.mp3
 66,1204001_die.mp3
 67,1204001_choice.mp3
-68,1201001_instructions
-69,1201002_instructions
-70,1202001_instructions
-71,1202002_instructions
-72,1203001_instructions
-73,1203002_instructions
-74,1204001_instructions
+68,1201001_instructions.mp3
+69,1201002_instructions.mp3
+70,1202001_instructions.mp3
+71,1202002_instructions.mp3
+72,1203001_instructions.mp3
+73,1203002_instructions.mp3
+74,1204001_instructions.mp3
