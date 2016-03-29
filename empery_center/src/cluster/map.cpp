@@ -378,11 +378,12 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
+	const auto category = boost::make_shared<int>();
 
 #define ENQUEU_JOB_SWALLOWING_EXCEPTIONS(func_)	\
 	[&]{	\
 		try {	\
-			Poseidon::enqueue_async_job(func_);	\
+			Poseidon::enqueue_async_job(category, func_);	\
 		} catch(std::exception &e){	\
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());	\
 		}	\
