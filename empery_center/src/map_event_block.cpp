@@ -294,11 +294,9 @@ void MapEventBlock::refresh_events(bool first_time){
 		const auto generation_data = *gdit;
 		const auto map_event_id = generation_data->map_event_id;
 
-		const auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier + 0.001);
-		if(events_to_refresh == 0){
-			LOG_EMPERY_CENTER_DEBUG("Event count is zero: active_castle_count = ", active_castle_count,
-				", map_event_id = ", map_event_id, ", event_count_multiplier = ", generation_data->event_count_multiplier);
-			continue;
+		auto events_to_refresh = static_cast<std::uint64_t>(active_castle_count * generation_data->event_count_multiplier + 0.001);
+		if(events_to_refresh < 1){
+			events_to_refresh = 1;
 		}
 		const auto event_data = Data::MapEventAbstract::require(map_event_id);
 
