@@ -140,6 +140,7 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		Data::MapCellBasic::get_by_overlay_group(cells_in_group, get_overlay_group_name());
 		if(cells_in_group.empty()){
 			LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", get_overlay_group_name());
+			DEBUG_THROW(Exception, sslit("Overlay group not found"));
 		}
 		std::uint64_t sum_x = 0, sum_y = 0;
 		for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
