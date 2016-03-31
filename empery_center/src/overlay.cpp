@@ -119,11 +119,28 @@ bool Overlay::is_virtually_removed() const {
 void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
+	std::vector<boost::shared_ptr<const Data::MapCellBasic>> cells_in_group;
+	Data::MapCellBasic::get_by_overlay_group(cells_in_group, get_overlay_group_name());
+	if(cells_in_group.empty()){
+		LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", get_overlay_group_name());
+		DEBUG_THROW(Exception, sslit("Overlay group not found"));
+	}
+	std::uint64_t sum_x = 0, sum_y = 0;
+	for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
+		const auto &basic_data = *it;
+		sum_x += basic_data->map_coord.first;
+		sum_y += basic_data->map_coord.second;
+	}
+	const auto coord_hint = Coord(get_cluster_coord().x() + static_cast<unsigned>(sum_x / cells_in_group.size()),
+	                              get_cluster_coord().y() + static_cast<unsigned>(sum_y / cells_in_group.size()));
+
 	if(is_virtually_removed()){
 		Msg::SC_MapOverlayRemoved msg;
 		msg.cluster_x          = get_cluster_coord().x();
 		msg.cluster_y          = get_cluster_coord().y();
 		msg.overlay_group_name = get_overlay_group_name();
+		msg.coord_hint_x       = coord_hint.x();
+		msg.coord_hint_y       = coord_hint.y();
 		session->send(msg);
 	} else {
 		Msg::SC_MapOverlayInfo msg;
@@ -136,20 +153,8 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			msg.last_harvested_account_uuid = last_harvester->get_owner_uuid().str();
 			msg.last_harvested_object_uuid  = last_harvester->get_map_object_uuid().str();
 		}
-		std::vector<boost::shared_ptr<const Data::MapCellBasic>> cells_in_group;
-		Data::MapCellBasic::get_by_overlay_group(cells_in_group, get_overlay_group_name());
-		if(cells_in_group.empty()){
-			LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", get_overlay_group_name());
-			DEBUG_THROW(Exception, sslit("Overlay group not found"));
-		}
-		std::uint64_t sum_x = 0, sum_y = 0;
-		for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
-			const auto &basic_data = *it;
-			sum_x += basic_data->map_coord.first;
-			sum_y += basic_data->map_coord.second;
-		}
-		msg.coord_hint_x       = get_cluster_coord().x() + static_cast<unsigned>(sum_x / cells_in_group.size());
-		msg.coord_hint_y       = get_cluster_coord().y() + static_cast<unsigned>(sum_y / cells_in_group.size());
+		msg.coord_hint_x       = coord_hint.x();
+		msg.coord_hint_y       = coord_hint.y();
 		session->send(msg);
 	}
 }

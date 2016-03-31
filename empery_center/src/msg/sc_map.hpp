@@ -100,7 +100,9 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (cluster_x)	\
 	FIELD_VINT          (cluster_y)	\
-	FIELD_STRING        (overlay_group_name)
+	FIELD_STRING        (overlay_group_name)	\
+	FIELD_VINT          (coord_hint_x)	\
+	FIELD_VINT          (coord_hint_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectStopped
