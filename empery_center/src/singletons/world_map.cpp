@@ -347,9 +347,6 @@ namespace {
 			} else {
 				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
 			}
-			if(map_object->is_virtually_removed()){
-				continue;
-			}
 			map_object_map->insert(MapObjectElement(std::move(map_object)));
 		}
 		g_map_object_map = map_object_map;
@@ -364,9 +361,6 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto overlay = boost::make_shared<Overlay>(std::move(obj));
-			if(overlay->is_virtually_removed()){
-				continue;
-			}
 			overlay_map->insert(OverlayElement(std::move(overlay)));
 		}
 		g_overlay_map = overlay_map;
@@ -381,9 +375,6 @@ namespace {
 			obj->fetch(conn);
 			obj->enable_auto_saving();
 			auto strategic_resource = boost::make_shared<StrategicResource>(std::move(obj));
-			if(strategic_resource->is_virtually_removed()){
-				continue;
-			}
 			strategic_resource_map->insert(StrategicResourceElement(std::move(strategic_resource)));
 		}
 		g_strategic_resource_map = strategic_resource_map;
