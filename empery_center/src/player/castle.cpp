@@ -230,7 +230,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
-
+/*
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 	castle->pump_building_status(building_base_id);
 
@@ -252,7 +252,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account, session, req){
 	}
 	castle->commit_resource_transaction(transaction,
 		[&]{ castle->cancel_building_mission(building_base_id); });
-
+*/
 	return Response();
 }
 
@@ -534,7 +534,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
-
+/*
 	const auto tech_id = TechId(req.tech_id);
 	castle->pump_tech_status(tech_id);
 
@@ -555,7 +555,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
 	}
 	castle->commit_resource_transaction(transaction,
 		[&]{ castle->cancel_tech_mission(tech_id); });
-
+*/
 	return Response();
 }
 
@@ -1010,7 +1010,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
-
+/*
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
 	const auto info = castle->get_battalion_production(building_base_id);
@@ -1032,7 +1032,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 	}
 	castle->commit_resource_transaction(transaction,
 		[&]{ castle->cancel_battalion_production(building_base_id); });
-
+*/
 	return Response();
 }
 
