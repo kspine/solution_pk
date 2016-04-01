@@ -4,9 +4,10 @@
 #include "cbpp_response.hpp"
 #include "data/global.hpp"
 #include "data/map.hpp"
-#include "map_object.hpp"
 #include "map_cell.hpp"
 #include "overlay.hpp"
+#include "map_object.hpp"
+#include "strategic_resource.hpp"
 #include "singletons/world_map.hpp"
 #include "msg/err_map.hpp"
 #include "map_object_type_ids.hpp"
@@ -21,6 +22,7 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	std::vector<boost::shared_ptr<Overlay>> overlays;
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
 
 	std::vector<Coord> foundation;
 	get_castle_foundation(foundation, coord, true);
@@ -57,13 +59,22 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 
 		map_objects.clear();
 		WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(foundation_coord, 1, 1));
-		for(auto oit = map_objects.begin(); oit != map_objects.end(); ++oit){
-			const auto &other_object = *oit;
+		for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+			const auto &other_object = *it;
 			if(other_object->get_map_object_uuid() == excluding_map_object_uuid){
 				continue;
 			}
 			if(!other_object->is_virtually_removed()){
 				return Response(Msg::ERR_CANNOT_DEPLOY_ON_TROOPS) <<foundation_coord;
+			}
+		}
+
+		strategic_resources.clear();
+		WorldMap::get_strategic_resources_by_rectangle(strategic_resources, Rectangle(foundation_coord, 1, 1));
+		for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
+			const auto &strategic_resource = *it;
+			if(!strategic_resource->is_virtually_removed()){
+				return Response(Msg::ERR_CANNOT_DEPLOY_ON_STRATEGIC_RESOURCE) <<foundation_coord;
 			}
 		}
 	}
