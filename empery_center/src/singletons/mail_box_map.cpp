@@ -334,7 +334,10 @@ void MailBoxMap::insert_mail_data(boost::shared_ptr<MailData> mail_data){
 	const auto mail_uuid = mail_data->get_mail_uuid();
 	const auto language_id = mail_data->get_language_id();
 
-	const auto result = mail_data_map->insert(MailDataElement(mail_uuid, language_id, 0));
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
+
+	const auto result = mail_data_map->insert(MailDataElement(mail_uuid, language_id, saturated_add(now, gc_interval)));
 	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Mail data already exists: mail_uuid = ", mail_uuid, ", language_id = ", language_id);
 		DEBUG_THROW(Exception, sslit("Mail data already exists"));
