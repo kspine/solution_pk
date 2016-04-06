@@ -52,9 +52,9 @@ PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account, session, /* req */){
 }
 
 PLAYER_SERVLET(Msg::CS_MapSetView, account, session, req){
-	const auto coord = Coord(req.x, req.y);
-	const unsigned width = req.width;
-	const unsigned height = req.height;
+	const auto coord  = Coord(req.x, req.y);
+	const auto width  = static_cast<unsigned>(req.width);
+	const auto height = static_cast<unsigned>(req.height);
 
 	if(checked_mul(width, height) > 4096){
 		LOG_EMPERY_CENTER_WARNING("Player view is too large: width = ", width, ", height = ", height);
@@ -67,9 +67,9 @@ PLAYER_SERVLET(Msg::CS_MapSetView, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapRefreshView, account, session, req){
-	const auto coord = Coord(req.x, req.y);
-	const unsigned width = req.width;
-	const unsigned height = req.height;
+	const auto coord  = Coord(req.x, req.y);
+	const auto width  = static_cast<unsigned>(req.width);
+	const auto height = static_cast<unsigned>(req.height);
 
 	if(checked_mul(width, height) > 4096){
 		LOG_EMPERY_CENTER_WARNING("Player view is too large: width = ", width, ", height = ", height);
@@ -650,12 +650,18 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
 	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 
+	const auto old_soldier_count_max = map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT_MAX);
+	auto new_soldier_count_max = static_cast<std::int64_t>(new_soldier_count);
+	if(new_soldier_count_max < old_soldier_count_max){
+		new_soldier_count_max = old_soldier_count_max;
+	}
+	if(new_soldier_count_max < 1){
+		new_soldier_count_max = 1;
+	}
+
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(new_soldier_count);
-	const auto old_soldier_count_max = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT_MAX));
-	if(new_soldier_count > old_soldier_count_max){
-		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(new_soldier_count);
-	}
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = new_soldier_count_max;
 
 	std::vector<SoldierTransactionElement> transaction;
 	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, soldier_count,

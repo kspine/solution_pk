@@ -619,10 +619,15 @@ CLUSTER_SERVLET(Msg::KS_MapHealMonster, cluster, req){
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto monster_data = Data::MapObjectTypeMonster::require(map_object_type_id);
 
+	auto soldier_count = static_cast<std::int64_t>(monster_data->max_soldier_count);
+	if(soldier_count < 1){
+		soldier_count = 1;
+	}
+
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(8);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(monster_data->max_soldier_count);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(monster_data->max_soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = soldier_count;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = soldier_count;
 	map_object->set_attributes(std::move(modifiers));
 
 	return Response();

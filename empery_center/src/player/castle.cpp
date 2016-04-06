@@ -1188,14 +1188,17 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	}
 
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto count = req.count;
+	const auto soldier_count = req.count;
+	if(soldier_count < 1){
+		return Response(Msg::ERR_ZERO_SOLDIER_COUNT);
+	}
 
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}
 	const auto max_soldier_count = map_object_type_data->max_soldier_count;
-	if(count > max_soldier_count){
+	if(soldier_count > max_soldier_count){
 		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_BATTALION) <<max_soldier_count;
 	}
 
@@ -1221,11 +1224,11 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(battalion_uuid.get()[0]));
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(count);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(soldier_count);
 
 	std::vector<SoldierTransactionElement> transaction;
-	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, count,
+	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, soldier_count,
 		ReasonIds::ID_CREATE_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
 	const auto insuff_soldier_id = castle->commit_soldier_transaction_nothrow(transaction,
 		[&]{
