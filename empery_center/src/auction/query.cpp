@@ -131,7 +131,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 
 					const auto resource_data = Data::CastleResource::get(resource_id);
 					if(!resource_data){
-						LOG_EMPERY_CENTER_ERROR("Resource data not found: castle_uuid = ", castle->get_map_object_uuid(),
+						LOG_EMPERY_CENTER_DEBUG("Resource data not found: castle_uuid = ", castle->get_map_object_uuid(),
 							", owner_uuid = ", castle->get_owner_uuid(), ", resource_id = ", resource_id);
 						continue;
 					}
@@ -165,7 +165,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 
 			const auto item_data = Data::Item::get(item_id);
 			if(!item_data){
-				LOG_EMPERY_CENTER_ERROR("Item data not found: account_uuid = ", item_box->get_account_uuid(), ", item_id = ", item_id);
+				LOG_EMPERY_CENTER_DEBUG("Item data not found: account_uuid = ", item_box->get_account_uuid(), ", item_id = ", item_id);
 				continue;
 			}
 			if(item_data->type.first != Data::Item::CAT_CURRENCY){
