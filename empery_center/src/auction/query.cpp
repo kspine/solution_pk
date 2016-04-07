@@ -7,11 +7,10 @@
 #include "../msg/err_account.hpp"
 #include "../singletons/world_map.hpp"
 #include "../castle.hpp"
-#include "../resource_ids.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
-#include "../item_ids.hpp"
 #include "../data/global.hpp"
+#include "../data/item.hpp"
 #include "../data/castle.hpp"
 #include "../map_object_type_ids.hpp"
 
@@ -124,17 +123,25 @@ AUCTION_SERVLET("query/account", root, session, params){
 			{
 				Poseidon::JsonObject elem_resources;
 
-				const auto fill_resource = [&](ResourceId resource_id){
-					const auto resource_data = Data::CastleResource::require(resource_id);
+				std::vector<Castle::ResourceInfo> resource_info_all;
+				castle->get_all_resources(resource_info_all);
+				for(auto it = resource_info_all.begin(); it != resource_info_all.end(); ++it){
+					const auto resource_id = it->resource_id;
+					const auto amount      = it->amount;
 
+					const auto resource_data = Data::CastleResource::get(resource_id);
+					if(!resource_data){
+						LOG_EMPERY_CENTER_ERROR("Resource data not found: castle_uuid = ", castle->get_map_object_uuid(),
+							", owner_uuid = ", castle->get_owner_uuid(), ", resource_id = ", resource_id);
+						continue;
+					}
+					if(!resource_data->locked_resource_id){
+						continue;
+					}
 					char str[64];
 					unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)resource_data->undeployed_item_id.get());
-					const double amount = castle->get_resource(resource_id).amount;
 					elem_resources[SharedNts(str, len)] = amount / resource_amount_per_box;
-				};
-				fill_resource(ResourceIds::ID_GRAIN);
-				fill_resource(ResourceIds::ID_WOOD);
-				fill_resource(ResourceIds::ID_STONE);
+				}
 
 				elem_castle[sslit("resources")] = std::move(elem_resources);
 			}
@@ -150,14 +157,24 @@ AUCTION_SERVLET("query/account", root, session, params){
 	{
 		Poseidon::JsonObject elem_items;
 
-		const auto fill_item = [&](ItemId item_id){
+		std::vector<ItemBox::ItemInfo> item_info_all;
+		item_box->get_all(item_info_all);
+		for(auto it = item_info_all.begin(); it != item_info_all.end(); ++it){
+			const auto item_id = it->item_id;
+			const auto count   = it->count;
+
+			const auto item_data = Data::Item::get(item_id);
+			if(!item_data){
+				LOG_EMPERY_CENTER_ERROR("Item data not found: account_uuid = ", item_box->get_account_uuid(), ", item_id = ", item_id);
+				continue;
+			}
+			if(item_data->type.first != Data::Item::CAT_CURRENCY){
+				continue;
+			}
 			char str[64];
 			unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)item_id.get());
-			const double count = item_box->get(item_id).count;
 			elem_items[SharedNts(str, len)] = count / item_count_per_box;
-		};
-		fill_item(ItemIds::ID_GOLD);
-		fill_item(ItemIds::ID_SPRING_WATER);
+		}
 
 		root[sslit("items")] = std::move(elem_items);
 	}
