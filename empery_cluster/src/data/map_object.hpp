@@ -38,6 +38,7 @@ namespace Data {
 		static boost::shared_ptr<const MapObjectTypeMonster> get(MapObjectTypeId map_object_type_id);
 		public:
 		MapObjectTypeId     map_object_type_id;
+		MapObjectWeaponId   arm_relative_id;
 	};
 }
 

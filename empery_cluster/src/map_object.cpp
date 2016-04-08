@@ -469,7 +469,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	double critical_demage_plus_rate = map_object_type_data->critical_damage_plus_rate;
 	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0);
 	double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0);
-	double relative_rate = Data::MapObjectRelative::get_relative(map_object_type_data->category_id,emempy_type_data->category_id);
+	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_relative_id(),target_object->get_arm_relative_id());
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	
@@ -866,6 +866,21 @@ std::uint64_t MapObject::get_shoot_range(){
 	}
 	const auto shoot_range = map_object_type_data->shoot_range;
 	return shoot_range;
+}
+
+MapObjectWeaponId MapObject::get_arm_relative_id(){
+	//野怪
+	const auto map_object_type_monster_data = Data::MapObjectTypeMonster::get(get_map_object_type_id());
+	if(map_object_type_monster_data){
+		return map_object_type_monster_data->arm_relative_id;
+	}
+	
+	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	if(!map_object_type_data){
+		LOG_EMPERY_CLUSTER_DEBUG("No map object type data,id = ",get_map_object_type_id());
+		return MapObjectWeaponId(0);
+	}
+	return map_object_type_data->category_id;
 }
 
 
