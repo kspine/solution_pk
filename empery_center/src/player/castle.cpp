@@ -200,6 +200,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
+	const auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));
 
 	boost::container::flat_map<ItemId, std::uint64_t> tokens;
 	tokens.reserve(req.tokens.size());
@@ -210,7 +211,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 
 	const auto result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
 		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
-		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_CONSTRUCT, building_data->building_id); });
+		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_CONSTRUCT, duration, building_data->building_id); });
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}
@@ -313,6 +314,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
+	const auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));
 
 	boost::container::flat_map<ItemId, std::uint64_t> tokens;
 	tokens.reserve(req.tokens.size());
@@ -323,7 +325,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 
 	const auto result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
 		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
-		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, { }); });
+		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, duration, BuildingId()); });
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}
@@ -345,13 +347,13 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	}
 
 	castle->pump_status();
-
+/*
 	const auto queue_size = castle->get_building_queue_size();
 	const auto max_queue_size = Data::Global::as_unsigned(Data::Global::SLOT_MAX_CONCURRENT_UPGRADING_BUILDING_COUNT);
 	if(queue_size >= max_queue_size){
 		return Response(Msg::ERR_BUILDING_QUEUE_FULL) <<max_queue_size;
 	}
-
+*/
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 	// castle->pump_building_status(building_base_id);
 
@@ -380,8 +382,9 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	if(upgrade_data->destruct_duration == 0){
 		return Response(Msg::ERR_BUILDING_NOT_DESTRUCTIBLE) <<info.building_id;
 	}
+	const auto duration = static_cast<std::uint64_t>(0 /* std::ceil(upgrade_data->destruct_duration * 60000.0 - 0.001) */);
 
-	castle->create_building_mission(building_base_id, Castle::MIS_DESTRUCT, info.building_id);
+	castle->create_building_mission(building_base_id, Castle::MIS_DESTRUCT, duration, BuildingId());
 
 	return Response();
 }
@@ -487,6 +490,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 		}
 		return Response(Msg::ERR_TECH_UPGRADE_MAX) <<tech_id;
 	}
+	const auto duration = static_cast<std::uint64_t>(std::ceil(tech_data->upgrade_duration * 60000.0 - 0.001));
 
 	for(auto it = tech_data->prerequisite.begin(); it != tech_data->prerequisite.end(); ++it){
 		const auto max_level = castle->get_max_level(it->first);
@@ -514,7 +518,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 
 	const auto result = try_decrement_resources(castle, item_box, task_box, tech_data->upgrade_cost, tokens,
 		ReasonIds::ID_UPGRADE_TECH, tech_data->tech_id_level.first.get(), tech_data->tech_id_level.second, 0,
-		[&]{ castle->create_tech_mission(tech_id, Castle::MIS_UPGRADE); });
+		[&]{ castle->create_tech_mission(tech_id, Castle::MIS_UPGRADE, duration); });
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}

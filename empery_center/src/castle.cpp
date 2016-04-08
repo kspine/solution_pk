@@ -619,7 +619,7 @@ void Castle::get_buildings_by_type_id(std::vector<Castle::BuildingBaseInfo> &ret
 	}
 }
 
-void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mission mission, BuildingId building_id){
+void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mission mission, std::uint64_t duration, BuildingId building_id){
 	PROFILE_ME;
 
 	auto it = m_buildings.find(building_base_id);
@@ -637,44 +637,12 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 		DEBUG_THROW(Exception, sslit("Building mission conflict"));
 	}
 
-	std::uint64_t duration;
-	switch(mission){
-	case MIS_CONSTRUCT:
-		{
-			const auto building_data = Data::CastleBuilding::require(building_id);
-			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
-			duration = std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001);
-		}
-		obj->set_building_id(building_id.get());
-		obj->set_building_level(0);
-		break;
-
-	case MIS_UPGRADE:
-		{
-			const unsigned level = obj->get_building_level();
-			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
-			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level + 1);
-			duration = std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001);
-		}
-		break;
-
-	case MIS_DESTRUCT:
-		{
-			const unsigned level = obj->get_building_level();
-			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
-			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level);
-			duration = std::ceil(upgrade_data->destruct_duration * 60000.0 - 0.001);
-		}
-		break;
-
-	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown building mission: map_object_uuid = ", get_map_object_uuid(),
-			", building_base_id = ", building_base_id, ", mission = ", (unsigned)mission);
-		DEBUG_THROW(Exception, sslit("Unknown building mission"));
-	}
-
 	const auto utc_now = Poseidon::get_utc_time();
 
+	if(mission == MIS_CONSTRUCT){
+		obj->set_building_id(building_id.get());
+		obj->set_building_level(0);
+	}
 	obj->set_mission(mission);
 	obj->set_mission_duration(duration);
 	obj->set_mission_time_begin(utc_now);
@@ -959,7 +927,7 @@ void Castle::get_all_techs(std::vector<Castle::TechInfo> &ret) const {
 	}
 }
 
-void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
+void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission, std::uint64_t duration){
 	PROFILE_ME;
 
 	auto it = m_techs.find(tech_id);
@@ -974,29 +942,6 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 	if(old_mission != MIS_NONE){
 		LOG_EMPERY_CENTER_DEBUG("Tech mission conflict: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		DEBUG_THROW(Exception, sslit("Tech mission conflict"));
-	}
-
-	std::uint64_t duration;
-	switch(mission){
-/*
-	case MIS_CONSTRUCT:
-		break;
-*/
-	case MIS_UPGRADE:
-		{
-			const unsigned level = obj->get_tech_level();
-			const auto tech_data = Data::CastleTech::require(TechId(obj->get_tech_id()), level + 1);
-			duration = std::ceil(tech_data->upgrade_duration * 60000.0 - 0.001);
-		}
-		break;
-/*
-	case MIS_DESTRUCT:
-		break;
-*/
-	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown tech mission: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id,
-			", mission = ", (unsigned)mission);
-		DEBUG_THROW(Exception, sslit("Unknown tech mission"));
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();

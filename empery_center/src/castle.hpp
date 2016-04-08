@@ -125,7 +125,7 @@ public:
 	void get_buildings_by_id(std::vector<BuildingBaseInfo> &ret, BuildingId building_id) const;
 	void get_buildings_by_type_id(std::vector<BuildingBaseInfo> &ret, BuildingTypeId type) const;
 	// 如果指定地基上有任务会抛出异常。
-	void create_building_mission(BuildingBaseId building_base_id, Mission mission, BuildingId building_id = BuildingId());
+	void create_building_mission(BuildingBaseId building_base_id, Mission mission, std::uint64_t duration, BuildingId building_id);
 	void cancel_building_mission(BuildingBaseId building_base_id);
 	void speed_up_building_mission(BuildingBaseId building_base_id, std::uint64_t delta_duration);
 
@@ -147,7 +147,7 @@ public:
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
 	// 同上。
-	void create_tech_mission(TechId tech_id, Mission mission);
+	void create_tech_mission(TechId tech_id, Mission mission, std::uint64_t duration);
 	void cancel_tech_mission(TechId tech_id);
 	void speed_up_tech_mission(TechId tech_id, std::uint64_t delta_duration);
 
