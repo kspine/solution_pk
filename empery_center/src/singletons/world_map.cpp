@@ -93,7 +93,7 @@ namespace {
 			"  FROM `Center_MapObject` AS `m` "
 			"    INNER JOIN `Center_MapObjectAttribute` AS `a` "
 			"    ON `m`.`map_object_uuid` = `a`.`map_object_uuid` "
-			"  WHERE `m`.`deleted` != 0");
+			"  WHERE `m`.`deleted` > 0");
 	}
 
 	struct OverlayElement {
@@ -376,7 +376,7 @@ namespace {
 		// StrategicResource
 		const auto strategic_resource_map = boost::make_shared<StrategicResourceContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading strategic resources...");
-		conn->execute_sql("SELECT * FROM `Center_StrategicResource`");
+		conn->execute_sql("SELECT * FROM `Center_StrategicResource` WHERE `resource_amount` > 0");
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_StrategicResource>();
 			obj->fetch(conn);
