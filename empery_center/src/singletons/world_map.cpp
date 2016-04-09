@@ -87,6 +87,13 @@ namespace {
 			const auto &map_object = it->map_object;
 			map_object->pump_status();
 		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_loading({ }, "Center_MapObject",
+			"DELETE QUICK `m`.*, `a`.* "
+			"  FROM `Center_MapObject` AS `m` "
+			"    INNER JOIN `Center_MapObjectAttribute` AS `a` "
+			"    ON `m`.`map_object_uuid` = `a`.`map_object_uuid` "
+			"  WHERE `m`.`deleted` != 0");
 	}
 
 	struct OverlayElement {
