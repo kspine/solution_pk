@@ -92,7 +92,7 @@ namespace {
 			}
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_loading({ }, "Center_MapObject",
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapObject",
 			"DELETE QUICK `m`.*, `a`.* "
 			"  FROM `Center_MapObject` AS `m` "
 			"    LEFT JOIN `Center_MapObjectAttribute` AS `a` "
