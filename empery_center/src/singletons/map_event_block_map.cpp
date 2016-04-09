@@ -35,7 +35,7 @@ namespace {
 
 	void refresh_timer_proc(std::uint64_t now){
 		PROFILE_ME;
-		LOG_EMPERY_CENTER_TRACE("Item box gc timer: now = ", now);
+		LOG_EMPERY_CENTER_TRACE("Map event block refresh timer: now = ", now);
 
 		const auto map_event_block_map = g_map_event_block_map.lock();
 		if(!map_event_block_map){
@@ -70,7 +70,10 @@ namespace {
 		LOG_EMPERY_CENTER_INFO("Loaded ", temp_map_event_block_map.size(), " map event block(s).");
 
 		LOG_EMPERY_CENTER_INFO("Loading map events...");
-		conn->execute_sql("SELECT * FROM `Center_MapEvent`");
+		std::ostringstream oss;
+		const auto utc_now = Poseidon::get_utc_time();
+        oss <<"SELECT * FROM `Center_MapEvent` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now);
+		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapEvent>();
 			obj->fetch(conn);

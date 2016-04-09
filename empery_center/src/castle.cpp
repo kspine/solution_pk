@@ -519,48 +519,55 @@ void Castle::check_init_buildings(){
 			continue;
 		}
 
-		const auto &buildings_allowed = building_data->buildings_allowed;
-		boost::container::flat_map<BuildingId, unsigned> random_buildings;
-		random_buildings.reserve(buildings_allowed.size());
-		for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
-			const auto building_id = *it;
-			random_buildings.emplace(building_id, 0);
-		}
-		for(auto tit = m_buildings.begin(); tit != m_buildings.end(); ++tit){
-			const auto &obj = tit->second;
-			const auto building_id = BuildingId(obj->get_building_id());
-			const auto it = random_buildings.find(building_id);
-			if(it == random_buildings.end()){
-				continue;
+		BuildingId init_building_id;
+		const auto init_level = building_data->init_level;
+		if(building_data->init_building_id_override){
+			init_building_id = building_data->init_building_id_override;
+		} else {
+			const auto &buildings_allowed = building_data->buildings_allowed;
+			boost::container::flat_map<BuildingId, unsigned> random_buildings;
+			random_buildings.reserve(buildings_allowed.size());
+			for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
+				const auto building_id = *it;
+				random_buildings.emplace(building_id, 0);
 			}
-			it->second += 1;
-		}
-		auto it = random_buildings.begin();
-		while(it != random_buildings.end()){
-			const auto random_building_data = Data::CastleBuilding::require(it->first);
-			if(it->second >= random_building_data->build_limit){
-				LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
-					", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
-				it = random_buildings.erase(it);
-			} else {
-				++it;
+			for(auto tit = m_buildings.begin(); tit != m_buildings.end(); ++tit){
+				const auto &obj = tit->second;
+				const auto building_id = BuildingId(obj->get_building_id());
+				const auto it = random_buildings.find(building_id);
+				if(it == random_buildings.end()){
+					continue;
+				}
+				it->second += 1;
+			}
+			{
+				auto it = random_buildings.begin();
+				while(it != random_buildings.end()){
+					const auto random_building_data = Data::CastleBuilding::require(it->first);
+					if(it->second >= random_building_data->build_limit){
+						LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
+							", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
+						it = random_buildings.erase(it);
+					} else {
+						++it;
+					}
+				}
+			}
+			if(!random_buildings.empty()){
+				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
+				init_building_id = (random_buildings.begin() + index)->first;
 			}
 		}
-		if(random_buildings.empty()){
+		if(!init_building_id){
 			continue;
 		}
-		const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
-		it = random_buildings.begin() + index;
-		const auto building_id = it->first;
-		const auto init_level = building_data->init_level;
 
 		LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
-			", building_base_id = ", building_base_id, ", building_id = ", building_id);
+			", building_base_id = ", building_base_id, ", init_building_id = ", init_building_id);
 		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
+			get_map_object_uuid().get(), building_base_id.get(), init_building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
 		obj->async_save(true);
 		m_buildings.emplace(building_base_id, std::move(obj));
-
 		++dirty;
 	}
 	if(dirty){

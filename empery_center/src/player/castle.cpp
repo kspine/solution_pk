@@ -365,6 +365,16 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT) <<building_base_id;
 	}
 
+	const auto building_base_data = Data::CastleBuildingBase::require(building_base_id);
+	for(auto it = building_base_data->operation_prerequisite.begin(); it != building_base_data->operation_prerequisite.end(); ++it){
+		const auto max_level = castle->get_max_level(it->first);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Operation prerequisite not met: building_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
+			return Response(Msg::ERR_OPERATION_PREREQUISITE_NOT_MET) <<it->first;
+		}
+	}
+
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
 	if(building_data->type == BuildingTypeIds::ID_ACADEMY){
 		if(castle->is_tech_upgrade_in_progress()){
