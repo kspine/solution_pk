@@ -519,48 +519,55 @@ void Castle::check_init_buildings(){
 			continue;
 		}
 
-		const auto &buildings_allowed = building_data->buildings_allowed;
-		boost::container::flat_map<BuildingId, unsigned> random_buildings;
-		random_buildings.reserve(buildings_allowed.size());
-		for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
-			const auto building_id = *it;
-			random_buildings.emplace(building_id, 0);
-		}
-		for(auto tit = m_buildings.begin(); tit != m_buildings.end(); ++tit){
-			const auto &obj = tit->second;
-			const auto building_id = BuildingId(obj->get_building_id());
-			const auto it = random_buildings.find(building_id);
-			if(it == random_buildings.end()){
-				continue;
+		BuildingId init_building_id;
+		const auto init_level = building_data->init_level;
+		if(building_data->init_building_id_override){
+			init_building_id = building_data->init_building_id_override;
+		} else {
+			const auto &buildings_allowed = building_data->buildings_allowed;
+			boost::container::flat_map<BuildingId, unsigned> random_buildings;
+			random_buildings.reserve(buildings_allowed.size());
+			for(auto it = buildings_allowed.begin(); it != buildings_allowed.end(); ++it){
+				const auto building_id = *it;
+				random_buildings.emplace(building_id, 0);
 			}
-			it->second += 1;
-		}
-		auto it = random_buildings.begin();
-		while(it != random_buildings.end()){
-			const auto random_building_data = Data::CastleBuilding::require(it->first);
-			if(it->second >= random_building_data->build_limit){
-				LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
-					", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
-				it = random_buildings.erase(it);
-			} else {
-				++it;
+			for(auto tit = m_buildings.begin(); tit != m_buildings.end(); ++tit){
+				const auto &obj = tit->second;
+				const auto building_id = BuildingId(obj->get_building_id());
+				const auto it = random_buildings.find(building_id);
+				if(it == random_buildings.end()){
+					continue;
+				}
+				it->second += 1;
+			}
+			{
+				auto it = random_buildings.begin();
+				while(it != random_buildings.end()){
+					const auto random_building_data = Data::CastleBuilding::require(it->first);
+					if(it->second >= random_building_data->build_limit){
+						LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
+							", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
+						it = random_buildings.erase(it);
+					} else {
+						++it;
+					}
+				}
+			}
+			if(!random_buildings.empty()){
+				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
+				init_building_id = (random_buildings.begin() + index)->first;
 			}
 		}
-		if(random_buildings.empty()){
+		if(!init_building_id){
 			continue;
 		}
-		const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
-		it = random_buildings.begin() + index;
-		const auto building_id = it->first;
-		const auto init_level = building_data->init_level;
 
 		LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
-			", building_base_id = ", building_base_id, ", building_id = ", building_id);
+			", building_base_id = ", building_base_id, ", init_building_id = ", init_building_id);
 		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-			get_map_object_uuid().get(), building_base_id.get(), building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
+			get_map_object_uuid().get(), building_base_id.get(), init_building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
 		obj->async_save(true);
 		m_buildings.emplace(building_base_id, std::move(obj));
-
 		++dirty;
 	}
 	if(dirty){
@@ -619,7 +626,7 @@ void Castle::get_buildings_by_type_id(std::vector<Castle::BuildingBaseInfo> &ret
 	}
 }
 
-void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mission mission, BuildingId building_id){
+void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mission mission, std::uint64_t duration, BuildingId building_id){
 	PROFILE_ME;
 
 	auto it = m_buildings.find(building_base_id);
@@ -637,44 +644,12 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 		DEBUG_THROW(Exception, sslit("Building mission conflict"));
 	}
 
-	std::uint64_t duration;
-	switch(mission){
-	case MIS_CONSTRUCT:
-		{
-			const auto building_data = Data::CastleBuilding::require(building_id);
-			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, 1);
-			duration = std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001);
-		}
-		obj->set_building_id(building_id.get());
-		obj->set_building_level(0);
-		break;
-
-	case MIS_UPGRADE:
-		{
-			const unsigned level = obj->get_building_level();
-			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
-			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level + 1);
-			duration = std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001);
-		}
-		break;
-
-	case MIS_DESTRUCT:
-		{
-			const unsigned level = obj->get_building_level();
-			const auto building_data = Data::CastleBuilding::require(BuildingId(obj->get_building_id()));
-			const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, level);
-			duration = std::ceil(upgrade_data->destruct_duration * 60000.0 - 0.001);
-		}
-		break;
-
-	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown building mission: map_object_uuid = ", get_map_object_uuid(),
-			", building_base_id = ", building_base_id, ", mission = ", (unsigned)mission);
-		DEBUG_THROW(Exception, sslit("Unknown building mission"));
-	}
-
 	const auto utc_now = Poseidon::get_utc_time();
 
+	if(mission == MIS_CONSTRUCT){
+		obj->set_building_id(building_id.get());
+		obj->set_building_level(0);
+	}
 	obj->set_mission(mission);
 	obj->set_mission_duration(duration);
 	obj->set_mission_time_begin(utc_now);
@@ -959,7 +934,7 @@ void Castle::get_all_techs(std::vector<Castle::TechInfo> &ret) const {
 	}
 }
 
-void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
+void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission, std::uint64_t duration){
 	PROFILE_ME;
 
 	auto it = m_techs.find(tech_id);
@@ -974,29 +949,6 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission){
 	if(old_mission != MIS_NONE){
 		LOG_EMPERY_CENTER_DEBUG("Tech mission conflict: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id);
 		DEBUG_THROW(Exception, sslit("Tech mission conflict"));
-	}
-
-	std::uint64_t duration;
-	switch(mission){
-/*
-	case MIS_CONSTRUCT:
-		break;
-*/
-	case MIS_UPGRADE:
-		{
-			const unsigned level = obj->get_tech_level();
-			const auto tech_data = Data::CastleTech::require(TechId(obj->get_tech_id()), level + 1);
-			duration = std::ceil(tech_data->upgrade_duration * 60000.0 - 0.001);
-		}
-		break;
-/*
-	case MIS_DESTRUCT:
-		break;
-*/
-	default:
-		LOG_EMPERY_CENTER_ERROR("Unknown tech mission: map_object_uuid = ", get_map_object_uuid(), ", tech_id = ", tech_id,
-			", mission = ", (unsigned)mission);
-		DEBUG_THROW(Exception, sslit("Unknown tech mission"));
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();

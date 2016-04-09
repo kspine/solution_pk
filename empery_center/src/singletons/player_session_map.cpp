@@ -240,26 +240,30 @@ void PlayerSessionMap::get_all(std::vector<std::pair<boost::shared_ptr<Account>,
 void PlayerSessionMap::clear(const char *reason) noexcept {
 	PROFILE_ME;
 
-	for(auto it = g_session_map->begin(); it != g_session_map->end(); ++it){
+	auto session_map = std::move(*g_session_map);
+	g_session_map->clear();
+
+	for(auto it = session_map.begin(); it != session_map.end(); ++it){
 		auto session = it->weak_session.lock();
 		if(!session){
 			continue;
 		}
 		session->shutdown(reason);
 	}
-	g_session_map->clear();
 }
 void PlayerSessionMap::clear(int code, const char *reason) noexcept {
 	PROFILE_ME;
 
-	for(auto it = g_session_map->begin(); it != g_session_map->end(); ++it){
+	auto session_map = std::move(*g_session_map);
+	g_session_map->clear();
+
+	for(auto it = session_map.begin(); it != session_map.end(); ++it){
 		auto session = it->weak_session.lock();
 		if(!session){
 			continue;
 		}
 		session->shutdown(code, reason);
 	}
-	g_session_map->clear();
 }
 
 }

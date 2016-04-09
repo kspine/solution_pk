@@ -20,6 +20,8 @@ namespace Data {
 		BuildingBaseId building_base_id;
 		boost::container::flat_set<BuildingId> buildings_allowed;
 		unsigned init_level;
+		BuildingId init_building_id_override;
+		boost::container::flat_map<BuildingId, unsigned> operation_prerequisite;
 	};
 
 	class CastleBuilding {
@@ -148,6 +150,51 @@ namespace Data {
 
 	public:
 		std::uint64_t max_battalion_count;
+	};
+
+	class CastleUpgradeBootCamp : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeBootCamp> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeBootCamp> require(unsigned building_level);
+
+	public:
+		//
+	};
+
+	class CastleUpgradeMedicalTent : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeMedicalTent> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeMedicalTent> require(unsigned building_level);
+
+	public:
+		std::uint64_t max_wounded_soldier_count;
+	};
+
+	class CastleUpgradeHarvestWorkshop : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeHarvestWorkshop> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeHarvestWorkshop> require(unsigned building_level);
+
+	public:
+		//
+	};
+
+	class CastleUpgradeWarWorkshop : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeWarWorkshop> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeWarWorkshop> require(unsigned building_level);
+
+	public:
+		//
+	};
+
+	class CastleUpgradeTree : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeTree> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeTree> require(unsigned building_level);
+
+	public:
+		//
 	};
 
 	class CastleTech {

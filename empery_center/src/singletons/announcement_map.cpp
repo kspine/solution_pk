@@ -52,25 +52,24 @@ namespace {
 		handles.push(announcement_map);
 	}
 
-	void synchronize_announcement_all(const boost::shared_ptr<Announcement> &announcement) noexcept {
+	void synchronize_announcement_all(const boost::shared_ptr<Announcement> &announcement) noexcept
+	try {
 		PROFILE_ME;
 
-		try {
-			std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> online_players;
-			PlayerSessionMap::get_all(online_players);
-			for(auto it = online_players.begin(); it != online_players.end(); ++it){
-				const auto &session = it->second;
-				try {
-					synchronize_announcement_with_player(announcement, session);
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					session->shutdown(e.what());
-				}
+		std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> online_players;
+		PlayerSessionMap::get_all(online_players);
+		for(auto it = online_players.begin(); it != online_players.end(); ++it){
+			const auto &session = it->second;
+			try {
+				synchronize_announcement_with_player(announcement, session);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			PlayerSessionMap::clear(e.what());
 		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		PlayerSessionMap::clear(e.what());
 	}
 }
 

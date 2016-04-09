@@ -71,8 +71,8 @@ namespace {
 
 		LOG_EMPERY_CENTER_INFO("Loading map events...");
 		std::ostringstream oss;
-		const auto utc_now = Poseidon::get_utc_time();
-        oss <<"SELECT * FROM `Center_MapEvent` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now);
+		// 需要处理事件的删除，所以必须加载所有未被删除的事件，包括已经超时的。
+		oss <<"SELECT * FROM `Center_MapEvent` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(0);
 		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<MySql::Center_MapEvent>();
