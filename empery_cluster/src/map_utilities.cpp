@@ -23,8 +23,7 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 	PROFILE_ME;
 
 	// 检测阻挡。
-	// 1.1 允许这样走。
-/*	const auto map_cell = WorldMap::get_map_cell(coord);
+	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(map_cell){
 		const auto cell_owner_uuid = map_cell->get_owner_uuid();
 		if(cell_owner_uuid && (account_uuid != cell_owner_uuid)){
@@ -32,7 +31,7 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 			return CbppResponse(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
 		}
 	}
-*/ /*
+/*
 	const auto cluster = WorldMap::get_cluster(coord);
 	if(!cluster){
 		LOG_EMPERY_CLUSTER_TRACE("Lost connection to center server: coord = ", coord);

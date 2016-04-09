@@ -469,8 +469,6 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 	(void)param1;
 	(void)param2;
 
-	return;
-
 	const auto utc_now = Poseidon::get_utc_time();
 
 	for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
