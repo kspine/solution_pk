@@ -85,7 +85,11 @@ namespace {
 
 		for(auto it = map_object_map->begin<0>(); it != map_object_map->end<0>(); ++it){
 			const auto &map_object = it->map_object;
-			map_object->pump_status();
+			try {
+				map_object->pump_status();
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
 		}
 
 		Poseidon::MySqlDaemon::enqueue_for_batch_loading({ }, "Center_MapObject",
