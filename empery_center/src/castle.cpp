@@ -449,6 +449,9 @@ void Castle::pump_production(){
 	double capacity        = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
 		const auto building_data = Data::CastleBuilding::require(building_id);
 		if(building_data->type != BuildingTypeIds::ID_CIVILIAN){
 			continue;
