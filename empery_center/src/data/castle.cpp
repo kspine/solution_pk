@@ -154,7 +154,20 @@ namespace {
 				}
 			}
 
-			csv.get(elem.init_level, "initial_level");
+			csv.get(elem.init_level,                "initial_level");
+			csv.get(elem.init_building_id_override, "tree");
+
+			Poseidon::JsonObject object;
+			csv.get(object, "need");
+			elem.operation_prerequisite.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto building_id = boost::lexical_cast<BuildingId>(it->first);
+				const auto building_level = static_cast<unsigned>(it->second.get<double>());
+				if(!elem.operation_prerequisite.emplace(building_id, building_level).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate operation prerequisite: building_id = ", building_id);
+					DEBUG_THROW(Exception, sslit("Duplicate operation prerequisite"));
+				}
+			}
 
 			if(!building_base_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate building base: building_base_id = ", elem.building_base_id);
