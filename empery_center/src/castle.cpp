@@ -302,6 +302,9 @@ void Castle::recalculate_attributes(){
 			continue;
 		}
 		const auto building_id = BuildingId(obj->get_building_id());
+		if(!building_id){
+			continue;
+		}
 		const auto building_data = Data::CastleBuilding::require(building_id);
 		const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, building_level);
 		if(!upgrade_data){
@@ -804,6 +807,9 @@ void Castle::accumulate_building_levels(boost::container::flat_map<BuildingId, b
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
 		const unsigned level = it->second->get_building_level();
 		auto &count = ret[building_id][level];
 		++count;
@@ -833,6 +839,9 @@ unsigned Castle::get_level() const {
 	unsigned level = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
 		const auto building_data = Data::CastleBuilding::require(building_id);
 		if(building_data->type != BuildingTypeIds::ID_PRIMARY){
 			continue;
@@ -851,6 +860,9 @@ std::uint64_t Castle::get_warehouse_capacity(ResourceId resource_id) const {
 	std::uint64_t capacity = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
 		const auto building_data = Data::CastleBuilding::require(building_id);
 		if(building_data->type != BuildingTypeIds::ID_WAREHOUSE){
 			continue;
@@ -899,6 +911,9 @@ std::uint64_t Castle::get_max_battalion_count() const {
 	std::uint64_t count = 0;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
 		const auto building_data = Data::CastleBuilding::require(building_id);
 		if(building_data->type != BuildingTypeIds::ID_PARADE_GROUND){
 			continue;
