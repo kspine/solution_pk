@@ -135,6 +135,23 @@ namespace {
 		csv.get(elem.destruct_duration, "demolition");
 	}
 
+	template<typename ElementT>
+	void read_upgrade_addon_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
+		read_upgrade_abstract(elem, csv);
+
+		Poseidon::JsonObject object;
+		csv.get(object, "attributes");
+		elem.attributes.reserve(object.size());
+		for(auto it = object.begin(); it != object.end(); ++it){
+			const auto attribute_id = boost::lexical_cast<AttributeId>(it->first);
+			const auto value = it->second.get<double>();
+			if(!elem.attributes.emplace(attribute_id, value).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate attribute: attribute_id = ", attribute_id);
+				DEBUG_THROW(Exception, sslit("Duplicate attribute"));
+			}
+		}
+	}
+
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(BUILDING_BASE_FILE);
 		const auto building_base_map = boost::make_shared<CastleBuildingBaseMap>();
@@ -379,7 +396,6 @@ namespace {
 			csv.get(elem.building_level, "wall_level");
 			read_upgrade_abstract(elem, csv);
 
-			csv.get(elem.strength, "troops");
 			csv.get(elem.armor, "defence");
 
 			if(!upgrade_citadel_wall_map->emplace(elem.building_level, std::move(elem)).second){
@@ -438,9 +454,7 @@ namespace {
 			Data::CastleUpgradeBootCamp elem = { };
 
 			csv.get(elem.building_level, "march_level");
-			read_upgrade_abstract(elem, csv);
-
-			//
+			read_upgrade_addon_abstract(elem, csv);
 
 			if(!upgrade_boot_camp_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeBootCamp: building_level = ", elem.building_level);
@@ -458,9 +472,7 @@ namespace {
 			Data::CastleUpgradeMedicalTent elem = { };
 
 			csv.get(elem.building_level, "wounded_arm_level");
-			read_upgrade_abstract(elem, csv);
-
-			csv.get(elem.max_wounded_soldier_count, "wounded_max");
+			read_upgrade_addon_abstract(elem, csv);
 
 			if(!upgrade_medical_tent_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeMedicalTent: building_level = ", elem.building_level);
@@ -478,9 +490,7 @@ namespace {
 			Data::CastleUpgradeHarvestWorkshop elem = { };
 
 			csv.get(elem.building_level, "collection_level");
-			read_upgrade_abstract(elem, csv);
-
-			//
+			read_upgrade_addon_abstract(elem, csv);
 
 			if(!upgrade_harvest_workshop_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeHarvestWorkshop: building_level = ", elem.building_level);
@@ -498,9 +508,7 @@ namespace {
 			Data::CastleUpgradeWarWorkshop elem = { };
 
 			csv.get(elem.building_level, "city_def_level");
-			read_upgrade_abstract(elem, csv);
-
-			//
+			read_upgrade_addon_abstract(elem, csv);
 
 			if(!upgrade_war_workshop_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeWarWorkshop: building_level = ", elem.building_level);
@@ -1068,6 +1076,34 @@ namespace Data {
 		if(!ret){
 			LOG_EMPERY_CENTER_WARNING("CastleUpgradeParadeGround not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeParadeGround not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const CastleUpgradeAddonAbstract> CastleUpgradeAddonAbstract::get(BuildingTypeId type, unsigned building_level){
+		PROFILE_ME;
+
+		switch(type.get()){
+		case BuildingTypeIds::ID_BOOT_CAMP.get():
+			return CastleUpgradeBootCamp::get(building_level);
+		case BuildingTypeIds::ID_MEDICAL_TENT.get():
+			return CastleUpgradeMedicalTent::get(building_level);
+		case BuildingTypeIds::ID_HARVEST_WORKSHOP.get():
+			return CastleUpgradeHarvestWorkshop::get(building_level);
+		case BuildingTypeIds::ID_WAR_WORKSHOP.get():
+			return CastleUpgradeWarWorkshop::get(building_level);
+		default:
+			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", type);
+			return { };
+		}
+	}
+	boost::shared_ptr<const CastleUpgradeAddonAbstract> CastleUpgradeAddonAbstract::require(BuildingTypeId type, unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(type, building_level);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeAddonAbstract not found: type = ", type, ", building_level = ", building_level);
+			DEBUG_THROW(Exception, sslit("CastleUpgradeAddonAbstract not found"));
 		}
 		return ret;
 	}

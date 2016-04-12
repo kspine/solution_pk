@@ -306,18 +306,26 @@ void Castle::recalculate_attributes(){
 			continue;
 		}
 		const auto building_data = Data::CastleBuilding::require(building_id);
+
 		const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, building_level);
-		if(!upgrade_data){
-			continue;
+		if(upgrade_data){
+			auto &prosperity = modifiers[AttributeIds::ID_PROSPERITY_POINTS];
+			prosperity += static_cast<std::int64_t>(upgrade_data->prosperity_points);
+
+			if(building_data->type == BuildingTypeIds::ID_PRIMARY){
+				auto &castle_level = modifiers[AttributeIds::ID_CASTLE_LEVEL];
+				if(castle_level < building_level){
+					castle_level = building_level;
+				}
+			}
 		}
 
-		auto &prosperity = modifiers[AttributeIds::ID_PROSPERITY_POINTS];
-		prosperity += static_cast<std::int64_t>(upgrade_data->prosperity_points);
-
-		if(building_data->type == BuildingTypeIds::ID_PRIMARY){
-			auto &castle_level = modifiers[AttributeIds::ID_CASTLE_LEVEL];
-			if(castle_level < building_level){
-				castle_level = building_level;
+		const auto upgrade_addon_data = Data::CastleUpgradeAddonAbstract::get(building_data->type, building_level);
+		if(upgrade_addon_data){
+			const auto &attributes = upgrade_addon_data->attributes;
+			for(auto ait = attributes.begin(); ait != attributes.end(); ++ait){
+				auto &value = modifiers[ait->first];
+				value += std::round(ait->second * 1000.0);
 			}
 		}
 	}

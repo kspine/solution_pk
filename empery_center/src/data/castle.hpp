@@ -130,7 +130,6 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeCitadelWall> require(unsigned building_level);
 
 	public:
-		std::uint64_t strength;
 		std::uint64_t armor;
 	};
 
@@ -152,7 +151,16 @@ namespace Data {
 		std::uint64_t max_battalion_count;
 	};
 
-	class CastleUpgradeBootCamp : public CastleUpgradeAbstract {
+	class CastleUpgradeAddonAbstract : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeAddonAbstract> get(BuildingTypeId type, unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeAddonAbstract> require(BuildingTypeId type, unsigned building_level);
+
+	public:
+		boost::container::flat_map<AttributeId, double> attributes;
+	};
+
+	class CastleUpgradeBootCamp : public CastleUpgradeAddonAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradeBootCamp> get(unsigned building_level);
 		static boost::shared_ptr<const CastleUpgradeBootCamp> require(unsigned building_level);
@@ -161,16 +169,16 @@ namespace Data {
 		//
 	};
 
-	class CastleUpgradeMedicalTent : public CastleUpgradeAbstract {
+	class CastleUpgradeMedicalTent : public CastleUpgradeAddonAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradeMedicalTent> get(unsigned building_level);
 		static boost::shared_ptr<const CastleUpgradeMedicalTent> require(unsigned building_level);
 
 	public:
-		std::uint64_t max_wounded_soldier_count;
+		//
 	};
 
-	class CastleUpgradeHarvestWorkshop : public CastleUpgradeAbstract {
+	class CastleUpgradeHarvestWorkshop : public CastleUpgradeAddonAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradeHarvestWorkshop> get(unsigned building_level);
 		static boost::shared_ptr<const CastleUpgradeHarvestWorkshop> require(unsigned building_level);
@@ -179,7 +187,7 @@ namespace Data {
 		//
 	};
 
-	class CastleUpgradeWarWorkshop : public CastleUpgradeAbstract {
+	class CastleUpgradeWarWorkshop : public CastleUpgradeAddonAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradeWarWorkshop> get(unsigned building_level);
 		static boost::shared_ptr<const CastleUpgradeWarWorkshop> require(unsigned building_level);

@@ -358,8 +358,8 @@ namespace Data {
 		return ret;
 	}
 
-	void MapObjectTypeMonsterReward::get_by_collection_name(std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret,
-		const std::string &collection_name)
+	void MapObjectTypeMonsterReward::get_by_collection_name(
+		std::vector<boost::shared_ptr<const MapObjectTypeMonsterReward>> &ret, const std::string &collection_name)
 	{
 		PROFILE_ME;
 
@@ -375,7 +375,9 @@ namespace Data {
 			ret.emplace_back(monster_reward_map, &*it);
 		}
 	}
-	boost::shared_ptr<const MapObjectTypeMonsterReward> MapObjectTypeMonsterReward::random_by_collection_name(const std::string &collection_name){
+	boost::shared_ptr<const MapObjectTypeMonsterReward> MapObjectTypeMonsterReward::random_by_collection_name(
+		const std::string &collection_name)
+	{
 		PROFILE_ME;
 
 		const auto monster_reward_map = g_monster_reward_map.lock();
