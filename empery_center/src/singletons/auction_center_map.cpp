@@ -55,7 +55,7 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() > 1) || !it->auction_center.unique()){
+			if((it->promise.use_count() > 1) || (it->auction_center.use_count() > 1)){
 				auction_center_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming auction center: account_uuid = ", it->account_uuid);
@@ -118,6 +118,7 @@ boost::shared_ptr<AuctionCenter> AuctionCenterMap::get(AccountUuid account_uuid)
 		Poseidon::JobDispatcher::yield(promise, true);
 
 		if(it->sink){
+			auction_center_map->set_key<0, 1>(it, 0);
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
 
 			auto auction_center = boost::make_shared<AuctionCenter>(account_uuid, *(it->sink));

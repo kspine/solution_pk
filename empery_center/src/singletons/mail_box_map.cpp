@@ -81,7 +81,7 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() > 1) || !it->mail_box.unique()){
+			if((it->promise.use_count() > 1) || (it->mail_box.use_count() > 1)){
 				mail_box_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail box: account_uuid = ", it->account_uuid);
@@ -190,6 +190,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		Poseidon::JobDispatcher::yield(promise, true);
 
 		if(it->sink){
+			mail_box_map->set_key<0, 1>(it, 0);
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: account_uuid = ", account_uuid, ", rows = ", it->sink->size());
 
 			auto mail_box = boost::make_shared<MailBox>(account_uuid, *(it->sink));
@@ -280,6 +281,7 @@ boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, Langua
 		Poseidon::JobDispatcher::yield(promise, true);
 
 		if(it->sink){
+			mail_data_map->set_key<0, 1>(it, 0);
 			LOG_EMPERY_CENTER_DEBUG("Async MySQL query completed: mail_uuid = ", mail_uuid, ", rows = ", it->sink->size());
 
 			boost::shared_ptr<MySql::Center_MailData> obj;
