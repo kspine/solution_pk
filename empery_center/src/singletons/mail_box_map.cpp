@@ -109,7 +109,7 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() > 1) || !it->mail_data.unique()){
+			if((it->promise.use_count() > 1) || (it->mail_data.use_count() > 1)){
 				mail_data_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail data: mail_uuid = ", it->pkey.first);
