@@ -297,7 +297,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	} else if((building_data->type == BuildingTypeIds::ID_STABLES) || (building_data->type == BuildingTypeIds::ID_BARRACKS) ||
 		(building_data->type == BuildingTypeIds::ID_ARCHER_BARRACKS) || (building_data->type == BuildingTypeIds::ID_WEAPONRY))
 	{
-		if(castle->is_battalion_production_in_progress(building_base_id)){
+		if(castle->is_soldier_production_in_progress(building_base_id)){
 			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
 		}
 	}
@@ -383,7 +383,7 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	} else if((building_data->type == BuildingTypeIds::ID_STABLES) || (building_data->type == BuildingTypeIds::ID_BARRACKS) ||
 		(building_data->type == BuildingTypeIds::ID_ARCHER_BARRACKS) || (building_data->type == BuildingTypeIds::ID_WEAPONRY))
 	{
-		if(castle->is_battalion_production_in_progress(building_base_id)){
+		if(castle->is_soldier_production_in_progress(building_base_id)){
 			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
 		}
 	}
@@ -948,7 +948,7 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -971,7 +971,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 		return Response(Msg::ERR_BARRACKS_UPGRADE_IN_PROGRESS) <<building_base_id;
 	}
 
-	const auto info = castle->get_battalion_production(building_base_id);
+	const auto info = castle->get_soldier_production(building_base_id);
 	if(info.map_object_type_id){
 		return Response(Msg::ERR_BATTALION_PRODUCTION_CONFLICT) <<info.map_object_type_id;
 	}
@@ -981,8 +981,8 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	if(building_info.building_id != map_object_type_data->factory_id){
 		return Response(Msg::ERR_FACTORY_ID_MISMATCH) <<map_object_type_data->factory_id;
 	}
-	const auto battalion_info = castle->get_battalion(map_object_type_id);
-	if(!(battalion_info.enabled || map_object_type_data->enability_cost.empty())){
+	const auto soldier_info = castle->get_soldier(map_object_type_id);
+	if(!(soldier_info.enabled || map_object_type_data->enability_cost.empty())){
 		return Response(Msg::ERR_BATTALION_UNAVAILABLE) <<map_object_type_id;
 	}
 
@@ -1004,7 +1004,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 
 	const auto result = try_decrement_resources(castle, item_box, task_box, production_cost, tokens,
 		ReasonIds::ID_PRODUCE_BATTALION, map_object_type_id.get(), count, 0,
-		[&]{ castle->begin_battalion_production(building_base_id, map_object_type_id, count); });
+		[&]{ castle->begin_soldier_production(building_base_id, map_object_type_id, count); });
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}
@@ -1015,7 +1015,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginBattalionProduction, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCancelSoldierProduction, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -1027,7 +1027,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 /*
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
-	const auto info = castle->get_battalion_production(building_base_id);
+	const auto info = castle->get_soldier_production(building_base_id);
 	if(!info.map_object_type_id){
 		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
 	}
@@ -1045,12 +1045,12 @@ PLAYER_SERVLET(Msg::CS_CastleCancelBattalionProduction, account, session, req){
 			ReasonIds::ID_CANCEL_PRODUCE_BATTALION, map_object_type_id.get(), count, 0);
 	}
 	castle->commit_resource_transaction(transaction,
-		[&]{ castle->cancel_battalion_production(building_base_id); });
+		[&]{ castle->cancel_soldier_production(building_base_id); });
 */
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleHarvestSoldier, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -1064,7 +1064,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
-	const auto info = castle->get_battalion_production(building_base_id);
+	const auto info = castle->get_soldier_production(building_base_id);
 	if(!info.map_object_type_id){
 		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
 	}
@@ -1073,7 +1073,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 		return Response(Msg::ERR_BATTALION_PRODUCTION_INCOMPLETE) <<building_base_id;
 	}
 
-	const auto count_harvested = castle->harvest_battalion(building_base_id);
+	const auto count_harvested = castle->harvest_soldier(building_base_id);
 
 	try {
 		task_box->check(TaskTypeIds::ID_HARVEST_SOLDIERS, info.map_object_type_id.get(), count_harvested,
@@ -1085,7 +1085,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestBattalion, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleSpeedUpSoldierProduction, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -1099,7 +1099,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
-	const auto info = castle->get_battalion_production(building_base_id);
+	const auto info = castle->get_soldier_production(building_base_id);
 	if(!info.map_object_type_id){
 		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
 	}
@@ -1123,7 +1123,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
 		ReasonIds::ID_SPEED_UP_BATTALION_PRODUCTION, info.map_object_type_id.get(), info.count, 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
-		[&]{ castle->speed_up_battalion_production(building_base_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
+		[&]{ castle->speed_up_soldier_production(building_base_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
@@ -1131,7 +1131,7 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBattalionProduction, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleEnableSoldier, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -1149,7 +1149,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}
-	const auto info = castle->get_battalion(map_object_type_id);
+	const auto info = castle->get_soldier(map_object_type_id);
 	if(info.enabled || map_object_type_data->enability_cost.empty()){
 		return Response(Msg::ERR_BATTALION_UNLOCKED) <<map_object_type_id;
 	}
@@ -1165,7 +1165,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 	const auto previous_id = map_object_type_data->previous_id;
 	if(previous_id){
 		const auto prev_data = Data::MapObjectTypeBattalion::require(previous_id);
-		const auto prev_info = castle->get_battalion(previous_id);
+		const auto prev_info = castle->get_soldier(previous_id);
 		if(!(prev_info.enabled || prev_data->enability_cost.empty())){
 			return Response(Msg::ERR_PREREQUISITE_BATTALION_NOT_MET) <<previous_id;
 		}
@@ -1180,7 +1180,7 @@ PLAYER_SERVLET(Msg::CS_CastleEnableBattalion, account, session, req){
 
 	const auto result = try_decrement_resources(castle, item_box, task_box, map_object_type_data->enability_cost, tokens,
 		ReasonIds::ID_ENABLE_BATTALION, map_object_type_id.get(), 0, 0,
-		[&]{ castle->enable_battalion(map_object_type_id); });
+		[&]{ castle->enable_soldier(map_object_type_id); });
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}
@@ -1262,7 +1262,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCompleteBattalionProductionImmediately, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleCompleteSoldierProductionImmediately, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
@@ -1276,7 +1276,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBattalionProductionImmediately, account, se
 
 	const auto building_base_id = BuildingBaseId(req.building_base_id);
 
-	const auto info = castle->get_battalion_production(building_base_id);
+	const auto info = castle->get_soldier_production(building_base_id);
 	if(!info.map_object_type_id){
 		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
 	}
@@ -1290,7 +1290,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBattalionProductionImmediately, account, se
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
-		[&]{ castle->speed_up_battalion_production(building_base_id, UINT64_MAX); });
+		[&]{ castle->speed_up_soldier_production(building_base_id, UINT64_MAX); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}

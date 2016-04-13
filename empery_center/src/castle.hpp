@@ -17,6 +17,7 @@ namespace MySql {
 	class Center_CastleTech;
 	class Center_CastleBattalion;
 	class Center_CastleBattalionProduction;
+	class Center_CastleWoundedSoldier;
 }
 
 class PlayerSession;
@@ -67,6 +68,11 @@ public:
 		std::uint64_t production_duration;
 		std::uint64_t production_time_begin;
 		std::uint64_t production_time_end;
+	};
+
+	struct WoundedSoldierInfo {
+		MapObjectTypeId map_object_type_id;
+		std::uint64_t count;
 	};
 
 private:
@@ -147,7 +153,7 @@ public:
 	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
 	bool is_tech_upgrade_in_progress() const; // 学院
 	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const;
-	std::uint64_t get_max_soldier_count() const; // 校场
+	std::uint64_t get_max_battalion_count() const; // 校场
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
@@ -192,6 +198,15 @@ public:
 	std::uint64_t harvest_soldier(BuildingBaseId building_base_id);
 
 	void synchronize_soldier_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
+
+	WoundedSoldierInfo get_wounded_soldier(MapObjectTypeId map_object_type_id) const;
+	void get_all_wounded_soldiers(std::vector<WoundedSoldierInfo> &ret) const;
+
+	__attribute__((__warn_unused_result__))
+	MapObjectTypeId commit_wounded_soldier_transaction_nothrow(const std::vector<WoundedSoldierTransactionElement> &transaction,
+		const boost::function<void ()> &callback = boost::function<void ()>());
+	void commit_wounded_soldier_transaction(const std::vector<WoundedSoldierTransactionElement> &transaction,
+		const boost::function<void ()> &callback = boost::function<void ()>());
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

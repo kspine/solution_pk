@@ -42,7 +42,7 @@ namespace Msg {
 	FIELD_VUINT         (mission_time_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SC_CastleBattalion
+#define MESSAGE_NAME    SC_CastleSoldier
 #define MESSAGE_ID      496
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
@@ -51,7 +51,7 @@ namespace Msg {
 	FIELD_VUINT         (enabled)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SC_CastleBattalionProduction
+#define MESSAGE_NAME    SC_CastleSoldierProduction
 #define MESSAGE_ID      495
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
@@ -60,6 +60,14 @@ namespace Msg {
 	FIELD_VUINT         (count)	\
 	FIELD_VUINT         (production_duration)	\
 	FIELD_VUINT         (production_time_remaining)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_CastleWoundedSoldier
+#define MESSAGE_ID      494
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

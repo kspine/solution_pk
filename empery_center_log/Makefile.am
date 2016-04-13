@@ -24,7 +24,7 @@ lib_libposeidon_empery_center_log_la_SOURCES = \
 	src/handlers/resource_changed.cpp	\
 	src/handlers/auction_item_changed.cpp	\
 	src/handlers/map_event_overflowed.cpp	\
-	src/handlers/battalion_changed.cpp	\
+	src/handlers/soldier_changed.cpp	\
 	src/handlers/wounded_soldier_changed.cpp	\
 	src/singletons/log_http_server.cpp	\
 	src/log/account.cpp	\
