@@ -57,6 +57,13 @@ namespace MySql {
 	FIELD_DATETIME          (production_time_end)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   Center_CastleWoundedSoldier
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (map_object_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (map_object_type_id)	\
+	FIELD_BIGINT_UNSIGNED   (count)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }

@@ -54,13 +54,13 @@ public:
 		std::uint64_t amount;
 	};
 
-	struct BattalionInfo {
+	struct SoldierInfo {
 		MapObjectTypeId map_object_type_id;
 		std::uint64_t count;
 		bool enabled;
 	};
 
-	struct BattalionProductionInfo {
+	struct SoldierProductionInfo {
 		BuildingBaseId building_base_id;
 		MapObjectTypeId map_object_type_id;
 		std::uint64_t count;
@@ -80,13 +80,17 @@ private:
 	bool m_locked_by_resource_transaction = false;
 
 	boost::container::flat_map<MapObjectTypeId,
-		boost::shared_ptr<MySql::Center_CastleBattalion>> m_battalions;
+		boost::shared_ptr<MySql::Center_CastleBattalion>> m_soldiers;
+	bool m_locked_by_soldier_transaction = false;
 
 	boost::shared_ptr<MySql::Center_CastleBattalionProduction> m_population_production_stamps;
 
 	boost::container::flat_map<BuildingBaseId,
-		boost::shared_ptr<MySql::Center_CastleBattalionProduction>> m_battalion_production;
-	bool m_locked_by_soldier_transaction = false;
+		boost::shared_ptr<MySql::Center_CastleBattalionProduction>> m_soldier_production;
+
+	boost::container::flat_map<MapObjectTypeId,
+		boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> m_wounded_soldiers;
+	bool m_locked_by_wounded_soldier_transaction = false;
 
 	// 非持久化数据。
 	double m_production_remainder = 0;
@@ -101,8 +105,9 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
-		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> &battalions,
-		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &battalion_production);
+		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> &soldiers,
+		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
+		const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers);
 	~Castle();
 
 public:
@@ -141,8 +146,8 @@ public:
 	unsigned get_level() const; // 领主府
 	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
 	bool is_tech_upgrade_in_progress() const; // 学院
-	bool is_battalion_production_in_progress(BuildingBaseId building_base_id) const;
-	std::uint64_t get_max_battalion_count() const; // 校场
+	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const;
+	std::uint64_t get_max_soldier_count() const; // 校场
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
@@ -167,9 +172,9 @@ public:
 	void commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,
 		const boost::function<void ()> &callback = boost::function<void ()>());
 
-	BattalionInfo get_battalion(MapObjectTypeId map_object_type_id) const;
-	void get_all_battalions(std::vector<BattalionInfo> &ret) const;
-	void enable_battalion(MapObjectTypeId map_object_type_id);
+	SoldierInfo get_soldier(MapObjectTypeId map_object_type_id) const;
+	void get_all_soldiers(std::vector<SoldierInfo> &ret) const;
+	void enable_soldier(MapObjectTypeId map_object_type_id);
 
 	__attribute__((__warn_unused_result__))
 	MapObjectTypeId commit_soldier_transaction_nothrow(const std::vector<SoldierTransactionElement> &transaction,
@@ -177,16 +182,16 @@ public:
 	void commit_soldier_transaction(const std::vector<SoldierTransactionElement> &transaction,
 		const boost::function<void ()> &callback = boost::function<void ()>());
 
-	BattalionProductionInfo get_battalion_production(BuildingBaseId building_base_id) const;
-	void get_all_battalion_production(std::vector<BattalionProductionInfo> &ret) const;
+	SoldierProductionInfo get_soldier_production(BuildingBaseId building_base_id) const;
+	void get_all_soldier_production(std::vector<SoldierProductionInfo> &ret) const;
 
-	void begin_battalion_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count);
-	void cancel_battalion_production(BuildingBaseId building_base_id);
-	void speed_up_battalion_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
+	void begin_soldier_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count);
+	void cancel_soldier_production(BuildingBaseId building_base_id);
+	void speed_up_soldier_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
 
-	std::uint64_t harvest_battalion(BuildingBaseId building_base_id);
+	std::uint64_t harvest_soldier(BuildingBaseId building_base_id);
 
-	void synchronize_battalion_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_soldier_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

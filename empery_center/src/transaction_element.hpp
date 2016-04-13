@@ -5,7 +5,7 @@
 
 namespace EmperyCenter {
 
-template<typename FriendT, typename SomeIdT>
+template<typename FriendT, typename SomeIdT, int>
 class TransactionElement {
 	friend FriendT;
 
