@@ -368,14 +368,16 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto soldiers_remaining = saturated_sub(soldiers_current, soldiers_damaged);
 
+	if(soldiers_remaining <= 0){
+		if(attacked_object_type_id != MapObjectTypeIds::ID_CASTLE){
+			LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_object_uuid = ", attacked_object_uuid);
+			attacked_object->delete_from_game();
+		}
+	}
+
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
 	attacked_object->set_attributes(std::move(modifiers));
-
-	if(soldiers_remaining <= 0){
-		LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_object_uuid = ", attacked_object_uuid);
-		attacked_object->delete_from_game();
-	}
 
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto category = boost::make_shared<int>();
@@ -436,6 +438,62 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
 	};
 	ENQUEU_JOB_SWALLOWING_EXCEPTIONS(update_war_status);
+
+	// 回收伤兵。
+	const auto accumulate_wounded_soldier = [=]{
+		PROFILE_ME;
+
+		const auto battalion_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+		if(!battalion_type_data){
+			return;
+		}
+
+		const auto parent_object_uuid = attacked_object->get_parent_object_uuid();
+		const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+		if(!parent_castle){
+			LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
+			return;
+		}
+
+		const auto capacity_total = parent_castle->get_medical_tent_capacity();
+		if(capacity_total == 0){
+			LOG_EMPERY_CENTER_DEBUG("No medical tent: parent_object_uuid = ", parent_object_uuid);
+			return;
+		}
+
+		std::uint64_t capacity_used = 0;
+		std::vector<Castle::WoundedSoldierInfo> wounded_soldier_all;
+		parent_castle->get_all_wounded_soldiers(wounded_soldier_all);
+		for(auto it = wounded_soldier_all.begin(); it != wounded_soldier_all.end(); ++it){
+			capacity_used = checked_add(capacity_used, it->count);
+		}
+		const auto capacity_avail = saturated_sub(capacity_total, capacity_used);
+		if(capacity_avail == 0){
+			LOG_EMPERY_CENTER_DEBUG("Medical tent is full: parent_object_uuid = ", parent_object_uuid,
+				", capacity_total = ", capacity_total, ", capacity_used = ", capacity_used, ", capacity_avail = ", capacity_avail);
+			return;
+		}
+
+		const auto wounded_ratio_basic = Data::Global::as_double(Data::Global::SLOT_WOUNDED_SOLDIER_RATIO_BASIC_VALUE);
+		const auto wounded_ratio_bonus = parent_castle->get_attribute(AttributeIds::ID_WOUNDED_SOLDIER_RATIO_BONUS);
+
+		auto wounded_ratio = wounded_ratio_basic + wounded_ratio_bonus / 1000.0;
+		if(wounded_ratio < 0){
+			wounded_ratio = 0;
+		} else if(wounded_ratio > 1){
+			wounded_ratio = 1;
+		}
+		const auto wounded_soldiers = static_cast<std::uint64_t>(soldiers_damaged * wounded_ratio + 0.001);
+		const auto wounded_to_add = std::min(wounded_soldiers, capacity_avail);
+
+		const auto attacked_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(attacked_object_uuid.get()[0]));
+
+		std::vector<WoundedSoldierTransactionElement> wounded_soldier_transaction;
+		wounded_soldier_transaction.emplace_back(WoundedSoldierTransactionElement::OP_ADD, attacked_object_type_id, wounded_to_add,
+			ReasonIds::ID_SOLDIER_WOUNDED, attacked_object_uuid_head, soldiers_damaged, wounded_ratio_bonus);
+		parent_castle->commit_wounded_soldier_transaction(wounded_soldier_transaction);
+	};
+	ENQUEU_JOB_SWALLOWING_EXCEPTIONS(accumulate_wounded_soldier);
 
 	// 战报。
 	if(attacking_account_uuid){

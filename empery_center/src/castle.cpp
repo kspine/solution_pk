@@ -280,7 +280,7 @@ void Castle::pump_status(){
 
 	MapObject::pump_status();
 
-	pump_production();
+	pump_population_production();
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -405,7 +405,7 @@ void Castle::recalculate_attributes(){
 	}
 }
 
-void Castle::pump_production(){
+void Castle::pump_population_production(){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -512,7 +512,7 @@ void Castle::pump_production(){
 		const auto old_resource_amount      = get_resource(ResourceIds::ID_POPULATION).amount;
 
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
-		const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_production_remainder;
+		const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_population_production_remainder;
 		const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
 		const auto new_resource_amount = std::min<std::uint64_t>(saturated_add(old_resource_amount, rounded_amount_produced), capacity);
 		if(new_resource_amount > old_resource_amount){
@@ -521,15 +521,15 @@ void Castle::pump_production(){
 				ReasonIds::ID_POPULATION_PRODUCTION, production_duration, 0, 0);
 			commit_resource_transaction(transaction);
 
-			m_production_remainder = amount_produced - rounded_amount_produced;
+			m_population_production_remainder = amount_produced - rounded_amount_produced;
 		}
 	} else {
 		// 清空人口？
 	}
 	m_population_production_stamps->set_production_time_end(utc_now);
 
-	m_production_rate = production_rate;
-	m_capacity        = capacity;
+	m_population_production_rate = production_rate;
+	m_population_capacity        = capacity;
 }
 
 void Castle::check_init_buildings(){
@@ -785,7 +785,7 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 		return;
 	}
 
-	pump_production();
+	pump_population_production();
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -946,6 +946,28 @@ std::uint64_t Castle::get_max_battalion_count() const {
 		}
 		const auto upgrade_data = Data::CastleUpgradeParadeGround::require(current_level);
 		count = saturated_add(count, upgrade_data->max_battalion_count);
+	}
+	return count;
+}
+std::uint64_t Castle::get_medical_tent_capacity() const {
+	PROFILE_ME;
+
+	std::uint64_t count = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != BuildingTypeIds::ID_MEDICAL_TENT){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		if(current_level == 0){
+			continue;
+		}
+		const auto upgrade_data = Data::CastleUpgradeMedicalTent::require(current_level);
+		count = saturated_add(count, upgrade_data->capacity);
 	}
 	return count;
 }
@@ -1822,6 +1844,17 @@ void Castle::synchronize_soldier_production_with_player(BuildingBaseId building_
 	session->send(msg);
 }
 
+bool Castle::has_wounded_soldiers() const {
+	PROFILE_ME;
+
+	for(auto it = m_wounded_soldiers.begin(); it != m_wounded_soldiers.end(); ++it){
+		const auto &obj = it->second;
+		if(obj->get_count() != 0){
+			return true;
+		}
+	}
+	return false;
+}
 Castle::WoundedSoldierInfo Castle::get_wounded_soldier(MapObjectTypeId map_object_type_id) const {
 	PROFILE_ME;
 

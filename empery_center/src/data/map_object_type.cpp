@@ -109,6 +109,20 @@ namespace {
 			csv.get(elem.production_time,    "levy_time");
 			csv.get(elem.factory_id,         "city_camp");
 
+			object.clear();
+			csv.get(object, "arm_recover_need");
+			elem.healing_cost.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto resource_amount = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.healing_cost.emplace(resource_id, resource_amount).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate healing resource cost: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate healing resource cost"));
+				}
+			}
+
+			csv.get(elem.healing_time,       "arm_recoer_time");
+
 			if(!battalion_map->emplace(elem.map_object_type_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeBattalion: map_object_type_id = ", elem.map_object_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeBattalion"));

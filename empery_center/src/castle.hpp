@@ -99,9 +99,9 @@ private:
 	bool m_locked_by_wounded_soldier_transaction = false;
 
 	// 非持久化数据。
-	double m_production_remainder = 0;
-	double m_production_rate = 0;
-	double m_capacity = 0;
+	double m_population_production_remainder = 0;
+	double m_population_production_rate = 0;
+	double m_population_capacity = 0;
 
 public:
 	Castle(MapObjectUuid map_object_uuid,
@@ -120,14 +120,14 @@ public:
 	void pump_status() override;
 	void recalculate_attributes() override;
 
-	double get_production_rate() const {
-		return m_production_rate;
+	double get_population_production_rate() const {
+		return m_population_production_rate;
 	}
-	double get_capacity() const {
-		return m_capacity;
+	double get_population_capacity() const {
+		return m_population_capacity;
 	}
 
-	void pump_production();
+	void pump_population_production();
 
 	void check_init_buildings();
 
@@ -148,12 +148,13 @@ public:
 	void accumulate_building_levels(boost::container::flat_map<BuildingId, boost::container::flat_map<unsigned, std::size_t>> &ret) const;
 
 	// 各个建筑的独立接口。
-	unsigned get_max_level(BuildingId building_id) const;
+	unsigned get_max_level(BuildingId building_id) const; // （通用）
 	unsigned get_level() const; // 领主府
 	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
 	bool is_tech_upgrade_in_progress() const; // 学院
-	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const;
+	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const; // （通用）兵营
 	std::uint64_t get_max_battalion_count() const; // 校场
+	std::uint64_t get_medical_tent_capacity() const; // 医疗帐篷
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
@@ -199,6 +200,7 @@ public:
 
 	void synchronize_soldier_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
+	bool has_wounded_soldiers() const;
 	WoundedSoldierInfo get_wounded_soldier(MapObjectTypeId map_object_type_id) const;
 	void get_all_wounded_soldiers(std::vector<WoundedSoldierInfo> &ret) const;
 

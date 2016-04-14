@@ -69,7 +69,7 @@ namespace {
 
 	using CastleUpgradeBootCampMap = boost::container::flat_map<unsigned, Data::CastleUpgradeBootCamp>;
 	boost::weak_ptr<const CastleUpgradeBootCampMap> g_upgrade_boot_camp_map;
-	const char UPGRADE_BOOT_CAMP_FILE[] = "City_March";
+	const char UPGRADE_BOOT_CAMP_FILE[] = "City_New_recruit";
 
 	using CastleUpgradeMedicalTentMap = boost::container::flat_map<unsigned, Data::CastleUpgradeMedicalTent>;
 	boost::weak_ptr<const CastleUpgradeMedicalTentMap> g_upgrade_medical_tent_map;
@@ -473,6 +473,8 @@ namespace {
 
 			csv.get(elem.building_level, "wounded_arm_level");
 			read_upgrade_addon_abstract(elem, csv);
+
+			csv.get(elem.capacity, "capacity");
 
 			if(!upgrade_medical_tent_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeMedicalTent: building_level = ", elem.building_level);

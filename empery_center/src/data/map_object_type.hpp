@@ -40,6 +40,9 @@ namespace Data {
 		MapObjectTypeId previous_id;
 		double production_time;
 		BuildingId factory_id;
+
+		boost::container::flat_map<ResourceId, std::uint64_t> healing_cost;
+		double healing_time;
 	};
 
 	class MapObjectTypeMonster : public MapObjectTypeAbstract {

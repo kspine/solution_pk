@@ -31,7 +31,9 @@ constexpr AttributeId
 	ID_ATTACK_RANGE_BONUS               ( 2500111 ),
 	ID_SIGHT_RANGE_BONUS                ( 2500112 ),
 	ID_RATE_OF_FIRE_BONUS               ( 2500113 ),
-	ID_SPEED_BONUS                      ( 2500114 );
+	ID_SPEED_BONUS                      ( 2500114 ),
+	ID_SOLDIER_PRODUCTION_LIMIT_BONUS   ( 2500115 ),
+	ID_WOUNDED_SOLDIER_RATIO_BONUS      ( 2500116 );
 
 }
 
