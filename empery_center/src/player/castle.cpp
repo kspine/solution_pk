@@ -386,6 +386,10 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 		if(castle->is_soldier_production_in_progress(building_base_id)){
 			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
 		}
+	} else if(building_data->type == BuildingTypeIds::ID_MEDICAL_TENT){
+		if(castle->has_wounded_soldiers()){
+			return Response(Msg::ERR_MEDICAL_TENT_NOT_EMPTY);
+		}
 	}
 
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level);

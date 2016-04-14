@@ -1,0 +1,4 @@
+building_level,building_id,building_upgrade_condition,building_upgrade_cost,building_upgrade_time,building_dismantling_time,building_combat_attributes,building_image
+1,1206001,"{""1906001"":0}","{""1101001"":38776,""1101002"":29082,""1101003"":29082}",1,0,1206500,
+2,1206001,"{""1906001"":2}","{""1101001"":38776,""1101002"":29082,""1101003"":29082}",2,1,1206501,
+3,1206001,"{""1906001"":3}","{""1101001"":38776,""1101002"":29082,""1101003"":29082}",3,2,1206502,

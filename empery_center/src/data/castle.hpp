@@ -175,7 +175,7 @@ namespace Data {
 		static boost::shared_ptr<const CastleUpgradeMedicalTent> require(unsigned building_level);
 
 	public:
-		//
+		std::uint64_t capacity;
 	};
 
 	class CastleUpgradeHarvestWorkshop : public CastleUpgradeAddonAbstract {
