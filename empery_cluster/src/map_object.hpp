@@ -101,6 +101,7 @@ private:
 	AccountUuid   get_attack_target_own_uuid(); 
 	std::uint64_t search_attack();
 	MapObjectWeaponId get_arm_relative_id();
+	int           get_attacked_prority();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;

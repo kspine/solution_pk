@@ -21,12 +21,20 @@ namespace {
 	const char MAP_OBJECT_RELATIVE_FILE[] = "Arm_relative";
 
 	const char MAP_OBJECT_TYPE_MONSTER_FILE[] = "monster";
-
 	MULTI_INDEX_MAP(MapObjectTypeMonsterMap, Data::MapObjectTypeMonster,
 	UNIQUE_MEMBER_INDEX(map_object_type_id)
 	)
-
 	boost::weak_ptr<const MapObjectTypeMonsterMap> g_map_object_type_monster_map;
+
+	const char MAP_OBJECT_TYPE_BUILDING_FILE[] = "Building_combat_attributes";
+	const char MAP_OBJECT_TYPE_BUILDING_TOWER_FILE[] = "Building_towers";
+	const char MAP_OBJECT_TYPE_BUILDING_CASTLE_FILE[] = "Building_castel";
+	const char MAP_OBJECT_TYPE_BUILDING_BUNKER_FILE[] = "Building_bunker";
+	MULTI_INDEX_MAP(MapObjectTypeBuildingMap, Data::MapObjectTypeBuilding,
+	UNIQUE_MEMBER_INDEX(type_level)
+	MULTI_MEMBER_INDEX(map_object_type_id)
+	)
+	boost::weak_ptr<const MapObjectTypeBuildingMap> g_map_object_type_building_map;
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(MAP_OBJECT_TYPE_FILE);
 		const auto map_object_map         =  boost::make_shared<MapObjectTypeMap>();
@@ -79,6 +87,27 @@ namespace {
 			}
 		}
 
+		auto csvBuilding = Data::sync_load_data(MAP_OBJECT_TYPE_BUILDING_FILE);
+		while(csvBuilding.fetch_row()){
+			Data::MapObjectType elem = { };
+			csvBuilding.get(elem.map_object_type_id,                "id");
+			csvBuilding.get(elem.category_id,                       "arm_type");
+			csvBuilding.get(elem.attack,                            "attack");
+			csvBuilding.get(elem.defence,                           "defence");
+			//csvBuilding.get(elem.speed,                            "speed");
+			csvBuilding.get(elem.shoot_range,                       "shoot_range");
+			csvBuilding.get(elem.attack_speed,                      "attack_speed");
+			csvBuilding.get(elem.attack_plus,                      "attack_plus");
+			csvBuilding.get(elem.doge_rate,                         "arm_dodge");
+			csvBuilding.get(elem.critical_rate,                     "arm_crit");
+			csvBuilding.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
+
+			if(!map_object_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectType"));
+			}
+		}
+
 		g_map_object_map = map_object_map;
 		g_map_object_type_monster_map = map_object_monster_map;
 		handles.push(map_object_map);
@@ -110,6 +139,59 @@ namespace {
 		}
 		g_map_object_relative_map = map_object_relative_map;
 		handles.push(map_object_relative_map);
+
+		auto csvTower = Data::sync_load_data(MAP_OBJECT_TYPE_BUILDING_TOWER_FILE);
+		const auto map_object_building_map = boost::make_shared<MapObjectTypeBuildingMap>();
+		while(csvTower.fetch_row()){
+			Data::MapObjectTypeBuilding elem = { };
+			csvTower.get(elem.map_object_type_id,         "building_id");
+			csvTower.get(elem.level,                      "building_level");
+			csvTower.get(elem.arm_type_id,                "building_combat_attributes");
+			if(!elem.type_level.emplace(elem.map_object_type_id, elem.level).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate tower: building_id = ", elem.map_object_type_id," level = ", elem.level);
+				DEBUG_THROW(Exception, sslit("Duplicate tower"));
+			}
+
+			if(!map_object_building_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate tower: map_object_type_id = ", elem.map_object_type_id, " level:",elem.level);
+				DEBUG_THROW(Exception, sslit("Duplicate tower"));
+			}
+		}
+		auto csvCastle = Data::sync_load_data(MAP_OBJECT_TYPE_BUILDING_CASTLE_FILE);
+		while(csvCastle.fetch_row()){
+			Data::MapObjectTypeBuilding elem = { };
+			csvCastle.get(elem.map_object_type_id,         "building_id");
+			csvCastle.get(elem.level,                      "building_level");
+			csvCastle.get(elem.arm_type_id,                "building_combat_attributes");
+			if(!elem.type_level.emplace(elem.map_object_type_id, elem.level).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate castle: building_id = ", elem.map_object_type_id," level = ", elem.level);
+				DEBUG_THROW(Exception, sslit("Duplicate castle"));
+			}
+
+			if(!map_object_building_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate castle: map_object_type_id = ", elem.map_object_type_id, " level:",elem.level);
+				DEBUG_THROW(Exception, sslit("Duplicate castle"));
+			}
+		}
+
+		auto csvBunker = Data::sync_load_data(MAP_OBJECT_TYPE_BUILDING_BUNKER_FILE);
+		while(csvBunker.fetch_row()){
+			Data::MapObjectTypeBuilding elem = { };
+			csvBunker.get(elem.map_object_type_id,         "building_id");
+			csvBunker.get(elem.level,                      "building_level");
+			csvBunker.get(elem.arm_type_id,                "building_combat_attributes");
+			if(!elem.type_level.emplace(elem.map_object_type_id, elem.level).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate bunker: building_id = ", elem.map_object_type_id," level = ", elem.level);
+				DEBUG_THROW(Exception, sslit("Duplicate bunker"));
+			}
+
+			if(!map_object_building_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate bunker: map_object_type_id = ", elem.map_object_type_id, " level:",elem.level);
+				DEBUG_THROW(Exception, sslit("Duplicate bunker"));
+			}
+		}
+		g_map_object_type_building_map = map_object_building_map;
+		handles.push(map_object_building_map);
 	}
 }
 
@@ -175,7 +257,6 @@ namespace Data {
 		}
 		return boost::shared_ptr<const MapObjectTypeMonster>(map_object_monster_map, &*it);
 	}
-
 }
 
 }
