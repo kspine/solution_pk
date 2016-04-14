@@ -69,7 +69,7 @@ namespace {
 
 	using CastleUpgradeBootCampMap = boost::container::flat_map<unsigned, Data::CastleUpgradeBootCamp>;
 	boost::weak_ptr<const CastleUpgradeBootCampMap> g_upgrade_boot_camp_map;
-	const char UPGRADE_BOOT_CAMP_FILE[] = "City_March";
+	const char UPGRADE_BOOT_CAMP_FILE[] = "City_New_recruit";
 
 	using CastleUpgradeMedicalTentMap = boost::container::flat_map<unsigned, Data::CastleUpgradeMedicalTent>;
 	boost::weak_ptr<const CastleUpgradeMedicalTentMap> g_upgrade_medical_tent_map;
