@@ -58,6 +58,7 @@ namespace Data {
 			SLOT_MAX_TAX_RECORD_COUNT                               = 100058,
 			SLOT_TECH_UPGRADE_CANCELLATION_REFUND_RATIO             = 100060,
 			SLOT_WOUNDED_SOLDIER_RATIO_BASIC_VALUE                  = 100061,
+			SLOT_CASTLE_IMMEDIATE_TREATMENT_TRADE_ID                = 100062,
 		};
 
 	public:

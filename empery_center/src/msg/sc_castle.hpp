@@ -70,6 +70,18 @@ namespace Msg {
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_CastleTreatment
+#define MESSAGE_ID      493
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_ARRAY         (soldiers,	\
+		FIELD_VUINT         (map_object_type_id)	\
+		FIELD_VUINT         (count)	\
+	)	\
+	FIELD_VUINT         (treatment_duration)	\
+	FIELD_VUINT         (treatment_time_remaining)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
