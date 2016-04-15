@@ -7,6 +7,7 @@
 #include <deque>
 #include "id_types.hpp"
 #include "coord.hpp"
+#include "data/map_object.hpp"
 
 namespace EmperyCluster {
 
@@ -95,6 +96,10 @@ private:
 	std::uint64_t lost_target();
 	void          monster_regress();
 	bool          is_monster();
+	bool          is_building();
+	bool          is_castle();
+	bool          is_bunker();
+	bool          is_defense_tower();
 	bool          attacked_able();
 	bool          is_lost_attacked_target();
 	void          reset_attack_target_own_uuid();
@@ -102,6 +107,8 @@ private:
 	std::uint64_t search_attack();
 	MapObjectWeaponId get_arm_relative_id();
 	int           get_attacked_prority();
+	bool          move_able();
+	boost::shared_ptr<const Data::MapObjectType> get_map_object_type_data();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;

@@ -48,7 +48,7 @@ namespace Data {
 		MapObjectTypeId    map_object_type_id;
 		std::uint32_t      level;
 		MapObjectTypeId    arm_type_id;
-		boost::container::flat_map<MapObjectTypeId, std::uint32_t> type_level;
+		std::pair<MapObjectTypeId,std::uint32_t> type_level;
 	};
 }
 

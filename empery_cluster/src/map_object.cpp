@@ -81,7 +81,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	const auto parent_object_uuid = get_parent_object_uuid();
 	const auto garrisoned         = is_garrisoned();
 
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
@@ -223,8 +223,10 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	const auto waypoint  = m_waypoints.front();
 	const auto new_coord = Coord(coord.x() + waypoint.first, coord.y() + waypoint.second);
 
-	const auto map_object_type_id = get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
+	const auto map_object_type_data = get_map_object_type_data();
+	if(!map_object_type_data){
+		return UINT64_MAX;
+	}
 
 	std::uint64_t delay;
 	const auto speed = map_object_type_data->speed * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0);
@@ -429,7 +431,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	PROFILE_ME;
 
 	const auto target_object_uuid = MapObjectUuid(m_action_param);
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
@@ -444,7 +446,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
 		return UINT64_MAX;
 	}
-	const auto emempy_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
+	const auto emempy_type_data = target_object->get_map_object_type_data();
 	if(!emempy_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_object->get_map_object_type_id();
 		return UINT64_MAX;
@@ -482,7 +484,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result_type = IMPACT_MISS;
 	}else{
 		//伤害计算
-		if(target_object->get_map_object_type_id() != EmperyCenter::MapObjectTypeIds::ID_CASTLE ){
+		if(!target_object->is_building()){
 			damage = (1.0 +(soldier_count/20000.0) + (soldier_count - ememy_solider_count)/20000.0 )*relative_rate*
 			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}else{
@@ -548,7 +550,7 @@ bool MapObject::is_die(){
 bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 	PROFILE_ME;
 
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		return false;
 	}
@@ -670,7 +672,7 @@ bool    MapObject::fix_attack_action(){
 	}
 
 	if(!in_attack_scope&&m_waypoints.empty()){
-		if(find_way_points(m_waypoints,get_coord(),target_object->get_coord())){
+		if(move_able() && find_way_points(m_waypoints,get_coord(),target_object->get_coord())){
 			notify_way_points(m_waypoints,m_action,m_action_param);
 		}else{
 			return false;
@@ -743,7 +745,7 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
 			std::deque<std::pair<signed char, signed char>> waypoints;
-			if(find_way_points(waypoints,get_coord(),enemy_map_object->get_coord())){
+			if(move_able()&&find_way_points(waypoints,get_coord(),enemy_map_object->get_coord())){
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 			}else{
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
@@ -772,7 +774,7 @@ void   MapObject::monster_regress(){
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
 	std::deque<std::pair<signed char, signed char>> waypoints;
-	if(find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y),true)){
+	if(move_able()&&find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y),true)){
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
 	}else{
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
@@ -858,7 +860,7 @@ std::uint64_t MapObject::search_attack(){
 }
 
 std::uint64_t MapObject::get_shoot_range(){
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		return 0;
 	}
@@ -872,7 +874,7 @@ MapObjectWeaponId MapObject::get_arm_relative_id(){
 	if(map_object_type_monster_data){
 		return map_object_type_monster_data->arm_relative_id;
 	}
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		LOG_EMPERY_CLUSTER_DEBUG("No map object type data,id = ",get_map_object_type_id());
 		return MapObjectWeaponId(0);
@@ -881,7 +883,7 @@ MapObjectWeaponId MapObject::get_arm_relative_id(){
 }
 
 int MapObject::get_attacked_prority(){
-	const auto map_object_type_data = Data::MapObjectType::get(get_map_object_type_id());
+	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		return 0;
 	}
@@ -912,6 +914,65 @@ int MapObject::get_attacked_prority(){
 	return prority;
 }
 
+bool  MapObject::is_building(){
+	if(is_castle() || is_bunker() || is_defense_tower()){
+			return true;
+		}
+	return false;
+}
+
+bool  MapObject::is_castle(){
+	const auto map_object_type_id = get_map_object_type_id();
+	if( map_object_type_id == EmperyCenter::MapObjectTypeIds::ID_CASTLE){
+		return true;
+	}
+	return false;
+}
+
+bool  MapObject::is_bunker(){
+	const auto map_object_type_id = get_map_object_type_id();
+	if( map_object_type_id == EmperyCenter::MapObjectTypeIds::ID_BATTLE_BUNKER){
+		return true;
+	}
+	return false;
+}
+
+bool  MapObject::is_defense_tower(){
+	const auto map_object_type_id = get_map_object_type_id();
+	if( map_object_type_id == EmperyCenter::MapObjectTypeIds::ID_DEFENSE_TOWER){
+		return true;
+	}
+	return false;
+}
+
+bool  MapObject::move_able(){
+	if(is_building()){
+		return false;
+	}
+	const auto map_object_type_data = get_map_object_type_data();
+	if(!map_object_type_data){
+		return false;
+	}
+	if(map_object_type_data->speed > 0){
+		return true;
+	}
+	return false;
+}
+
+boost::shared_ptr<const Data::MapObjectType> MapObject::get_map_object_type_data(){
+	if(!is_building()){
+		return Data::MapObjectType::get(get_map_object_type_id());
+	}
+	std::uint32_t level = 1;
+	if(is_castle()){
+		level = get_attribute(EmperyCenter::AttributeIds::ID_CASTLE_LEVEL);
+	}
+	const auto map_object_type_building_data = Data::MapObjectTypeBuilding::get(get_map_object_type_id(),level);
+	if(!map_object_type_building_data){
+		return {};
+	}
+	return Data::MapObjectType::get(map_object_type_building_data->arm_type_id);
+}
 
 
 

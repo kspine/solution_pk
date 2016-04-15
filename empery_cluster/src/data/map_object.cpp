@@ -147,10 +147,7 @@ namespace {
 			csvTower.get(elem.map_object_type_id,         "building_id");
 			csvTower.get(elem.level,                      "building_level");
 			csvTower.get(elem.arm_type_id,                "building_combat_attributes");
-			if(!elem.type_level.emplace(elem.map_object_type_id, elem.level).second){
-				LOG_EMPERY_CLUSTER_ERROR("Duplicate tower: building_id = ", elem.map_object_type_id," level = ", elem.level);
-				DEBUG_THROW(Exception, sslit("Duplicate tower"));
-			}
+			elem.type_level = std::make_pair(elem.map_object_type_id, elem.level);
 
 			if(!map_object_building_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate tower: map_object_type_id = ", elem.map_object_type_id, " level:",elem.level);
@@ -163,10 +160,7 @@ namespace {
 			csvCastle.get(elem.map_object_type_id,         "building_id");
 			csvCastle.get(elem.level,                      "building_level");
 			csvCastle.get(elem.arm_type_id,                "building_combat_attributes");
-			if(!elem.type_level.emplace(elem.map_object_type_id, elem.level).second){
-				LOG_EMPERY_CLUSTER_ERROR("Duplicate castle: building_id = ", elem.map_object_type_id," level = ", elem.level);
-				DEBUG_THROW(Exception, sslit("Duplicate castle"));
-			}
+			elem.type_level = std::make_pair(elem.map_object_type_id, elem.level);
 
 			if(!map_object_building_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate castle: map_object_type_id = ", elem.map_object_type_id, " level:",elem.level);
@@ -180,10 +174,7 @@ namespace {
 			csvBunker.get(elem.map_object_type_id,         "building_id");
 			csvBunker.get(elem.level,                      "building_level");
 			csvBunker.get(elem.arm_type_id,                "building_combat_attributes");
-			if(!elem.type_level.emplace(elem.map_object_type_id, elem.level).second){
-				LOG_EMPERY_CLUSTER_ERROR("Duplicate bunker: building_id = ", elem.map_object_type_id," level = ", elem.level);
-				DEBUG_THROW(Exception, sslit("Duplicate bunker"));
-			}
+			elem.type_level = std::make_pair(elem.map_object_type_id, elem.level);
 
 			if(!map_object_building_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate bunker: map_object_type_id = ", elem.map_object_type_id, " level:",elem.level);
@@ -256,6 +247,21 @@ namespace Data {
 			return { };
 		}
 		return boost::shared_ptr<const MapObjectTypeMonster>(map_object_monster_map, &*it);
+	}
+
+	boost::shared_ptr<const MapObjectTypeBuilding> MapObjectTypeBuilding::get(MapObjectTypeId map_object_type_id,std::uint32_t level){
+		PROFILE_ME;
+
+		const auto map_object_building_map = g_map_object_type_building_map.lock();
+		if(!map_object_building_map){
+			LOG_EMPERY_CLUSTER_WARNING("MapObjectTypeMonsterMap has not been loaded.");
+			return { };
+		}
+		const auto it = map_object_building_map->find<0>(std::make_pair(map_object_type_id,level));
+		if(it == map_object_building_map->end<0>()){
+			return { };
+		}
+		return boost::shared_ptr<const MapObjectTypeBuilding>(map_object_building_map, &*it);
 	}
 }
 
