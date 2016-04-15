@@ -72,6 +72,15 @@ namespace {
 		info.map_object_type_id    = MapObjectTypeId(obj->get_map_object_type_id());
 		info.count                 = obj->get_count();
 	}
+	void fill_treatment_info(Castle::TreatmentInfo &info, const boost::shared_ptr<MySql::Center_CastleTreatment> &obj){
+		PROFILE_ME;
+
+		info.map_object_type_id    = MapObjectTypeId(obj->get_map_object_type_id());
+		info.count                 = obj->get_count();
+		info.duration              = obj->get_duration();
+		info.time_begin            = obj->get_time_begin();
+		info.time_end              = obj->get_time_end();
+	}
 
 	void fill_building_message(Msg::SC_CastleBuildingBase &msg,
 		const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now)
@@ -133,6 +142,22 @@ namespace {
 		msg.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
 		msg.map_object_type_id     = obj->get_map_object_type_id();
 		msg.count                  = obj->get_count();
+	}
+	void fill_treatment_message(Msg::SC_CastleTreatment &msg, MapObjectUuid map_object_uuid,
+		const boost::container::flat_map<MapObjectTypeId, boost::shared_ptr<MySql::Center_CastleTreatment>> &objs, std::uint64_t utc_now)
+	{
+		PROFILE_ME;
+
+		msg.map_object_uuid        = map_object_uuid.str();
+		msg.soldiers.reserve(objs.size());
+		for(auto it = objs.begin(); it != objs.end(); ++it){
+			auto &soldier = *msg.soldiers.emplace(msg.soldiers.end());
+			soldier.map_object_type_id   = it->second->get_map_object_type_id();
+			soldier.count                = it->second->get_count();
+			// pick any
+			msg.treatment_duration       = it->second->get_duration();
+			msg.treatment_time_remaining = saturated_sub(it->second->get_time_end(), utc_now);
+		}
 	}
 
 	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, AccountUuid owner_uuid, std::uint64_t utc_now){
@@ -224,6 +249,22 @@ namespace {
 
 		return true;
 	}
+	bool check_treatment_mission(const boost::shared_ptr<MySql::Center_CastleTreatment> &obj, std::uint64_t utc_now){
+		PROFILE_ME;
+
+		const auto time_end = obj->get_time_end();
+		if(utc_now < time_end){
+			return false;
+		}
+
+		LOG_EMPERY_CENTER_DEBUG("Treatment mission complete: map_object_uuid = ", obj->get_map_object_uuid(),
+			", map_object_type_id = ", obj->get_map_object_type_id());
+
+		obj->set_duration(0);
+		obj->set_time_end(0);
+
+		return true;
+	}
 }
 
 Castle::Castle(MapObjectUuid map_object_uuid,
@@ -239,7 +280,8 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> &soldiers,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
-	const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers)
+	const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
+	const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment)
 	: MapObject(std::move(obj), attributes)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
@@ -271,6 +313,10 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const auto &obj = *it;
 		m_wounded_soldiers.emplace(MapObjectTypeId(obj->get_map_object_type_id()), obj);
 	}
+	for(auto it = treatment.begin(); it != treatment.end(); ++it){
+		const auto &obj = *it;
+		m_treatment.emplace(MapObjectTypeId(obj->get_map_object_type_id()), obj);
+	}
 }
 Castle::~Castle(){
 }
@@ -280,7 +326,7 @@ void Castle::pump_status(){
 
 	MapObject::pump_status();
 
-	pump_population_production();
+	check_auto_inc_resources();
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -299,7 +345,8 @@ void Castle::pump_status(){
 		recalculate_attributes();
 	}
 
-	check_auto_inc_resources();
+	pump_population_production();
+	pump_treatment();
 }
 void Castle::recalculate_attributes(){
 	PROFILE_ME;
@@ -720,8 +767,8 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 
 	obj->set_mission(MIS_NONE);
 	obj->set_mission_duration(0);
-	obj->set_mission_time_begin(utc_now);
-	obj->set_mission_time_end(utc_now);
+	obj->set_mission_time_begin(0);
+	obj->set_mission_time_end(0);
 
 	// check_building_mission(obj, get_owner_uuid(), utc_now);
 
@@ -785,12 +832,11 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 		return;
 	}
 
-	pump_population_production();
-
 	const auto utc_now = Poseidon::get_utc_time();
 
 	if(check_building_mission(it->second, get_owner_uuid(), utc_now)){
 		recalculate_attributes();
+		pump_population_production();
 	}
 }
 unsigned Castle::get_building_queue_size() const {
@@ -1055,8 +1101,8 @@ void Castle::cancel_tech_mission(TechId tech_id){
 
 	obj->set_mission(MIS_NONE);
 	obj->set_mission_duration(0);
-	obj->set_mission_time_begin(utc_now);
-	obj->set_mission_time_end(utc_now);
+	obj->set_mission_time_begin(0);
+	obj->set_mission_time_end(0);
 
 	// check_tech_mission(obj, utc_now);
 
@@ -1662,7 +1708,9 @@ void Castle::get_all_soldier_production(std::vector<Castle::SoldierProductionInf
 	}
 }
 
-void Castle::begin_soldier_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count){
+void Castle::begin_soldier_production(BuildingBaseId building_base_id,
+	MapObjectTypeId map_object_type_id, std::uint64_t count, std::uint64_t duration)
+{
 	PROFILE_ME;
 
 	auto it = m_soldier_production.find(building_base_id);
@@ -1679,9 +1727,6 @@ void Castle::begin_soldier_production(BuildingBaseId building_base_id, MapObject
 			", building_base_id = ", building_base_id);
 		DEBUG_THROW(Exception, sslit("Soldier production conflict"));
 	}
-
-	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	const std::uint64_t duration = std::ceil(map_object_type_data->production_time * 60000.0 * count - 0.001);
 
 	const auto utc_now = Poseidon::get_utc_time();
 
@@ -2027,6 +2072,206 @@ void Castle::commit_wounded_soldier_transaction(const std::vector<WoundedSoldier
 	}
 }
 
+void Castle::pump_treatment(){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		if(obj->get_time_end() == 0){
+			continue;
+		}
+		if(check_treatment_mission(obj, utc_now)){
+			harvest_treatment();
+		}
+	}
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleTreatment msg;
+			fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
+void Castle::get_treatment(std::vector<Castle::TreatmentInfo> &ret) const {
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_treatment.size());
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		if(obj->get_time_end() == 0){
+			continue;
+		}
+		TreatmentInfo info;
+		fill_treatment_info(info, obj);
+		ret.emplace_back(std::move(info));
+	}
+}
+void Castle::begin_treatment(const boost::container::flat_map<MapObjectTypeId, std::uint64_t> &soldiers, std::uint64_t duration){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		if(obj->get_time_end() == 0){
+			continue;
+		}
+		LOG_EMPERY_CENTER_WARNING("Soldier treatment in progress: map_object_uuid = ", get_map_object_uuid(),
+			", map_object_type_id = ", it->first, ", time_end = ", obj->get_time_end());
+		DEBUG_THROW(Exception, sslit("Soldier treatment in progress"));
+	}
+
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleTreatment>, std::uint64_t> temp_result;
+	temp_result.reserve(soldiers.size());
+
+	m_treatment.reserve(m_treatment.size() + soldiers.size());
+	for(auto it = soldiers.begin(); it != soldiers.end(); ++it){
+		const auto map_object_type_id = it->first;
+		auto iit = m_treatment.find(map_object_type_id);
+		if(iit == m_treatment.end()){
+			auto obj = boost::make_shared<MySql::Center_CastleTreatment>(
+				get_map_object_uuid().get(), map_object_type_id.get(), 0, 0, 0, 0);
+			obj->async_save(true);
+			iit = m_treatment.emplace(map_object_type_id, std::move(obj)).first;
+		}
+		const auto &obj = iit->second;
+		temp_result.emplace(obj, it->second);
+	}
+
+	for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+		it->first->set_count      (it->second);
+		it->first->set_duration   (duration);
+		it->first->set_time_begin (utc_now);
+		it->first->set_time_end   (saturated_add(utc_now, duration));
+	}
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleTreatment msg;
+			fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+void Castle::cancel_treatment(){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		if(obj->get_time_end() == 0){
+			continue;
+		}
+		obj->set_count(0);
+		obj->set_duration(0);
+		obj->set_time_begin(0);
+		obj->set_time_end(0);
+
+		// check_treatment_mission(obj, utc_now);
+	}
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleTreatment msg;
+			fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+void Castle::speed_up_treatment(std::uint64_t delta_duration){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		if(obj->get_time_end() == 0){
+			continue;
+		}
+		obj->set_time_end(saturated_sub(obj->get_time_end(), delta_duration));
+
+		if(check_treatment_mission(obj, utc_now)){
+			harvest_treatment();
+		}
+	}
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleTreatment msg;
+			fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
+void Castle::harvest_treatment(){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	std::vector<WoundedSoldierTransactionElement> wounded_transaction;
+	std::vector<SoldierTransactionElement> soldier_transaction;
+
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		const auto count = obj->get_count();
+		if(count == 0){
+			continue;
+		}
+		const auto time_end = obj->get_time_end();
+		if(utc_now < time_end){
+			continue;
+		}
+		const auto map_object_type_id = it->first;
+		const auto wounded_info = get_wounded_soldier(map_object_type_id);
+		const auto count_harvested = std::min<std::uint64_t>(count, wounded_info.count);
+
+		wounded_transaction.clear();
+		wounded_transaction.emplace_back(WoundedSoldierTransactionElement::OP_REMOVE, map_object_type_id, count_harvested,
+			ReasonIds::ID_SOLDIER_HEALED, 0, 0, 0);
+		soldier_transaction.clear();
+		soldier_transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, count_harvested,
+			ReasonIds::ID_SOLDIER_HEALED, 0, 0, 0);
+		commit_wounded_soldier_transaction(wounded_transaction,
+			[&]{
+				commit_soldier_transaction(soldier_transaction);
+			});
+	}
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleTreatment msg;
+			fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
 void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
@@ -2060,6 +2305,11 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 	for(auto it = m_wounded_soldiers.begin(); it != m_wounded_soldiers.end(); ++it){
 		Msg::SC_CastleWoundedSoldier msg;
 		fill_wounded_soldier_message(msg, it->second);
+		session->send(msg);
+	}
+	{
+		Msg::SC_CastleTreatment msg;
+		fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
 		session->send(msg);
 	}
 }

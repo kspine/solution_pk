@@ -288,6 +288,7 @@ namespace {
 			std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> soldiers;
 			std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> soldier_production;
 			std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> wounded_soldiers;
+			std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> treatment;
 		};
 		std::map<Poseidon::Uuid, TempCastleElement> temp_castle_map;
 
@@ -357,6 +358,17 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading castle wounded soldiers.");
 
+		LOG_EMPERY_CENTER_INFO("Loading castle treatment...");
+		conn->execute_sql("SELECT * FROM `Center_CastleTreatment`");
+		while(conn->fetch_row()){
+			auto obj = boost::make_shared<MySql::Center_CastleTreatment>();
+			obj->fetch(conn);
+			obj->enable_auto_saving();
+			const auto map_object_uuid = obj->unlocked_get_map_object_uuid();
+			temp_castle_map[map_object_uuid].treatment.emplace_back(std::move(obj));
+		}
+		LOG_EMPERY_CENTER_INFO("Done loading castle treatment.");
+
 		LOG_EMPERY_CENTER_INFO("Loaded ", temp_castle_map.size(), " castle(s).");
 
 		const auto map_object_map = boost::make_shared<MapObjectContainer>();
@@ -366,7 +378,7 @@ namespace {
 			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
 				const auto &meta = temp_castle_map.at(it->first);
 				map_object = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes,
-					meta.buildings, meta.techs, meta.resources, meta.soldiers, meta.soldier_production, meta.wounded_soldiers);
+					meta.buildings, meta.techs, meta.resources, meta.soldiers, meta.soldier_production, meta.wounded_soldiers, meta.treatment);
 			} else {
 				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
 			}

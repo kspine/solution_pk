@@ -18,6 +18,7 @@ namespace MySql {
 	class Center_CastleBattalion;
 	class Center_CastleBattalionProduction;
 	class Center_CastleWoundedSoldier;
+	class Center_CastleTreatment;
 }
 
 class PlayerSession;
@@ -75,6 +76,14 @@ public:
 		std::uint64_t count;
 	};
 
+	struct TreatmentInfo {
+		MapObjectTypeId map_object_type_id;
+		std::uint64_t count;
+		std::uint64_t duration;
+		std::uint64_t time_begin;
+		std::uint64_t time_end;
+	};
+
 private:
 	boost::container::flat_map<BuildingBaseId,
 		boost::shared_ptr<MySql::Center_CastleBuildingBase>> m_buildings;
@@ -98,6 +107,9 @@ private:
 		boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> m_wounded_soldiers;
 	bool m_locked_by_wounded_soldier_transaction = false;
 
+	boost::container::flat_map<MapObjectTypeId,
+		boost::shared_ptr<MySql::Center_CastleTreatment>> m_treatment;
+
 	// 非持久化数据。
 	double m_population_production_remainder = 0;
 	double m_population_production_rate = 0;
@@ -113,7 +125,8 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> &soldiers,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
-		const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers);
+		const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
+		const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment);
 	~Castle();
 
 public:
@@ -192,7 +205,8 @@ public:
 	SoldierProductionInfo get_soldier_production(BuildingBaseId building_base_id) const;
 	void get_all_soldier_production(std::vector<SoldierProductionInfo> &ret) const;
 
-	void begin_soldier_production(BuildingBaseId building_base_id, MapObjectTypeId map_object_type_id, std::uint64_t count);
+	void begin_soldier_production(BuildingBaseId building_base_id,
+		MapObjectTypeId map_object_type_id, std::uint64_t count, std::uint64_t duration);
 	void cancel_soldier_production(BuildingBaseId building_base_id);
 	void speed_up_soldier_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
 
@@ -209,6 +223,15 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 	void commit_wounded_soldier_transaction(const std::vector<WoundedSoldierTransactionElement> &transaction,
 		const boost::function<void ()> &callback = boost::function<void ()>());
+
+	void pump_treatment();
+
+	void get_treatment(std::vector<TreatmentInfo> &ret) const;
+	void begin_treatment(const boost::container::flat_map<MapObjectTypeId, std::uint64_t> &soldiers, std::uint64_t duration);
+	void cancel_treatment();
+	void speed_up_treatment(std::uint64_t delta_duration);
+
+	void harvest_treatment();
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

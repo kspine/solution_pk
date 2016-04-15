@@ -222,41 +222,6 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBuilding, account, session, req){
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCancelBuildingMission, account, session, req){
-	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
-	}
-	if(castle->get_owner_uuid() != account->get_account_uuid()){
-		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
-	}
-/*
-	const auto building_base_id = BuildingBaseId(req.building_base_id);
-	castle->pump_building_status(building_base_id);
-
-	const auto info = castle->get_building_base(building_base_id);
-	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::ERR_NO_BUILDING_MISSION) <<building_base_id;
-	}
-
-	const auto building_data = Data::CastleBuilding::require(info.building_id);
-	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level + 1);
-	std::vector<ResourceTransactionElement> transaction;
-	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_BUILDING_UPGRADE_CANCELLATION_REFUND_RATIO);
-		for(auto it = upgrade_data->upgrade_cost.begin(); it != upgrade_data->upgrade_cost.end(); ++it){
-			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<std::uint64_t>(it->second * refund_ratio + 0.001),
-				ReasonIds::ID_CANCEL_UPGRADE_BUILDING, info.building_id.get(), info.building_level, 0);
-		}
-	}
-	castle->commit_resource_transaction(transaction,
-		[&]{ castle->cancel_building_mission(building_base_id); });
-*/
-	return Response();
-}
-
 PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
@@ -540,40 +505,6 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
 	}
 
-	return Response();
-}
-
-PLAYER_SERVLET(Msg::CS_CastleCancelTechMission, account, session, req){
-	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
-	}
-	if(castle->get_owner_uuid() != account->get_account_uuid()){
-		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
-	}
-/*
-	const auto tech_id = TechId(req.tech_id);
-	castle->pump_tech_status(tech_id);
-
-	const auto info = castle->get_tech(tech_id);
-	if(info.mission == Castle::MIS_NONE){
-		return Response(Msg::ERR_NO_TECH_MISSION) <<tech_id;
-	}
-
-	const auto tech_data = Data::CastleTech::require(info.tech_id, info.tech_level + 1);
-	std::vector<ResourceTransactionElement> transaction;
-	if((info.mission == Castle::MIS_CONSTRUCT) || (info.mission == Castle::MIS_UPGRADE)){
-		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_BATTALION_PRODUCTION_CANCELLATION_REFUND_RATIO);
-		for(auto it = tech_data->upgrade_cost.begin(); it != tech_data->upgrade_cost.end(); ++it){
-			transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-				it->first, static_cast<std::uint64_t>(it->second * refund_ratio + 0.001),
-				ReasonIds::ID_CANCEL_UPGRADE_TECH, info.tech_id.get(), info.tech_level, 0);
-		}
-	}
-	castle->commit_resource_transaction(transaction,
-		[&]{ castle->cancel_tech_mission(tech_id); });
-*/
 	return Response();
 }
 
@@ -998,6 +929,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 	for(auto it = production_cost.begin(); it != production_cost.end(); ++it){
 		it->second = checked_mul<std::uint64_t>(it->second, count);
 	}
+	const std::uint64_t duration = std::ceil(map_object_type_data->production_time * 60000.0 * count - 0.001);
 
 	boost::container::flat_map<ItemId, std::uint64_t> tokens;
 	tokens.reserve(req.tokens.size());
@@ -1008,7 +940,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 
 	const auto result = try_decrement_resources(castle, item_box, task_box, production_cost, tokens,
 		ReasonIds::ID_PRODUCE_BATTALION, map_object_type_id.get(), count, 0,
-		[&]{ castle->begin_soldier_production(building_base_id, map_object_type_id, count); });
+		[&]{ castle->begin_soldier_production(building_base_id, map_object_type_id, count, duration); });
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}
@@ -1016,41 +948,6 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
 	}
 
-	return Response();
-}
-
-PLAYER_SERVLET(Msg::CS_CastleCancelSoldierProduction, account, session, req){
-	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-	if(!castle){
-		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
-	}
-	if(castle->get_owner_uuid() != account->get_account_uuid()){
-		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
-	}
-/*
-	const auto building_base_id = BuildingBaseId(req.building_base_id);
-
-	const auto info = castle->get_soldier_production(building_base_id);
-	if(!info.map_object_type_id){
-		return Response(Msg::ERR_NO_BATTALION_PRODUCTION) <<building_base_id;
-	}
-
-	const auto map_object_type_id = info.map_object_type_id;
-	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	const auto count = info.count;
-
-	const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_TECH_UPGRADE_CANCELLATION_REFUND_RATIO);
-
-	std::vector<ResourceTransactionElement> transaction;
-	for(auto it = map_object_type_data->production_cost.begin(); it != map_object_type_data->production_cost.end(); ++it){
-		transaction.emplace_back(ResourceTransactionElement::OP_ADD,
-			it->first, static_cast<std::uint64_t>(checked_mul(it->second, count) * refund_ratio + 0.001),
-			ReasonIds::ID_CANCEL_PRODUCE_BATTALION, map_object_type_id.get(), count, 0);
-	}
-	castle->commit_resource_transaction(transaction,
-		[&]{ castle->cancel_soldier_production(building_base_id); });
-*/
 	return Response();
 }
 
@@ -1469,6 +1366,158 @@ PLAYER_SERVLET(Msg::CS_CastleUseSoldierBox, account, session, req){
 				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
 			castle->commit_soldier_transaction(res_transaction);
 		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleBeginTreatment, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	castle->pump_status();
+
+	// castle->pump_treatment();
+
+	std::vector<Castle::TreatmentInfo> treatment_all;
+	castle->get_treatment(treatment_all);
+	if(!treatment_all.empty()){
+		return Response(Msg::ERR_MEDICAL_TENT_BUSY);
+	}
+
+	double duration_minutes = 0;
+	boost::container::flat_map<ResourceId, std::uint64_t> resources_consumed;
+
+	boost::container::flat_map<MapObjectTypeId, std::uint64_t> soldiers;
+	soldiers.reserve(req.soldiers.size());
+	for(auto it = req.soldiers.begin(); it != req.soldiers.end(); ++it){
+		const auto soldier_type_id = MapObjectTypeId(it->map_object_type_id);
+		const auto wounded_info = castle->get_wounded_soldier(soldier_type_id);
+		const auto count = std::min<std::uint64_t>(it->count, wounded_info.count);
+
+		const auto soldier_type_data = Data::MapObjectTypeBattalion::require(soldier_type_id);
+		duration_minutes += static_cast<double>(count) * soldier_type_data->healing_time;
+
+		for(auto rit = soldier_type_data->healing_cost.begin(); rit != soldier_type_data->healing_cost.end(); ++rit){
+			auto &amount_total = resources_consumed[ResourceId(rit->first)];
+			amount_total = checked_add<std::uint64_t>(amount_total, rit->second);
+		}
+
+		auto &count_total = soldiers[MapObjectTypeId(it->map_object_type_id)];
+		count_total = checked_add<std::uint64_t>(count_total, count);
+	}
+	const auto duration = static_cast<std::uint64_t>(duration_minutes * 60000);
+
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
+	}
+
+	const auto result = try_decrement_resources(castle, item_box, task_box, resources_consumed, tokens,
+		ReasonIds::ID_BEGIN_SOLDIER_TREATMENT, 0, 0, 0,
+		[&]{ castle->begin_treatment(soldiers, duration); });
+	if(result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
+	}
+	if(result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleSpeedUpTreatment, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	castle->pump_treatment();
+
+	std::vector<Castle::TreatmentInfo> treatment_all;
+	castle->get_treatment(treatment_all);
+	if(treatment_all.empty()){
+		return Response(Msg::ERR_NO_BATTALION_TREATMENT);
+	}
+	const auto treatment_time_end = treatment_all.front().time_end; // select any
+
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::require(item_id);
+	if(item_data->type.first != Data::Item::CAT_UPGRADE_TURBO){
+		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_UPGRADE_TURBO;
+	}
+	if((item_data->type.second != 1) && (item_data->type.second != 5)){
+		return Response(Msg::ERR_NOT_TREATMENT_ITEM) <<item_id;
+	}
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto time_remaining = saturated_sub(treatment_time_end, utc_now);
+	const auto count_to_consume = std::min<std::uint64_t>(req.count,
+		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
+		ReasonIds::ID_SPEED_UP_SOLDIER_TREATMENT, 0, 0, 0);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ castle->speed_up_treatment(saturated_mul(turbo_milliseconds, count_to_consume)); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleCompleteTreatmentImmediately, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	castle->pump_treatment();
+
+	std::vector<Castle::TreatmentInfo> treatment_all;
+	castle->get_treatment(treatment_all);
+	if(treatment_all.empty()){
+		return Response(Msg::ERR_NO_BATTALION_TREATMENT);
+	}
+	const auto treatment_time_end = treatment_all.front().time_end; // select any
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_IMMEDIATE_TREATMENT_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	const auto time_remaining = saturated_sub(treatment_time_end, utc_now);
+	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
+	std::vector<ItemTransactionElement> transaction;
+	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ castle->speed_up_treatment(UINT64_MAX); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
