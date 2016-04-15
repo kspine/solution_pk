@@ -1871,7 +1871,6 @@ std::uint64_t Castle::harvest_soldier(BuildingBaseId building_base_id){
 
 	return count;
 }
-
 void Castle::synchronize_soldier_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
@@ -2270,6 +2269,15 @@ void Castle::harvest_treatment(){
 			session->shutdown(e.what());
 		}
 	}
+}
+void Castle::synchronize_treatment_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	Msg::SC_CastleTreatment msg;
+	fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+	session->send(msg);
 }
 
 void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
