@@ -23,7 +23,7 @@ namespace Msg {
 		FIELD_VINT          (second_coord_y)	\
 		FIELD_VINT          (result_type)	\
 		FIELD_VUINT         (soldiers_wounded)	\
-		FIELD_VINT          (result_param2)	\
+		FIELD_VUINT         (soldiers_wounded_added)	\
 		FIELD_VUINT         (soldiers_damaged)	\
 		FIELD_VUINT         (soldiers_remaining)	\
 	)

@@ -21,7 +21,7 @@ namespace MySql {
 	FIELD_BIGINT            (second_coord_y)	\
 	FIELD_INTEGER           (result_type)	\
 	FIELD_BIGINT_UNSIGNED   (soldiers_wounded)	\
-	FIELD_BIGINT            (result_param2)	\
+	FIELD_BIGINT_UNSIGNED   (soldiers_wounded_added)	\
 	FIELD_BIGINT_UNSIGNED   (soldiers_damaged)	\
 	FIELD_BIGINT_UNSIGNED   (soldiers_remaining)	\
 	FIELD_BOOLEAN           (deleted)

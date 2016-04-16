@@ -34,7 +34,7 @@ public:
 		Coord second_coord;
 		int result_type;
 		std::uint64_t soldiers_wounded;
-		std::int64_t result_param2;
+		std::uint64_t soldiers_wounded_added;
 		std::uint64_t soldiers_damaged;
 		std::uint64_t soldiers_remaining;
 	};
@@ -60,7 +60,7 @@ public:
 
 	void push(std::uint64_t timestamp, MapObjectTypeId first_object_type_id, Coord first_coord,
 		AccountUuid second_account_uuid, MapObjectTypeId second_object_type_id, Coord second_coord,
-		int result_type, std::uint64_t soldiers_wounded, std::int64_t result_param2,
+		int result_type, std::uint64_t soldiers_wounded, std::uint64_t soldiers_wounded_added,
 		std::uint64_t soldiers_damaged, std::uint64_t soldiers_remaining);
 };
 

@@ -125,8 +125,8 @@ namespace Msg {
 	FIELD_VINT          (attacked_coord_x)	\
 	FIELD_VINT          (attacked_coord_y)	\
 	FIELD_VINT          (result_type)	\
-	FIELD_VINT          (result_param1)	\
-	FIELD_VINT          (result_param2)	\
+	FIELD_VUINT         (soldiers_wounded)	\
+	FIELD_VUINT         (soldiers_wounded_added)	\
 	FIELD_VUINT         (soldiers_damaged)	\
 	FIELD_VUINT         (soldiers_remaining)
 #include <poseidon/cbpp/message_generator.hpp>

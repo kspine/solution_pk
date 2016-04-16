@@ -33,19 +33,19 @@ PLAYER_SERVLET(Msg::CS_BattleRecordGetPagedRecords, account, session, req){
 		}
 
 		auto &record = *msg.records.emplace(msg.records.end());
-		record.timestamp             = it->timestamp;
-		record.first_object_type_id  = it->first_object_type_id.get();
-		record.first_coord_x         = it->first_coord.x();
-		record.first_coord_y         = it->first_coord.y();
-		record.second_account_uuid   = it->second_account_uuid.str();
-		record.second_object_type_id = it->second_object_type_id.get();
-		record.second_coord_x        = it->second_coord.x();
-		record.second_coord_y        = it->second_coord.y();
-		record.result_type           = it->result_type;
-		record.soldiers_wounded      = it->soldiers_wounded;
-		record.result_param2         = it->result_param2;
-		record.soldiers_damaged      = it->soldiers_damaged;
-		record.soldiers_remaining    = it->soldiers_remaining;
+		record.timestamp              = it->timestamp;
+		record.first_object_type_id   = it->first_object_type_id.get();
+		record.first_coord_x          = it->first_coord.x();
+		record.first_coord_y          = it->first_coord.y();
+		record.second_account_uuid    = it->second_account_uuid.str();
+		record.second_object_type_id  = it->second_object_type_id.get();
+		record.second_coord_x         = it->second_coord.x();
+		record.second_coord_y         = it->second_coord.y();
+		record.result_type            = it->result_type;
+		record.soldiers_wounded       = it->soldiers_wounded;
+		record.soldiers_wounded_added = it->soldiers_wounded_added;
+		record.soldiers_damaged       = it->soldiers_damaged;
+		record.soldiers_remaining     = it->soldiers_remaining;
 	}
 	session->send(msg);
 
