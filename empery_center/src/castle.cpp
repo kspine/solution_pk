@@ -2146,10 +2146,16 @@ void Castle::begin_treatment(const boost::container::flat_map<MapObjectTypeId, s
 	}
 
 	for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
-		it->first->set_count      (it->second);
-		it->first->set_duration   (duration);
-		it->first->set_time_begin (utc_now);
-		it->first->set_time_end   (saturated_add(utc_now, duration));
+		const auto &obj = it->first;
+		obj->set_count      (it->second);
+		obj->set_duration   (duration);
+		obj->set_time_begin (utc_now);
+		obj->set_time_end   (saturated_add(utc_now, duration));
+	}
+
+	for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+		const auto &obj = it->first;
+		check_treatment_mission(obj, utc_now);
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
