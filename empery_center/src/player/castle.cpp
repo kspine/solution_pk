@@ -1525,7 +1525,7 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteTreatmentImmediately, account, session, req
 	return Response();
 }
 
-PLAYER_SERVLET(Msg::CS_CastleCompleteTreatmentImmediately, account, session, req){
+PLAYER_SERVLET(Msg::CS_CastleQueryTreatmentInfo, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
