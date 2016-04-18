@@ -2251,8 +2251,7 @@ void Castle::harvest_treatment(){
 		const auto wounded_info = get_wounded_soldier(map_object_type_id);
 		const auto count_harvested = std::min<std::uint64_t>(count, wounded_info.count);
 
-		auto &count_total = temp_result[obj];
-		count_total = checked_add(count_total, count_harvested);
+		temp_result.emplace(obj, count_harvested);
 	}
 
 	std::vector<WoundedSoldierTransactionElement> wounded_transaction;
