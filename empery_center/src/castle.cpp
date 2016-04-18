@@ -2086,8 +2086,8 @@ void Castle::pump_treatment(){
 	}
 
 	harvest_treatment();
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
+// harvest_treatment 里面有通知客户端。
+/*	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
 			Msg::SC_CastleTreatment msg;
@@ -2097,7 +2097,7 @@ void Castle::pump_treatment(){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
 		}
-	}
+	}*/
 }
 
 void Castle::get_treatment(std::vector<Castle::TreatmentInfo> &ret) const {
@@ -2217,8 +2217,8 @@ void Castle::speed_up_treatment(std::uint64_t delta_duration){
 	}
 
 	harvest_treatment();
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
+// harvest_treatment 里面有通知客户端。
+/*	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
 			Msg::SC_CastleTreatment msg;
@@ -2228,7 +2228,7 @@ void Castle::speed_up_treatment(std::uint64_t delta_duration){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
 		}
-	}
+	}*/
 }
 
 void Castle::harvest_treatment(){
