@@ -151,12 +151,13 @@ namespace {
 		msg.map_object_uuid        = map_object_uuid.str();
 		msg.soldiers.reserve(objs.size());
 		for(auto it = objs.begin(); it != objs.end(); ++it){
+			const auto &obj = it->second;
 			auto &soldier = *msg.soldiers.emplace(msg.soldiers.end());
-			soldier.map_object_type_id   = it->second->get_map_object_type_id();
-			soldier.count                = it->second->get_count();
+			soldier.map_object_type_id   = obj->get_map_object_type_id();
+			soldier.count                = obj->get_count();
 			// pick any
-			msg.treatment_duration       = it->second->get_duration();
-			msg.treatment_time_remaining = saturated_sub(it->second->get_time_end(), utc_now);
+			msg.treatment_duration       = obj->get_duration();
+			msg.treatment_time_remaining = saturated_sub(obj->get_time_end(), utc_now);
 		}
 	}
 
