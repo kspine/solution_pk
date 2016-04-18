@@ -2082,10 +2082,10 @@ void Castle::pump_treatment(){
 		if(obj->get_time_end() == 0){
 			continue;
 		}
-		if(check_treatment_mission(obj, utc_now)){
-			harvest_treatment();
-		}
+		check_treatment_mission(obj, utc_now);
 	}
+
+	harvest_treatment();
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -2213,10 +2213,10 @@ void Castle::speed_up_treatment(std::uint64_t delta_duration){
 		}
 		obj->set_time_end(saturated_sub(obj->get_time_end(), delta_duration));
 
-		if(check_treatment_mission(obj, utc_now)){
-			harvest_treatment();
-		}
+		check_treatment_mission(obj, utc_now);
 	}
+
+	harvest_treatment();
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -2236,9 +2236,7 @@ void Castle::harvest_treatment(){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	std::vector<WoundedSoldierTransactionElement> wounded_transaction;
-	std::vector<SoldierTransactionElement> soldier_transaction;
-
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleTreatment>, std::uint64_t> temp_result;
 	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
 		const auto &obj = it->second;
 		const auto count = obj->get_count();
@@ -2253,17 +2251,31 @@ void Castle::harvest_treatment(){
 		const auto wounded_info = get_wounded_soldier(map_object_type_id);
 		const auto count_harvested = std::min<std::uint64_t>(count, wounded_info.count);
 
-		wounded_transaction.clear();
+		auto &count_total = temp_result[obj];
+		count_total = checked_add(count_total, count_harvested);
+	}
+
+	std::vector<WoundedSoldierTransactionElement> wounded_transaction;
+	std::vector<SoldierTransactionElement> soldier_transaction;
+	for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+		const auto &obj = it->first;
+		const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+		const auto count_harvested = it->second;
 		wounded_transaction.emplace_back(WoundedSoldierTransactionElement::OP_REMOVE, map_object_type_id, count_harvested,
 			ReasonIds::ID_SOLDIER_HEALED, 0, 0, 0);
-		soldier_transaction.clear();
 		soldier_transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, count_harvested,
 			ReasonIds::ID_SOLDIER_HEALED, 0, 0, 0);
-		commit_wounded_soldier_transaction(wounded_transaction,
-			[&]{
-				commit_soldier_transaction(soldier_transaction);
-			});
 	}
+	commit_wounded_soldier_transaction(wounded_transaction,
+		[&]{
+			commit_soldier_transaction(soldier_transaction,
+				[&]{
+					for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+						const auto &obj = it->first;
+						obj->set_count(0);
+					}
+				});
+		});
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
