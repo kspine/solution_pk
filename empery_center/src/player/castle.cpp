@@ -255,16 +255,26 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 	}
 
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
-	if(building_data->type == BuildingTypeIds::ID_ACADEMY){
+	switch(building_data->type.get()){
+	case BuildingTypeIds::ID_ACADEMY.get():
 		if(castle->is_tech_upgrade_in_progress()){
 			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
 		}
-	} else if((building_data->type == BuildingTypeIds::ID_STABLES) || (building_data->type == BuildingTypeIds::ID_BARRACKS) ||
-		(building_data->type == BuildingTypeIds::ID_ARCHER_BARRACKS) || (building_data->type == BuildingTypeIds::ID_WEAPONRY))
-	{
+		break;
+	case BuildingTypeIds::ID_STABLES.get():
+	case BuildingTypeIds::ID_BARRACKS.get():
+	case BuildingTypeIds::ID_ARCHER_BARRACKS.get():
+	case BuildingTypeIds::ID_WEAPONRY.get():
 		if(castle->is_soldier_production_in_progress(building_base_id)){
 			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
 		}
+		break;
+
+	case BuildingTypeIds::ID_MEDICAL_TENT.get():
+		if(castle->has_wounded_soldiers()){
+			return Response(Msg::ERR_MEDICAL_TENT_TREATMENT_IN_PROGRESS);
+		}
+		break;
 	}
 
 	const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, info.building_level + 1);
@@ -341,20 +351,26 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 	}
 
 	const auto building_data = Data::CastleBuilding::require(info.building_id);
-	if(building_data->type == BuildingTypeIds::ID_ACADEMY){
+	switch(building_data->type.get()){
+	case BuildingTypeIds::ID_ACADEMY.get():
 		if(castle->is_tech_upgrade_in_progress()){
 			return Response(Msg::ERR_TECH_UPGRADE_IN_PROGRESS);
 		}
-	} else if((building_data->type == BuildingTypeIds::ID_STABLES) || (building_data->type == BuildingTypeIds::ID_BARRACKS) ||
-		(building_data->type == BuildingTypeIds::ID_ARCHER_BARRACKS) || (building_data->type == BuildingTypeIds::ID_WEAPONRY))
-	{
+		break;
+	case BuildingTypeIds::ID_STABLES.get():
+	case BuildingTypeIds::ID_BARRACKS.get():
+	case BuildingTypeIds::ID_ARCHER_BARRACKS.get():
+	case BuildingTypeIds::ID_WEAPONRY.get():
 		if(castle->is_soldier_production_in_progress(building_base_id)){
 			return Response(Msg::ERR_BATTALION_PRODUCTION_IN_PROGRESS);
 		}
-	} else if(building_data->type == BuildingTypeIds::ID_MEDICAL_TENT){
+		break;
+
+	case BuildingTypeIds::ID_MEDICAL_TENT.get():
 		if(castle->has_wounded_soldiers()){
-			return Response(Msg::ERR_MEDICAL_TENT_NOT_EMPTY);
+			return Response(Msg::ERR_MEDICAL_TENT_TREATMENT_IN_PROGRESS);
 		}
+		break;
 	}
 
 	const auto upgrade_data = Data::CastleUpgradeAbstract::require(building_data->type, info.building_level);
@@ -1388,7 +1404,16 @@ PLAYER_SERVLET(Msg::CS_CastleBeginTreatment, account, session, req){
 
 	castle->pump_status();
 
-	// castle->pump_treatment();
+	std::vector<Castle::BuildingBaseInfo> medical_tent_infos;
+	castle->get_buildings_by_type_id(medical_tent_infos, BuildingTypeIds::ID_MEDICAL_TENT);
+	if(medical_tent_infos.empty()){
+		return Response(Msg::ERR_NO_MEDICAL_TENT);
+	}
+	for(auto it = medical_tent_infos.begin(); it != medical_tent_infos.end(); ++it){
+		if(it->mission != Castle::MIS_NONE){
+			return Response(Msg::ERR_MEDICAL_TENT_UPGRADE_IN_PROGRESS);
+		}
+	}
 
 	std::vector<Castle::TreatmentInfo> treatment_all;
 	castle->get_treatment(treatment_all);

@@ -1018,6 +1018,18 @@ std::uint64_t Castle::get_medical_tent_capacity() const {
 	}
 	return count;
 }
+bool Castle::is_treatment_in_progress() const {
+	PROFILE_ME;
+
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		const auto count = obj->get_count();
+		if(count != 0){
+			return true;
+		}
+	}
+	return false;
+}
 
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	PROFILE_ME;
