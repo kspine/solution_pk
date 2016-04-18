@@ -100,3 +100,4 @@ itemid,quality,class,type,value,canuse,cansee,init_count,autoinc_type,autoinc_ti
 3303110,1,15,1203110,10000,0,1,0,none,0,0,0,0
 3303210,1,15,1203210,10000,0,1,0,none,0,0,0,0
 3304110,1,15,1204110,10000,0,1,0,none,0,0,0,0
+2100039,1,16,0,0,0,1,0,none,0,0,0,0
