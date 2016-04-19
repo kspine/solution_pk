@@ -561,8 +561,30 @@ bool MapObject::is_in_attack_scope(MapObjectUuid target_object_uuid){
 	}
 	const auto coord    = get_coord();
 	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
-	//攻击范围之内的军队
-	if(distance <= shoot_range){
+	auto  min_distance = distance;
+	
+	std::set<std::uint64_t> distance_set;
+	if(is_castle() && target_object->is_castle()){
+		const auto distance_right_left = get_distance_of_coords(Coord(coord.x() + 1,coord.y()), target_object->get_coord());
+		const auto distance_left_right = get_distance_of_coords(coord, Coord(target_object->get_coord().x()+1,target_object->get_coord().y()));
+		const auto distance_right_right = get_distance_of_coords(Coord(coord.x() + 1,coord.y()),Coord(target_object->get_coord().x()+1,target_object->get_coord().y()));
+		distance_set.insert(distance);
+		distance_set.insert(distance_right_left);
+		distance_set.insert(distance_left_right);
+		distance_set.insert(distance_right_right);
+		min_distance = *distance_set.begin() - 2;
+	}else if(is_castle()){
+		const auto distance_right_left = get_distance_of_coords(Coord(coord.x() + 1,coord.y()), target_object->get_coord());
+		distance_set.insert(distance);
+		distance_set.insert(distance_right_left);
+		min_distance = *distance_set.begin() - 1;
+	}else if(target_object->is_castle()){
+		const auto distance_left_right = get_distance_of_coords(coord, Coord(target_object->get_coord().x()+1,target_object->get_coord().y()));
+		distance_set.insert(distance);
+		distance_set.insert(distance_left_right);
+		min_distance = *distance_set.begin() - 1;
+	}
+	if(min_distance <= shoot_range){
 		return true;
 	}
 	return false;
