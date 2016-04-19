@@ -8,7 +8,6 @@
 #include "checked_arithmetic.hpp"
 #include "data/map.hpp"
 #include "singletons/account_map.hpp"
-#include "data/global.hpp"
 #include "data/map_object_type.hpp"
 #include "data/castle.hpp"
 #include "attribute_ids.hpp"
@@ -62,7 +61,7 @@ void StrategicResource::delete_from_game() noexcept {
 	WorldMap::update_strategic_resource(virtual_shared_from_this<StrategicResource>(), false);
 }
 
-std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &harvester, std::uint64_t duration, bool saturated){
+std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &harvester, double amount_to_harvest, bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
@@ -78,25 +77,20 @@ std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &har
 		LOG_EMPERY_CENTER_DEBUG("Resource is not harvestable: resource_id = ", resource_id);
 		return 0;
 	}
-
-	const auto harvester_type_id = harvester->get_map_object_type_id();
-	const auto harvester_type_data = Data::MapObjectTypeBattalion::require(harvester_type_id);
-	const auto harvest_speed = harvester_type_data->harvest_speed;
-	if(harvest_speed <= 0){
-		LOG_EMPERY_CENTER_DEBUG("Harvest speed is zero: harvester_type_id = ", harvester_type_id);
-		return 0;
-	}
 	const auto amount_remaining = get_resource_amount();
 	if(amount_remaining == 0){
 		LOG_EMPERY_CENTER_DEBUG("No resource available: coord = ", coord);
 		return 0;
 	}
-	const auto soldier_count = static_cast<std::uint64_t>(harvester->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 
-	const auto amount_to_harvest = harvest_speed * soldier_count * duration / 60000.0 + m_harvest_remainder;
+	const auto harvester_type_id = harvester->get_map_object_type_id();
+	const auto harvester_type_data = Data::MapObjectTypeBattalion::require(harvester_type_id);
+
+	amount_to_harvest += m_harvest_remainder;
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
 
+	const auto soldier_count = static_cast<std::uint64_t>(harvester->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto resource_capacity = static_cast<std::uint64_t>(std::floor(harvester_type_data->resource_carriable * soldier_count + 0.001));
 	const auto resource_amount_carried = harvester->get_resource_amount_carried();
 	const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);

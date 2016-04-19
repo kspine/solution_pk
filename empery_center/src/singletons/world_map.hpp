@@ -16,6 +16,7 @@ class MapCell;
 class MapObject;
 class Overlay;
 class StrategicResource;
+class ResourceCrate;
 class ClusterSession;
 class PlayerSession;
 class Castle;
@@ -35,7 +36,6 @@ struct WorldMap {
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
 	static void insert_map_object(const boost::shared_ptr<MapObject> &map_object);
 	static void update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists = true);
-	static void remove_map_object(MapObjectUuid map_object_uuid) noexcept;
 
 	static void get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret);
 	static void get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);
@@ -58,6 +58,14 @@ struct WorldMap {
 	static void update_strategic_resource(const boost::shared_ptr<StrategicResource> &strategic_resource, bool throws_if_not_exists = true);
 
 	static void get_strategic_resources_by_rectangle(std::vector<boost::shared_ptr<StrategicResource>> &ret, Rectangle rectangle);
+
+	// ResourceCrate
+	static boost::shared_ptr<ResourceCrate> get_resource_crate(ResourceCrateUuid resource_crate_uuid);
+	static boost::shared_ptr<ResourceCrate> require_resource_crate(ResourceCrateUuid resource_crate_uuid);
+	static void insert_resource_crate(const boost::shared_ptr<ResourceCrate> &resource_crate);
+	static void update_resource_crate(const boost::shared_ptr<ResourceCrate> &resource_crate, bool throws_if_not_exists = true);
+
+	static void get_resource_crates_by_rectangle(std::vector<boost::shared_ptr<ResourceCrate>> &ret, Rectangle rectangle);
 
 	// PlayerSession
 	static void get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle);

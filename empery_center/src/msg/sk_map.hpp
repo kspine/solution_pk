@@ -74,6 +74,25 @@ namespace Msg {
 	FIELD_VUINT         (resource_amount)
 #include <poseidon/cbpp/message_generator.hpp>
 */
+#define MESSAGE_NAME    SK_MapCreateResourceCrate
+#define MESSAGE_ID      32393
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (resource_crate_uuid)	\
+	FIELD_VUINT         (resource_id)	\
+	FIELD_VUINT         (amount_max)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (created_time)	\
+	FIELD_VUINT         (expiry_time)	\
+	FIELD_VUINT         (amount_remaining)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SK_MapRemoveResourceCrate
+#define MESSAGE_ID      32392
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (resource_crate_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

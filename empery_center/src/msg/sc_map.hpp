@@ -198,6 +198,38 @@ namespace Msg {
 	FIELD_VUINT         (reward_counter)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapResourceCrateInfo
+#define MESSAGE_ID      383
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (resource_crate_uuid)	\
+	FIELD_VUINT         (resource_id)	\
+	FIELD_VUINT         (amount_max)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (expiry_duration)	\
+	FIELD_VUINT         (amount_remaining)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_MapResourceCrateRemoved
+#define MESSAGE_ID      382
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (resource_crate_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_MapResourceCrateHarvestResult
+#define MESSAGE_ID      381
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_STRING        (resource_crate_uuid)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VUINT         (resource_id)	\
+	FIELD_VUINT         (amount_harvested)	\
+	FIELD_VUINT         (amount_remaining)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -88,6 +88,18 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    KS_MapHarvestResourceCrate
+#define MESSAGE_ID      32311
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_STRING        (resource_crate_uuid)	\
+	FIELD_VUINT         (amount_harvested)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

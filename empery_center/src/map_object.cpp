@@ -181,7 +181,7 @@ void MapObject::delete_from_game() noexcept {
 	}
 	m_obj->set_deleted(true);
 
-	WorldMap::remove_map_object(get_map_object_uuid());
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
