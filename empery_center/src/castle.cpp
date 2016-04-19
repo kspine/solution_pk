@@ -679,6 +679,9 @@ void Castle::get_buildings_by_id(std::vector<Castle::BuildingBaseInfo> &ret, Bui
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto current_id = BuildingId(it->second->get_building_id());
+		if(!current_id){
+			continue;
+		}
 		if(current_id != building_id){
 			continue;
 		}
@@ -692,6 +695,9 @@ void Castle::get_buildings_by_type_id(std::vector<Castle::BuildingBaseInfo> &ret
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto current_id = BuildingId(it->second->get_building_id());
+		if(!current_id){
+			continue;
+		}
 		const auto building_data = Data::CastleBuilding::require(current_id);
 		if(building_data->type != type){
 			continue;
