@@ -173,6 +173,7 @@ namespace {
 		info.max_level          = obj->get_max_level();
 		info.subordinate_count  = obj->get_subordinate_count();
 		info.performance        = obj->get_performance();
+		info.self_performance   = obj->get_self_performance();
 		info.flags              = obj->get_flags();
 		info.banned_until       = obj->get_banned_until();
 		info.created_time       = obj->get_created_time();
@@ -464,6 +465,26 @@ void AccountMap::set_banned_until(AccountId account_id, std::uint64_t banned_unt
 
 	it->obj->set_banned_until(banned_until);
 }
+void AccountMap::accumulate_self_performance(AccountId account_id, std::uint64_t amount){
+	PROFILE_ME;
+
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
+		DEBUG_THROW(Exception, sslit("Account not found"));
+	}
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
+		DEBUG_THROW(Exception, sslit("Account deleted"));
+	}
+
+	const auto old_value = it->obj->get_self_performance();
+	auto new_value = old_value + amount;
+	if(new_value < old_value){
+		new_value = UINT64_MAX;
+	}
+	it->obj->set_self_performance(new_value);
+}
 void AccountMap::accumulate_performance(AccountId account_id, std::uint64_t amount){
 	PROFILE_ME;
 
@@ -524,7 +545,7 @@ AccountId AccountMap::create(std::string login_name, std::string phone_number, s
 	const auto utc_now = Poseidon::get_utc_time();
 	auto obj = boost::make_shared<MySql::Promotion_Account>(account_id.get(), std::move(login_name),
 		std::move(phone_number), std::move(nick), get_password_hash(password), get_password_hash(deal_password),
-		referrer_id.get(), 0, 0, 0, 0, flags, 0, utc_now, std::move(created_ip));
+		referrer_id.get(), 0, 0, 0, 0, 0, flags, 0, utc_now, std::move(created_ip));
 	obj->async_save(true);
 	it = g_account_map->insert<1>(it, AccountElement(std::move(obj)));
 

@@ -168,6 +168,7 @@ public:
 	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const; // （通用）兵营
 	std::uint64_t get_max_battalion_count() const; // 校场
 	std::uint64_t get_medical_tent_capacity() const; // 医疗帐篷
+	bool is_treatment_in_progress() const; // 医疗帐篷
 
 	TechInfo get_tech(TechId tech_id) const;
 	void get_all_techs(std::vector<TechInfo> &ret) const;
@@ -211,7 +212,6 @@ public:
 	void speed_up_soldier_production(BuildingBaseId building_base_id, std::uint64_t delta_duration);
 
 	std::uint64_t harvest_soldier(BuildingBaseId building_base_id);
-
 	void synchronize_soldier_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const;
 
 	bool has_wounded_soldiers() const;
@@ -232,6 +232,7 @@ public:
 	void speed_up_treatment(std::uint64_t delta_duration);
 
 	void harvest_treatment();
+	void synchronize_treatment_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

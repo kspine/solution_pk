@@ -21,6 +21,8 @@
 #include "../mysql/overlay.hpp"
 #include "../strategic_resource.hpp"
 #include "../mysql/strategic_resource.hpp"
+#include "../resource_crate.hpp"
+#include "../mysql/resource_crate.hpp"
 #include "../player_session.hpp"
 #include "../cluster_session.hpp"
 #include "../castle_utilities.hpp"
@@ -98,6 +100,16 @@ namespace {
 			"    LEFT JOIN `Center_MapObjectAttribute` AS `a` "
 			"    ON `m`.`map_object_uuid` = `a`.`map_object_uuid` "
 			"  WHERE `m`.`deleted` > 0");
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_StrategicResource",
+			"DELETE QUICK `r`.* "
+			"  FROM `Center_StrategicResource` AS `r` "
+			"  WHERE `r`.`resource_amount` = 0");
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_ResourceCrate",
+			"DELETE QUICK `c`.* "
+			"  FROM `Center_ResourceCrate` AS `c` "
+			"  WHERE `c`.`amount_remaining` = 0");
 	}
 
 	struct OverlayElement {
@@ -135,6 +147,26 @@ namespace {
 	)
 
 	boost::weak_ptr<StrategicResourceContainer> g_strategic_resource_map;
+
+	struct ResourceCrateElement {
+		boost::shared_ptr<ResourceCrate> resource_crate;
+
+		ResourceCrateUuid resource_crate_uuid;
+		Coord coord;
+
+		explicit ResourceCrateElement(boost::shared_ptr<ResourceCrate> resource_crate_)
+			: resource_crate(std::move(resource_crate_))
+			, resource_crate_uuid(resource_crate->get_resource_crate_uuid()), coord(resource_crate->get_coord())
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(ResourceCrateContainer, ResourceCrateElement,
+		UNIQUE_MEMBER_INDEX(resource_crate_uuid)
+		MULTI_MEMBER_INDEX(coord)
+	)
+
+	boost::weak_ptr<ResourceCrateContainer> g_resource_crate_map;
 
 	enum : unsigned {
 		MAP_WIDTH          = 600,
@@ -398,6 +430,7 @@ namespace {
 			auto overlay = boost::make_shared<Overlay>(std::move(obj));
 			overlay_map->insert(OverlayElement(std::move(overlay)));
 		}
+		LOG_EMPERY_CENTER_INFO("Loaded ", overlay_map->size(), " overlay(s).");
 		g_overlay_map = overlay_map;
 		handles.push(overlay_map);
 
@@ -412,8 +445,24 @@ namespace {
 			auto strategic_resource = boost::make_shared<StrategicResource>(std::move(obj));
 			strategic_resource_map->insert(StrategicResourceElement(std::move(strategic_resource)));
 		}
+		LOG_EMPERY_CENTER_INFO("Loaded ", strategic_resource_map->size(), " strategic resources(s).");
 		g_strategic_resource_map = strategic_resource_map;
 		handles.push(strategic_resource_map);
+
+		// ResourceCrate
+		const auto resource_crate_map = boost::make_shared<ResourceCrateContainer>();
+		LOG_EMPERY_CENTER_INFO("Loading resource crates...");
+		conn->execute_sql("SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0");
+		while(conn->fetch_row()){
+			auto obj = boost::make_shared<MySql::Center_ResourceCrate>();
+			obj->fetch(conn);
+			obj->enable_auto_saving();
+			auto resource_crate = boost::make_shared<ResourceCrate>(std::move(obj));
+			resource_crate_map->insert(ResourceCrateElement(std::move(resource_crate)));
+		}
+		LOG_EMPERY_CENTER_INFO("Loaded ", resource_crate_map->size(), " resource crate(s).");
+		g_resource_crate_map = resource_crate_map;
+		handles.push(resource_crate_map);
 
 		// PlayerSession
 		const auto player_view_map = boost::make_shared<PlayerViewContainer>();
@@ -754,7 +803,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto map_object_uuid = map_object->get_map_object_uuid();
 
 	if(map_object->has_been_deleted()){
-		LOG_EMPERY_CENTER_WARNING("Map object has been marked as deleted: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Map object has been marked as deleted: map_object_uuid = ", map_object_uuid);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Map object has been marked as deleted"));
 		}
@@ -791,39 +840,6 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	}
 	synchronize_with_all_players(map_object, old_coord, new_coord, session);
 	synchronize_with_all_clusters(map_object, old_coord, new_coord);
-}
-void WorldMap::remove_map_object(MapObjectUuid map_object_uuid) noexcept {
-	PROFILE_ME;
-
-	const auto map_object_map = g_map_object_map.lock();
-	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
-		return;
-	}
-
-	const auto it = map_object_map->find<0>(map_object_uuid);
-	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
-		return;
-	}
-	const auto map_object = it->map_object;
-
-	const auto old_coord = it->coord;
-	LOG_EMPERY_CENTER_DEBUG("Removing map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord);
-	map_object_map->erase<0>(it);
-
-	const auto owner_uuid = map_object->get_owner_uuid();
-	const auto session = PlayerSessionMap::get(owner_uuid);
-	if(session){
-		try {
-			synchronize_map_object_with_player(map_object, session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
-	synchronize_with_all_players(map_object, old_coord, old_coord, session);
-	synchronize_with_all_clusters(map_object, old_coord, old_coord);
 }
 
 void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret){
@@ -1175,6 +1191,119 @@ _exit_while:
 	;
 }
 
+boost::shared_ptr<ResourceCrate> WorldMap::get_resource_crate(ResourceCrateUuid resource_crate_uuid){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CENTER_WARNING("Resource crate map not loaded.");
+		return { };
+	}
+
+	const auto it = resource_crate_map->find<0>(resource_crate_uuid);
+	if(it == resource_crate_map->end<0>()){
+		LOG_EMPERY_CENTER_TRACE("Resource crate not found: resource_crate_uuid = ", resource_crate_uuid);
+		return { };
+	}
+	return it->resource_crate;
+}
+boost::shared_ptr<ResourceCrate> WorldMap::require_resource_crate(ResourceCrateUuid resource_crate_uuid){
+	PROFILE_ME;
+
+	auto ret = get_resource_crate(resource_crate_uuid);
+	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Resource crate not found: resource_crate_uuid = ", resource_crate_uuid);
+		DEBUG_THROW(Exception, sslit("Resource crate not found"));
+	}
+	return ret;
+}
+void WorldMap::insert_resource_crate(const boost::shared_ptr<ResourceCrate> &resource_crate){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CENTER_WARNING("Resource crate map not loaded.");
+		DEBUG_THROW(Exception, sslit("Resource crate map not loaded"));
+	}
+
+	const auto resource_crate_uuid = resource_crate->get_resource_crate_uuid();
+	const auto coord = resource_crate->get_coord();
+
+	LOG_EMPERY_CENTER_TRACE("Inserting resource crate: resource_crate_uuid = ", resource_crate_uuid);
+	const auto result = resource_crate_map->insert(ResourceCrateElement(resource_crate));
+	if(!result.second){
+		LOG_EMPERY_CENTER_WARNING("Resource crate already exists: resource_crate_uuid = ", resource_crate_uuid);
+		DEBUG_THROW(Exception, sslit("Resource crate already exists"));
+	}
+
+	synchronize_with_all_players(resource_crate, coord, coord, { });
+}
+void WorldMap::update_resource_crate(const boost::shared_ptr<ResourceCrate> &resource_crate, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CENTER_WARNING("Resource crate map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Resource crate map not loaded"));
+		}
+		return;
+	}
+
+	const auto resource_crate_uuid = resource_crate->get_resource_crate_uuid();
+	const auto coord = resource_crate->get_coord();
+
+	const auto it = resource_crate_map->find<0>(resource_crate_uuid);
+	if(it == resource_crate_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("Resource crate not found: resource_crate_uuid = ", resource_crate_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("ResourceCrate not found"));
+		}
+		return;
+	}
+
+	LOG_EMPERY_CENTER_TRACE("Updating resource crate: resource_crate_uuid = ", resource_crate_uuid);
+	if(resource_crate->is_virtually_removed()){
+		resource_crate_map->erase<0>(it);
+	} else {
+		resource_crate_map->replace<0>(it, ResourceCrateElement(resource_crate));
+	}
+
+	synchronize_with_all_players(resource_crate, coord, coord, { });
+}
+
+void WorldMap::get_resource_crates_by_rectangle(std::vector<boost::shared_ptr<ResourceCrate>> &ret, Rectangle rectangle){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CENTER_WARNING("Resource crate map not loaded.");
+		return;
+	}
+
+	auto x = rectangle.left();
+	while(x < rectangle.right()){
+		auto it = resource_crate_map->lower_bound<1>(Coord(x, rectangle.bottom()));
+		for(;;){
+			if(it == resource_crate_map->end<1>()){
+				goto _exit_while;
+			}
+			if(it->coord.x() != x){
+				x = it->coord.x();
+				break;
+			}
+			if(it->coord.y() >= rectangle.top()){
+				++x;
+				break;
+			}
+			ret.emplace_back(it->resource_crate);
+			++it;
+		}
+	}
+_exit_while:
+	;
+}
+
 void WorldMap::get_players_viewing_rectangle(std::vector<boost::shared_ptr<PlayerSession>> &ret, Rectangle rectangle){
 	PROFILE_ME;
 
@@ -1293,6 +1422,16 @@ try {
 			continue;
 		}
 		synchronize_strategic_resource_with_player(strategic_resource, session);
+	}
+
+	std::vector<boost::shared_ptr<ResourceCrate>> resource_crates;
+	get_resource_crates_by_rectangle(resource_crates, view);
+	for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
+		const auto &resource_crate = *it;
+		if(resource_crate->is_virtually_removed()){
+			continue;
+		}
+		synchronize_resource_crate_with_player(resource_crate, session);
 	}
 } catch(std::exception &e){
 	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -1439,6 +1578,16 @@ try {
 			continue;
 		}
 		synchronize_map_object_with_cluster(map_object, cluster);
+	}
+
+	std::vector<boost::shared_ptr<ResourceCrate>> resource_crates;
+	get_resource_crates_by_rectangle(resource_crates, view);
+	for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
+		const auto &resource_crate = *it;
+		if(resource_crate->is_virtually_removed()){
+			continue;
+		}
+		synchronize_resource_crate_with_cluster(resource_crate, cluster);
 	}
 } catch(std::exception &e){
 	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

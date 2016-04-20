@@ -55,6 +55,7 @@ ACCOUNT_SERVLET("getPyramid", session, params){
 				member[sslit("maxSubordLevel")]  = it->max_level;
 				member[sslit("subordCount")]     = it->subordinate_count;
 				if(!view_performance_str.empty()){
+					member[sslit("self_performance")] = it->self_performance;
 					member[sslit("performance")] = it->performance;
 				}
 				member[sslit("members")]         = Poseidon::JsonArray();
@@ -73,6 +74,7 @@ ACCOUNT_SERVLET("getPyramid", session, params){
 	ret[sslit("maxSubordLevel")]  = info.max_level;
 	ret[sslit("subordCount")]     = info.subordinate_count;
 	if(!view_performance_str.empty()){
+		ret[sslit("self_performance")] = info.self_performance;
 		ret[sslit("performance")] = info.performance;
 	}
 	ret[sslit("members")]         = std::move(members);

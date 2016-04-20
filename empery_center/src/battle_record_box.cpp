@@ -12,18 +12,18 @@ namespace {
 	void fill_record_info(BattleRecordBox::RecordInfo &info, const boost::shared_ptr<MySql::Center_BattleRecord> &obj){
 		PROFILE_ME;
 
-		info.auto_uuid             = obj->unlocked_get_auto_uuid();
-		info.timestamp             = obj->get_timestamp();
-		info.first_object_type_id  = MapObjectTypeId(obj->get_first_object_type_id());
-		info.first_coord           = Coord(obj->get_first_coord_x(), obj->get_first_coord_y());
-		info.second_account_uuid   = AccountUuid(obj->unlocked_get_second_account_uuid());
-		info.second_object_type_id = MapObjectTypeId(obj->get_second_object_type_id());
-		info.second_coord          = Coord(obj->get_second_coord_x(), obj->get_second_coord_y());
-		info.result_type           = obj->get_result_type();
-		info.result_param1         = obj->get_result_param1();
-		info.result_param2         = obj->get_result_param2();
-		info.soldiers_damaged      = obj->get_soldiers_damaged();
-		info.soldiers_remaining    = obj->get_soldiers_remaining();
+		info.auto_uuid              = obj->unlocked_get_auto_uuid();
+		info.timestamp              = obj->get_timestamp();
+		info.first_object_type_id   = MapObjectTypeId(obj->get_first_object_type_id());
+		info.first_coord            = Coord(obj->get_first_coord_x(), obj->get_first_coord_y());
+		info.second_account_uuid    = AccountUuid(obj->unlocked_get_second_account_uuid());
+		info.second_object_type_id  = MapObjectTypeId(obj->get_second_object_type_id());
+		info.second_coord           = Coord(obj->get_second_coord_x(), obj->get_second_coord_y());
+		info.result_type            = obj->get_result_type();
+		info.soldiers_wounded       = obj->get_soldiers_wounded();
+		info.soldiers_wounded_added = obj->get_soldiers_wounded_added();
+		info.soldiers_damaged       = obj->get_soldiers_damaged();
+		info.soldiers_remaining     = obj->get_soldiers_remaining();
 	}
 }
 
@@ -75,7 +75,7 @@ void BattleRecordBox::get_all(std::vector<BattleRecordBox::RecordInfo> &ret) con
 }
 void BattleRecordBox::push(std::uint64_t timestamp, MapObjectTypeId first_object_type_id, Coord first_coord,
 	AccountUuid second_account_uuid, MapObjectTypeId second_object_type_id, Coord second_coord,
-	int result_type, std::int64_t result_param1, std::int64_t result_param2,
+	int result_type, std::uint64_t soldiers_wounded, std::uint64_t soldiers_wounded_added,
 	std::uint64_t soldiers_damaged, std::uint64_t soldiers_remaining)
 {
 	PROFILE_ME;
@@ -83,7 +83,7 @@ void BattleRecordBox::push(std::uint64_t timestamp, MapObjectTypeId first_object
 	const auto obj = boost::make_shared<MySql::Center_BattleRecord>(Poseidon::Uuid::random(),
 		get_account_uuid().get(), timestamp, first_object_type_id.get(), first_coord.x(), first_coord.y(),
 		second_account_uuid.get(), second_object_type_id.get(), second_coord.x(), second_coord.y(),
-		result_type, result_param1, result_param2, soldiers_damaged, soldiers_remaining, false);
+		result_type, soldiers_wounded, soldiers_wounded_added, soldiers_damaged, soldiers_remaining, false);
 	obj->async_save(true);
 	m_records.emplace_back(obj);
 

@@ -44,6 +44,7 @@ struct AccountMap {
 		std::uint64_t max_level;
 		std::uint64_t subordinate_count;
 		std::uint64_t performance;
+		std::uint64_t self_performance;
 		std::uint64_t flags;
 		std::uint64_t banned_until;
 		std::uint64_t created_time;
@@ -73,6 +74,7 @@ struct AccountMap {
 	static void set_level(AccountId account_id, std::uint64_t level);
 	static void set_flags(AccountId account_id, std::uint64_t flags);
 	static void set_banned_until(AccountId account_id, std::uint64_t banned_until);
+	static void accumulate_self_performance(AccountId account_id, std::uint64_t amount);
 	static void accumulate_performance(AccountId account_id, std::uint64_t amount);
 
 	static AccountId create(std::string login_name, std::string phone_number, std::string nick,

@@ -20,6 +20,7 @@ namespace MySql {
 	FIELD_BIGINT_UNSIGNED   (max_level)	\
 	FIELD_BIGINT_UNSIGNED   (subordinate_count)	\
 	FIELD_BIGINT_UNSIGNED   (performance)	\
+	FIELD_BIGINT_UNSIGNED   (self_performance)	\
 	FIELD_BIGINT_UNSIGNED   (flags)	\
 	FIELD_DATETIME          (banned_until)	\
 	FIELD_DATETIME          (created_time)	\

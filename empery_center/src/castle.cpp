@@ -151,12 +151,13 @@ namespace {
 		msg.map_object_uuid        = map_object_uuid.str();
 		msg.soldiers.reserve(objs.size());
 		for(auto it = objs.begin(); it != objs.end(); ++it){
+			const auto &obj = it->second;
 			auto &soldier = *msg.soldiers.emplace(msg.soldiers.end());
-			soldier.map_object_type_id   = it->second->get_map_object_type_id();
-			soldier.count                = it->second->get_count();
+			soldier.map_object_type_id   = obj->get_map_object_type_id();
+			soldier.count                = obj->get_count();
 			// pick any
-			msg.treatment_duration       = it->second->get_duration();
-			msg.treatment_time_remaining = saturated_sub(it->second->get_time_end(), utc_now);
+			msg.treatment_duration       = obj->get_duration();
+			msg.treatment_time_remaining = saturated_sub(obj->get_time_end(), utc_now);
 		}
 	}
 
@@ -479,7 +480,7 @@ void Castle::pump_population_production(){
 		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
 			auto &amount_total = resources_to_consume_per_minute[rit->first];
-			amount_total = saturated_add(amount_total, saturated_mul(soldier_count, rit->second));
+			amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(std::ceil(soldier_count * rit->second - 0.001)));
 		}
 	}
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
@@ -497,7 +498,7 @@ void Castle::pump_population_production(){
 		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
 			auto &amount_total = resources_to_consume_per_minute[rit->first];
-			amount_total = saturated_add(amount_total, saturated_mul(soldier_count, rit->second));
+			amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(std::ceil(soldier_count * rit->second - 0.001)));
 		}
 	}
 	const auto last_consumption_time = m_population_production_stamps->get_production_time_begin();
@@ -678,6 +679,9 @@ void Castle::get_buildings_by_id(std::vector<Castle::BuildingBaseInfo> &ret, Bui
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto current_id = BuildingId(it->second->get_building_id());
+		if(!current_id){
+			continue;
+		}
 		if(current_id != building_id){
 			continue;
 		}
@@ -691,6 +695,9 @@ void Castle::get_buildings_by_type_id(std::vector<Castle::BuildingBaseInfo> &ret
 
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		const auto current_id = BuildingId(it->second->get_building_id());
+		if(!current_id){
+			continue;
+		}
 		const auto building_data = Data::CastleBuilding::require(current_id);
 		if(building_data->type != type){
 			continue;
@@ -1016,6 +1023,18 @@ std::uint64_t Castle::get_medical_tent_capacity() const {
 		count = saturated_add(count, upgrade_data->capacity);
 	}
 	return count;
+}
+bool Castle::is_treatment_in_progress() const {
+	PROFILE_ME;
+
+	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
+		const auto &obj = it->second;
+		const auto count = obj->get_count();
+		if(count != 0){
+			return true;
+		}
+	}
+	return false;
 }
 
 Castle::TechInfo Castle::get_tech(TechId tech_id) const {
@@ -1871,7 +1890,6 @@ std::uint64_t Castle::harvest_soldier(BuildingBaseId building_base_id){
 
 	return count;
 }
-
 void Castle::synchronize_soldier_production_with_player(BuildingBaseId building_base_id, const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
@@ -2082,10 +2100,10 @@ void Castle::pump_treatment(){
 		if(obj->get_time_end() == 0){
 			continue;
 		}
-		if(check_treatment_mission(obj, utc_now)){
-			harvest_treatment();
-		}
+		check_treatment_mission(obj, utc_now);
 	}
+
+	harvest_treatment();
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -2147,10 +2165,16 @@ void Castle::begin_treatment(const boost::container::flat_map<MapObjectTypeId, s
 	}
 
 	for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
-		it->first->set_count      (it->second);
-		it->first->set_duration   (duration);
-		it->first->set_time_begin (utc_now);
-		it->first->set_time_end   (saturated_add(utc_now, duration));
+		const auto &obj = it->first;
+		obj->set_count      (it->second);
+		obj->set_duration   (duration);
+		obj->set_time_begin (utc_now);
+		obj->set_time_end   (saturated_add(utc_now, duration));
+	}
+
+	for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+		const auto &obj = it->first;
+		check_treatment_mission(obj, utc_now);
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -2207,10 +2231,10 @@ void Castle::speed_up_treatment(std::uint64_t delta_duration){
 		}
 		obj->set_time_end(saturated_sub(obj->get_time_end(), delta_duration));
 
-		if(check_treatment_mission(obj, utc_now)){
-			harvest_treatment();
-		}
+		check_treatment_mission(obj, utc_now);
 	}
+
+	harvest_treatment();
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -2230,9 +2254,7 @@ void Castle::harvest_treatment(){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	std::vector<WoundedSoldierTransactionElement> wounded_transaction;
-	std::vector<SoldierTransactionElement> soldier_transaction;
-
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleTreatment>, std::uint64_t> temp_result;
 	for(auto it = m_treatment.begin(); it != m_treatment.end(); ++it){
 		const auto &obj = it->second;
 		const auto count = obj->get_count();
@@ -2247,17 +2269,30 @@ void Castle::harvest_treatment(){
 		const auto wounded_info = get_wounded_soldier(map_object_type_id);
 		const auto count_harvested = std::min<std::uint64_t>(count, wounded_info.count);
 
-		wounded_transaction.clear();
+		temp_result.emplace(obj, count_harvested);
+	}
+
+	std::vector<WoundedSoldierTransactionElement> wounded_transaction;
+	std::vector<SoldierTransactionElement> soldier_transaction;
+	for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+		const auto &obj = it->first;
+		const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+		const auto count_harvested = it->second;
 		wounded_transaction.emplace_back(WoundedSoldierTransactionElement::OP_REMOVE, map_object_type_id, count_harvested,
 			ReasonIds::ID_SOLDIER_HEALED, 0, 0, 0);
-		soldier_transaction.clear();
 		soldier_transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, count_harvested,
 			ReasonIds::ID_SOLDIER_HEALED, 0, 0, 0);
-		commit_wounded_soldier_transaction(wounded_transaction,
-			[&]{
-				commit_soldier_transaction(soldier_transaction);
-			});
 	}
+	commit_wounded_soldier_transaction(wounded_transaction,
+		[&]{
+			commit_soldier_transaction(soldier_transaction,
+				[&]{
+					for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+						const auto &obj = it->first;
+						obj->set_count(0);
+					}
+				});
+		});
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
@@ -2270,6 +2305,15 @@ void Castle::harvest_treatment(){
 			session->shutdown(e.what());
 		}
 	}
+}
+void Castle::synchronize_treatment_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	Msg::SC_CastleTreatment msg;
+	fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+	session->send(msg);
 }
 
 void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {

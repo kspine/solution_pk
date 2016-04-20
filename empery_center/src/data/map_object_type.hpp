@@ -35,7 +35,7 @@ namespace Data {
 		boost::container::flat_map<ResourceId, std::uint64_t> enability_cost;
 
 		boost::container::flat_map<ResourceId, std::uint64_t> production_cost;
-		boost::container::flat_map<ResourceId, std::uint64_t> maintenance_cost;
+		boost::container::flat_map<ResourceId, double> maintenance_cost;
 
 		MapObjectTypeId previous_id;
 		double production_time;

@@ -223,6 +223,7 @@ namespace IdTypes {
 	using MailUuid                  = GenericUuid<210003>;
 	using ChatMessageUuid           = GenericUuid<210004>;
 	using AnnouncementUuid          = GenericUuid<210005>;
+	using ResourceCrateUuid         = GenericUuid<210006>;
 }
 
 using namespace IdTypes;
