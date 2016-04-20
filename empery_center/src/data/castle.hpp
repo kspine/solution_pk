@@ -122,6 +122,7 @@ namespace Data {
 
 	public:
 		boost::container::flat_map<ResourceId, std::uint64_t> max_resource_amounts;
+		boost::container::flat_map<ResourceId, std::uint64_t> protected_resource_amounts;
 	};
 
 	class CastleUpgradeCitadelWall : public CastleUpgradeAbstract {

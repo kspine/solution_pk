@@ -378,6 +378,18 @@ namespace {
 				}
 			}
 
+			object.clear();
+			csv.get(object, "resource_protect");
+			elem.protected_resource_amounts.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.protected_resource_amounts.emplace(resource_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate resource: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate resource"));
+				}
+			}
+
 			if(!upgrade_warehouse_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeWarehouse: building_level = ", elem.building_level);
 				DEBUG_THROW(Exception, sslit("Duplicate CastleUpgradeWarehouse"));
