@@ -133,16 +133,6 @@ void MapObject::set_coord(Coord coord) noexcept {
 	m_obj->set_y(coord.y());
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 std::uint64_t MapObject::get_created_time() const {
@@ -158,16 +148,6 @@ void MapObject::set_name(std::string name){
 	m_obj->set_name(std::move(name));
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 bool MapObject::has_been_deleted() const {
@@ -182,16 +162,6 @@ void MapObject::delete_from_game() noexcept {
 	m_obj->set_deleted(true);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 bool MapObject::is_garrisoned() const {
@@ -206,16 +176,6 @@ void MapObject::set_garrisoned(bool garrisoned){
 	m_obj->set_garrisoned(garrisoned);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 std::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
@@ -263,16 +223,6 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 	}
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 std::uint64_t MapObject::get_resource_amount_carried() const {
