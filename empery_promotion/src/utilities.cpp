@@ -163,13 +163,19 @@ namespace {
 		const auto first_promotion_data = Data::Promotion::get_first();
 
 		std::deque<std::pair<AccountId, boost::shared_ptr<const Data::Promotion>>> referrers;
-		for(auto current_id = virtual_referrer_id; current_id; current_id = AccountMap::require(current_id).referrer_id){
-			auto referrer_info = AccountMap::require(current_id);
-			LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: current_id = ", current_id, ", level = ", referrer_info.level);
-			referrers.emplace_back(current_id, Data::Promotion::get(referrer_info.level));
+		{
+			auto current_id = virtual_referrer_id;
+			while(current_id){
+				auto referrer_info = AccountMap::require(current_id);
+				LOG_EMPERY_PROMOTION_DEBUG("> Next referrer: current_id = ", current_id, ", level = ", referrer_info.level);
+				referrers.emplace_back(current_id, Data::Promotion::get(referrer_info.level));
+				current_id = referrer_info.referrer_id;
+			}
 		}
 
 		const auto income_tax_ratio_total = std::accumulate(g_income_tax_ratio_array.begin(), g_income_tax_ratio_array.end(), 0.0);
+
+		AccountMap::accumulate_self_performance(account_id, amount);
 
 		std::uint64_t dividend_accumulated = 0;
 		while(!referrers.empty()){
