@@ -61,6 +61,11 @@ namespace {
 				tax_record_box_map->erase<1>(it);
 			}
 		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_TaxRecord",
+			"DELETE QUICK `r`.* "
+			"  FROM `Center_TaxRecord` AS `r` "
+			"  WHERE `r`.`deleted` > 0");
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
@@ -101,7 +106,7 @@ boost::shared_ptr<TaxRecordBox> TaxRecordBoxMap::get(AccountUuid account_uuid){
 			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_TaxRecord>>>();
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_TaxRecord` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get())
-			    <<" AND `deleted` = 0";
+			    <<"  AND `deleted` = 0";
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 					auto obj = boost::make_shared<MySql::Center_TaxRecord>();
