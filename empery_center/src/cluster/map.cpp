@@ -412,6 +412,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			wounded_ratio = 1;
 		}
 		soldiers_wounded = static_cast<std::uint64_t>(soldiers_damaged * wounded_ratio + 0.001);
+		LOG_EMPERY_CENTER_DEBUG("Wounded soldiers: wounded_ratio_basic = ", wounded_ratio_basic, ", wounded_ratio_bonus = ", wounded_ratio_bonus,
+			", soldiers_damaged = ", soldiers_damaged, ", soldiers_wounded = ", soldiers_wounded);
 
 		std::uint64_t capacity_used = 0;
 		std::vector<Castle::WoundedSoldierInfo> wounded_soldier_all;
