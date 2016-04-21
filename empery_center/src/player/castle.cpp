@@ -945,7 +945,9 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 	for(auto it = production_cost.begin(); it != production_cost.end(); ++it){
 		it->second = checked_mul<std::uint64_t>(it->second, count);
 	}
-	const std::uint64_t duration = std::ceil(map_object_type_data->production_time * 60000.0 * count - 0.001);
+	const auto production_speed_turbo = castle->get_attribute(AttributeIds::ID_SOLDIER_PRODUCTION_SPEED_BONUS) / 1000.0;
+	const auto duration = static_cast<std::uint64_t>(std::ceil(
+		map_object_type_data->production_time * 60000.0 * count / (1 + production_speed_turbo) - 0.001));
 
 	boost::container::flat_map<ItemId, std::uint64_t> tokens;
 	tokens.reserve(req.tokens.size());
