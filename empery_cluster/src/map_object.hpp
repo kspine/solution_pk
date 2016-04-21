@@ -7,7 +7,6 @@
 #include <deque>
 #include "id_types.hpp"
 #include "coord.hpp"
-#include "data/map_object.hpp"
 
 namespace EmperyCluster {
 
@@ -19,6 +18,7 @@ public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
 private:
 	boost::weak_ptr<MapObject> m_parent_object;
 };
@@ -36,6 +36,7 @@ public:
 		ACT_HARVEST_STRATEGIC_RESOURCE = 5,
 		ACT_MONTER_REGRESS             = 6,
 		ACT_STAND_BY                   = 7,
+		ACT_HARVEST_RESOURCE_CRATE     = 8,
 	};
 
 	enum AttackImpact {
@@ -77,7 +78,7 @@ private:
 	std::uint64_t pump_action(std::pair<long, std::string> &result, std::uint64_t now);
 public:
 	bool is_die();
-	bool is_in_attack_scope(MapObjectUuid target_uuid);
+	bool is_in_attack_scope(Coord target_coord);
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
@@ -87,6 +88,7 @@ public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
 private:
 	void          notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param);
 	bool          fix_attack_action();
@@ -96,19 +98,12 @@ private:
 	std::uint64_t lost_target();
 	void          monster_regress();
 	bool          is_monster();
-	bool          is_building();
-	bool          is_castle();
-	bool          is_bunker();
-	bool          is_defense_tower();
 	bool          attacked_able();
 	bool          is_lost_attacked_target();
 	void          reset_attack_target_own_uuid();
 	AccountUuid   get_attack_target_own_uuid(); 
 	std::uint64_t search_attack();
 	MapObjectWeaponId get_arm_relative_id();
-	int           get_attacked_prority();
-	bool          move_able();
-	boost::shared_ptr<const Data::MapObjectType> get_map_object_type_data();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
