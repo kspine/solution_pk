@@ -12,6 +12,7 @@ namespace EmperyCluster {
 
 class MapCell;
 class MapObject;
+class ResourceCrate;
 class ClusterClient;
 
 struct WorldMap {
@@ -29,8 +30,14 @@ struct WorldMap {
 	static void replace_map_object_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<MapObject> &map_object);
 	static void remove_map_object_no_synchronize(const boost::weak_ptr<ClusterClient> &master, MapObjectUuid map_object_uuid) noexcept;
 	static void update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists = true);
-
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
+
+	// ResourceCrate
+	static boost::shared_ptr<ResourceCrate> get_resource_crate(ResourceCrateUuid resource_crate_uuid);
+	static void replace_resource_crate_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<ResourceCrate> &resource_crate);
+	static void remove_resource_crate_no_synchronize(const boost::weak_ptr<ClusterClient> & /* master */, ResourceCrateUuid resource_crate_uuid) noexcept ;
+	static void update_resource_crate(const boost::shared_ptr<ResourceCrate> &resource_crate, bool throws_if_not_exists = true);
+	static void get_resource_crates_by_rectangle(std::vector<boost::shared_ptr<ResourceCrate>> &ret, Rectangle rectangle);
 
 	// ClusterClient
 	static Rectangle get_cluster_scope(Coord coord);

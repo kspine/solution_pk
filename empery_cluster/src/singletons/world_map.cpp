@@ -11,6 +11,7 @@
 #include "../coord.hpp"
 #include "../map_cell.hpp"
 #include "../map_object.hpp"
+#include "../resource_crate.hpp"
 #include "../rectangle.hpp"
 #include "../cluster_client.hpp"
 #include "../data/global.hpp"
@@ -70,6 +71,28 @@ namespace {
 	)
 
 	boost::weak_ptr<MapObjectContainer> g_map_object_map;
+	struct ResourceCrateElement {
+		boost::shared_ptr<ResourceCrate> resource_crate;
+
+		boost::weak_ptr<ClusterClient> master;
+		ResourceCrateUuid resource_crate_uuid;
+		Coord coord;
+
+		explicit ResourceCrateElement(boost::shared_ptr<ResourceCrate> resource_crate_,boost::weak_ptr<ClusterClient> master_)
+			: resource_crate(std::move(resource_crate_))
+			, master(std::move(master_))
+			, resource_crate_uuid(resource_crate->get_resource_crate_uuid()), coord(resource_crate->get_coord())
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(ResourceCrateContainer, ResourceCrateElement,
+		MULTI_MEMBER_INDEX(master)
+		UNIQUE_MEMBER_INDEX(resource_crate_uuid)
+		MULTI_MEMBER_INDEX(coord)
+	)
+
+	boost::weak_ptr<ResourceCrateContainer> g_resource_crate_map;
 
 	enum : unsigned {
 		MAP_WIDTH          = 600,
@@ -333,7 +356,6 @@ void WorldMap::get_map_objects_by_account(std::vector<boost::shared_ptr<MapObjec
 	if(!map_object_map){
 		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
 	}
-	
 	const auto range = map_object_map->equal_range<3>(owner_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
@@ -479,6 +501,155 @@ void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObj
 				break;
 			}
 			ret.emplace_back(it->map_object);
+			++it;
+		}
+	}
+_exit_while:
+	;
+}
+
+boost::shared_ptr<ResourceCrate> WorldMap::get_resource_crate(ResourceCrateUuid resource_crate_uuid){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CLUSTER_WARNING("Resource crate map not loaded.");
+		return { };
+	}
+
+	const auto it = resource_crate_map->find<1>(resource_crate_uuid);
+	if(it == resource_crate_map->end<1>()){
+		LOG_EMPERY_CLUSTER_TRACE("Resource crate not found: resource_crate_uuid = ", resource_crate_uuid);
+		return { };
+	}
+	if(it->master.expired()){
+		LOG_EMPERY_CLUSTER_DEBUG("Master expired: resource_crate_uuid = ", resource_crate_uuid);
+		return { };
+	}
+	return it->resource_crate;
+}
+
+void WorldMap::replace_resource_crate_no_synchronize(const boost::shared_ptr<ClusterClient> &master, const boost::shared_ptr<ResourceCrate> &resource_crate){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CLUSTER_WARNING("Resource crate map not loaded.");
+		DEBUG_THROW(Exception, sslit("Resource crate map not loaded."));
+	}
+
+	const auto result = resource_crate_map->insert(ResourceCrateElement(resource_crate, master));
+	if(!result.second){
+		resource_crate_map->replace(result.first, ResourceCrateElement(resource_crate, master));
+	}
+}
+
+void WorldMap::remove_resource_crate_no_synchronize(const boost::weak_ptr<ClusterClient> & /* master */, ResourceCrateUuid resource_crate_uuid) noexcept {
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CLUSTER_WARNING("Resource crate map not loaded.");
+		return;
+	}
+
+	const auto it = resource_crate_map->find<1>(resource_crate_uuid);
+	if(it == resource_crate_map->end<1>()){
+		LOG_EMPERY_CLUSTER_TRACE("Resource crate not found: resource_crate_uuid = ", resource_crate_uuid);
+		return;
+	}
+	const auto resource_crate = it->resource_crate;
+	const auto old_coord  = it->coord;
+
+	LOG_EMPERY_CLUSTER_TRACE("Removing Resource crate: resource_crate_uuid = ", resource_crate_uuid, ", old_coord = ", old_coord);
+	resource_crate_map->erase<1>(it);
+}
+
+void WorldMap::update_resource_crate(const boost::shared_ptr<ResourceCrate> &resource_crate, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CLUSTER_WARNING("Resource crate map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Resource crate map not loaded"));
+		}
+		return;
+	}
+	const auto cluster_map = g_cluster_map.lock();
+	if(!cluster_map){
+		LOG_EMPERY_CLUSTER_WARNING("Cluster map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Cluster object map not loaded"));
+		}
+		return;
+	}
+
+	const auto resource_crate_uuid = resource_crate->get_resource_crate_uuid();
+
+	const auto it = resource_crate_map->find<1>(resource_crate_uuid);
+	if(it == resource_crate_map->end<1>()){
+		LOG_EMPERY_CLUSTER_WARNING("Resource crate not found: resource_crate_uuid = ", resource_crate_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Resource crate not found"));
+		}
+		return;
+	}
+	const auto old_coord = it->coord;
+	const auto new_coord = resource_crate->get_coord();
+
+	bool out_of_scope = true;
+	const auto cit = cluster_map->find<1>(it->master);
+	if(cit != cluster_map->end<1>()){
+		const auto scope = get_cluster_scope(cit->cluster_coord);
+		if(scope.hit_test(new_coord)){
+			out_of_scope = false;
+		}
+	}
+	if(out_of_scope){
+		LOG_EMPERY_CLUSTER_DEBUG("Resource crate is out of the scope of its master: resource_crate_uuid = ", resource_crate_uuid);
+	} else {
+		LOG_EMPERY_CLUSTER_TRACE("Updating resource crate: resource_crate_uuid = ", resource_crate_uuid,
+			", old_coord = ", old_coord, ", new_coord = ", new_coord);
+		resource_crate_map->replace<1>(it, ResourceCrateElement(resource_crate, it->master));
+	}
+
+	const auto old_cluster = get_cluster(old_coord);
+	if(old_cluster){
+		try {
+			//notify_cluster_map_object_updated(map_object, old_cluster);
+		} catch(std::exception &e){
+			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
+			old_cluster->shutdown(e.what());
+		}
+	}
+}
+
+void WorldMap::get_resource_crates_by_rectangle(std::vector<boost::shared_ptr<ResourceCrate>> &ret, Rectangle rectangle){
+	PROFILE_ME;
+
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(!resource_crate_map){
+		LOG_EMPERY_CLUSTER_WARNING("Resource crate map not loaded.");
+		return;
+	}
+
+	auto x = rectangle.left();
+	while(x < rectangle.right()){
+		auto it = resource_crate_map->lower_bound<2>(Coord(x, rectangle.bottom()));
+		for(;;){
+			if(it == resource_crate_map->end<2>()){
+				goto _exit_while;
+			}
+			if(it->coord.x() != x){
+				x = it->coord.x();
+				break;
+			}
+			if(it->coord.y() >= rectangle.top()){
+				++x;
+				break;
+			}
+			ret.emplace_back(it->resource_crate);
 			++it;
 		}
 	}

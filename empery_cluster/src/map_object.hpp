@@ -38,7 +38,7 @@ public:
 		ACT_STAND_BY                   = 7,
 	};
 
-	enum Attackimpact {
+	enum AttackImpact {
 		IMPACT_NORMAL            = 1,
 		IMPACT_MISS              = 2,
 		IMPACT_CRITICAL          = 3,
