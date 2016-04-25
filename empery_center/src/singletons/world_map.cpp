@@ -100,16 +100,6 @@ namespace {
 			"    LEFT JOIN `Center_MapObjectAttribute` AS `a` "
 			"    ON `m`.`map_object_uuid` = `a`.`map_object_uuid` "
 			"  WHERE `m`.`deleted` > 0");
-
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_StrategicResource",
-			"DELETE QUICK `r`.* "
-			"  FROM `Center_StrategicResource` AS `r` "
-			"  WHERE `r`.`resource_amount` = 0");
-
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_ResourceCrate",
-			"DELETE QUICK `c`.* "
-			"  FROM `Center_ResourceCrate` AS `c` "
-			"  WHERE `c`.`amount_remaining` = 0");
 	}
 
 	struct OverlayElement {
@@ -148,15 +138,32 @@ namespace {
 
 	boost::weak_ptr<StrategicResourceContainer> g_strategic_resource_map;
 
+	void strategic_resource_refresh_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Map object refresh timer: now = ", now);
+
+		const auto strategic_resource_map = g_strategic_resource_map.lock();
+		if(!strategic_resource_map){
+			return;
+		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_StrategicResource",
+			"DELETE QUICK `r`.* "
+			"  FROM `Center_StrategicResource` AS `r` "
+			"  WHERE `r`.`resource_amount` = 0");
+	}
+
 	struct ResourceCrateElement {
 		boost::shared_ptr<ResourceCrate> resource_crate;
 
 		ResourceCrateUuid resource_crate_uuid;
 		Coord coord;
+		std::uint64_t expiry_time;
 
 		explicit ResourceCrateElement(boost::shared_ptr<ResourceCrate> resource_crate_)
 			: resource_crate(std::move(resource_crate_))
 			, resource_crate_uuid(resource_crate->get_resource_crate_uuid()), coord(resource_crate->get_coord())
+			, expiry_time(resource_crate->get_expiry_time())
 		{
 		}
 	};
@@ -164,9 +171,41 @@ namespace {
 	MULTI_INDEX_MAP(ResourceCrateContainer, ResourceCrateElement,
 		UNIQUE_MEMBER_INDEX(resource_crate_uuid)
 		MULTI_MEMBER_INDEX(coord)
+		MULTI_MEMBER_INDEX(expiry_time)
 	)
 
 	boost::weak_ptr<ResourceCrateContainer> g_resource_crate_map;
+
+	void resource_crate_refresh_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Resource crate refresh timer: now = ", now);
+
+		const auto resource_crate_map = g_resource_crate_map.lock();
+		if(!resource_crate_map){
+			return;
+		}
+
+		const auto utc_now = Poseidon::get_utc_time();
+
+		for(;;){
+			const auto it = resource_crate_map->begin<2>();
+			if(it == resource_crate_map->end<2>()){
+				break;
+			}
+			if(utc_now < it->expiry_time){
+				break;
+			}
+
+			const auto resource_crate = it->resource_crate;
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming resource crate: resource_crate_uuid = ", resource_crate->get_resource_crate_uuid());
+			resource_crate_map->erase<2>(it);
+		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_ResourceCrate",
+			"DELETE QUICK `c`.* "
+			"  FROM `Center_ResourceCrate` AS `c` "
+			"  WHERE `c`.`amount_remaining` = 0");
+	}
 
 	enum : unsigned {
 		MAP_WIDTH          = 600,
@@ -493,6 +532,14 @@ namespace {
 		const auto map_object_refresh_interval = get_config<std::uint64_t>("map_object_refresh_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
 			std::bind(&map_object_refresh_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+
+		timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
+			std::bind(&strategic_resource_refresh_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+
+		timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
+			std::bind(&resource_crate_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 	}
 
