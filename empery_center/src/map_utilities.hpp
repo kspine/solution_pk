@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include "coord.hpp"
+#include "id_types.hpp"
 
 namespace EmperyCenter {
 

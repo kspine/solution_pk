@@ -13,7 +13,7 @@
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../map_utilities.hpp"
-#include "../castle_utilities.hpp"
+#include "../map_utilities_center.hpp"
 #include "../data/map.hpp"
 #include "../castle.hpp"
 #include "../overlay.hpp"
@@ -667,6 +667,41 @@ _wounded_done:
 				}
 				task_box->check(task_type_id, attacked_object_type_id.get(), 1,
 					castle_category, 0, 0);
+			});
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+
+	// 资源宝箱。
+	if(soldiers_remaining == 0){
+		try {
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+
+				const auto &radius_limits = Data::Global::as_array(Data::Global::SLOT_RESOURCE_CRATE_RADIUS_LIMITS);
+				const auto radius_inner = static_cast<unsigned>(radius_limits.at(0).get<double>());
+				const auto radius_outer = static_cast<unsigned>(radius_limits.at(1).get<double>());
+
+				boost::container::flat_map<AttributeId, std::int64_t> attributes;
+				attacked_object->get_attributes(attributes);
+				for(auto it = attributes.begin(); it != attributes.end(); ++it){
+					const auto attribute_id = it->first;
+					const auto value = it->second;
+					if(value <= 0){
+						continue;
+					}
+					const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+					if(!resource_data){
+						continue;
+					}
+					try {
+						create_resource_crates(attacked_object->get_coord(),
+							resource_data->resource_id, static_cast<std::uint64_t>(value), radius_inner, radius_outer);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					}
+				}
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
