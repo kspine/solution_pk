@@ -152,6 +152,7 @@ public:
 	void create_building_mission(BuildingBaseId building_base_id, Mission mission, std::uint64_t duration, BuildingId building_id);
 	void cancel_building_mission(BuildingBaseId building_base_id);
 	void speed_up_building_mission(BuildingBaseId building_base_id, std::uint64_t delta_duration);
+	void forced_replace_building(BuildingBaseId building_base_id, BuildingId building_id, unsigned building_level);
 
 	void pump_building_status(BuildingBaseId building_base_id);
 	unsigned get_building_queue_size() const;
@@ -176,6 +177,7 @@ public:
 	void create_tech_mission(TechId tech_id, Mission mission, std::uint64_t duration);
 	void cancel_tech_mission(TechId tech_id);
 	void speed_up_tech_mission(TechId tech_id, std::uint64_t delta_duration);
+	void forced_replace_tech(TechId tech_id, unsigned tech_level);
 
 	void pump_tech_status(TechId tech_id);
 	unsigned get_tech_queue_size() const;

@@ -776,9 +776,11 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 	obj->set_mission_duration(0);
 	obj->set_mission_time_begin(0);
 	obj->set_mission_time_end(0);
-
-	// check_building_mission(obj, get_owner_uuid(), utc_now);
-
+/*
+	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
+		recalculate_attributes();
+	}
+*/
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
@@ -816,6 +818,43 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, std::uin
 		recalculate_attributes();
 	}
 
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleBuildingBase msg;
+			fill_building_message(msg, it->second, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+void Castle::forced_replace_building(BuildingBaseId building_base_id, BuildingId building_id, unsigned building_level){
+	PROFILE_ME;
+
+	auto it = m_buildings.find(building_base_id);
+	if(it == m_buildings.end()){
+		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
+			get_map_object_uuid().get(), building_base_id.get(), 0, 0, MIS_NONE, 0, 0, 0);
+		obj->async_save(true);
+		it = m_buildings.emplace(building_base_id, obj).first;
+	}
+	const auto &obj = it->second;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	obj->set_building_id(building_id.get());
+	obj->set_building_level(building_level);
+	obj->set_mission(0);
+	obj->set_mission_duration(0);
+	obj->set_mission_time_begin(utc_now);
+	obj->set_mission_time_end(utc_now);
+/*
+	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
+		recalculate_attributes();
+	}
+*/
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
@@ -1122,9 +1161,11 @@ void Castle::cancel_tech_mission(TechId tech_id){
 	obj->set_mission_duration(0);
 	obj->set_mission_time_begin(0);
 	obj->set_mission_time_end(0);
-
-	// check_tech_mission(obj, utc_now);
-
+/*
+	if(check_tech_mission(obj, utc_now)){
+		recalculate_attributes();
+	}
+*/
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
@@ -1160,6 +1201,42 @@ void Castle::speed_up_tech_mission(TechId tech_id, std::uint64_t delta_duration)
 		recalculate_attributes();
 	}
 
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleTech msg;
+			fill_tech_message(msg, it->second, utc_now);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+void Castle::forced_replace_tech(TechId tech_id, unsigned tech_level){
+	PROFILE_ME;
+
+	auto it = m_techs.find(tech_id);
+	if(it == m_techs.end()){
+		auto obj = boost::make_shared<MySql::Center_CastleTech>(
+			get_map_object_uuid().get(), tech_id.get(), 0, MIS_NONE, 0, 0, 0);
+		obj->async_save(true);
+		it = m_techs.emplace(tech_id, obj).first;
+	}
+	const auto &obj = it->second;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	obj->set_tech_level(tech_level);
+	obj->set_mission(MIS_NONE);
+	obj->set_mission_duration(0);
+	obj->set_mission_time_begin(utc_now);
+	obj->set_mission_time_end(utc_now);
+/*
+	if(check_tech_mission(obj, utc_now)){
+		recalculate_attributes();
+	}
+*/
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
