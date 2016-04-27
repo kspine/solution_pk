@@ -85,8 +85,20 @@ namespace {
 			return;
 		}
 
+		std::vector<boost::shared_ptr<MapObject>> map_objects_to_pump;
+		map_objects_to_pump.reserve(map_object_map->size());
 		for(auto it = map_object_map->begin<0>(); it != map_object_map->end<0>(); ++it){
 			const auto &map_object = it->map_object;
+			if(map_object->is_virtually_removed()){
+				continue;
+			}
+			if(map_object->is_garrisoned()){
+				continue;
+			}
+			map_objects_to_pump.emplace_back(map_object);
+		}
+		for(auto it = map_objects_to_pump.begin(); it != map_objects_to_pump.end(); ++it){
+			const auto &map_object = *it;
 			try {
 				map_object->pump_status();
 			} catch(std::exception &e){
