@@ -11,6 +11,9 @@
 #include "attribute_ids.hpp"
 #include "data/map_object_type.hpp"
 #include "data/castle.hpp"
+#include "castle.hpp"
+#include "transaction_element.hpp"
+#include "reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -242,6 +245,37 @@ std::uint64_t MapObject::get_resource_amount_carried() const {
 		amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(value));
 	}
 	return amount_total;
+}
+void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
+	PROFILE_ME;
+
+	const auto map_object_uuid = get_map_object_uuid();
+	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	std::vector<ResourceTransactionElement> transaction;
+	std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> temp_result;
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		const auto attribute_id = it->first;
+		const auto &obj = it->second;
+		const auto value = obj->get_value();
+		if(value <= 0){
+			continue;
+		}
+		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+		if(!resource_data){
+			continue;
+		}
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_data->resource_id, static_cast<std::uint64_t>(value),
+			ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
+		temp_result.emplace_back(obj);
+	}
+	castle->commit_resource_transaction(transaction,
+		[&]{
+			for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+				const auto &obj = *it;
+				obj->set_value(0);
+			}
+		});
 }
 
 bool MapObject::is_virtually_removed() const {

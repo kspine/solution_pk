@@ -59,7 +59,8 @@ constexpr ReasonId
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_RECYCLE              ( 674003 ), // 世界坐标 X          世界坐标 Y          0
-	ID_APPLY_ACCELERATION_CARD       ( 674004 ); // 世界坐标 X          世界坐标 Y          土地购买券 ID
+	ID_APPLY_ACCELERATION_CARD       ( 674004 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
+	ID_RELOCATE_CASTLE               ( 674005 ); // 世界坐标 X          世界坐标 Y          0
 
 }
 

@@ -264,27 +264,7 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
 	}
 
-	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
-
-	std::vector<ResourceTransactionElement> transaction;
-	boost::container::flat_map<AttributeId, std::int64_t> attributes, modifiers;
-	map_object->get_attributes(attributes);
-	for(auto it = attributes.begin(); it != attributes.end(); ++it){
-		const auto attribute_id = it->first;
-		const auto value = it->second;
-		if(value <= 0){
-			continue;
-		}
-		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
-		if(!resource_data){
-			continue;
-		}
-		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_data->resource_id, static_cast<std::uint64_t>(value),
-			ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
-		modifiers.emplace(attribute_id, 0);
-	}
-	castle->commit_resource_transaction(transaction,
-		[&]{ map_object->set_attributes(std::move(modifiers)); });
+	map_object->unload_resources(castle);
 
 	map_object->set_coord(castle->get_coord());
 	map_object->set_garrisoned(true);

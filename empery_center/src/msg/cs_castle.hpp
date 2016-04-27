@@ -267,6 +267,14 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleRelocate
+#define MESSAGE_ID      432
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VINT          (coord_x)	\
+	FIELD_VINT          (coord_y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

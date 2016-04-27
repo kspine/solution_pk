@@ -29,6 +29,7 @@
 #include "../singletons/announcement_map.hpp"
 #include "../chat_message_type_ids.hpp"
 #include "../chat_message_slot_ids.hpp"
+#include "../item_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -627,7 +628,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 
 		if(map_cell->get_resource_amount() != 0){
 			const auto resource_id = map_cell->get_production_resource_id();
-			const auto amount_harvested = map_cell->harvest(false);
+			const auto amount_harvested = map_cell->harvest(castle, false);
 			if(amount_harvested == 0){
 				LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
 					", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);
@@ -1564,6 +1565,102 @@ PLAYER_SERVLET(Msg::CS_CastleQueryTreatmentInfo, account, session, req){
 
 	castle->pump_treatment();
 	castle->synchronize_treatment_with_player(session);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	const auto relocation_card_count = item_box->get(ItemIds::ID_RELOCATION_CARD).count;
+	if(relocation_card_count == 0){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<ItemIds::ID_RELOCATION_CARD;
+	}
+
+	const auto new_castle_coord = Coord(req.coord_x, req.coord_y);
+	const auto new_cluster = WorldMap::get_cluster(new_castle_coord);
+	if(!new_cluster){
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
+	}
+	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid);
+	if(result.first != Msg::ST_OK){
+		return std::move(result);
+	}
+
+	// 回收所有领地。
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+
+		map_cell->pump_status();
+		map_cell->harvest(castle, false);
+
+		const auto ticket_item_id = map_cell->get_ticket_item_id();
+
+		std::vector<ItemTransactionElement> transaction;
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, ticket_item_id, 1,
+			ReasonIds::ID_RELOCATE_CASTLE, new_castle_coord.x(), new_castle_coord.y(), 0);
+		if(map_cell->is_acceleration_card_applied()){
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, 1,
+				ReasonIds::ID_RELOCATE_CASTLE, new_castle_coord.x(), new_castle_coord.y(), 0);
+		}
+		item_box->commit_transaction(transaction, false,
+			[&]{
+				map_cell->set_parent_object({ }, { }, { });
+				map_cell->set_acceleration_card_applied(false);
+			});
+	}
+
+	// 回收所有部队。
+	std::vector<boost::shared_ptr<MapObject>> battalions;
+	WorldMap::get_map_objects_by_parent_object(battalions, map_object_uuid);
+	for(auto it = battalions.begin(); it != battalions.end(); ++it){
+		const auto &battalion = *it;
+		const auto map_object_type_id = battalion->get_map_object_type_id();
+		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+
+		const auto battalion_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+		if(battalion_data && (battalion_data->speed > 0)){
+			battalion->pump_status();
+			battalion->unload_resources(castle);
+
+			battalion->set_coord(castle->get_coord());
+			battalion->set_garrisoned(true);
+		} else {
+			// TODO 拆除箭塔和地堡。
+		}
+	}
+
+	// 迁城。
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_RELOCATION_CARD, 1,
+		ReasonIds::ID_RELOCATE_CASTLE, new_castle_coord.x(), new_castle_coord.y(), 0);
+	item_box->commit_transaction(transaction, true,
+		[&]{
+			castle->set_coord(new_castle_coord);
+			castle->set_garrisoned(false);
+
+			for(auto it = battalions.begin(); it != battalions.end(); ++it){
+				const auto &battalion = *it;
+				const auto map_object_type_id = battalion->get_map_object_type_id();
+				const auto battalion_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+				if(battalion_data && (battalion_data->speed > 0)){
+					battalion->set_coord(new_castle_coord);
+				}
+			}
+		});
 
 	return Response();
 }
