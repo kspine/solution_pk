@@ -246,19 +246,13 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-std::uint64_t MapCell::harvest(bool saturated){
+std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
 	const auto ticket_item_id = get_ticket_item_id();
 	if(!ticket_item_id){
 		LOG_EMPERY_CENTER_DEBUG("No ticket on map cell: coord = ", coord);
-		return 0;
-	}
-
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(get_parent_object_uuid()));
-	if(!castle){
-		LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
 		return 0;
 	}
 

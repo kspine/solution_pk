@@ -40,6 +40,13 @@ namespace {
 	boost::weak_ptr<const StartPointMap> g_start_point_map;
 	const char START_POINT_FILE[] = "birth_point";
 
+	MULTI_INDEX_MAP(CrateMap, Data::MapCrate,
+		UNIQUE_MEMBER_INDEX(crate_id)
+		UNIQUE_MEMBER_INDEX(resource_amount_key)
+	)
+	boost::weak_ptr<const CrateMap> g_crate_map;
+	const char CRATE_FILE[] = "chest";
+
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(BASIC_FILE);
 		const auto basic_map = boost::make_shared<BasicMap>();
@@ -148,6 +155,28 @@ namespace {
 		handles.push(start_point_map);
 		// servlet = DataSession::create_servlet(START_POINT_FILE, Data::encode_csv_as_json(csv, "birth_point_id"));
 		// handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(CRATE_FILE);
+		const auto crate_map = boost::make_shared<CrateMap>();
+		while(csv.fetch_row()){
+			Data::MapCrate elem = { };
+
+			csv.get(elem.crate_id, "chest_id");
+
+			Poseidon::JsonArray array;
+			csv.get(array, "resource_id");
+			elem.resource_amount_key.first  = ResourceId(array.at(0).get<double>());
+			elem.resource_amount_key.second = array.at(1).get<double>();
+
+			if(!crate_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapCrate: crate_id = ", elem.crate_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapCrate"));
+			}
+		}
+		g_crate_map = crate_map;
+		handles.push(crate_map);
+		servlet = DataSession::create_servlet(CRATE_FILE, Data::encode_csv_as_json(csv, "chest_id"));
+		handles.push(std::move(servlet));
 	}
 }
 
@@ -316,6 +345,56 @@ namespace Data {
 		for(auto it = start_point_map->begin<1>(); it != start_point_map->end<1>(); ++it){
 			ret.emplace_back(start_point_map, &*it);
 		}
+	}
+
+	boost::shared_ptr<const MapCrate> MapCrate::get(CrateId crate_id){
+		PROFILE_ME;
+
+		const auto crate_map = g_crate_map.lock();
+		if(!crate_map){
+			LOG_EMPERY_CENTER_WARNING("MapCrateMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = crate_map->find<0>(crate_id);
+		if(it == crate_map->end<0>()){
+			LOG_EMPERY_CENTER_TRACE("MapCrate not found: crate_id = ", crate_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapCrate>(crate_map, &*it);
+	}
+	boost::shared_ptr<const MapCrate> MapCrate::require(CrateId crate_id){
+		PROFILE_ME;
+
+		auto ret = get(crate_id);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapCrate not found: crate_id = ", crate_id);
+			DEBUG_THROW(Exception, sslit("MapCrate not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapCrate> MapCrate::get_by_resource_amount(ResourceId resource_id, std::uint64_t amount){
+		PROFILE_ME;
+
+		const auto crate_map = g_crate_map.lock();
+		if(!crate_map){
+			LOG_EMPERY_CENTER_WARNING("MapCrateMap has not been loaded.");
+			return { };
+		}
+
+		auto it = crate_map->upper_bound<1>(std::make_pair(resource_id, amount));
+		if(it != crate_map->begin<1>()){
+			auto prev = std::prev(it);
+			if(prev->resource_amount_key.first == resource_id){
+				it = prev;
+			}
+		}
+		if((it == crate_map->end<1>()) || (it->resource_amount_key.first != resource_id)){
+			LOG_EMPERY_CENTER_TRACE("MapCrate not found: resource_id = ", resource_id, ", amount = ", amount);
+			return { };
+		}
+		return boost::shared_ptr<const MapCrate>(crate_map, &*it);
 	}
 }
 

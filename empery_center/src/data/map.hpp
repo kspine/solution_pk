@@ -68,6 +68,18 @@ namespace Data {
 		StartPointId start_point_id;
 		std::pair<unsigned, unsigned> map_coord;
 	};
+
+	class MapCrate {
+	public:
+		static boost::shared_ptr<const MapCrate> get(CrateId crate_id);
+		static boost::shared_ptr<const MapCrate> require(CrateId crate_id);
+
+		static boost::shared_ptr<const MapCrate> get_by_resource_amount(ResourceId resource_id, std::uint64_t amount);
+
+	public:
+		CrateId crate_id;
+		std::pair<ResourceId, std::uint64_t> resource_amount_key;
+	};
 }
 
 }

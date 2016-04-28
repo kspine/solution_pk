@@ -732,7 +732,7 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 
 	if(map_cell->get_resource_amount() != 0){
 		const auto resource_id = map_cell->get_production_resource_id();
-		const auto amount_harvested = map_cell->harvest(false);
+		const auto amount_harvested = map_cell->harvest(castle, false);
 		if(amount_harvested == 0){
 			return Response(Msg::ERR_WAREHOUSE_FULL);
 		}

@@ -479,7 +479,7 @@ void AccountMap::accumulate_self_performance(AccountId account_id, std::uint64_t
 	}
 
 	const auto old_value = it->obj->get_self_performance();
-	auto new_value = old_value + amount;
+	auto new_value = old_value + amount * 0.6;
 	if(new_value < old_value){
 		new_value = UINT64_MAX;
 	}

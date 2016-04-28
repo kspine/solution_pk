@@ -13,7 +13,7 @@
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../map_utilities.hpp"
-#include "../castle_utilities.hpp"
+#include "../map_utilities_center.hpp"
 #include "../data/map.hpp"
 #include "../castle.hpp"
 #include "../overlay.hpp"
@@ -166,7 +166,9 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 	}
 
-	const auto amount_to_harvest = harvest_speed * soldier_count * req.interval / 60000.0;
+	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+
+	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * req.interval / 60000.0;
 	const auto amount_harvested = overlay->harvest(map_object, amount_to_harvest, false);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
@@ -262,27 +264,7 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
 	}
 
-	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
-
-	std::vector<ResourceTransactionElement> transaction;
-	boost::container::flat_map<AttributeId, std::int64_t> attributes, modifiers;
-	map_object->get_attributes(attributes);
-	for(auto it = attributes.begin(); it != attributes.end(); ++it){
-		const auto attribute_id = it->first;
-		const auto value = it->second;
-		if(value <= 0){
-			continue;
-		}
-		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
-		if(!resource_data){
-			continue;
-		}
-		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_data->resource_id, static_cast<std::uint64_t>(value),
-			ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
-		modifiers.emplace(attribute_id, 0);
-	}
-	castle->commit_resource_transaction(transaction,
-		[&]{ map_object->set_attributes(std::move(modifiers)); });
+	map_object->unload_resources(castle);
 
 	map_object->set_coord(castle->get_coord());
 	map_object->set_garrisoned(true);
@@ -337,7 +319,9 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 	}
 
-	const auto amount_to_harvest = harvest_speed * soldier_count * req.interval / 60000.0;
+	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+
+	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * req.interval / 60000.0;
 	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest, false);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
@@ -359,7 +343,6 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto result_type              = req.result_type;
 	//const auto result_param1            = req.result_param1;
 	//const auto result_param2            = req.result_param2;
-	const auto soldiers_damaged         = req.soldiers_damaged;
 
 	// 结算战斗伤害。
 	const auto attacked_object = WorldMap::get_map_object(attacked_object_uuid);
@@ -367,7 +350,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
 	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto soldiers_remaining = saturated_sub(soldiers_current, soldiers_damaged);
+	const auto soldiers_damaged = std::min(soldiers_current, req.soldiers_damaged);
+	const auto soldiers_remaining = checked_sub(soldiers_current, soldiers_damaged);
 
 	if(soldiers_remaining <= 0){
 		if(attacked_object_type_id != MapObjectTypeIds::ID_CASTLE){
@@ -412,6 +396,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			wounded_ratio = 1;
 		}
 		soldiers_wounded = static_cast<std::uint64_t>(soldiers_damaged * wounded_ratio + 0.001);
+		LOG_EMPERY_CENTER_DEBUG("Wounded soldiers: wounded_ratio_basic = ", wounded_ratio_basic, ", wounded_ratio_bonus = ", wounded_ratio_bonus,
+			", soldiers_damaged = ", soldiers_damaged, ", soldiers_wounded = ", soldiers_wounded);
 
 		std::uint64_t capacity_used = 0;
 		std::vector<Castle::WoundedSoldierInfo> wounded_soldier_all;
@@ -661,6 +647,41 @@ _wounded_done:
 				}
 				task_box->check(task_type_id, attacked_object_type_id.get(), 1,
 					castle_category, 0, 0);
+			});
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+
+	// 资源宝箱。
+	if(soldiers_remaining == 0){
+		try {
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+
+				const auto &radius_limits = Data::Global::as_array(Data::Global::SLOT_RESOURCE_CRATE_RADIUS_LIMITS);
+				const auto radius_inner = static_cast<unsigned>(radius_limits.at(0).get<double>());
+				const auto radius_outer = static_cast<unsigned>(radius_limits.at(1).get<double>());
+
+				boost::container::flat_map<AttributeId, std::int64_t> attributes;
+				attacked_object->get_attributes(attributes);
+				for(auto it = attributes.begin(); it != attributes.end(); ++it){
+					const auto attribute_id = it->first;
+					const auto value = it->second;
+					if(value <= 0){
+						continue;
+					}
+					const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+					if(!resource_data){
+						continue;
+					}
+					try {
+						create_resource_crates(attacked_object->get_coord(),
+							resource_data->resource_id, static_cast<std::uint64_t>(value), radius_inner, radius_outer);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					}
+				}
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());

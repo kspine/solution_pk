@@ -11,6 +11,9 @@
 #include "attribute_ids.hpp"
 #include "data/map_object_type.hpp"
 #include "data/castle.hpp"
+#include "castle.hpp"
+#include "transaction_element.hpp"
+#include "reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -133,16 +136,6 @@ void MapObject::set_coord(Coord coord) noexcept {
 	m_obj->set_y(coord.y());
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 std::uint64_t MapObject::get_created_time() const {
@@ -158,16 +151,6 @@ void MapObject::set_name(std::string name){
 	m_obj->set_name(std::move(name));
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 bool MapObject::has_been_deleted() const {
@@ -182,16 +165,6 @@ void MapObject::delete_from_game() noexcept {
 	m_obj->set_deleted(true);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 bool MapObject::is_garrisoned() const {
@@ -206,16 +179,6 @@ void MapObject::set_garrisoned(bool garrisoned){
 	m_obj->set_garrisoned(garrisoned);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 std::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
@@ -263,16 +226,6 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 	}
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-
-	const auto session = PlayerSessionMap::get(get_owner_uuid());
-	if(session){
-		try {
-			synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
 }
 
 std::uint64_t MapObject::get_resource_amount_carried() const {
@@ -292,6 +245,37 @@ std::uint64_t MapObject::get_resource_amount_carried() const {
 		amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(value));
 	}
 	return amount_total;
+}
+void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
+	PROFILE_ME;
+
+	const auto map_object_uuid = get_map_object_uuid();
+	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	std::vector<ResourceTransactionElement> transaction;
+	std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> temp_result;
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		const auto attribute_id = it->first;
+		const auto &obj = it->second;
+		const auto value = obj->get_value();
+		if(value <= 0){
+			continue;
+		}
+		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+		if(!resource_data){
+			continue;
+		}
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_data->resource_id, static_cast<std::uint64_t>(value),
+			ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
+		temp_result.emplace_back(obj);
+	}
+	castle->commit_resource_transaction(transaction,
+		[&]{
+			for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+				const auto &obj = *it;
+				obj->set_value(0);
+			}
+		});
 }
 
 bool MapObject::is_virtually_removed() const {

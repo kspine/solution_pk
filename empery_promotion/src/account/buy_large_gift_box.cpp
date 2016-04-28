@@ -46,10 +46,11 @@ ACCOUNT_SERVLET("buyLargeGiftBox", session, params){
 		ret[sslit("errorMessage")] = "Account level not for sale";
 		return ret;
 	}
-	const auto price = promotion_data->large_gift_box_price;
+	const auto price = promotion_data->immediate_price;
+	const auto large_price = promotion_data->large_gift_box_price;
 
 	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, price,
+	transaction.emplace_back(info.account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, large_price,
 		Events::ItemChanged::R_BUY_LARGE_GIFT_BOX, level, 0, 0, serial);
 	const auto insufficient_item_id = ItemMap::commit_transaction_nothrow(transaction.data(), transaction.size());
 	if(insufficient_item_id){

@@ -14,6 +14,7 @@ namespace MySql {
 	class Center_MapObjectAttribute;
 }
 
+class Castle;
 class PlayerSession;
 class ClusterSession;
 
@@ -65,6 +66,7 @@ public:
 	void set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
 
 	std::uint64_t get_resource_amount_carried() const;
+	void unload_resources(const boost::shared_ptr<Castle> &castle);
 
 	unsigned get_action() const {
 		return m_action;

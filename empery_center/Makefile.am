@@ -65,8 +65,11 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/account.cpp	\
 	src/admin/item.cpp	\
 	src/admin/castle.cpp	\
+	src/admin/castle_building_base.cpp	\
+	src/admin/castle_tech.cpp	\
+	src/admin/castle_resource.cpp	\
+	src/admin/castle_soldier.cpp	\
 	src/admin/announcement.cpp	\
-	src/admin/mail.cpp	\
 	src/admin/activation_code.cpp	\
 	src/admin/payment.cpp	\
 	src/admin/auction.cpp	\
@@ -81,7 +84,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
 	src/account_utilities.cpp	\
-	src/castle_utilities.cpp	\
+	src/map_utilities_center.cpp	\
 	src/player_session.cpp	\
 	src/cluster_session.cpp	\
 	src/data_session.cpp	\

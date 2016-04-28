@@ -217,6 +217,7 @@ namespace IdTypes {
 	using MapEventId                = GenericId<std::uint32_t, 120018>;
 	using MapEventCircleId          = GenericId<std::uint32_t, 120019>;
 	using MapObjectChassisId        = GenericId<std::uint32_t, 120020>;
+	using CrateId                   = GenericId<std::uint32_t, 120021>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;
