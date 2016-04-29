@@ -96,6 +96,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/map_cell.cpp	\
 	src/map_object.cpp	\
 	src/castle.cpp	\
+	src/defense_building.cpp	\
 	src/item_box.cpp	\
 	src/mail_box.cpp	\
 	src/mail_data.cpp	\

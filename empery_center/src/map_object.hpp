@@ -26,7 +26,7 @@ private:
 		boost::shared_ptr<MySql::Center_MapObjectAttribute>> m_attributes;
 
 	// 非持久化数据。
-	double m_last_updated_time = 0;
+	std::uint64_t m_last_updated_time = 0;
 
 	unsigned m_action = 0;
 	std::string m_action_param;
@@ -37,6 +37,10 @@ public:
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes);
 	~MapObject();
+
+protected:
+	// 在世界地图上用于向客户端发送防御建筑的数据。
+	virtual void synchronize_with_player_additional(const boost::shared_ptr<PlayerSession> &session) const;
 
 public:
 	virtual void pump_status();

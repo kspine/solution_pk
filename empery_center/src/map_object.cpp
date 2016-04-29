@@ -17,12 +17,12 @@
 
 namespace EmperyCenter {
 
-MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,
-	std::string name, Coord coord, std::uint64_t created_time, bool garrisoned)
+MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
+	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time, bool garrisoned)
 	: m_obj(
 		[&]{
-			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(),
-				owner_uuid.get(), parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, false, garrisoned);
+			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(), owner_uuid.get(),
+				parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, false, garrisoned);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -37,6 +37,12 @@ MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 	}
 }
 MapObject::~MapObject(){
+}
+
+void MapObject::synchronize_with_player_additional(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	(void)session;
 }
 
 void MapObject::pump_status(){
@@ -59,55 +65,47 @@ void MapObject::pump_status(){
 void MapObject::recalculate_attributes(){
 	PROFILE_ME;
 
+	const auto utc_now = Poseidon::get_utc_time();
+
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(32);
 
 	const auto map_object_type_id = get_map_object_type_id();
-	const auto map_object_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
+	const auto map_object_data = Data::MapObjectTypeAbstract::get(map_object_type_id);
+	if(map_object_data){
+		boost::shared_ptr<MapObject> parent_object;
+		const auto parent_object_uuid = get_parent_object_uuid();
+		if(parent_object_uuid){
+			parent_object = WorldMap::get_map_object(parent_object_uuid);
+		}
+		if(parent_object){
+			LOG_EMPERY_CENTER_DEBUG("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
+				", parent_object_uuid = ", parent_object_uuid);
 
-	boost::shared_ptr<MapObject> parent_object;
-	const auto parent_object_uuid = get_parent_object_uuid();
-	if(parent_object_uuid){
-		parent_object = WorldMap::get_map_object(parent_object_uuid);
-	}
-	if(parent_object){
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_BONUS,                     0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DEFENSE_BONUS,                    0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_DODGING_RATIO_BONUS,              0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS,      0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS, 0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_ATTACK_RANGE_BONUS,               0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SIGHT_RANGE_BONUS,                0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_RATE_OF_FIRE_BONUS,               0);
-		modifiers.emplace_hint(modifiers.end(), AttributeIds::ID_SPEED_BONUS,                      0);
-
-		LOG_EMPERY_CENTER_DEBUG("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
-			", parent_object_uuid = ", parent_object_uuid);
-
-		std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
-		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-			Data::MapObjectTypeAttributeBonus::AKT_ALL, 0);
-		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-			Data::MapObjectTypeAttributeBonus::AKT_CHASSIS_ID, map_object_data->map_object_chassis_id.get());
-		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-			Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
-		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-			Data::MapObjectTypeAttributeBonus::AKT_MAP_OBJECT_TYPE_ID, map_object_data->map_object_type_id.get());
-		for(auto it = attribute_bonus_applicable_data.begin(); it != attribute_bonus_applicable_data.end(); ++it){
-			const auto &attribute_bonus_data = *it;
-			const auto tech_attribute_id = attribute_bonus_data->tech_attribute_id;
-			const auto bonus_attribute_id = attribute_bonus_data->bonus_attribute_id;
-			const auto tech_attribute_value = parent_object->get_attribute(tech_attribute_id);
-			LOG_EMPERY_CENTER_TRACE("> Applying attribute bonus: tech_attribute_id = ", tech_attribute_id,
-				", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
-			modifiers[bonus_attribute_id] += tech_attribute_value;
+			std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
+			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+				Data::MapObjectTypeAttributeBonus::AKT_ALL, 0);
+			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+				Data::MapObjectTypeAttributeBonus::AKT_CHASSIS_ID, map_object_data->map_object_chassis_id.get());
+			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+				Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
+			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+				Data::MapObjectTypeAttributeBonus::AKT_MAP_OBJECT_TYPE_ID, map_object_data->map_object_type_id.get());
+			for(auto it = attribute_bonus_applicable_data.begin(); it != attribute_bonus_applicable_data.end(); ++it){
+				const auto &attribute_bonus_data = *it;
+				const auto tech_attribute_id = attribute_bonus_data->tech_attribute_id;
+				const auto bonus_attribute_id = attribute_bonus_data->bonus_attribute_id;
+				const auto tech_attribute_value = parent_object->get_attribute(tech_attribute_id);
+				LOG_EMPERY_CENTER_TRACE("> Applying attribute bonus: tech_attribute_id = ", tech_attribute_id,
+					", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
+				auto &value = modifiers[bonus_attribute_id];
+				value += tech_attribute_value;
+			}
 		}
 	}
 
 	set_attributes(std::move(modifiers));
-
-	const auto hi_res_now = Poseidon::get_hi_res_mono_clock();
-	m_last_updated_time = hi_res_now;
+	m_last_updated_time = utc_now;
 }
 
 MapObjectUuid MapObject::get_map_object_uuid() const {
@@ -313,6 +311,8 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 		msg.action             = get_action();
 		msg.param              = get_action_param();
 		session->send(msg);
+
+		synchronize_with_player_additional(session);
 	}
 }
 void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const {

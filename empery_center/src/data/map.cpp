@@ -4,6 +4,7 @@
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
 #include "../data_session.hpp"
+#include "../map_object_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -46,6 +47,46 @@ namespace {
 	)
 	boost::weak_ptr<const CrateMap> g_crate_map;
 	const char CRATE_FILE[] = "chest";
+
+	using DefenseTowerMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingDefenseTower>;
+	boost::weak_ptr<const DefenseTowerMap> g_defense_tower_map;
+	const char DEFENSE_TOWER_MAP[] = "Building_towers";
+
+	using BattleBunkerMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingBattleBunker>;
+	boost::weak_ptr<const BattleBunkerMap> g_battle_bunker_map;
+	const char BATTLE_BUNKER_MAP[] = "Building_bunker";
+
+	template<typename ElementT>
+	void read_defense_building_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
+		csv.get(elem.upgrade_duration,       "building_upgrade_time");
+
+		Poseidon::JsonObject object;
+		csv.get(object, "building_upgrade_cost");
+		elem.upgrade_cost.reserve(object.size());
+		for(auto it = object.begin(); it != object.end(); ++it){
+			const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+			const auto resource_amount = it->second.get<double>();
+			if(!elem.upgrade_cost.emplace(resource_id, resource_amount).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade resource cost: resource_id = ", resource_id);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade resource cost"));
+			}
+		}
+
+		object.clear();
+		csv.get(object, "building_upgrade_condition");
+		elem.prerequisite.reserve(object.size());
+		for(auto it = object.begin(); it != object.end(); ++it){
+			const auto building_id = boost::lexical_cast<BuildingId>(it->first);
+			const auto building_level = static_cast<unsigned>(it->second.get<double>());
+			if(!elem.prerequisite.emplace(building_id, building_level).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade prerequisite: building_id = ", building_id);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade prerequisite"));
+			}
+		}
+
+		csv.get(elem.destruct_duration,      "building_dismantling_time");
+		csv.get(elem.map_object_weapon_id,   "arm_type");
+	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(BASIC_FILE);
@@ -176,6 +217,46 @@ namespace {
 		g_crate_map = crate_map;
 		handles.push(crate_map);
 		servlet = DataSession::create_servlet(CRATE_FILE, Data::encode_csv_as_json(csv, "chest_id"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(DEFENSE_TOWER_MAP);
+		const auto defense_tower_map = boost::make_shared<DefenseTowerMap>();
+		while(csv.fetch_row()){
+			Data::MapDefenseBuildingDefenseTower elem = { };
+
+			csv.get(elem.building_level, "building_level");
+			read_defense_building_abstract(elem, csv);
+
+			//
+
+			if(!defense_tower_map->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectDefenseTower: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectDefenseTower"));
+			}
+		}
+		g_defense_tower_map = defense_tower_map;
+		handles.push(defense_tower_map);
+		servlet = DataSession::create_servlet(DEFENSE_TOWER_MAP, Data::encode_csv_as_json(csv, "building_level"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(BATTLE_BUNKER_MAP);
+		const auto battle_bunker_map = boost::make_shared<BattleBunkerMap>();
+		while(csv.fetch_row()){
+			Data::MapDefenseBuildingBattleBunker elem = { };
+
+			csv.get(elem.building_level, "building_level");
+			read_defense_building_abstract(elem, csv);
+
+			//
+
+			if(!battle_bunker_map->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectBattleBunker: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectBattleBunker"));
+			}
+		}
+		g_battle_bunker_map = battle_bunker_map;
+		handles.push(battle_bunker_map);
+		servlet = DataSession::create_servlet(BATTLE_BUNKER_MAP, Data::encode_csv_as_json(csv, "building_level"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -395,6 +476,89 @@ namespace Data {
 			return { };
 		}
 		return boost::shared_ptr<const MapCrate>(crate_map, &*it);
+	}
+
+	boost::shared_ptr<const MapDefenseBuildingAbstract> MapDefenseBuildingAbstract::get(
+		MapObjectTypeId map_object_type_id, unsigned building_level)
+	{
+		PROFILE_ME;
+
+		switch(map_object_type_id.get()){
+		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
+			return MapDefenseBuildingDefenseTower::get(building_level);
+		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
+			return MapDefenseBuildingBattleBunker::get(building_level);
+		default:
+			LOG_EMPERY_CENTER_DEBUG("Unhandled defense building id: map_object_type_id = ", map_object_type_id);
+			return { };
+		}
+	}
+	boost::shared_ptr<const MapDefenseBuildingAbstract> MapDefenseBuildingAbstract::require(
+		MapObjectTypeId map_object_type_id, unsigned building_level)
+	{
+		PROFILE_ME;
+
+		auto ret = get(map_object_type_id, building_level);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingAbstract not found: map_object_type_id = ", map_object_type_id,
+				", building_level = ", building_level);
+			DEBUG_THROW(Exception, sslit("MapDefenseBuildingAbstract not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapDefenseBuildingDefenseTower> MapDefenseBuildingDefenseTower::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto defense_tower_map = g_defense_tower_map.lock();
+		if(!defense_tower_map){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingDefenseTower has not been loaded.");
+			return { };
+		}
+
+		const auto it = defense_tower_map->find(building_level);
+		if(it == defense_tower_map->end()){
+			LOG_EMPERY_CENTER_TRACE("MapDefenseBuildingDefenseTower not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const MapDefenseBuildingDefenseTower>(defense_tower_map, &(it->second));
+	}
+	boost::shared_ptr<const MapDefenseBuildingDefenseTower> MapDefenseBuildingDefenseTower::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingDefenseTower not found: building_level = ", building_level);
+			DEBUG_THROW(Exception, sslit("MapDefenseBuildingDefenseTower not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapDefenseBuildingBattleBunker> MapDefenseBuildingBattleBunker::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto battle_bunker_map = g_battle_bunker_map.lock();
+		if(!battle_bunker_map){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingBattleBunker has not been loaded.");
+			return { };
+		}
+
+		const auto it = battle_bunker_map->find(building_level);
+		if(it == battle_bunker_map->end()){
+			LOG_EMPERY_CENTER_TRACE("MapDefenseBuildingBattleBunker not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const MapDefenseBuildingBattleBunker>(battle_bunker_map, &(it->second));
+	}
+	boost::shared_ptr<const MapDefenseBuildingBattleBunker> MapDefenseBuildingBattleBunker::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingBattleBunker not found: building_level = ", building_level);
+			DEBUG_THROW(Exception, sslit("MapDefenseBuildingBattleBunker not found"));
+		}
+		return ret;
 	}
 }
 

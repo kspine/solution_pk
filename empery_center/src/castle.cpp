@@ -161,7 +161,7 @@ namespace {
 		}
 	}
 
-	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, AccountUuid owner_uuid, std::uint64_t utc_now){
+	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
 		const auto mission = Castle::Mission(obj->get_mission());
@@ -202,8 +202,6 @@ namespace {
 		obj->set_mission_duration(0);
 		obj->set_mission_time_begin(0);
 		obj->set_mission_time_end(0);
-
-		async_recheck_building_level_tasks(owner_uuid);
 
 		return true;
 	}
@@ -268,14 +266,15 @@ namespace {
 	}
 }
 
-Castle::Castle(MapObjectUuid map_object_uuid,
-	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
-	: MapObject(map_object_uuid, MapObjectTypeIds::ID_CASTLE,
-		owner_uuid, parent_object_uuid, std::move(name), coord, created_time, false)
+Castle::Castle(MapObjectUuid map_object_uuid, AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,
+	std::string name, Coord coord, std::uint64_t created_time)
+	: DefenseBuilding(map_object_uuid, MapObjectTypeIds::ID_CASTLE, owner_uuid, parent_object_uuid,
+		std::move(name), coord, created_time)
 {
 }
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
+	boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
@@ -283,7 +282,7 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment)
-	: MapObject(std::move(obj), attributes)
+	: DefenseBuilding(std::move(obj), attributes, std::move(defense_obj))
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
 		const auto &obj = *it;
@@ -325,7 +324,7 @@ Castle::~Castle(){
 void Castle::pump_status(){
 	PROFILE_ME;
 
-	MapObject::pump_status();
+	DefenseBuilding::pump_status();
 
 	check_auto_inc_resources();
 
@@ -333,7 +332,7 @@ void Castle::pump_status(){
 
 	bool dirty = false;
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
-		if(check_building_mission(it->second, get_owner_uuid(), utc_now)){
+		if(check_building_mission(it->second, utc_now)){
 			++dirty;
 		}
 	}
@@ -344,6 +343,7 @@ void Castle::pump_status(){
 	}
 	if(dirty){
 		recalculate_attributes();
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 
 	pump_population_production();
@@ -352,7 +352,7 @@ void Castle::pump_status(){
 void Castle::recalculate_attributes(){
 	PROFILE_ME;
 
-	MapObject::recalculate_attributes();
+	DefenseBuilding::recalculate_attributes();
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(32);
@@ -375,9 +375,9 @@ void Castle::recalculate_attributes(){
 			prosperity += static_cast<std::int64_t>(upgrade_data->prosperity_points);
 
 			if(building_data->type == BuildingTypeIds::ID_PRIMARY){
-				auto &castle_level = modifiers[AttributeIds::ID_CASTLE_LEVEL];
-				if(castle_level < building_level){
-					castle_level = building_level;
+				auto &display_level = modifiers[AttributeIds::ID_BUILDING_LEVEL];
+				if(display_level < building_level){
+					display_level = building_level;
 				}
 			}
 		}
@@ -737,8 +737,10 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
-	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
+	if(check_building_mission(obj, utc_now)){
 		recalculate_attributes();
+		pump_population_production();
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -777,8 +779,10 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 	obj->set_mission_time_begin(0);
 	obj->set_mission_time_end(0);
 /*
-	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
+	if(check_building_mission(obj, utc_now)){
 		recalculate_attributes();
+		pump_population_production();
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 */
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -814,8 +818,10 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, std::uin
 
 	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
-	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
+	if(check_building_mission(obj, utc_now)){
 		recalculate_attributes();
+		pump_population_production();
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -851,8 +857,10 @@ void Castle::forced_replace_building(BuildingBaseId building_base_id, BuildingId
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(utc_now);
 /*
-	if(check_building_mission(obj, get_owner_uuid(), utc_now)){
+	if(check_building_mission(obj, utc_now)){
 		recalculate_attributes();
+		pump_population_production();
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 */
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -880,9 +888,10 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	if(check_building_mission(it->second, get_owner_uuid(), utc_now)){
+	if(check_building_mission(it->second, utc_now)){
 		recalculate_attributes();
 		pump_population_production();
+		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 }
 unsigned Castle::get_building_queue_size() const {

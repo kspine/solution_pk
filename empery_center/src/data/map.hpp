@@ -80,6 +80,38 @@ namespace Data {
 		CrateId crate_id;
 		std::pair<ResourceId, std::uint64_t> resource_amount_key;
 	};
+
+	class MapDefenseBuildingAbstract {
+	public:
+		static boost::shared_ptr<const MapDefenseBuildingAbstract> get(MapObjectTypeId map_object_type_id, unsigned building_level);
+		static boost::shared_ptr<const MapDefenseBuildingAbstract> require(MapObjectTypeId map_object_type_id, unsigned building_level);
+
+	public:
+		unsigned building_level;
+		double upgrade_duration;
+		boost::container::flat_map<ResourceId, std::uint64_t> upgrade_cost;
+		boost::container::flat_map<BuildingId, unsigned> prerequisite;
+		double destruct_duration;
+		MapObjectWeaponId map_object_weapon_id;
+	};
+
+	class MapDefenseBuildingDefenseTower : public MapDefenseBuildingAbstract {
+	public:
+		static boost::shared_ptr<const MapDefenseBuildingDefenseTower> get(unsigned building_level);
+		static boost::shared_ptr<const MapDefenseBuildingDefenseTower> require(unsigned building_level);
+
+	public:
+		//
+	};
+
+	class MapDefenseBuildingBattleBunker : public MapDefenseBuildingAbstract {
+	public:
+		static boost::shared_ptr<const MapDefenseBuildingBattleBunker> get(unsigned building_level);
+		static boost::shared_ptr<const MapDefenseBuildingBattleBunker> require(unsigned building_level);
+
+	public:
+		//
+	};
 }
 
 }

@@ -1,8 +1,7 @@
 #ifndef EMPERY_CENTER_CASTLE_HPP_
 #define EMPERY_CENTER_CASTLE_HPP_
 
-#include "map_object.hpp"
-#include <poseidon/cxx_util.hpp>
+#include "defense_building.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/function.hpp>
@@ -21,17 +20,8 @@ namespace MySql {
 	class Center_CastleTreatment;
 }
 
-class PlayerSession;
-
-class Castle : public MapObject {
+class Castle : public DefenseBuilding {
 public:
-	enum Mission {
-		MIS_NONE            = 0,
-		MIS_CONSTRUCT       = 1,
-		MIS_UPGRADE         = 2,
-		MIS_DESTRUCT        = 3,
-	};
-
 	struct BuildingBaseInfo {
 		BuildingBaseId building_base_id;
 		BuildingId building_id;
@@ -116,10 +106,11 @@ private:
 	double m_population_capacity = 0;
 
 public:
-	Castle(MapObjectUuid map_object_uuid,
-		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time);
+	Castle(MapObjectUuid map_object_uuid, AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,
+		std::string name, Coord coord, std::uint64_t created_time);
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
+		boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,

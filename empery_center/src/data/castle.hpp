@@ -58,6 +58,8 @@ namespace Data {
 		std::uint64_t max_map_cell_count;
 		std::uint64_t max_map_cell_distance;
 		std::uint64_t max_immigrant_group_count;
+		std::uint64_t max_defense_towers;
+		std::uint64_t max_battle_bunkers;
 	};
 
 	class CastleUpgradeStables : public CastleUpgradeAbstract {

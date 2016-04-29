@@ -226,6 +226,8 @@ namespace {
 			csv.get(elem.max_map_cell_count,        "territory_number");
 			csv.get(elem.max_map_cell_distance,     "range");
 			csv.get(elem.max_immigrant_group_count, "people");
+			csv.get(elem.max_defense_towers,        "towers_max");
+			csv.get(elem.max_battle_bunkers,        "bunker_max");
 
 			if(!upgrade_primary_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradePrimary: building_level = ", elem.building_level);
