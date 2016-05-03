@@ -4,7 +4,9 @@
 #include "../msg/sc_map.hpp"
 #include "../msg/err_map.hpp"
 #include "../msg/err_castle.hpp"
+#include "../msg/err_item.hpp"
 #include "../msg/kill.hpp"
+#include "../resource_utilities.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_utilities.hpp"
 #include "../map_object.hpp"
@@ -28,6 +30,8 @@
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
+#include "../defense_building.hpp"
+#include "../map_utilities_center.hpp"
 
 namespace EmperyCenter {
 
@@ -742,6 +746,276 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
+	const auto castle_uuid = MapObjectUuid(req.castle_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	castle->pump_status();
+
+	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	const auto upgrade_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, 1);
+	if(!upgrade_data){
+		return Response(Msg::ERR_NO_SUCH_BUILDING) <<map_object_type_id;
+	}
+	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
+		const auto max_level = castle->get_max_level(it->first);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
+			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
+		}
+	}
+
+	std::vector<boost::shared_ptr<MapObject>> current_buildings;
+	WorldMap::get_map_objects_by_parent_object(current_buildings, castle_uuid);
+	current_buildings.erase(
+		std::remove_if(current_buildings.begin(), current_buildings.end(),
+			[&](const boost::shared_ptr<MapObject> &map_object){
+				return map_object->get_map_object_type_id() == map_object_type_id;
+			}),
+		current_buildings.end());
+	const auto castle_level = castle->get_level();
+	const auto castle_upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+	std::uint64_t max_defense_building_count = 0;
+	if(map_object_type_id == MapObjectTypeIds::ID_DEFENSE_TOWER){
+		max_defense_building_count = castle_upgrade_data->max_defense_towers;
+	} else if(map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER){
+		max_defense_building_count = castle_upgrade_data->max_battle_bunkers;
+	}
+	if(current_buildings.size() >= max_defense_building_count){
+		return Response(Msg::ERR_BUILD_LIMIT_EXCEEDED) <<map_object_type_id;
+	}
+
+	const auto coord = Coord(req.coord_x, req.coord_y);
+	const auto distance = get_distance_of_coords(coord, castle->get_coord());
+	if(distance > castle_upgrade_data->max_map_cell_distance){
+		return Response(Msg::ERR_MAP_CELL_IS_TOO_FAR_AWAY) <<distance;
+	}
+	const auto cluster = WorldMap::get_cluster(coord);
+	if(!cluster){
+        return CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
+	}
+	const auto castle_cluster = WorldMap::get_cluster(castle->get_coord());
+	if(castle_cluster != cluster){
+		return CbppResponse(Msg::ERR_NOT_ON_THE_SAME_MAP_SERVER);
+	}
+	auto result = can_place_defense_building_at(coord);
+	if(result.first != Msg::ST_OK){
+		return std::move(result);
+	}
+
+	const auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));
+
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
+	}
+
+	const auto defense_building_uuid = MapObjectUuid(Poseidon::Uuid::random());
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto dec_result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
+		ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), upgrade_data->building_level, 0,
+		[&]{
+			const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
+				account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now);
+			defense_building->pump_status();
+			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration);
+			WorldMap::insert_map_object(defense_building);
+			LOG_EMPERY_CENTER_INFO("Created defense building: defense_building_uuid = ", defense_building_uuid,
+				", map_object_type_id = ", map_object_type_id, ", account_uuid = ", account->get_account_uuid());
+		});
+	if(dec_result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<dec_result.first;
+	}
+	if(dec_result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<dec_result.second;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapUpgradeDefenseBuilding, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(WorldMap::get_map_object(map_object_uuid));
+	if(!defense_building){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
+	}
+
+	const auto parent_object_uuid = defense_building->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<parent_object_uuid;
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	defense_building->pump_status();
+
+	if(defense_building->get_mission() != DefenseBuilding::MIS_NONE){
+		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT);
+	}
+
+	const auto map_object_type_id = defense_building->get_map_object_type_id();
+	const auto building_level = defense_building->get_building_level();
+	const auto upgrade_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, building_level + 1);
+	if(!upgrade_data){
+		return Response(Msg::ERR_BUILDING_UPGRADE_MAX) <<building_level;
+	}
+	for(auto it = upgrade_data->prerequisite.begin(); it != upgrade_data->prerequisite.end(); ++it){
+		const auto max_level = castle->get_max_level(it->first);
+		if(max_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
+				", level_required = ", it->second, ", max_level = ", max_level);
+			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
+		}
+	}
+	const auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));
+
+	boost::container::flat_map<ItemId, std::uint64_t> tokens;
+	tokens.reserve(req.tokens.size());
+	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
+		auto &count_total = tokens[ItemId(it->item_id)];
+		count_total = checked_add<std::uint64_t>(count_total, it->count);
+	}
+
+	const auto result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
+		ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), upgrade_data->building_level, 0,
+		[&]{ defense_building->create_mission(Castle::MIS_UPGRADE, duration); });
+	if(result.first){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
+	}
+	if(result.second){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapDestroyDefenseBuilding, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(WorldMap::get_map_object(map_object_uuid));
+	if(!defense_building){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
+	}
+
+	defense_building->pump_status();
+
+	if(defense_building->get_mission() != DefenseBuilding::MIS_NONE){
+		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT);
+	}
+
+	const auto map_object_type_id = defense_building->get_map_object_type_id();
+	const auto building_level = defense_building->get_building_level();
+	const auto upgrade_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
+	if(upgrade_data->destruct_duration == 0){
+		return Response(Msg::ERR_BUILDING_NOT_DESTRUCTIBLE);
+	}
+	const auto duration = static_cast<std::uint64_t>(0 /* std::ceil(upgrade_data->destruct_duration * 60000.0 - 0.001) */);
+
+	defense_building->create_mission(Castle::MIS_DESTRUCT, duration);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapCompleteDefenseBuildingImmediately, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(WorldMap::get_map_object(map_object_uuid));
+	if(!defense_building){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	defense_building->pump_status();
+
+	if(defense_building->get_mission() == DefenseBuilding::MIS_NONE){
+		return Response(Msg::ERR_NO_BUILDING_MISSION);
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_IMMEDIATE_BUILDING_UPGRADE_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	const auto time_remaining = saturated_sub(defense_building->get_mission_time_end(), utc_now);
+	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
+	std::vector<ItemTransactionElement> transaction;
+	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ defense_building->speed_up_mission(UINT64_MAX); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapSpeedUpDefenseBuildingUpgrade, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(WorldMap::get_map_object(map_object_uuid));
+	if(!defense_building){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	defense_building->pump_status();
+
+	if(defense_building->get_mission() == DefenseBuilding::MIS_NONE){
+		return Response(Msg::ERR_NO_BUILDING_MISSION);
+	}
+
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::require(item_id);
+	if(item_data->type.first != Data::Item::CAT_UPGRADE_TURBO){
+		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_UPGRADE_TURBO;
+	}
+	if((item_data->type.second != 1) && (item_data->type.second != 3)){
+		return Response(Msg::ERR_NOT_BUILDING_UPGRADE_ITEM) <<item_id;
+	}
+	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto time_remaining = saturated_sub(defense_building->get_mission_time_end(), utc_now);
+	const auto count_to_consume = std::min<std::uint64_t>(req.count,
+		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
+		ReasonIds::ID_SPEED_UP_BUILDING_UPGRADE, defense_building->get_map_object_type_id().get(), defense_building->get_building_level(), 0);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ defense_building->speed_up_mission(saturated_mul(turbo_milliseconds, count_to_consume)); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
 
 	return Response();

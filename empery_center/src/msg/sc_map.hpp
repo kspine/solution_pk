@@ -230,6 +230,17 @@ namespace Msg {
 	FIELD_VUINT         (amount_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapDefenseBuilding
+#define MESSAGE_ID      380
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (building_level)	\
+	FIELD_VUINT         (mission)	\
+	FIELD_VUINT         (mission_duration)	\
+	FIELD_VUINT         (mission_time_remaining)	\
+	FIELD_STRING        (garrisoning_object_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

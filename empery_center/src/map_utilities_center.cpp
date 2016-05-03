@@ -16,6 +16,68 @@
 
 namespace EmperyCenter {
 
+std::pair<long, std::string> can_place_defense_building_at(Coord coord){
+	PROFILE_ME;
+
+	// 检测阻挡。
+	const auto map_cell = WorldMap::get_map_cell(coord);
+	if(map_cell){
+		const auto cell_owner_uuid = map_cell->get_owner_uuid();
+		if(cell_owner_uuid){
+			LOG_EMPERY_CENTER_TRACE("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
+			return CbppResponse(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
+		}
+	}
+
+	const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+	const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+	const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+	const auto cell_data = Data::MapCellBasic::require(map_x, map_y);
+	const auto terrain_id = cell_data->terrain_id;
+	const auto terrain_data = Data::MapTerrain::require(terrain_id);
+	if(!terrain_data->passable){
+		LOG_EMPERY_CENTER_TRACE("Blocked by terrain: terrain_id = ", terrain_id);
+		return CbppResponse(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
+	}
+	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
+	if((map_x < border_thickness) || (map_x >= cluster_scope.width() - border_thickness) ||
+		(map_y < border_thickness) || (map_y >= cluster_scope.height() - border_thickness))
+	{
+		LOG_EMPERY_CENTER_TRACE("Blocked by map border: coord = ", coord);
+		return CbppResponse(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<coord;
+	}
+
+	std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+	WorldMap::get_map_objects_by_rectangle(adjacent_objects,
+		Rectangle(Coord(coord.x() - 3, coord.y() - 3), Coord(coord.x() + 4, coord.y() + 4)));
+	std::vector<Coord> foundation;
+	for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
+		const auto &other_object = *it;
+		const auto other_map_object_uuid = other_object->get_map_object_uuid();
+		const auto other_coord = other_object->get_coord();
+		if(coord == other_coord){
+			LOG_EMPERY_CENTER_TRACE("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
+//			if(wait_for_moving_objects && other_object->is_moving()){
+//				return CbppResponse(Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY) <<other_map_object_uuid;
+//			}
+			return CbppResponse(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
+		}
+		const auto other_object_type_id = other_object->get_map_object_type_id();
+		if(other_object_type_id == MapObjectTypeIds::ID_CASTLE){
+			foundation.clear();
+			get_castle_foundation(foundation, other_coord, false);
+			for(auto fit = foundation.begin(); fit != foundation.end(); ++fit){
+				if(coord == *fit){
+					LOG_EMPERY_CENTER_TRACE("Blocked by castle: other_map_object_uuid = ", other_map_object_uuid);
+					return CbppResponse(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
+				}
+			}
+		}
+	}
+
+	return CbppResponse();
+}
+
 std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid excluding_map_object_uuid){
 	PROFILE_ME;
 
