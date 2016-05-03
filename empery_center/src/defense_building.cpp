@@ -110,6 +110,7 @@ void DefenseBuilding::self_heal(std::uint64_t utc_now){
 	if(max_soldier_count <= 0){
 		return;
 	}
+	const auto soldiers_healed_perminute = std::ceil(self_healing_rate * max_soldier_count - 0.001);
 
 	LOG_EMPERY_CENTER_DEBUG("Self heal: map_object_uuid = ", get_map_object_uuid(), ", map_object_type_id = ", map_object_type_id,
 		", building_level = ", building_level, ", self_healing_rate = ", self_healing_rate, ", max_soldier_count = ", max_soldier_count);
@@ -118,7 +119,7 @@ void DefenseBuilding::self_heal(std::uint64_t utc_now){
 	const auto old_soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 
 	const auto self_healing_duration = saturated_sub(utc_now, old_self_healed_time);
-	const auto amount_healed = self_healing_duration * self_healing_rate / 60000.0 + m_self_healing_remainder;
+	const auto amount_healed = self_healing_duration * soldiers_healed_perminute / 60000.0 + m_self_healing_remainder;
 	const auto rounded_amount_healed = static_cast<std::uint64_t>(amount_healed);
 	const auto new_soldier_count = std::min<std::uint64_t>(saturated_add(old_soldier_count, rounded_amount_healed), max_soldier_count);
 	if(new_soldier_count > old_soldier_count){
@@ -130,6 +131,7 @@ void DefenseBuilding::self_heal(std::uint64_t utc_now){
 
 		m_self_healing_remainder = amount_healed - rounded_amount_healed;
 	}
+	m_defense_obj->set_last_self_healed_time(utc_now);
 }
 
 void DefenseBuilding::synchronize_with_player_additional(const boost::shared_ptr<PlayerSession> &session) const {
