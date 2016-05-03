@@ -568,9 +568,8 @@ void Castle::pump_population_production(){
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD, ResourceIds::ID_POPULATION, new_resource_amount - old_resource_amount,
 				ReasonIds::ID_POPULATION_PRODUCTION, production_duration, 0, 0);
 			commit_resource_transaction(transaction);
-
-			m_population_production_remainder = amount_produced - rounded_amount_produced;
 		}
+		m_population_production_remainder = amount_produced - rounded_amount_produced;
 	} else {
 		// 清空人口？
 	}
