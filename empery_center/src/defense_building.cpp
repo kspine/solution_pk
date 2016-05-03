@@ -122,17 +122,16 @@ void DefenseBuilding::pump_status(){
 		if(old_soldier_count < max_soldier_count){
 			const auto heal_rate = defense_combat_data->self_healing_rate;
 			const auto duration = saturated_sub(utc_now, m_defense_obj->get_last_self_healed_time());
-			auto new_soldier_count = static_cast<std::uint64_t>(old_soldier_count + heal_rate * duration / 60000.0 + 0.001);
-			if(new_soldier_count < old_soldier_count){
-				new_soldier_count = old_soldier_count;
-			}
-			if(new_soldier_count > max_soldier_count){
+			auto count_to_add = heal_rate * duration / 60000.0 + 0.001;
+			std::uint64_t new_soldier_count;
+			if(count_to_add > max_soldier_count - old_soldier_count){
 				new_soldier_count = max_soldier_count;
+			} else {
+				new_soldier_count = static_cast<std::uint64_t>(old_soldier_count + count_to_add);
 			}
 			LOG_EMPERY_CENTER_DEBUG("Self heal: map_object_uuid = ", get_map_object_uuid(), ", map_object_type_id = ", map_object_type_id,
 				", building_level = ", building_level, ", heal_rate = ", heal_rate, ", duration = ", duration,
-				", old_soldier_count = ", old_soldier_count, ", max_soldier_count = ", max_soldier_count,
-				", new_soldier_count = ", new_soldier_count);
+				", old_soldier_count = ", old_soldier_count, ", max_soldier_count = ", max_soldier_count, ", new_soldier_count = ", new_soldier_count);
 
 			boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 			modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(new_soldier_count);
