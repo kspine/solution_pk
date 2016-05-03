@@ -23,6 +23,9 @@ public:
 private:
 	const boost::shared_ptr<MySql::Center_DefenseBuilding> m_defense_obj;
 
+	// 非持久化数据。
+	double m_self_healing_remainder = 0;
+
 public:
 	DefenseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 		MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time);
@@ -30,6 +33,9 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj);
 	~DefenseBuilding();
+
+private:
+	void self_heal(std::uint64_t utc_now);
 
 protected:
 	void synchronize_with_player_additional(const boost::shared_ptr<PlayerSession> &session) const override;

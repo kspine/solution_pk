@@ -22,7 +22,6 @@ private:
 	const boost::shared_ptr<MySql::Center_ResourceCrate> m_obj;
 
 	// 非持久化数据。
-	double m_harvest_remainder = 0;
 	boost::weak_ptr<MapObject> m_last_harvester;
 
 public:

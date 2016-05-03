@@ -560,7 +560,7 @@ void Castle::pump_population_production(){
 		const auto old_resource_amount      = get_resource(ResourceIds::ID_POPULATION).amount;
 
 		const auto production_duration = saturated_sub(utc_now, old_last_production_time);
-		const auto amount_produced = std::round(production_duration * production_rate / 60000.0) + m_population_production_remainder;
+		const auto amount_produced = production_duration * production_rate / 60000.0 + m_population_production_remainder;
 		const auto rounded_amount_produced = static_cast<std::uint64_t>(amount_produced);
 		const auto new_resource_amount = std::min<std::uint64_t>(saturated_add(old_resource_amount, rounded_amount_produced), capacity);
 		if(new_resource_amount > old_resource_amount){
