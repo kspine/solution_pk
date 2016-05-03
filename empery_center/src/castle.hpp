@@ -154,7 +154,7 @@ public:
 
 	// 各个建筑的独立接口。
 	unsigned get_max_level(BuildingId building_id) const; // （通用）
-	unsigned get_level() const; // 领主府
+	unsigned get_level() const override; // 领主府
 	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
 	bool is_tech_upgrade_in_progress() const; // 学院
 	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const; // （通用）兵营

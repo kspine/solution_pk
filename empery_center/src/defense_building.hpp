@@ -38,7 +38,7 @@ public:
 	void pump_status() override;
 	void recalculate_attributes() override;
 
-	unsigned get_building_level() const;
+	virtual unsigned get_level() const;
 	Mission get_mission() const;
 	std::uint64_t get_mission_duration() const;
 	std::uint64_t get_mission_time_begin() const;
