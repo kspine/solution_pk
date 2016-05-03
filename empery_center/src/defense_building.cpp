@@ -118,12 +118,12 @@ void DefenseBuilding::pump_status(){
 		const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
 		const auto defense_combat_data = Data::MapDefenseCombat::require(defense_building_data->defense_combat_id);
 		const auto old_soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+		auto new_soldier_count = old_soldier_count;
 		const auto max_soldier_count = defense_combat_data->soldiers_max;
 		if(old_soldier_count < max_soldier_count){
 			const auto heal_rate = defense_combat_data->self_healing_rate;
 			const auto duration = saturated_sub(utc_now, m_defense_obj->get_last_self_healed_time());
 			auto count_to_add = heal_rate * duration / 60000.0 + 0.001;
-			std::uint64_t new_soldier_count;
 			if(count_to_add > max_soldier_count - old_soldier_count){
 				new_soldier_count = max_soldier_count;
 			} else {
@@ -132,13 +132,15 @@ void DefenseBuilding::pump_status(){
 			LOG_EMPERY_CENTER_DEBUG("Self heal: map_object_uuid = ", get_map_object_uuid(), ", map_object_type_id = ", map_object_type_id,
 				", building_level = ", building_level, ", heal_rate = ", heal_rate, ", duration = ", duration,
 				", old_soldier_count = ", old_soldier_count, ", max_soldier_count = ", max_soldier_count, ", new_soldier_count = ", new_soldier_count);
-
-			boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-			modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(new_soldier_count);
-			set_attributes(std::move(modifiers));
-
-			m_defense_obj->set_last_self_healed_time(utc_now);
 		}
+
+		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+		modifiers.reserve(16);
+		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(max_soldier_count);
+		modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(new_soldier_count);
+		set_attributes(std::move(modifiers));
+
+		m_defense_obj->set_last_self_healed_time(utc_now);
 	}
 }
 void DefenseBuilding::recalculate_attributes(){
