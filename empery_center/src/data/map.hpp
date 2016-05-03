@@ -92,7 +92,16 @@ namespace Data {
 		boost::container::flat_map<ResourceId, std::uint64_t> upgrade_cost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		double destruct_duration;
-		MapObjectWeaponId map_object_weapon_id;
+		DefenseCombatId defense_combat_id;
+	};
+
+	class MapDefenseBuildingCastle : public MapDefenseBuildingAbstract {
+	public:
+		static boost::shared_ptr<const MapDefenseBuildingCastle> get(unsigned building_level);
+		static boost::shared_ptr<const MapDefenseBuildingCastle> require(unsigned building_level);
+
+	public:
+		//
 	};
 
 	class MapDefenseBuildingDefenseTower : public MapDefenseBuildingAbstract {
@@ -111,6 +120,17 @@ namespace Data {
 
 	public:
 		//
+	};
+
+	class MapDefenseCombat {
+	public:
+		static boost::shared_ptr<const MapDefenseCombat> get(DefenseCombatId defense_combat_id);
+		static boost::shared_ptr<const MapDefenseCombat> require(DefenseCombatId defense_combat_id);
+
+	public:
+		DefenseCombatId defense_combat_id;
+		std::uint64_t soldiers_max;
+		double self_healing_rate;
 	};
 }
 

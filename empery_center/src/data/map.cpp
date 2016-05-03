@@ -48,13 +48,23 @@ namespace {
 	boost::weak_ptr<const CrateMap> g_crate_map;
 	const char CRATE_FILE[] = "chest";
 
+	using CastleMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingCastle>;
+	boost::weak_ptr<const CastleMap> g_castle_map;
+	const char CASTLE_FILE[] = "Building_castel";
+
 	using DefenseTowerMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingDefenseTower>;
 	boost::weak_ptr<const DefenseTowerMap> g_defense_tower_map;
-	const char DEFENSE_TOWER_MAP[] = "Building_towers";
+	const char DEFENSE_TOWER_FILE[] = "Building_towers";
 
 	using BattleBunkerMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingBattleBunker>;
 	boost::weak_ptr<const BattleBunkerMap> g_battle_bunker_map;
-	const char BATTLE_BUNKER_MAP[] = "Building_bunker";
+	const char BATTLE_BUNKER_FILE[] = "Building_bunker";
+
+	MULTI_INDEX_MAP(DefenseCombatMap, Data::MapDefenseCombat,
+		UNIQUE_MEMBER_INDEX(defense_combat_id)
+	)
+	boost::weak_ptr<const DefenseCombatMap> g_defense_combat_map;
+	const char DEFENSE_COMBAT_FILE[] = "Building_combat_attributes.csv";
 
 	template<typename ElementT>
 	void read_defense_building_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
@@ -85,7 +95,7 @@ namespace {
 		}
 
 		csv.get(elem.destruct_duration,      "building_dismantling_time");
-		csv.get(elem.map_object_weapon_id,   "arm_type");
+		csv.get(elem.defense_combat_id,      "building_combat_attributes");
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){
@@ -219,7 +229,27 @@ namespace {
 		servlet = DataSession::create_servlet(CRATE_FILE, Data::encode_csv_as_json(csv, "chest_id"));
 		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(DEFENSE_TOWER_MAP);
+		csv = Data::sync_load_data(CASTLE_FILE);
+		const auto castle_map = boost::make_shared<CastleMap>();
+		while(csv.fetch_row()){
+			Data::MapDefenseBuildingCastle elem = { };
+
+			csv.get(elem.building_level, "building_level");
+			read_defense_building_abstract(elem, csv);
+
+			//
+
+			if(!castle_map->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectCastle: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectCastle"));
+			}
+		}
+		g_castle_map = castle_map;
+		handles.push(castle_map);
+		servlet = DataSession::create_servlet(CASTLE_FILE, Data::encode_csv_as_json(csv, "building_level"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(DEFENSE_TOWER_FILE);
 		const auto defense_tower_map = boost::make_shared<DefenseTowerMap>();
 		while(csv.fetch_row()){
 			Data::MapDefenseBuildingDefenseTower elem = { };
@@ -236,10 +266,10 @@ namespace {
 		}
 		g_defense_tower_map = defense_tower_map;
 		handles.push(defense_tower_map);
-		servlet = DataSession::create_servlet(DEFENSE_TOWER_MAP, Data::encode_csv_as_json(csv, "building_level"));
+		servlet = DataSession::create_servlet(DEFENSE_TOWER_FILE, Data::encode_csv_as_json(csv, "building_level"));
 		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(BATTLE_BUNKER_MAP);
+		csv = Data::sync_load_data(BATTLE_BUNKER_FILE);
 		const auto battle_bunker_map = boost::make_shared<BattleBunkerMap>();
 		while(csv.fetch_row()){
 			Data::MapDefenseBuildingBattleBunker elem = { };
@@ -256,7 +286,26 @@ namespace {
 		}
 		g_battle_bunker_map = battle_bunker_map;
 		handles.push(battle_bunker_map);
-		servlet = DataSession::create_servlet(BATTLE_BUNKER_MAP, Data::encode_csv_as_json(csv, "building_level"));
+		servlet = DataSession::create_servlet(BATTLE_BUNKER_FILE, Data::encode_csv_as_json(csv, "building_level"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(DEFENSE_COMBAT_FILE);
+		const auto defense_combat_map = boost::make_shared<DefenseCombatMap>();
+		while(csv.fetch_row()){
+			Data::MapDefenseCombat elem = { };
+
+			csv.get(elem.defense_combat_id, "id");
+			csv.get(elem.soldiers_max,      "force_mnax");
+			csv.get(elem.self_healing_rate, "building_recover");
+
+			if(!defense_combat_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapDefenseCombat: defense_combat_id = ", elem.defense_combat_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapDefenseCombat"));
+			}
+		}
+		g_defense_combat_map = defense_combat_map;
+		handles.push(defense_combat_map);
+		servlet = DataSession::create_servlet(DEFENSE_COMBAT_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -484,6 +533,8 @@ namespace Data {
 		PROFILE_ME;
 
 		switch(map_object_type_id.get()){
+		case MapObjectTypeIds::ID_CASTLE.get():
+			return MapDefenseBuildingCastle::get(building_level);
 		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
 			return MapDefenseBuildingDefenseTower::get(building_level);
 		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
@@ -503,6 +554,33 @@ namespace Data {
 			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingAbstract not found: map_object_type_id = ", map_object_type_id,
 				", building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("MapDefenseBuildingAbstract not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapDefenseBuildingCastle> MapDefenseBuildingCastle::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto castle_map = g_castle_map.lock();
+		if(!castle_map){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingCastle has not been loaded.");
+			return { };
+		}
+
+		const auto it = castle_map->find(building_level);
+		if(it == castle_map->end()){
+			LOG_EMPERY_CENTER_TRACE("MapDefenseBuildingCastle not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const MapDefenseBuildingCastle>(castle_map, &(it->second));
+	}
+	boost::shared_ptr<const MapDefenseBuildingCastle> MapDefenseBuildingCastle::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingCastle not found: building_level = ", building_level);
+			DEBUG_THROW(Exception, sslit("MapDefenseBuildingCastle not found"));
 		}
 		return ret;
 	}
@@ -557,6 +635,33 @@ namespace Data {
 		if(!ret){
 			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingBattleBunker not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("MapDefenseBuildingBattleBunker not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapDefenseCombat> MapDefenseCombat::get(DefenseCombatId defense_combat_id){
+		PROFILE_ME;
+
+		const auto defense_combat_map = g_defense_combat_map.lock();
+		if(!defense_combat_map){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseCombat has not been loaded.");
+			return { };
+		}
+
+		const auto it = defense_combat_map->find<0>(defense_combat_id);
+		if(it == defense_combat_map->end<0>()){
+			LOG_EMPERY_CENTER_TRACE("MapDefenseCombat not found: defense_combat_id = ", defense_combat_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapDefenseCombat>(defense_combat_map, &*it);
+	}
+	boost::shared_ptr<const MapDefenseCombat> MapDefenseCombat::require(DefenseCombatId defense_combat_id){
+		PROFILE_ME;
+
+		auto ret = get(defense_combat_id);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseCombat not found: defense_combat_id = ", defense_combat_id);
+			DEBUG_THROW(Exception, sslit("MapDefenseCombat not found"));
 		}
 		return ret;
 	}
