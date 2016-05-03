@@ -372,10 +372,9 @@ namespace {
 			boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj;
 
 			void touch(MapObjectUuid map_object_uuid){
-				const auto utc_now = Poseidon::get_utc_time();
 				if(!defense_obj){
 					defense_obj = boost::make_shared<MySql::Center_DefenseBuilding>(map_object_uuid.get(), 1,
-						DefenseBuilding::MIS_NONE, 0, 0, 0, Poseidon::Uuid(), utc_now);
+						DefenseBuilding::MIS_NONE, 0, 0, 0, Poseidon::Uuid(), 0);
 					defense_obj->async_save(true);
 				}
 			}
