@@ -64,7 +64,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(defense_combat_id)
 	)
 	boost::weak_ptr<const DefenseCombatMap> g_defense_combat_map;
-	const char DEFENSE_COMBAT_FILE[] = "Building_combat_attributes.csv";
+	const char DEFENSE_COMBAT_FILE[] = "Building_combat_attributes";
 
 	template<typename ElementT>
 	void read_defense_building_abstract(ElementT &elem, const Poseidon::CsvParser &csv){

@@ -906,7 +906,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 
 	const auto it = map_object_map->find<0>(map_object_uuid);
 	if(it == map_object_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("Map object not found: map_object_uuid = ", map_object_uuid);
+		LOG_EMPERY_CENTER_TRACE("Map object not found: map_object_uuid = ", map_object_uuid);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Map object not found"));
 		}
