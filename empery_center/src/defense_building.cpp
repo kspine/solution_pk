@@ -113,7 +113,7 @@ void DefenseBuilding::pump_status(){
 	}
 
 	const auto map_object_type_id = get_map_object_type_id();
-	const auto building_level = get_building_level();
+	const auto building_level = static_cast<unsigned>(get_attribute(AttributeIds::ID_BUILDING_LEVEL)); // get_building_level();
 	const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
 	const auto defense_combat_data = Data::MapDefenseCombat::require(defense_building_data->defense_combat_id);
 	const auto old_soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
