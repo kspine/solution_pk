@@ -209,11 +209,11 @@ void MapCell::pump_production(){
 		const auto new_resource_amount = std::min<std::uint64_t>(saturated_add(old_resource_amount, rounded_amount_produced), capacity);
 		if(new_resource_amount > old_resource_amount){
 			m_obj->set_resource_amount(new_resource_amount);
-
-			m_production_remainder = amount_produced - rounded_amount_produced;
 		}
+		m_production_remainder = amount_produced - rounded_amount_produced;
 	} else {
 		m_obj->set_resource_amount(0);
+		m_production_remainder = 0;
 	}
 	m_obj->set_last_production_time(utc_now);
 

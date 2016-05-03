@@ -128,9 +128,8 @@ void DefenseBuilding::self_heal(std::uint64_t utc_now){
 		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(max_soldier_count);
 		modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(new_soldier_count);
 		set_attributes(std::move(modifiers));
-
-		m_self_healing_remainder = amount_healed - rounded_amount_healed;
 	}
+	m_self_healing_remainder = amount_healed - rounded_amount_healed;
 	m_defense_obj->set_last_self_healed_time(utc_now);
 }
 

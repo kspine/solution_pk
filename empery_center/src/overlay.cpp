@@ -100,7 +100,6 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, do
 
 	harvester->set_attributes(std::move(modifiers));
 	m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove));
-
 	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
 	m_last_harvester = harvester;
 
