@@ -109,7 +109,7 @@ WarStatusMap::StatusInfo WarStatusMap::get(AccountUuid first_account_uuid, Accou
 
 	const auto it = war_status_map->find<0>(std::make_pair(less_account_uuid, greater_account_uuid));
 	if(it == war_status_map->end<0>()){
-		LOG_EMPERY_CENTER_DEBUG("War status not found: less_account_uuid = ", less_account_uuid, ", greater_account_uuid = ", greater_account_uuid);
+		LOG_EMPERY_CENTER_TRACE("War status not found: less_account_uuid = ", less_account_uuid, ", greater_account_uuid = ", greater_account_uuid);
 		return info;
 	}
 	fill_status_info(info, *it);

@@ -877,7 +877,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeDefenseBuilding, account, session, req){
 	}
 
 	const auto map_object_type_id = defense_building->get_map_object_type_id();
-	const auto building_level = defense_building->get_building_level();
+	const auto building_level = defense_building->get_level();
 	const auto upgrade_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, building_level + 1);
 	if(!upgrade_data){
 		return Response(Msg::ERR_BUILDING_UPGRADE_MAX) <<building_level;
@@ -929,7 +929,7 @@ PLAYER_SERVLET(Msg::CS_MapDestroyDefenseBuilding, account, session, req){
 	}
 
 	const auto map_object_type_id = defense_building->get_map_object_type_id();
-	const auto building_level = defense_building->get_building_level();
+	const auto building_level = defense_building->get_level();
 	const auto upgrade_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
 	if(upgrade_data->destruct_duration == 0){
 		return Response(Msg::ERR_BUILDING_NOT_DESTRUCTIBLE);
@@ -1011,7 +1011,7 @@ PLAYER_SERVLET(Msg::CS_MapSpeedUpDefenseBuildingUpgrade, account, session, req){
 		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
-		ReasonIds::ID_SPEED_UP_BUILDING_UPGRADE, defense_building->get_map_object_type_id().get(), defense_building->get_building_level(), 0);
+		ReasonIds::ID_SPEED_UP_BUILDING_UPGRADE, defense_building->get_map_object_type_id().get(), defense_building->get_level(), 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{ defense_building->speed_up_mission(saturated_mul(turbo_milliseconds, count_to_consume)); });
 	if(insuff_item_id){

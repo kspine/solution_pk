@@ -340,7 +340,7 @@ void MapEventBlock::refresh_events(bool first_time){
 					coords_avail.emplace_hint(coords_avail.end(), coord);
 				}
 			}
-			LOG_EMPERY_CENTER_DEBUG("Number of coords statically available: map_event_id = ", map_event_id, ", coords_avail = ", coords_avail.size());
+			LOG_EMPERY_CENTER_TRACE("Number of coords statically available: map_event_id = ", map_event_id, ", coords_avail = ", coords_avail.size());
 			for(auto it = m_events.begin(); it != m_events.end(); ++it){
 				const auto coord = it->first;
 				// 事件不能刷在现有事件上。

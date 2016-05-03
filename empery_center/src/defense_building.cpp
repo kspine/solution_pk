@@ -7,6 +7,7 @@
 #include "player_session.hpp"
 #include "data/map.hpp"
 #include "attribute_ids.hpp"
+#include "map_object_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -110,6 +111,36 @@ void DefenseBuilding::pump_status(){
 	if(check_defense_building_mission(m_defense_obj, utc_now)){
 		recalculate_attributes();
 	}
+
+	const auto building_level = get_level();
+	if(building_level > 0){
+		const auto map_object_type_id = get_map_object_type_id();
+		const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
+		const auto defense_combat_data = Data::MapDefenseCombat::require(defense_building_data->defense_combat_id);
+		const auto old_soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+		const auto max_soldier_count = defense_combat_data->soldiers_max;
+		if(old_soldier_count < max_soldier_count){
+			const auto heal_rate = defense_combat_data->self_healing_rate;
+			const auto duration = saturated_sub(utc_now, m_defense_obj->get_last_self_healed_time());
+			auto new_soldier_count = static_cast<std::uint64_t>(old_soldier_count + heal_rate * duration / 60000.0 + 0.001);
+			if(new_soldier_count < old_soldier_count){
+				new_soldier_count = old_soldier_count;
+			}
+			if(new_soldier_count > max_soldier_count){
+				new_soldier_count = max_soldier_count;
+			}
+			LOG_EMPERY_CENTER_DEBUG("Self heal: map_object_uuid = ", get_map_object_uuid(), ", map_object_type_id = ", map_object_type_id,
+				", building_level = ", building_level, ", heal_rate = ", heal_rate, ", duration = ", duration,
+				", old_soldier_count = ", old_soldier_count, ", max_soldier_count = ", max_soldier_count,
+				", new_soldier_count = ", new_soldier_count);
+
+			boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+			modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(new_soldier_count);
+			set_attributes(std::move(modifiers));
+
+			m_defense_obj->set_last_self_healed_time(utc_now);
+		}
+	}
 }
 void DefenseBuilding::recalculate_attributes(){
 	PROFILE_ME;
@@ -121,10 +152,9 @@ void DefenseBuilding::recalculate_attributes(){
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(32);
 
-	const auto building_level = get_building_level();
 	const auto map_object_type_id = get_map_object_type_id();
-	const auto defense_building_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, building_level);
-	if(defense_building_data){
+	if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
+		const auto building_level = get_level();
 		auto &display_level = modifiers[AttributeIds::ID_BUILDING_LEVEL];
 		if(display_level < building_level){
 			display_level = building_level;
@@ -152,7 +182,7 @@ void DefenseBuilding::recalculate_attributes(){
 	set_attributes(std::move(modifiers));
 }
 
-unsigned DefenseBuilding::get_building_level() const {
+unsigned DefenseBuilding::get_level() const {
 	return m_defense_obj->get_building_level();
 }
 DefenseBuilding::Mission DefenseBuilding::get_mission() const {
