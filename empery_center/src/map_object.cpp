@@ -267,11 +267,11 @@ void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t
 	PROFILE_ME;
 
 	auto it = m_buffs.find(buff_id);
-	if(it != m_buffs.end()){
+	if(it == m_buffs.end()){
 		auto obj = boost::make_shared<MySql::Center_MapObjectBuff>(m_obj->unlocked_get_map_object_uuid(),
 			buff_id.get(), 0, 0, 0);
 		obj->async_save(true);
-		m_buffs.emplace(it->first, std::move(obj));
+		it = m_buffs.emplace(it->first, std::move(obj)).first;
 	}
 	const auto &obj = it->second;
 	obj->set_duration(duration);
