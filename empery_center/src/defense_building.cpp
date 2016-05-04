@@ -113,7 +113,7 @@ void DefenseBuilding::self_heal(std::uint64_t utc_now){
 	}
 	const auto soldiers_healed_perminute = std::ceil(self_healing_rate * max_soldier_count - 0.001);
 
-	LOG_EMPERY_CENTER_DEBUG("Self heal: map_object_uuid = ", get_map_object_uuid(), ", map_object_type_id = ", map_object_type_id,
+	LOG_EMPERY_CENTER_TRACE("Self heal: map_object_uuid = ", get_map_object_uuid(), ", map_object_type_id = ", map_object_type_id,
 		", building_level = ", building_level, ", self_healing_rate = ", self_healing_rate, ", max_soldier_count = ", max_soldier_count);
 
 	const auto old_self_healed_time = m_defense_obj->get_last_self_healed_time();
