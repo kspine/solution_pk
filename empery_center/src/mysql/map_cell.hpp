@@ -27,6 +27,16 @@ namespace MySql {
 	FIELD_BIGINT            (value)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   Center_MapCellBuff
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_BIGINT            (x)	\
+	FIELD_BIGINT            (y)	\
+	FIELD_INTEGER_UNSIGNED  (buff_id)   \
+	FIELD_BIGINT_UNSIGNED   (duration)  \
+	FIELD_DATETIME          (time_begin)    \
+	FIELD_DATETIME          (time_end)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }

@@ -115,6 +115,8 @@ namespace {
 			"      ON `m`.`map_object_uuid` = `a`.`map_object_uuid` "
 			"    LEFT JOIN `Center_DefenseBuilding` AS `d` "
 			"      ON `m`.`map_object_uuid` = `d`.`map_object_uuid` "
+			"    LEFT JOIN `Center_MapObjectBuff` AS `b` "
+			"      ON `m`.`map_object_uuid` = `b`.`map_object_uuid` "
 			"  WHERE `m`.`deleted` > 0");
 	}
 
@@ -293,6 +295,7 @@ namespace {
 		struct TempMapCellElement {
 			boost::shared_ptr<MySql::Center_MapCell> obj;
 			std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>> attributes;
+			std::vector<boost::shared_ptr<MySql::Center_MapCellBuff>> buffs;
 		};
 		std::map<Coord, TempMapCellElement> temp_map_cell_map;
 
@@ -326,10 +329,24 @@ namespace {
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading map cell attributes.");
 
+		LOG_EMPERY_CENTER_INFO("Loading map cell buffs...");
+		conn->execute_sql("SELECT * FROM `Center_MapCellBuff`");
+		while(conn->fetch_row()){
+			auto obj = boost::make_shared<MySql::Center_MapCellBuff>();
+			obj->fetch(conn);
+			const auto coord = Coord(obj->get_x(), obj->get_y());
+			const auto it = temp_map_cell_map.find(coord);
+			if(it == temp_map_cell_map.end()){
+				continue;
+			}
+			obj->enable_auto_saving();
+			it->second.buffs.emplace_back(std::move(obj));
+		}
+		LOG_EMPERY_CENTER_INFO("Done loading map cell buffs.");
+
 		const auto map_cell_map = boost::make_shared<MapCellContainer>();
 		for(auto it = temp_map_cell_map.begin(); it != temp_map_cell_map.end(); ++it){
-			auto map_cell = boost::make_shared<MapCell>(std::move(it->second.obj), it->second.attributes);
-
+			auto map_cell = boost::make_shared<MapCell>(std::move(it->second.obj), it->second.attributes, it->second.buffs);
 			map_cell_map->insert(MapCellElement(std::move(map_cell)));
 		}
 		g_map_cell_map = map_cell_map;
@@ -339,6 +356,7 @@ namespace {
 		struct TempMapObjectElement {
 			boost::shared_ptr<MySql::Center_MapObject> obj;
 			std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attributes;
+			std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> buffs;
 		};
 		std::map<MapObjectUuid, TempMapObjectElement> temp_map_object_map;
 
@@ -367,6 +385,21 @@ namespace {
 			it->second.attributes.emplace_back(std::move(obj));
 		}
 		LOG_EMPERY_CENTER_INFO("Done loading map object attributes.");
+
+		LOG_EMPERY_CENTER_INFO("Loading map object buffs...");
+		conn->execute_sql("SELECT * FROM `Center_MapObjectBuff`");
+		while(conn->fetch_row()){
+			auto obj = boost::make_shared<MySql::Center_MapObjectBuff>();
+			obj->fetch(conn);
+			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
+			const auto it = temp_map_object_map.find(map_object_uuid);
+			if(it == temp_map_object_map.end()){
+				continue;
+			}
+			obj->enable_auto_saving();
+			it->second.buffs.emplace_back(std::move(obj));
+		}
+		LOG_EMPERY_CENTER_INFO("Done loading map object buffs.");
 
 		struct TempDefenseBuildingElement {
 			boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj;
@@ -498,14 +531,16 @@ namespace {
 				def.touch(it->first);
 				auto &meta = temp_castle_map[it->first];
 				meta.touch(it->first);
-				map_object = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes, def.defense_obj,
+				map_object = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes, it->second.buffs,
+					def.defense_obj,
 					meta.buildings, meta.techs, meta.resources, meta.soldiers, meta.soldier_production, meta.wounded_soldiers, meta.treatment);
 			} else if((map_object_type_id == MapObjectTypeIds::ID_DEFENSE_TOWER) || (map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER)){
 				auto &def = temp_defense_building_map[it->first];
 				def.touch(it->first);
-				map_object = boost::make_shared<DefenseBuilding>(std::move(it->second.obj), it->second.attributes, def.defense_obj);
+				map_object = boost::make_shared<DefenseBuilding>(std::move(it->second.obj), it->second.attributes, it->second.buffs,
+					def.defense_obj);
 			} else {
-				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes);
+				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes, it->second.buffs);
 			}
 			map_object_map->insert(MapObjectElement(std::move(map_object)));
 		}

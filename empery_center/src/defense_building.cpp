@@ -84,8 +84,9 @@ DefenseBuilding::DefenseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId 
 }
 DefenseBuilding::DefenseBuilding(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
+	const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
 	boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj)
-	: MapObject(std::move(obj), attributes)
+	: MapObject(std::move(obj), attributes, buffs)
 	, m_defense_obj(std::move(defense_obj))
 {
 }
