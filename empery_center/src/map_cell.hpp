@@ -12,6 +12,7 @@ namespace EmperyCenter {
 namespace MySql {
 	class Center_MapCell;
 	class Center_MapCellAttribute;
+	class Center_MapCellBuff;
 }
 
 class Castle;
@@ -19,11 +20,21 @@ class PlayerSession;
 class ClusterSession;
 
 class MapCell : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+public:
+	struct BuffInfo {
+		BuffId buff_id;
+		std::uint64_t duration;
+		std::uint64_t time_begin;
+		std::uint64_t time_end;
+	};
+
 private:
 	const boost::shared_ptr<MySql::Center_MapCell> m_obj;
 
 	boost::container::flat_map<AttributeId,
 		boost::shared_ptr<MySql::Center_MapCellAttribute>> m_attributes;
+	boost::container::flat_map<BuffId,
+		boost::shared_ptr<MySql::Center_MapCellBuff>> m_buffs;
 
 	// 非持久化数据。
 	double m_production_remainder = 0;
@@ -33,7 +44,8 @@ private:
 public:
 	explicit MapCell(Coord coord);
 	MapCell(boost::shared_ptr<MySql::Center_MapCell> obj,
-		const std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>> &attributes);
+		const std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>> &attributes,
+		const std::vector<boost::shared_ptr<MySql::Center_MapCellBuff>> &buffs);
 	~MapCell();
 
 public:
@@ -69,6 +81,11 @@ public:
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(const boost::container::flat_map<AttributeId, std::int64_t> &modifiers);
+
+	BuffInfo get_buff(BuffId buff_id) const;
+	void get_buffs(std::vector<BuffInfo> &ret) const;
+	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
+	void clear_buff(BuffId buff_id) noexcept;
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

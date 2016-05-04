@@ -37,7 +37,12 @@ namespace Msg {
 	FIELD_VUINT         (production_rate)	\
 	FIELD_VUINT         (capacity)	\
 	FIELD_VINT          (parent_object_x)	\
-	FIELD_VINT          (parent_object_y)
+	FIELD_VINT          (parent_object_y)	\
+	FIELD_ARRAY         (buffs,	\
+		FIELD_VUINT         (buff_id)	\
+		FIELD_VUINT         (duration)	\
+		FIELD_VUINT         (time_remaining)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectInfo
@@ -56,7 +61,12 @@ namespace Msg {
 	)	\
 	FIELD_VUINT         (garrisoned)	\
 	FIELD_VUINT         (action)    \
-	FIELD_STRING        (param)
+	FIELD_STRING        (param)	\
+	FIELD_ARRAY         (buffs,	\
+		FIELD_VUINT         (buff_id)	\
+		FIELD_VUINT         (duration)	\
+		FIELD_VUINT         (time_remaining)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectRemoved

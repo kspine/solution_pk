@@ -17,6 +17,17 @@
 
 namespace EmperyCenter {
 
+namespace {
+	void fill_buff_info(MapObject::BuffInfo &info, const boost::shared_ptr<MySql::Center_MapObjectBuff> &obj){
+		PROFILE_ME;
+
+		info.buff_id    = BuffId(obj->get_buff_id());
+		info.duration   = obj->get_duration();
+		info.time_begin = obj->get_time_begin();
+		info.time_end   = obj->get_time_end();
+	}
+}
+
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time, bool garrisoned)
 	: m_obj(
@@ -29,11 +40,15 @@ MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_t
 {
 }
 MapObject::MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
-	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes)
+	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
+	const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs)
 	: m_obj(std::move(obj))
 {
 	for(auto it = attributes.begin(); it != attributes.end(); ++it){
 		m_attributes.emplace(AttributeId((*it)->get_attribute_id()), *it);
+	}
+	for(auto it = buffs.begin(); it != buffs.end(); ++it){
+		m_buffs.emplace(BuffId((*it)->get_buff_id()), *it);
 	}
 }
 MapObject::~MapObject(){
@@ -202,8 +217,8 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 	for(auto it = modifiers.begin(); it != modifiers.end(); ++it){
 		const auto obj_it = m_attributes.find(it->first);
 		if(obj_it == m_attributes.end()){
-			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(
-				get_map_object_uuid().get(), it->first.get(), 0);
+			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>(m_obj->unlocked_get_map_object_uuid(),
+				it->first.get(), 0);
 			obj->async_save(true);
 			m_attributes.emplace(it->first, std::move(obj));
 		}
@@ -222,6 +237,57 @@ void MapObject::set_attributes(boost::container::flat_map<AttributeId, std::int6
 	if(!dirty){
 		return;
 	}
+
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+}
+
+MapObject::BuffInfo MapObject::get_buff(BuffId buff_id) const {
+	PROFILE_ME;
+
+	BuffInfo info = { };
+	info.buff_id = buff_id;
+	const auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		return info;
+	}
+	fill_buff_info(info, it->second);
+	return info;
+}
+void MapObject::get_buffs(std::vector<MapObject::BuffInfo> &ret) const {
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_buffs.size());
+	for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
+		BuffInfo info;
+		fill_buff_info(info, it->second);
+		ret.emplace_back(std::move(info));
+	}
+}
+void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration){
+	PROFILE_ME;
+
+	auto it = m_buffs.find(buff_id);
+	if(it != m_buffs.end()){
+		auto obj = boost::make_shared<MySql::Center_MapObjectBuff>(m_obj->unlocked_get_map_object_uuid(),
+			buff_id.get(), 0, 0, 0);
+		obj->async_save(true);
+		m_buffs.emplace(it->first, std::move(obj));
+	}
+	const auto &obj = it->second;
+	obj->set_duration(duration);
+	obj->set_time_begin(time_begin);
+	obj->set_time_end(saturated_add(time_begin, duration));
+
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+}
+void MapObject::clear_buff(BuffId buff_id) noexcept {
+	PROFILE_ME;
+
+	const auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		return;
+	}
+	m_buffs.erase(it);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }

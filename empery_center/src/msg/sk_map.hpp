@@ -24,6 +24,11 @@ namespace Msg {
 	FIELD_ARRAY         (attributes,	\
 		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\
+	)	\
+	FIELD_ARRAY         (buffs, \
+		FIELD_VUINT         (buff_id)   \
+		FIELD_VUINT         (time_begin)  \
+		FIELD_VUINT         (time_end)  \
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -40,6 +45,11 @@ namespace Msg {
 	FIELD_ARRAY         (attributes,	\
 		FIELD_VUINT         (attribute_id)	\
 		FIELD_VINT          (value)	\
+	)	\
+	FIELD_ARRAY         (buffs, \
+		FIELD_VUINT         (buff_id)   \
+		FIELD_VUINT         (time_begin)  \
+		FIELD_VUINT         (time_end)  \
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

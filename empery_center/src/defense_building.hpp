@@ -31,6 +31,7 @@ public:
 		MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time);
 	DefenseBuilding(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
+		const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
 		boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj);
 	~DefenseBuilding();
 
