@@ -383,7 +383,7 @@ void MapEventBlock::refresh_events(bool first_time){
 				// 事件不能刷在战略资源上。
 				coords_avail.erase(coord);
 			}
-			LOG_EMPERY_CENTER_DEBUG("About to refresh events: map_event_id = ", map_event_id, ", coords_avail = ", coords_avail.size(),
+			LOG_EMPERY_CENTER_TRACE("About to refresh events: map_event_id = ", map_event_id, ", coords_avail = ", coords_avail.size(),
 				", events_retained = ", events_retained, ", events_to_refresh = ", events_to_refresh);
 
 			std::uint64_t events_created = 0;

@@ -347,6 +347,20 @@ MapCell::BuffInfo MapCell::get_buff(BuffId buff_id) const {
 	fill_buff_info(info, it->second);
 	return info;
 }
+bool MapCell::is_buff_in_effect(BuffId buff_id) const {
+	PROFILE_ME;
+
+	const auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		return false;
+	}
+	const auto time_end = it->second->get_time_end();
+	if(time_end == 0){
+		return false;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	return utc_now < time_end;
+}
 void MapCell::get_buffs(std::vector<MapCell::BuffInfo> &ret) const {
 	PROFILE_ME;
 
@@ -361,11 +375,11 @@ void MapCell::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t d
 	PROFILE_ME;
 
 	auto it = m_buffs.find(buff_id);
-	if(it != m_buffs.end()){
+	if(it == m_buffs.end()){
 		auto obj = boost::make_shared<MySql::Center_MapCellBuff>(m_obj->get_x(), m_obj->get_y(),
 			buff_id.get(), 0, 0, 0);
 		obj->async_save(true);
-		m_buffs.emplace(it->first, std::move(obj));
+		it = m_buffs.emplace(it->first, std::move(obj)).first;
 	}
 	const auto &obj = it->second;
 	obj->set_duration(duration);
@@ -381,7 +395,12 @@ void MapCell::clear_buff(BuffId buff_id) noexcept {
 	if(it == m_buffs.end()){
 		return;
 	}
+	const auto obj = std::move(it->second);
 	m_buffs.erase(it);
+
+	obj->set_duration(0);
+	obj->set_time_begin(0);
+	obj->set_time_end(0);
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
