@@ -47,6 +47,14 @@ public:
 		IMPACT_CRITICAL          = 3,
 	};
 
+public:
+	struct BuffInfo {
+		BuffId buff_id;
+		std::uint64_t duration;
+		std::uint64_t time_begin;
+		std::uint64_t time_end;
+	};
+
 private:
 	const MapObjectUuid m_map_object_uuid;
 	const MapObjectTypeId m_map_object_type_id;
@@ -57,6 +65,7 @@ private:
 
 	Coord m_coord;
 	boost::container::flat_map<AttributeId, std::int64_t> m_attributes;
+	boost::container::flat_map<BuffId, BuffInfo>          m_buffs;
 
 	boost::shared_ptr<Poseidon::TimerItem> m_action_timer;
 	std::uint64_t m_next_action_time = 0;
@@ -72,7 +81,8 @@ private:
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
 		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
-		Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes);
+		Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,
+		boost::container::flat_map<BuffId, BuffInfo> buffs);
 	~MapObject();
 
 private:
@@ -140,6 +150,11 @@ public:
 	std::int64_t get_attribute(AttributeId map_object_attr_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes_no_synchronize(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
+
+	BuffInfo get_buff(BuffId buff_id) const;
+	void get_buffs(std::vector<BuffInfo> &ret) const;
+	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
+	void clear_buff(BuffId buff_id) noexcept;
 
 	bool is_moving() const {
 		return !m_waypoints.empty();

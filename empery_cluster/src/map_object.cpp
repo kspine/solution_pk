@@ -31,6 +31,17 @@ namespace Msg {
 	using namespace ::EmperyCenter::Msg;
 }
 
+namespace {
+	void fill_buff_info(MapObject::BuffInfo &dest, const MapObject::BuffInfo &src){
+		PROFILE_ME;
+
+		dest.buff_id    = src.buff_id;
+		dest.duration   = src.duration;
+		dest.time_begin = src.time_begin;
+		dest.time_end   = src.time_end;
+	}
+}
+
 AiControl::AiControl(boost::weak_ptr<MapObject> parent)
 :m_parent_object(parent)
 {
@@ -76,10 +87,10 @@ std::uint64_t AiControl::harvest_resource_crate(std::pair<long, std::string> &re
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
-	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes)
+	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,boost::container::flat_map<BuffId, BuffInfo> buffs)
 	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id)
 	, m_owner_uuid(owner_uuid), m_parent_object_uuid(parent_object_uuid),m_garrisoned(garrisoned), m_cluster(std::move(cluster))
-	, m_coord(coord), m_attributes(std::move(attributes))
+	, m_coord(coord), m_attributes(std::move(attributes)),m_buffs(std::move(buffs))
 {
 }
 MapObject::~MapObject(){
@@ -338,6 +349,52 @@ void MapObject::set_attributes_no_synchronize(boost::container::flat_map<Attribu
 	}
 }
 
+MapObject::BuffInfo MapObject::get_buff(BuffId buff_id) const{
+	PROFILE_ME;
+
+	BuffInfo info = { };
+	info.buff_id = buff_id;
+	const auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		return info;
+	}
+	fill_buff_info(info, it->second);
+	return info;
+}
+void MapObject::get_buffs(std::vector<BuffInfo> &ret) const{
+		PROFILE_ME;
+
+	ret.reserve(ret.size() + m_buffs.size());
+	for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
+		BuffInfo info = { };
+		fill_buff_info(info, it->second);
+		ret.emplace_back(std::move(info));
+	}
+}
+void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration){
+	auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		BuffInfo info = { };
+		info.buff_id = buff_id;
+		info.duration = duration;
+		info.time_begin = time_begin;
+		info.time_end = saturated_add(time_begin, duration);
+		m_buffs.emplace(it->first, std::move(info));
+	}
+	it->second.duration = duration;
+	it->second.time_begin = time_begin;
+	it->second.time_end = saturated_add(time_begin, duration);	
+}
+void MapObject::clear_buff(BuffId buff_id) noexcept{
+	PROFILE_ME;
+
+	const auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		return;
+	}
+	m_buffs.erase(it);
+}
+
 void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, signed char>> waypoints, MapObject::Action action, std::string action_param){
 	PROFILE_ME;
 
@@ -463,7 +520,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
 		return UINT64_MAX;
 	}
-	const auto emempy_type_data = Data::MapObjectType::get(target_object->get_map_object_type_id());
+	const auto emempy_type_data = target_object->get_map_object_type_data();
 	if(!emempy_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_object->get_map_object_type_id();
 		return UINT64_MAX;
@@ -792,6 +849,10 @@ bool    MapObject::fix_attack_action(){
 	}
 
 	if(!target_object->attacked_able()){
+		return false;
+	}
+
+	if(is_die()){
 		return false;
 	}
 
