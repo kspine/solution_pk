@@ -488,17 +488,18 @@ void Castle::pump_population_production(){
 	WorldMap::get_map_objects_by_parent_object(child_objects, get_map_object_uuid());
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
 		const auto &child_object = *it;
-		const auto map_object_type_id = child_object->get_map_object_type_id();
-		if((map_object_type_id == MapObjectTypeIds::ID_CASTLE) ||
-			(map_object_type_id == MapObjectTypeIds::ID_DEFENSE_TOWER) || (map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER))
-		{
-			continue;
-		}
 		const auto soldier_count = static_cast<std::uint64_t>(child_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 		if(soldier_count == 0){
 			continue;
 		}
-		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
+		const auto map_object_type_id = child_object->get_map_object_type_id();
+		const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+		if(!map_object_type_data){
+			continue;
+		}
+		if(map_object_type_data->speed <= 0){ // 不会动的东西不吃粮食。
+			continue;
+		}
 		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
 			auto &amount_total = resources_to_consume_per_minute[rit->first];
 			amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(std::ceil(soldier_count * rit->second - 0.001)));

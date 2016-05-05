@@ -175,21 +175,6 @@ void DefenseBuilding::recalculate_attributes(){
 
 		const auto mission = static_cast<unsigned>(get_mission());
 		modifiers[AttributeIds::ID_DEFENSE_BUILDING_MISSION] = mission;
-
-		boost::shared_ptr<MapObject> parent_object;
-		const auto parent_object_uuid = get_parent_object_uuid();
-		if(parent_object_uuid){
-			parent_object = WorldMap::get_map_object(parent_object_uuid);
-		}
-		if(parent_object){
-			auto defense_attack_bonus_value = parent_object->get_attribute(AttributeIds::ID_DEFENSE_BUILDING_ATTACK_BONUS);
-			auto &attack_bonus_value = modifiers[AttributeIds::ID_ATTACK_BONUS];
-			attack_bonus_value += defense_attack_bonus_value;
-
-			auto defense_defense_bonus_value = parent_object->get_attribute(AttributeIds::ID_DEFENSE_BUILDING_DEFENSE_BONUS);
-			auto &defense_bonus_value = modifiers[AttributeIds::ID_DEFENSE_BONUS];
-			defense_bonus_value += defense_defense_bonus_value;
-		}
 	}
 
 	set_attributes(std::move(modifiers));
