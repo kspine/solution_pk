@@ -42,7 +42,7 @@ namespace {
 		}
 		g_buff_map = buff_map;
 		handles.push(buff_map);
-		auto servlet = DataSession::create_servlet(BUFF_FILE, Data::encode_csv_as_json(csv, "sign_id"));
+		auto servlet = DataSession::create_servlet(BUFF_FILE, Data::encode_csv_as_json(csv, "buff_id"));
 		handles.push(std::move(servlet));
 	}
 }
