@@ -116,6 +116,17 @@ void MapObject::recalculate_attributes(){
 				auto &value = modifiers[bonus_attribute_id];
 				value += tech_attribute_value;
 			}
+
+			{
+				const auto bonus = parent_object->get_attribute(AttributeIds::ID_BUFF_ATTACK_BONUS);
+				auto &value = modifiers[AttributeIds::ID_ATTACK_BONUS];
+				value += bonus;
+			}
+			{
+				const auto bonus = parent_object->get_attribute(AttributeIds::ID_BUFF_DEFENSE_BONUS);
+				auto &value = modifiers[AttributeIds::ID_DEFENSE_BONUS];
+				value += bonus;
+			}
 		}
 	}
 
