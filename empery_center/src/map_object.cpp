@@ -11,6 +11,7 @@
 #include "attribute_ids.hpp"
 #include "data/map_object_type.hpp"
 #include "data/castle.hpp"
+#include "data/buff.hpp"
 #include "castle.hpp"
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
@@ -126,6 +127,22 @@ void MapObject::recalculate_attributes(){
 				const auto bonus = parent_object->get_attribute(AttributeIds::ID_BUFF_DEFENSE_BONUS);
 				auto &value = modifiers[AttributeIds::ID_DEFENSE_BONUS];
 				value += bonus;
+			}
+
+			for(auto it = parent_object->m_buffs.begin(); it != parent_object->m_buffs.end(); ++it){
+				if(it->second->get_time_end() == 0){
+					continue;
+				}
+				const auto buff_id = BuffId(it->second->get_buff_id());
+				const auto buff_data = Data::Buff::get(buff_id);
+				if(!buff_data){
+					continue;
+				}
+				const auto &attributes = buff_data->attributes;
+				for(auto ait = attributes.begin(); ait != attributes.end(); ++ait){
+					auto &value = modifiers[ait->first];
+					value += std::round(ait->second * 1000.0);
+				}
 			}
 		}
 	}
@@ -261,6 +278,9 @@ MapObject::BuffInfo MapObject::get_buff(BuffId buff_id) const {
 	if(it == m_buffs.end()){
 		return info;
 	}
+	if(it->second->get_time_end() == 0){
+		return info;
+	}
 	fill_buff_info(info, it->second);
 	return info;
 }
@@ -283,6 +303,9 @@ void MapObject::get_buffs(std::vector<MapObject::BuffInfo> &ret) const {
 
 	ret.reserve(ret.size() + m_buffs.size());
 	for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
+		if(it->second->get_time_end() == 0){
+			continue;
+		}
 		BuffInfo info;
 		fill_buff_info(info, it->second);
 		ret.emplace_back(std::move(info));

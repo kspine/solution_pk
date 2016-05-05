@@ -344,6 +344,9 @@ MapCell::BuffInfo MapCell::get_buff(BuffId buff_id) const {
 	if(it == m_buffs.end()){
 		return info;
 	}
+	if(it->second->get_time_end() == 0){
+		return info;
+	}
 	fill_buff_info(info, it->second);
 	return info;
 }
@@ -366,6 +369,9 @@ void MapCell::get_buffs(std::vector<MapCell::BuffInfo> &ret) const {
 
 	ret.reserve(ret.size() + m_buffs.size());
 	for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
+		if(it->second->get_time_end() == 0){
+			continue;
+		}
 		BuffInfo info;
 		fill_buff_info(info, it->second);
 		ret.emplace_back(std::move(info));
