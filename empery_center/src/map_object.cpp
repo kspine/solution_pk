@@ -301,7 +301,12 @@ void MapObject::clear_buff(BuffId buff_id) noexcept {
 	if(it == m_buffs.end()){
 		return;
 	}
+	const auto obj = std::move(it->second);
 	m_buffs.erase(it);
+
+	obj->set_duration(0);
+	obj->set_time_begin(0);
+	obj->set_time_end(0);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
