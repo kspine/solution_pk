@@ -205,6 +205,10 @@ namespace {
 		const auto map_object_map = boost::make_shared<MapObjectContainer>();
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
+		
+		const auto resource_crate_map = boost::make_shared<ResourceCrateContainer>();
+		g_resource_crate_map = resource_crate_map;
+		handles.push(resource_crate_map);
 
 		const auto cluster_map = boost::make_shared<ClusterContainer>();
 		g_cluster_map = cluster_map;
