@@ -588,8 +588,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	msg.result_type = result_type;
 	msg.soldiers_damaged = damage;
 	cluster->send(msg);
-
-
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<MapObject>(),damage);
@@ -765,6 +763,7 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 	if(distance <= troops_view_range){
 		return true;
 	}
+
 	return false;
 }
 
@@ -836,6 +835,9 @@ bool    MapObject::fix_attack_action(){
 	if(m_action != ACT_ATTACK){
 		return true;
 	}
+	if(is_die()){
+		return false;
+	}
 	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 	if(!target_object){
 		return false;
@@ -849,10 +851,6 @@ bool    MapObject::fix_attack_action(){
 	}
 
 	if(!target_object->attacked_able()){
-		return false;
-	}
-
-	if(is_die()){
 		return false;
 	}
 
@@ -935,7 +933,7 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
 			std::deque<std::pair<signed char, signed char>> waypoints;
-			if(move_able()&&find_way_points(waypoints,get_coord(),enemy_map_object->get_coord(),true)){
+			if(move_able()&&find_way_points(waypoints,get_coord(),enemy_map_object->get_coord(),false)){
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 			}else{
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
@@ -995,6 +993,9 @@ bool  MapObject::is_monster(){
 
 bool  MapObject::attacked_able(){
 	PROFILE_ME;
+	if(is_die()){
+		return false;
+	}
 	if(is_garrisoned()){
 		return false;
 	}
@@ -1167,8 +1168,8 @@ boost::shared_ptr<const Data::MapObjectType> MapObject::get_map_object_type_data
 	const auto map_object_type_building_data = Data::MapObjectTypeBuilding::get(get_map_object_type_id(),level);
 	if(!map_object_type_building_data){
 		return {};
-		}
-		return Data::MapObjectType::get(map_object_type_building_data->arm_type_id);
+	}
+	return Data::MapObjectType::get(map_object_type_building_data->arm_type_id);
 }
 
 }
