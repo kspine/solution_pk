@@ -1365,6 +1365,7 @@ void WorldMap::insert_resource_crate(const boost::shared_ptr<ResourceCrate> &res
 	}
 
 	synchronize_with_all_players(resource_crate, coord, coord, { });
+	synchronize_with_all_clusters(resource_crate, coord, coord);
 }
 void WorldMap::update_resource_crate(const boost::shared_ptr<ResourceCrate> &resource_crate, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -1398,6 +1399,7 @@ void WorldMap::update_resource_crate(const boost::shared_ptr<ResourceCrate> &res
 	}
 
 	synchronize_with_all_players(resource_crate, coord, coord, { });
+	synchronize_with_all_clusters(resource_crate, coord, coord);
 }
 
 void WorldMap::get_resource_crates_by_rectangle(std::vector<boost::shared_ptr<ResourceCrate>> &ret, Rectangle rectangle){
