@@ -433,7 +433,7 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 	}
 
 	const auto state = GlobalStatus::fetch_add(GlobalStatus::SLOT_ACC_CARD_STATE, 1);
-	const auto sale_alt = (g_acceleration_card_alt_wrap != 0) && ((state % g_acceleration_card_alt_wrap) <= g_acceleration_card_alt_count);
+	const auto sale_alt = (g_acceleration_card_alt_wrap != 0) && ((state % g_acceleration_card_alt_wrap) < g_acceleration_card_alt_count);
 
 	LOG_EMPERY_PROMOTION_DEBUG("Sell acceleration cards: buyer_id = ", buyer_id,
 		", unit_price = ", unit_price, ", cards_to_sell = ", cards_to_sell, ", sale_alt = ", sale_alt);
@@ -442,7 +442,7 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 	std::uint64_t cards_sold = 0;
 	if(sale_alt){
 		struct RewardElement {
-			std::uint64_t least_level;
+			std::uint64_t min_level;
 			std::uint64_t balance;
 		};
 		static constexpr RewardElement REWARDS[] = {
@@ -466,7 +466,7 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 		auto reward_it = std::begin(REWARDS);
 		for(auto qit = queue.begin(); (qit != queue.end()) && (reward_it != std::end(REWARDS)); ++qit){
 			const auto level = qit->level;
-			if(level < reward_it->least_level){
+			if(level < reward_it->min_level){
 				continue;
 			}
 			const auto account_id = qit->account_id;
