@@ -11,6 +11,7 @@ struct GlobalStatus {
 		SLOT_SERVER_CREATED_TIME        =    0,
 		SLOT_FIRST_BALANCING_TIME       =    1,
 		SLOT_ACC_CARD_UNIT_PRICE        =    2,
+		SLOT_ACC_CARD_STATE             =    3,
 
 		SLOT_SERVER_DAILY_RESET_TIME    = 1000,
 		SLOT_BILL_AUTO_INC              = 1001,
