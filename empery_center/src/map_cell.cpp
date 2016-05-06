@@ -394,6 +394,33 @@ void MapCell::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t d
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
+void MapCell::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
+	PROFILE_ME;
+
+	auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		auto obj = boost::make_shared<MySql::Center_MapCellBuff>(m_obj->get_x(), m_obj->get_y(),
+			buff_id.get(), 0, 0, 0);
+		obj->async_save(true);
+		it = m_buffs.emplace(it->first, std::move(obj)).first;
+	}
+	const auto &obj = it->second;
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto old_duration = obj->get_duration(), old_time_begin = obj->get_time_begin(), old_time_end = obj->get_time_end();
+	std::uint64_t new_duration, new_time_begin;
+	if(utc_now < old_time_end){
+		new_duration = saturated_add(old_duration, delta_duration);
+		new_time_begin = old_time_begin;
+	} else {
+		new_duration = delta_duration;
+		new_time_begin = utc_now;
+	}
+	obj->set_duration(new_duration);
+	obj->set_time_begin(new_time_begin);
+	obj->set_time_end(saturated_add(new_time_begin, new_duration));
+
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+}
 void MapCell::clear_buff(BuffId buff_id) noexcept {
 	PROFILE_ME;
 

@@ -275,6 +275,14 @@ namespace Msg {
 	FIELD_VINT          (coord_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleActivateBuff
+#define MESSAGE_ID      433
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (item_id)	\
+	FIELD_VUINT         (count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

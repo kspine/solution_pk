@@ -463,6 +463,16 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 			{ 2000000, 1500 },
 		};
 
+		const auto price_total = checked_mul(cards_to_sell, unit_price);
+
+		AccountMap::accumulate_self_performance(buyer_id, price_total);
+		queue.pop_front();
+		for(auto qit = queue.begin(); qit != queue.end(); ++qit){
+			const auto account_id = qit->account_id;
+			AccountMap::accumulate_performance(account_id, price_total);
+		}
+
+		auto price_remaining = price_total;
 		auto reward_it = std::begin(REWARDS);
 		for(auto qit = queue.begin(); (qit != queue.end()) && (reward_it != std::end(REWARDS)); ++qit){
 			const auto level = qit->level;
@@ -473,12 +483,16 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 			transaction.emplace_back(account_id, ItemTransactionElement::OP_ADD,
 				ItemIds::ID_ACCOUNT_BALANCE, checked_mul(cards_to_sell, reward_it->balance),
 				Events::ItemChanged::R_SELL_CARDS, buyer_id.get(), 0, 0, std::string());
+			price_remaining -= cards_to_sell * reward_it->balance;
 			++reward_it;
 		}
 		auto alt_account = AccountMap::get_by_login_name(g_acceleration_card_alt_account);
 		if(Poseidon::has_any_flags_of(alt_account.flags, AccountMap::FL_VALID)){
 			transaction.emplace_back(alt_account.account_id, ItemTransactionElement::OP_REMOVE_SATURATED,
 				ItemIds::ID_ACCELERATION_CARDS, cards_to_sell,
+				Events::ItemChanged::R_SELL_CARDS, buyer_id.get(), 0, 0, std::string());
+			transaction.emplace_back(alt_account.account_id, ItemTransactionElement::OP_ADD,
+				ItemIds::ID_ACCOUNT_BALANCE, price_remaining,
 				Events::ItemChanged::R_SELL_CARDS, buyer_id.get(), 0, 0, std::string());
 		}
 		cards_sold += cards_to_sell;

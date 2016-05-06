@@ -85,6 +85,7 @@ public:
 	bool is_buff_in_effect(BuffId buff_id) const;
 	void get_buffs(std::vector<BuffInfo> &ret) const;
 	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
+	void accumulate_buff(BuffId buff_id, std::uint64_t delta_duration);
 	void clear_buff(BuffId buff_id) noexcept;
 
 	std::uint64_t get_resource_amount_carried() const;
