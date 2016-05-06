@@ -36,6 +36,8 @@ namespace Data {
 			CAT_RESOURCE_TOKEN        = 13, // 资源代币
 			CAT_LARGE_LEVEL_GIFT_BOX  = 14, // 大充值礼包
 			CAT_SOLDIER_BOX           = 15, // 长枪兵，轻骑兵
+			CAT_RELOCATION_CARD       = 16, // 迁城卡
+			CAT_CASTLE_BUFF           = 17, // 城堡增益
 		};
 
 	public:

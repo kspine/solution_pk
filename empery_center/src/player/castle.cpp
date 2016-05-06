@@ -1583,4 +1583,36 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_CastleActivateBuff, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::require(item_id);
+	if(item_data->type.first != Data::Item::CAT_CASTLE_BUFF){
+		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_CASTLE_BUFF;
+	}
+	const auto count = req.count;
+
+	const auto buff_id = BuffId(item_data->type.second);
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count,
+		ReasonIds::ID_CASTLE_BUFF, buff_id.get(), 0, 0);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ castle->accumulate_buff(buff_id, checked_mul<std::uint64_t>(item_data->value, count)); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
 }
