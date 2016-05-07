@@ -1,5 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
+#include "../mmain.hpp"
 #include "../msg/ks_map.hpp"
 #include "../msg/sk_map.hpp"
 #include "../msg/sc_map.hpp"
@@ -41,6 +42,7 @@
 #include "../item_box.hpp"
 #include "../resource_ids.hpp"
 #include "../resource_crate.hpp"
+#include "../buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -345,6 +347,10 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	//const auto result_param2            = req.result_param2;
 
 	// 结算战斗伤害。
+	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
+	if(!attacking_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
+	}
 	const auto attacked_object = WorldMap::get_map_object(attacked_object_uuid);
 	if(!attacked_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
@@ -424,6 +430,11 @@ _wounded_done:
 	;
 
 	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto battle_status_timeout = get_config<std::uint64_t>("battle_status_timeout", 10000);
+	attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+	attacked_object->set_buff (BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+
 	const auto category = boost::make_shared<int>();
 
 	// 通知客户端。
@@ -521,10 +532,6 @@ _wounded_done:
 
 				const auto item_box = ItemBoxMap::require(attacking_account_uuid);
 
-				const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-				if(!attacking_object){
-					return;
-				}
 				const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
 				const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 				if(!parent_castle){
@@ -626,12 +633,6 @@ _wounded_done:
 		try {
 			Poseidon::enqueue_async_job([=]{
 				PROFILE_ME;
-
-				const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-				if(!attacking_object){
-					LOG_EMPERY_CENTER_DEBUG("Attacking map object is gone: attacking_object_uuid = ", attacking_object_uuid);
-					return;
-				}
 
 				const auto task_box = TaskBoxMap::require(attacking_account_uuid);
 

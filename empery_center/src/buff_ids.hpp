@@ -8,7 +8,7 @@ namespace EmperyCenter {
 namespace BuffIds {
 
 constexpr BuffId
-	ID                                  ( 1       );
+	ID_BATTLE_STATUS                    ( 2700003 );
 
 }
 
