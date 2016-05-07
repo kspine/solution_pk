@@ -31,6 +31,7 @@
 #include "../chat_message_type_ids.hpp"
 #include "../chat_message_slot_ids.hpp"
 #include "../item_ids.hpp"
+#include "../buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -1512,29 +1513,37 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		return std::move(result);
 	}
 
-	std::vector<boost::shared_ptr<MapObject>> battalions;
-	WorldMap::get_map_objects_by_parent_object(battalions, map_object_uuid);
+	if(castle->is_buff_in_effect(BuffIds::ID_BATTLE_STATUS)){
+		return Response(Msg::ERR_BATTLE_IN_PROGRESS) <<castle->get_map_object_uuid();
+	}
+
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		if(child_object->is_buff_in_effect(BuffIds::ID_BATTLE_STATUS)){
+			return Response(Msg::ERR_BATTLE_IN_PROGRESS) <<child_object->get_map_object_uuid();
+		}
+	}
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
 
 	// 回收所有部队。
-	for(auto it = battalions.begin(); it != battalions.end(); ++it){
-		const auto &battalion = *it;
-		const auto map_object_type_id = battalion->get_map_object_type_id();
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		const auto map_object_type_id = child_object->get_map_object_type_id();
 		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
 
-		const auto battalion_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
-		if(battalion_data && (battalion_data->speed > 0)){
-			battalion->pump_status();
-			battalion->unload_resources(castle);
+		const auto child_object_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+		if(child_object_data && (child_object_data->speed > 0)){
+			child_object->pump_status();
+			child_object->unload_resources(castle);
 
-			battalion->set_coord(castle->get_coord());
-			battalion->set_garrisoned(true);
-		} else {
-			// TODO 拆除箭塔和地堡。
+			child_object->set_coord(castle->get_coord());
+			child_object->set_garrisoned(true);
 		}
 	}
 
@@ -1570,12 +1579,14 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 			castle->set_coord(new_castle_coord);
 			castle->set_garrisoned(false);
 
-			for(auto it = battalions.begin(); it != battalions.end(); ++it){
-				const auto &battalion = *it;
-				const auto map_object_type_id = battalion->get_map_object_type_id();
-				const auto battalion_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
-				if(battalion_data && (battalion_data->speed > 0)){
-					battalion->set_coord(new_castle_coord);
+			for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+				const auto &child_object = *it;
+				const auto map_object_type_id = child_object->get_map_object_type_id();
+				const auto child_object_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+				if(child_object_data && (child_object_data->speed > 0)){
+					child_object->set_coord(new_castle_coord);
+				} else {
+					child_object->delete_from_game();
 				}
 			}
 		});
