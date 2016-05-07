@@ -385,7 +385,7 @@ void MapCell::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t d
 		auto obj = boost::make_shared<MySql::Center_MapCellBuff>(m_obj->get_x(), m_obj->get_y(),
 			buff_id.get(), 0, 0, 0);
 		obj->async_save(true);
-		it = m_buffs.emplace(it->first, std::move(obj)).first;
+		it = m_buffs.emplace(buff_id, std::move(obj)).first;
 	}
 	const auto &obj = it->second;
 	obj->set_duration(duration);
@@ -402,7 +402,7 @@ void MapCell::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 		auto obj = boost::make_shared<MySql::Center_MapCellBuff>(m_obj->get_x(), m_obj->get_y(),
 			buff_id.get(), 0, 0, 0);
 		obj->async_save(true);
-		it = m_buffs.emplace(it->first, std::move(obj)).first;
+		it = m_buffs.emplace(buff_id, std::move(obj)).first;
 	}
 	const auto &obj = it->second;
 	const auto utc_now = Poseidon::get_utc_time();
