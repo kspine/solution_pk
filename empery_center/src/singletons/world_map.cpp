@@ -7,6 +7,7 @@
 #include <poseidon/async_job.hpp>
 #include "player_session_map.hpp"
 #include "map_event_block_map.hpp"
+#include "account_map.hpp"
 #include "../msg/kill.hpp"
 #include "../data/global.hpp"
 #include "../data/map.hpp"
@@ -29,6 +30,8 @@
 #include "../cluster_session.hpp"
 #include "../map_utilities_center.hpp"
 #include "../map_event_block.hpp"
+#include "../account.hpp"
+#include "../account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -118,6 +121,67 @@ namespace {
 			"    LEFT JOIN `Center_MapObjectBuff` AS `b` "
 			"      ON `m`.`map_object_uuid` = `b`.`map_object_uuid` "
 			"  WHERE `m`.`deleted` > 0");
+	}
+
+	void castle_activity_check_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Castle activity check timer: now = ", now);
+
+		const auto map_object_map = g_map_object_map.lock();
+		if(!map_object_map){
+			return;
+		}
+
+		const auto castle_hang_up_inactive_days = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_HANG_UP_INACTIVE_DAYS);
+		const auto utc_now = Poseidon::get_utc_time();
+
+		std::vector<boost::shared_ptr<Castle>> castles_to_check;
+		castles_to_check.reserve(map_object_map->size() / 10);
+		for(auto it = map_object_map->begin<0>(); it != map_object_map->end<0>(); ++it){
+			const auto &map_object = it->map_object;
+			const auto map_object_type_id = map_object->get_map_object_type_id();
+			if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
+			if(map_object->is_virtually_removed()){
+				continue;
+			}
+			if(map_object->is_garrisoned()){
+				continue;
+			}
+			auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+			if(!castle){
+				continue;
+			}
+			castles_to_check.emplace_back(std::move(castle));
+		}
+		for(auto it = castles_to_check.begin(); it != castles_to_check.end(); ++it){
+			const auto &castle = *it;
+			try {
+				const auto owner_account = AccountMap::require(castle->get_owner_uuid());
+				std::uint64_t last_logged_out_time = 0;
+				const auto &last_logged_in_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_IN_TIME);
+				if(last_logged_in_time_str.empty()){
+					last_logged_out_time = owner_account->get_created_time();
+				} else {
+					const auto &last_logged_out_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME);
+					if(last_logged_out_time_str.empty()){
+						last_logged_out_time = UINT64_MAX;
+					} else {
+						last_logged_out_time = boost::lexical_cast<std::uint64_t>(last_logged_out_time_str);
+					}
+				}
+				LOG_EMPERY_CENTER_TRACE("$@ Checking active account: account_uuid = ", owner_account->get_account_uuid(),
+					", last_logged_out_time = ", last_logged_out_time);
+				if(saturated_sub(utc_now, last_logged_out_time) / 86400000 < castle_hang_up_inactive_days){
+					continue;
+				}
+				LOG_EMPERY_CENTER_INFO("Hang up inactive castle: map_object_uuid = ", castle->get_map_object_uuid());
+				async_hang_up_castle(castle);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		}
 	}
 
 	struct OverlayElement {
@@ -623,11 +687,18 @@ namespace {
 			std::bind(&map_object_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 
-		timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
+		const auto castle_activity_check_interval = get_config<std::uint64_t>("castle_activity_check_interval", 3600000);
+		timer = Poseidon::TimerDaemon::register_timer(0, castle_activity_check_interval,
+			std::bind(&castle_activity_check_proc, std::placeholders::_2));
+		handles.push(timer);
+
+		const auto strategic_resource_refresh_interval = get_config<std::uint64_t>("strategic_resource_refresh_interval", 300000);
+		timer = Poseidon::TimerDaemon::register_timer(0, strategic_resource_refresh_interval,
 			std::bind(&strategic_resource_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 
-		timer = Poseidon::TimerDaemon::register_timer(0, map_object_refresh_interval,
+		const auto resource_crate_refresh_interval = get_config<std::uint64_t>("resource_crate_refresh_interval", 300000);
+		timer = Poseidon::TimerDaemon::register_timer(0, resource_crate_refresh_interval,
 			std::bind(&resource_crate_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 	}

@@ -27,6 +27,7 @@
 #include "item_ids.hpp"
 #include "reason_ids.hpp"
 #include "data/map_object_type.hpp"
+#include "attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -203,11 +204,9 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		if(amount_remaining == 0){
 			return;
 		}
-		unsigned crate_count;
-		if(amount_remaining < separation_amount_threshold){
-			crate_count = 1;
-		} else {
-			crate_count = Poseidon::rand32(2, number_limit);
+		unsigned crate_count = 1;
+		if(amount_remaining >= separation_amount_threshold){
+			crate_count += Poseidon::rand32(1, number_limit);
 		}
 		LOG_EMPERY_CENTER_DEBUG("> amount_remaining = ", amount_remaining, ", crate_count = ", crate_count);
 		if(crate_count == 0){
@@ -331,7 +330,7 @@ try {
 			if(child_object_data && (child_object_data->speed > 0)){
 				child_object->pump_status();
 				child_object->unload_resources(castle);
-				child_object->set_coord(new_castle_coord);
+				child_object->set_coord(castle->get_coord());
 				child_object->set_garrisoned(true);
 			} else {
 				child_object->delete_from_game();
@@ -361,12 +360,35 @@ try {
 				[&]{
 					map_cell->set_parent_object({ }, { }, { });
 					map_cell->set_acceleration_card_applied(false);
+					for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+						const auto &child_object = *it;
+						const auto map_object_type_id = child_object->get_map_object_type_id();
+						if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+							continue;
+						}
+						child_object->set_coord(new_castle_coord);
+					}
 				});
 		}
 
 		// 挂起城堡。
+		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+		modifiers.reserve(8);
+		modifiers[AttributeIds::ID_CASTLE_LAST_COORD_X] = castle->get_coord().x();
+		modifiers[AttributeIds::ID_CASTLE_LAST_COORD_Y] = castle->get_coord().y();
+		castle->set_attributes(std::move(modifiers));
+
 		castle->set_coord(new_castle_coord);
 		castle->set_garrisoned(true);
+
+		for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+			const auto &child_object = *it;
+			const auto map_object_type_id = child_object->get_map_object_type_id();
+			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
+			child_object->set_coord(new_castle_coord);
+		}
 
 		castle->pump_status();
 

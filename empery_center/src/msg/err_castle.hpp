@@ -69,6 +69,7 @@ namespace Msg {
 		ERR_NOT_TREATMENT_ITEM                  = 71458,
 		ERR_NO_MEDICAL_TENT                     = 71459,
 		ERR_BATTLE_IN_PROGRESS                  = 71460,
+		ERR_CASTLE_NOT_HUNG_UP                  = 71461,
 	};
 }
 

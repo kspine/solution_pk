@@ -255,14 +255,17 @@ void MapEventBlock::refresh_events(bool first_time){
 				continue;
 			}
 			const auto owner_account = AccountMap::require(map_object->get_owner_uuid());
+			std::uint64_t last_logged_out_time = 0;
 			const auto &last_logged_in_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_IN_TIME);
 			if(last_logged_in_time_str.empty()){
-				continue;
-			}
-			std::uint64_t last_logged_out_time = UINT64_MAX;
-			const auto &last_logged_out_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME);
-			if(!last_logged_out_time_str.empty()){
-				last_logged_out_time = boost::lexical_cast<std::uint64_t>(last_logged_out_time_str);
+				last_logged_out_time = owner_account->get_created_time();
+			} else {
+				const auto &last_logged_out_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME);
+				if(last_logged_out_time_str.empty()){
+					last_logged_out_time = UINT64_MAX;
+				} else {
+					last_logged_out_time = boost::lexical_cast<std::uint64_t>(last_logged_out_time_str);
+				}
 			}
 			LOG_EMPERY_CENTER_TRACE("> Checking active account: account_uuid = ", owner_account->get_account_uuid(),
 				", last_logged_out_time = ", last_logged_out_time);

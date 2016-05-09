@@ -1541,7 +1541,7 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		if(child_object_data && (child_object_data->speed > 0)){
 			child_object->pump_status();
 			child_object->unload_resources(castle);
-			child_object->set_coord(new_castle_coord);
+			child_object->set_coord(castle->get_coord());;
 			child_object->set_garrisoned(true);
 		} else {
 			child_object->delete_from_game();
@@ -1577,8 +1577,23 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		ReasonIds::ID_RELOCATE_CASTLE, new_castle_coord.x(), new_castle_coord.y(), 0);
 	item_box->commit_transaction(transaction, true,
 		[&]{
+			boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+			modifiers.reserve(8);
+			modifiers[AttributeIds::ID_CASTLE_LAST_COORD_X] = castle->get_coord().x();
+			modifiers[AttributeIds::ID_CASTLE_LAST_COORD_Y] = castle->get_coord().y();
+			castle->set_attributes(std::move(modifiers));
+
 			castle->set_coord(new_castle_coord);
 			castle->set_garrisoned(false);
+
+			for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+				const auto &child_object = *it;
+				const auto map_object_type_id = child_object->get_map_object_type_id();
+				if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+					continue;
+				}
+				child_object->set_coord(new_castle_coord);
+			}
 		});
 	castle->pump_status();
 
@@ -1613,6 +1628,49 @@ PLAYER_SERVLET(Msg::CS_CastleActivateBuff, account, session, req){
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	if(!castle->is_garrisoned()){
+		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
+	}
+	const auto new_castle_coord = Coord(req.coord_x, req.coord_y);
+	const auto new_cluster = WorldMap::get_cluster(new_castle_coord);
+	if(!new_cluster){
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
+	}
+	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid);
+	if(result.first != Msg::ST_OK){
+		return std::move(result);
+	}
+
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
+
+	castle->set_coord(new_castle_coord);
+	castle->set_garrisoned(false);
+
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		const auto map_object_type_id = child_object->get_map_object_type_id();
+		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		child_object->set_coord(new_castle_coord);
+	}
+
+	castle->pump_status();
 
 	return Response();
 }
