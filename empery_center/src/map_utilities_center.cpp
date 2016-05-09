@@ -208,7 +208,7 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		if(amount_remaining >= separation_amount_threshold){
 			crate_count += Poseidon::rand32(1, number_limit);
 		}
-		LOG_EMPERY_CENTER_DEBUG("> amount_remaining = ", amount_remaining, ", crate_count = ", crate_count);
+		LOG_EMPERY_CENTER_DEBUG("> amount_remaining = ", amount_remaining, ", crate_count = ", crate_count, ", number_limit = ", number_limit);
 		if(crate_count == 0){
 			LOG_EMPERY_CENTER_WARNING("Crate count is zero?");
 			return;
@@ -281,10 +281,12 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 	};
 
 	std::uint64_t amount_remaining = amount * (1 - inner_amount_ratio);
-	really_create_crates(amount_remaining, radius_inner, radius_inner + radius_outer, number_limits.at(1).get<double>());
+	const auto outer_number_limit = static_cast<unsigned>(std::round(number_limits.at(1).get<double>()));
+	really_create_crates(amount_remaining, radius_inner, radius_inner + radius_outer, outer_number_limit);
 	LOG_EMPERY_CENTER_DEBUG("Outer crate creation complete: resource_id = ", resource_id, ", amount_remaining = ", amount_remaining);
 	amount_remaining += amount * inner_amount_ratio;
-	really_create_crates(amount_remaining, 0, radius_inner, number_limits.at(0).get<double>());
+	const auto inner_number_limit = static_cast<unsigned>(std::round(number_limits.at(0).get<double>()));
+	really_create_crates(amount_remaining, 0, radius_inner, inner_number_limit);
 	LOG_EMPERY_CENTER_DEBUG("Inner crate creation complete: resource_id = ", resource_id, ", amount_remaining = ", amount_remaining);
 }
 
