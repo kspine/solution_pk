@@ -8,21 +8,26 @@ namespace EmperyCenter {
 namespace ChatMessageSlotIds {
 
 constexpr ChatMessageSlotId
-	ID_TEXT                     (     1 ),
-	ID_SMILEY                   (     2 ),
-	ID_VOICE                    (     3 ),
+	ID_TEXT                         (     1 ),
+	ID_SMILEY                       (     2 ),
+	ID_VOICE                        (     3 ),
 
-	ID_TAXER                    ( 86201 ),
-	ID_TAX_AMOUNT               ( 86202 ),
+	ID_TAXER                        ( 86201 ),
+	ID_TAX_AMOUNT                   ( 86202 ),
 
-	ID_ITEM_ID                  ( 86301 ),
-	ID_ITEM_COUNT               ( 86302 ),
-	ID_AUCTION_ITEM_BOX_ID      ( 86303 ),
-	ID_AUCTION_ITEM_BOX_COUNT   ( 86304 ),
+	ID_ITEM_ID                      ( 86301 ),
+	ID_ITEM_COUNT                   ( 86302 ),
+	ID_AUCTION_ITEM_BOX_ID          ( 86303 ),
+	ID_AUCTION_ITEM_BOX_COUNT       ( 86304 ),
 
-	ID_NEW_CASTLE_OWNER         ( 86401 ),
-	ID_NEW_CASTLE_COORD_X       ( 86402 ),
-	ID_NEW_CASTLE_COORD_Y       ( 86403 );
+	ID_NEW_CASTLE_OWNER             ( 86401 ),
+	ID_NEW_CASTLE_COORD_X           ( 86402 ),
+	ID_NEW_CASTLE_COORD_Y           ( 86403 ),
+
+	ID_HUP_REGAINED_ITEM_ID         ( 86411 ),
+	ID_HUP_REGAINED_ITEM_COUNT      ( 86412 ),
+	ID_HUP_DESTROYED_DEFENSE_ID     ( 86413 ),
+	ID_HUP_DESTROYED_DEFENSE_LEVEL  ( 86414 );
 
 }
 

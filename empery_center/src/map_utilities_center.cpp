@@ -13,6 +13,20 @@
 #include "map_object_type_ids.hpp"
 #include "resource_crate.hpp"
 #include <poseidon/json.hpp>
+#include <poseidon/async_job.hpp>
+#include "castle.hpp"
+#include "item_box.hpp"
+#include "singletons/item_box_map.hpp"
+#include "transaction_element.hpp"
+#include "mail_box.hpp"
+#include "singletons/mail_box_map.hpp"
+#include "mail_data.hpp"
+#include "chat_message_type_ids.hpp"
+#include "chat_message_slot_ids.hpp"
+#include "map_object_type_ids.hpp"
+#include "item_ids.hpp"
+#include "reason_ids.hpp"
+#include "data/map_object_type.hpp"
 
 namespace EmperyCenter {
 
@@ -273,6 +287,126 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 	amount_remaining += amount * inner_amount_ratio;
 	really_create_crates(amount_remaining, 0, radius_inner, number_limits.at(0).get<double>());
 	LOG_EMPERY_CENTER_DEBUG("Inner crate creation complete: resource_id = ", resource_id, ", amount_remaining = ", amount_remaining);
+}
+
+void async_hang_up_castle(const boost::shared_ptr<Castle> &castle) noexcept
+try {
+	PROFILE_ME;
+
+	const auto really_hang_up = [=]{
+		PROFILE_ME;
+
+		const auto castle_uuid = castle->get_map_object_uuid();
+		const auto account_uuid = castle->get_owner_uuid();
+
+		const auto item_box = ItemBoxMap::require(account_uuid);
+		const auto mail_box = MailBoxMap::require(account_uuid);
+
+		if(castle->is_garrisoned()){
+			LOG_EMPERY_CENTER_DEBUG("Castle is already hung up: castle_uuid = ", castle_uuid);
+			return;
+		}
+
+		constexpr auto new_castle_coord = Coord(INT32_MAX, INT32_MAX);
+
+		std::vector<boost::shared_ptr<MapObject>> child_objects;
+		WorldMap::get_map_objects_by_parent_object(child_objects, castle_uuid);
+		std::vector<boost::shared_ptr<MapCell>> map_cells;
+		WorldMap::get_map_cells_by_parent_object(map_cells, castle_uuid);
+
+		boost::container::flat_map<ItemId, std::uint64_t> items_regained;
+		items_regained.reserve(32);
+		std::vector<boost::shared_ptr<MapObject>> defenses_destroyed;
+		defenses_destroyed.reserve(child_objects.size());
+
+		// 回收所有部队。
+		for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+			const auto &child_object = *it;
+			const auto map_object_type_id = child_object->get_map_object_type_id();
+			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
+
+			const auto child_object_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+			if(child_object_data && (child_object_data->speed > 0)){
+				child_object->pump_status();
+				child_object->unload_resources(castle);
+				child_object->set_coord(new_castle_coord);
+				child_object->set_garrisoned(true);
+			} else {
+				child_object->delete_from_game();
+				defenses_destroyed.emplace_back(child_object);
+			}
+		}
+
+		// 回收所有领地。
+		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+			const auto &map_cell = *it;
+
+			map_cell->pump_status();
+			map_cell->harvest(castle, false);
+
+			const auto ticket_item_id = map_cell->get_ticket_item_id();
+
+			std::vector<ItemTransactionElement> transaction;
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, ticket_item_id, 1,
+				ReasonIds::ID_HANG_UP_CASTLE, 0, 0, 0);
+			items_regained[ticket_item_id] += 1;
+			if(map_cell->is_acceleration_card_applied()){
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, 1,
+					ReasonIds::ID_HANG_UP_CASTLE, 0, 0, 0);
+				items_regained[ItemIds::ID_ACCELERATION_CARD] += 1;
+			}
+			item_box->commit_transaction(transaction, false,
+				[&]{
+					map_cell->set_parent_object({ }, { }, { });
+					map_cell->set_acceleration_card_applied(false);
+				});
+		}
+
+		// 挂起城堡。
+		castle->set_coord(new_castle_coord);
+		castle->set_garrisoned(true);
+
+		castle->pump_status();
+
+		// 发邮件。
+		const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
+		const auto language_id = LanguageId(); // neutral
+
+		std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+		segments.reserve(items_regained.size() + defenses_destroyed.size());
+		for(auto it = items_regained.begin(); it != items_regained.end(); ++it){
+			segments.emplace_back(ChatMessageSlotIds::ID_HUP_REGAINED_ITEM_ID,    boost::lexical_cast<std::string>(it->first));
+			segments.emplace_back(ChatMessageSlotIds::ID_HUP_REGAINED_ITEM_COUNT, boost::lexical_cast<std::string>(it->second));
+		}
+		for(auto it = defenses_destroyed.begin(); it != defenses_destroyed.end(); ++it){
+			const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(*it);
+			if(!defense){
+				continue;
+			}
+			const auto building_id = defense->get_map_object_type_id();
+			const auto building_level = defense->get_level();
+			segments.emplace_back(ChatMessageSlotIds::ID_HUP_DESTROYED_DEFENSE_ID,    boost::lexical_cast<std::string>(building_id));
+			segments.emplace_back(ChatMessageSlotIds::ID_HUP_DESTROYED_DEFENSE_LEVEL, boost::lexical_cast<std::string>(building_level));
+		}
+
+		const auto utc_now = Poseidon::get_utc_time();
+
+		const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
+			ChatMessageTypeIds::ID_CASTLE_HUNG_UP, AccountUuid(), std::string(), std::move(segments),
+			boost::container::flat_map<ItemId, std::uint64_t>());
+		MailBoxMap::insert_mail_data(mail_data);
+
+		MailBox::MailInfo mail_info = { };
+		mail_info.mail_uuid   = mail_uuid;
+		mail_info.expiry_time = UINT64_MAX;
+		mail_info.system      = true;
+		mail_box->insert(std::move(mail_info));
+	};
+	Poseidon::enqueue_async_job(really_hang_up);
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 }
 
 }

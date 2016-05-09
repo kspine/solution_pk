@@ -229,6 +229,18 @@ namespace {
 			csv.get(elem.max_defense_towers,        "towers_max");
 			csv.get(elem.max_battle_bunkers,        "bunker_max");
 
+			Poseidon::JsonObject object;
+			csv.get(object, "need_fountain");
+			elem.protection_cost.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.protection_cost.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate item: item_id = ", item_id);
+					DEBUG_THROW(Exception, sslit("Duplicate item"));
+				}
+			}
+
 			if(!upgrade_primary_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradePrimary: building_level = ", elem.building_level);
 				DEBUG_THROW(Exception, sslit("Duplicate CastleUpgradePrimary"));

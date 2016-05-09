@@ -60,6 +60,7 @@ namespace Data {
 		std::uint64_t max_immigrant_group_count;
 		std::uint64_t max_defense_towers;
 		std::uint64_t max_battle_bunkers;
+		boost::container::flat_map<ItemId, std::uint64_t> protection_cost;
 	};
 
 	class CastleUpgradeStables : public CastleUpgradeAbstract {

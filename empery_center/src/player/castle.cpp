@@ -1541,9 +1541,10 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		if(child_object_data && (child_object_data->speed > 0)){
 			child_object->pump_status();
 			child_object->unload_resources(castle);
-
-			child_object->set_coord(castle->get_coord());
+			child_object->set_coord(new_castle_coord);
 			child_object->set_garrisoned(true);
+		} else {
+			child_object->delete_from_game();
 		}
 	}
 
@@ -1578,18 +1579,8 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		[&]{
 			castle->set_coord(new_castle_coord);
 			castle->set_garrisoned(false);
-
-			for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
-				const auto &child_object = *it;
-				const auto map_object_type_id = child_object->get_map_object_type_id();
-				const auto child_object_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
-				if(child_object_data && (child_object_data->speed > 0)){
-					child_object->set_coord(new_castle_coord);
-				} else {
-					child_object->delete_from_game();
-				}
-			}
 		});
+	castle->pump_status();
 
 	return Response();
 }

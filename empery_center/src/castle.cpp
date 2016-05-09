@@ -467,7 +467,7 @@ void Castle::pump_population_production(){
 	}
 	// 特殊：
 	// production_time_begin 是上次人口消耗资源的时间。
-	// production_time_end 是上次人口产出的时间；
+	// production_time_end 是上次人口产出的时间。
 
 	// 人口消耗。
 	boost::container::flat_map<ResourceId, std::uint64_t> resources_to_consume_per_minute;
@@ -541,7 +541,7 @@ void Castle::pump_population_production(){
 		production_rate += upgrade_data->population_production_rate;
 		capacity        += upgrade_data->population_capacity;
 	}
-	if(production_rate > 0){
+	if(!is_garrisoned() && (production_rate > 0)){
 		double tech_turbo;
 		tech_turbo = get_attribute(AttributeIds::ID_PRODUCTION_TURBO_POPULATION) / 1000.0;
 		production_rate *= (1 + tech_turbo);
@@ -574,8 +574,6 @@ void Castle::pump_population_production(){
 			commit_resource_transaction(transaction);
 		}
 		m_population_production_remainder = amount_produced - rounded_amount_produced;
-	} else {
-		// 清空人口？
 	}
 	m_population_production_stamps->set_production_time_end(utc_now);
 

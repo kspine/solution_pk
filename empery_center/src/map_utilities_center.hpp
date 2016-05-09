@@ -15,6 +15,10 @@ extern std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectU
 extern void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t amount,
 	unsigned radius_inner, unsigned radius_outer);
 
+class Castle;
+
+extern void async_hang_up_castle(const boost::shared_ptr<Castle> &castle) noexcept;
+
 }
 
 #endif

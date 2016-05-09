@@ -18,7 +18,9 @@ constexpr ChatMessageTypeId
 	ID_AUCTION_RESULT           ( 200 ),
 	ID_PAYMENT_DIAMONDS         ( 201 ),
 	ID_PAYMENT_GOLD_COINS       ( 202 ),
-	ID_PAYMENT_GIFT_BOXES       ( 203 );
+	ID_PAYMENT_GIFT_BOXES       ( 203 ),
+
+	ID_CASTLE_HUNG_UP           ( 300 );
 
 }
 
