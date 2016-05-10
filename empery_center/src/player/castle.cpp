@@ -1710,7 +1710,7 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 		const auto preparation_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_PROTECTION_PREPARATION_DURATION);
 		delta_preparation_duration = checked_mul<std::uint64_t>(preparation_minutes, 60000);
 	}
-	const auto delta_protection_duration = checked_mul<std::uint64_t>(days, 86400000);
+	const auto delta_protection_duration = checked_add(delta_preparation_duration, checked_mul<std::uint64_t>(days, 86400000));
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
