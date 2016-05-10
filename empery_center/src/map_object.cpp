@@ -434,6 +434,8 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 		msg.object_type_id     = get_map_object_type_id().get();
 		session->send(msg);
 	} else {
+		const auto utc_now = Poseidon::get_utc_time();
+
 		const auto owner_uuid = get_owner_uuid();
 		if(owner_uuid){
 			AccountMap::cached_synchronize_account_with_player(owner_uuid, session);
@@ -456,6 +458,13 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 		msg.garrisoned         = is_garrisoned();
 		msg.action             = get_action();
 		msg.param              = get_action_param();
+		msg.buffs.reserve(m_buffs.size());
+		for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
+			auto &buff = *msg.buffs.emplace(msg.buffs.end());
+			buff.buff_id        = it->first.get();
+			buff.duration       = it->second->get_duration();
+			buff.time_remaining = saturated_sub(it->second->get_time_end(), utc_now);
+		}
 		session->send(msg);
 
 		synchronize_with_player_additional(session);
@@ -482,6 +491,13 @@ void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession>
 			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second->get_value();
+		}
+		msg.buffs.reserve(m_buffs.size());
+		for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
+			auto &buff = *msg.buffs.emplace(msg.buffs.end());
+			buff.buff_id    = it->first.get();
+			buff.time_begin = it->second->get_time_begin();
+			buff.time_end   = it->second->get_time_end();
 		}
 		cluster->send(msg);
 	}
