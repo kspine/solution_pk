@@ -32,6 +32,7 @@
 #include "../task_type_ids.hpp"
 #include "../defense_building.hpp"
 #include "../map_utilities_center.hpp"
+#include "../buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -94,12 +95,9 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	if(map_object->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
+
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
-	const auto speed = map_object_type_data->speed;
-	if(speed <= 0){
-		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
-	}
 
 	auto old_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(old_coord);
@@ -120,6 +118,11 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		cluster->shutdown(Msg::KILL_MAP_SERVER_RESYNCHRONIZE, "Lost map synchronization");
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
+
+	if(map_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+		return Response(Msg::ERR_SELF_UNDER_PROTECTION);
+	}
+
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
 	kreq.x = old_coord.x();
@@ -803,7 +806,7 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 	const auto coord = Coord(req.coord_x, req.coord_y);
 	const auto distance = get_distance_of_coords(coord, castle->get_coord());
 	if(distance > castle_upgrade_data->max_map_cell_distance){
-		return Response(Msg::ERR_MAP_CELL_IS_TOO_FAR_AWAY) <<distance;
+		return Response(Msg::ERR_DEFENSE_BUILDING_IS_TOO_FAR_AWAY) <<distance;
 	}
 	const auto cluster = WorldMap::get_cluster(coord);
 	if(!cluster){

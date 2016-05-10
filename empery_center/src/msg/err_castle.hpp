@@ -71,6 +71,7 @@ namespace Msg {
 		ERR_BATTLE_IN_PROGRESS                  = 71460,
 		ERR_CASTLE_NOT_HUNG_UP                  = 71461,
 		ERR_CASTLE_NOT_UNDER_PROTECTION         = 71462,
+		ERR_BATTALION_UNDER_PROTECTION          = 71463,
 	};
 }
 

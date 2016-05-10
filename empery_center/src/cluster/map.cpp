@@ -343,8 +343,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto attacked_coord           = Coord(req.attacked_coord_x, req.attacked_coord_y);
 
 	const auto result_type              = req.result_type;
-	//const auto result_param1            = req.result_param1;
-	//const auto result_param2            = req.result_param2;
+	// const auto result_param1            = req.result_param1;
+	// const auto result_param2            = req.result_param2;
 
 	// 结算战斗伤害。
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
@@ -355,6 +355,13 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	if(!attacked_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
+
+	if(attacked_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) &&
+		!attacked_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION))
+	{
+		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
+	}
+
 	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto soldiers_damaged = std::min(soldiers_current, req.soldiers_damaged);
 	const auto soldiers_remaining = checked_sub(soldiers_current, soldiers_damaged);

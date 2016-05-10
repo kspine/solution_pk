@@ -1675,4 +1675,102 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	castle->pump_status();
+
+	const auto castle_level = castle->get_level();
+	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+	const auto &protection_cost = upgrade_data->protection_cost;
+	const auto days = req.days;
+
+	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(protection_cost.size());
+	for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
+		const auto item_id = it->first;
+		const auto item_count = checked_mul(it->second, days);
+		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, item_count,
+			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, days);
+	}
+
+	std::uint64_t delta_preparation_duration = 0;
+	if(!castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+		const auto preparation_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_PROTECTION_PREPARATION_DURATION);
+		delta_preparation_duration = checked_mul<std::uint64_t>(preparation_minutes, 60000);
+	}
+	const auto delta_protection_duration = checked_mul<std::uint64_t>(days, 86400000);
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
+	map_objects.emplace_back(castle);
+
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{
+			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+				const auto &map_object = *it;
+				map_object->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, delta_preparation_duration);
+				map_object->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
+			}
+			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+				const auto &map_cell = *it;
+				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, delta_preparation_duration);
+				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
+			}
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	if(!castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<map_object_uuid;
+	}
+
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
+	map_objects.emplace_back(castle);
+
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+		map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
+	}
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+		map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
+	}
+
+	return Response();
+}
+
 }

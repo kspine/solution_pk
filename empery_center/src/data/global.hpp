@@ -65,6 +65,7 @@ namespace Data {
 			SLOT_RESOURCE_CRATE_RADIUS_LIMITS                       = 100066,
 			SLOT_RESOURCE_CRATE_RADIUS_EXPIRY_DURATION              = 100067,
 			SLOT_CASTLE_HANG_UP_INACTIVE_DAYS                       = 100069,
+			SLOT_CASTLE_PROTECTION_PREPARATION_DURATION             = 100072,
 		};
 
 	public:
