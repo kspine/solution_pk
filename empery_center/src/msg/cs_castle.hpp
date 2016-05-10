@@ -291,6 +291,19 @@ namespace Msg {
 	FIELD_VINT          (coord_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_CastleInitiateProtection
+#define MESSAGE_ID      435
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (days)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_CastleCancelProtection
+#define MESSAGE_ID      436
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

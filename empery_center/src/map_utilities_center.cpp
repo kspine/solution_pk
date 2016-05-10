@@ -298,6 +298,7 @@ try {
 		PROFILE_ME;
 
 		const auto castle_uuid = castle->get_map_object_uuid();
+		const auto castle_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
 		const auto account_uuid = castle->get_owner_uuid();
 
 		const auto item_box = ItemBoxMap::require(account_uuid);
@@ -351,11 +352,11 @@ try {
 
 			std::vector<ItemTransactionElement> transaction;
 			transaction.emplace_back(ItemTransactionElement::OP_ADD, ticket_item_id, 1,
-				ReasonIds::ID_HANG_UP_CASTLE, 0, 0, 0);
+				ReasonIds::ID_HANG_UP_CASTLE, castle_uuid_head, 0, 0);
 			items_regained[ticket_item_id] += 1;
 			if(map_cell->is_acceleration_card_applied()){
 				transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, 1,
-					ReasonIds::ID_HANG_UP_CASTLE, 0, 0, 0);
+					ReasonIds::ID_HANG_UP_CASTLE, castle_uuid_head, 0, 0);
 				items_regained[ItemIds::ID_ACCELERATION_CARD] += 1;
 			}
 			item_box->commit_transaction(transaction, false,

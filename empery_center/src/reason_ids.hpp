@@ -62,7 +62,8 @@ constexpr ReasonId
 	ID_APPLY_ACCELERATION_CARD       ( 674004 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
 	ID_RELOCATE_CASTLE               ( 674005 ), // 世界坐标 X          世界坐标 Y          0
 	ID_CASTLE_BUFF                   ( 674006 ), // Buff ID             0                   0
-	ID_HANG_UP_CASTLE                ( 674007 ); // 0                   0                   0
+	ID_HANG_UP_CASTLE                ( 674007 ), // 部队 UUID 高位      0                   0
+	ID_CASTLE_PROTECTION             ( 674008 ); // 部队 UUID 高位      0                   0
 
 }
 
