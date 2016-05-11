@@ -24,7 +24,8 @@ public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(std::uint16_t message_id, ServletCallback callback);
 	static boost::shared_ptr<const ServletCallback> get_servlet(std::uint16_t message_id);
 
-	static boost::shared_ptr<ClusterClient> create(std::int64_t numerical_x, std::int64_t numerical_y, std::string name);
+	static boost::shared_ptr<ClusterClient> create(std::int64_t numerical_x, std::int64_t numerical_y,
+		std::string name, std::uint64_t created_time);
 
 private:
 	struct RequestElement {

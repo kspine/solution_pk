@@ -151,11 +151,14 @@ namespace {
 	struct InitServerElement {
 		std::pair<std::int64_t, std::int64_t> num_coord;
 		std::string name;
+		std::uint64_t created_time;
 
 		mutable boost::weak_ptr<ClusterClient> cluster;
 
-		InitServerElement(std::int64_t num_x_, std::int64_t num_y_, std::string name_)
-			: num_coord(num_x_, num_y_), name(std::move(name_))
+		InitServerElement(std::int64_t num_x_, std::int64_t num_y_,
+			std::string name_, std::uint64_t created_time_)
+			: num_coord(num_x_, num_y_)
+			, name(std::move(name_)), created_time(created_time_)
 		{
 		}
 	};
@@ -178,8 +181,9 @@ namespace {
 					const auto num_x = it->num_coord.first;
 					const auto num_y = it->num_coord.second;
 					const auto &name = it->name;
+					const auto created_time = it->created_time;
 					LOG_EMPERY_CLUSTER_INFO("Creating cluster client: num_x = ", num_x, ", num_y = ", num_y, ", name = ", name);
-					cluster = ClusterClient::create(num_x, num_y, name);
+					cluster = ClusterClient::create(num_x, num_y, name, created_time);
 					it->cluster = cluster;
 					break; // 每次只连一个。
 				}
@@ -227,11 +231,12 @@ namespace {
 			const auto num_x = static_cast<std::int64_t>(temp_array.at(0).get<double>());
 			const auto num_y = static_cast<std::int64_t>(temp_array.at(1).get<double>());
 			const auto &name = temp_array.at(2).get<std::string>();
-			if(!init_server_map->insert(InitServerElement(num_x, num_y, name)).second){
+			const auto created_time = Poseidon::scan_time(temp_array.at(3).get<std::string>().c_str());
+			if(!init_server_map->insert(InitServerElement(num_x, num_y, name, created_time)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Map server conflict: num_x = ", num_x, ", num_y = ", num_y, ", name = ", name);
 				DEBUG_THROW(Exception, sslit("Map server conflict"));
 			}
-			LOG_EMPERY_CLUSTER_DEBUG("> Init map server: num_x = ", num_x, ", num_y = ", num_y);
+			LOG_EMPERY_CLUSTER_INFO("Init map server: num_x = ", num_x, ", num_y = ", num_y, ", created_time = ", created_time);
 		}
 		g_init_server_map = init_server_map;
 		handles.push(std::move(init_server_map));

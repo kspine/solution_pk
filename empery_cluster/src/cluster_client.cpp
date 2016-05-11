@@ -52,7 +52,9 @@ boost::shared_ptr<const ServletCallback> ClusterClient::get_servlet(std::uint16_
 	return servlet;
 }
 
-boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x, std::int64_t numerical_y, std::string name){
+boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x, std::int64_t numerical_y,
+	std::string name, std::uint64_t created_time)
+{
 	PROFILE_ME;
 
 	const auto host       = get_config<std::string>   ("cluster_cbpp_client_host",         "127.0.0.1");
@@ -70,9 +72,10 @@ boost::shared_ptr<ClusterClient> ClusterClient::create(std::int64_t numerical_x,
 	client->go_resident();
 	try {
 		Msg::KS_MapRegisterCluster msg;
-		msg.numerical_x = numerical_x;
-		msg.numerical_y = numerical_y;
-		msg.name        = std::move(name);
+		msg.numerical_x  = numerical_x;
+		msg.numerical_y  = numerical_y;
+		msg.name         = std::move(name);
+		msg.created_time = created_time;
 		if(!client->send(msg)){
 			LOG_EMPERY_CLUSTER_ERROR("Failed to send data to cluster server!");
 			DEBUG_THROW(Exception, sslit("Failed to send data to cluster server"));

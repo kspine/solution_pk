@@ -12,7 +12,8 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (numerical_x)	\
 	FIELD_VINT          (numerical_y)	\
-	FIELD_STRING        (name)
+	FIELD_STRING        (name)	\
+	FIELD_VUINT         (created_time)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KS_MapUpdateMapObjectAction
