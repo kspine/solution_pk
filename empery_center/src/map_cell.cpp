@@ -419,7 +419,7 @@ void MapCell::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 	obj->set_time_begin(new_time_begin);
 	obj->set_time_end(saturated_add(new_time_begin, new_duration));
 
-	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 void MapCell::clear_buff(BuffId buff_id) noexcept {
 	PROFILE_ME;
