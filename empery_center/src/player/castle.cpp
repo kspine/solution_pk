@@ -1620,11 +1620,13 @@ PLAYER_SERVLET(Msg::CS_CastleActivateBuff, account, session, req){
 	const auto count = req.count;
 
 	const auto buff_id = BuffId(item_data->type.second);
+	const auto buff_duration = checked_mul(checked_mul<std::uint64_t>(item_data->value, 60000), count);
+
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count,
 		ReasonIds::ID_CASTLE_BUFF, buff_id.get(), 0, 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
-		[&]{ castle->accumulate_buff(buff_id, checked_mul<std::uint64_t>(item_data->value, count)); });
+		[&]{ castle->accumulate_buff(buff_id, buff_duration); });
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
