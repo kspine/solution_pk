@@ -132,7 +132,7 @@ namespace {
 			return;
 		}
 
-		const auto castle_hang_up_inactive_days = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_HANG_UP_INACTIVE_DAYS);
+		const auto castle_hang_up_inactive_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_HANG_UP_INACTIVE_MINUTES);
 		const auto utc_now = Poseidon::get_utc_time();
 
 		std::vector<boost::shared_ptr<Castle>> castles_to_check;
@@ -173,7 +173,7 @@ namespace {
 				}
 				LOG_EMPERY_CENTER_TRACE("$@ Checking active account: account_uuid = ", owner_account->get_account_uuid(),
 					", last_logged_out_time = ", last_logged_out_time);
-				if(saturated_sub(utc_now, last_logged_out_time) / 86400000 < castle_hang_up_inactive_days){
+				if(saturated_sub(utc_now, last_logged_out_time) / 60000 < castle_hang_up_inactive_minutes){
 					continue;
 				}
 				LOG_EMPERY_CENTER_INFO("Hang up inactive castle: map_object_uuid = ", castle->get_map_object_uuid());
