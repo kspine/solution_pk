@@ -16,7 +16,7 @@
 #include "data/global.hpp"
 #include "data/resource_crate.hpp"
 #include "cbpp_response.hpp"
-
+#include "buff_ids.hpp"
 #include "../../empery_center/src/msg/sc_map.hpp"
 #include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
@@ -360,6 +360,21 @@ MapObject::BuffInfo MapObject::get_buff(BuffId buff_id) const{
 	}
 	fill_buff_info(info, it->second);
 	return info;
+}
+
+bool MapObject::is_buff_in_effect(BuffId buff_id) const {
+	PROFILE_ME;
+
+	const auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		return false;
+	}
+	const auto time_end = it->second.time_end;
+	if(time_end == 0){
+		return false;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	return utc_now < time_end;
 }
 void MapObject::get_buffs(std::vector<BuffInfo> &ret) const{
 		PROFILE_ME;
@@ -838,6 +853,11 @@ bool    MapObject::fix_attack_action(){
 	if(is_die()){
 		return false;
 	}
+
+	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+	        return false;
+	 }
+
 	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 	if(!target_object){
 		return false;
@@ -1007,6 +1027,9 @@ bool  MapObject::attacked_able(){
 		if(0 != defense_building_mission){
 			return false;
 		}
+	}
+	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+		return false;
 	}
 	return true;
 }

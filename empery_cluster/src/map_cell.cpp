@@ -54,6 +54,21 @@ MapCell::BuffInfo MapCell::get_buff(BuffId buff_id) const{
 	fill_buff_info(info, it->second);
 	return info;
 }
+
+bool MapCell::is_buff_in_effect(BuffId buff_id) const {
+	PROFILE_ME;
+
+	const auto it = m_buffs.find(buff_id);
+	if(it == m_buffs.end()){
+		return false;
+	}
+	const auto time_end = it->second.time_end;
+	if(time_end == 0){
+		return false;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	return utc_now < time_end;
+}
 void MapCell::get_buffs(std::vector<BuffInfo> &ret) const{
 	PROFILE_ME;
 

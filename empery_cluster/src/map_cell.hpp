@@ -45,6 +45,7 @@ public:
 	std::int64_t get_attribute(AttributeId map_object_attr_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	BuffInfo get_buff(BuffId buff_id) const;
+	bool is_buff_in_effect(BuffId buff_id) const;
 	void get_buffs(std::vector<BuffInfo> &ret) const;
 	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
 	void clear_buff(BuffId buff_id) noexcept;
