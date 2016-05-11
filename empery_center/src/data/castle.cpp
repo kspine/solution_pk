@@ -420,9 +420,9 @@ namespace {
 			Data::CastleUpgradeCitadelWall elem = { };
 
 			csv.get(elem.building_level, "wall_level");
-			read_upgrade_abstract(elem, csv);
+			read_upgrade_addon_abstract(elem, csv);
 
-			csv.get(elem.armor, "defence");
+			//
 
 			if(!upgrade_citadel_wall_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeCitadelWall: building_level = ", elem.building_level);
@@ -440,9 +440,9 @@ namespace {
 			Data::CastleUpgradeDefenseTower elem = { };
 
 			csv.get(elem.building_level, "tower_level");
-			read_upgrade_abstract(elem, csv);
+			read_upgrade_addon_abstract(elem, csv);
 
-			csv.get(elem.firepower, "atk");
+			//
 
 			if(!upgrade_defense_tower_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeDefenseTower: building_level = ", elem.building_level);
@@ -1112,6 +1112,10 @@ namespace Data {
 		PROFILE_ME;
 
 		switch(type.get()){
+		case BuildingTypeIds::ID_CITADEL_WALL.get():
+			return CastleUpgradeCitadelWall::get(building_level);
+		case BuildingTypeIds::ID_DEFENSE_TOWER.get():
+			return CastleUpgradeDefenseTower::get(building_level);
 		case BuildingTypeIds::ID_BOOT_CAMP.get():
 			return CastleUpgradeBootCamp::get(building_level);
 		case BuildingTypeIds::ID_MEDICAL_TENT.get():

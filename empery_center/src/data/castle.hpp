@@ -49,6 +49,24 @@ namespace Data {
 		double destruct_duration;
 	};
 
+	class CastleUpgradeAddonAbstract : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeAddonAbstract> get(BuildingTypeId type, unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeAddonAbstract> require(BuildingTypeId type, unsigned building_level);
+
+	public:
+		boost::container::flat_map<AttributeId, double> attributes;
+	};
+
+	class CastleUpgradeBootCamp : public CastleUpgradeAddonAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeBootCamp> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeBootCamp> require(unsigned building_level);
+
+	public:
+		//
+	};
+
 	class CastleUpgradePrimary : public CastleUpgradeAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradePrimary> get(unsigned building_level);
@@ -128,22 +146,22 @@ namespace Data {
 		boost::container::flat_map<ResourceId, std::uint64_t> protected_resource_amounts;
 	};
 
-	class CastleUpgradeCitadelWall : public CastleUpgradeAbstract {
+	class CastleUpgradeCitadelWall : public CastleUpgradeAddonAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradeCitadelWall> get(unsigned building_level);
 		static boost::shared_ptr<const CastleUpgradeCitadelWall> require(unsigned building_level);
 
 	public:
-		std::uint64_t armor;
+		//
 	};
 
-	class CastleUpgradeDefenseTower : public CastleUpgradeAbstract {
+	class CastleUpgradeDefenseTower : public CastleUpgradeAddonAbstract {
 	public:
 		static boost::shared_ptr<const CastleUpgradeDefenseTower> get(unsigned building_level);
 		static boost::shared_ptr<const CastleUpgradeDefenseTower> require(unsigned building_level);
 
 	public:
-		std::uint64_t firepower;
+		//
 	};
 
 	class CastleUpgradeParadeGround : public CastleUpgradeAbstract {
@@ -153,24 +171,6 @@ namespace Data {
 
 	public:
 		std::uint64_t max_battalion_count;
-	};
-
-	class CastleUpgradeAddonAbstract : public CastleUpgradeAbstract {
-	public:
-		static boost::shared_ptr<const CastleUpgradeAddonAbstract> get(BuildingTypeId type, unsigned building_level);
-		static boost::shared_ptr<const CastleUpgradeAddonAbstract> require(BuildingTypeId type, unsigned building_level);
-
-	public:
-		boost::container::flat_map<AttributeId, double> attributes;
-	};
-
-	class CastleUpgradeBootCamp : public CastleUpgradeAddonAbstract {
-	public:
-		static boost::shared_ptr<const CastleUpgradeBootCamp> get(unsigned building_level);
-		static boost::shared_ptr<const CastleUpgradeBootCamp> require(unsigned building_level);
-
-	public:
-		//
 	};
 
 	class CastleUpgradeMedicalTent : public CastleUpgradeAddonAbstract {
