@@ -388,6 +388,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		}
 
 		const auto parent_object_uuid = attacked_object->get_parent_object_uuid();
+		if(!parent_object_uuid){
+			goto _wounded_done;
+		}
 		const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 		if(!parent_castle){
 			LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
