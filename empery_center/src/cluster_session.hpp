@@ -39,6 +39,7 @@ private:
 	boost::container::flat_multimap<std::uint64_t, RequestElement> m_requests;
 
 	std::string m_name;
+	std::uint64_t m_created_time = 0;
 
 public:
 	explicit ClusterSession(Poseidon::UniqueFile socket);
@@ -75,6 +76,13 @@ public:
 	}
 	void set_name(std::string name){
 		m_name.swap(name);
+	}
+
+	std::uint64_t get_created_time() const {
+		return m_created_time;
+	}
+	void set_created_time(std::uint64_t created_time){
+		m_created_time = created_time;
 	}
 };
 

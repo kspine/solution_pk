@@ -1716,6 +1716,18 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
+	{
+		auto it = map_objects.begin();
+		while(it != map_objects.end()){
+			const auto &map_object = *it;
+			const auto map_object_type_id = map_object->get_map_object_type_id();
+			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+				it = map_objects.erase(it);
+				continue;
+			}
+			++it;
+		}
+	}
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
@@ -1756,6 +1768,18 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
+	{
+		auto it = map_objects.begin();
+		while(it != map_objects.end()){
+			const auto &map_object = *it;
+			const auto map_object_type_id = map_object->get_map_object_type_id();
+			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+				it = map_objects.erase(it);
+				continue;
+			}
+			++it;
+		}
+	}
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
