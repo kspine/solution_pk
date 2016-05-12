@@ -1800,6 +1800,12 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 {
 	PROFILE_ME;
 
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return { };
+	}
+
 	const auto cluster_map = g_cluster_map.lock();
 	if(!cluster_map){
 		LOG_EMPERY_CENTER_WARNING("Cluster map is not loaded.");
@@ -1831,7 +1837,10 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 				assert(castle);
 				castle->pump_status();
 				castle->recalculate_attributes();
-				insert_map_object(castle);
+
+				LOG_EMPERY_CENTER_DEBUG("Creating castle: coord = ", coord);
+				map_object_map->insert(MapObjectElement(castle));
+				update_map_object(castle, false);
 			}
 			cached_start_points.erase(cached_start_points.begin() + static_cast<std::ptrdiff_t>(index));
 
