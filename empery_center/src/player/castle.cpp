@@ -1696,16 +1696,16 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
 	const auto &protection_cost = upgrade_data->protection_cost;
 	const auto days = req.days;
-
-	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+	const auto protection_duration = checked_mul<std::uint64_t>(days, 86400000);
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.reserve(protection_cost.size());
+	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 	for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
 		const auto item_id = it->first;
 		const auto item_count = checked_mul(it->second, days);
 		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, item_count,
-			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, days);
+			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 	}
 
 	std::uint64_t delta_preparation_duration = 0;
@@ -1713,7 +1713,7 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 		const auto preparation_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_PROTECTION_PREPARATION_DURATION);
 		delta_preparation_duration = checked_mul<std::uint64_t>(preparation_minutes, 60000);
 	}
-	const auto delta_protection_duration = checked_add(delta_preparation_duration, checked_mul<std::uint64_t>(days, 86400000));
+	const auto delta_protection_duration = checked_add(delta_preparation_duration, protection_duration);
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
@@ -1763,8 +1763,31 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
 	if(!castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
 		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<map_object_uuid;
+	}
+
+	std::vector<ItemTransactionElement> transaction;
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+		const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
+		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+
+		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_PROTECTION_REFUND_RATIO);
+
+		const auto castle_level = castle->get_level();
+		const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+		const auto &protection_cost = upgrade_data->protection_cost;
+		transaction.reserve(protection_cost.size());
+		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+		for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
+			const auto item_id = it->first;
+			const auto item_count = static_cast<std::uint64_t>(it->second * (protection_duration / 86400.0) * refund_ratio + 0.001);
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, item_count,
+				ReasonIds::ID_CASTLE_PROTECTION_REFUND, map_object_uuid_head, castle_level, protection_duration);
+		}
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
@@ -1786,16 +1809,19 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
 
-	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
-		const auto &map_object = *it;
-		map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-		map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
-	}
-	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
-		const auto &map_cell = *it;
-		map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-		map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
-	}
+	item_box->commit_transaction(transaction, true,
+		[&]{
+			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+				const auto &map_object = *it;
+				map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+				map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
+			}
+			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+				const auto &map_cell = *it;
+				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
+			}
+		});
 
 	return Response();
 }
