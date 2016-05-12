@@ -32,6 +32,7 @@
 #include "../chat_message_slot_ids.hpp"
 #include "../item_ids.hpp"
 #include "../buff_ids.hpp"
+#include "../cluster_session.hpp"
 
 namespace EmperyCenter {
 
@@ -1647,6 +1648,10 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 	if(!castle->is_garrisoned()){
 		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
 	}
+
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
+
 	const auto new_castle_coord = Coord(req.coord_x, req.coord_y);
 	const auto new_cluster = WorldMap::get_cluster(new_castle_coord);
 	if(!new_cluster){
@@ -1656,10 +1661,6 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 	if(result.first != Msg::ST_OK){
 		return std::move(result);
 	}
-
-	std::vector<boost::shared_ptr<MapObject>> child_objects;
-	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
-
 	castle->set_coord(new_castle_coord);
 	castle->set_garrisoned(false);
 
@@ -1669,7 +1670,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		child_object->set_coord(new_castle_coord);
+		child_object->set_coord(castle->get_coord());
 	}
 
 	castle->pump_status();
@@ -1795,6 +1796,85 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 		map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	if(!castle->is_garrisoned()){
+		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
+	}
+
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
+
+	const auto last_castle_coord = Coord(castle->get_attribute(AttributeIds::ID_CASTLE_LAST_COORD_X),
+	                                     castle->get_attribute(AttributeIds::ID_CASTLE_LAST_COORD_Y));
+	const auto last_cluster = WorldMap::get_cluster(last_castle_coord);
+	if(last_cluster){
+		auto result = can_deploy_castle_at(last_castle_coord, map_object_uuid);
+		if(result.first == Msg::ST_OK){
+			castle->set_coord(last_castle_coord);
+			goto _reactivated;
+		}
+	}
+	{
+		boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+		WorldMap::get_all_clusters(clusters);
+
+		boost::container::flat_multimap<std::uint64_t, Coord> cluster_coords_by_time;
+		cluster_coords_by_time.reserve(clusters.size());
+		for(auto it = clusters.begin(); it != clusters.end(); ++it){
+			cluster_coords_by_time.emplace(it->second->get_created_time(), it->first);
+		}
+
+		std::deque<Coord> cluster_coords_avail;
+		const auto castle_created_time = castle->get_created_time();
+		auto it = cluster_coords_by_time.begin();
+		for(; (it != cluster_coords_by_time.end()) && (it->first <= castle_created_time); ++it){
+			cluster_coords_avail.emplace_front(it->second);
+		}
+		cluster_coords_avail.emplace_front(last_castle_coord);
+		for(; it != cluster_coords_by_time.end(); ++it){
+			cluster_coords_avail.emplace_back(it->second);
+		}
+
+		while(!cluster_coords_avail.empty()){
+			const auto new_castle = WorldMap::create_init_castle_restricted(
+				[&](Coord coord){
+					castle->set_coord(coord);
+					return castle;
+				},
+				cluster_coords_avail.front());
+			if(new_castle == castle){
+				goto _reactivated;
+			}
+			cluster_coords_avail.pop_front();
+		}
+	}
+	return Response(Msg::ERR_NO_START_POINTS_AVAILABLE);
+_reactivated:
+	castle->set_garrisoned(false);
+
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		const auto map_object_type_id = child_object->get_map_object_type_id();
+		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		child_object->set_coord(castle->get_coord());
+	}
+
+	castle->pump_status();
 
 	return Response();
 }

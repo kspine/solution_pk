@@ -72,6 +72,7 @@ namespace Msg {
 		ERR_CASTLE_NOT_HUNG_UP                  = 71461,
 		ERR_CASTLE_NOT_UNDER_PROTECTION         = 71462,
 		ERR_BATTALION_UNDER_PROTECTION          = 71463,
+		ERR_NO_START_POINTS_AVAILABLE           = 71464,
 	};
 }
 
