@@ -10,7 +10,10 @@ namespace BuffIds {
 constexpr BuffId
 	ID_BATTLE_STATUS                    ( 2700003 ),
 	ID_CASTLE_PROTECTION_PREPARATION    ( 2700004 ),
-	ID_CASTLE_PROTECTION                ( 2700005 );
+	ID_CASTLE_PROTECTION                ( 2700005 ),
+	ID_MAP_CELL_OCCUPATION              ( 2700007 ),
+	ID_MAP_CELL_RESCUE                  ( 2700008 ),
+	ID_MAP_CELL_PROTECTION              ( 2700009 );
 
 }
 

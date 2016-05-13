@@ -1553,6 +1553,10 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 		const auto &map_cell = *it;
 
+		if(map_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+			continue;
+		}
+
 		map_cell->pump_status();
 		map_cell->harvest(castle, false);
 
@@ -1743,6 +1747,7 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 			}
 			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 				const auto &map_cell = *it;
+				map_cell->clear_buff(BuffIds::ID_MAP_CELL_PROTECTION);
 				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, delta_preparation_duration);
 				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
 			}
@@ -1818,6 +1823,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 			}
 			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 				const auto &map_cell = *it;
+				map_cell->clear_buff(BuffIds::ID_MAP_CELL_PROTECTION);
 				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
 			}

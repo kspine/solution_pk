@@ -89,6 +89,10 @@ public:
 	void accumulate_buff(BuffId buff_id, std::uint64_t delta_duration);
 	void clear_buff(BuffId buff_id) noexcept;
 
+	MapObjectUuid get_occupier_object_uuid() const;
+	AccountUuid get_occupier_owner_uuid() const;
+	void set_occupier_object_uuid(MapObjectUuid occupier_object_uuid);
+
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;

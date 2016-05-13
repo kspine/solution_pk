@@ -29,7 +29,9 @@ namespace Msg {
 		FIELD_VUINT         (buff_id)   \
 		FIELD_VUINT         (time_begin)  \
 		FIELD_VUINT         (time_end)  \
-	)
+	)	\
+	FIELD_STRING        (occupier_object_uuid)	\
+	FIELD_STRING        (occupier_owner_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SK_MapAddMapObject

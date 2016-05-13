@@ -132,6 +132,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_SELF_UNDER_PROTECTION);
 	}
 
+	map_object->recalculate_attributes();
+
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
 	kreq.x = old_coord.x();
@@ -949,6 +951,7 @@ PLAYER_SERVLET(Msg::CS_MapDestroyDefenseBuilding, account, session, req){
 	const auto duration = static_cast<std::uint64_t>(0 /* std::ceil(upgrade_data->destruct_duration * 60000.0 - 0.001) */);
 
 	defense_building->create_mission(Castle::MIS_DESTRUCT, duration);
+	defense_building->delete_from_game();
 
 	return Response();
 }

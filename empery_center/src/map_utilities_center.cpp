@@ -28,6 +28,7 @@
 #include "reason_ids.hpp"
 #include "data/map_object_type.hpp"
 #include "attribute_ids.hpp"
+#include "buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -344,6 +345,10 @@ try {
 		// 回收所有领地。
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 			const auto &map_cell = *it;
+
+			if(map_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+				continue;
+			}
 
 			map_cell->pump_status();
 			map_cell->harvest(castle, false);

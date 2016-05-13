@@ -42,7 +42,11 @@ namespace Msg {
 		FIELD_VUINT         (buff_id)	\
 		FIELD_VUINT         (duration)	\
 		FIELD_VUINT         (time_remaining)	\
-	)
+	)	\
+	FIELD_STRING        (occupier_object_uuid)	\
+	FIELD_STRING        (occupier_owner_uuid)	\
+	FIELD_VINT          (occupier_x)	\
+	FIELD_VINT          (occupier_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectInfo

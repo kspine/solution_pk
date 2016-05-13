@@ -37,7 +37,7 @@ MapCell::MapCell(Coord coord)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(),
-				Poseidon::Uuid(), false, 0, 0, 0, 0);
+				Poseidon::Uuid(), false, 0, 0, 0, 0, Poseidon::Uuid());
 			obj->async_save(true);
 			return obj;
 		}())
@@ -438,6 +438,30 @@ void MapCell::clear_buff(BuffId buff_id) noexcept {
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
+MapObjectUuid MapCell::get_occupier_object_uuid() const {
+	PROFILE_ME;
+
+	return MapObjectUuid(m_obj->unlocked_get_occupier_object_uuid());
+}
+AccountUuid MapCell::get_occupier_owner_uuid() const {
+	PROFILE_ME;
+
+	const auto occupier_object_uuid = get_occupier_object_uuid();
+	if(!occupier_object_uuid){
+		return { };
+	}
+	const auto occupier_object = WorldMap::get_map_object(occupier_object_uuid);
+	if(!occupier_object){
+		return { };
+	}
+	return occupier_object->get_owner_uuid();
+}
+void MapCell::set_occupier_object_uuid(MapObjectUuid occupier_object_uuid){
+	PROFILE_ME;
+
+	m_obj->set_occupier_object_uuid(occupier_object_uuid.get());
+}
+
 bool MapCell::is_virtually_removed() const {
 	return !get_parent_object_uuid();
 }
@@ -452,15 +476,24 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	} else {
 		const auto utc_now = Poseidon::get_utc_time();
 
-		boost::shared_ptr<MapObject> parent_object;
 		const auto parent_object_uuid = get_parent_object_uuid();
+		boost::shared_ptr<MapObject> parent_object;
 		if(parent_object_uuid){
 			parent_object = WorldMap::get_map_object(parent_object_uuid);
 		}
-
 		const auto owner_uuid = get_owner_uuid();
 		if(owner_uuid){
 			AccountMap::cached_synchronize_account_with_player(owner_uuid, session);
+		}
+
+		const auto occupier_object_uuid = get_occupier_object_uuid();
+		boost::shared_ptr<MapObject> occupier_object;
+		if(occupier_object_uuid){
+			occupier_object = WorldMap::get_map_object(occupier_object_uuid);
+		}
+		const auto occupier_owner_uuid = get_occupier_owner_uuid();
+		if(occupier_owner_uuid){
+			AccountMap::cached_synchronize_account_with_player(occupier_owner_uuid, session);
 		}
 
 		Msg::SC_MapCellInfo msg;
@@ -491,6 +524,12 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			buff.duration       = it->second->get_duration();
 			buff.time_remaining = saturated_sub(it->second->get_time_end(), utc_now);
 		}
+		msg.occupier_object_uuid      = occupier_object_uuid.str();
+		msg.occupier_owner_uuid       = occupier_owner_uuid.str();
+		if(occupier_object){
+			msg.occupier_x            = occupier_object->get_coord().x();
+			msg.occupier_y            = occupier_object->get_coord().y();
+		}
 		session->send(msg);
 	}
 }
@@ -498,10 +537,10 @@ void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &
 	PROFILE_ME;
 
 	Msg::SK_MapAddMapCell msg;
-	msg.x                  = get_coord().x();
-	msg.y                  = get_coord().y();
-	msg.parent_object_uuid = get_parent_object_uuid().str();
-	msg.owner_uuid         = get_owner_uuid().str();
+	msg.x                    = get_coord().x();
+	msg.y                    = get_coord().y();
+	msg.parent_object_uuid   = get_parent_object_uuid().str();
+	msg.owner_uuid           = get_owner_uuid().str();
 	msg.attributes.reserve(m_attributes.size());
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		auto &attribute = *msg.attributes.emplace(msg.attributes.end());
@@ -515,6 +554,8 @@ void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &
 		buff.time_begin = it->second->get_time_begin();
 		buff.time_end   = it->second->get_time_end();
 	}
+	msg.occupier_object_uuid = get_occupier_object_uuid().str();
+	msg.occupier_owner_uuid  = get_occupier_owner_uuid().str();
 	cluster->send(msg);
 }
 

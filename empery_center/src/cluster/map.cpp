@@ -362,6 +362,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
 	}
 
+	attacking_object->recalculate_attributes();
+	attacked_object->recalculate_attributes();
+
 	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto soldiers_damaged = std::min(soldiers_current, req.soldiers_damaged);
 	const auto soldiers_remaining = checked_sub(soldiers_current, soldiers_damaged);
