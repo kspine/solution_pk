@@ -62,6 +62,14 @@ void MapObject::synchronize_with_player_additional(const boost::shared_ptr<Playe
 	(void)session;
 }
 
+bool MapObject::should_auto_update() const {
+	PROFILE_ME;
+
+	if(!is_garrisoned()){
+		return true;
+	}
+	return false;
+}
 void MapObject::pump_status(){
 	PROFILE_ME;
 

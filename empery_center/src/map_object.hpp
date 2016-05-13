@@ -55,6 +55,7 @@ protected:
 	virtual void synchronize_with_player_additional(const boost::shared_ptr<PlayerSession> &session) const;
 
 public:
+	virtual bool should_auto_update() const;
 	virtual void pump_status();
 	virtual void recalculate_attributes(bool recursive);
 

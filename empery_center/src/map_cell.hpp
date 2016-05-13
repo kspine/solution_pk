@@ -49,6 +49,7 @@ public:
 	~MapCell();
 
 public:
+	virtual bool should_auto_update() const;
 	virtual void pump_status();
 
 	Coord get_coord() const;

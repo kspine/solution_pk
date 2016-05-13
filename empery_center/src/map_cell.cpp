@@ -58,6 +58,14 @@ MapCell::MapCell(boost::shared_ptr<MySql::Center_MapCell> obj,
 MapCell::~MapCell(){
 }
 
+bool MapCell::should_auto_update() const {
+	PROFILE_ME;
+
+	if(get_occupier_object_uuid()){
+		return true;
+	}
+	return false;
+}
 void MapCell::pump_status(){
 	PROFILE_ME;
 

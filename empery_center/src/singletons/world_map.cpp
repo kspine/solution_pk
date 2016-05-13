@@ -72,7 +72,7 @@ namespace {
 			if(map_cell->is_virtually_removed()){
 				continue;
 			}
-			if(!map_cell->get_occupier_object_uuid()){
+			if(!map_cell->should_auto_update()){
 				continue;
 			}
 			map_cells_to_pump.emplace_back(map_cell);
@@ -128,7 +128,7 @@ namespace {
 			if(map_object->is_virtually_removed()){
 				continue;
 			}
-			if(map_object->is_garrisoned()){
+			if(!map_object->should_auto_update()){
 				continue;
 			}
 			map_objects_to_pump.emplace_back(map_object);
