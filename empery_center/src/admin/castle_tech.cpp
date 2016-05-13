@@ -46,9 +46,9 @@ ADMIN_SERVLET("castle_tech/set", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
 
-	castle->pump_status();
-
 	castle->forced_replace_tech(tech_id, tech_level);
+
+	castle->pump_status();
 
 	return Response();
 }

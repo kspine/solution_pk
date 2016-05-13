@@ -48,9 +48,9 @@ ADMIN_SERVLET("castle_building_base/set", root, session, params){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
 
-	castle->pump_status();
-
 	castle->forced_replace_building(building_base_id, building_id, building_level);
+
+	castle->pump_status();
 
 	return Response();
 }
