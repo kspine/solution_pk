@@ -37,7 +37,7 @@ MapCell::MapCell(Coord coord)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(),
-				Poseidon::Uuid(), false, 0, 0, 0, 0, Poseidon::Uuid());
+				Poseidon::Uuid(), false, 0, 0, 0, 0, Poseidon::Uuid(), 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -61,7 +61,7 @@ MapCell::~MapCell(){
 bool MapCell::should_auto_update() const {
 	PROFILE_ME;
 
-	if(get_occupier_object_uuid()){
+	if(get_parent_object_uuid()){
 		return true;
 	}
 	return false;

@@ -17,7 +17,8 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (production_resource_id)	\
 	FIELD_DATETIME          (last_production_time)	\
 	FIELD_BIGINT_UNSIGNED   (resource_amount)	\
-	FIELD_UUID              (occupier_object_uuid)
+	FIELD_UUID              (occupier_object_uuid)	\
+	FIELD_DATETIME          (last_self_healed_time)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapCellAttribute
