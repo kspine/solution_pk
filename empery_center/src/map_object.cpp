@@ -127,8 +127,6 @@ void MapObject::recalculate_attributes(bool recursive){
 			value += tech_attribute_value;
 		}
 
-		boost::container::flat_map<AttributeId, std::int64_t> virtual_buff;
-		virtual_buff.reserve(32);
 		for(auto it = parent_object->m_buffs.begin(); it != parent_object->m_buffs.end(); ++it){
 			const auto buff_id = it->first;
 			const auto time_end = it->second->get_time_end();
@@ -145,7 +143,7 @@ void MapObject::recalculate_attributes(bool recursive){
 				if((attribute_id < AttributeIds::R_COMBAT_ATTRIBUTES_BEGIN) || (AttributeIds::R_COMBAT_ATTRIBUTES_END <= attribute_id)){
 					continue;
 				}
-				auto &value = virtual_buff[ait->first];
+				auto &value = modifiers[ait->first];
 				value += std::round(ait->second * 1000.0);
 			}
 		}
