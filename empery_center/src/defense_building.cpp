@@ -150,15 +150,15 @@ void DefenseBuilding::pump_status(){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	if(check_defense_building_mission(m_defense_obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(false);
 	}
 
 	self_heal(utc_now);
 }
-void DefenseBuilding::recalculate_attributes(){
+void DefenseBuilding::recalculate_attributes(bool recursive){
 	PROFILE_ME;
 
-	MapObject::recalculate_attributes();
+	MapObject::recalculate_attributes(recursive);
 
 //	const auto utc_now = Poseidon::get_utc_time();
 
@@ -218,7 +218,7 @@ void DefenseBuilding::create_mission(DefenseBuilding::Mission mission, std::uint
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
 	if(check_defense_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(false);
 	}
 
 	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());
@@ -255,7 +255,7 @@ void DefenseBuilding::cancel_mission(){
 	obj->set_mission_time_end(0);
 /*
 	if(check_defense_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(false);
 	}
 */
 	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());
@@ -290,7 +290,7 @@ void DefenseBuilding::speed_up_mission(std::uint64_t delta_duration){
 	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
 	if(check_defense_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(false);
 	}
 
 	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());
@@ -329,7 +329,7 @@ void DefenseBuilding::forced_replace_level(unsigned building_level){
 	obj->set_mission_time_end(0);
 
 	if(check_defense_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(false);
 	}
 
 	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());

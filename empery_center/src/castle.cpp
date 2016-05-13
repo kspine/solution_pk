@@ -343,17 +343,17 @@ void Castle::pump_status(){
 		}
 	}
 	if(dirty){
-		recalculate_attributes();
+		recalculate_attributes(true);
 		async_recheck_building_level_tasks(get_owner_uuid());
 	}
 
 	pump_population_production();
 	pump_treatment();
 }
-void Castle::recalculate_attributes(){
+void Castle::recalculate_attributes(bool recursive){
 	PROFILE_ME;
 
-	DefenseBuilding::recalculate_attributes();
+	DefenseBuilding::recalculate_attributes(recursive);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(32);
@@ -440,16 +440,18 @@ void Castle::recalculate_attributes(){
 	// 提交新的属性。注意该行前后城堡属性发生变化。
 	set_attributes(std::move(modifiers));
 
-	// 更新新的部队属性。
-	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
-		const auto &child_object = *it;
-		if(child_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
-			continue;
-		}
-		try {
-			child_object->recalculate_attributes();
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	if(recursive){
+		// 更新新的部队属性。
+		for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+			const auto &child_object = *it;
+			if(child_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
+				continue;
+			}
+			try {
+				child_object->recalculate_attributes(false);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
 		}
 	}
 }
@@ -739,7 +741,7 @@ void Castle::create_building_mission(BuildingBaseId building_base_id, Castle::Mi
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
 	if(check_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 		pump_population_production();
 		async_recheck_building_level_tasks(get_owner_uuid());
 	}
@@ -781,7 +783,7 @@ void Castle::cancel_building_mission(BuildingBaseId building_base_id){
 	obj->set_mission_time_end(0);
 /*
 	if(check_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 		pump_population_production();
 		async_recheck_building_level_tasks(get_owner_uuid());
 	}
@@ -820,7 +822,7 @@ void Castle::speed_up_building_mission(BuildingBaseId building_base_id, std::uin
 	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
 	if(check_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 		pump_population_production();
 		async_recheck_building_level_tasks(get_owner_uuid());
 	}
@@ -859,7 +861,7 @@ void Castle::forced_replace_building(BuildingBaseId building_base_id, BuildingId
 	obj->set_mission_time_end(utc_now);
 /*
 	if(check_building_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 		pump_population_production();
 		async_recheck_building_level_tasks(get_owner_uuid());
 	}
@@ -890,7 +892,7 @@ void Castle::pump_building_status(BuildingBaseId building_base_id){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	if(check_building_mission(it->second, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 		pump_population_production();
 		async_recheck_building_level_tasks(get_owner_uuid());
 	}
@@ -1135,7 +1137,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission, std::u
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
 
 	if(check_tech_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -1173,7 +1175,7 @@ void Castle::cancel_tech_mission(TechId tech_id){
 	obj->set_mission_time_end(0);
 /*
 	if(check_tech_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 	}
 */
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -1208,7 +1210,7 @@ void Castle::speed_up_tech_mission(TechId tech_id, std::uint64_t delta_duration)
 	obj->set_mission_time_end(saturated_sub(obj->get_mission_time_end(), delta_duration));
 
 	if(check_tech_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -1244,7 +1246,7 @@ void Castle::forced_replace_tech(TechId tech_id, unsigned tech_level){
 	obj->set_mission_time_end(utc_now);
 /*
 	if(check_tech_mission(obj, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 	}
 */
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -1272,7 +1274,7 @@ void Castle::pump_tech_status(TechId tech_id){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	if(check_tech_mission(it->second, utc_now)){
-		recalculate_attributes();
+		recalculate_attributes(true);
 	}
 }
 unsigned Castle::get_tech_queue_size() const {

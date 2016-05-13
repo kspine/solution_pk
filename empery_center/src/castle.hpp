@@ -123,7 +123,7 @@ public:
 
 public:
 	void pump_status() override;
-	void recalculate_attributes() override;
+	void recalculate_attributes(bool recursive) override;
 
 	double get_population_production_rate() const {
 		return m_population_production_rate;

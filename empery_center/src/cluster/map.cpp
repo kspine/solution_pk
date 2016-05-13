@@ -362,8 +362,22 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
 	}
 
-	attacking_object->recalculate_attributes();
-	attacked_object->recalculate_attributes();
+	const auto update_attributes_single = [&](const boost::shared_ptr<MapObject> &map_object){
+		const auto map_object_type_id = map_object->get_map_object_type_id();
+		if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
+			const auto parent_object_uuid = map_object->get_parent_object_uuid();
+			if(parent_object_uuid){
+				const auto parent_object = WorldMap::get_map_object(parent_object_uuid);
+				if(parent_object){
+					parent_object->recalculate_attributes(false);
+				}
+			}
+		}
+		map_object->recalculate_attributes(false);
+	};
+
+	update_attributes_single(attacking_object);
+	update_attributes_single(attacked_object);
 
 	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto soldiers_damaged = std::min(soldiers_current, req.soldiers_damaged);

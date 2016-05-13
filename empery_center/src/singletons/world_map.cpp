@@ -1836,7 +1836,7 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 				castle = factory(coord);
 				assert(castle);
 				castle->pump_status();
-				castle->recalculate_attributes();
+				castle->recalculate_attributes(false);
 
 				LOG_EMPERY_CENTER_DEBUG("Creating castle: coord = ", coord);
 				map_object_map->insert(MapObjectElement(castle));

@@ -43,7 +43,7 @@ protected:
 
 public:
 	void pump_status() override;
-	void recalculate_attributes() override;
+	void recalculate_attributes(bool recursive) override;
 
 	virtual unsigned get_level() const;
 	Mission get_mission() const;

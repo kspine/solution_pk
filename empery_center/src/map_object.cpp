@@ -75,11 +75,13 @@ void MapObject::pump_status(){
 		++dirty;
 	}
 	if(dirty){
-		recalculate_attributes();
+		recalculate_attributes(false);
 	}
 }
-void MapObject::recalculate_attributes(){
+void MapObject::recalculate_attributes(bool recursive){
 	PROFILE_ME;
+
+	(void)recursive;
 
 	const auto utc_now = Poseidon::get_utc_time();
 

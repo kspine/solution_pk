@@ -132,7 +132,16 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_SELF_UNDER_PROTECTION);
 	}
 
-	map_object->recalculate_attributes();
+	if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
+		const auto parent_object_uuid = map_object->get_parent_object_uuid();
+		if(parent_object_uuid){
+			const auto parent_object = WorldMap::get_map_object(parent_object_uuid);
+			if(parent_object){
+				parent_object->recalculate_attributes(false);
+			}
+		}
+	}
+	map_object->recalculate_attributes(false);
 
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
