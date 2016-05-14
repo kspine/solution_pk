@@ -241,6 +241,8 @@ namespace {
 				}
 			}
 
+			csv.get(elem.max_occupied_map_cells,    "max_occupy");
+
 			if(!upgrade_primary_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradePrimary: building_level = ", elem.building_level);
 				DEBUG_THROW(Exception, sslit("Duplicate CastleUpgradePrimary"));

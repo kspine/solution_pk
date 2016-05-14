@@ -72,6 +72,11 @@ void MapCell::pump_status(){
 	pump_production();
 	self_heal();
 }
+void MapCell::recalculate_attributes(bool recursive){
+	PROFILE_ME;
+
+	// 无事可做。
+}
 
 Coord MapCell::get_coord() const {
 	return Coord(m_obj->get_x(), m_obj->get_y());

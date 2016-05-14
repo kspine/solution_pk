@@ -79,6 +79,7 @@ namespace Data {
 		std::uint64_t max_defense_towers;
 		std::uint64_t max_battle_bunkers;
 		boost::container::flat_map<ItemId, std::uint64_t> protection_cost;
+		std::uint64_t max_occupied_map_cells;
 	};
 
 	class CastleUpgradeStables : public CastleUpgradeAbstract {

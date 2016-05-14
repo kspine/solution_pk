@@ -178,14 +178,13 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto resource_id = ResourceId(req.resource_id);
-
 	const auto resource_data = Data::CastleResource::get(resource_id);
 	if(!resource_data || !resource_data->producible){
 		return Response(Msg::ERR_RESOURCE_NOT_PRODUCIBLE);
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
@@ -262,8 +261,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
@@ -272,6 +269,8 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	if(map_cell->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto old_ticket_item_id = map_cell->get_ticket_item_id();
 	if(!old_ticket_item_id){
@@ -339,8 +338,6 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
@@ -349,6 +346,8 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 	if(map_cell->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto ticket_item_id = map_cell->get_ticket_item_id();
 	if(!ticket_item_id){
@@ -730,15 +729,25 @@ PLAYER_SERVLET(Msg::CS_MapLoadMinimap, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
-	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
-
 	const auto coord = Coord(req.x, req.y);
 	const auto map_cell = WorldMap::get_map_cell(coord);
 	if(!map_cell){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
 	}
-	if(map_cell->get_owner_uuid() != account->get_account_uuid()){
-		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
+
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	map_cell->pump_status();
+
+	const auto occupier_owner_uuid = map_cell->get_occupier_owner_uuid();
+	if(occupier_owner_uuid){
+		if(occupier_owner_uuid != account->get_account_uuid()){
+			return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<occupier_owner_uuid;
+		}
+	} else {
+		if(map_cell->get_owner_uuid() != account->get_account_uuid()){
+			return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
+		}
 	}
 
 	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
@@ -754,8 +763,6 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 	if(!castle){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
 	}
-
-	map_cell->pump_status();
 
 	if(map_cell->get_resource_amount() != 0){
 		const auto resource_id = map_cell->get_production_resource_id();
@@ -1041,6 +1048,30 @@ PLAYER_SERVLET(Msg::CS_MapSpeedUpDefenseBuildingUpgrade, account, session, req){
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
+	const auto coord = Coord(req.x, req.y);
+	const auto map_cell = WorldMap::get_map_cell(coord);
+	if(!map_cell){
+		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
+	}
+
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	map_cell->pump_status();
+
+	const auto occupier_owner_uuid = map_cell->get_occupier_owner_uuid();
+	if(!occupier_owner_uuid){
+		return Response(Msg::ERR_MAP_CELL_NOT_OCCUPIED);
+	}
+	if(occupier_owner_uuid != account->get_account_uuid()){
+		return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<occupier_owner_uuid;
+	}
+
+	// TODO
 
 	return Response();
 }

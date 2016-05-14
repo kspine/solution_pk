@@ -52,6 +52,7 @@ public:
 public:
 	virtual bool should_auto_update() const;
 	virtual void pump_status();
+	virtual void recalculate_attributes(bool recursive);
 
 	Coord get_coord() const;
 

@@ -63,6 +63,9 @@ namespace Msg {
 		ERR_RESOURCE_CRATE_EMPTY                = 71352,
 		ERR_DEFENSE_BUILDING_IS_TOO_FAR_AWAY    = 71353,
 		ERR_SELF_UNDER_PROTECTION               = 71354,
+		ERR_MAP_CELL_OCCUPIED                   = 71355,
+		ERR_MAP_CELL_NOT_OCCUPIED               = 71356,
+		ERR_MAP_CELL_UNDER_PROTECTION           = 71357,
 	};
 }
 

@@ -544,6 +544,13 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 		const auto &map_cell = *it;
 		map_cell->pump_status();
 
+		const auto occupier_owner_uuid = map_cell->get_occupier_owner_uuid();
+		if(occupier_owner_uuid){
+			LOG_EMPERY_CENTER_DEBUG("Map cell is occupied: map_object_uuid = ", map_object_uuid,
+				", coord = ", map_cell->get_coord(), ", occupier_owner_uuid = ", occupier_owner_uuid);
+			continue;
+		}
+
 		if(map_cell->get_resource_amount() != 0){
 			const auto resource_id = map_cell->get_production_resource_id();
 			const auto amount_harvested = map_cell->harvest(castle, false);

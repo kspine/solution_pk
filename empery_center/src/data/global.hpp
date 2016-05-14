@@ -67,6 +67,9 @@ namespace Data {
 			SLOT_CASTLE_HANG_UP_INACTIVE_MINUTES                    = 100069,
 			SLOT_CASTLE_PROTECTION_PREPARATION_DURATION             = 100072,
 			SLOT_CASTLE_PROTECTION_REFUND_RATIO                     = 100073,
+			SLOT_MAP_CELL_OCCUPATION                                = 100074,
+			SLOT_MAP_CELL_RESCUE                                    = 100075,
+			SLOT_MAP_CELL_PROTECTION                                = 100076,
 		};
 
 	public:
