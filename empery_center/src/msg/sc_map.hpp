@@ -255,6 +255,20 @@ namespace Msg {
 	FIELD_STRING        (garrisoning_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapObjectAttackMapCellResult
+#define MESSAGE_ID      390
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_VUINT         (attacked_ticket_item_id)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VINT          (result_type)	\
+	FIELD_VUINT         (soldiers_damaged)	\
+	FIELD_VUINT         (soldiers_remaining)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

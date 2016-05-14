@@ -101,6 +101,22 @@ namespace Msg {
 	FIELD_VUINT         (amount_harvested)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    KS_MapAttackMapCellAction
+#define MESSAGE_ID      32312
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_STRING        (attacked_account_uuid)	\
+	FIELD_VUINT         (attacked_ticket_item_id)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VINT          (result_type)	\
+	FIELD_VUINT         (soldiers_damaged)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
