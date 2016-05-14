@@ -15,10 +15,16 @@ namespace {
 }
 
 MapCell::MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,
+    bool acceleration_card_applied,
+	ItemId ticket_item_id,ResourceId production_resource_id,std::uint64_t resource_amount,
 	boost::container::flat_map<AttributeId, std::int64_t> attributes,
-	boost::container::flat_map<BuffId, BuffInfo> buffs)
+	boost::container::flat_map<BuffId, BuffInfo> buffs,
+	MapObjectUuid occupier_object_uuid,AccountUuid occupier_owner_uuid)
 	: m_coord(coord)
-	, m_parent_object_uuid(parent_object_uuid), m_owner_uuid(owner_uuid), m_attributes(std::move(attributes)), m_buffs(std::move(buffs))
+	, m_parent_object_uuid(parent_object_uuid), m_owner_uuid(owner_uuid), m_acceleration_card_applied(acceleration_card_applied)
+	, m_ticket_item_id(ticket_item_id),m_production_resource_id(production_resource_id),m_resource_amount(resource_amount)
+	, m_attributes(std::move(attributes)), m_buffs(std::move(buffs))
+	, m_occupier_object_uuid(occupier_object_uuid), m_occupier_owner_uuid(occupier_owner_uuid)
 {
 }
 MapCell::~MapCell(){
@@ -101,6 +107,26 @@ void MapCell::clear_buff(BuffId buff_id) noexcept{
 		return;
 	}
 	m_buffs.erase(it);
+}
+
+bool MapCell::is_acceleration_card_applied() const{
+	return m_acceleration_card_applied;
+}
+ItemId MapCell::get_ticket_item_id() const{
+	return m_ticket_item_id;
+}
+ResourceId MapCell::get_production_resource_id() const{
+	return m_production_resource_id;
+}
+std::uint64_t MapCell::get_resource_amount() const{
+	return m_resource_amount;
+}
+
+MapObjectUuid MapCell::get_occupier_object_uuid() const{
+	return m_occupier_object_uuid;
+}
+AccountUuid MapCell::get_occupier_owner_uuid() const{
+	return m_occupier_owner_uuid;
 }
 
 }

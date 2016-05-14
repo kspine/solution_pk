@@ -19,6 +19,12 @@ namespace {
 	boost::weak_ptr<const TerrainMap> g_terrain_map;
 	const char TERRAIN_FILE[] = "Territory_product";
 
+	MULTI_INDEX_MAP(TicketMap, Data::MapCellTicket,
+		UNIQUE_MEMBER_INDEX(ticket_item_id)
+	)
+	boost::weak_ptr<const TicketMap> g_ticket_map;
+	const char TICKET_FILE[] = "Territory_levelup";
+
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(BASIC_FILE);
 		const auto basic_map = boost::make_shared<BasicMap>();
@@ -57,6 +63,22 @@ namespace {
 		}
 		g_terrain_map = terrain_map;
 		handles.push(terrain_map);
+
+		csv = Data::sync_load_data(TICKET_FILE);
+		const auto ticket_map = boost::make_shared<TicketMap>();
+		while(csv.fetch_row()){
+			Data::MapCellTicket elem = { };
+
+			csv.get(elem.ticket_item_id,           "territory_certificate");
+			csv.get(elem.defense,            "territory_def");
+
+			if(!ticket_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapCellTicket: ticket_item_id = ", elem.ticket_item_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapCellTicket"));
+			}
+		}
+		g_ticket_map = ticket_map;
+		handles.push(ticket_map);
 	}
 }
 
@@ -109,6 +131,33 @@ namespace Data {
 		auto ret = get(terrain_id);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("MapTerrain not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapCellTicket> MapCellTicket::get(ItemId ticket_item_id){
+		PROFILE_ME;
+
+		const auto ticket_map = g_ticket_map.lock();
+		if(!ticket_map){
+			LOG_EMPERY_CLUSTER_WARNING("MapCellTicketMap has not been loaded.");
+			return { };
+		}
+
+		const auto it = ticket_map->find<0>(ticket_item_id);
+		if(it == ticket_map->end<0>()){
+			LOG_EMPERY_CLUSTER_TRACE("MapCellTicket not found: ticket_item_id = ", ticket_item_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapCellTicket>(ticket_map, &*it);
+	}
+	boost::shared_ptr<const MapCellTicket> MapCellTicket::require(ItemId ticket_item_id){
+		PROFILE_ME;
+
+		auto ret = get(ticket_item_id);
+		if(!ret){
+			LOG_EMPERY_CLUSTER_WARNING("MapCellTicket not found: ticket_item_id = ", ticket_item_id);
+			DEBUG_THROW(Exception, sslit("MapCellTicket not found"));
 		}
 		return ret;
 	}

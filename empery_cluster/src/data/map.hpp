@@ -26,6 +26,16 @@ namespace Data {
 		TerrainId terrain_id;
 		bool passable;
 	};
+
+	class MapCellTicket {
+	public:
+		static boost::shared_ptr<const MapCellTicket> get(ItemId ticket_item_id);
+		static boost::shared_ptr<const MapCellTicket> require(ItemId ticket_item_id);
+
+	public:
+		ItemId ticket_item_id;
+		double defense;
+	};
 }
 
 }

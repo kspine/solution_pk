@@ -13,6 +13,7 @@ namespace EmperyCluster {
 
 class MapObject;
 class ResourceCrate;
+class MapCell;
 class AiControl{
 public:
 	AiControl(boost::weak_ptr<MapObject> parent);
@@ -21,6 +22,7 @@ public:
 	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now);
 private:
 	boost::weak_ptr<MapObject> m_parent_object;
 };
@@ -39,6 +41,7 @@ public:
 		ACT_MONTER_REGRESS             = 6,
 		ACT_STAND_BY                   = 7,
 		ACT_HARVEST_RESOURCE_CRATE     = 8,
+		ACT_ATTACK_TERRITORY           = 9,
 	};
 
 	enum AttackImpact {
@@ -92,6 +95,7 @@ public:
 	bool is_die();
 	bool is_in_attack_scope(boost::shared_ptr<MapObject> target_object);
 	bool is_in_attack_scope(boost::shared_ptr<ResourceCrate> target_resource_crate);
+	bool is_in_attack_scope(boost::shared_ptr<MapCell> target_territory);
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
@@ -102,6 +106,7 @@ public:
 	void          troops_attack(bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now);
 private:
 	void          notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param);
 	bool          fix_attack_action();
@@ -124,6 +129,7 @@ private:
 	int           get_attacked_prority();
 	bool          move_able();
 	boost::shared_ptr<const Data::MapObjectType> get_map_object_type_data();
+	boost::shared_ptr<MapCell> get_attack_territory();
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
