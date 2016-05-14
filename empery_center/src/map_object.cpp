@@ -340,6 +340,12 @@ void MapObject::get_buffs(std::vector<MapObject::BuffInfo> &ret) const {
 		ret.emplace_back(std::move(info));
 	}
 }
+void MapObject::set_buff(BuffId buff_id, std::uint64_t duration){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+	set_buff(buff_id, utc_now, duration);
+}
 void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration){
 	PROFILE_ME;
 

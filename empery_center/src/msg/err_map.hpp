@@ -66,6 +66,7 @@ namespace Msg {
 		ERR_MAP_CELL_OCCUPIED                   = 71355,
 		ERR_MAP_CELL_NOT_OCCUPIED               = 71356,
 		ERR_MAP_CELL_UNDER_PROTECTION           = 71357,
+		ERR_MAP_CELL_OCCUPATION_PROTECTION      = 71358,
 	};
 }
 

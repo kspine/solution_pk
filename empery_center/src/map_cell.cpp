@@ -75,6 +75,8 @@ void MapCell::pump_status(){
 void MapCell::recalculate_attributes(bool recursive){
 	PROFILE_ME;
 
+	(void)recursive;
+
 	// 无事可做。
 }
 
@@ -390,6 +392,12 @@ void MapCell::get_buffs(std::vector<MapCell::BuffInfo> &ret) const {
 		fill_buff_info(info, it->second);
 		ret.emplace_back(std::move(info));
 	}
+}
+void MapCell::set_buff(BuffId buff_id, std::uint64_t duration){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+	set_buff(buff_id, utc_now, duration);
 }
 void MapCell::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration){
 	PROFILE_ME;

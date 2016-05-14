@@ -366,6 +366,7 @@ try {
 			}
 			item_box->commit_transaction(transaction, false,
 				[&]{
+					map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION);
 					map_cell->set_parent_object({ }, { }, { });
 					map_cell->set_acceleration_card_applied(false);
 					for(auto it = child_objects.begin(); it != child_objects.end(); ++it){

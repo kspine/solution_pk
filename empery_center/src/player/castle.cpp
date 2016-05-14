@@ -1744,6 +1744,17 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+	{
+		auto it = map_cells.begin();
+		while(it != map_cells.end()){
+			const auto &map_cell = *it;
+			if(map_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+				it = map_cells.erase(it);
+				continue;
+			}
+			++it;
+		}
+	}
 
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
@@ -1754,7 +1765,7 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 			}
 			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 				const auto &map_cell = *it;
-				map_cell->clear_buff(BuffIds::ID_MAP_CELL_PROTECTION);
+				map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION);
 				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, delta_preparation_duration);
 				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
 			}
@@ -1820,6 +1831,17 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+	{
+		auto it = map_cells.begin();
+		while(it != map_cells.end()){
+			const auto &map_cell = *it;
+			if(map_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+				it = map_cells.erase(it);
+				continue;
+			}
+			++it;
+		}
+	}
 
 	item_box->commit_transaction(transaction, true,
 		[&]{
@@ -1830,7 +1852,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 			}
 			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 				const auto &map_cell = *it;
-				map_cell->clear_buff(BuffIds::ID_MAP_CELL_PROTECTION);
+				map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION);
 				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
 			}

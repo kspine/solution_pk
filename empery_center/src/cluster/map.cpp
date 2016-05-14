@@ -1,4 +1,4 @@
-#include "../precompiled.hpp"
+ #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../mmain.hpp"
 #include "../msg/ks_map.hpp"
@@ -349,19 +349,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 }
 
 CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
-	const auto attacking_account_uuid   = AccountUuid(req.attacking_account_uuid);
-	const auto attacking_object_uuid    = MapObjectUuid(req.attacking_object_uuid);
-	const auto attacking_object_type_id = MapObjectTypeId(req.attacking_object_type_id);
-	const auto attacking_coord          = Coord(req.attacking_coord_x, req.attacking_coord_y);
-
-	const auto attacked_account_uuid    = AccountUuid(req.attacked_account_uuid);
-	const auto attacked_object_uuid     = MapObjectUuid(req.attacked_object_uuid);
-	const auto attacked_object_type_id  = MapObjectTypeId(req.attacked_object_type_id);
-	const auto attacked_coord           = Coord(req.attacked_coord_x, req.attacked_coord_y);
-
-	const auto result_type              = req.result_type;
-	// const auto result_param1            = req.result_param1;
-	// const auto result_param2            = req.result_param2;
+	const auto attacking_object_uuid = MapObjectUuid(req.attacking_object_uuid);
+	const auto attacked_object_uuid  = MapObjectUuid(req.attacked_object_uuid);
 
 	// 结算战斗伤害。
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
@@ -379,9 +368,20 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
 	}
 
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
+	const auto attacking_coord = attacking_object->get_coord();
+
+	const auto attacked_object_type_id = attacked_object->get_map_object_type_id();
+	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
+	const auto attacked_coord = attacked_object->get_coord();
+
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_object, [&]{ return attacked_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
+	const auto result_type = req.result_type;
 	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto soldiers_damaged = std::min(soldiers_current, req.soldiers_damaged);
 	const auto soldiers_remaining = checked_sub(soldiers_current, soldiers_damaged);
@@ -459,11 +459,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 _wounded_done:
 	;
 
-	const auto utc_now = Poseidon::get_utc_time();
-
 	const auto battle_status_timeout = get_config<std::uint64_t>("battle_status_timeout", 10000);
 	attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
-	attacked_object->set_buff (BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+	attacked_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 
 	const auto category = boost::make_shared<int>();
 
@@ -750,26 +748,19 @@ CLUSTER_SERVLET(Msg::KS_MapHealMonster, cluster, req){
 	return Response();
 }
 
+
+
 CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
-	const auto resource_crate_uuid = ResourceCrateUuid(req.resource_crate_uuid);
+	const auto attacking_object_uuid = MapObjectUuid(req.attacking_object_uuid);
+	const auto resource_crate_uuid   = ResourceCrateUuid(req.resource_crate_uuid);
+
+	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
+	if(!attacking_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
+	}
 	const auto resource_crate = WorldMap::get_resource_crate(resource_crate_uuid);
 	if(!resource_crate){
 		return Response(Msg::ERR_RESOURCE_CRATE_NOT_FOUND) <<resource_crate_uuid;
-	}
-	const auto map_object_uuid = MapObjectUuid(req.attacking_object_uuid);
-	const auto map_object = WorldMap::get_map_object(map_object_uuid);
-	if(!map_object){
-		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
-	}
-	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
-	if(cluster != test_cluster){
-		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
-	}
-
-	const auto parent_object_uuid = map_object->get_parent_object_uuid();
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
-	if(!castle){
-		return Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
 	}
 
 	auto amount_remaining = resource_crate->get_amount_remaining();
@@ -783,22 +774,23 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
 	}
 
-	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
-	const auto resource_carried = map_object->get_resource_amount_carried();
+	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
+	const auto attacking_coord = attacking_object->get_coord();
+
+	const auto attacking_object_type_data = Data::MapObjectTypeBattalion::require(attacking_object_type_id);
+	const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
+	const auto resource_carried = attacking_object->get_resource_amount_carried();
 	if(resource_carried >= resource_capacity){
 		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 	}
 
 	const auto amount_to_harvest = req.amount_harvested;
-	const auto amount_harvested = resource_crate->harvest(map_object, amount_to_harvest, false);
-	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
+	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest, false);
+	LOG_EMPERY_CENTER_DEBUG("Harvest: attacking_object_uuid = ", attacking_object_uuid, ", attacking_object_type_id = ", attacking_object_type_id,
 		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
 	amount_remaining = resource_crate->get_amount_remaining();
 
-	const auto attacking_coord = Coord(req.attacking_coord_x, req.attacking_coord_y);
 	const auto attacked_coord = resource_crate->get_coord();
 
 	// 通知客户端。
@@ -806,14 +798,14 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 		PROFILE_ME;
 
 		Msg::SC_MapResourceCrateHarvestResult msg;
-		msg.attacking_object_uuid  = map_object_uuid.str();
-		msg.attacking_coord_x      = req.attacking_coord_y;
-		msg.attacking_coord_y      = req.attacking_coord_x;
+		msg.attacking_object_uuid  = attacking_object_uuid.str();
+		msg.attacking_coord_x      = attacking_coord.x();
+		msg.attacking_coord_y      = attacking_coord.y();
 		msg.resource_crate_uuid    = resource_crate_uuid.str();
 		msg.attacked_coord_x       = attacked_coord.x();
 		msg.attacked_coord_y       = attacked_coord.y();
 		msg.resource_id            = resource_id.get();
-		msg.amount_harvested       = req.amount_harvested;
+		msg.amount_harvested       = amount_harvested;
 		msg.amount_remaining       = amount_remaining;
 		LOG_EMPERY_CENTER_TRACE("Broadcasting harvest result message: msg = ", msg);
 
@@ -840,16 +832,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 }
 
 CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
-	const auto attacking_account_uuid   = AccountUuid(req.attacking_account_uuid);
-	const auto attacking_object_uuid    = MapObjectUuid(req.attacking_object_uuid);
-	const auto attacking_object_type_id = MapObjectTypeId(req.attacking_object_type_id);
-	const auto attacking_coord          = Coord(req.attacking_coord_x, req.attacking_coord_y);
-
-	const auto attacked_account_uuid    = AccountUuid(req.attacked_account_uuid);
-	const auto attacked_ticket_item_id  = ItemId(req.attacked_ticket_item_id);
-	const auto attacked_coord           = Coord(req.attacked_coord_x, req.attacked_coord_y);
-
-	const auto result_type              = req.result_type;
+	const auto attacking_object_uuid = MapObjectUuid(req.attacking_object_uuid);
+	const auto attacked_coord        = Coord(req.attacked_coord_x, req.attacked_coord_y);
 
 	// 结算战斗伤害。
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
@@ -858,18 +842,25 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	}
 	const auto attacked_cell = WorldMap::get_map_cell(attacked_coord);
 	if(!attacked_cell){
-		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL
-		) <<attacked_coord;
+		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
 	}
 
-	if(attacked_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) &&
+	if(attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION)){
+		return Response(Msg::ERR_MAP_CELL_OCCUPATION_PROTECTION) <<attacked_coord;
+	}
+	if(!attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION) &&
+		attacked_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) &&
 		!attacked_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION))
 	{
 		return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
 	}
-	if(attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_PROTECTION)){
-		return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
-	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
+	const auto attacking_coord = attacking_object->get_coord();
+
+	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_cell, [&]{ return true; });
@@ -881,21 +872,87 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
 	attacked_cell->set_attributes(std::move(modifiers));
-/*
-	if(soldiers_remaining <= 0){
-		if(attacked_cell_type_id != MapObjectTypeIds::ID_CASTLE){
-			LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_cell_uuid = ", attacked_cell_uuid);
-			attacked_cell->delete_from_game();
-		}
+
+	const bool is_occupied = attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION);
+	if(!is_occupied){
+		// TODO 掠夺资源。
 	}
 
-	const auto utc_now = Poseidon::get_utc_time();
-*/
-(void)attacking_account_uuid;
-(void)attacking_coord;
-(void)attacked_account_uuid;
-(void)attacked_ticket_item_id;
-(void)result_type;
+	if(soldiers_remaining <= 0){
+		if(!is_occupied){
+			const auto castle_uuid = attacking_object->get_parent_object_uuid();
+			const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+			if(!castle){
+				goto _occupation_done;
+			}
+			std::vector<boost::shared_ptr<MapCell>> occupied_cells;
+			WorldMap::get_map_cells_by_occupier_object(occupied_cells, castle->get_map_object_uuid());
+			const auto castle_level = castle->get_level();
+			const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+			LOG_EMPERY_CENTER_DEBUG("Try to occupy map cell: coord = ", attacked_cell->get_coord(), ", castle_uuid = ", castle_uuid,
+				", castle_level = ", castle_level, ", max_occupied_map_cells = ", upgrade_data->max_occupied_map_cells);
+			if(occupied_cells.size() < upgrade_data->max_occupied_map_cells){
+				// 占领。
+				const auto exclusive_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_OCCUPATION_DURATION);
+				const auto rescue_minutes    = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_RESCUE_DURATION);
+				const auto occupation_duration = checked_mul<std::uint64_t>(saturated_add(exclusive_minutes, rescue_minutes), 60000);
+				const auto protection_duration = checked_mul<std::uint64_t>(exclusive_minutes, 60000);
+
+				attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION,            utc_now, occupation_duration);
+				attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, utc_now, protection_duration);
+				attacked_cell->set_occupier_object_uuid(castle_uuid);
+				goto _occupation_done;
+			}
+		}
+		// 占领失败或被解救。
+		const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
+		const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
+
+		attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
+		attacked_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
+		attacked_cell->set_occupier_object_uuid({ });
+	}
+_occupation_done:
+	;
+
+	const auto battle_status_timeout = get_config<std::uint64_t>("battle_status_timeout", 10000);
+	attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+	attacked_cell->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+
+	// 通知客户端。
+	try {
+		PROFILE_ME;
+
+		Msg:: SC_MapObjectAttackMapCellResult msg;
+		msg.attacking_object_uuid   = attacking_object_uuid.str();
+		msg.attacking_coord_x       = attacking_coord.x();
+		msg.attacking_coord_y       = attacking_coord.y();
+		msg.attacked_ticket_item_id = attacked_ticket_item_id.get();
+		msg.attacked_coord_x        = attacked_coord.x();
+		msg.attacked_coord_y        = attacked_coord.y();
+		msg.soldiers_damaged        = soldiers_damaged;
+		msg.soldiers_remaining      = soldiers_remaining;
+		LOG_EMPERY_CENTER_TRACE("Broadcasting map cell attack result message: msg = ", msg);
+
+		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
+		const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
+		const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
+		const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
+		std::vector<boost::shared_ptr<PlayerSession>> sessions;
+		WorldMap::get_players_viewing_rectangle(sessions,
+			Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = *it;
+			try {
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
+
 	return Response();
 }
 

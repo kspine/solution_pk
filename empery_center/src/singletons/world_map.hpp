@@ -31,6 +31,7 @@ struct WorldMap {
 //	static void get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret);
 	static void get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid parent_object_uuid);
 	static void get_map_cells_by_rectangle(std::vector<boost::shared_ptr<MapCell>> &ret, Rectangle rectangle);
+	static void get_map_cells_by_occupier_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid occupier_object_uuid);
 
 	// MapObject
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);

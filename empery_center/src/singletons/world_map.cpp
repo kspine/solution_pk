@@ -41,10 +41,12 @@ namespace {
 
 		Coord coord;
 		MapObjectUuid parent_object_uuid;
+		MapObjectUuid occupier_object_uuid;
 
 		explicit MapCellElement(boost::shared_ptr<MapCell> map_cell_)
 			: map_cell(std::move(map_cell_))
 			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid())
+			, occupier_object_uuid(map_cell->get_occupier_object_uuid())
 		{
 		}
 	};
@@ -52,6 +54,7 @@ namespace {
 	MULTI_INDEX_MAP(MapCellContainer, MapCellElement,
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
+		MULTI_MEMBER_INDEX(occupier_object_uuid)
 	)
 
 	boost::weak_ptr<MapCellContainer> g_map_cell_map;
@@ -941,6 +944,21 @@ void WorldMap::get_map_cells_by_parent_object(std::vector<boost::shared_ptr<MapC
 	}
 
 	const auto range = map_cell_map->equal_range<1>(parent_object_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->map_cell);
+	}
+}
+void WorldMap::get_map_cells_by_occupier_object(std::vector<boost::shared_ptr<MapCell>> &ret, MapObjectUuid occupier_object_uuid){
+	PROFILE_ME;
+
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(!map_cell_map){
+		LOG_EMPERY_CENTER_WARNING("Map cell map not loaded.");
+		return;
+	}
+
+	const auto range = map_cell_map->equal_range<2>(occupier_object_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->map_cell);

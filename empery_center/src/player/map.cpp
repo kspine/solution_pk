@@ -739,40 +739,35 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 
 	map_cell->pump_status();
 
-	const auto occupier_owner_uuid = map_cell->get_occupier_owner_uuid();
-	if(occupier_owner_uuid){
-		if(occupier_owner_uuid != account->get_account_uuid()){
-			return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<occupier_owner_uuid;
+	boost::shared_ptr<Castle> virtual_castle;
+	const auto occupier_object_uuid = map_cell->get_occupier_object_uuid();
+	if(occupier_object_uuid){
+		virtual_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(occupier_object_uuid));
+		if(!virtual_castle){
+			return Response(Msg::ERR_NO_SUCH_CASTLE) <<occupier_object_uuid;
+		}
+		if(account->get_account_uuid() != virtual_castle->get_owner_uuid()){
+			return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<virtual_castle->get_owner_uuid();
 		}
 	} else {
-		if(map_cell->get_owner_uuid() != account->get_account_uuid()){
-			return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<map_cell->get_owner_uuid();
+		virtual_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_cell->get_parent_object_uuid()));
+		if(!virtual_castle){
+			return Response(Msg::ERR_NO_SUCH_CASTLE) <<occupier_object_uuid;
 		}
-	}
-
-	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
-	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
-	if(!map_object){
-		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<parent_object_uuid;
-	}
-	if(map_object->get_owner_uuid() != account->get_account_uuid()){
-		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
-	}
-	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
-	if(!castle){
-		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
+		if(account->get_account_uuid() != virtual_castle->get_owner_uuid()){
+			return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<virtual_castle->get_owner_uuid();
+		}
 	}
 
 	if(map_cell->get_resource_amount() != 0){
 		const auto resource_id = map_cell->get_production_resource_id();
-		const auto amount_harvested = map_cell->harvest(castle, false);
+		const auto amount_harvested = map_cell->harvest(virtual_castle, false);
 		if(amount_harvested == 0){
 			return Response(Msg::ERR_WAREHOUSE_FULL);
 		}
 		try {
 			task_box->check(TaskTypeIds::ID_HARVEST_RESOURCES, resource_id.get(), amount_harvested,
-				castle, 0, 0);
+				virtual_castle, 0, 0);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
@@ -1059,19 +1054,26 @@ PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
 	}
 
-	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
-
 	map_cell->pump_status();
 
-	const auto occupier_owner_uuid = map_cell->get_occupier_owner_uuid();
-	if(!occupier_owner_uuid){
+	const auto occupier_object_uuid = map_cell->get_occupier_object_uuid();
+	if(!occupier_object_uuid){
 		return Response(Msg::ERR_MAP_CELL_NOT_OCCUPIED);
 	}
-	if(occupier_owner_uuid != account->get_account_uuid()){
-		return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<occupier_owner_uuid;
+	const auto virtual_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(occupier_object_uuid));
+	if(!virtual_castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<occupier_object_uuid;
+	}
+	if(account->get_account_uuid() != virtual_castle->get_owner_uuid()){
+		return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<virtual_castle->get_owner_uuid();
 	}
 
-	// TODO
+	const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
+	const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
+
+	map_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
+	map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
+	map_cell->set_occupier_object_uuid({ });
 
 	return Response();
 }

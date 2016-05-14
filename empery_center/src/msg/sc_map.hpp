@@ -264,7 +264,6 @@ namespace Msg {
 	FIELD_VUINT         (attacked_ticket_item_id)	\
 	FIELD_VINT          (attacked_coord_x)	\
 	FIELD_VINT          (attacked_coord_y)	\
-	FIELD_VINT          (result_type)	\
 	FIELD_VUINT         (soldiers_damaged)	\
 	FIELD_VUINT         (soldiers_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
