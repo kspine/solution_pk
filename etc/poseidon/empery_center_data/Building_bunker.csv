@@ -1,4 +1,4 @@
 building_id,building_level,arm_type,building_upgrade_condition,building_upgrade_cost,building_upgrade_time,building_dismantling_time,building_combat_attributes,building_image
-1208001,1,1208000,"{""1906001"":0}","{""1101001"":38776,""1101002"":29082,""1101003"":29082}",1,0,1208500,bunker_lv1
+1208001,1,1208000,"{""1906001"":0}",{},1,0,1208500,bunker_lv1
 1208001,2,1208000,"{""1906001"":2}","{""1101001"":38776,""1101002"":29082,""1101003"":29082}",2,1,1208501,bunker_lv1
 1208001,3,1208000,"{""1906001"":3}","{""1101001"":38776,""1101002"":29082,""1101003"":29082}",3,2,1208502,bunker_lv1
