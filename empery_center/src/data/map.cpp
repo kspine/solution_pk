@@ -132,6 +132,8 @@ namespace {
 			csv.get(elem.ticket_item_id,           "territory_certificate");
 			csv.get(elem.production_rate_modifier, "output_multiple");
 			csv.get(elem.capacity_modifier,        "resource_multiple");
+			csv.get(elem.soldiers_max,             "territory_hp");
+			csv.get(elem.self_healing_rate,        "recover_hp");
 
 			if(!ticket_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellTicket: ticket_item_id = ", elem.ticket_item_id);

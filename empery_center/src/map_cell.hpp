@@ -40,6 +40,7 @@ private:
 	double m_production_remainder = 0;
 	double m_production_rate = 0;
 	double m_capacity = 0;
+	double m_self_healing_remainder = 0;
 
 public:
 	explicit MapCell(Coord coord);
@@ -89,6 +90,8 @@ public:
 	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
 	void accumulate_buff(BuffId buff_id, std::uint64_t delta_duration);
 	void clear_buff(BuffId buff_id) noexcept;
+
+	void self_heal();
 
 	MapObjectUuid get_occupier_object_uuid() const;
 	AccountUuid get_occupier_owner_uuid() const;

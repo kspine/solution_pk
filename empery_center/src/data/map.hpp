@@ -30,6 +30,8 @@ namespace Data {
 		ItemId ticket_item_id;
 		double production_rate_modifier;
 		double capacity_modifier;
+		std::uint64_t soldiers_max;
+		double self_healing_rate;
 	};
 
 	class MapTerrain {

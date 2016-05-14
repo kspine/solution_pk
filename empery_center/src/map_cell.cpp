@@ -70,6 +70,7 @@ void MapCell::pump_status(){
 	PROFILE_ME;
 
 	pump_production();
+	self_heal();
 }
 
 Coord MapCell::get_coord() const {
@@ -444,6 +445,47 @@ void MapCell::clear_buff(BuffId buff_id) noexcept {
 	obj->set_time_end(0);
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
+}
+
+void MapCell::self_heal(){
+	PROFILE_ME;
+
+	const auto ticket_item_id = get_ticket_item_id();
+	if(!ticket_item_id){
+		return;
+	}
+	const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
+	const auto self_healing_rate = ticket_data->self_healing_rate;
+	if(self_healing_rate <= 0){
+		return;
+	}
+	const auto max_soldier_count = ticket_data->soldiers_max;
+	if(max_soldier_count <= 0){
+		return;
+	}
+	const auto soldiers_healed_perminute = std::ceil(self_healing_rate * max_soldier_count - 0.001);
+
+	LOG_EMPERY_CENTER_TRACE("Self heal: coord = ", get_coord(), ", ticket_item_id = ", ticket_item_id,
+		", self_healing_rate = ", self_healing_rate, ", max_soldier_count = ", max_soldier_count);
+
+	const auto old_self_healed_time = m_obj->get_last_self_healed_time();
+	const auto old_soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto self_healing_duration = saturated_sub(utc_now, old_self_healed_time);
+	const auto amount_healed = self_healing_duration * soldiers_healed_perminute / 60000.0 + m_self_healing_remainder;
+	const auto rounded_amount_healed = static_cast<std::uint64_t>(amount_healed);
+	const auto new_soldier_count = std::min<std::uint64_t>(saturated_add(old_soldier_count, rounded_amount_healed), max_soldier_count);
+	if(new_soldier_count > old_soldier_count){
+		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+		modifiers.reserve(16);
+		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(max_soldier_count);
+		modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(new_soldier_count);
+		set_attributes(std::move(modifiers));
+	}
+	m_self_healing_remainder = amount_healed - rounded_amount_healed;
+	m_obj->set_last_self_healed_time(utc_now);
 }
 
 MapObjectUuid MapCell::get_occupier_object_uuid() const {

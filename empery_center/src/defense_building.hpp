@@ -35,9 +35,6 @@ public:
 		boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj);
 	~DefenseBuilding();
 
-private:
-	void self_heal(std::uint64_t utc_now);
-
 protected:
 	void synchronize_with_player_additional(const boost::shared_ptr<PlayerSession> &session) const override;
 
@@ -58,6 +55,8 @@ public:
 
 	MapObjectUuid get_garrisoning_object_uuid() const;
 	void set_garrisoning_object_uuid(MapObjectUuid garrisoning_object_uuid);
+
+	void self_heal();
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
