@@ -587,10 +587,14 @@ void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &
 	PROFILE_ME;
 
 	Msg::SK_MapAddMapCell msg;
-	msg.x                    = get_coord().x();
-	msg.y                    = get_coord().y();
-	msg.parent_object_uuid   = get_parent_object_uuid().str();
-	msg.owner_uuid           = get_owner_uuid().str();
+	msg.x                         = get_coord().x();
+	msg.y                         = get_coord().y();
+	msg.parent_object_uuid        = get_parent_object_uuid().str();
+	msg.owner_uuid                = get_owner_uuid().str();
+	msg.acceleration_card_applied = is_acceleration_card_applied();
+	msg.ticket_item_id            = get_ticket_item_id().get();
+	msg.production_resource_id    = get_production_resource_id().get();
+	msg.resource_amount           = get_resource_amount();
 	msg.attributes.reserve(m_attributes.size());
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		auto &attribute = *msg.attributes.emplace(msg.attributes.end());
@@ -604,8 +608,8 @@ void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &
 		buff.time_begin = it->second->get_time_begin();
 		buff.time_end   = it->second->get_time_end();
 	}
-	msg.occupier_object_uuid = get_occupier_object_uuid().str();
-	msg.occupier_owner_uuid  = get_occupier_owner_uuid().str();
+	msg.occupier_object_uuid      = get_occupier_object_uuid().str();
+	msg.occupier_owner_uuid       = get_occupier_owner_uuid().str();
 	cluster->send(msg);
 }
 
