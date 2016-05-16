@@ -257,6 +257,16 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}
 
+	const auto copy_buff = [&](BuffId buff_id){
+		auto info = castle->get_buff(buff_id);
+		if(info.time_end == 0){
+			return;
+		}
+		map_cell->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+	};
+	copy_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(BuffIds::ID_CASTLE_PROTECTION);
+
 	return Response();
 }
 
