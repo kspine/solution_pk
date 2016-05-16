@@ -1,4 +1,4 @@
- #include "../precompiled.hpp"
+#include "../precompiled.hpp"
 #include "common.hpp"
 #include "../mmain.hpp"
 #include "../msg/ks_map.hpp"
@@ -362,6 +362,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
 
+	if(attacked_object->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION)){
+		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
+	}
 	if(attacked_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) &&
 		!attacked_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION))
 	{
@@ -382,17 +385,21 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	update_attributes_single(attacked_object, [&]{ return attacked_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
 	const auto result_type = req.result_type;
-	const auto soldiers_current = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto soldiers_damaged = std::min(soldiers_current, req.soldiers_damaged);
-	const auto soldiers_remaining = checked_sub(soldiers_current, soldiers_damaged);
+	const auto soldiers_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto soldiers_damaged = std::min(soldiers_previous, req.soldiers_damaged);
+	const auto soldiers_remaining = checked_sub(soldiers_previous, soldiers_damaged);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
 	attacked_object->set_attributes(std::move(modifiers));
 
 	if(soldiers_remaining <= 0){
-		if(attacked_object_type_id != MapObjectTypeIds::ID_CASTLE){
-			LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_object_uuid = ", attacked_object_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_object_uuid = ", attacked_object_uuid);
+		if(attacked_object_type_id == MapObjectTypeIds::ID_CASTLE){
+			const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_SIEGE_PROTECTION_DURATION);
+			const auto protection_duration = saturated_mul<std::uint64_t>(protection_minutes, 60000);
+			attacked_object->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, utc_now, protection_duration);
+		} else {
 			attacked_object->delete_from_game();
 		}
 	}
@@ -692,21 +699,63 @@ _wounded_done:
 				const auto radius_inner = static_cast<unsigned>(radius_limits.at(0).get<double>());
 				const auto radius_outer = static_cast<unsigned>(radius_limits.at(1).get<double>());
 
-				boost::container::flat_map<AttributeId, std::int64_t> attributes;
-				attacked_object->get_attributes(attributes);
-				for(auto it = attributes.begin(); it != attributes.end(); ++it){
-					const auto attribute_id = it->first;
-					const auto value = it->second;
-					if(value <= 0){
-						continue;
+				boost::container::flat_map<ResourceId, std::uint64_t> resources_dropped;
+				resources_dropped.reserve(16);
+
+				if(attacked_object_type_id == MapObjectTypeIds::ID_CASTLE){
+					const auto castle = boost::dynamic_pointer_cast<Castle>(attacked_object);
+					if(!castle){
+						LOG_EMPERY_CENTER_ERROR("Map object is not a castle: attacked_object_uuid = ", attacked_object_uuid);
+						DEBUG_THROW(Exception, sslit("Map object is not a castle"));
 					}
-					const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
-					if(!resource_data){
-						continue;
+					std::vector<Castle::ResourceInfo> resources;
+					castle->get_all_resources(resources);
+					for(auto it = resources.begin(); it != resources.end(); ++it){
+						const auto resource_id = it->resource_id;
+						const auto resource_data = Data::CastleResource::get(resource_id);
+						if(!resource_data){
+							continue;
+						}
+						if(!resource_data->carried_attribute_id){
+							continue;
+						}
+
+						const auto amount_protected = castle->get_warehouse_protection(resource_id);
+						const auto amount_dropped = saturated_sub(it->amount, amount_protected);
+
+						auto &amount = resources_dropped[resource_id];
+						amount = saturated_add(amount, amount_dropped);
 					}
+				} else {
+					boost::container::flat_map<AttributeId, std::int64_t> attributes;
+					attacked_object->get_attributes(attributes);
+					for(auto it = attributes.begin(); it != attributes.end(); ++it){
+						const auto attribute_id = it->first;
+						const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+						if(!resource_data){
+							continue;
+						}
+						if(!resource_data->carried_attribute_id){
+							continue;
+						}
+						const auto resource_id = resource_data->resource_id;
+
+						const auto value = it->second;
+						if(value <= 0){
+							continue;
+						}
+						const auto amount_dropped = static_cast<std::uint64_t>(value);
+
+						auto &amount = resources_dropped[resource_id];
+						amount = saturated_add(amount, amount_dropped);
+					}
+				}
+
+				for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
+					const auto resource_id = it->first;
+					const auto amount = it->second;
 					try {
-						create_resource_crates(attacked_object->get_coord(),
-							resource_data->resource_id, static_cast<std::uint64_t>(value), radius_inner, radius_outer);
+						create_resource_crates(attacked_object->get_coord(), resource_id, amount, radius_inner, radius_outer);
 					} catch(std::exception &e){
 						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 					}
@@ -747,8 +796,6 @@ CLUSTER_SERVLET(Msg::KS_MapHealMonster, cluster, req){
 
 	return Response();
 }
-
-
 
 CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	const auto attacking_object_uuid = MapObjectUuid(req.attacking_object_uuid);
@@ -865,18 +912,34 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_cell, [&]{ return true; });
 
-	const auto soldiers_current = static_cast<std::uint64_t>(attacked_cell->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto soldiers_damaged = std::min(soldiers_current, req.soldiers_damaged);
-	const auto soldiers_remaining = checked_sub(soldiers_current, soldiers_damaged);
+	const auto soldiers_previous = static_cast<std::uint64_t>(attacked_cell->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto soldiers_damaged = std::min(soldiers_previous, req.soldiers_damaged);
+	const auto soldiers_remaining = checked_sub(soldiers_previous, soldiers_damaged);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
 	attacked_cell->set_attributes(std::move(modifiers));
 
 	const bool is_occupied = attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION);
-	if(!is_occupied){
-		// TODO 掠夺资源。
+
+	if(attacked_ticket_item_id){
+		// 掠夺资源。
+		if(is_occupied){
+			goto _plunder_done;
+		}
+
+		attacked_cell->pump_production();
+
+		const auto amount_total = attacked_cell->get_resource_amount();
+		const auto amount_to_harvest = static_cast<std::uint64_t>(std::floor(
+			static_cast<double>(soldiers_damaged) / soldiers_previous * amount_total + 0.001));
+		const auto amount_harvested = attacked_cell->harvest(attacking_object, amount_to_harvest, false);
+		LOG_EMPERY_CENTER_DEBUG("Plunder: attacking_object_uuid = ", attacking_object_uuid,
+			", attacking_object_type_id = ", attacking_object_type_id, ", attacked_coord = ", attacked_cell->get_coord(),
+			", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
 	}
+_plunder_done:
+	;
 
 	if(soldiers_remaining <= 0){
 		if(!is_occupied){
@@ -889,7 +952,7 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 			WorldMap::get_map_cells_by_occupier_object(occupied_cells, castle->get_map_object_uuid());
 			const auto castle_level = castle->get_level();
 			const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
-			LOG_EMPERY_CENTER_DEBUG("Try to occupy map cell: coord = ", attacked_cell->get_coord(), ", castle_uuid = ", castle_uuid,
+			LOG_EMPERY_CENTER_DEBUG("Try occupying map cell: attacked_coord = ", attacked_cell->get_coord(), ", castle_uuid = ", castle_uuid,
 				", castle_level = ", castle_level, ", max_occupied_map_cells = ", upgrade_data->max_occupied_map_cells);
 			if(occupied_cells.size() < upgrade_data->max_occupied_map_cells){
 				// 占领。

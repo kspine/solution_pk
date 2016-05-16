@@ -351,7 +351,7 @@ try {
 			}
 
 			map_cell->pump_status();
-			map_cell->harvest(castle, false);
+			map_cell->harvest(castle, UINT64_MAX, true);
 
 			const auto ticket_item_id = map_cell->get_ticket_item_id();
 

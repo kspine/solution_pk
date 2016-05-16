@@ -70,6 +70,7 @@ namespace Data {
 			SLOT_MAP_CELL_OCCUPATION_DURATION                       = 100074,
 			SLOT_MAP_CELL_RESCUE_DURATION                           = 100075,
 			SLOT_MAP_CELL_PROTECTION_DURATION                       = 100076,
+			SLOT_CASTLE_SIEGE_PROTECTION_DURATION                   = 100077,
 		};
 
 	public:

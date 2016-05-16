@@ -157,6 +157,7 @@ public:
 	unsigned get_max_level(BuildingId building_id) const; // （通用）
 	unsigned get_level() const override; // 领主府
 	std::uint64_t get_warehouse_capacity(ResourceId resource_id) const; // 仓库
+	std::uint64_t get_warehouse_protection(ResourceId resource_id) const; // 仓库
 	bool is_tech_upgrade_in_progress() const; // 学院
 	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const; // （通用）兵营
 	std::uint64_t get_max_battalion_count() const; // 校场

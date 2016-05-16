@@ -1006,6 +1006,32 @@ std::uint64_t Castle::get_warehouse_capacity(ResourceId resource_id) const {
 	}
 	return capacity;
 }
+std::uint64_t Castle::get_warehouse_protection(ResourceId resource_id) const {
+	PROFILE_ME;
+
+	std::uint64_t protection = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != BuildingTypeIds::ID_WAREHOUSE){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		if(current_level == 0){
+			continue;
+		}
+		const auto upgrade_data = Data::CastleUpgradeWarehouse::require(current_level);
+		const auto rit = upgrade_data->protected_resource_amounts.find(resource_id);
+		if(rit == upgrade_data->protected_resource_amounts.end()){
+			continue;
+		}
+		protection = saturated_add(protection, rit->second);
+	}
+	return protection;
+}
 bool Castle::is_tech_upgrade_in_progress() const {
 	PROFILE_ME;
 

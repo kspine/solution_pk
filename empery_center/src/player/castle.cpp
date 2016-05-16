@@ -553,7 +553,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 
 		if(map_cell->get_resource_amount() != 0){
 			const auto resource_id = map_cell->get_production_resource_id();
-			const auto amount_harvested = map_cell->harvest(castle, false);
+			const auto amount_harvested = map_cell->harvest(castle, UINT64_MAX, false);
 			if(amount_harvested == 0){
 				LOG_EMPERY_CENTER_DEBUG("No resource harvested: map_object_uuid = ", map_object_uuid,
 					", coord = ", map_cell->get_coord(), ", resource_id = ", resource_id);
@@ -1565,7 +1565,7 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		}
 
 		map_cell->pump_status();
-		map_cell->harvest(castle, false);
+		map_cell->harvest(castle, UINT64_MAX, true);
 
 		const auto ticket_item_id = map_cell->get_ticket_item_id();
 

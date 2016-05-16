@@ -277,7 +277,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
-std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, bool saturated){
+std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, double amount_to_harvest, bool saturated){
 	PROFILE_ME;
 
 	const auto coord = get_coord();
@@ -292,26 +292,68 @@ std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, bool sat
 		LOG_EMPERY_CENTER_DEBUG("No production resource id: coord = ", coord);
 		return 0;
 	}
-	const auto amount_avail = get_resource_amount();
-	if(amount_avail == 0){
+	const auto amount_remaining = get_resource_amount();
+	if(amount_remaining == 0){
 		LOG_EMPERY_CENTER_DEBUG("No resource available: coord = ", coord);
 		return 0;
 	}
 
-	const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id), castle->get_resource(resource_id).amount);
-	const auto amount_to_add = std::min(amount_avail, capacity_remaining);
-	const auto amount_to_remove = saturated ? amount_avail : amount_to_add;
-	LOG_EMPERY_CENTER_DEBUG("Harvesting resource: coord = ", coord, ", castle_uuid = ", castle->get_map_object_uuid(),
-		", ticket_item_id = ", ticket_item_id, ", resource_id = ", resource_id,
-		", capacity_remaining = ", capacity_remaining, ", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
+	amount_to_harvest += m_harvest_remainder;
 
-	std::vector<ResourceTransactionElement> transaction;
-	transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add,
-		ReasonIds::ID_HARVEST_MAP_CELL, coord.x(), coord.y(), ticket_item_id.get());
-	castle->commit_resource_transaction(transaction,
-		[&]{ m_obj->set_resource_amount(checked_sub(m_obj->get_resource_amount(), amount_to_remove)); });
+	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
+	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
+	const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id),
+	                                              castle->get_resource(resource_id).amount);
+	const auto amount_added = std::min(rounded_amount_removable, capacity_remaining);
+	{
+		std::vector<ResourceTransactionElement> transaction;
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_added,
+			ReasonIds::ID_HARVEST_MAP_CELL, coord.x(), coord.y(), ticket_item_id.get());
+		castle->commit_resource_transaction(transaction);
+	}
+	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
+	m_obj->set_resource_amount(saturated_sub(amount_remaining, amount_removed));
 
-	return amount_to_remove;
+	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
+
+	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
+
+	return amount_removed;
+}
+std::uint64_t MapCell::harvest(const boost::shared_ptr<MapObject> &harvester, double amount_to_harvest, bool saturated){
+	PROFILE_ME;
+
+	const auto coord = get_coord();
+	const auto ticket_item_id = get_ticket_item_id();
+	if(!ticket_item_id){
+		LOG_EMPERY_CENTER_DEBUG("No ticket on map cell: coord = ", coord);
+		return 0;
+	}
+
+	const auto resource_id = get_production_resource_id();
+	if(!resource_id){
+		LOG_EMPERY_CENTER_DEBUG("No production resource id: coord = ", coord);
+		return 0;
+	}
+	const auto amount_remaining = get_resource_amount();
+	if(amount_remaining == 0){
+		LOG_EMPERY_CENTER_DEBUG("No resource available: coord = ", coord);
+		return 0;
+	}
+
+	amount_to_harvest += m_harvest_remainder;
+
+	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
+	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
+	const auto amount_added = harvester->load_resource(resource_id, rounded_amount_removable, false);
+	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
+	m_obj->set_resource_amount(saturated_sub(amount_remaining, amount_removed));
+
+	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
+
+	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
+
+	return amount_removed;
 }
 
 std::int64_t MapCell::get_attribute(AttributeId attribute_id) const {

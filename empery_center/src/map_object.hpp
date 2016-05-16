@@ -91,6 +91,7 @@ public:
 	void clear_buff(BuffId buff_id) noexcept;
 
 	std::uint64_t get_resource_amount_carried() const;
+	std::uint64_t load_resource(ResourceId resource_id, std::uint64_t amount_to_add, bool ignore_limit);
 	void unload_resources(const boost::shared_ptr<Castle> &castle);
 
 	unsigned get_action() const {

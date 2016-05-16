@@ -425,6 +425,37 @@ std::uint64_t MapObject::get_resource_amount_carried() const {
 	}
 	return amount_total;
 }
+std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amount_to_add, bool ignore_limit){
+	PROFILE_ME;
+
+	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto carried_attribute_id = resource_data->carried_attribute_id;
+	if(!carried_attribute_id){
+		LOG_EMPERY_CENTER_WARNING("Resource is not harvestable: resource_id = ", resource_id);
+		DEBUG_THROW(Exception, sslit("Resource is not harvestable"));
+	}
+
+	auto amount_added = amount_to_add;
+
+	if(!ignore_limit){
+		const auto map_object_type_id = get_map_object_type_id();
+		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
+		const auto soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+		const auto resource_capacity = static_cast<std::uint64_t>(std::floor(map_object_type_data->resource_carriable * soldier_count + 0.001));
+		const auto resource_amount_carried = get_resource_amount_carried();
+		const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);
+		if(amount_added > capacity_remaining){
+			amount_added = capacity_remaining;
+		}
+	}
+	const auto amount_old = static_cast<std::uint64_t>(get_attribute(carried_attribute_id));
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[carried_attribute_id] = static_cast<std::int64_t>(checked_add(amount_old, amount_added));
+	set_attributes(std::move(modifiers));
+
+	return amount_to_add;
+}
 void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 	PROFILE_ME;
 
