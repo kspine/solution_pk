@@ -797,7 +797,7 @@ namespace Data {
 		case BuildingTypeIds::ID_TREE.get():
 			return CastleUpgradeTree::get(building_level);
 		default:
-			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", type);
+			LOG_EMPERY_CENTER_TRACE("Unhandled building type: type = ", type);
 			return { };
 		}
 	}
@@ -1126,7 +1126,7 @@ namespace Data {
 		case BuildingTypeIds::ID_WAR_WORKSHOP.get():
 			return CastleUpgradeWarWorkshop::get(building_level);
 		default:
-			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", type);
+			LOG_EMPERY_CENTER_TRACE("Unhandled building type: type = ", type);
 			return { };
 		}
 	}
