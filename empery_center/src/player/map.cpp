@@ -815,23 +815,19 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 		}
 	}
 
-	std::vector<boost::shared_ptr<MapObject>> current_buildings;
-	WorldMap::get_map_objects_by_parent_object(current_buildings, castle_uuid);
-	current_buildings.erase(
-		std::remove_if(current_buildings.begin(), current_buildings.end(),
-			[&](const boost::shared_ptr<MapObject> &map_object){
-				return map_object->get_map_object_type_id() == map_object_type_id;
-			}),
-		current_buildings.end());
+	std::size_t defense_count = 0;
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+	WorldMap::get_map_objects_by_parent_object(child_objects, castle_uuid);
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &map_object = *it;
+		const auto map_object_type_id = map_object->get_map_object_type_id();
+		if((map_object_type_id == MapObjectTypeIds::ID_DEFENSE_TOWER) || (map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER)){
+			++defense_count;
+		}
+	}
 	const auto castle_level = castle->get_level();
 	const auto castle_upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
-	std::uint64_t max_defense_building_count = 0;
-	if(map_object_type_id == MapObjectTypeIds::ID_DEFENSE_TOWER){
-		max_defense_building_count = castle_upgrade_data->max_defense_towers;
-	} else if(map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER){
-		max_defense_building_count = castle_upgrade_data->max_battle_bunkers;
-	}
-	if(current_buildings.size() >= max_defense_building_count){
+	if(defense_count >= castle_upgrade_data->max_defense_buildings){
 		return Response(Msg::ERR_BUILD_LIMIT_EXCEEDED) <<map_object_type_id;
 	}
 
