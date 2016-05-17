@@ -102,6 +102,8 @@ public:
 	AccountUuid get_occupier_owner_uuid() const;
 	void set_occupier_object_uuid(MapObjectUuid occupier_object_uuid);
 
+	void check_occupation();
+
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;

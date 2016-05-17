@@ -19,6 +19,7 @@
 #include "account.hpp"
 #include "data/vip.hpp"
 #include "terrain_ids.hpp"
+#include "buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -71,6 +72,7 @@ void MapCell::pump_status(){
 
 	pump_production();
 	self_heal();
+	check_occupation();
 }
 void MapCell::recalculate_attributes(bool recursive){
 	PROFILE_ME;
@@ -565,6 +567,26 @@ void MapCell::set_occupier_object_uuid(MapObjectUuid occupier_object_uuid){
 	PROFILE_ME;
 
 	m_obj->set_occupier_object_uuid(occupier_object_uuid.get());
+
+	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
+}
+
+void MapCell::check_occupation(){
+	PROFILE_ME;
+
+	const auto occupier_object_uuid = get_occupier_object_uuid();
+	if(occupier_object_uuid){
+		return;
+	}
+
+	if(!is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+		const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
+		const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
+
+		set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
+		clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
+		set_occupier_object_uuid({ });
+	}
 }
 
 bool MapCell::is_virtually_removed() const {
