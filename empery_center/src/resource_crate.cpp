@@ -67,10 +67,8 @@ std::uint64_t ResourceCrate::harvest(const boost::shared_ptr<MapObject> &harvest
 	PROFILE_ME;
 
 	const auto resource_id = get_resource_id();
-	const auto resource_data = Data::CastleResource::require(resource_id);
-	const auto carried_attribute_id = resource_data->carried_attribute_id;
-	if(!carried_attribute_id){
-		LOG_EMPERY_CENTER_DEBUG("Resource is not harvestable: resource_id = ", resource_id);
+	if(!resource_id){
+		LOG_EMPERY_CENTER_DEBUG("No resource id: resource_crate_uuid = ", get_resource_crate_uuid());
 		return 0;
 	}
 	const auto amount_remaining = get_amount_remaining();
@@ -79,32 +77,15 @@ std::uint64_t ResourceCrate::harvest(const boost::shared_ptr<MapObject> &harvest
 		return 0;
 	}
 
-	const auto harvester_type_id = harvester->get_map_object_type_id();
-	const auto harvester_type_data = Data::MapObjectTypeBattalion::require(harvester_type_id);
-
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
-
-	const auto soldier_count = static_cast<std::uint64_t>(harvester->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto resource_capacity = static_cast<std::uint64_t>(std::floor(harvester_type_data->resource_carriable * soldier_count + 0.001));
-	const auto resource_amount_carried = harvester->get_resource_amount_carried();
-	const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);
-	const auto amount_to_add = std::min(rounded_amount_removable, capacity_remaining);
-	const auto amount_to_remove = saturated ? rounded_amount_removable : amount_to_add;
-	LOG_EMPERY_CENTER_DEBUG("Harvesting resource crate: resource_crate_uuid = ", get_resource_crate_uuid(),
-		", resource_id = ", resource_id, ", carried_attribute_id = ", carried_attribute_id,
-		", resource_amount_carried = ", resource_amount_carried, ", capacity_remaining = ", capacity_remaining,
-		", amount_to_add = ", amount_to_add, ", amount_to_remove = ", amount_to_remove);
-
-	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers[carried_attribute_id] = harvester->get_attribute(carried_attribute_id) + static_cast<std::int64_t>(amount_to_add);
-
-	harvester->set_attributes(std::move(modifiers));
-	m_obj->set_amount_remaining(checked_sub(m_obj->get_amount_remaining(), amount_to_remove));
+	const auto amount_added = harvester->load_resource(resource_id, rounded_amount_removable, false);
+	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
+	m_obj->set_amount_remaining(saturated_sub(amount_remaining, amount_removed));
 
 	WorldMap::update_resource_crate(virtual_shared_from_this<ResourceCrate>(), false);
 
-	return amount_to_remove;
+	return amount_removed;
 }
 
 bool ResourceCrate::is_virtually_removed() const {

@@ -322,6 +322,8 @@ try {
 		std::vector<boost::shared_ptr<MapObject>> defenses_destroyed;
 		defenses_destroyed.reserve(child_objects.size());
 
+		const auto last_coord = castle->get_coord();
+
 		// 回收所有部队。
 		for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
 			const auto &child_object = *it;
@@ -334,7 +336,7 @@ try {
 			if(child_object_data && (child_object_data->speed > 0)){
 				child_object->pump_status();
 				child_object->unload_resources(castle);
-				child_object->set_coord(castle->get_coord());
+				child_object->set_coord(last_coord);
 				child_object->set_garrisoned(true);
 			} else {
 				child_object->delete_from_game();
@@ -351,7 +353,7 @@ try {
 			}
 
 			map_cell->pump_status();
-			map_cell->harvest(castle, false);
+			map_cell->harvest(castle, UINT64_MAX, true);
 
 			const auto ticket_item_id = map_cell->get_ticket_item_id();
 
@@ -366,6 +368,7 @@ try {
 			}
 			item_box->commit_transaction(transaction, false,
 				[&]{
+					map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION);
 					map_cell->set_parent_object({ }, { }, { });
 					map_cell->set_acceleration_card_applied(false);
 					for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
@@ -382,8 +385,8 @@ try {
 		// 挂起城堡。
 		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 		modifiers.reserve(8);
-		modifiers[AttributeIds::ID_CASTLE_LAST_COORD_X] = castle->get_coord().x();
-		modifiers[AttributeIds::ID_CASTLE_LAST_COORD_Y] = castle->get_coord().y();
+		modifiers[AttributeIds::ID_CASTLE_LAST_COORD_X] = last_coord.x();
+		modifiers[AttributeIds::ID_CASTLE_LAST_COORD_Y] = last_coord.y();
 		castle->set_attributes(std::move(modifiers));
 
 		castle->set_coord(new_castle_coord);
@@ -401,38 +404,45 @@ try {
 		castle->pump_status();
 
 		// 发邮件。
-		const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
-		const auto language_id = LanguageId(); // neutral
+		try {
+			const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
+			const auto language_id = LanguageId(); // neutral
 
-		std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
-		segments.reserve(items_regained.size() + defenses_destroyed.size());
-		for(auto it = items_regained.begin(); it != items_regained.end(); ++it){
-			segments.emplace_back(ChatMessageSlotIds::ID_HUP_REGAINED_ITEM_ID,    boost::lexical_cast<std::string>(it->first));
-			segments.emplace_back(ChatMessageSlotIds::ID_HUP_REGAINED_ITEM_COUNT, boost::lexical_cast<std::string>(it->second));
-		}
-		for(auto it = defenses_destroyed.begin(); it != defenses_destroyed.end(); ++it){
-			const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(*it);
-			if(!defense){
-				continue;
+			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+			segments.reserve(items_regained.size() + defenses_destroyed.size());
+			for(auto it = items_regained.begin(); it != items_regained.end(); ++it){
+				segments.emplace_back(ChatMessageSlotIds::ID_HUP_REGAINED_ITEM_ID,    boost::lexical_cast<std::string>(it->first));
+				segments.emplace_back(ChatMessageSlotIds::ID_HUP_REGAINED_ITEM_COUNT, boost::lexical_cast<std::string>(it->second));
 			}
-			const auto building_id = defense->get_map_object_type_id();
-			const auto building_level = defense->get_level();
-			segments.emplace_back(ChatMessageSlotIds::ID_HUP_DESTROYED_DEFENSE_ID,    boost::lexical_cast<std::string>(building_id));
-			segments.emplace_back(ChatMessageSlotIds::ID_HUP_DESTROYED_DEFENSE_LEVEL, boost::lexical_cast<std::string>(building_level));
+			for(auto it = defenses_destroyed.begin(); it != defenses_destroyed.end(); ++it){
+				const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(*it);
+				if(!defense){
+					continue;
+				}
+				const auto building_id = defense->get_map_object_type_id();
+				const auto building_level = defense->get_level();
+				segments.emplace_back(ChatMessageSlotIds::ID_HUP_DESTROYED_DEFENSE_ID,    boost::lexical_cast<std::string>(building_id));
+				segments.emplace_back(ChatMessageSlotIds::ID_HUP_DESTROYED_DEFENSE_LEVEL, boost::lexical_cast<std::string>(building_level));
+			}
+			segments.emplace_back(ChatMessageSlotIds::ID_HUP_LAST_COORD_X, boost::lexical_cast<std::string>(last_coord.x()));
+			segments.emplace_back(ChatMessageSlotIds::ID_HUP_LAST_COORD_Y, boost::lexical_cast<std::string>(last_coord.y()));
+			segments.emplace_back(ChatMessageSlotIds::ID_HUP_CASTLE_NAME, castle->get_name());
+
+			const auto utc_now = Poseidon::get_utc_time();
+
+			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
+				ChatMessageTypeIds::ID_CASTLE_HUNG_UP, AccountUuid(), std::string(), std::move(segments),
+				boost::container::flat_map<ItemId, std::uint64_t>());
+			MailBoxMap::insert_mail_data(mail_data);
+
+			MailBox::MailInfo mail_info = { };
+			mail_info.mail_uuid   = mail_uuid;
+			mail_info.expiry_time = UINT64_MAX;
+			mail_info.system      = true;
+			mail_box->insert(std::move(mail_info));
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
-
-		const auto utc_now = Poseidon::get_utc_time();
-
-		const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-			ChatMessageTypeIds::ID_CASTLE_HUNG_UP, AccountUuid(), std::string(), std::move(segments),
-			boost::container::flat_map<ItemId, std::uint64_t>());
-		MailBoxMap::insert_mail_data(mail_data);
-
-		MailBox::MailInfo mail_info = { };
-		mail_info.mail_uuid   = mail_uuid;
-		mail_info.expiry_time = UINT64_MAX;
-		mail_info.system      = true;
-		mail_box->insert(std::move(mail_info));
 	};
 	Poseidon::enqueue_async_job(really_hang_up);
 } catch(std::exception &e){

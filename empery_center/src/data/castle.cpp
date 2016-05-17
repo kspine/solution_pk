@@ -226,8 +226,7 @@ namespace {
 			csv.get(elem.max_map_cell_count,        "territory_number");
 			csv.get(elem.max_map_cell_distance,     "range");
 			csv.get(elem.max_immigrant_group_count, "people");
-			csv.get(elem.max_defense_towers,        "towers_max");
-			csv.get(elem.max_battle_bunkers,        "bunker_max");
+			csv.get(elem.max_defense_buildings,     "towers_bunker_max");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "need_fountain");
@@ -240,6 +239,8 @@ namespace {
 					DEBUG_THROW(Exception, sslit("Duplicate item"));
 				}
 			}
+
+			csv.get(elem.max_occupied_map_cells,    "max_occupy");
 
 			if(!upgrade_primary_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradePrimary: building_level = ", elem.building_level);

@@ -85,11 +85,13 @@ public:
 	BuffInfo get_buff(BuffId buff_id) const;
 	bool is_buff_in_effect(BuffId buff_id) const;
 	void get_buffs(std::vector<BuffInfo> &ret) const;
+	void set_buff(BuffId buff_id, std::uint64_t duration);
 	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
 	void accumulate_buff(BuffId buff_id, std::uint64_t delta_duration);
 	void clear_buff(BuffId buff_id) noexcept;
 
 	std::uint64_t get_resource_amount_carried() const;
+	std::uint64_t load_resource(ResourceId resource_id, std::uint64_t amount_to_add, bool ignore_limit);
 	void unload_resources(const boost::shared_ptr<Castle> &castle);
 
 	unsigned get_action() const {

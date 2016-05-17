@@ -167,6 +167,13 @@ namespace Msg {
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapReturnOccupiedMapCell
+#define MESSAGE_ID      320
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
