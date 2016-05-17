@@ -99,6 +99,8 @@ public:
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
+	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object);
+	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
@@ -111,8 +113,7 @@ private:
 	void          notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param);
 	bool          fix_attack_action();
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
-	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object);
-	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
+
 	std::uint64_t lost_target();
 	void          monster_regress();
 	bool          is_monster();

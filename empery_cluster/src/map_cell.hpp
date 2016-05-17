@@ -8,7 +8,7 @@
 #include "coord.hpp"
 
 namespace EmperyCluster {
-
+class MapObject;
 class MapCell : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct BuffInfo {
@@ -47,7 +47,8 @@ public:
 	AccountUuid get_owner_uuid() const {
 		return m_owner_uuid;
 	}
-
+	void on_attack(boost::shared_ptr<MapObject> attacker);
+	bool is_in_group_view_scope(boost::shared_ptr<MapObject> attacker);
 	bool is_acceleration_card_applied() const;
 	ItemId get_ticket_item_id() const;
 	ResourceId get_production_resource_id() const;

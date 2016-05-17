@@ -1,5 +1,8 @@
 #include "precompiled.hpp"
 #include "map_cell.hpp"
+#include "map_utilities.hpp"
+#include "map_object.hpp"
+#include "singletons/world_map.hpp"
 
 namespace EmperyCluster {
 
@@ -127,6 +130,45 @@ MapObjectUuid MapCell::get_occupier_object_uuid() const{
 }
 AccountUuid MapCell::get_occupier_owner_uuid() const{
 	return m_occupier_owner_uuid;
+}
+
+void MapCell::on_attack(boost::shared_ptr<MapObject> attacker){
+	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
+	WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
+	if(friendly_map_objects.empty()){
+		return;
+	}
+	for(auto it = friendly_map_objects.begin(); it != friendly_map_objects.end(); ++it){
+		auto map_object = *it;
+		if(!map_object || !map_object->is_idle() || !is_in_group_view_scope(map_object)){
+			continue;
+		}
+		boost::shared_ptr<MapObject> near_enemy_object;
+		if(map_object->get_new_enemy(attacker->get_owner_uuid(),near_enemy_object)){
+			map_object->attack_new_target(near_enemy_object);
+		}else{
+			map_object->attack_new_target(attacker);
+		}
+	}
+}
+
+bool MapCell::is_in_group_view_scope(boost::shared_ptr<MapObject> target_object){
+		PROFILE_ME;
+
+	if(!target_object){
+		return false;
+	}
+	const std::uint64_t view_range = 4;
+	const auto target_view_range = target_object->get_view_range();
+	const auto troops_view_range = view_range > target_view_range ? view_range:target_view_range;
+	const auto coord    = get_coord();
+	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
+
+	if(distance <= troops_view_range){
+		return true;
+	}
+
+	return false;
 }
 
 }

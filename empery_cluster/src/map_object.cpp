@@ -773,6 +773,7 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 	msg.result_type = 1;
 	msg.soldiers_damaged = damage;
 	cluster->send(msg);
+	map_cell->on_attack(virtual_shared_from_this<MapObject>());
 	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
 	return attack_delay;
 }
