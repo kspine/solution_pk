@@ -572,7 +572,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result_type = IMPACT_MISS;
 	}else{
 		//伤害计算
-		if(!target_object->is_building()){
+		if(!target_object->is_castle()){
 			damage = (1.0 +(soldier_count/20000.0) + (soldier_count - ememy_solider_count)/20000.0 )*relative_rate*
 			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}else{
