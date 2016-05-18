@@ -389,20 +389,20 @@ namespace {
 	struct DelayedWorldSynchronizationElement {
 		boost::function<void (const boost::shared_ptr<PlayerSession> &)> callback;
 
-		std::uint64_t due_time;
 		std::pair<boost::weak_ptr<PlayerSession>, boost::weak_ptr<const void>> key;
+		std::uint64_t due_time;
 
 		DelayedWorldSynchronizationElement(boost::function<void (const boost::shared_ptr<PlayerSession> &)> callback_,
-			std::uint64_t due_time_, std::pair<boost::weak_ptr<PlayerSession>, boost::weak_ptr<const void>> key_)
+			std::pair<boost::weak_ptr<PlayerSession>, boost::weak_ptr<const void>> key_, std::uint64_t due_time_)
 			: callback(std::move(callback_))
-			, due_time(due_time_), key(std::move(key_))
+			, key(std::move(key_)), due_time(due_time_)
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(DelayedWorldSynchronizationContainer, DelayedWorldSynchronizationElement,
-		MULTI_MEMBER_INDEX(due_time)
 		UNIQUE_MEMBER_INDEX(key)
+		MULTI_MEMBER_INDEX(due_time)
 	)
 
 	boost::weak_ptr<DelayedWorldSynchronizationContainer> g_delayed_world_synchronization_map;
@@ -417,8 +417,8 @@ namespace {
 		}
 
 		for(;;){
-			const auto it = synchronization_map->begin<0>();
-			if(it == synchronization_map->end<0>()){
+			const auto it = synchronization_map->begin<1>();
+			if(it == synchronization_map->end<1>()){
 				break;
 			}
 			if(now < it->due_time){
@@ -434,7 +434,7 @@ namespace {
 					session->shutdown(e.what());
 				}
 			}
-			synchronization_map->erase<0>(it);
+			synchronization_map->erase<1>(it);
 		}
 	}
 
@@ -834,7 +834,7 @@ namespace {
 						synchronization_map->insert(
 							DelayedWorldSynchronizationElement(
 								[=](const boost::shared_ptr<PlayerSession> &session){ ptr->synchronize_with_player(session); },
-								due_time, std::make_pair(session, ptr))
+								std::make_pair(session, ptr), due_time)
 							);
 					} catch(std::exception &e){
 						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
