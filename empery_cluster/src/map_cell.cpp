@@ -2,6 +2,7 @@
 #include "map_cell.hpp"
 #include "map_utilities.hpp"
 #include "map_object.hpp"
+#include "data/map.hpp"
 #include "singletons/world_map.hpp"
 
 namespace EmperyCluster {
@@ -134,7 +135,11 @@ AccountUuid MapCell::get_occupier_owner_uuid() const{
 
 void MapCell::on_attack(boost::shared_ptr<MapObject> attacker){
 	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
-	WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
+	if(get_occupier_owner_uuid() != AccountUuid()){
+		WorldMap::get_map_objects_by_account(friendly_map_objects,get_occupier_owner_uuid());
+	}else{
+		WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
+	}
 	if(friendly_map_objects.empty()){
 		return;
 	}
@@ -158,7 +163,11 @@ bool MapCell::is_in_group_view_scope(boost::shared_ptr<MapObject> target_object)
 	if(!target_object){
 		return false;
 	}
-	const std::uint64_t view_range = 4;
+	const auto map_cell_ticket = Data::MapCellTicket::get(get_ticket_item_id());
+	if(!map_cell_ticket){
+		return false;
+	}
+	const std::uint64_t view_range = map_cell_ticket->range;
 	const auto target_view_range = target_object->get_view_range();
 	const auto troops_view_range = view_range > target_view_range ? view_range:target_view_range;
 	const auto coord    = get_coord();

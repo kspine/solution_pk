@@ -130,6 +130,7 @@ private:
 	int           get_attacked_prority();
 	bool          move_able();
 	boost::shared_ptr<const Data::MapObjectType> get_map_object_type_data();
+	boost::shared_ptr<ResourceCrate> get_attack_resouce_crate();
 	boost::shared_ptr<MapCell> get_attack_territory();
 public:
 	MapObjectUuid get_map_object_uuid() const {
@@ -169,7 +170,7 @@ public:
 	}
 
 	bool is_idle() const {
-		return (m_action == ACT_GUARD)&&(m_waypoints.empty());
+		return ((m_action == ACT_GUARD)&&(m_waypoints.empty())&& !is_garrisoned());
 	}
 
 	Action get_action() const {

@@ -109,7 +109,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	PROFILE_ME;
 
 	const auto map_object_uuid    = get_map_object_uuid();
-	const auto parent_object_uuid = get_parent_object_uuid();
 	const auto garrisoned         = is_garrisoned();
 
 	const auto map_object_type_data = get_map_object_type_data();
@@ -118,11 +117,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		return UINT64_MAX;
 	}
 
-	const auto parent_map_object = WorldMap::get_map_object(parent_object_uuid);
-	if(!parent_map_object && !is_monster()){
-		result = CbppResponse(Msg::ERR_MAP_OBJECT_PARENT_GONE) << parent_object_uuid;
-		return UINT64_MAX;
-	}
 	if(garrisoned){
 	 	result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 	 	return UINT64_MAX;
@@ -591,7 +585,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result_type = IMPACT_MISS;
 	}else{
 		//伤害计算
-		if(!target_object->is_building()){
+		if(!target_object->is_castle()){
 			damage = (1.0 +(soldier_count/20000.0) + (soldier_count - ememy_solider_count)/20000.0 )*relative_rate*
 			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
 		}else{
@@ -646,16 +640,14 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 
 std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now){
 		PROFILE_ME;
-
-	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
 	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
-	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
+	const auto target_resource_crate = get_attack_resouce_crate();
 	if(!target_resource_crate){
-		result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST) << target_resource_crate_uuid;
+		result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST) << m_action_param;
 		return UINT64_MAX;
 	}
 	const auto cluster = get_cluster();
@@ -770,7 +762,6 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 	msg.attacked_ticket_item_id = map_cell->get_ticket_item_id().get();
 	msg.attacked_coord_x = map_cell->get_coord().x();
 	msg.attacked_coord_y = map_cell->get_coord().y();
-	msg.result_type = 1;
 	msg.soldiers_damaged = damage;
 	cluster->send(msg);
 	map_cell->on_attack(virtual_shared_from_this<MapObject>());
@@ -952,7 +943,10 @@ void   MapObject::notify_way_points(std::deque<std::pair<signed char, signed cha
 bool    MapObject::fix_attack_action(){
 	PROFILE_ME;
 
-	if(m_action != ACT_ATTACK){
+	if( (m_action != ACT_ATTACK)
+		&&(m_action != ACT_HARVEST_RESOURCE_CRATE)
+		&&(m_action != ACT_ATTACK_TERRITORY)
+	){
 		return true;
 	}
 	if(is_die()){
@@ -962,25 +956,39 @@ bool    MapObject::fix_attack_action(){
 	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
 	        return false;
 	 }
-
-	const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
-	if(!target_object){
-		return false;
+	Coord target_coord;
+	bool in_attack_scope;
+	if(m_action == ACT_ATTACK){
+		const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
+		if(!target_object){
+			return false;
+		}
+		if(!target_object->attacked_able()){
+			return false;
+		}
+		target_coord = target_object->get_coord();
+		in_attack_scope = is_in_attack_scope(target_object);
+	} else if( m_action == ACT_HARVEST_RESOURCE_CRATE ){
+		const auto target_resource_crate = get_attack_resouce_crate();
+		if(!target_resource_crate){
+			return false;
+		}
+		target_coord = target_resource_crate->get_coord();
+		in_attack_scope = is_in_attack_scope(target_resource_crate);
+	} else if( m_action == ACT_ATTACK_TERRITORY){
+		const auto target_map_cell = get_attack_territory();
+		if(!target_map_cell){
+			return false;
+		}
+		target_coord = target_map_cell->get_coord();
+		in_attack_scope = is_in_attack_scope(target_map_cell);
 	}
-
-	//在攻击范围之内，直接进行攻击
-	bool in_attack_scope = is_in_attack_scope(target_object);
 	if(in_attack_scope){
 		m_waypoints.clear();
-		notify_way_points(m_waypoints,m_action,m_action_param);
+			notify_way_points(m_waypoints,m_action,m_action_param);
 	}
-
-	if(!target_object->attacked_able()){
-		return false;
-	}
-
 	if(!in_attack_scope&&m_waypoints.empty()){
-		if(find_way_points(m_waypoints,get_coord(),target_object->get_coord())){
+		if(find_way_points(m_waypoints,get_coord(),target_coord)){
 			notify_way_points(m_waypoints,m_action,m_action_param);
 		}else{
 			return false;
@@ -1313,6 +1321,15 @@ boost::shared_ptr<MapCell> MapObject::get_attack_territory(){
 	}
 	const auto map_cell = WorldMap::get_map_cell(Coord(x,y));
 	return map_cell;
+}
+
+boost::shared_ptr<ResourceCrate> MapObject::get_attack_resouce_crate(){
+	if(m_action != ACT_HARVEST_RESOURCE_CRATE){
+		return { };
+	}
+	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
+	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
+E	return target_resource_crate;
 }
 
 }
