@@ -386,6 +386,58 @@ namespace {
 
 	boost::weak_ptr<ClusterContainer> g_cluster_map;
 
+	struct DelayedWorldSynchronizationElement {
+		boost::function<void (const boost::shared_ptr<PlayerSession> &)> callback;
+
+		std::uint64_t due_time;
+		std::pair<boost::weak_ptr<PlayerSession>, boost::weak_ptr<const void>> key;
+
+		DelayedWorldSynchronizationElement(boost::function<void (const boost::shared_ptr<PlayerSession> &)> callback_,
+			std::uint64_t due_time_, std::pair<boost::weak_ptr<PlayerSession>, boost::weak_ptr<const void>> key_)
+			: callback(std::move(callback_))
+			, due_time(due_time_), key(std::move(key_))
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(DelayedWorldSynchronizationContainer, DelayedWorldSynchronizationElement,
+		MULTI_MEMBER_INDEX(due_time)
+		UNIQUE_MEMBER_INDEX(key)
+	)
+
+	boost::weak_ptr<DelayedWorldSynchronizationContainer> g_delayed_world_synchronization_map;
+
+	void world_synchronization_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("World synchronization timer: now = ", now);
+
+		const auto synchronization_map = g_delayed_world_synchronization_map.lock();
+		if(!synchronization_map){
+			return;
+		}
+
+		for(;;){
+			const auto it = synchronization_map->begin<0>();
+			if(it == synchronization_map->end<0>()){
+				break;
+			}
+			if(now < it->due_time){
+				break;
+			}
+
+			const auto session = it->key.first.lock();
+			if(session){
+				try {
+					it->callback(session);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
+			}
+			synchronization_map->erase<0>(it);
+		}
+	}
+
 	MODULE_RAII_PRIORITY(handles, 5300){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
 
@@ -740,6 +792,10 @@ namespace {
 		timer = Poseidon::TimerDaemon::register_timer(0, resource_crate_refresh_interval,
 			std::bind(&resource_crate_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		const auto world_synchronization_delay = get_config<std::uint64_t>("world_synchronization_delay", 100);
+		timer = Poseidon::TimerDaemon::register_timer(0, world_synchronization_delay,
+			std::bind(&world_synchronization_timer_proc, std::placeholders::_2));
 	}
 
 	template<typename T>
@@ -752,6 +808,14 @@ namespace {
 		if(!player_view_map){
 			return;
 		}
+		const auto synchronization_map = g_delayed_world_synchronization_map.lock();
+		if(!synchronization_map){
+			return;
+		}
+
+		const auto now = Poseidon::get_fast_mono_clock();
+		const auto delay = get_config<std::uint64_t>("world_synchronization_delay", 100);
+		const auto due_time = saturated_add(now, delay);
 
 		const auto synchronize_in_sector = [&](Coord sector_coord){
 			const auto range = player_view_map->equal_range<1>(sector_coord);
@@ -767,7 +831,11 @@ namespace {
 				const auto view = session->get_view();
 				if(view.hit_test(new_coord)){
 					try {
-						ptr->synchronize_with_player(session);
+						synchronization_map->insert(
+							DelayedWorldSynchronizationElement(
+								[=](const boost::shared_ptr<PlayerSession> &session){ ptr->synchronize_with_player(session); },
+								due_time, std::make_pair(session, ptr))
+							);
 					} catch(std::exception &e){
 						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 						session->shutdown(e.what());
