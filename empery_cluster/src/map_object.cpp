@@ -1329,7 +1329,7 @@ boost::shared_ptr<ResourceCrate> MapObject::get_attack_resouce_crate(){
 	}
 	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
 	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
-E	return target_resource_crate;
+	return target_resource_crate;
 }
 
 }
