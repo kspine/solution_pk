@@ -18,6 +18,8 @@ public:
 		MIS_CONSTRUCT  = 1,
 		MIS_UPGRADE    = 2,
 		MIS_DESTRUCT   = 3,
+		MIS_GARRISON   = 4,
+		MIS_EVICT      = 5,
 	};
 
 private:
@@ -48,13 +50,12 @@ public:
 	std::uint64_t get_mission_time_begin() const;
 	std::uint64_t get_mission_time_end() const;
 
-	void create_mission(Mission mission, std::uint64_t duration);
+	void create_mission(Mission mission, std::uint64_t duration, MapObjectUuid garrisoning_object_uuid);
 	void cancel_mission();
 	void speed_up_mission(std::uint64_t delta_duration);
 	void forced_replace_level(unsigned building_level);
 
 	MapObjectUuid get_garrisoning_object_uuid() const;
-	void set_garrisoning_object_uuid(MapObjectUuid garrisoning_object_uuid);
 
 	void self_heal();
 

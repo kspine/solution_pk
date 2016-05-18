@@ -67,6 +67,11 @@ namespace Msg {
 		ERR_MAP_CELL_NOT_OCCUPIED               = 71356,
 		ERR_MAP_CELL_UNDER_PROTECTION           = 71357,
 		ERR_MAP_CELL_OCCUPATION_PROTECTION      = 71358,
+		ERR_NOT_A_BUNKER                        = 71359,
+		ERR_ARCHER_REQUIRED                     = 71360,
+		ERR_BUNKER_FULL                         = 71361,
+		ERR_BUNKER_EMPTY                        = 71362,
+		ERR_BATTALION_IN_ANOTHER_BUNKER         = 71363,
 	};
 }
 

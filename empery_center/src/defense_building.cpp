@@ -112,6 +112,7 @@ void DefenseBuilding::recalculate_attributes(bool recursive){
 	modifiers.reserve(32);
 
 	const auto map_object_type_id = get_map_object_type_id();
+
 	if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
 		const auto building_level = get_level();
 		auto &display_level = modifiers[AttributeIds::ID_BUILDING_LEVEL];
@@ -122,6 +123,33 @@ void DefenseBuilding::recalculate_attributes(bool recursive){
 		const auto mission = static_cast<unsigned>(get_mission());
 		modifiers[AttributeIds::ID_DEFENSE_BUILDING_MISSION] = mission;
 	}
+
+	if(map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER){
+		const auto garrisoning_object_uuid = get_garrisoning_object_uuid();
+		if(!garrisoning_object_uuid){
+			goto _bunker_done;
+		}
+		const auto garrisoning_object = WorldMap::get_map_object(garrisoning_object_uuid);
+		if(!garrisoning_object){
+			goto _bunker_done;
+		}
+
+		garrisoning_object->recalculate_attributes(false);
+
+		const auto add_attribute = [&](AttributeId attribute_id){
+			modifiers[attribute_id] += garrisoning_object->get_attribute(attribute_id);
+		};
+		add_attribute(AttributeIds::ID_ATTACK_BONUS);
+		add_attribute(AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS);
+		add_attribute(AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS);
+		add_attribute(AttributeIds::ID_ATTACK_RANGE_BONUS);
+		add_attribute(AttributeIds::ID_SIGHT_RANGE_BONUS);
+		add_attribute(AttributeIds::ID_RATE_OF_FIRE_BONUS);
+
+		modifiers[AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID] = garrisoning_object->get_map_object_type_id().get();
+	}
+_bunker_done:
+	;
 
 	set_attributes(std::move(modifiers));
 }
@@ -142,7 +170,7 @@ std::uint64_t DefenseBuilding::get_mission_time_end() const {
 	return m_defense_obj->get_mission_time_end();
 }
 
-void DefenseBuilding::create_mission(DefenseBuilding::Mission mission, std::uint64_t duration){
+void DefenseBuilding::create_mission(DefenseBuilding::Mission mission, std::uint64_t duration, MapObjectUuid garrisoning_object_uuid){
 	PROFILE_ME;
 
 	const auto &obj = m_defense_obj;
@@ -162,6 +190,7 @@ void DefenseBuilding::create_mission(DefenseBuilding::Mission mission, std::uint
 	obj->set_mission_duration(duration);
 	obj->set_mission_time_begin(utc_now);
 	obj->set_mission_time_end(saturated_add(utc_now, duration));
+	obj->set_garrisoning_object_uuid(garrisoning_object_uuid.get());
 
 	if(check_defense_building_mission(obj, utc_now)){
 		recalculate_attributes(false);
@@ -244,9 +273,6 @@ void DefenseBuilding::forced_replace_level(unsigned building_level){
 
 MapObjectUuid DefenseBuilding::get_garrisoning_object_uuid() const {
 	return MapObjectUuid(m_defense_obj->get_garrisoning_object_uuid());
-}
-void DefenseBuilding::set_garrisoning_object_uuid(MapObjectUuid garrisoning_object_uuid){
-	m_defense_obj->set_garrisoning_object_uuid(garrisoning_object_uuid.get());
 }
 
 void DefenseBuilding::self_heal(){

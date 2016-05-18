@@ -174,6 +174,19 @@ namespace Msg {
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapGarrisonBattleBunker
+#define MESSAGE_ID      321
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (battalion_uuid)	\
+	FIELD_STRING        (bunker_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MapEvictBattleBunker
+#define MESSAGE_ID      322
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (bunker_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

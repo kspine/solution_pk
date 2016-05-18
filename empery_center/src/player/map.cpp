@@ -867,7 +867,7 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
 				account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now);
 			defense_building->pump_status();
-			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration);
+			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
 			LOG_EMPERY_CENTER_INFO("Created defense building: defense_building_uuid = ", defense_building_uuid,
 				", map_object_type_id = ", map_object_type_id, ", account_uuid = ", account->get_account_uuid());
@@ -932,7 +932,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeDefenseBuilding, account, session, req){
 
 	const auto result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
 		ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), upgrade_data->building_level, 0,
-		[&]{ defense_building->create_mission(Castle::MIS_UPGRADE, duration); });
+		[&]{ defense_building->create_mission(Castle::MIS_UPGRADE, duration, { }); });
 	if(result.first){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
 	}
@@ -967,7 +967,7 @@ PLAYER_SERVLET(Msg::CS_MapDestroyDefenseBuilding, account, session, req){
 	}
 	const auto duration = static_cast<std::uint64_t>(0 /* std::ceil(upgrade_data->destruct_duration * 60000.0 - 0.001) */);
 
-	defense_building->create_mission(Castle::MIS_DESTRUCT, duration);
+	defense_building->create_mission(Castle::MIS_DESTRUCT, duration, { });
 	defense_building->delete_from_game();
 
 	return Response();
@@ -1080,6 +1080,84 @@ PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
 	map_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
 	map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
 	map_cell->set_occupier_object_uuid({ });
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapGarrisonBattleBunker, account, session, req){
+	const auto bunker_uuid = MapObjectUuid(req.bunker_uuid);
+	const auto bunker = boost::dynamic_pointer_cast<DefenseBuilding>(WorldMap::get_map_object(bunker_uuid));
+	if(!bunker){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<bunker_uuid;
+	}
+	if(bunker->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<bunker->get_owner_uuid();
+	}
+	if(bunker->get_map_object_type_id() != MapObjectTypeIds::ID_BATTLE_BUNKER){
+		return Response(Msg::ERR_NOT_A_BUNKER);
+	}
+
+	bunker->pump_status();
+
+	if(bunker->get_mission() != DefenseBuilding::MIS_NONE){
+		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT);
+	}
+	const auto garrisoning_object_uuid = bunker->get_garrisoning_object_uuid();
+	if(garrisoning_object_uuid){
+		return Response(Msg::ERR_BUNKER_FULL);
+	}
+
+	const auto battalion_uuid = MapObjectUuid(req.battalion_uuid);
+	const auto battalion = WorldMap::get_map_object(battalion_uuid);
+	if(!battalion){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<battalion_uuid;
+	}
+	if(battalion->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<battalion->get_owner_uuid();
+	}
+	if(!battalion->is_garrisoned()){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+	}
+
+	const auto battalion_type_id = battalion->get_map_object_type_id();
+	const auto battalion_data = Data::MapObjectTypeBattalion::require(battalion_type_id);
+	static constexpr auto ARCHER_WEAPON_ID = MapObjectWeaponId(1203001);
+	if(battalion_data->map_object_weapon_id != ARCHER_WEAPON_ID){
+		return Response(Msg::ERR_ARCHER_REQUIRED) <<ARCHER_WEAPON_ID;
+	}
+
+	const auto preparation_minutes = Data::Global::as_double(Data::Global::SLOT_BATTLE_BUNKER_GARRISON_PREPARATION_DURATION);
+	const auto preparation_duration = static_cast<std::uint64_t>(std::round(preparation_minutes * 60000));
+
+	bunker->create_mission(DefenseBuilding::MIS_GARRISON, preparation_duration, battalion_uuid);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapEvictBattleBunker, account, session, req){
+	const auto bunker_uuid = MapObjectUuid(req.bunker_uuid);
+	const auto bunker = boost::dynamic_pointer_cast<DefenseBuilding>(WorldMap::get_map_object(bunker_uuid));
+	if(!bunker){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<bunker_uuid;
+	}
+	if(bunker->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<bunker->get_owner_uuid();
+	}
+	if(bunker->get_map_object_type_id() != MapObjectTypeIds::ID_BATTLE_BUNKER){
+		return Response(Msg::ERR_NOT_A_BUNKER);
+	}
+
+	bunker->pump_status();
+
+	if(bunker->get_mission() != DefenseBuilding::MIS_NONE){
+		return Response(Msg::ERR_BUILDING_MISSION_CONFLICT);
+	}
+	const auto garrisoning_object_uuid = bunker->get_garrisoning_object_uuid();
+	if(!garrisoning_object_uuid){
+		return Response(Msg::ERR_BUNKER_EMPTY);
+	}
+
+	bunker->create_mission(DefenseBuilding::MIS_EVICT, 0, { });
 
 	return Response();
 }

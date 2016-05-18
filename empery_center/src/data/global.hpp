@@ -71,6 +71,7 @@ namespace Data {
 			SLOT_MAP_CELL_RESCUE_DURATION                           = 100075,
 			SLOT_MAP_CELL_PROTECTION_DURATION                       = 100076,
 			SLOT_CASTLE_SIEGE_PROTECTION_DURATION                   = 100077,
+			SLOT_BATTLE_BUNKER_GARRISON_PREPARATION_DURATION        = 100078,
 		};
 
 	public:
