@@ -12,19 +12,6 @@
 namespace EmperyCenter {
 
 namespace {
-	void fill_defense_building_message(Msg::SC_MapDefenseBuilding &msg,
-		const boost::shared_ptr<MySql::Center_DefenseBuilding> &obj, std::uint64_t utc_now)
-	{
-		PROFILE_ME;
-
-		msg.map_object_uuid         = obj->unlocked_get_map_object_uuid().to_string();
-		msg.building_level          = obj->get_building_level();
-		msg.mission                 = obj->get_mission();
-		msg.mission_duration        = obj->get_mission_duration();
-		msg.mission_time_remaining  = saturated_sub(obj->get_mission_time_end(), utc_now);
-		msg.garrisoning_object_uuid = obj->unlocked_get_garrisoning_object_uuid().to_string();
-	}
-
 	bool check_defense_building_mission(const boost::shared_ptr<MySql::Center_DefenseBuilding> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
@@ -180,20 +167,7 @@ void DefenseBuilding::create_mission(DefenseBuilding::Mission mission, std::uint
 		recalculate_attributes(false);
 	}
 
-	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());
-	if(map_object){
-		const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
-		if(session){
-			try {
-				Msg::SC_MapDefenseBuilding msg;
-				fill_defense_building_message(msg, obj, utc_now);
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
-	}
+	WorldMap::update_map_object(virtual_shared_from_this<DefenseBuilding>(), false);
 }
 void DefenseBuilding::cancel_mission(){
 	PROFILE_ME;
@@ -206,7 +180,7 @@ void DefenseBuilding::cancel_mission(){
 		return;
 	}
 
-	const auto utc_now = Poseidon::get_utc_time();
+//	const auto utc_now = Poseidon::get_utc_time();
 
 	obj->set_mission(MIS_NONE);
 	obj->set_mission_duration(0);
@@ -217,20 +191,7 @@ void DefenseBuilding::cancel_mission(){
 		recalculate_attributes(false);
 	}
 */
-	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());
-	if(map_object){
-		const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
-		if(session){
-			try {
-				Msg::SC_MapDefenseBuilding msg;
-				fill_defense_building_message(msg, obj, utc_now);
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
-	}
+	WorldMap::update_map_object(virtual_shared_from_this<DefenseBuilding>(), false);
 }
 void DefenseBuilding::speed_up_mission(std::uint64_t delta_duration){
 	PROFILE_ME;
@@ -252,20 +213,7 @@ void DefenseBuilding::speed_up_mission(std::uint64_t delta_duration){
 		recalculate_attributes(false);
 	}
 
-	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());
-	if(map_object){
-		const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
-		if(session){
-			try {
-				Msg::SC_MapDefenseBuilding msg;
-				fill_defense_building_message(msg, obj, utc_now);
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
-	}
+	WorldMap::update_map_object(virtual_shared_from_this<DefenseBuilding>(), false);
 }
 void DefenseBuilding::forced_replace_level(unsigned building_level){
 	PROFILE_ME;
@@ -291,20 +239,7 @@ void DefenseBuilding::forced_replace_level(unsigned building_level){
 		recalculate_attributes(false);
 	}
 
-	const auto map_object = WorldMap::get_map_object(get_map_object_uuid());
-	if(map_object){
-		const auto session = PlayerSessionMap::get(map_object->get_owner_uuid());
-		if(session){
-			try {
-				Msg::SC_MapDefenseBuilding msg;
-				fill_defense_building_message(msg, obj, utc_now);
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
-	}
+	WorldMap::update_map_object(virtual_shared_from_this<DefenseBuilding>(), false);
 }
 
 MapObjectUuid DefenseBuilding::get_garrisoning_object_uuid() const {
@@ -355,6 +290,8 @@ void DefenseBuilding::self_heal(){
 	}
 	m_self_healing_remainder = amount_healed - rounded_amount_healed;
 	m_defense_obj->set_last_self_healed_time(utc_now);
+
+	WorldMap::update_map_object(virtual_shared_from_this<DefenseBuilding>(), false);
 }
 
 void DefenseBuilding::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
@@ -363,7 +300,12 @@ void DefenseBuilding::synchronize_with_player(const boost::shared_ptr<PlayerSess
 	const auto utc_now = Poseidon::get_utc_time();
 
 	Msg::SC_MapDefenseBuilding msg;
-	fill_defense_building_message(msg, m_defense_obj, utc_now);
+	msg.map_object_uuid         = m_defense_obj->unlocked_get_map_object_uuid().to_string();
+	msg.building_level          = m_defense_obj->get_building_level();
+	msg.mission                 = m_defense_obj->get_mission();
+	msg.mission_duration        = m_defense_obj->get_mission_duration();
+	msg.mission_time_remaining  = saturated_sub(m_defense_obj->get_mission_time_end(), utc_now);
+	msg.garrisoning_object_uuid = m_defense_obj->unlocked_get_garrisoning_object_uuid().to_string();
 	session->send(msg);
 }
 
