@@ -957,7 +957,7 @@ bool    MapObject::fix_attack_action(){
 	        return false;
 	 }
 	Coord target_coord;
-	bool in_attack_scope;
+	bool in_attack_scope = false;
 	if(m_action == ACT_ATTACK){
 		const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 		if(!target_object){
