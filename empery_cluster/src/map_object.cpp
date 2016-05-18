@@ -411,7 +411,7 @@ void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t
 	}
 	it->second.duration = duration;
 	it->second.time_begin = time_begin;
-	it->second.time_end = saturated_add(time_begin, duration);	
+	it->second.time_end = saturated_add(time_begin, duration);
 }
 void MapObject::clear_buff(BuffId buff_id) noexcept{
 	PROFILE_ME;
@@ -957,7 +957,7 @@ bool    MapObject::fix_attack_action(){
 	        return false;
 	 }
 	Coord target_coord;
-	bool in_attack_scope = false;
+	bool in_attack_scope;
 	if(m_action == ACT_ATTACK){
 		const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 		if(!target_object){
@@ -1002,6 +1002,9 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 
 	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
+		return false;
+	}
+	if(!move_able()){
 		return false;
 	}
 
@@ -1066,7 +1069,7 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
 			std::deque<std::pair<signed char, signed char>> waypoints;
-			if(move_able()&&find_way_points(waypoints,get_coord(),enemy_map_object->get_coord(),false)){
+			if(find_way_points(waypoints,get_coord(),enemy_map_object->get_coord(),false)){
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 			}else{
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
