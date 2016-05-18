@@ -769,6 +769,11 @@ namespace {
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 
+		// DelayedWorldSynchronization
+		const auto synchronization_map = boost::make_shared<DelayedWorldSynchronizationContainer>();
+		g_delayed_world_synchronization_map = synchronization_map;
+		handles.push(synchronization_map);
+
 		Poseidon::enqueue_async_job(
 			[=]{
 				PROFILE_ME;
