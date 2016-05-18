@@ -125,6 +125,8 @@ void DefenseBuilding::recalculate_attributes(bool recursive){
 	}
 
 	if(map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER){
+		auto &garrisoning_battalion_type_id_val = modifiers[AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID];
+
 		const auto garrisoning_object_uuid = get_garrisoning_object_uuid();
 		if(!garrisoning_object_uuid){
 			goto _bunker_done;
@@ -133,6 +135,8 @@ void DefenseBuilding::recalculate_attributes(bool recursive){
 		if(!garrisoning_object){
 			goto _bunker_done;
 		}
+
+		garrisoning_battalion_type_id_val = garrisoning_object->get_map_object_type_id().get();
 
 		garrisoning_object->recalculate_attributes(false);
 
@@ -145,8 +149,6 @@ void DefenseBuilding::recalculate_attributes(bool recursive){
 		add_attribute(AttributeIds::ID_ATTACK_RANGE_BONUS);
 		add_attribute(AttributeIds::ID_SIGHT_RANGE_BONUS);
 		add_attribute(AttributeIds::ID_RATE_OF_FIRE_BONUS);
-
-		modifiers[AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID] = garrisoning_object->get_map_object_type_id().get();
 	}
 _bunker_done:
 	;
