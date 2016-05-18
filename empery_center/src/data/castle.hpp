@@ -77,7 +77,7 @@ namespace Data {
 		std::uint64_t max_map_cell_distance;
 		std::uint64_t max_immigrant_group_count;
 		std::uint64_t max_defense_buildings;
-		boost::container::flat_map<ItemId, std::uint64_t> protection_cost;
+		boost::container::flat_map<ResourceId, std::uint64_t> protection_cost;
 		std::uint64_t max_occupied_map_cells;
 	};
 
