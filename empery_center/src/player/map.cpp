@@ -369,7 +369,7 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCELERATION_CARD, 1,
-		ReasonIds::ID_MAP_CELL_UPGRADE, coord.x(), coord.y(), ticket_item_id.get());
+		ReasonIds::ID_APPLY_ACCELERATION_CARD, coord.x(), coord.y(), ticket_item_id.get());
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{ map_cell->set_acceleration_card_applied(true); });
 	if(insuff_item_id){

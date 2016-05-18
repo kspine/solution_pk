@@ -542,7 +542,7 @@ namespace Data {
 		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
 			return MapDefenseBuildingBattleBunker::get(building_level);
 		default:
-			LOG_EMPERY_CENTER_DEBUG("Unhandled defense building id: map_object_type_id = ", map_object_type_id);
+			LOG_EMPERY_CENTER_TRACE("Unhandled defense building id: map_object_type_id = ", map_object_type_id);
 			return { };
 		}
 	}

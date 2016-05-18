@@ -192,7 +192,7 @@ void MapCell::pump_production(){
 		} else if(production_resource_id == ResourceIds::ID_STONE){
 			tech_turbo = castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_STONE) / 1000.0;
 		} else {
-			LOG_EMPERY_CENTER_DEBUG("Unhandled production resource: production_resource_id = ", production_resource_id);
+			LOG_EMPERY_CENTER_TRACE("Unhandled production resource: production_resource_id = ", production_resource_id);
 			tech_turbo = 0;
 		}
 		switch(terrain_id.get()){

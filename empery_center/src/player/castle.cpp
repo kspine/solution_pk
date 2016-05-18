@@ -1699,8 +1699,6 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	castle->pump_status();
 
 	const auto castle_level = castle->get_level();
@@ -1709,13 +1707,13 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 	const auto days = req.days;
 	const auto protection_duration = checked_mul<std::uint64_t>(days, 86400000);
 
-	std::vector<ItemTransactionElement> transaction;
+	std::vector<ResourceTransactionElement> transaction;
 	transaction.reserve(protection_cost.size());
 	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 	for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
-		const auto item_id = it->first;
-		const auto item_count = checked_mul(it->second, days);
-		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, item_count,
+		const auto resource_id = it->first;
+		const auto amount = checked_mul(it->second, days);
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, amount,
 			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 	}
 
@@ -1756,7 +1754,7 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 		}
 	}
 
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
 		[&]{
 			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 				const auto &map_object = *it;
@@ -1770,8 +1768,8 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
 			}
 		});
-	if(insuff_item_id){
-		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	if(insuff_resource_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 	return Response();
 }
@@ -1786,13 +1784,11 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	if(!castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
 		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<map_object_uuid;
 	}
 
-	std::vector<ItemTransactionElement> transaction;
+	std::vector<ResourceTransactionElement> transaction;
 	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
 		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 		const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
@@ -1806,10 +1802,10 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		transaction.reserve(protection_cost.size());
 		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 		for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
-			const auto item_id = it->first;
-			const auto item_count = static_cast<std::uint64_t>(it->second * (protection_duration / 86400.0) * refund_ratio + 0.001);
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, item_count,
-				ReasonIds::ID_CASTLE_PROTECTION_REFUND, map_object_uuid_head, castle_level, protection_duration);
+			const auto resource_id = it->first;
+			const auto amount = static_cast<std::uint64_t>(it->second * (protection_duration / 86400.0) * refund_ratio + 0.001);
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
+				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 		}
 	}
 
@@ -1843,7 +1839,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		}
 	}
 
-	item_box->commit_transaction(transaction, true,
+	castle->commit_resource_transaction(transaction,
 		[&]{
 			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 				const auto &map_object = *it;
