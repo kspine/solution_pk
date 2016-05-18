@@ -90,6 +90,20 @@ namespace {
 		}
 	}
 
+	inline MapObjectUuid get_garrisoning_object_uuid_aux(const boost::shared_ptr<MapObject> map_object){
+		PROFILE_ME;
+
+		const auto map_object_type_id = map_object->get_map_object_type_id();
+		if(map_object_type_id != MapObjectTypeIds::ID_BATTLE_BUNKER){
+			return { };
+		}
+		const auto bunker = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
+		if(!bunker){
+			return { };
+		}
+		return bunker->get_garrisoning_object_uuid();
+	}
+
 	struct MapObjectElement {
 		boost::shared_ptr<MapObject> map_object;
 
@@ -97,11 +111,13 @@ namespace {
 		Coord coord;
 		AccountUuid owner_uuid;
 		MapObjectUuid parent_object_uuid;
+		MapObjectUuid garrisoning_object_uuid;
 
 		explicit MapObjectElement(boost::shared_ptr<MapObject> map_object_)
 			: map_object(std::move(map_object_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
 			, owner_uuid(map_object->get_owner_uuid()), parent_object_uuid(map_object->get_parent_object_uuid())
+			, garrisoning_object_uuid(get_garrisoning_object_uuid_aux(map_object))
 		{
 		}
 	};
@@ -111,6 +127,7 @@ namespace {
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
+		MULTI_MEMBER_INDEX(garrisoning_object_uuid)
 	)
 
 	boost::weak_ptr<MapObjectContainer> g_map_object_map;
@@ -1202,6 +1219,21 @@ void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<Ma
 	}
 
 	const auto range = map_object_map->equal_range<3>(parent_object_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->map_object);
+	}
+}
+void WorldMap::get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	const auto range = map_object_map->equal_range<4>(garrisoning_object_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->map_object);

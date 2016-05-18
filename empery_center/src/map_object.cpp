@@ -131,8 +131,7 @@ void MapObject::recalculate_attributes(bool recursive){
 			const auto tech_attribute_value = parent_object->get_attribute(tech_attribute_id);
 			LOG_EMPERY_CENTER_TRACE("> Applying attribute bonus: tech_attribute_id = ", tech_attribute_id,
 				", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
-			auto &value = modifiers[bonus_attribute_id];
-			value += tech_attribute_value;
+			modifiers[bonus_attribute_id] += tech_attribute_value;
 		}
 
 		for(auto it = parent_object->m_buffs.begin(); it != parent_object->m_buffs.end(); ++it){
@@ -151,8 +150,7 @@ void MapObject::recalculate_attributes(bool recursive){
 				if((attribute_id < AttributeIds::R_COMBAT_ATTRIBUTES_BEGIN) || (AttributeIds::R_COMBAT_ATTRIBUTES_END <= attribute_id)){
 					continue;
 				}
-				auto &value = modifiers[ait->first];
-				value += std::round(ait->second * 1000.0);
+				modifiers[ait->first] += std::round(ait->second * 1000.0);
 			}
 		}
 	}
