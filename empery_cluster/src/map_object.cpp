@@ -411,7 +411,7 @@ void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t
 	}
 	it->second.duration = duration;
 	it->second.time_begin = time_begin;
-	it->second.time_end = saturated_add(time_begin, duration);	
+	it->second.time_end = saturated_add(time_begin, duration);
 }
 void MapObject::clear_buff(BuffId buff_id) noexcept{
 	PROFILE_ME;
@@ -943,7 +943,7 @@ void   MapObject::notify_way_points(std::deque<std::pair<signed char, signed cha
 bool    MapObject::fix_attack_action(){
 	PROFILE_ME;
 
-	if( (m_action != ACT_ATTACK) 
+	if( (m_action != ACT_ATTACK)
 		&&(m_action != ACT_HARVEST_RESOURCE_CRATE)
 		&&(m_action != ACT_ATTACK_TERRITORY)
 	){
@@ -956,7 +956,6 @@ bool    MapObject::fix_attack_action(){
 	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
 	        return false;
 	 }
-	 
 	Coord target_coord;
 	bool in_attack_scope;
 	if(m_action == ACT_ATTACK){
@@ -984,7 +983,6 @@ bool    MapObject::fix_attack_action(){
 		target_coord = target_map_cell->get_coord();
 		in_attack_scope = is_in_attack_scope(target_map_cell);
 	}
-	
 	if(in_attack_scope){
 		m_waypoints.clear();
 			notify_way_points(m_waypoints,m_action,m_action_param);
@@ -1334,7 +1332,7 @@ boost::shared_ptr<ResourceCrate> MapObject::get_attack_resouce_crate(){
 	}
 	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
 	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
-	return target_resource_crate;	
+	return target_resource_crate;
 }
 
 }
