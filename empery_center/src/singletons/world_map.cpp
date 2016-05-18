@@ -896,7 +896,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 
 	const auto it = map_cell_map->find<0>(coord);
 	if(it == map_cell_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Map cell not found: coord = ", coord);
+		LOG_EMPERY_CENTER_DEBUG("Map cell not found: coord = ", coord);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Map cell not found"));
 		}
