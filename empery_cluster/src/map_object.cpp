@@ -943,7 +943,7 @@ void   MapObject::notify_way_points(std::deque<std::pair<signed char, signed cha
 bool    MapObject::fix_attack_action(){
 	PROFILE_ME;
 
-	if( (m_action != ACT_ATTACK)
+	if( (m_action != ACT_ATTACK) 
 		&&(m_action != ACT_HARVEST_RESOURCE_CRATE)
 		&&(m_action != ACT_ATTACK_TERRITORY)
 	){
@@ -956,8 +956,9 @@ bool    MapObject::fix_attack_action(){
 	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
 	        return false;
 	 }
+	 
 	Coord target_coord;
-	bool in_attack_scope = false;
+	bool in_attack_scope;
 	if(m_action == ACT_ATTACK){
 		const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 		if(!target_object){
@@ -983,6 +984,7 @@ bool    MapObject::fix_attack_action(){
 		target_coord = target_map_cell->get_coord();
 		in_attack_scope = is_in_attack_scope(target_map_cell);
 	}
+	
 	if(in_attack_scope){
 		m_waypoints.clear();
 			notify_way_points(m_waypoints,m_action,m_action_param);
@@ -1002,6 +1004,9 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 
 	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
+		return false;
+	}
+	if(!move_able()){
 		return false;
 	}
 
@@ -1066,7 +1071,7 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
 			std::deque<std::pair<signed char, signed char>> waypoints;
-			if(move_able()&&find_way_points(waypoints,get_coord(),enemy_map_object->get_coord(),false)){
+			if(find_way_points(waypoints,get_coord(),enemy_map_object->get_coord(),false)){
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 			}else{
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
@@ -1329,7 +1334,7 @@ boost::shared_ptr<ResourceCrate> MapObject::get_attack_resouce_crate(){
 	}
 	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
 	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
-	return target_resource_crate;
+	return target_resource_crate;	
 }
 
 }
