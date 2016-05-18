@@ -112,7 +112,7 @@ void MapObject::recalculate_attributes(bool recursive){
 			LOG_EMPERY_CENTER_WARNING("No such parent object: parent_object_uuid = ", parent_object_uuid);
 			goto _copy_parent_done;
 		}
-		LOG_EMPERY_CENTER_DEBUG("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
+		LOG_EMPERY_CENTER_TRACE("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
 			", parent_object_uuid = ", parent_object_uuid);
 
 		std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;

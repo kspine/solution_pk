@@ -232,11 +232,11 @@ namespace {
 			csv.get(object, "need_fountain");
 			elem.protection_cost.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				const auto item_id = boost::lexical_cast<ItemId>(it->first);
-				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.protection_cost.emplace(item_id, count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate item: item_id = ", item_id);
-					DEBUG_THROW(Exception, sslit("Duplicate item"));
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto amount = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.protection_cost.emplace(resource_id, amount).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate resource: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate resource"));
 				}
 			}
 
@@ -797,7 +797,7 @@ namespace Data {
 		case BuildingTypeIds::ID_TREE.get():
 			return CastleUpgradeTree::get(building_level);
 		default:
-			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", type);
+			LOG_EMPERY_CENTER_TRACE("Unhandled building type: type = ", type);
 			return { };
 		}
 	}
@@ -1126,7 +1126,7 @@ namespace Data {
 		case BuildingTypeIds::ID_WAR_WORKSHOP.get():
 			return CastleUpgradeWarWorkshop::get(building_level);
 		default:
-			LOG_EMPERY_CENTER_DEBUG("Unhandled building type: type = ", type);
+			LOG_EMPERY_CENTER_TRACE("Unhandled building type: type = ", type);
 			return { };
 		}
 	}
