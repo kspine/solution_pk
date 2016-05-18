@@ -410,9 +410,9 @@ namespace {
 		std::uint64_t due_time;
 
 		DelayedWorldSynchronizationElement(boost::function<void (const boost::shared_ptr<PlayerSession> &)> callback_,
-			std::pair<boost::weak_ptr<PlayerSession>, boost::weak_ptr<const void>> key_, std::uint64_t due_time_)
+			boost::weak_ptr<PlayerSession> session_, boost::weak_ptr<const void> object_, std::uint64_t due_time_)
 			: callback(std::move(callback_))
-			, key(std::move(key_)), due_time(due_time_)
+			, key(std::move(session_), std::move(object_)), due_time(due_time_)
 		{
 		}
 	};
@@ -813,6 +813,7 @@ namespace {
 		const auto world_synchronization_delay = get_config<std::uint64_t>("world_synchronization_delay", 100);
 		timer = Poseidon::TimerDaemon::register_timer(0, world_synchronization_delay,
 			std::bind(&world_synchronization_timer_proc, std::placeholders::_2));
+		handles.push(timer);
 	}
 
 	template<typename T>
@@ -851,7 +852,7 @@ namespace {
 						synchronization_map->insert(
 							DelayedWorldSynchronizationElement(
 								[=](const boost::shared_ptr<PlayerSession> &session){ ptr->synchronize_with_player(session); },
-								std::make_pair(session, ptr), due_time)
+								session, ptr, due_time)
 							);
 					} catch(std::exception &e){
 						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
