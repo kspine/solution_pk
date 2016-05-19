@@ -256,7 +256,7 @@ namespace Msg {
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectAttackMapCellResult
-#define MESSAGE_ID      390
+#define MESSAGE_ID      379
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (attacking_object_uuid)	\
 	FIELD_VINT          (attacking_coord_x)	\
