@@ -381,6 +381,10 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
 	const auto attacked_coord = attacked_object->get_coord();
 
+	if(attacking_account_uuid == attacked_account_uuid){
+		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+	}
+
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_object, [&]{ return attacked_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
@@ -914,6 +918,10 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 
 	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
 	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
+
+	if(attacking_account_uuid == attacked_account_uuid){
+		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+	}
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_cell, [&]{ return true; });

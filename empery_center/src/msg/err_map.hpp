@@ -72,6 +72,7 @@ namespace Msg {
 		ERR_BUNKER_FULL                         = 71361,
 		ERR_BUNKER_EMPTY                        = 71362,
 		ERR_BATTALION_IN_ANOTHER_BUNKER         = 71363,
+		ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS      = 71364,
 	};
 }
 
