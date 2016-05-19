@@ -516,7 +516,6 @@ _wounded_done:
 		PROFILE_ME;
 
 		const auto state_persistence_duration = Data::Global::as_double(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
-		const auto utc_now = Poseidon::get_utc_time();
 
 		WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
 			saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
@@ -893,6 +892,9 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	if(!attacked_cell){
 		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
 	}
+	if(!attacked_cell->get_owner_uuid()){
+		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
+	}
 
 	if(attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION)){
 		return Response(Msg::ERR_MAP_CELL_OCCUPATION_PROTECTION) <<attacked_coord;
@@ -907,9 +909,11 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
 
 	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
+	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_cell, [&]{ return true; });
@@ -1016,6 +1020,18 @@ _occupation_done:
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
 		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
+
+	// 更新交战状态。
+	try {
+		PROFILE_ME;
+
+		const auto state_persistence_duration = Data::Global::as_double(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
+
+		WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
+			saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
