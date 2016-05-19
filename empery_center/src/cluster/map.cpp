@@ -53,8 +53,8 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	const auto map_height = static_cast<std::uint32_t>(center_rectangle.height());
 
 	const auto num_coord = Coord(req.numerical_x, req.numerical_y);
-	const auto inf_x = static_cast<std::int64_t>(INT64_MAX / map_width);
-	const auto inf_y = static_cast<std::int64_t>(INT64_MAX / map_height);
+	const auto inf_x = INT32_MAX / static_cast<std::int32_t>(map_width);
+	const auto inf_y = INT32_MAX / static_cast<std::int32_t>(map_height);
 	if((num_coord.x() <= -inf_x) || (inf_x <= num_coord.x()) || (num_coord.y() <= -inf_y) || (inf_y <= num_coord.y())){
 		LOG_EMPERY_CENTER_WARNING("Invalid numerical coord: num_coord = ", num_coord, ", inf_x = ", inf_x, ", inf_y = ", inf_y);
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;

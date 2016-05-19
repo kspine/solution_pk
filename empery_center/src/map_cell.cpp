@@ -20,6 +20,13 @@
 #include "data/vip.hpp"
 #include "terrain_ids.hpp"
 #include "buff_ids.hpp"
+#include <poseidon/async_job.hpp>
+#include "item_box.hpp"
+#include "singletons/item_box_map.hpp"
+#include "transaction_element.hpp"
+#include "item_ids.hpp"
+#include "data/castle.hpp"
+#include "map_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -574,18 +581,67 @@ void MapCell::set_occupier_object_uuid(MapObjectUuid occupier_object_uuid){
 void MapCell::check_occupation(){
 	PROFILE_ME;
 
-	const auto occupier_object_uuid = get_occupier_object_uuid();
-	if(occupier_object_uuid){
-		return;
-	}
+	const auto return_map_cell = [&](const boost::shared_ptr<MapCell> & /* this */){
+		PROFILE_ME;
 
-	if(!is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+		const auto occupier_object_uuid = get_occupier_object_uuid();
+		if(!occupier_object_uuid){
+			return;
+		}
+
+		const auto ticket_item_id = get_ticket_item_id();
+		if(!ticket_item_id){
+			return;
+		}
+		const auto parent_object_uuid = get_parent_object_uuid();
+		if(!parent_object_uuid){
+			return;
+		}
+		const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+		if(!castle){
+			return;
+		}
+
+		const auto item_box = ItemBoxMap::require(castle->get_owner_uuid());
+
 		const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
 		const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
 
-		set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
-		clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
-		set_occupier_object_uuid({ });
+		std::vector<ItemTransactionElement> transaction;
+		bool ticket_reclaimed = false;
+		const auto coord = get_coord();
+		const auto castle_level = castle->get_level();
+		const auto updrade_data = Data::CastleUpgradePrimary::require(castle_level);
+		const auto distance = get_distance_of_coords(coord, castle->get_coord());
+		if(distance > updrade_data->max_map_cell_distance){
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, ticket_item_id, 1,
+				ReasonIds::ID_OCCUPATION_END_RELOCATED, coord.x(), coord.y(), 0);
+			if(is_acceleration_card_applied()){
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, 1,
+					ReasonIds::ID_OCCUPATION_END_RELOCATED, coord.x(), coord.y(), 0);
+			}
+			ticket_reclaimed = true;
+		}
+		item_box->commit_transaction(transaction, false,
+			[&]{
+				set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
+				clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
+				set_occupier_object_uuid({ });
+
+				if(ticket_reclaimed){
+					set_parent_object({ }, { }, { });
+					set_acceleration_card_applied(false);
+				}
+			});
+	};
+
+	const auto occupier_object_uuid = get_occupier_object_uuid();
+	if(!occupier_object_uuid){
+		return;
+	}
+	if(!is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+		Poseidon::enqueue_async_job(
+			std::bind(return_map_cell, virtual_shared_from_this<MapCell>()));
 	}
 }
 
