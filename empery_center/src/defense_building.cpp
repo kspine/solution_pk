@@ -42,6 +42,13 @@ namespace {
 			obj->set_building_level(0);
 			break;
 
+		case DefenseBuilding::MIS_GARRISON:
+			break;
+
+		case DefenseBuilding::MIS_EVICT:
+			obj->set_garrisoning_object_uuid({ });
+			break;
+
 		default:
 			LOG_EMPERY_CENTER_ERROR("Unknown defense building mission: map_object_uuid = ", obj->get_map_object_uuid(),
 				", mission = ", (unsigned)mission);
