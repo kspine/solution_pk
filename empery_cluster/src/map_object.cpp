@@ -531,8 +531,10 @@ boost::shared_ptr<AiControl>  MapObject::require_ai_control(){
 
 std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint64_t now){
 	PROFILE_ME;
-
 	const auto target_object_uuid = MapObjectUuid(m_action_param);
+	if(get_map_object_uuid() == target_object_uuid){
+		return UINT64_MAX;
+	}
 	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
@@ -541,6 +543,9 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	const auto target_object = WorldMap::get_map_object(target_object_uuid);
 	if(!target_object){
 		result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST) << target_object_uuid;
+		return UINT64_MAX;
+	}
+	if(get_owner_uuid() == target_object->get_owner_uuid()){
 		return UINT64_MAX;
 	}
 	const auto cluster = get_cluster();
@@ -721,6 +726,10 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 		result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST) << m_action_param;
 		return UINT64_MAX;
 	}
+	if((get_owner_uuid() == map_cell->get_owner_uuid()) || get_owner_uuid() == map_cell->get_occupier_owner_uuid()){
+		return UINT64_MAX;
+	}
+
 	const auto cluster = get_cluster();
 	if(!cluster){
 		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
@@ -1025,6 +1034,9 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object){
 	PROFILE_ME;
 
+	if(get_owner_uuid() == owner_uuid){
+		return false;
+	}
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_surrounding(map_objects,get_coord(),get_view_range());
 	auto min_distance = UINT64_MAX;

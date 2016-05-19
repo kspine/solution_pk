@@ -134,6 +134,9 @@ AccountUuid MapCell::get_occupier_owner_uuid() const{
 }
 
 void MapCell::on_attack(boost::shared_ptr<MapObject> attacker){
+	if(attacker->get_owner_uuid() == get_owner_uuid() || attacker->get_owner_uuid() == get_occupier_owner_uuid()){
+		return;
+	}
 	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
 	if(get_occupier_owner_uuid() != AccountUuid()){
 		WorldMap::get_map_objects_by_account(friendly_map_objects,get_occupier_owner_uuid());
