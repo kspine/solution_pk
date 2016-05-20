@@ -419,6 +419,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		if(!battalion_type_data){
 			goto _wounded_done;
 		}
+		if(battalion_type_data->speed <= 0){
+			goto _wounded_done;
+		}
 
 		const auto parent_object_uuid = attacked_object->get_parent_object_uuid();
 		if(!parent_object_uuid){

@@ -829,8 +829,8 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 	WorldMap::get_map_objects_by_parent_object(child_objects, castle_uuid);
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
 		const auto &map_object = *it;
-		const auto map_object_type_id = map_object->get_map_object_type_id();
-		if((map_object_type_id == MapObjectTypeIds::ID_DEFENSE_TOWER) || (map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER)){
+		const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
+		if(defense_building){
 			++defense_count;
 		}
 	}
