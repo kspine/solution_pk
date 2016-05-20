@@ -630,6 +630,12 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
 	}
 
+	std::vector<boost::shared_ptr<MapObject>> bunkers;
+	WorldMap::get_map_objects_by_garrisoning_object(bunkers, map_object_uuid);
+	if(!bunkers.empty()){
+		return Response(Msg::ERR_BATTALION_IN_ANOTHER_BUNKER) <<bunkers.front()->get_map_object_uuid();
+	}
+
 	std::vector<Coord> foundation;
 	get_castle_foundation(foundation, castle->get_coord(), false);
 	for(;;){
@@ -1127,6 +1133,7 @@ PLAYER_SERVLET(Msg::CS_MapGarrisonBattleBunker, account, session, req){
 	if(!battalion->is_garrisoned()){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
 	}
+
 	std::vector<boost::shared_ptr<MapObject>> bunkers;
 	WorldMap::get_map_objects_by_garrisoning_object(bunkers, battalion_uuid);
 	if(!bunkers.empty()){
