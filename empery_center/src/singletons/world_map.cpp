@@ -284,14 +284,14 @@ namespace {
 		}
 
 		const auto utc_now = Poseidon::get_utc_time();
-		const auto range = std::make_pair(strategic_resource_map->upper_bound<1>(utc_now), strategic_resource_map->end<1>());
+		const auto range = std::make_pair(strategic_resource_map->begin<1>(), strategic_resource_map->upper_bound<1>(utc_now));
 
-		std::vector<boost::shared_ptr<StrategicResource>> resources_to_erase;
-		resources_to_erase.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		std::vector<boost::shared_ptr<StrategicResource>> resources_to_delete;
+		resources_to_delete.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
 		for(auto it = range.first; it != range.second; ++it){
-			resources_to_erase.emplace_back(it->strategic_resource);
+			resources_to_delete.emplace_back(it->strategic_resource);
 		}
-		for(auto it = resources_to_erase.begin(); it != resources_to_erase.end(); ++it){
+		for(auto it = resources_to_delete.begin(); it != resources_to_delete.end(); ++it){
 			const auto &strategic_resource = *it;
 			LOG_EMPERY_CENTER_DEBUG("Reclaiming strategic resource: coord = ", strategic_resource->get_coord());
 			strategic_resource->delete_from_game();
@@ -336,14 +336,14 @@ namespace {
 		}
 
 		const auto utc_now = Poseidon::get_utc_time();
-		const auto range = std::make_pair(resource_crate_map->upper_bound<2>(utc_now), resource_crate_map->end<2>());
+		const auto range = std::make_pair(resource_crate_map->begin<2>(), resource_crate_map->upper_bound<2>(utc_now));
 
-		std::vector<boost::shared_ptr<ResourceCrate>> crates_to_erase;
-		crates_to_erase.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		std::vector<boost::shared_ptr<ResourceCrate>> crates_to_delete;
+		crates_to_delete.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
 		for(auto it = range.first; it != range.second; ++it){
-			crates_to_erase.emplace_back(it->resource_crate);
+			crates_to_delete.emplace_back(it->resource_crate);
 		}
-		for(auto it = crates_to_erase.begin(); it != crates_to_erase.end(); ++it){
+		for(auto it = crates_to_delete.begin(); it != crates_to_delete.end(); ++it){
 			const auto &resource_crate = *it;
 			LOG_EMPERY_CENTER_DEBUG("Reclaiming resource crate: resource_crate_uuid = ", resource_crate->get_resource_crate_uuid());
 			resource_crate->delete_from_game();
