@@ -1086,8 +1086,8 @@ PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
 	const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
 	const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
 
-	map_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
-	map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
+	map_cell->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
+	map_cell->clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
 	map_cell->set_occupier_object(virtual_castle);
 
 	return Response();

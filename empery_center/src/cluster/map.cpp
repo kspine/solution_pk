@@ -288,7 +288,7 @@ namespace {
 			}
 		}
 		ptr->recalculate_attributes(false);
-	};
+	}
 }
 
 CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
@@ -348,6 +348,19 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	return Response();
 }
 
+namespace {
+	template<typename T>
+	bool is_under_castle_protection(const boost::shared_ptr<T> &ptr){
+		if(!ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+			return false;
+		}
+		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+			return false;
+		}
+		return true;
+	}
+}
+
 CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto attacking_object_uuid = MapObjectUuid(req.attacking_object_uuid);
 	const auto attacked_object_uuid  = MapObjectUuid(req.attacked_object_uuid);
@@ -362,13 +375,23 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
 
-	if(attacked_object->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION)){
-		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
+	const auto attacking_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacking_object);
+	if(attacking_defense){
+		// 保护状态下的城堡或防御建筑不能攻击其他部队。
+		if(is_under_castle_protection(attacking_defense)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
 	}
-	if(attacked_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) &&
-		!attacked_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION))
-	{
-		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
+	const auto attacked_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacked_object);
+	if(attacked_defense){
+		// 保护状态下的城堡或防御建筑不会遭到其他部队的攻击。
+		if(is_under_castle_protection(attacked_defense)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
+		}
+		// 这个只针对城堡。如果城堡被击破，则有一段保护时间。
+		if(attacked_defense->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
+		}
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -404,7 +427,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		if(attacked_object_type_id == MapObjectTypeIds::ID_CASTLE){
 			const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_SIEGE_PROTECTION_DURATION);
 			const auto protection_duration = saturated_mul<std::uint64_t>(protection_minutes, 60000);
-			attacked_object->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, utc_now, protection_duration);
+			attacked_object->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, utc_now, protection_duration);
 		} else {
 			attacked_object->delete_from_game();
 		}
@@ -923,13 +946,20 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
 	}
 
-	if(attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION)){
-		return Response(Msg::ERR_MAP_CELL_OCCUPATION_PROTECTION) <<attacked_coord;
+	const auto attacking_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacking_object);
+	if(attacking_defense){
+		// 保护状态下的城堡或防御建筑不能攻击其他部队。
+		if(is_under_castle_protection(attacking_defense)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
 	}
-	if(!attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION) &&
-		attacked_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) &&
-		!attacked_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION))
-	{
+
+	// 保护状态下的领地不会遭到其他部队的攻击。
+	if(is_under_castle_protection(attacked_cell)){
+		return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
+	}
+	// 占领阶段或保护阶段。
+	if(attacked_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
 		return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
 	}
 
@@ -966,7 +996,7 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
 	attacked_cell->set_attributes(std::move(modifiers));
 
-	const bool is_occupied = attacked_cell->is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION);
+	const bool is_occupied = attacked_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL);
 
 	if(attacked_ticket_item_id){
 		// 掠夺资源。
@@ -1007,8 +1037,8 @@ _plunder_done:
 				const auto occupation_duration = checked_mul<std::uint64_t>(saturated_add(exclusive_minutes, rescue_minutes), 60000);
 				const auto protection_duration = checked_mul<std::uint64_t>(exclusive_minutes, 60000);
 
-				attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION,            utc_now, occupation_duration);
-				attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, utc_now, protection_duration);
+				attacked_cell->set_buff(BuffIds::ID_OCCUPATION_MAP_CELL,   utc_now, occupation_duration);
+				attacked_cell->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, utc_now, protection_duration);
 				attacked_cell->set_occupier_object(castle);
 				goto _occupation_done;
 			}
@@ -1017,8 +1047,8 @@ _plunder_done:
 		const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
 		const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
 
-		attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
-		attacked_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
+		attacked_cell->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
+		attacked_cell->clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
 		attacked_cell->set_occupier_object({ });
 	}
 _occupation_done:

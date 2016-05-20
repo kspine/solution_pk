@@ -629,8 +629,8 @@ void MapCell::check_occupation(){
 		}
 		item_box->commit_transaction(transaction, false,
 			[&]{
-				set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
-				clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
+				set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
+				clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
 				set_occupier_object({ });
 
 				if(ticket_reclaimed){
@@ -644,7 +644,7 @@ void MapCell::check_occupation(){
 	if(!occupier_object_uuid){
 		return;
 	}
-	if(!is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+	if(!is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
 		Poseidon::enqueue_async_job(
 			std::bind(return_map_cell, virtual_shared_from_this<MapCell>()));
 	}
