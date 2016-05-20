@@ -287,9 +287,9 @@ MapObjectUuid DefenseBuilding::get_garrisoning_object_uuid() const {
 void DefenseBuilding::self_heal(){
 	PROFILE_ME;
 
-	const auto building_level = get_level();
+	auto building_level = get_level();
 	if(building_level == 0){
-		return;
+		building_level = 1;
 	}
 	const auto map_object_type_id = get_map_object_type_id();
 	const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
