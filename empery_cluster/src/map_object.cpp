@@ -533,6 +533,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	PROFILE_ME;
 	const auto target_object_uuid = MapObjectUuid(m_action_param);
 	if(get_map_object_uuid() == target_object_uuid){
+		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS) << get_map_object_uuid();
 		return UINT64_MAX;
 	}
 	const auto map_object_type_data = get_map_object_type_data();
@@ -546,6 +547,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		return UINT64_MAX;
 	}
 	if(get_owner_uuid() == target_object->get_owner_uuid()){
+		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS) << get_owner_uuid();
 		return UINT64_MAX;
 	}
 	const auto cluster = get_cluster();
@@ -727,6 +729,7 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 		return UINT64_MAX;
 	}
 	if((get_owner_uuid() == map_cell->get_owner_uuid()) || get_owner_uuid() == map_cell->get_occupier_owner_uuid()){
+		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS) << get_owner_uuid();
 		return UINT64_MAX;
 	}
 
