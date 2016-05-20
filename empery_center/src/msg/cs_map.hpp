@@ -187,6 +187,12 @@ namespace Msg {
 	FIELD_STRING        (bunker_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapRefreshMapObject
+#define MESSAGE_ID      323
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
