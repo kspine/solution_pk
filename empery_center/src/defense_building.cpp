@@ -42,6 +42,13 @@ namespace {
 			obj->set_building_level(0);
 			break;
 
+		case DefenseBuilding::MIS_GARRISON:
+			break;
+
+		case DefenseBuilding::MIS_EVICT:
+			obj->set_garrisoning_object_uuid({ });
+			break;
+
 		default:
 			LOG_EMPERY_CENTER_ERROR("Unknown defense building mission: map_object_uuid = ", obj->get_map_object_uuid(),
 				", mission = ", (unsigned)mission);
@@ -280,9 +287,9 @@ MapObjectUuid DefenseBuilding::get_garrisoning_object_uuid() const {
 void DefenseBuilding::self_heal(){
 	PROFILE_ME;
 
-	const auto building_level = get_level();
+	auto building_level = get_level();
 	if(building_level == 0){
-		return;
+		building_level = 1;
 	}
 	const auto map_object_type_id = get_map_object_type_id();
 	const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);

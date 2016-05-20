@@ -419,6 +419,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		if(!battalion_type_data){
 			goto _wounded_done;
 		}
+		if(battalion_type_data->speed <= 0){
+			goto _wounded_done;
+		}
 
 		const auto parent_object_uuid = attacked_object->get_parent_object_uuid();
 		if(!parent_object_uuid){
@@ -919,8 +922,15 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
 	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
 
-	if(attacking_account_uuid == attacked_account_uuid){
-		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+	const auto occupier_owner_uuid = attacked_cell->get_occupier_owner_uuid();
+	if(occupier_owner_uuid){
+		if(attacking_account_uuid == occupier_owner_uuid){
+			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+		}
+	} else {
+		if(attacking_account_uuid == attacked_account_uuid){
+			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+		}
 	}
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
