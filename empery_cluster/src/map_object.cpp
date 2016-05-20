@@ -511,12 +511,10 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 			m_next_action_time = now;
 		}
 	}
-
-	notify_way_points(waypoints,action,action_param);
-
 	m_waypoints    = std::move(waypoints);
 	m_action       = action;
 	m_action_param = std::move(action_param);
+	notify_way_points(waypoints,action,m_action_param);
 	reset_attack_target_own_uuid();
 }
 
@@ -926,7 +924,7 @@ void MapObject::troops_attack(bool passive){
 	}
 }
 
-void   MapObject::notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param){
+void   MapObject::notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const MapObject::Action &action, const std::string &action_param){
 	PROFILE_ME;
 
 	const auto cluster = get_cluster();
@@ -995,9 +993,9 @@ bool    MapObject::fix_attack_action(){
 		target_coord = target_map_cell->get_coord();
 		in_attack_scope = is_in_attack_scope(target_map_cell);
 	}
-	if(in_attack_scope){
+	if(in_attack_scope&&!m_waypoints.empty()){
 		m_waypoints.clear();
-			notify_way_points(m_waypoints,m_action,m_action_param);
+		notify_way_points(m_waypoints,m_action,m_action_param);
 	}
 	if(!in_attack_scope&&m_waypoints.empty()){
 		if(find_way_points(m_waypoints,get_coord(),target_coord)){

@@ -110,7 +110,7 @@ public:
 	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
 	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now);
 private:
-	void          notify_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,MapObject::Action &action, std::string &action_param);
+	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const MapObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action();
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
 
