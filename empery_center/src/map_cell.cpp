@@ -45,7 +45,7 @@ MapCell::MapCell(Coord coord)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapCell>(coord.x(), coord.y(),
-				Poseidon::Uuid(), false, 0, 0, 0, 0, Poseidon::Uuid(), 0);
+				Poseidon::Uuid(), false, 0, 0, 0, 0, Poseidon::Uuid(), Poseidon::Uuid(), 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -261,18 +261,23 @@ void MapCell::pump_production(){
 	m_capacity        = capacity;
 }
 
-void MapCell::set_parent_object(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id){
+void MapCell::set_parent_object(const boost::shared_ptr<Castle> &parent_object, ResourceId production_resource_id, ItemId ticket_item_id){
 	PROFILE_ME;
 
 	pump_status();
 
+	MapObjectUuid parent_object_uuid;
+	if(parent_object){
+		parent_object_uuid = parent_object->get_map_object_uuid();
+	}
+
 	const auto now = Poseidon::get_utc_time();
 
-	m_obj->set_parent_object_uuid     (parent_object_uuid.get());
-	m_obj->set_ticket_item_id         (ticket_item_id.get());
-	m_obj->set_production_resource_id (production_resource_id.get());
-	m_obj->set_last_production_time   (now);
-	m_obj->set_resource_amount        (0);
+	m_obj->set_parent_object_uuid(parent_object_uuid.get());
+	m_obj->set_ticket_item_id(ticket_item_id.get());
+	m_obj->set_production_resource_id(production_resource_id.get());
+	m_obj->set_last_production_time(now);
+	m_obj->set_resource_amount(0);
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
@@ -560,20 +565,20 @@ MapObjectUuid MapCell::get_occupier_object_uuid() const {
 AccountUuid MapCell::get_occupier_owner_uuid() const {
 	PROFILE_ME;
 
-	const auto occupier_object_uuid = get_occupier_object_uuid();
-	if(!occupier_object_uuid){
-		return { };
-	}
-	const auto occupier_object = WorldMap::get_map_object(occupier_object_uuid);
-	if(!occupier_object){
-		return { };
-	}
-	return occupier_object->get_owner_uuid();
+	return AccountUuid(m_obj->unlocked_get_occupier_owner_uuid());
 }
-void MapCell::set_occupier_object_uuid(MapObjectUuid occupier_object_uuid){
+void MapCell::set_occupier_object(const boost::shared_ptr<Castle> &occupier_object){
 	PROFILE_ME;
 
+	MapObjectUuid occupier_object_uuid;
+	AccountUuid occupier_owner_uuid;
+	if(occupier_object){
+		occupier_object_uuid = occupier_object->get_map_object_uuid();
+		occupier_owner_uuid = occupier_object->get_owner_uuid();
+	}
+
 	m_obj->set_occupier_object_uuid(occupier_object_uuid.get());
+	m_obj->set_occupier_owner_uuid(occupier_owner_uuid.get());
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
@@ -624,9 +629,9 @@ void MapCell::check_occupation(){
 		}
 		item_box->commit_transaction(transaction, false,
 			[&]{
-				set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
-				clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
-				set_occupier_object_uuid({ });
+				set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
+				clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
+				set_occupier_object({ });
 
 				if(ticket_reclaimed){
 					set_parent_object({ }, { }, { });
@@ -639,7 +644,7 @@ void MapCell::check_occupation(){
 	if(!occupier_object_uuid){
 		return;
 	}
-	if(!is_buff_in_effect(BuffIds::ID_MAP_CELL_OCCUPATION)){
+	if(!is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
 		Poseidon::enqueue_async_job(
 			std::bind(return_map_cell, virtual_shared_from_this<MapCell>()));
 	}

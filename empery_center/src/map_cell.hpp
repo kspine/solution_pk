@@ -78,7 +78,7 @@ public:
 
 	void pump_production();
 
-	void set_parent_object(MapObjectUuid parent_object_uuid, ResourceId production_resource_id, ItemId ticket_item_id);
+	void set_parent_object(const boost::shared_ptr<Castle> &parent_object, ResourceId production_resource_id, ItemId ticket_item_id);
 	void set_ticket_item_id(ItemId ticket_item_id);
 
 	std::uint64_t harvest(const boost::shared_ptr<Castle> &castle, double amount_to_harvest, bool saturated);
@@ -100,7 +100,7 @@ public:
 
 	MapObjectUuid get_occupier_object_uuid() const;
 	AccountUuid get_occupier_owner_uuid() const;
-	void set_occupier_object_uuid(MapObjectUuid occupier_object_uuid);
+	void set_occupier_object(const boost::shared_ptr<Castle> &occupier_object);
 
 	void check_occupation();
 

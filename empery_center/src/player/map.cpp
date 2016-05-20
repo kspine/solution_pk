@@ -253,7 +253,7 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
-			map_cell->set_parent_object(parent_object_uuid, resource_id, ticket_item_id);
+			map_cell->set_parent_object(castle, resource_id, ticket_item_id);
 			map_cell->pump_status();
 		});
 	if(insuff_item_id){
@@ -1086,9 +1086,9 @@ PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
 	const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
 	const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
 
-	map_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
-	map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
-	map_cell->set_occupier_object_uuid({ });
+	map_cell->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
+	map_cell->clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
+	map_cell->set_occupier_object(virtual_castle);
 
 	return Response();
 }
@@ -1172,6 +1172,18 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattleBunker, account, session, req){
 	}
 
 	bunker->create_mission(DefenseBuilding::MIS_EVICT, 0, { });
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_MapRefreshMapObject, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+
+	map_object->pump_status();
 
 	return Response();
 }

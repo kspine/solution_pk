@@ -95,6 +95,7 @@ namespace Data {
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		double destruct_duration;
 		DefenseCombatId defense_combat_id;
+		boost::container::flat_map<ResourceId, std::uint64_t> debris;
 	};
 
 	class MapDefenseBuildingCastle : public MapDefenseBuildingAbstract {
