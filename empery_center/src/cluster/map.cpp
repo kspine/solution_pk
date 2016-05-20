@@ -710,31 +710,49 @@ _wounded_done:
 				boost::container::flat_map<ResourceId, std::uint64_t> resources_dropped;
 				resources_dropped.reserve(16);
 
-				if(attacked_object_type_id == MapObjectTypeIds::ID_CASTLE){
+				{
 					const auto castle = boost::dynamic_pointer_cast<Castle>(attacked_object);
-					if(!castle){
-						LOG_EMPERY_CENTER_ERROR("Map object is not a castle: attacked_object_uuid = ", attacked_object_uuid);
-						DEBUG_THROW(Exception, sslit("Map object is not a castle"));
-					}
-					std::vector<Castle::ResourceInfo> resources;
-					castle->get_all_resources(resources);
-					for(auto it = resources.begin(); it != resources.end(); ++it){
-						const auto resource_id = it->resource_id;
-						const auto resource_data = Data::CastleResource::get(resource_id);
-						if(!resource_data){
-							continue;
-						}
-						if(!resource_data->carried_attribute_id){
-							continue;
-						}
+					if(castle){
+						std::vector<Castle::ResourceInfo> resources;
+						castle->get_all_resources(resources);
+						for(auto it = resources.begin(); it != resources.end(); ++it){
+							const auto resource_id = it->resource_id;
+							const auto resource_data = Data::CastleResource::get(resource_id);
+							if(!resource_data){
+								continue;
+							}
+							if(!resource_data->carried_attribute_id){
+								continue;
+							}
 
-						const auto amount_protected = castle->get_warehouse_protection(resource_id);
-						const auto amount_dropped = saturated_sub(it->amount, amount_protected);
+							const auto amount_protected = castle->get_warehouse_protection(resource_id);
+							const auto amount_dropped = saturated_sub(it->amount, amount_protected);
 
-						auto &amount = resources_dropped[resource_id];
-						amount = saturated_add(amount, amount_dropped);
+							auto &amount = resources_dropped[resource_id];
+							amount = saturated_add(amount, amount_dropped);
+						}
+						goto _create_crates;
 					}
-				} else {
+				}
+				{
+					const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(attacked_object);
+					if(defense_building){
+						const auto building_level = defense_building->get_level();
+						const auto defense_data = Data::MapDefenseBuildingAbstract::get(attacked_object_type_id, building_level);
+						if(!defense_data){
+							goto _create_crates;
+						}
+						for(auto it = defense_data->debris.begin(); it != defense_data->debris.end(); ++it){
+							const auto resource_id = it->first;
+							const auto amount_dropped = it->second;
+
+							auto &amount = resources_dropped[resource_id];
+							amount = saturated_add(amount, amount_dropped);
+						}
+						goto _create_crates;
+					}
+				}
+				{
 					boost::container::flat_map<AttributeId, std::int64_t> attributes;
 					attacked_object->get_attributes(attributes);
 					for(auto it = attributes.begin(); it != attributes.end(); ++it){
@@ -758,6 +776,8 @@ _wounded_done:
 						amount = saturated_add(amount, amount_dropped);
 					}
 				}
+			_create_crates:
+				;
 
 				for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
 					const auto resource_id = it->first;
@@ -989,7 +1009,7 @@ _plunder_done:
 
 				attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION,            utc_now, occupation_duration);
 				attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, utc_now, protection_duration);
-				attacked_cell->set_occupier_object_uuid(castle_uuid);
+				attacked_cell->set_occupier_object(castle);
 				goto _occupation_done;
 			}
 		}
@@ -999,7 +1019,7 @@ _plunder_done:
 
 		attacked_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
 		attacked_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
-		attacked_cell->set_occupier_object_uuid({ });
+		attacked_cell->set_occupier_object({ });
 	}
 _occupation_done:
 	;

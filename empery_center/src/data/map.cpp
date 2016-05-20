@@ -94,6 +94,18 @@ namespace {
 			}
 		}
 
+		object.clear();
+		csv.get(object, "material_get");
+		elem.debris.reserve(object.size());
+		for(auto it = object.begin(); it != object.end(); ++it){
+			const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+			const auto resource_amount = it->second.get<double>();
+			if(!elem.debris.emplace(resource_id, resource_amount).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade resource cost: resource_id = ", resource_id);
+				DEBUG_THROW(Exception, sslit("Duplicate upgrade resource cost"));
+			}
+		}
+
 		csv.get(elem.destruct_duration,      "building_dismantling_time");
 		csv.get(elem.defense_combat_id,      "building_combat_attributes");
 	}

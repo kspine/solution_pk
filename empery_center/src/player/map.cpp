@@ -253,7 +253,7 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
-			map_cell->set_parent_object(parent_object_uuid, resource_id, ticket_item_id);
+			map_cell->set_parent_object(castle, resource_id, ticket_item_id);
 			map_cell->pump_status();
 		});
 	if(insuff_item_id){
@@ -1088,7 +1088,7 @@ PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
 
 	map_cell->set_buff(BuffIds::ID_MAP_CELL_OCCUPATION_PROTECTION, protection_duration);
 	map_cell->clear_buff(BuffIds::ID_MAP_CELL_OCCUPATION);
-	map_cell->set_occupier_object_uuid({ });
+	map_cell->set_occupier_object(virtual_castle);
 
 	return Response();
 }
