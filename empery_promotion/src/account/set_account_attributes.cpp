@@ -3,6 +3,8 @@
 #include "../singletons/account_map.hpp"
 #include "../data/promotion.hpp"
 #include "../msg/err_account.hpp"
+#include "../singletons/item_map.hpp"
+#include "../item_ids.hpp"
 
 namespace EmperyPromotion {
 
@@ -26,6 +28,7 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	auto can_view_account_performance = params.get("canViewAccountPerformance");
 	auto is_auction_center_enabled    = params.get("isAuctionCenterEnabled");
 	auto is_shared_recharge_enabled   = params.get("isSharedRechargeEnabled");
+	auto forced_update                = !params.get("forcedUpdate").empty();
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);
@@ -33,6 +36,15 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
 		return ret;
+	}
+
+	if(!forced_update){
+		const auto withdrawn_balance = ItemMap::get_count(info.account_id, ItemIds::ID_WITHDRAWN_BALANCE);
+		if(withdrawn_balance > 0){
+			ret[sslit("errorCode")] = (int)Msg::ERR_WITHDRAWAL_PENDING;
+			ret[sslit("errorMessage")] = "A withdrawal request is pending";
+			return ret;
+		}
 	}
 
 	if(!new_login_name.empty()){
