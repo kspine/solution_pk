@@ -381,6 +381,10 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		if(is_under_castle_protection(attacking_defense)){
 			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
 		}
+		// 这个只针对城堡。如果城堡被击破，则有一段保护时间。
+		if(attacking_defense->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
 	}
 	const auto attacked_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacked_object);
 	if(attacked_defense){
@@ -950,6 +954,10 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	if(attacking_defense){
 		// 保护状态下的城堡或防御建筑不能攻击其他部队。
 		if(is_under_castle_protection(attacking_defense)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
+		// 这个只针对城堡。如果城堡被击破，则有一段保护时间。
+		if(attacking_defense->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
 			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
 		}
 	}
