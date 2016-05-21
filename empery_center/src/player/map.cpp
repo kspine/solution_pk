@@ -164,6 +164,24 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	return Response();
 }
 
+namespace {
+
+template<typename D, typename S>
+void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto info = src->get_buff(buff_id);
+	if(utc_now < info.time_end){
+		dst->clear_buff(buff_id);
+	} else {
+		dst->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+	}
+}
+
+}
+
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	const auto resource_id = ResourceId(req.resource_id);
 	const auto resource_data = Data::CastleResource::get(resource_id);
@@ -241,21 +259,15 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
 			map_cell->set_parent_object(castle, resource_id, ticket_item_id);
-			map_cell->pump_status();
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}
 
-	const auto copy_buff = [&](BuffId buff_id){
-		auto info = castle->get_buff(buff_id);
-		if(info.time_end == 0){
-			return;
-		}
-		map_cell->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
-	};
-	copy_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-	copy_buff(BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION);
+
+	map_cell->pump_status();
 
 	return Response();
 }
@@ -642,6 +654,9 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 
 	map_object->set_coord(coord);
 	map_object->set_garrisoned(false);
+
+	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION);
 
 	map_object->pump_status();
 
