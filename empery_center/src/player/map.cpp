@@ -119,19 +119,6 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
 
-	bool would_nullify_protection = false;
-	if(req.action == 1){ // attack
-		const auto target_object_uuid = MapObjectUuid(req.param);
-		const auto target_object = WorldMap::get_map_object(target_object_uuid);
-		if(!target_object){
-			return Response(Msg::ERR_ATTACK_TARGET_LOST) <<target_object_uuid;
-		}
-		would_nullify_protection = !!target_object->get_owner_uuid();
-	}
-	if(would_nullify_protection && map_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
-		return Response(Msg::ERR_SELF_UNDER_PROTECTION);
-	}
-
 	if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
 		const auto parent_object_uuid = map_object->get_parent_object_uuid();
 		if(parent_object_uuid){
