@@ -1065,11 +1065,10 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	std::vector<boost::shared_ptr<MapObject>> current_battalions;
 	WorldMap::get_map_objects_by_parent_object(current_battalions, map_object_uuid);
 	for(auto it = current_battalions.begin(); it != current_battalions.end(); ++it){
-		const auto &battalion = *it;
-		if(battalion->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
-			continue;
+		const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(*it);
+		if(!defense_building){
+			++battalion_count;
 		}
-		++battalion_count;
 	}
 	const auto max_battalion_count = castle->get_max_battalion_count();
 	if(battalion_count >= max_battalion_count){
