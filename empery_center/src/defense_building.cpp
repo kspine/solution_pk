@@ -70,7 +70,7 @@ DefenseBuilding::DefenseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId 
 	, m_defense_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_DefenseBuilding>(map_object_uuid.get(),
-				0, MIS_NONE, 0, 0, 0, Poseidon::Uuid(), created_time);
+				0, MIS_NONE, 0, 0, 0, Poseidon::Uuid(), 0);
 			obj->async_save(true);
 			return obj;
 		}())
