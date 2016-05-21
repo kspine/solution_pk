@@ -954,9 +954,13 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		}
 	}
 
-	// 保护状态下的领地不会遭到其他部队的攻击。
-	if(is_under_castle_protection(attacked_cell)){
-		return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
+	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
+	const auto ticket_data = Data::MapCellTicket::require(attacked_ticket_item_id);
+	if(ticket_data->protectable){
+		// 保护状态下的领地不会遭到其他部队的攻击。
+		if(is_under_castle_protection(attacked_cell)){
+			return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
+		}
 	}
 	// 占领阶段或保护阶段。
 	if(attacked_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
@@ -969,7 +973,6 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
 
-	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
 	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
 
 	const auto occupier_owner_uuid = attacked_cell->get_occupier_owner_uuid();

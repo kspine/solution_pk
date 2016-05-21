@@ -32,6 +32,7 @@ namespace Data {
 		double capacity_modifier;
 		std::uint64_t soldiers_max;
 		double self_healing_rate;
+		bool protectable;
 	};
 
 	class MapTerrain {
