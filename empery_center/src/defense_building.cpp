@@ -66,7 +66,7 @@ namespace {
 
 DefenseBuilding::DefenseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
-	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord, 0, false)
+	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord, created_time, false)
 	, m_defense_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_DefenseBuilding>(map_object_uuid.get(),
