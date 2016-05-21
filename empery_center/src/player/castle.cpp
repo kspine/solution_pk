@@ -1803,7 +1803,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 		for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
 			const auto resource_id = it->first;
-			const auto amount = static_cast<std::uint64_t>(it->second * (protection_duration / 86400.0) * refund_ratio + 0.001);
+			const auto amount = static_cast<std::uint64_t>(it->second * (protection_duration / 86400000.0) * refund_ratio + 0.001);
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
 				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 		}
