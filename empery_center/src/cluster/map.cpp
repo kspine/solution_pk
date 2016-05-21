@@ -350,14 +350,36 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 
 namespace {
 	template<typename T>
-	bool is_under_castle_protection(const boost::shared_ptr<T> &ptr){
-		if(!ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+	bool is_protection_in_effect(const boost::shared_ptr<T> &ptr){
+		PROFILE_ME;
+
+		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+			return true;
+		}
+		if(ptr->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
+			return true;
+		}
+		return false;
+	}
+
+	bool is_map_object_protection_in_effect(const boost::shared_ptr<MapObject> &map_object){
+		PROFILE_ME;
+
+		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
+		if(!defense){
 			return false;
 		}
-		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+		return is_protection_in_effect(defense);
+	}
+	bool is_map_cell_protection_in_effect(const boost::shared_ptr<MapCell> &map_cell){
+		PROFILE_ME;
+
+		const auto ticket_item_id = map_cell->get_ticket_item_id();
+		const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
+		if(!ticket_data->protectable){
 			return false;
 		}
-		return true;
+		return is_protection_in_effect(map_cell);
 	}
 }
 
@@ -375,27 +397,11 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
 
-	const auto attacking_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacking_object);
-	if(attacking_defense){
-		// 保护状态下的城堡或防御建筑不能攻击其他部队。
-		if(is_under_castle_protection(attacking_defense)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
-		// 这个只针对城堡。如果城堡被击破，则有一段保护时间。
-		if(attacking_defense->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
+	if(is_map_object_protection_in_effect(attacking_object)){
+		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
 	}
-	const auto attacked_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacked_object);
-	if(attacked_defense){
-		// 保护状态下的城堡或防御建筑不会遭到其他部队的攻击。
-		if(is_under_castle_protection(attacked_defense)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
-		}
-		// 这个只针对城堡。如果城堡被击破，则有一段保护时间。
-		if(attacked_defense->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
-		}
+	if(is_map_object_protection_in_effect(attacked_object)){
+		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -950,28 +956,10 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
 	}
 
-	const auto attacking_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacking_object);
-	if(attacking_defense){
-		// 保护状态下的城堡或防御建筑不能攻击其他部队。
-		if(is_under_castle_protection(attacking_defense)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
-		// 这个只针对城堡。如果城堡被击破，则有一段保护时间。
-		if(attacking_defense->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
+	if(is_map_object_protection_in_effect(attacking_object)){
+		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
 	}
-
-	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
-	const auto ticket_data = Data::MapCellTicket::require(attacked_ticket_item_id);
-	if(ticket_data->protectable){
-		// 保护状态下的领地不会遭到其他部队的攻击。
-		if(is_under_castle_protection(attacked_cell)){
-			return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
-		}
-	}
-	// 占领阶段或保护阶段。
-	if(attacked_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
+	if(is_map_cell_protection_in_effect(attacked_cell)){
 		return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
 	}
 
@@ -1009,6 +997,7 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 
 	const bool is_occupied = attacked_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL);
 
+	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
 	if(attacked_ticket_item_id){
 		// 掠夺资源。
 		if(is_occupied){
