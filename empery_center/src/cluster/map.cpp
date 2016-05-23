@@ -176,7 +176,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
 
 	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * req.interval / 60000.0;
-	const auto amount_harvested = overlay->harvest(map_object, amount_to_harvest, false);
+	const auto amount_harvested = overlay->harvest(map_object, amount_to_harvest, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
 
@@ -348,7 +348,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
 
 	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * req.interval / 60000.0;
-	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest, false);
+	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
 
@@ -1006,7 +1006,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	}
 
 	const auto amount_to_harvest = req.amount_harvested;
-	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest, false);
+	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: attacking_object_uuid = ", attacking_object_uuid, ", attacking_object_type_id = ", attacking_object_type_id,
 		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
 	amount_remaining = resource_crate->get_amount_remaining();
@@ -1128,7 +1128,7 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		const auto amount_total = attacked_cell->get_resource_amount();
 		const auto amount_to_harvest = static_cast<std::uint64_t>(std::floor(
 			static_cast<double>(soldiers_damaged) / soldiers_previous * amount_total + 0.001));
-		const auto amount_harvested = attacked_cell->harvest(attacking_object, amount_to_harvest, false);
+		const auto amount_harvested = attacked_cell->harvest(attacking_object, amount_to_harvest, forced_attack);
 		LOG_EMPERY_CENTER_DEBUG("Plunder: attacking_object_uuid = ", attacking_object_uuid,
 			", attacking_object_type_id = ", attacking_object_type_id, ", attacked_coord = ", attacked_cell->get_coord(),
 			", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
