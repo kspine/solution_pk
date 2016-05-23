@@ -727,7 +727,8 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 		result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST) << m_action_param;
 		return UINT64_MAX;
 	}
-	if((get_owner_uuid() == map_cell->get_owner_uuid()) || get_owner_uuid() == map_cell->get_occupier_owner_uuid()){
+	bool occupied = map_cell->is_buff_in_effect(EmperyCenter::BuffIds::ID_OCCUPATION_MAP_CELL);
+	if(((get_owner_uuid() == map_cell->get_owner_uuid())&&!occupied) || ((get_owner_uuid() == map_cell->get_occupier_owner_uuid())&&occupied)){
 		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS) << get_owner_uuid();
 		return UINT64_MAX;
 	}
