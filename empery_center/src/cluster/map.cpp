@@ -164,10 +164,13 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
 	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
-	const auto resource_carried = map_object->get_resource_amount_carried();
-	if(resource_carried >= resource_capacity){
-		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+	const bool forced_attack = req.forced_attack;
+	if(!forced_attack){
+		const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+		const auto resource_carried = map_object->get_resource_amount_carried();
+		if(resource_carried >= resource_capacity){
+			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+		}
 	}
 
 	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
@@ -333,10 +336,13 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
 	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
-	const auto resource_carried = map_object->get_resource_amount_carried();
-	if(resource_carried >= resource_capacity){
-		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+	const bool forced_attack = req.forced_attack;
+	if(!forced_attack){
+		const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+		const auto resource_carried = map_object->get_resource_amount_carried();
+		if(resource_carried >= resource_capacity){
+			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+		}
 	}
 
 	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
@@ -918,7 +924,8 @@ _wounded_done:
 					const auto resource_id = it->first;
 					const auto amount = it->second;
 					try {
-						create_resource_crates(attacked_object->get_coord(), resource_id, amount, radius_inner, radius_outer);
+						create_resource_crates(attacked_object->get_coord(), resource_id, amount,
+							radius_inner, radius_outer, attacked_object_type_id);
 					} catch(std::exception &e){
 						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 					}
@@ -989,10 +996,13 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 
 	const auto attacking_object_type_data = Data::MapObjectTypeBattalion::require(attacking_object_type_id);
 	const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
-	const auto resource_carried = attacking_object->get_resource_amount_carried();
-	if(resource_carried >= resource_capacity){
-		return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+	const bool forced_attack = req.forced_attack;
+	if(!forced_attack){
+		const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
+		const auto resource_carried = attacking_object->get_resource_amount_carried();
+		if(resource_carried >= resource_capacity){
+			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+		}
 	}
 
 	const auto amount_to_harvest = req.amount_harvested;
@@ -1100,10 +1110,17 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	const bool is_occupied = attacked_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL);
 
 	const auto attacked_ticket_item_id = attacked_cell->get_ticket_item_id();
-	if(attacked_ticket_item_id){
+	if(!is_occupied && attacked_ticket_item_id){
 		// 掠夺资源。
-		if(is_occupied){
-			goto _plunder_done;
+		const bool forced_attack = req.forced_attack;
+		if(!forced_attack){
+			const auto attacking_object_type_data = Data::MapObjectTypeBattalion::require(attacking_object_type_id);
+			const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+			const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
+			const auto resource_carried = attacking_object->get_resource_amount_carried();
+			if(resource_carried >= resource_capacity){
+				return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+			}
 		}
 
 		attacked_cell->pump_production();
@@ -1116,8 +1133,6 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 			", attacking_object_type_id = ", attacking_object_type_id, ", attacked_coord = ", attacked_cell->get_coord(),
 			", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
 	}
-_plunder_done:
-	;
 
 	if(soldiers_remaining <= 0){
 		if(!is_occupied){

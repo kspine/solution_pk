@@ -97,25 +97,31 @@ void get_surrounding_coords(std::vector<Coord> &ret, Coord origin, std::uint64_t
 	}
 }
 
+namespace {
+	constexpr std::array<std::array<std::pair<std::int8_t, std::int8_t>, 10>, 2>
+		g_castle_foundation_table = {{
+			{{
+				{ 0, 0}, { 1, 0},
+				{-1, 0}, {-1,-1}, { 0,-1}, { 1,-1}, { 2, 0}, { 1, 1}, { 0, 1}, {-1, 1}
+			}}, {{
+				{ 0, 0}, { 1, 0},
+				{-1, 0}, { 0,-1}, { 1,-1}, { 2,-1}, { 2, 0}, { 2, 1}, { 1, 1}, { 0, 1}
+			}},
+		}};
+	constexpr std::ptrdiff_t g_outline_offset = 2;
+}
+
+std::size_t get_castle_foundation_solid_area(){
+	return static_cast<std::size_t>(g_outline_offset);
+}
 void get_castle_foundation(std::vector<Coord> &ret, Coord origin, bool solid){
 	PROFILE_ME;
 
-	static constexpr std::array<std::array<std::pair<std::int8_t, std::int8_t>, 10>, 2> castle_foundation_table = {{
-		{{
-			{ 0, 0}, { 1, 0},
-			{-1, 0}, {-1,-1}, { 0,-1}, { 1,-1}, { 2, 0}, { 1, 1}, { 0, 1}, {-1, 1}
-		}}, {{
-			{ 0, 0}, { 1, 0},
-			{-1, 0}, { 0,-1}, { 1,-1}, { 2,-1}, { 2, 0}, { 2, 1}, { 1, 1}, { 0, 1}
-		}},
-	}};
-	static constexpr std::ptrdiff_t outline_offset = 2;
-
 	const bool in_odd_row = origin.y() & 1;
-	const auto &table = castle_foundation_table.at(in_odd_row);
+	const auto &table = g_castle_foundation_table.at(in_odd_row);
 	auto begin = table.begin();
 	if(!solid){
-		begin += outline_offset;
+		begin += g_outline_offset;
 	}
 	ret.reserve(ret.size() + static_cast<std::size_t>(table.end() - begin));
 	for(auto it = begin; it != table.end(); ++it){

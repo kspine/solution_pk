@@ -10,6 +10,7 @@
 #include "strategic_resource.hpp"
 #include "singletons/world_map.hpp"
 #include "msg/err_map.hpp"
+#include "msg/sc_map.hpp"
 #include "map_object_type_ids.hpp"
 #include "resource_crate.hpp"
 #include <poseidon/json.hpp>
@@ -29,6 +30,7 @@
 #include "data/map_object_type.hpp"
 #include "attribute_ids.hpp"
 #include "buff_ids.hpp"
+#include "player_session.hpp"
 
 namespace EmperyCenter {
 
@@ -103,9 +105,13 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 	std::vector<boost::shared_ptr<Overlay>> overlays;
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
+	std::vector<boost::shared_ptr<ResourceCrate>> resource_crates;
 
 	std::vector<Coord> foundation;
 	get_castle_foundation(foundation, coord, true);
+
+	const auto foundation_solid_offset = get_castle_foundation_solid_area();
+
 	for(auto it = foundation.begin(); it != foundation.end(); ++it){
 		const auto &foundation_coord = *it;
 		const auto cluster_scope = WorldMap::get_cluster_scope(foundation_coord);
@@ -157,6 +163,17 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 				return Response(Msg::ERR_CANNOT_DEPLOY_ON_STRATEGIC_RESOURCE) <<foundation_coord;
 			}
 		}
+
+		if(static_cast<std::size_t>(it - foundation.begin()) < foundation_solid_offset){
+			resource_crates.clear();
+			WorldMap::get_resource_crates_by_rectangle(resource_crates, Rectangle(foundation_coord, 1, 1));
+			for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
+				const auto &resource_crate = *it;
+				if(!resource_crate->is_virtually_removed()){
+					return Response(Msg::ERR_CANNOT_DEPLOY_ON_RESOURCE_CRATES) <<resource_crate->get_resource_crate_uuid();
+				}
+			}
+		}
 	}
 	// 检测与其他城堡距离。
 	const auto min_distance  = static_cast<std::uint32_t>(Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES));
@@ -187,7 +204,7 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 }
 
 void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t amount,
-	unsigned radius_inner, unsigned radius_outer)
+	unsigned radius_inner, unsigned radius_outer, MapObjectTypeId map_object_type_id)
 {
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Creating resource crates: origin = ", origin, ", resource_id = ", resource_id, ", amount = ", amount,
@@ -281,6 +298,14 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		}
 	};
 
+	Msg::SC_MapResourceCrateExplosion msg;
+	msg.coord_x            = origin.x();
+	msg.coord_y            = origin.y();
+	msg.map_object_type_id = map_object_type_id.get();
+
+	std::vector<boost::shared_ptr<PlayerSession>> sessions;
+	WorldMap::get_players_viewing_rectangle(sessions, Rectangle(origin, 1, 1));
+
 	std::uint64_t amount_remaining = amount * (1 - inner_amount_ratio);
 	const auto outer_number_limit = static_cast<unsigned>(std::round(number_limits.at(1).get<double>()));
 	really_create_crates(amount_remaining, radius_inner, radius_inner + radius_outer, outer_number_limit);
@@ -289,6 +314,16 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 	const auto inner_number_limit = static_cast<unsigned>(std::round(number_limits.at(0).get<double>()));
 	really_create_crates(amount_remaining, 0, radius_inner, inner_number_limit);
 	LOG_EMPERY_CENTER_DEBUG("Inner crate creation complete: resource_id = ", resource_id, ", amount_remaining = ", amount_remaining);
+
+	for(auto it = sessions.begin(); it != sessions.end(); ++it){
+		const auto &session = *it;
+		try {
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 void async_hang_up_castle(const boost::shared_ptr<Castle> &castle) noexcept

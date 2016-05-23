@@ -268,6 +268,14 @@ namespace Msg {
 	FIELD_VUINT         (soldiers_remaining)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapResourceCrateExplosion
+#define MESSAGE_ID      378
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (coord_x)	\
+	FIELD_VINT          (coord_y)	\
+	FIELD_VUINT         (map_object_type_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

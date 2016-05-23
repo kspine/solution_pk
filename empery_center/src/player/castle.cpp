@@ -1548,7 +1548,7 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		if(child_object_data && (child_object_data->speed > 0)){
 			child_object->pump_status();
 			child_object->unload_resources(castle);
-			child_object->set_coord(castle->get_coord());;
+			child_object->set_coord(castle->get_coord());
 			child_object->set_garrisoned(true);
 		} else {
 			child_object->delete_from_game();

@@ -36,7 +36,8 @@ namespace Msg {
 #define MESSAGE_ID      32303
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (interval)
+	FIELD_VUINT         (interval)	\
+	FIELD_VUINT         (forced_attack)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KS_MapDeployImmigrants
@@ -59,7 +60,8 @@ namespace Msg {
 #define MESSAGE_ID      32307
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (interval)
+	FIELD_VUINT         (interval)	\
+	FIELD_VUINT         (forced_attack)
 #include <poseidon/cbpp/message_generator.hpp>
 
 // 32308
@@ -98,7 +100,8 @@ namespace Msg {
 	FIELD_VINT          (attacking_coord_x)	\
 	FIELD_VINT          (attacking_coord_y)	\
 	FIELD_STRING        (resource_crate_uuid)	\
-	FIELD_VUINT         (amount_harvested)
+	FIELD_VUINT         (amount_harvested)	\
+	FIELD_VUINT         (forced_attack)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KS_MapAttackMapCellAction
@@ -113,7 +116,8 @@ namespace Msg {
 	FIELD_VUINT         (attacked_ticket_item_id)	\
 	FIELD_VINT          (attacked_coord_x)	\
 	FIELD_VINT          (attacked_coord_y)	\
-	FIELD_VUINT         (soldiers_damaged)
+	FIELD_VUINT         (soldiers_damaged)	\
+	FIELD_VUINT         (forced_attack)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
