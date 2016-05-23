@@ -584,12 +584,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;
 	}
-	if(target_object->is_bunker()){
-		LOG_EMPERY_CLUSTER_FATAL("TARGET IS BUNKER, solider_count:",ememy_solider_count);
-	}
-	if(is_bunker()){
-		LOG_EMPERY_CLUSTER_FATAL("ATTACK IS BUNKER, solider_count:",soldier_count);
-	}
 	//计算闪避，闪避成功，
 	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 
@@ -643,7 +637,7 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 		return UINT64_MAX;
 	}
 	//如果没有在攻击，则判断攻击者是否在自己的攻击范围之内，是则执行攻击，否则小范围内寻路攻击
-	if(m_action != ACT_ATTACK && m_waypoints.empty() ){
+	if(m_action != ACT_ATTACK && m_waypoints.empty() && m_action != ACT_ENTER_CASTLE){
 		attack_new_target(attacker);
 	}
 	troops_attack(attacker,true);
@@ -976,6 +970,13 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 	if(is_in_protect()){
 		result = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
 	    return false;
+	 }
+	 if(is_bunker()){
+		 const auto garrisoning_battalion_type_id  = get_attribute(EmperyCenter::AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID);
+		if(!garrisoning_battalion_type_id){
+			result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+			return false;
+		}
 	 }
 	Coord target_coord;
 	bool in_attack_scope = false;

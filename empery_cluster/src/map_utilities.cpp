@@ -26,7 +26,7 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 
 	// 检测阻挡。
 	const auto map_cell = WorldMap::get_map_cell(coord);
-	if(map_cell){
+	if(map_cell&&!map_cell->is_in_castle_protect()){
 		bool occupied = map_cell->is_buff_in_effect(EmperyCenter::BuffIds::ID_OCCUPATION_MAP_CELL);
 		auto cell_owner_uuid = map_cell->get_owner_uuid();
 		if(occupied){

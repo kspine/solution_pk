@@ -62,6 +62,7 @@ public:
 	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
 	void clear_buff(BuffId buff_id) noexcept;
 	bool is_in_protect();
+	bool is_in_castle_protect();
 
 	MapObjectUuid get_occupier_object_uuid() const;
 	AccountUuid get_occupier_owner_uuid() const;
