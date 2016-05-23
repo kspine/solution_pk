@@ -16,12 +16,13 @@
 #include "data/global.hpp"
 #include "data/resource_crate.hpp"
 #include "cbpp_response.hpp"
-#include "buff_ids.hpp"
 #include "../../empery_center/src/msg/sc_map.hpp"
 #include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
 #include "../../empery_center/src/msg/err_castle.hpp"
 #include "../../empery_center/src/attribute_ids.hpp"
+#include "buff_ids.hpp"
+
 
 
 
@@ -57,13 +58,13 @@ std::uint64_t AiControl::attack(std::pair<long, std::string> &result, std::uint6
 	return parent_object->attack(result,now);
 }
 
-void          AiControl::troops_attack(bool passive){
+void          AiControl::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
 	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return;
 	}
-	parent_object->troops_attack(passive);
+	parent_object->troops_attack(target,passive);
 	return ;
 }
 
@@ -127,7 +128,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	}
 
 	//修正action
-	if(!fix_attack_action()){
+	if(!fix_attack_action(result)){
 		return UINT64_MAX;
 	}
 
@@ -153,7 +154,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 		// TODO 战斗。
-		require_ai_control()->troops_attack();
+		require_ai_control()->troops_attack(target_object);
 		return require_ai_control()->attack(result,now);
 	}
 	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){
@@ -583,6 +584,12 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;
 	}
+	if(target_object->is_bunker()){
+		LOG_EMPERY_CLUSTER_FATAL("TARGET IS BUNKER, solider_count:",ememy_solider_count);
+	}
+	if(is_bunker()){
+		LOG_EMPERY_CLUSTER_FATAL("ATTACK IS BUNKER, solider_count:",soldier_count);
+	}
 	//计算闪避，闪避成功，
 	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 
@@ -638,8 +645,8 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	//如果没有在攻击，则判断攻击者是否在自己的攻击范围之内，是则执行攻击，否则小范围内寻路攻击
 	if(m_action != ACT_ATTACK && m_waypoints.empty() ){
 		attack_new_target(attacker);
-		troops_attack(true);
 	}
+	troops_attack(attacker,true);
 	return UINT64_MAX;
 }
 
@@ -728,6 +735,10 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 	}
 	if((get_owner_uuid() == map_cell->get_owner_uuid()) || get_owner_uuid() == map_cell->get_occupier_owner_uuid()){
 		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS) << get_owner_uuid();
+		return UINT64_MAX;
+	}
+	if(map_cell->is_in_protect()){
+		result = CbppResponse(Msg::ERR_MAP_CELL_UNDER_PROTECTION);
 		return UINT64_MAX;
 	}
 
@@ -880,7 +891,6 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 	const auto troops_view_range = view_range > target_view_range ? view_range:target_view_range;
 	const auto coord    = get_coord();
 	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
-
 	if(distance <= troops_view_range){
 		return true;
 	}
@@ -894,7 +904,7 @@ std::uint64_t MapObject::get_view_range(){
 	return get_shoot_range() + 1;
 }
 
-void MapObject::troops_attack(bool passive){
+void MapObject::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
 	PROFILE_ME;
 
 	if(is_monster()){
@@ -906,20 +916,19 @@ void MapObject::troops_attack(bool passive){
 	if(friendly_map_objects.empty()){
 		return;
 	}
+	if(!target){
+			return;
+	}
 	for(auto it = friendly_map_objects.begin(); it != friendly_map_objects.end(); ++it){
 		auto map_object = *it;
 		if(!map_object || !map_object->is_idle() || !is_in_group_view_scope(map_object)){
 			continue;
 		}
-		const auto enemy_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
-		if(!enemy_object){
-			return;
-		}
 		boost::shared_ptr<MapObject> near_enemy_object;
-		if(passive&&map_object->get_new_enemy(enemy_object->get_owner_uuid(),near_enemy_object)){
+		if(passive&&map_object->get_new_enemy(target->get_owner_uuid(),near_enemy_object)){
 			map_object->attack_new_target(near_enemy_object);
 		}else{
-			map_object->attack_new_target(enemy_object);
+			map_object->attack_new_target(target);
 		}
 	}
 }
@@ -950,7 +959,7 @@ void   MapObject::notify_way_points(const std::deque<std::pair<signed char, sign
 	}
 }
 
-bool    MapObject::fix_attack_action(){
+bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 	PROFILE_ME;
 
 	if( (m_action != ACT_ATTACK)
@@ -960,20 +969,23 @@ bool    MapObject::fix_attack_action(){
 		return true;
 	}
 	if(is_die()){
+		result = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
 		return false;
 	}
 
-	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
-	        return false;
+	if(is_in_protect()){
+		result = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
+	    return false;
 	 }
 	Coord target_coord;
 	bool in_attack_scope = false;
 	if(m_action == ACT_ATTACK){
 		const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 		if(!target_object){
+			result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
 			return false;
 		}
-		if(!target_object->attacked_able()){
+		if(!target_object->attacked_able(result)){
 			return false;
 		}
 		target_coord = target_object->get_coord();
@@ -981,6 +993,7 @@ bool    MapObject::fix_attack_action(){
 	} else if( m_action == ACT_HARVEST_RESOURCE_CRATE ){
 		const auto target_resource_crate = get_attack_resouce_crate();
 		if(!target_resource_crate){
+			result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
 			return false;
 		}
 		target_coord = target_resource_crate->get_coord();
@@ -988,6 +1001,7 @@ bool    MapObject::fix_attack_action(){
 	} else if( m_action == ACT_ATTACK_TERRITORY){
 		const auto target_map_cell = get_attack_territory();
 		if(!target_map_cell){
+			result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
 			return false;
 		}
 		target_coord = target_map_cell->get_coord();
@@ -1001,6 +1015,7 @@ bool    MapObject::fix_attack_action(){
 		if(find_way_points(m_waypoints,get_coord(),target_coord)){
 			notify_way_points(m_waypoints,m_action,m_action_param);
 		}else{
+			result = CbppResponse(Msg::ERR_BROKEN_PATH);
 			return false;
 		}
 	}
@@ -1048,7 +1063,8 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 		if(map_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		if(!map_object->attacked_able()){
+		std::pair<long, std::string> reason;
+		if(!map_object->attacked_able(reason)){
 			continue;
 		}
 		if(map_object->is_monster()){
@@ -1087,7 +1103,7 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 			}else{
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
 			}
-		}
+	}
 }
 
 std::uint64_t   MapObject::lost_target(){
@@ -1140,24 +1156,29 @@ bool  MapObject::is_monster(){
 	return true;
 }
 
-bool  MapObject::attacked_able(){
+bool  MapObject::attacked_able(std::pair<long, std::string> &reason){
 	PROFILE_ME;
 	if(is_die()){
+		reason = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
 		return false;
 	}
 	if(is_garrisoned()){
+		reason = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 		return false;
 	}
 	if(is_monster() && (m_action == ACT_MONTER_REGRESS)){
+		reason = CbppResponse(Msg::ERR_TEMPORARILY_INVULNERABLE);
 		return false;
 	}
 	if(is_defense_tower()){
 		const auto defense_building_mission = get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BUILDING_MISSION);
 		if(0 != defense_building_mission){
+			reason = CbppResponse(Msg::ERR_DEFENSE_BUILDING_UPGRADE_IN_PROGESS);
 			return false;
 		}
 	}
-	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+	if(is_in_protect()){
+		reason = CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION );
 		return false;
 	}
 	return true;
@@ -1174,6 +1195,17 @@ bool  MapObject::is_lost_attacked_target(){
 	}
 
 	if(target_object->is_garrisoned()){
+		return true;
+	}
+	return false;
+}
+
+bool MapObject::is_in_protect(){
+	PROFILE_ME;
+	if(!is_castle()){
+		return false;
+	}
+	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)&&!is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
 		return true;
 	}
 	return false;

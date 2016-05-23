@@ -4,6 +4,7 @@
 #include "map_object.hpp"
 #include "data/map.hpp"
 #include "singletons/world_map.hpp"
+#include "buff_ids.hpp"
 
 namespace EmperyCluster {
 
@@ -180,6 +181,16 @@ bool MapCell::is_in_group_view_scope(boost::shared_ptr<MapObject> target_object)
 		return true;
 	}
 
+	return false;
+}
+bool MapCell::is_in_protect(){
+	const auto map_cell_ticket = Data::MapCellTicket::get(get_ticket_item_id());
+	if(!map_cell_ticket){
+		return false;
+	}
+	if(map_cell_ticket->protect && is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
+		return true;
+	}
 	return false;
 }
 

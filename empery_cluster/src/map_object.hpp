@@ -19,7 +19,7 @@ public:
 	AiControl(boost::weak_ptr<MapObject> parent);
 public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
-	void          troops_attack(bool passive = false);
+	void          troops_attack(boost::shared_ptr<MapObject> target,bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
 	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now);
@@ -105,13 +105,13 @@ public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
-	void          troops_attack(bool passive = false);
+	void          troops_attack(boost::shared_ptr<MapObject> target, bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
 	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now);
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const MapObject::Action &action, const std::string &action_param);
-	bool          fix_attack_action();
+	bool          fix_attack_action(std::pair<long, std::string> &result);
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
 
 	std::uint64_t lost_target();
@@ -121,8 +121,9 @@ private:
 	bool          is_castle();
 	bool          is_bunker();
 	bool          is_defense_tower();
-	bool          attacked_able();
+	bool          attacked_able(std::pair<long, std::string> &reason);
 	bool          is_lost_attacked_target();
+	bool          is_in_protect();
 	void          reset_attack_target_own_uuid();
 	AccountUuid   get_attack_target_own_uuid(); 
 	std::uint64_t search_attack();
@@ -170,7 +171,7 @@ public:
 	}
 
 	bool is_idle() const {
-		return ((m_action == ACT_GUARD)&&(m_waypoints.empty())&& !is_garrisoned());
+		return ((m_action == ACT_GUARD)&&(m_waypoints.empty())&& !is_garrisoned()) || (m_action == ACT_STAND_BY );
 	}
 
 	Action get_action() const {
