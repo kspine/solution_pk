@@ -506,8 +506,7 @@ void MapCell::clear_buff(BuffId buff_id) noexcept {
 	if(it == m_buffs.end()){
 		return;
 	}
-	const auto obj = std::move(it->second);
-	m_buffs.erase(it);
+	const auto &obj = it->second;
 
 	obj->set_duration(0);
 	obj->set_time_begin(0);
@@ -609,12 +608,40 @@ void MapCell::check_occupation(){
 
 		const auto item_box = ItemBoxMap::require(castle->get_owner_uuid());
 
+		const auto coord = get_coord();
+		const auto occupier_owner_uuid = get_occupier_owner_uuid();
+
+		std::vector<boost::shared_ptr<MapObject>> pending_objects;
+		WorldMap::get_map_objects_by_rectangle(pending_objects, Rectangle(coord, 1, 1));
+		for(auto it = pending_objects.begin(); it != pending_objects.end(); ++it){
+			const auto &pending_object = *it;
+			if(pending_object->get_owner_uuid() != occupier_owner_uuid){
+				continue;
+			}
+			const auto pending_parent_object_uuid = pending_object->get_parent_object_uuid();
+			if(!pending_parent_object_uuid){
+				continue;
+			}
+			const auto pending_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(pending_parent_object_uuid));
+			if(!pending_castle){
+				LOG_EMPERY_CENTER_ERROR("No such castle: pending_parent_object_uuid = ", pending_parent_object_uuid);
+				continue;
+			}
+			try {
+				pending_object->unload_resources(pending_castle);
+
+				pending_object->set_coord(pending_castle->get_coord());
+				pending_object->set_garrisoned(true);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+
 		const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
 		const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
 
 		std::vector<ItemTransactionElement> transaction;
 		bool ticket_reclaimed = false;
-		const auto coord = get_coord();
 		const auto castle_level = castle->get_level();
 		const auto updrade_data = Data::CastleUpgradePrimary::require(castle_level);
 		const auto distance = get_distance_of_coords(coord, castle->get_coord());

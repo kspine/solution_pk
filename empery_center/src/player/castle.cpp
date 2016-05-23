@@ -1065,11 +1065,10 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	std::vector<boost::shared_ptr<MapObject>> current_battalions;
 	WorldMap::get_map_objects_by_parent_object(current_battalions, map_object_uuid);
 	for(auto it = current_battalions.begin(); it != current_battalions.end(); ++it){
-		const auto &battalion = *it;
-		if(battalion->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
-			continue;
+		const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(*it);
+		if(!defense_building){
+			++battalion_count;
 		}
-		++battalion_count;
 	}
 	const auto max_battalion_count = castle->get_max_battalion_count();
 	if(battalion_count >= max_battalion_count){
@@ -1803,7 +1802,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 		for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
 			const auto resource_id = it->first;
-			const auto amount = static_cast<std::uint64_t>(it->second * (protection_duration / 86400.0) * refund_ratio + 0.001);
+			const auto amount = static_cast<std::uint64_t>(it->second * (protection_duration / 86400000.0) * refund_ratio + 0.001);
 			transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
 				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 		}

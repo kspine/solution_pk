@@ -119,19 +119,6 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
 	}
 
-	bool would_nullify_protection = false;
-	if(req.action == 1){ // attack
-		const auto target_object_uuid = MapObjectUuid(req.param);
-		const auto target_object = WorldMap::get_map_object(target_object_uuid);
-		if(!target_object){
-			return Response(Msg::ERR_ATTACK_TARGET_LOST) <<target_object_uuid;
-		}
-		would_nullify_protection = !!target_object->get_owner_uuid();
-	}
-	if(would_nullify_protection && map_object->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
-		return Response(Msg::ERR_SELF_UNDER_PROTECTION);
-	}
-
 	if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
 		const auto parent_object_uuid = map_object->get_parent_object_uuid();
 		if(parent_object_uuid){
@@ -175,6 +162,24 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	}
 
 	return Response();
+}
+
+namespace {
+
+template<typename D, typename S>
+void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto info = src->get_buff(buff_id);
+	if(utc_now < info.time_end){
+		dst->clear_buff(buff_id);
+	} else {
+		dst->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+	}
+}
+
 }
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
@@ -254,21 +259,15 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
 			map_cell->set_parent_object(castle, resource_id, ticket_item_id);
-			map_cell->pump_status();
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}
 
-	const auto copy_buff = [&](BuffId buff_id){
-		auto info = castle->get_buff(buff_id);
-		if(info.time_end == 0){
-			return;
-		}
-		map_cell->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
-	};
-	copy_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-	copy_buff(BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION);
+
+	map_cell->pump_status();
 
 	return Response();
 }
@@ -630,6 +629,12 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
 	}
 
+	std::vector<boost::shared_ptr<MapObject>> bunkers;
+	WorldMap::get_map_objects_by_garrisoning_object(bunkers, map_object_uuid);
+	if(!bunkers.empty()){
+		return Response(Msg::ERR_BATTALION_IN_ANOTHER_BUNKER) <<bunkers.front()->get_map_object_uuid();
+	}
+
 	std::vector<Coord> foundation;
 	get_castle_foundation(foundation, castle->get_coord(), false);
 	for(;;){
@@ -649,6 +654,9 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 
 	map_object->set_coord(coord);
 	map_object->set_garrisoned(false);
+
+	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION);
 
 	map_object->pump_status();
 
@@ -878,7 +886,7 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			defense_building->pump_status();
 			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
-			LOG_EMPERY_CENTER_INFO("Created defense building: defense_building_uuid = ", defense_building_uuid,
+			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
 				", map_object_type_id = ", map_object_type_id, ", account_uuid = ", account->get_account_uuid());
 		});
 	if(dec_result.first){
@@ -1127,6 +1135,7 @@ PLAYER_SERVLET(Msg::CS_MapGarrisonBattleBunker, account, session, req){
 	if(!battalion->is_garrisoned()){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
 	}
+
 	std::vector<boost::shared_ptr<MapObject>> bunkers;
 	WorldMap::get_map_objects_by_garrisoning_object(bunkers, battalion_uuid);
 	if(!bunkers.empty()){

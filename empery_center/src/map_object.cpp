@@ -395,8 +395,7 @@ void MapObject::clear_buff(BuffId buff_id) noexcept {
 	if(it == m_buffs.end()){
 		return;
 	}
-	const auto obj = std::move(it->second);
-	m_buffs.erase(it);
+	const auto &obj = it->second;
 
 	obj->set_duration(0);
 	obj->set_time_begin(0);

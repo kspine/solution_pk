@@ -66,11 +66,11 @@ namespace {
 
 DefenseBuilding::DefenseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
-	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord, 0, false)
+	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord, created_time, false)
 	, m_defense_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_DefenseBuilding>(map_object_uuid.get(),
-				0, MIS_NONE, 0, 0, 0, Poseidon::Uuid(), created_time);
+				0, MIS_NONE, 0, 0, 0, Poseidon::Uuid(), 0);
 			obj->async_save(true);
 			return obj;
 		}())
@@ -105,8 +105,6 @@ void DefenseBuilding::pump_status(){
 	if(check_defense_building_mission(m_defense_obj, utc_now)){
 		recalculate_attributes(false);
 	}
-
-	self_heal();
 }
 void DefenseBuilding::recalculate_attributes(bool recursive){
 	PROFILE_ME;
@@ -161,6 +159,8 @@ _bunker_done:
 	;
 
 	set_attributes(std::move(modifiers));
+
+	self_heal();
 }
 
 unsigned DefenseBuilding::get_level() const {
@@ -287,10 +287,7 @@ MapObjectUuid DefenseBuilding::get_garrisoning_object_uuid() const {
 void DefenseBuilding::self_heal(){
 	PROFILE_ME;
 
-	auto building_level = get_level();
-	if(building_level == 0){
-		building_level = 1;
-	}
+	const auto building_level = get_level();
 	const auto map_object_type_id = get_map_object_type_id();
 	const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
 	const auto defense_combat_data = Data::MapDefenseCombat::require(defense_building_data->defense_combat_id);
