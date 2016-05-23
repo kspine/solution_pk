@@ -1725,33 +1725,29 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
-	{
-		auto it = map_objects.begin();
-		while(it != map_objects.end()){
-			const auto &map_object = *it;
-			const auto map_object_type_id = map_object->get_map_object_type_id();
-			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-				it = map_objects.erase(it);
-				continue;
-			}
-			++it;
-		}
-	}
+	map_objects.erase(
+		std::remove_if(map_objects.begin(), map_objects.end(),
+			[&](const boost::shared_ptr<MapObject> &map_object){
+				const auto map_object_type_id = map_object->get_map_object_type_id();
+				if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+					return true;
+				}
+				return false;
+			}),
+		map_objects.end());
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
-	{
-		auto it = map_cells.begin();
-		while(it != map_cells.end()){
-			const auto &map_cell = *it;
-			if(map_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
-				it = map_cells.erase(it);
-				continue;
-			}
-			++it;
-		}
-	}
+	map_cells.erase(
+		std::remove_if(map_cells.begin(), map_cells.end(),
+			[&](const boost::shared_ptr<MapCell> &map_cell){
+				if(map_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
+					return true;
+				}
+				return false;
+			}),
+		map_cells.end());
 
 	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
 		[&]{
@@ -1810,33 +1806,29 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
-	{
-		auto it = map_objects.begin();
-		while(it != map_objects.end()){
-			const auto &map_object = *it;
-			const auto map_object_type_id = map_object->get_map_object_type_id();
-			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-				it = map_objects.erase(it);
-				continue;
-			}
-			++it;
-		}
-	}
+	map_objects.erase(
+		std::remove_if(map_objects.begin(), map_objects.end(),
+			[&](const boost::shared_ptr<MapObject> &map_object){
+				const auto map_object_type_id = map_object->get_map_object_type_id();
+				if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+					return true;
+				}
+				return false;
+			}),
+		map_objects.end());
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
-	{
-		auto it = map_cells.begin();
-		while(it != map_cells.end()){
-			const auto &map_cell = *it;
-			if(map_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
-				it = map_cells.erase(it);
-				continue;
-			}
-			++it;
-		}
-	}
+	map_cells.erase(
+		std::remove_if(map_cells.begin(), map_cells.end(),
+			[&](const boost::shared_ptr<MapCell> &map_cell){
+				if(map_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
+					return true;
+				}
+				return false;
+			}),
+		map_cells.end());
 
 	castle->commit_resource_transaction(transaction,
 		[&]{
