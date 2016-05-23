@@ -4,6 +4,7 @@
 #include "../msg/ks_map.hpp"
 #include "../msg/sk_map.hpp"
 #include "../msg/sc_map.hpp"
+#include "../msg/sc_battle_record.hpp"
 #include "../msg/err_map.hpp"
 #include "../msg/err_castle.hpp"
 #include "../msg/err_account.hpp"
@@ -381,6 +382,52 @@ namespace {
 		}
 		return is_protection_in_effect(map_cell);
 	}
+
+	enum BattleNotificationType : int {
+		NOTIFY_ATTACK_MAP_OBJECT  = 1,
+		NOTIFY_KILL_MAP_OBJECT    = 2,
+		NOTIFY_ATTACK_MAP_CELL    = 3,
+		NOTIFY_CAPTURE_MAP_CELL   = 4,
+		NOTIFY_ATTACK_CASTLE      = 5,
+		NOTIFY_CAPTURE_CASTLE     = 6,
+	};
+
+	template<typename ...ParamsT>
+	void send_battle_notification(AccountUuid account_uuid, int type, AccountUuid other_account_uuid, Coord coord,
+		const ParamsT &...params)
+	{
+		PROFILE_ME;
+
+		const auto session = PlayerSessionMap::get(account_uuid);
+		if(!session){
+			return;
+		}
+
+		try {
+			const auto utc_now = Poseidon::get_utc_time();
+
+			if(other_account_uuid){
+				AccountMap::cached_synchronize_account_with_player(other_account_uuid, session);
+			}
+
+			Msg::SC_BattleRecordNotification msg;
+			msg.type               = static_cast<int>(type);
+			msg.timestamp          = utc_now;
+			msg.other_account_uuid = other_account_uuid.str();
+			msg.coord_x            = coord.x();
+			msg.coord_y            = coord.y();
+			msg.params.reserve(sizeof...(params));
+			std::string param_strs[] = { boost::lexical_cast<std::string>(params)... };
+			for(std::size_t i = 0; i < sizeof...(params); ++i){
+				auto &param = *msg.params.emplace(msg.params.end());
+				param.str = std::move(param_strs[i]);
+			}
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 
 CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
@@ -512,6 +559,9 @@ _wounded_done:
 	attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 	attacked_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 
+	const auto should_send_battle_notifications = !attacked_object->is_buff_in_effect(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT);
+	attacked_object->set_buff(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT, utc_now, battle_status_timeout);
+
 	const auto category = boost::make_shared<int>();
 
 	// 通知客户端。
@@ -549,6 +599,58 @@ _wounded_done:
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
+
+	// 战斗通知。
+	if(should_send_battle_notifications){
+		const auto attacked_castle = boost::dynamic_pointer_cast<Castle>(attacked_object);
+		if(attacked_castle){
+			const int type = (soldiers_remaining > 0) ? NOTIFY_ATTACK_CASTLE : NOTIFY_CAPTURE_CASTLE;
+
+			if(attacking_account_uuid){
+				try {
+					PROFILE_ME;
+
+					send_battle_notification(attacking_account_uuid, type, attacked_account_uuid, attacking_coord,
+						attacking_object_type_id, attacked_castle->get_name(), attacked_castle->get_level());
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				}
+			}
+			if(attacked_account_uuid){
+				try {
+					PROFILE_ME;
+
+					send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
+						attacking_object_type_id, attacked_object_type_id);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				}
+			}
+		} else {
+			const int type = (soldiers_remaining > 0) ? NOTIFY_ATTACK_MAP_OBJECT : NOTIFY_KILL_MAP_OBJECT;
+
+			if(attacking_account_uuid){
+				try {
+					PROFILE_ME;
+
+					send_battle_notification(attacking_account_uuid, type, attacked_account_uuid, attacking_coord,
+						attacking_object_type_id, attacked_object_type_id);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				}
+			}
+			if(attacked_account_uuid){
+				try {
+					PROFILE_ME;
+
+					send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
+						attacking_object_type_id, attacked_castle->get_name(), attacked_castle->get_level());
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				}
+			}
+		}
 	}
 
 	// 更新交战状态。
@@ -1058,6 +1160,9 @@ _occupation_done:
 	attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 	attacked_cell->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 
+	const auto should_send_battle_notifications = !attacked_cell->is_buff_in_effect(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT);
+	attacked_cell->set_buff(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT, utc_now, battle_status_timeout);
+
 	// 通知客户端。
 	try {
 		PROFILE_ME;
@@ -1090,6 +1195,32 @@ _occupation_done:
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
+
+	// 战斗通知。
+	if(should_send_battle_notifications){
+		const int type = (soldiers_remaining > 0) ? NOTIFY_ATTACK_MAP_CELL : NOTIFY_CAPTURE_MAP_CELL;
+
+		if(attacking_account_uuid){
+			try {
+				PROFILE_ME;
+
+				send_battle_notification(attacking_account_uuid, type, attacked_account_uuid, attacking_coord,
+					attacking_object_type_id, attacked_ticket_item_id);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		}
+		if(attacked_account_uuid){
+			try {
+				PROFILE_ME;
+
+				send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
+					attacking_object_type_id, attacked_ticket_item_id);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		}
 	}
 
 	// 更新交战状态。

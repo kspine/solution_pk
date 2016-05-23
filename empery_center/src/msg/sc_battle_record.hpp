@@ -35,6 +35,19 @@ namespace Msg {
 	FIELD_VUINT         (reserved)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_BattleRecordNotification
+#define MESSAGE_ID      1397
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (type)	\
+	FIELD_VUINT         (timestamp)	\
+	FIELD_STRING        (other_account_uuid)	\
+	FIELD_VINT          (coord_x)	\
+	FIELD_VINT          (coord_y)	\
+	FIELD_ARRAY         (params,	\
+		FIELD_STRING        (str)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
