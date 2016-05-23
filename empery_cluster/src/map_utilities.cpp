@@ -2,6 +2,7 @@
 #include "map_utilities.hpp"
 
 #include "../../empery_center/src/map_utilities.cpp"
+#include "../../empery_center/src/buff_ids.hpp"
 
 #include "cluster_client.hpp"
 #include "singletons/world_map.hpp"
@@ -12,6 +13,7 @@
 #include "data/global.hpp"
 #include "cbpp_response.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
+
 
 namespace EmperyCluster {
 
@@ -24,8 +26,12 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 
 	// 检测阻挡。
 	const auto map_cell = WorldMap::get_map_cell(coord);
-	if(map_cell){
-		const auto cell_owner_uuid = map_cell->get_owner_uuid();
+	if(map_cell&&!map_cell->is_in_castle_protect()){
+		bool occupied = map_cell->is_buff_in_effect(EmperyCenter::BuffIds::ID_OCCUPATION_MAP_CELL);
+		auto cell_owner_uuid = map_cell->get_owner_uuid();
+		if(occupied){
+			cell_owner_uuid = map_cell->get_occupier_owner_uuid();
+		}
 		if(cell_owner_uuid && (account_uuid != cell_owner_uuid)){
 			LOG_EMPERY_CLUSTER_TRACE("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
 			return CbppResponse(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;

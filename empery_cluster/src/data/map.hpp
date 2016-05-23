@@ -36,6 +36,7 @@ namespace Data {
 		ItemId ticket_item_id;
 		double defense;
 		unsigned range;
+		unsigned protect;
 	};
 }
 
