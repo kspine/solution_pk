@@ -886,7 +886,7 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			defense_building->pump_status();
 			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
-			LOG_EMPERY_CENTER_INFO("Created defense building: defense_building_uuid = ", defense_building_uuid,
+			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
 				", map_object_type_id = ", map_object_type_id, ", account_uuid = ", account->get_account_uuid());
 		});
 	if(dec_result.first){
