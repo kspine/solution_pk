@@ -487,7 +487,7 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_waypoints    = std::move(waypoints);
 	m_action       = action;
 	m_action_param = std::move(action_param);
-	notify_way_points(waypoints,action,m_action_param);
+	notify_way_points(m_waypoints,action,m_action_param);
 	reset_attack_target_own_uuid();
 }
 
