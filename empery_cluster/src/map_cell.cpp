@@ -149,7 +149,8 @@ void MapCell::on_attack(boost::shared_ptr<MapObject> attacker){
 	}
 	for(auto it = friendly_map_objects.begin(); it != friendly_map_objects.end(); ++it){
 		auto map_object = *it;
-		if(!map_object || !map_object->is_idle() || !is_in_group_view_scope(map_object)){
+		std::pair<long, std::string> reason;
+		if(!map_object || !map_object->is_idle() || !is_in_group_view_scope(map_object)||!map_object->attacking_able(reason)){
 			continue;
 		}
 		boost::shared_ptr<MapObject> near_enemy_object;

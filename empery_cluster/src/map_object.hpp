@@ -105,6 +105,8 @@ public:
 	std::uint64_t get_shoot_range();
 	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object);
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
+	bool          attacked_able(std::pair<long, std::string> &reason);
+	bool          attacking_able(std::pair<long, std::string> &reason);
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
@@ -129,7 +131,6 @@ private:
 	bool          is_castle();
 	bool          is_bunker();
 	bool          is_defense_tower();
-	bool          attacked_able(std::pair<long, std::string> &reason);
 	bool          is_lost_attacked_target();
 	bool          is_in_protect();
 	void          reset_attack_target_own_uuid();
