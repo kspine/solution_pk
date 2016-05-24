@@ -165,21 +165,19 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 }
 
 namespace {
+	template<typename D, typename S>
+	void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
+		PROFILE_ME;
 
-template<typename D, typename S>
-void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
-	PROFILE_ME;
+		const auto utc_now = Poseidon::get_utc_time();
 
-	const auto utc_now = Poseidon::get_utc_time();
-
-	const auto info = src->get_buff(buff_id);
-	if(utc_now < info.time_end){
-		dst->clear_buff(buff_id);
-	} else {
-		dst->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+		const auto info = src->get_buff(buff_id);
+		if(utc_now < info.time_end){
+			dst->clear_buff(buff_id);
+		} else {
+			dst->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+		}
 	}
-}
-
 }
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
@@ -884,6 +882,8 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
 				account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now);
 			defense_building->pump_status();
+			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION);
 			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
 			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
