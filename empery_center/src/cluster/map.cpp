@@ -649,9 +649,10 @@ _wounded_done:
 			if(attacked_account_uuid){
 				try {
 					PROFILE_ME;
-
+					/*
 					send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
 						attacking_object_type_id, attacked_castle->get_name(), attacked_castle->get_level());
+						*/
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 				}

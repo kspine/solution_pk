@@ -77,22 +77,22 @@ std::uint64_t AiControl::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	return parent_object->on_attack(attacker,demage);
 }
 
-std::uint64_t AiControl::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now){
+std::uint64_t AiControl::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool force_attack){
 	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->harvest_resource_crate(result,now);
+	return parent_object->harvest_resource_crate(result,now,force_attack);
 }
 
-std::uint64_t AiControl::attack_territory(std::pair<long, std::string> &result, std::uint64_t now){
+std::uint64_t AiControl::attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
 	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->attack_territory(result,now);
+	return parent_object->attack_territory(result,now,forced_attack);
 }
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
@@ -173,21 +173,10 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		}
 	}
 	ON_ACTION(ACT_HARVEST_OVERLAY){
-		const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
-		const auto cluster = get_cluster();
-		if(!cluster){
-			break;
-		}
-		Msg::KS_MapHarvestOverlay sreq;
-		sreq.map_object_uuid = map_object_uuid.str();
-		sreq.interval        = harvest_interval;
-		auto sresult = cluster->send_and_wait(sreq);
-		if(sresult.first != Msg::ST_OK){
-			LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
-			result = std::move(sresult);
-			break;
-		}
-		return harvest_interval;
+		return on_action_harvest_overplay(result,now);
+	}
+	ON_ACTION(ACT_HARVEST_OVERLAY_FORCE){
+		return on_action_harvest_overplay(result,now,true);
 	}
 	ON_ACTION(ACT_ENTER_CASTLE){
 		const auto cluster = get_cluster();
@@ -212,39 +201,22 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		return stand_by_interval;
 	}
 	ON_ACTION(ACT_HARVEST_STRATEGIC_RESOURCE){
-		const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
-		const auto cluster = get_cluster();
-		if(!cluster){
-			break;
-		}
-		Msg::KS_MapHarvestStrategicResource sreq;
-		sreq.map_object_uuid = map_object_uuid.str();
-		sreq.interval        = harvest_interval;
-		auto sresult = cluster->send_and_wait(sreq);
-		if(sresult.first != Msg::ST_OK){
-			LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
-			result = std::move(sresult);
-			break;
-		}
-		return harvest_interval;
+		return on_action_harvest_strategic_resource(result,now);
+	}
+	ON_ACTION(ACT_HARVEST_STRATEGIC_RESOURCE_FORCE){
+		return on_action_harvest_strategic_resource(result,now,true);
 	}
 	ON_ACTION(ACT_HARVEST_RESOURCE_CRATE){
-		const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
-		const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
-		if(!target_resource_crate){
-			break;
-		}
-		return require_ai_control()->harvest_resource_crate(result,now);;
+		return on_action_harvest_resource_crate(result,now);
+	}
+	ON_ACTION(ACT_HARVEST_RESOURCE_CRATE_FORCE){
+		return on_action_harvest_resource_crate(result,now,true);
 	}
 	ON_ACTION(ACT_ATTACK_TERRITORY){
-		const auto map_cell = get_attack_territory();
-		if(!map_cell){
-			break;
-		}
-		if(get_owner_uuid() == map_cell->get_owner_uuid()){
-			break;
-		}
-		return require_ai_control()->attack_territory(result,now);
+		return on_action_attack_territory(result,now);
+	}
+	ON_ACTION(ACT_ATTACK_TERRITORY_FORCE){
+		return on_action_attack_territory(result,now,true);
 	}
 //=============================================================================
 #undef ON_ACTION
@@ -644,7 +616,7 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	return UINT64_MAX;
 }
 
-std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now){
+std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool force_attack){
 		PROFILE_ME;
 	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
@@ -704,13 +676,16 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 	msg.attacking_coord_y = get_coord().y();
 	msg.resource_crate_uuid = target_resource_crate->get_resource_crate_uuid().str();
 	msg.amount_harvested = damage;
+	if(force_attack){
+		msg.forced_attack = true;
+	}
 	cluster->send(msg);
 
 	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
 	return attack_delay;
 }
 
-std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, std::uint64_t now){
+std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
 	PROFILE_ME;
 
 	if(m_action != ACT_ATTACK_TERRITORY){
@@ -779,6 +754,9 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 	msg.attacked_coord_x = map_cell->get_coord().x();
 	msg.attacked_coord_y = map_cell->get_coord().y();
 	msg.soldiers_damaged = damage;
+	if(forced_attack){
+		msg.forced_attack = true;
+	}
 	cluster->send(msg);
 	map_cell->on_attack(virtual_shared_from_this<MapObject>());
 	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
@@ -1382,4 +1360,59 @@ boost::shared_ptr<ResourceCrate> MapObject::get_attack_resouce_crate(){
 	return target_resource_crate;
 }
 
+std::uint64_t MapObject::on_action_harvest_overplay(std::pair<long, std::string> &result, std::uint64_t /*now*/,bool forced_attack){
+	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
+	const auto cluster = get_cluster();
+	if(!cluster){
+		return UINT64_MAX;
+	}
+	Msg::KS_MapHarvestOverlay sreq;
+	sreq.map_object_uuid = get_map_object_uuid().str();
+	sreq.interval        = harvest_interval;
+	if(forced_attack){
+		sreq.forced_attack   = true;
+	}
+	auto sresult = cluster->send_and_wait(sreq);
+	if(sresult.first != Msg::ST_OK){
+		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+		result = std::move(sresult);
+		return UINT64_MAX;
+	}
+	return harvest_interval;
+}
+std::uint64_t MapObject::on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t /*now*/,bool forced_attack){
+	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
+	const auto cluster = get_cluster();
+	if(!cluster){
+		return UINT64_MAX;
+	}
+	Msg::KS_MapHarvestStrategicResource sreq;
+	sreq.map_object_uuid = get_map_object_uuid().str();
+	sreq.interval        = harvest_interval;
+	if(forced_attack){
+		sreq.forced_attack   = true;
+	}
+	auto sresult = cluster->send_and_wait(sreq);
+	if(sresult.first != Msg::ST_OK){
+		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+		result = std::move(sresult);
+		return UINT64_MAX;
+	}
+	return harvest_interval;
+}
+std::uint64_t MapObject::on_action_harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
+	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
+	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
+	if(!target_resource_crate){
+		return UINT64_MAX;
+	}
+	return require_ai_control()->harvest_resource_crate(result,now,forced_attack);
+}
+std::uint64_t MapObject::on_action_attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
+	const auto map_cell = get_attack_territory();
+	if(!map_cell){
+		return UINT64_MAX;
+	}
+	return require_ai_control()->attack_territory(result,now,forced_attack);
+}
 }

@@ -21,8 +21,8 @@ public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(boost::shared_ptr<MapObject> target,bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
-	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
-	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 private:
 	boost::weak_ptr<MapObject> m_parent_object;
 };
@@ -32,16 +32,20 @@ class ClusterClient;
 class MapObject : public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum Action {
-		ACT_GUARD                      = 0,
-		ACT_ATTACK                     = 1,
-		ACT_DEPLOY_INTO_CASTLE         = 2,
-		ACT_HARVEST_OVERLAY            = 3,
-		ACT_ENTER_CASTLE               = 4,
-		ACT_HARVEST_STRATEGIC_RESOURCE = 5,
-		ACT_MONTER_REGRESS             = 6,
-		ACT_STAND_BY                   = 7,
-		ACT_HARVEST_RESOURCE_CRATE     = 8,
-		ACT_ATTACK_TERRITORY           = 9,
+		ACT_GUARD                             = 0,
+		ACT_ATTACK                            = 1,
+		ACT_DEPLOY_INTO_CASTLE                = 2,
+		ACT_HARVEST_OVERLAY                   = 3,
+		ACT_ENTER_CASTLE                      = 4,
+		ACT_HARVEST_STRATEGIC_RESOURCE        = 5,
+		ACT_ATTACK_TERRITORY_FORCE            = 6,
+		ACT_MONTER_REGRESS             		  = 7,
+		ACT_HARVEST_RESOURCE_CRATE            = 8,
+		ACT_ATTACK_TERRITORY           		  = 9,
+		ACT_HARVEST_OVERLAY_FORCE             = 10,
+		ACT_HARVEST_STRATEGIC_RESOURCE_FORCE  = 11,
+		ACT_HARVEST_RESOURCE_CRATE_FORCE      = 12,
+		ACT_STAND_BY                          = 13,
 	};
 
 	enum AttackImpact {
@@ -107,8 +111,12 @@ public:
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(boost::shared_ptr<MapObject> target, bool passive = false);
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
-	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now);
-	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t on_action_harvest_overplay(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t on_action_harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t on_action_attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const MapObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);
