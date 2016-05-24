@@ -173,9 +173,9 @@ namespace {
 
 		const auto info = src->get_buff(buff_id);
 		if(utc_now < info.time_end){
-			dst->clear_buff(buff_id);
-		} else {
 			dst->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+		} else {
+			dst->clear_buff(buff_id);
 		}
 	}
 }
