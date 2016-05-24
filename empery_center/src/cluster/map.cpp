@@ -356,6 +356,26 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 }
 
 namespace {
+	bool is_protectable(const boost::shared_ptr<MapObject> &map_object){
+		PROFILE_ME;
+
+		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
+		if(!defense){
+			return false;
+		}
+		return true;
+	}
+	bool is_protectable(const boost::shared_ptr<MapCell> &map_cell){
+		PROFILE_ME;
+
+		const auto ticket_item_id = map_cell->get_ticket_item_id();
+		const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
+		if(!ticket_data->protectable){
+			return false;
+		}
+		return true;
+	}
+
 	template<typename T>
 	bool is_protection_in_effect(const boost::shared_ptr<T> &ptr){
 		PROFILE_ME;
@@ -367,26 +387,6 @@ namespace {
 			return true;
 		}
 		return false;
-	}
-
-	bool is_map_object_protection_in_effect(const boost::shared_ptr<MapObject> &map_object){
-		PROFILE_ME;
-
-		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
-		if(!defense){
-			return false;
-		}
-		return is_protection_in_effect(defense);
-	}
-	bool is_map_cell_protection_in_effect(const boost::shared_ptr<MapCell> &map_cell){
-		PROFILE_ME;
-
-		const auto ticket_item_id = map_cell->get_ticket_item_id();
-		const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
-		if(!ticket_data->protectable){
-			return false;
-		}
-		return is_protection_in_effect(map_cell);
 	}
 
 	enum BattleNotificationType : int {
@@ -450,15 +450,6 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
 
-	if(is_map_object_protection_in_effect(attacking_object)){
-		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-	}
-	if(is_map_object_protection_in_effect(attacked_object)){
-		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
-	}
-
-	const auto utc_now = Poseidon::get_utc_time();
-
 	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
@@ -466,6 +457,25 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto attacked_object_type_id = attacked_object->get_map_object_type_id();
 	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
 	const auto attacked_coord = attacked_object->get_coord();
+
+	if(attacked_account_uuid && is_protectable(attacking_object)){
+		// 处于保护状态下的防御建筑不能攻击其他玩家的部队。
+		if(is_protection_in_effect(attacking_object)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
+	}
+	if(attacking_account_uuid && is_protectable(attacked_object)){
+		// 处于保护状态下的防御建筑不能遭到其他玩家的部队攻击。
+		if(is_protection_in_effect(attacked_object)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
+		}
+		// 防御建筑不能遭到其他玩家处于保护状态下的部队的攻击。
+		if(is_protection_in_effect(attacking_object)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
 
 	if(attacking_account_uuid == attacked_account_uuid){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
@@ -1068,20 +1078,30 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
 	}
 
-	if(is_map_object_protection_in_effect(attacking_object)){
-		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-	}
-	if(is_map_cell_protection_in_effect(attacked_cell)){
-		return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
-	}
-
-	const auto utc_now = Poseidon::get_utc_time();
-
 	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
 
 	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
+
+	if(attacked_account_uuid && is_protectable(attacking_object)){
+		// 处于保护状态下的领地不能攻击其他玩家的部队。
+		if(is_protection_in_effect(attacking_object)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
+	}
+	if(attacking_account_uuid && is_protectable(attacked_cell)){
+		// 处于保护状态下的领地不能遭到其他玩家的部队攻击。
+		if(is_protection_in_effect(attacked_cell)){
+			return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
+		}
+		// 领地不能遭到其他玩家处于保护状态下的部队的攻击。
+		if(is_protection_in_effect(attacking_object)){
+			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
+		}
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto occupier_owner_uuid = attacked_cell->get_occupier_owner_uuid();
 	if(occupier_owner_uuid){
