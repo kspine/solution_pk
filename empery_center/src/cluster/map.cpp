@@ -1161,6 +1161,7 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	}
 
 	if(soldiers_remaining <= 0){
+		LOG_EMPERY_CENTER_DEBUG("Occupying: attacked_coord = ", attacked_cell->get_coord(), ", is_occupied = ", is_occupied);
 		if(!is_occupied){
 			const auto castle_uuid = attacking_object->get_parent_object_uuid();
 			const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
@@ -1171,8 +1172,9 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 			WorldMap::get_map_cells_by_occupier_object(occupied_cells, castle->get_map_object_uuid());
 			const auto castle_level = castle->get_level();
 			const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
-			LOG_EMPERY_CENTER_DEBUG("Try occupying map cell: attacked_coord = ", attacked_cell->get_coord(), ", castle_uuid = ", castle_uuid,
-				", castle_level = ", castle_level, ", max_occupied_map_cells = ", upgrade_data->max_occupied_map_cells);
+			LOG_EMPERY_CENTER_DEBUG("Try occupying map cell: attacked_coord = ", attacked_cell->get_coord(),
+				", castle_uuid = ", castle_uuid, ", castle_level = ", castle_level,
+				", occupied_cells = ", occupied_cells.size(), ", max_occupied_map_cells = ", upgrade_data->max_occupied_map_cells);
 			if(occupied_cells.size() < upgrade_data->max_occupied_map_cells){
 				// 占领。
 				const auto exclusive_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_OCCUPATION_DURATION);
