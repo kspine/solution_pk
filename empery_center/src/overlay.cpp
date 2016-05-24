@@ -96,14 +96,14 @@ void Overlay::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", get_overlay_group_name());
 		DEBUG_THROW(Exception, sslit("Overlay group not found"));
 	}
-	std::uint64_t sum_x = 0, sum_y = 0;
+	double sum_x = 0, sum_y = 0;
 	for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
 		const auto &basic_data = *it;
 		sum_x += basic_data->map_coord.first;
 		sum_y += basic_data->map_coord.second;
 	}
-	const auto coord_hint = Coord(get_cluster_coord().x() + static_cast<unsigned>(sum_x / cells_in_group.size()),
-	                              get_cluster_coord().y() + static_cast<unsigned>(sum_y / cells_in_group.size()));
+	const auto coord_hint = Coord(get_cluster_coord().x() + static_cast<unsigned>(std::round(sum_x / cells_in_group.size())),
+	                              get_cluster_coord().y() + static_cast<unsigned>(std::round(sum_y / cells_in_group.size())));
 
 	if(is_virtually_removed()){
 		Msg::SC_MapOverlayRemoved msg;
