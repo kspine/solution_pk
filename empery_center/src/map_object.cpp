@@ -459,8 +459,8 @@ void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 	const auto map_object_uuid = get_map_object_uuid();
 	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 
-	std::vector<ResourceTransactionElement> transaction;
-	std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> temp_result;
+	boost::container::flat_map<ResourceId, std::uint64_t> resources_to_add;
+	std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attribute_objs;
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		const auto attribute_id = it->first;
 		const auto &obj = it->second;
@@ -472,13 +472,24 @@ void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 		if(!resource_data){
 			continue;
 		}
-		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_data->resource_id, static_cast<std::uint64_t>(value),
+		auto &amount = resources_to_add[resource_data->resource_id];
+		amount = checked_add(amount, static_cast<std::uint64_t>(value));
+		attribute_objs.emplace_back(obj);
+	}
+
+	std::vector<ResourceTransactionElement> transaction;
+	transaction.reserve(resources_to_add.size());
+	for(auto it = resources_to_add.begin(); it != resources_to_add.end(); ++it){
+		const auto resource_id = it->first;
+		const auto amount = it->second;
+		const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id),
+		                                              castle->get_resource(resource_id).amount);
+		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, std::min(amount, capacity_remaining),
 			ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
-		temp_result.emplace_back(obj);
 	}
 	castle->commit_resource_transaction(transaction,
 		[&]{
-			for(auto it = temp_result.begin(); it != temp_result.end(); ++it){
+			for(auto it = attribute_objs.begin(); it != attribute_objs.end(); ++it){
 				const auto &obj = *it;
 				obj->set_value(0);
 			}
