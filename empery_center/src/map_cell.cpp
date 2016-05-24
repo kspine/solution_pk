@@ -744,6 +744,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		if(occupier_object){
 			msg.occupier_x            = occupier_object->get_coord().x();
 			msg.occupier_y            = occupier_object->get_coord().y();
+			msg.occupier_name         = occupier_object->get_name();
 		}
 		session->send(msg);
 	}
