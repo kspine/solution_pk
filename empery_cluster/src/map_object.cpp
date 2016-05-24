@@ -894,7 +894,8 @@ void MapObject::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
 	}
 	for(auto it = friendly_map_objects.begin(); it != friendly_map_objects.end(); ++it){
 		auto map_object = *it;
-		if(!map_object || !map_object->is_idle() || !is_in_group_view_scope(map_object)){
+		std::pair<long, std::string> reason;
+		if(!map_object || !map_object->is_idle() || !is_in_group_view_scope(map_object) || !map_object->attacking_able(reason)){
 			continue;
 		}
 		boost::shared_ptr<MapObject> near_enemy_object;
@@ -921,6 +922,7 @@ void   MapObject::notify_way_points(const std::deque<std::pair<signed char, sign
 				auto &waypoint = *msg.waypoints.emplace(msg.waypoints.end());
 				waypoint.dx = it->first;
 				waypoint.dy = it->second;
+				LOG_EMPERY_CLUSTER_FATAL("notify_way_points action:", action, " dx:",waypoint.dx, " dy:",waypoint.dy);
 			}
 			msg.action          = static_cast<unsigned>(action);
 			msg.param           = action_param;
@@ -941,22 +943,9 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 	){
 		return true;
 	}
-	if(is_die()){
-		result = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
+	if(!attacking_able(result)){
 		return false;
 	}
-
-	if(is_in_protect()){
-		result = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
-	    return false;
-	 }
-	 if(is_bunker()){
-		 const auto garrisoning_battalion_type_id  = get_attribute(EmperyCenter::AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID);
-		if(!garrisoning_battalion_type_id){
-			result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
-			return false;
-		}
-	 }
 	Coord target_coord;
 	bool in_attack_scope = false;
 	if(m_action == ACT_ATTACK){
@@ -1162,6 +1151,26 @@ bool  MapObject::attacked_able(std::pair<long, std::string> &reason){
 		return false;
 	}
 	return true;
+}
+
+bool   MapObject::attacking_able(std::pair<long, std::string> &reason){
+	if(is_die()){
+		reason = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
+		return false;
+	}
+
+	if(is_in_protect()){
+		reason = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
+	    return false;
+	 }
+	 if(is_bunker()){
+		 const auto garrisoning_battalion_type_id  = get_attribute(EmperyCenter::AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID);
+		if(!garrisoning_battalion_type_id){
+			reason = CbppResponse(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+			return false;
+		}
+	 }
+	 return true;
 }
 
 bool  MapObject::is_lost_attacked_target(){
