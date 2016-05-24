@@ -109,11 +109,9 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 
 	std::vector<Coord> foundation;
 	get_castle_foundation(foundation, coord, true);
-
-	const auto foundation_solid_offset = get_castle_foundation_solid_area();
-
 	for(auto it = foundation.begin(); it != foundation.end(); ++it){
 		const auto &foundation_coord = *it;
+
 		const auto cluster_scope = WorldMap::get_cluster_scope(foundation_coord);
 		const auto map_x = static_cast<unsigned>(foundation_coord.x() - cluster_scope.left());
 		const auto map_y = static_cast<unsigned>(foundation_coord.y() - cluster_scope.bottom());
@@ -163,18 +161,22 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 				return Response(Msg::ERR_CANNOT_DEPLOY_ON_STRATEGIC_RESOURCE) <<foundation_coord;
 			}
 		}
+	}
 
-		if(static_cast<std::size_t>(it - foundation.begin()) < foundation_solid_offset){
-			resource_crates.clear();
-			WorldMap::get_resource_crates_by_rectangle(resource_crates, Rectangle(foundation_coord, 1, 1));
-			for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
-				const auto &resource_crate = *it;
-				if(!resource_crate->is_virtually_removed()){
-					return Response(Msg::ERR_CANNOT_DEPLOY_ON_RESOURCE_CRATES) <<resource_crate->get_resource_crate_uuid();
-				}
+	const auto solid_offset = get_castle_foundation_solid_area();
+	for(auto it = foundation.begin(); it != foundation.begin() + static_cast<std::ptrdiff_t>(solid_offset); ++it){
+		const auto &foundation_coord = *it;
+
+		resource_crates.clear();
+		WorldMap::get_resource_crates_by_rectangle(resource_crates, Rectangle(foundation_coord, 1, 1));
+		for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
+			const auto &resource_crate = *it;
+			if(!resource_crate->is_virtually_removed()){
+				return Response(Msg::ERR_CANNOT_DEPLOY_ON_RESOURCE_CRATES) <<resource_crate->get_resource_crate_uuid();
 			}
 		}
 	}
+
 	// 检测与其他城堡距离。
 	const auto min_distance  = static_cast<std::uint32_t>(Data::Global::as_unsigned(Data::Global::SLOT_MINIMUM_DISTANCE_BETWEEN_CASTLES));
 
@@ -238,6 +240,10 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		for(unsigned i = radius_begin; i < radius_end; ++i){
 			get_surrounding_coords(coords, origin, i);
 		}
+
+		std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+		std::vector<Coord> foundation;
+		const auto solid_offset = get_castle_foundation_solid_area();
 		coords.erase(
 			std::remove_if(coords.begin(), coords.end(),
 				[&](Coord coord){
@@ -256,13 +262,21 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 						return true;
 					}
 
-					std::vector<boost::shared_ptr<MapObject>> map_objects;
-					WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord.x(), coord.y(), 2, 1));
-					for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+					adjacent_objects.clear();
+					WorldMap::get_map_objects_by_rectangle(adjacent_objects,
+						Rectangle(Coord(coord.x() - 3, coord.y() - 3), Coord(coord.x() + 4, coord.y() + 4)));
+					for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
 						const auto &other_object = *it;
 						const auto other_object_type_id = other_object->get_map_object_type_id();
-						if(other_object_type_id == MapObjectTypeIds::ID_CASTLE){
-							return true;
+						if(other_object_type_id != MapObjectTypeIds::ID_CASTLE){
+							continue;
+						}
+						foundation.clear();
+						get_castle_foundation(foundation, other_object->get_coord(), true);
+						for(auto fit = foundation.begin(); fit != foundation.begin() + static_cast<std::ptrdiff_t>(solid_offset); ++fit){
+							if(*fit == coord){
+								return true;
+							}
 						}
 					}
 
