@@ -100,18 +100,20 @@ void MapObject::recalculate_attributes(bool recursive){
 	const auto map_object_type_id = get_map_object_type_id();
 	const auto map_object_data = Data::MapObjectTypeAbstract::get(map_object_type_id);
 	if(map_object_data){
-		boost::shared_ptr<Castle> parent_object;
+		boost::shared_ptr<Castle> parent_object, tech_object;
 		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-			parent_object = virtual_shared_from_this<Castle>();
+			// parent_object = { };
+			tech_object = virtual_shared_from_this<Castle>();
 		} else {
 			const auto parent_object_uuid = get_parent_object_uuid();
 			if(parent_object_uuid){
 				parent_object = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 			}
+			tech_object = parent_object;
 		}
-		if(parent_object){
+		if(tech_object){
 			LOG_EMPERY_CENTER_TRACE("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
-				", parent_object_uuid = ", parent_object->get_map_object_uuid());
+				", tech_object_uuid = ", tech_object->get_map_object_uuid());
 
 			std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
 			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
@@ -126,12 +128,13 @@ void MapObject::recalculate_attributes(bool recursive){
 				const auto &attribute_bonus_data = *it;
 				const auto tech_attribute_id = attribute_bonus_data->tech_attribute_id;
 				const auto bonus_attribute_id = attribute_bonus_data->bonus_attribute_id;
-				const auto tech_attribute_value = parent_object->get_attribute(tech_attribute_id);
+				const auto tech_attribute_value = tech_object->get_attribute(tech_attribute_id);
 				LOG_EMPERY_CENTER_TRACE("> Applying attribute bonus: tech_attribute_id = ", tech_attribute_id,
 					", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
 				modifiers[bonus_attribute_id] += tech_attribute_value;
 			}
-
+		}
+		if(parent_object){
 			for(auto it = parent_object->m_buffs.begin(); it != parent_object->m_buffs.end(); ++it){
 				const auto buff_id = it->first;
 				const auto time_end = it->second->get_time_end();
@@ -148,7 +151,8 @@ void MapObject::recalculate_attributes(bool recursive){
 					if((attribute_id < AttributeIds::R_COMBAT_ATTRIBUTES_BEGIN) || (AttributeIds::R_COMBAT_ATTRIBUTES_END <= attribute_id)){
 						continue;
 					}
-					modifiers[ait->first] += std::round(ait->second * 1000.0);
+					auto &value = modifiers[ait->first];
+					value += std::round(ait->second * 1000.0);
 				}
 			}
 		}
@@ -357,6 +361,15 @@ void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t
 	obj->set_time_end(saturated_add(time_begin, duration));
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+
+	const auto buff_data = Data::Buff::get(buff_id);
+	if(buff_data){
+		try {
+			recalculate_attributes(true);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
 }
 void MapObject::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 	PROFILE_ME;
@@ -384,6 +397,15 @@ void MapObject::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 	obj->set_time_end(saturated_add(new_time_begin, new_duration));
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+
+	const auto buff_data = Data::Buff::get(buff_id);
+	if(buff_data){
+		try {
+			recalculate_attributes(true);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
 }
 void MapObject::clear_buff(BuffId buff_id) noexcept {
 	PROFILE_ME;
@@ -399,6 +421,15 @@ void MapObject::clear_buff(BuffId buff_id) noexcept {
 	obj->set_time_end(0);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+
+	const auto buff_data = Data::Buff::get(buff_id);
+	if(buff_data){
+		try {
+			recalculate_attributes(true);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
 }
 
 std::uint64_t MapObject::get_resource_amount_carried() const {
