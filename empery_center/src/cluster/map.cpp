@@ -481,11 +481,11 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		}
 	}
 
-	const auto utc_now = Poseidon::get_utc_time();
-
 	if(attacking_account_uuid == attacked_account_uuid){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
+
+	const auto utc_now = Poseidon::get_utc_time();
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_object, [&]{ return attacked_object_type_id != MapObjectTypeIds::ID_CASTLE; });
@@ -1107,8 +1107,6 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		}
 	}
 
-	const auto utc_now = Poseidon::get_utc_time();
-
 	const auto occupier_owner_uuid = attacked_cell->get_occupier_owner_uuid();
 	if(occupier_owner_uuid){
 		if(attacking_account_uuid == occupier_owner_uuid){
@@ -1119,6 +1117,8 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 		}
 	}
+
+	const auto utc_now = Poseidon::get_utc_time();
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 	update_attributes_single(attacked_cell, [&]{ return true; });
