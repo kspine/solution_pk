@@ -109,8 +109,6 @@ void DefenseBuilding::pump_status(){
 void DefenseBuilding::recalculate_attributes(bool recursive){
 	PROFILE_ME;
 
-	MapObject::recalculate_attributes(recursive);
-
 //	const auto utc_now = Poseidon::get_utc_time();
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
@@ -161,6 +159,8 @@ _bunker_done:
 	set_attributes(std::move(modifiers));
 
 	self_heal();
+
+	MapObject::recalculate_attributes(recursive);
 }
 
 unsigned DefenseBuilding::get_level() const {
