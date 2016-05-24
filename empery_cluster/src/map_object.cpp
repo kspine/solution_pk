@@ -922,7 +922,6 @@ void   MapObject::notify_way_points(const std::deque<std::pair<signed char, sign
 				auto &waypoint = *msg.waypoints.emplace(msg.waypoints.end());
 				waypoint.dx = it->first;
 				waypoint.dy = it->second;
-				LOG_EMPERY_CLUSTER_FATAL("notify_way_points action:", action, " dx:",waypoint.dx, " dy:",waypoint.dy);
 			}
 			msg.action          = static_cast<unsigned>(action);
 			msg.param           = action_param;
@@ -1139,13 +1138,7 @@ bool  MapObject::attacked_able(std::pair<long, std::string> &reason){
 		reason = CbppResponse(Msg::ERR_TEMPORARILY_INVULNERABLE);
 		return false;
 	}
-	if(is_defense_tower()){
-		const auto defense_building_mission = get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BUILDING_MISSION);
-		if(0 != defense_building_mission){
-			reason = CbppResponse(Msg::ERR_DEFENSE_BUILDING_UPGRADE_IN_PROGESS);
-			return false;
-		}
-	}
+
 	if(is_in_protect()){
 		reason = CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION );
 		return false;
@@ -1170,6 +1163,13 @@ bool   MapObject::attacking_able(std::pair<long, std::string> &reason){
 			return false;
 		}
 	 }
+	if(is_defense_tower()||is_bunker()){
+		const auto defense_building_mission = get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BUILDING_MISSION);
+		if(0 != defense_building_mission){
+			reason = CbppResponse(Msg::ERR_DEFENSE_BUILDING_UPGRADE_IN_PROGESS);
+			return false;
+		}
+	}
 	 return true;
 }
 
