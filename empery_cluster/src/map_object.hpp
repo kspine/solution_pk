@@ -64,6 +64,7 @@ public:
 
 private:
 	const MapObjectUuid m_map_object_uuid;
+	const std::uint64_t m_stamp;
 	const MapObjectTypeId m_map_object_type_id;
 	const AccountUuid m_owner_uuid;
 	const MapObjectUuid m_parent_object_uuid;
@@ -86,7 +87,7 @@ private:
 	boost::shared_ptr<AiControl> m_ai_control;
 
 public:
-	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+	MapObject(MapObjectUuid map_object_uuid, std::uint64_t stamp, MapObjectTypeId map_object_type_id,
 		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 		Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,
 		boost::container::flat_map<BuffId, BuffInfo> buffs);
@@ -145,6 +146,9 @@ private:
 public:
 	MapObjectUuid get_map_object_uuid() const {
 		return m_map_object_uuid;
+	}
+	std::uint64_t get_stamp() const {
+		return m_stamp;
 	}
 	MapObjectTypeId get_map_object_type_id() const {
 		return m_map_object_type_id;

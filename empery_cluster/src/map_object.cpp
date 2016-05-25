@@ -95,10 +95,10 @@ std::uint64_t AiControl::attack_territory(std::pair<long, std::string> &result, 
 	return parent_object->attack_territory(result,now,forced_attack);
 }
 
-MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+MapObject::MapObject(MapObjectUuid map_object_uuid, std::uint64_t stamp, MapObjectTypeId map_object_type_id,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,boost::container::flat_map<BuffId, BuffInfo> buffs)
-	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id)
+	: m_map_object_uuid(map_object_uuid), m_stamp(stamp), m_map_object_type_id(map_object_type_id)
 	, m_owner_uuid(owner_uuid), m_parent_object_uuid(parent_object_uuid),m_garrisoned(garrisoned), m_cluster(std::move(cluster))
 	, m_coord(coord), m_attributes(std::move(attributes)),m_buffs(std::move(buffs))
 {
@@ -157,7 +157,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		require_ai_control()->troops_attack(target_object);
 		return require_ai_control()->attack(result,now);
 	}
-	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){
+/*	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){
 		const auto cluster = get_cluster();
 		if(!cluster){
 			break;
@@ -172,7 +172,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 	}
-	ON_ACTION(ACT_HARVEST_OVERLAY){
+*/	ON_ACTION(ACT_HARVEST_OVERLAY){
 		return on_action_harvest_overplay(result,now);
 	}
 	ON_ACTION(ACT_HARVEST_OVERLAY_FORCE){

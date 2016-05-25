@@ -255,6 +255,7 @@ namespace {
 
 		Msg::KS_MapUpdateMapObjectAction msg;
 		msg.map_object_uuid = map_object->get_map_object_uuid().str();
+		msg.stamp           = map_object->get_stamp();
 		msg.x               = map_object->get_coord().x();
 		msg.y               = map_object->get_coord().y();
 		msg.action          = map_object->get_action();

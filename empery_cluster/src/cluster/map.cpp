@@ -56,6 +56,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
 
 CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 	const auto map_object_uuid    = MapObjectUuid(req.map_object_uuid);
+	const auto stamp              = req.stamp;
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
 	const auto owner_uuid         = AccountUuid(req.owner_uuid);
 	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
@@ -91,14 +92,14 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 		buffs.emplace(BuffId(it->buff_id),std::move(info));
 	}
 
-	if(!map_object || (map_object->is_garrisoned() != garrisoned)){
-		LOG_EMPERY_CLUSTER_TRACE("Replacing map object: map_object_uuid = ", map_object_uuid,
+	if(!map_object || (map_object->get_stamp() != stamp)){
+		LOG_EMPERY_CLUSTER_TRACE("Replacing map object: map_object_uuid = ", map_object_uuid, ", stamp = ", stamp,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", garrisoned = ", garrisoned, ", coord = ", coord);
-		map_object = boost::make_shared<MapObject>(map_object_uuid,
+		map_object = boost::make_shared<MapObject>(map_object_uuid, stamp,
 			map_object_type_id, owner_uuid, parent_object_uuid, garrisoned, cluster, coord, std::move(attributes),std::move(buffs));
 		WorldMap::replace_map_object_no_synchronize(cluster, map_object);
 	} else {
-		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
+		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid, ", stamp = ", stamp,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", garrisoned = ", garrisoned, ", coord = ", coord);
 		map_object->set_attributes_no_synchronize(std::move(attributes));
 		for(auto it = buffs.begin(); it != buffs.end(); ++it){

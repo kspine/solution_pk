@@ -353,7 +353,34 @@ void Castle::pump_status(){
 void Castle::recalculate_attributes(bool recursive){
 	PROFILE_ME;
 
-	DefenseBuilding::recalculate_attributes(recursive);
+	std::vector<boost::shared_ptr<MapCell>> child_cells;
+	std::vector<boost::shared_ptr<MapObject>> child_objects;
+
+	if(recursive){
+		WorldMap::get_map_cells_by_parent_object(child_cells, get_map_object_uuid());
+		WorldMap::get_map_objects_by_parent_object(child_objects, get_map_object_uuid());
+	}
+
+	// 使用旧的产率更新产出。
+	for(auto it = child_cells.begin(); it != child_cells.end(); ++it){
+		const auto &child_cell = *it;
+		try {
+			child_cell->pump_status();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+		const auto &child_object = *it;
+		if(child_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		try {
+			child_object->pump_status();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(32);
@@ -410,37 +437,10 @@ void Castle::recalculate_attributes(bool recursive){
 		}
 	}
 
-	std::vector<boost::shared_ptr<MapCell>> child_cells;
-	std::vector<boost::shared_ptr<MapObject>> child_objects;
-
-	if(recursive){
-		WorldMap::get_map_cells_by_parent_object(child_cells, get_map_object_uuid());
-		WorldMap::get_map_objects_by_parent_object(child_objects, get_map_object_uuid());
-	}
-
-	// 使用旧的产率更新产出。
-	for(auto it = child_cells.begin(); it != child_cells.end(); ++it){
-		const auto &child_cell = *it;
-		try {
-			child_cell->pump_status();
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		}
-	}
-	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
-		const auto &child_object = *it;
-		if(child_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
-			continue;
-		}
-		try {
-			child_object->pump_status();
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		}
-	}
-
 	// 提交新的属性。注意该行前后城堡属性发生变化。
 	set_attributes(std::move(modifiers));
+
+	DefenseBuilding::recalculate_attributes(recursive);
 
 	// 更新新的部队属性。
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){

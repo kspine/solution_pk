@@ -165,21 +165,19 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 }
 
 namespace {
+	template<typename D, typename S>
+	void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
+		PROFILE_ME;
 
-template<typename D, typename S>
-void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
-	PROFILE_ME;
+		const auto utc_now = Poseidon::get_utc_time();
 
-	const auto utc_now = Poseidon::get_utc_time();
-
-	const auto info = src->get_buff(buff_id);
-	if(utc_now < info.time_end){
-		dst->clear_buff(buff_id);
-	} else {
-		dst->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+		const auto info = src->get_buff(buff_id);
+		if(utc_now < info.time_end){
+			dst->set_buff(buff_id, info.time_begin, saturated_sub(info.time_end, info.time_begin));
+		} else {
+			dst->clear_buff(buff_id);
+		}
 	}
-}
-
 }
 
 PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
@@ -560,8 +558,8 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 
 	LOG_EMPERY_CENTER_DEBUG("Jump to another cluster: map_object_uuid = ", map_object_uuid,
 		", old_cood = ", old_coord, ", new_coord = ", new_coord);
-	map_object->set_action(0, { });
 	map_object->set_coord(new_coord);
+	map_object->set_action(0, { });
 
 	session->send(Msg::SC_MapObjectStopped(map_object_uuid.str(), 0, std::string(), Msg::ERR_SWITCHED_CLUSTER, std::string()));
 
@@ -788,7 +786,7 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 
 	if(map_cell->get_resource_amount() != 0){
 		const auto resource_id = map_cell->get_production_resource_id();
-		const auto amount_harvested = map_cell->harvest(virtual_castle, UINT64_MAX, false);
+		const auto amount_harvested = map_cell->harvest(virtual_castle, UINT32_MAX, false);
 		if(amount_harvested == 0){
 			return Response(Msg::ERR_WAREHOUSE_FULL);
 		}
@@ -884,6 +882,8 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
 				account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now);
 			defense_building->pump_status();
+			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION);
 			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
 			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
@@ -1091,12 +1091,8 @@ PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
 		return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<virtual_castle->get_owner_uuid();
 	}
 
-	const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
-	const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
-
-	map_cell->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
 	map_cell->clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
-	map_cell->set_occupier_object(virtual_castle);
+	map_cell->check_occupation();
 
 	return Response();
 }

@@ -10,7 +10,7 @@ namespace Msg {
 
 	enum {
 		ERR_BROKEN_PATH                         = 71301,
-//		ERR_MAP_OBJECT_COORD_MISMATCH           = 71302,
+		ERR_MAP_OBJECT_INVALIDATED              = 71302,
 		ERR_NO_SUCH_MAP_OBJECT                  = 71303,
 		ERR_NOT_YOUR_MAP_OBJECT                 = 71304,
 		ERR_NOT_MOVABLE_MAP_OBJECT              = 71305,
