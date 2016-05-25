@@ -538,6 +538,15 @@ void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 		});
 }
 
+void MapObject::set_action(unsigned action, std::string action_param){
+	PROFILE_ME;
+
+	m_action       = action;
+	m_action_param = std::move(action_param);
+
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+}
+
 bool MapObject::is_virtually_removed() const {
 	return has_been_deleted();
 }

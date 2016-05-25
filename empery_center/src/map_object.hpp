@@ -106,10 +106,7 @@ public:
 	const std::string &get_action_param() const {
 		return m_action_param;
 	}
-	void set_action(unsigned action, std::string action_param){
-		m_action       = action;
-		m_action_param = std::move(action_param);
-	}
+	void set_action(unsigned action, std::string action_param);
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
