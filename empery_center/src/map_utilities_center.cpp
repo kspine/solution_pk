@@ -359,7 +359,7 @@ try {
 			return;
 		}
 
-		constexpr auto new_castle_coord = Coord(INT32_MAX, INT32_MAX);
+		constexpr auto new_coord = Coord(INT32_MAX, INT32_MAX);
 
 		std::vector<boost::shared_ptr<MapObject>> child_objects;
 		WorldMap::get_map_objects_by_parent_object(child_objects, castle_uuid);
@@ -426,7 +426,7 @@ try {
 						if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
 							continue;
 						}
-						child_object->set_coord(new_castle_coord);
+						child_object->set_coord(new_coord);
 					}
 				});
 		}
@@ -438,7 +438,7 @@ try {
 		modifiers[AttributeIds::ID_CASTLE_LAST_COORD_Y] = last_coord.y();
 		castle->set_attributes(std::move(modifiers));
 
-		castle->set_coord(new_castle_coord);
+		castle->set_coord(new_coord);
 		castle->set_garrisoned(true);
 
 		for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
@@ -447,7 +447,7 @@ try {
 			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
 				continue;
 			}
-			child_object->set_coord(new_castle_coord);
+			child_object->set_coord(new_coord);
 		}
 
 		castle->pump_status();

@@ -8,6 +8,7 @@
 #include "player_session_map.hpp"
 #include "map_event_block_map.hpp"
 #include "account_map.hpp"
+#include "../msg/sc_map.hpp"
 #include "../msg/kill.hpp"
 #include "../data/global.hpp"
 #include "../data/map.hpp"
@@ -839,6 +840,35 @@ namespace {
 	}
 
 	template<typename T>
+	void synchronize_map_object_or_other(const boost::shared_ptr<T> &ptr,
+		const boost::shared_ptr<PlayerSession> &session, Coord old_coord, Coord new_coord)
+	{
+		ptr->synchronize_with_player(session);
+
+		(void)old_coord;
+		(void)new_coord;
+	}
+	void synchronize_map_object_or_other(const boost::shared_ptr<MapObject> &ptr,
+		const boost::shared_ptr<PlayerSession> &session, Coord old_coord, Coord new_coord)
+	{
+		ptr->synchronize_with_player(session);
+
+		if(old_coord != new_coord){
+			const auto castle = boost::dynamic_pointer_cast<Castle>(ptr);
+			if(castle){
+				Msg::SC_MapCastleRelocation msg;
+				msg.castle_uuid = castle->get_map_object_uuid().str();
+				msg.level       = castle->get_level();
+				msg.old_coord_x = old_coord.x();
+				msg.old_coord_y = old_coord.y();
+				msg.new_coord_x = new_coord.x();
+				msg.new_coord_y = new_coord.y();
+				session->send(msg);
+			}
+		}
+	}
+
+	template<typename T>
 	void synchronize_with_all_players(const boost::shared_ptr<T> &ptr, Coord old_coord, Coord new_coord,
 		const boost::shared_ptr<PlayerSession> &excluded_session) noexcept
 	{
@@ -875,7 +905,9 @@ namespace {
 						if(sit == synchronization_queue->end()){
 							sit = synchronization_queue->insert(
 								std::make_pair(std::move(key),
-									[=](const boost::shared_ptr<PlayerSession> &session){ ptr->synchronize_with_player(session); })
+									[=](const boost::shared_ptr<PlayerSession> &session){
+										synchronize_map_object_or_other(ptr, session, old_coord, new_coord);
+									})
 								).first;
 						}
 					} catch(std::exception &e){

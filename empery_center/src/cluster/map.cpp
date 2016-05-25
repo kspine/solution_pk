@@ -188,7 +188,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 
 	return Response();
 }
-
+/*
 CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);
@@ -243,7 +243,7 @@ CLUSTER_SERVLET(Msg::KS_MapDeployImmigrants, cluster, req){
 
 	return Response();
 }
-
+*/
 CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto map_object = WorldMap::get_map_object(map_object_uuid);

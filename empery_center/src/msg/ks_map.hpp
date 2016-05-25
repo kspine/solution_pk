@@ -40,14 +40,14 @@ namespace Msg {
 	FIELD_VUINT         (interval)	\
 	FIELD_VUINT         (forced_attack)
 #include <poseidon/cbpp/message_generator.hpp>
-
+/*
 #define MESSAGE_NAME    KS_MapDeployImmigrants
 #define MESSAGE_ID      32304
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_STRING        (castle_name)
 #include <poseidon/cbpp/message_generator.hpp>
-
+*/
 #define MESSAGE_NAME    KS_MapEnterCastle
 #define MESSAGE_ID      32305
 #define MESSAGE_FIELDS  \
