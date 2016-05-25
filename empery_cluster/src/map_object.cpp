@@ -157,7 +157,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		require_ai_control()->troops_attack(target_object);
 		return require_ai_control()->attack(result,now);
 	}
-	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){
+/*	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){
 		const auto cluster = get_cluster();
 		if(!cluster){
 			break;
@@ -172,7 +172,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 	}
-	ON_ACTION(ACT_HARVEST_OVERLAY){
+*/	ON_ACTION(ACT_HARVEST_OVERLAY){
 		return on_action_harvest_overplay(result,now);
 	}
 	ON_ACTION(ACT_HARVEST_OVERLAY_FORCE){
