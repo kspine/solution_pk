@@ -90,6 +90,34 @@ namespace {
 		}
 	}
 
+	void map_cell_occupation_refresh_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Map cell occupation refresh timer: now = ", now);
+
+		const auto map_cell_map = g_map_cell_map.lock();
+		if(!map_cell_map){
+			return;
+		}
+
+		std::vector<boost::shared_ptr<MapCell>> map_cells_to_pump;
+		map_cells_to_pump.reserve(map_cell_map->size());
+		for(auto it = map_cell_map->upper_bound<2>(MapObjectUuid()); it != map_cell_map->end<2>(); ++it){
+			const auto &map_cell = it->map_cell;
+			if(map_cell->is_virtually_removed()){
+				continue;
+			}
+			map_cells_to_pump.emplace_back(map_cell);
+		}
+		for(auto it = map_cells_to_pump.begin(); it != map_cells_to_pump.end(); ++it){
+			const auto &map_cell = *it;
+			try {
+				map_cell->pump_status();
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		}
+	}
+
 	inline MapObjectUuid get_garrisoning_object_uuid_aux(const boost::shared_ptr<MapObject> map_object){
 		PROFILE_ME;
 
@@ -808,6 +836,11 @@ namespace {
 		const auto map_cell_refresh_interval = get_config<std::uint64_t>("map_cell_refresh_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, map_cell_refresh_interval,
 			std::bind(&map_cell_refresh_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+
+		const auto map_cell_occupation_refresh_interval = get_config<std::uint64_t>("map_cell_occupation_refresh_interval", 30000);
+		timer = Poseidon::TimerDaemon::register_timer(0, map_cell_occupation_refresh_interval,
+			std::bind(&map_cell_occupation_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 
 		const auto map_object_refresh_interval = get_config<std::uint64_t>("map_object_refresh_interval", 300000);
