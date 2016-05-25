@@ -894,6 +894,13 @@ _wounded_done:
 							auto &amount = resources_dropped[resource_id];
 							amount = saturated_add(amount, amount_dropped);
 						}
+						std::vector<ResourceTransactionElement> transaction;
+						transaction.reserve(resources_dropped.size());
+						for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
+							transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
+								ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
+						}
+						castle->commit_resource_transaction(transaction);
 						goto _create_crates;
 					}
 				}
