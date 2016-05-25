@@ -786,7 +786,7 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 
 	if(map_cell->get_resource_amount() != 0){
 		const auto resource_id = map_cell->get_production_resource_id();
-		const auto amount_harvested = map_cell->harvest(virtual_castle, UINT64_MAX, false);
+		const auto amount_harvested = map_cell->harvest(virtual_castle, UINT32_MAX, false);
 		if(amount_harvested == 0){
 			return Response(Msg::ERR_WAREHOUSE_FULL);
 		}
@@ -1091,12 +1091,8 @@ PLAYER_SERVLET(Msg::CS_MapReturnOccupiedMapCell, account, session, req){
 		return Response(Msg::ERR_MAP_CELL_OCCUPIED) <<virtual_castle->get_owner_uuid();
 	}
 
-	const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_MAP_CELL_PROTECTION_DURATION);
-	const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
-
-	map_cell->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
 	map_cell->clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
-	map_cell->set_occupier_object(virtual_castle);
+	map_cell->check_occupation();
 
 	return Response();
 }

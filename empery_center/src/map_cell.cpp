@@ -286,7 +286,7 @@ void MapCell::set_ticket_item_id(ItemId ticket_item_id){
 
 	pump_status();
 
-	m_obj->set_ticket_item_id         (ticket_item_id.get());
+	m_obj->set_ticket_item_id(ticket_item_id.get());
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
