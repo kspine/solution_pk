@@ -736,6 +736,9 @@ _wounded_done:
 				const auto item_box = ItemBoxMap::require(attacking_account_uuid);
 
 				const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
+				if(!parent_object_uuid){
+					return;
+				}
 				const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 				if(!parent_castle){
 					LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
