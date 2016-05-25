@@ -458,6 +458,7 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 						LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
 						cluster->shutdown(e.what());
 					}
+					WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 				}
 				break;
 			}
@@ -639,7 +640,7 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << target_resource_crate->get_resource_id();
 		return UINT64_MAX;
 	}
-	if(m_action != ACT_HARVEST_RESOURCE_CRATE){
+	if(m_action != ACT_HARVEST_RESOURCE_CRATE && m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE){
 		return UINT64_MAX;
 	}
 	if(!is_in_attack_scope(target_resource_crate)){
@@ -689,7 +690,7 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
 	PROFILE_ME;
 
-	if(m_action != ACT_ATTACK_TERRITORY){
+	if(m_action != ACT_ATTACK_TERRITORY && m_action != ACT_ATTACK_TERRITORY_FORCE){
 		return UINT64_MAX;
 	}
 
@@ -1360,7 +1361,7 @@ boost::shared_ptr<const Data::MapObjectType> MapObject::get_map_object_type_data
 }
 
 boost::shared_ptr<MapCell> MapObject::get_attack_territory(){
-	if(m_action != ACT_ATTACK_TERRITORY){
+	if(m_action != ACT_ATTACK_TERRITORY && m_action != ACT_ATTACK_TERRITORY_FORCE){
 		return { };
 	}
 	std::istringstream iss(m_action_param);
@@ -1375,7 +1376,7 @@ boost::shared_ptr<MapCell> MapObject::get_attack_territory(){
 }
 
 boost::shared_ptr<ResourceCrate> MapObject::get_attack_resouce_crate(){
-	if(m_action != ACT_HARVEST_RESOURCE_CRATE){
+	if(m_action != ACT_HARVEST_RESOURCE_CRATE && m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE){
 		return { };
 	}
 	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
