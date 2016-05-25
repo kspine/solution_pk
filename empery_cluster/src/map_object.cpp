@@ -380,11 +380,12 @@ void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t
 		info.duration = duration;
 		info.time_begin = time_begin;
 		info.time_end = saturated_add(time_begin, duration);
-		m_buffs.emplace(it->first, std::move(info));
+		it = m_buffs.emplace(buff_id, std::move(info)).first;
 	}
-	it->second.duration = duration;
-	it->second.time_begin = time_begin;
-	it->second.time_end = saturated_add(time_begin, duration);
+	auto &info = it->second;
+	info.duration = duration;
+	info.time_begin = time_begin;
+	info.time_end = saturated_add(time_begin, duration);
 }
 void MapObject::clear_buff(BuffId buff_id) noexcept{
 	PROFILE_ME;
@@ -1139,7 +1140,7 @@ bool  MapObject::attacked_able(std::pair<long, std::string> &reason){
 		return false;
 	}
 
-	if(is_in_protect()){
+	if(is_in_protect()&&is_building()){
 		reason = CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION );
 		return false;
 	}
@@ -1152,9 +1153,25 @@ bool   MapObject::attacking_able(std::pair<long, std::string> &reason){
 		return false;
 	}
 
-	if(is_in_protect()){
+	if(is_in_protect()&&is_building()){
 		reason = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
 	    return false;
+	 }
+	 //受保护的兵不可以攻击敌方建筑和10级领地
+	 if(is_in_protect()){
+		 if(m_action == ACT_ATTACK){
+			const auto target = WorldMap::get_map_object(MapObjectUuid(m_action_param));
+			if(target && target->is_building()){
+				reason = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
+				return false;
+			}
+		 }else if(m_action == ACT_ATTACK_TERRITORY){
+			 const auto map_cell = get_attack_territory();
+			 if(map_cell && map_cell->is_have_preocted_ticket()){
+				 reason = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
+				 return false;
+			 }
+		 }
 	 }
 	 if(is_bunker()){
 		 const auto garrisoning_battalion_type_id  = get_attribute(EmperyCenter::AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID);
@@ -1191,9 +1208,6 @@ bool  MapObject::is_lost_attacked_target(){
 
 bool MapObject::is_in_protect(){
 	PROFILE_ME;
-	if(!is_castle()){
-		return false;
-	}
 	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)&&!is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
 		return true;
 	}
@@ -1424,4 +1438,5 @@ std::uint64_t MapObject::on_action_attack_territory(std::pair<long, std::string>
 	}
 	return require_ai_control()->attack_territory(result,now,forced_attack);
 }
+
 }

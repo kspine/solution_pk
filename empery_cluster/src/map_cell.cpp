@@ -206,4 +206,13 @@ bool MapCell::is_in_castle_protect(){
 	return false;
 }
 
+bool MapCell::is_have_preocted_ticket(){
+		PROFILE_ME;
+	const auto map_cell_ticket = Data::MapCellTicket::get(get_ticket_item_id());
+	if(!map_cell_ticket){
+		return false;
+	}
+	return map_cell_ticket->protect;
+}
+
 }

@@ -101,6 +101,9 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", garrisoned = ", garrisoned, ", coord = ", coord);
 		map_object->set_attributes_no_synchronize(std::move(attributes));
+		for(auto it = buffs.begin(); it != buffs.end(); ++it){
+			map_object->set_buff(it->second.buff_id, it->second.time_begin, it->second.duration);
+		}
 	}
 
 	return Response();
