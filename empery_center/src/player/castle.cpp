@@ -1595,8 +1595,6 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 			castle->set_attributes(std::move(modifiers));
 
 			castle->set_coord(new_castle_coord);
-			castle->set_garrisoned(true); // 强制向地图服务器更新城堡坐标。
-			castle->set_garrisoned(false);
 
 			for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
 				const auto &child_object = *it;

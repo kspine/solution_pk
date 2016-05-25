@@ -20,6 +20,7 @@ namespace Msg {
 #define MESSAGE_ID      32301
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (stamp)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_VUINT         (action)	\

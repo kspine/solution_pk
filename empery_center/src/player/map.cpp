@@ -558,8 +558,8 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 
 	LOG_EMPERY_CENTER_DEBUG("Jump to another cluster: map_object_uuid = ", map_object_uuid,
 		", old_cood = ", old_coord, ", new_coord = ", new_coord);
-	map_object->set_action(0, { });
 	map_object->set_coord(new_coord);
+	map_object->set_action(0, { });
 
 	session->send(Msg::SC_MapObjectStopped(map_object_uuid.str(), 0, std::string(), Msg::ERR_SWITCHED_CLUSTER, std::string()));
 

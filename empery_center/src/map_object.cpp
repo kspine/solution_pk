@@ -198,6 +198,16 @@ Coord MapObject::get_coord() const {
 void MapObject::set_coord(Coord coord) noexcept {
 	PROFILE_ME;
 
+	m_obj->set_x(coord.x());
+	m_obj->set_y(coord.y());
+
+	++m_stamp;
+
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
+}
+void MapObject::set_coord_no_synchronize(Coord coord) noexcept {
+	PROFILE_ME;
+
 	if(get_coord() == coord){
 		return;
 	}
@@ -233,6 +243,8 @@ void MapObject::delete_from_game() noexcept {
 	}
 	m_obj->set_deleted(true);
 
+	++m_stamp;
+
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
 
@@ -246,6 +258,8 @@ void MapObject::set_garrisoned(bool garrisoned){
 		return;
 	}
 	m_obj->set_garrisoned(garrisoned);
+
+	++m_stamp;
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
@@ -582,6 +596,7 @@ void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession>
 	} else {
 		Msg::SK_MapAddMapObject msg;
 		msg.map_object_uuid    = get_map_object_uuid().str();
+		msg.stamp              = m_stamp;
 		msg.map_object_type_id = get_map_object_type_id().get();
 		msg.owner_uuid         = get_owner_uuid().str();
 		msg.parent_object_uuid = get_parent_object_uuid().str();

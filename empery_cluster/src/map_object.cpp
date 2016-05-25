@@ -95,10 +95,10 @@ std::uint64_t AiControl::attack_territory(std::pair<long, std::string> &result, 
 	return parent_object->attack_territory(result,now,forced_attack);
 }
 
-MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id,
+MapObject::MapObject(MapObjectUuid map_object_uuid, std::uint64_t stamp, MapObjectTypeId map_object_type_id,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,boost::container::flat_map<BuffId, BuffInfo> buffs)
-	: m_map_object_uuid(map_object_uuid), m_map_object_type_id(map_object_type_id)
+	: m_map_object_uuid(map_object_uuid), m_stamp(stamp), m_map_object_type_id(map_object_type_id)
 	, m_owner_uuid(owner_uuid), m_parent_object_uuid(parent_object_uuid),m_garrisoned(garrisoned), m_cluster(std::move(cluster))
 	, m_coord(coord), m_attributes(std::move(attributes)),m_buffs(std::move(buffs))
 {

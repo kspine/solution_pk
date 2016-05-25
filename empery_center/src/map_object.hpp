@@ -38,6 +38,7 @@ private:
 
 	// 非持久化数据。
 	std::uint64_t m_last_updated_time = 0;
+	mutable std::uint64_t m_stamp = 0;
 
 	unsigned m_action = 0;
 	std::string m_action_param;
@@ -69,6 +70,7 @@ public:
 
 	Coord get_coord() const;
 	void set_coord(Coord coord) noexcept;
+	void set_coord_no_synchronize(Coord coord) noexcept;
 
 	std::uint64_t get_created_time() const;
 
@@ -77,6 +79,10 @@ public:
 
 	bool is_garrisoned() const;
 	void set_garrisoned(bool garrisoned);
+
+	std::uint64_t get_stamp() const {
+		return m_stamp;
+	}
 
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;

@@ -42,6 +42,7 @@ namespace Msg {
 #define MESSAGE_ID      32397
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (stamp)	\
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_STRING        (owner_uuid)	\
 	FIELD_STRING        (parent_object_uuid)	\
