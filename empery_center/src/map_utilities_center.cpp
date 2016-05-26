@@ -75,9 +75,6 @@ std::pair<long, std::string> can_place_defense_building_at(Coord coord){
 		const auto other_coord = other_object->get_coord();
 		if(coord == other_coord){
 			LOG_EMPERY_CENTER_TRACE("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
-//			if(wait_for_moving_objects && other_object->is_moving()){
-//				return CbppResponse(Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY) <<other_map_object_uuid;
-//			}
 			return CbppResponse(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
 		}
 		const auto other_object_type_id = other_object->get_map_object_type_id();
@@ -90,6 +87,15 @@ std::pair<long, std::string> can_place_defense_building_at(Coord coord){
 					return CbppResponse(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
 				}
 			}
+		}
+	}
+
+	std::vector<boost::shared_ptr<ResourceCrate>> resource_crates;
+	WorldMap::get_resource_crates_by_rectangle(resource_crates, Rectangle(coord, 1, 1));
+	for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
+		const auto &resource_crate = *it;
+		if(!resource_crate->is_virtually_removed()){
+			return CbppResponse(Msg::ERR_CANNOT_PLACE_DEFENSE_ON_CRATES) <<resource_crate->get_resource_crate_uuid();
 		}
 	}
 
@@ -268,15 +274,22 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 					for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
 						const auto &other_object = *it;
 						const auto other_object_type_id = other_object->get_map_object_type_id();
-						if(other_object_type_id != MapObjectTypeIds::ID_CASTLE){
+						if(other_object_type_id == MapObjectTypeIds::ID_CASTLE){
+							foundation.clear();
+							get_castle_foundation(foundation, other_object->get_coord(), true);
+							for(auto fit = foundation.begin(); fit != foundation.begin() + static_cast<std::ptrdiff_t>(solid_offset); ++fit){
+								if(*fit == coord){
+									return true;
+								}
+							}
 							continue;
 						}
-						foundation.clear();
-						get_castle_foundation(foundation, other_object->get_coord(), true);
-						for(auto fit = foundation.begin(); fit != foundation.begin() + static_cast<std::ptrdiff_t>(solid_offset); ++fit){
-							if(*fit == coord){
+						const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(other_object);
+						if(defense_building){
+							if(defense_building->get_coord() == coord){
 								return true;
 							}
+							continue;
 						}
 					}
 
