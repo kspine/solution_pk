@@ -134,6 +134,7 @@ private:
 	bool          is_defense_tower();
 	bool          is_lost_attacked_target();
 	bool          is_in_protect();
+	bool          is_protect_solider_ignore_target(const boost::shared_ptr<MapObject> &target);
 	void          reset_attack_target_own_uuid();
 	AccountUuid   get_attack_target_own_uuid(); 
 	std::uint64_t search_attack();
