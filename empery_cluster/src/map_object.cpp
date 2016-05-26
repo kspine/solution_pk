@@ -1029,8 +1029,10 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 	boost::shared_ptr<MapObject> select_object;
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
-
-		if(map_object->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE){
+		if(is_protect_solider_ignore_target(map_object)){
+			continue;
+		}
+		if(is_castle() && map_object->is_castle()){
 			continue;
 		}
 		std::pair<long, std::string> reason;
@@ -1064,6 +1066,12 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 
 	if(!enemy_map_object)
 		return;
+	if(is_protect_solider_ignore_target(enemy_map_object)){
+		return;
+	}
+	if(is_castle() && enemy_map_object->is_castle()){
+		return;
+	}
 	if(is_in_attack_scope(enemy_map_object)){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
@@ -1071,7 +1079,7 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 			if(find_way_points(waypoints,get_coord(),enemy_map_object->get_coord(),false)){
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 			}else{
-				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
+				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_GUARD),"");
 			}
 	}
 }
@@ -1100,7 +1108,7 @@ void   MapObject::monster_regress(){
 	if(find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y),true)){
 		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_MONTER_REGRESS),"");
 	}else{
-		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_STAND_BY),"");
+		set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_GUARD),"");
 	}
 
 	const auto cluster = get_cluster();
@@ -1440,4 +1448,16 @@ std::uint64_t MapObject::on_action_attack_territory(std::pair<long, std::string>
 	return require_ai_control()->attack_territory(result,now,forced_attack);
 }
 
+bool         MapObject::is_protect_solider_ignore_target(const boost::shared_ptr<MapObject> &target){
+	if(is_building()){
+		return false;
+	}
+	if(!is_in_protect()){
+		return false;
+	}
+	if(target->is_building()){
+		return true;
+	}
+	return false;
+}
 }
