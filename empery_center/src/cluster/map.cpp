@@ -32,6 +32,7 @@
 #include "../singletons/account_map.hpp"
 #include "../singletons/battle_record_box_map.hpp"
 #include "../battle_record_box.hpp"
+#include "../crate_record_box.hpp"
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
@@ -976,7 +977,12 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	}
 
 	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
 	const auto attacking_object_type_data = Data::MapObjectTypeBattalion::require(attacking_object_type_id);
 	const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
@@ -1030,6 +1036,22 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
+
+	// 战报。
+	if(attacking_account_uuid){
+		try {
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+
+				const auto crate_record_box = BattleRecordBoxMap::require_crate(attacking_account_uuid);
+
+				crate_record_box->push(utc_now, attacking_object_type_id, attacking_coord, attacked_coord,
+					resource_id, amount_to_harvest, amount_harvested, amount_remaining);
+			});
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
 	}
 
 	return Response();

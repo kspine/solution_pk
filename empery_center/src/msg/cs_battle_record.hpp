@@ -14,6 +14,13 @@ namespace Msg {
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_BattleRecordGetPagedCrateRecords
+#define MESSAGE_ID      1301
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (begin)	\
+	FIELD_VUINT         (count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
