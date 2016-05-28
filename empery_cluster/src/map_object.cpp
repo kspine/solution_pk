@@ -941,6 +941,8 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 	if( (m_action != ACT_ATTACK)
 		&&(m_action != ACT_HARVEST_RESOURCE_CRATE)
 		&&(m_action != ACT_ATTACK_TERRITORY)
+		&&(m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE)
+		&&(m_action != ACT_ATTACK_TERRITORY_FORCE)
 	){
 		return true;
 	}
@@ -953,6 +955,10 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 		const auto target_object = WorldMap::get_map_object(MapObjectUuid(m_action_param));
 		if(!target_object){
 			result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
+			return false;
+		}
+		if(is_protect_solider_ignore_target(target_object)){
+			result = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
 			return false;
 		}
 		if(!target_object->attacked_able(result)){
@@ -1218,6 +1224,9 @@ bool  MapObject::is_lost_attacked_target(){
 bool MapObject::is_in_protect(){
 	PROFILE_ME;
 	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)&&!is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+		return true;
+	}
+	if(is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
 		return true;
 	}
 	return false;

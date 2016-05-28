@@ -27,6 +27,23 @@ namespace MySql {
 	FIELD_BOOLEAN           (deleted)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   Center_BattleRecordCrate
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (auto_uuid)	\
+	FIELD_UUID              (first_account_uuid)	\
+	FIELD_DATETIME          (timestamp)	\
+	FIELD_INTEGER_UNSIGNED  (first_object_type_id)	\
+	FIELD_BIGINT            (first_coord_x)	\
+	FIELD_BIGINT            (first_coord_y)	\
+	FIELD_BIGINT            (second_coord_x)	\
+	FIELD_BIGINT            (second_coord_y)	\
+	FIELD_INTEGER_UNSIGNED  (resource_id)	\
+	FIELD_BIGINT_UNSIGNED   (resource_harvested)	\
+	FIELD_BIGINT_UNSIGNED   (resource_gained)	\
+	FIELD_BIGINT_UNSIGNED   (resource_remaining)	\
+	FIELD_BOOLEAN           (deleted)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }

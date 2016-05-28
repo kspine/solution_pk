@@ -32,6 +32,7 @@
 #include "../singletons/account_map.hpp"
 #include "../singletons/battle_record_box_map.hpp"
 #include "../battle_record_box.hpp"
+#include "../crate_record_box.hpp"
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
@@ -365,39 +366,6 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 }
 
 namespace {
-	bool is_protectable(const boost::shared_ptr<MapObject> &map_object){
-		PROFILE_ME;
-
-		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
-		if(!defense){
-			return false;
-		}
-		return true;
-	}
-	bool is_protectable(const boost::shared_ptr<MapCell> &map_cell){
-		PROFILE_ME;
-
-		const auto ticket_item_id = map_cell->get_ticket_item_id();
-		const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
-		if(!ticket_data->protectable){
-			return false;
-		}
-		return true;
-	}
-
-	template<typename T>
-	bool is_protection_in_effect(const boost::shared_ptr<T> &ptr){
-		PROFILE_ME;
-
-		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
-			return true;
-		}
-		if(ptr->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
-			return true;
-		}
-		return false;
-	}
-
 	enum BattleNotificationType : int {
 		NOTIFY_ATTACK_MAP_OBJECT  = 1,
 		NOTIFY_KILL_MAP_OBJECT    = 2,
@@ -467,25 +435,13 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
 	const auto attacked_coord = attacked_object->get_coord();
 
-	if(attacked_account_uuid && is_protectable(attacking_object)){
-		// 处于保护状态下的防御建筑不能攻击其他玩家的部队。
-		if(is_protection_in_effect(attacking_object)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
-	}
-	if(attacking_account_uuid && is_protectable(attacked_object)){
-		// 处于保护状态下的防御建筑不能遭到其他玩家的部队攻击。
-		if(is_protection_in_effect(attacked_object)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object_uuid;
-		}
-		// 防御建筑不能遭到其他玩家处于保护状态下的部队的攻击。
-		if(is_protection_in_effect(attacking_object)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
-	}
-
 	if(attacking_account_uuid == attacked_account_uuid){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+	}
+
+	auto result = is_under_protection(attacking_object, attacked_object);
+	if(result.first != Msg::ST_OK){
+		return std::move(result);
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
@@ -1021,7 +977,12 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	}
 
 	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
 	const auto attacking_object_type_data = Data::MapObjectTypeBattalion::require(attacking_object_type_id);
 	const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
@@ -1077,6 +1038,22 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
 
+	// 战报。
+	if(attacking_account_uuid){
+		try {
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+
+				const auto crate_record_box = BattleRecordBoxMap::require_crate(attacking_account_uuid);
+
+				crate_record_box->push(utc_now, attacking_object_type_id, attacking_coord, attacked_coord,
+					resource_id, amount_to_harvest, amount_harvested, amount_remaining);
+			});
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+
 	return Response();
 }
 
@@ -1103,23 +1080,6 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 
 	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
 
-	if(attacked_account_uuid && is_protectable(attacking_object)){
-		// 处于保护状态下的领地不能攻击其他玩家的部队。
-		if(is_protection_in_effect(attacking_object)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
-	}
-	if(attacking_account_uuid && is_protectable(attacked_cell)){
-		// 处于保护状态下的领地不能遭到其他玩家的部队攻击。
-		if(is_protection_in_effect(attacked_cell)){
-			return Response(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_coord;
-		}
-		// 领地不能遭到其他玩家处于保护状态下的部队的攻击。
-		if(is_protection_in_effect(attacking_object)){
-			return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object_uuid;
-		}
-	}
-
 	const auto occupier_owner_uuid = attacked_cell->get_occupier_owner_uuid();
 	if(occupier_owner_uuid){
 		if(attacking_account_uuid == occupier_owner_uuid){
@@ -1129,6 +1089,11 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		if(attacking_account_uuid == attacked_account_uuid){
 			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 		}
+	}
+
+	auto result = is_under_protection(attacking_object, attacked_cell);
+	if(result.first != Msg::ST_OK){
+		return std::move(result);
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();

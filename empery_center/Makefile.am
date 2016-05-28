@@ -115,5 +115,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/strategic_resource.cpp	\
 	src/map_event_block.cpp	\
 	src/battle_record_box.cpp	\
+	src/crate_record_box.cpp	\
 	src/resource_crate.cpp	\
 	src/mmain.cpp

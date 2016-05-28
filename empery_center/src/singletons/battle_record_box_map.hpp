@@ -7,10 +7,14 @@
 namespace EmperyCenter {
 
 class BattleRecordBox;
+class CrateRecordBox;
 
 struct BattleRecordBoxMap {
 	static boost::shared_ptr<BattleRecordBox> get(AccountUuid account_uuid);
 	static boost::shared_ptr<BattleRecordBox> require(AccountUuid account_uuid);
+
+	static boost::shared_ptr<CrateRecordBox> get_crate(AccountUuid account_uuid);
+	static boost::shared_ptr<CrateRecordBox> require_crate(AccountUuid account_uuid);
 
 private:
 	BattleRecordBoxMap() = delete;

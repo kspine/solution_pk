@@ -10,6 +10,7 @@
 #include "strategic_resource.hpp"
 #include "singletons/world_map.hpp"
 #include "msg/err_map.hpp"
+#include "msg/err_castle.hpp"
 #include "msg/sc_map.hpp"
 #include "map_object_type_ids.hpp"
 #include "resource_crate.hpp"
@@ -75,9 +76,6 @@ std::pair<long, std::string> can_place_defense_building_at(Coord coord){
 		const auto other_coord = other_object->get_coord();
 		if(coord == other_coord){
 			LOG_EMPERY_CENTER_TRACE("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
-//			if(wait_for_moving_objects && other_object->is_moving()){
-//				return CbppResponse(Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY) <<other_map_object_uuid;
-//			}
 			return CbppResponse(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
 		}
 		const auto other_object_type_id = other_object->get_map_object_type_id();
@@ -90,6 +88,15 @@ std::pair<long, std::string> can_place_defense_building_at(Coord coord){
 					return CbppResponse(Msg::ERR_BLOCKED_BY_CASTLE) <<other_map_object_uuid;
 				}
 			}
+		}
+	}
+
+	std::vector<boost::shared_ptr<ResourceCrate>> resource_crates;
+	WorldMap::get_resource_crates_by_rectangle(resource_crates, Rectangle(coord, 1, 1));
+	for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
+		const auto &resource_crate = *it;
+		if(!resource_crate->is_virtually_removed()){
+			return CbppResponse(Msg::ERR_CANNOT_PLACE_DEFENSE_ON_CRATES) <<resource_crate->get_resource_crate_uuid();
 		}
 	}
 
@@ -268,15 +275,22 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 					for(auto it = adjacent_objects.begin(); it != adjacent_objects.end(); ++it){
 						const auto &other_object = *it;
 						const auto other_object_type_id = other_object->get_map_object_type_id();
-						if(other_object_type_id != MapObjectTypeIds::ID_CASTLE){
+						if(other_object_type_id == MapObjectTypeIds::ID_CASTLE){
+							foundation.clear();
+							get_castle_foundation(foundation, other_object->get_coord(), true);
+							for(auto fit = foundation.begin(); fit != foundation.begin() + static_cast<std::ptrdiff_t>(solid_offset); ++fit){
+								if(*fit == coord){
+									return true;
+								}
+							}
 							continue;
 						}
-						foundation.clear();
-						get_castle_foundation(foundation, other_object->get_coord(), true);
-						for(auto fit = foundation.begin(); fit != foundation.begin() + static_cast<std::ptrdiff_t>(solid_offset); ++fit){
-							if(*fit == coord){
+						const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(other_object);
+						if(defense_building){
+							if(defense_building->get_coord() == coord){
 								return true;
 							}
+							continue;
 						}
 					}
 
@@ -496,6 +510,99 @@ try {
 	Poseidon::enqueue_async_job(really_hang_up);
 } catch(std::exception &e){
 	LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+}
+
+namespace {
+	bool is_protectable(const boost::shared_ptr<MapObject> &map_object){
+		PROFILE_ME;
+
+		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
+		if(!defense){
+			return false;
+		}
+		return true;
+	}
+	bool is_protectable(const boost::shared_ptr<MapCell> &map_cell){
+		PROFILE_ME;
+
+		const auto ticket_item_id = map_cell->get_ticket_item_id();
+		const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
+		if(!ticket_data->protectable){
+			return false;
+		}
+		return true;
+	}
+
+	template<typename T>
+	bool is_protection_in_effect(const boost::shared_ptr<T> &ptr){
+		PROFILE_ME;
+
+		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+			return true;
+		}
+		if(ptr->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
+			return true;
+		}
+		return false;
+	}
+}
+
+std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObject> &attacking_object,
+	const boost::shared_ptr<MapObject> &attacked_object)
+{
+	PROFILE_ME;
+
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
+
+	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
+
+	if(attacked_account_uuid && is_protectable(attacking_object)){
+		// 处于保护状态下的防御建筑不能攻击其他玩家的部队。
+		if(is_protection_in_effect(attacking_object)){
+			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	if(attacking_account_uuid && is_protectable(attacked_object)){
+		// 处于保护状态下的防御建筑不能遭到其他玩家的部队攻击。
+		if(is_protection_in_effect(attacked_object)){
+			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object->get_map_object_uuid();
+		}
+		// 防御建筑不能遭到其他玩家处于保护状态下的部队的攻击。
+		if(is_protection_in_effect(attacking_object)){
+			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	return CbppResponse();
+}
+std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObject> &attacking_object,
+	const boost::shared_ptr<MapCell> &attacked_cell)
+{
+	PROFILE_ME;
+
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
+
+	auto attacked_account_uuid = attacked_cell->get_occupier_owner_uuid();
+	if(!attacked_account_uuid){
+		attacked_account_uuid = attacked_cell->get_owner_uuid();
+	}
+
+	if(attacked_account_uuid && is_protectable(attacking_object)){
+		// 处于保护状态下的领地不能攻击其他玩家的部队。
+		if(is_protection_in_effect(attacking_object)){
+			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	if(attacking_account_uuid && is_protectable(attacked_cell)){
+		// 处于保护状态下的领地不能遭到其他玩家的部队攻击。
+		if(is_protection_in_effect(attacked_cell)){
+			return CbppResponse(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_cell->get_coord();
+		}
+		// 领地不能遭到其他玩家处于保护状态下的部队的攻击。
+		if(is_protection_in_effect(attacking_object)){
+			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	return CbppResponse();
 }
 
 }

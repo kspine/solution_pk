@@ -29,7 +29,7 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SC_BattleRecordReceivedNew
+#define MESSAGE_NAME    SC_BattleRecordNewReceived
 #define MESSAGE_ID      1398
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (reserved)
@@ -46,6 +46,31 @@ namespace Msg {
 	FIELD_ARRAY         (params,	\
 		FIELD_STRING        (str)	\
 	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_BattleRecordPagedCrateRecords
+#define MESSAGE_ID      1396
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (total_count)	\
+	FIELD_VUINT         (begin)	\
+	FIELD_ARRAY         (records,	\
+		FIELD_VUINT         (timestamp)	\
+		FIELD_VUINT         (first_object_type_id)	\
+		FIELD_VINT          (first_coord_x)	\
+		FIELD_VINT          (first_coord_y)	\
+		FIELD_VINT          (second_coord_x)	\
+		FIELD_VINT          (second_coord_y)	\
+		FIELD_VUINT         (resource_id)	\
+		FIELD_VUINT         (resource_harvested)	\
+		FIELD_VUINT         (resource_gained)	\
+		FIELD_VUINT         (resource_remaining)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_BattleRecordNewCrateReceived
+#define MESSAGE_ID      1395
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (reserved)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
