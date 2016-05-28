@@ -544,16 +544,15 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 		const auto &map_cell = *it;
 		map_cell->pump_status();
 
-		if(map_cell->get_resource_amount() == 0){
-			warehouse_full = false;
-			continue;
-		}
-
+		std::uint64_t amount_to_harvest = 0;
 		const auto occupier_object_uuid = map_cell->get_occupier_object_uuid();
 		if(occupier_object_uuid){
 			LOG_EMPERY_CENTER_DEBUG("Map cell is occupied: map_object_uuid = ", map_object_uuid,
 				", coord = ", map_cell->get_coord(), ", occupier_object_uuid = ", occupier_object_uuid);
 		} else {
+			amount_to_harvest = map_cell->get_resource_amount();
+		}
+		if(amount_to_harvest != 0){
 			const auto resource_id = map_cell->get_production_resource_id();
 			const auto amount_harvested = map_cell->harvest(castle, UINT32_MAX, false);
 			if(amount_harvested == 0){
