@@ -253,6 +253,8 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		}
 
 		std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+		std::vector<boost::shared_ptr<ResourceCrate>> adjacent_crates;
+
 		std::vector<Coord> foundation;
 		const auto solid_offset = get_castle_foundation_solid_area();
 		coords.erase(
@@ -294,7 +296,15 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 							if(defense_building->get_coord() == coord){
 								return true;
 							}
-							continue;
+						}
+					}
+
+					adjacent_crates.clear();
+					WorldMap::get_resource_crates_by_rectangle(adjacent_crates, Rectangle(coord, 1, 1));
+					for(auto it = adjacent_crates.begin(); it != adjacent_crates.end(); ++it){
+						const auto &other_crate = *it;
+						if(other_crate->get_coord() == coord){
+							return true;
 						}
 					}
 
