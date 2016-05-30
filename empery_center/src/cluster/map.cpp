@@ -826,7 +826,7 @@ _wounded_done:
 				const auto radius_inner = static_cast<unsigned>(radius_limits.at(0).get<double>());
 				const auto radius_outer = static_cast<unsigned>(radius_limits.at(1).get<double>());
 
-				boost::container::flat_map<ResourceId, std::uint64_t> resources_dropped;
+				std::vector<std::pair<ResourceId, std::uint64_t>> resources_dropped;
 				resources_dropped.reserve(16);
 
 				{
@@ -846,9 +846,7 @@ _wounded_done:
 
 							const auto amount_protected = castle->get_warehouse_protection(resource_id);
 							const auto amount_dropped = saturated_sub(it->amount, amount_protected);
-
-							auto &amount = resources_dropped[resource_id];
-							amount = saturated_add(amount, amount_dropped);
+							resources_dropped.emplace_back(resource_id, amount_dropped);
 						}
 						std::vector<ResourceTransactionElement> transaction;
 						transaction.reserve(resources_dropped.size());
@@ -871,9 +869,7 @@ _wounded_done:
 						for(auto it = defense_data->debris.begin(); it != defense_data->debris.end(); ++it){
 							const auto resource_id = it->first;
 							const auto amount_dropped = it->second;
-
-							auto &amount = resources_dropped[resource_id];
-							amount = saturated_add(amount, amount_dropped);
+							resources_dropped.emplace_back(resource_id, amount_dropped);
 						}
 						goto _create_crates;
 					}
@@ -897,14 +893,16 @@ _wounded_done:
 							continue;
 						}
 						const auto amount_dropped = static_cast<std::uint64_t>(value);
-
-						auto &amount = resources_dropped[resource_id];
-						amount = saturated_add(amount, amount_dropped);
+						resources_dropped.emplace_back(resource_id, amount_dropped);
 					}
 				}
 			_create_crates:
 				;
 
+				for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
+					const auto rand = Poseidon::rand32(0, resources_dropped.size());
+					std::swap(*it, resources_dropped.at(rand));
+				}
 				for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
 					const auto resource_id = it->first;
 					const auto amount = it->second;

@@ -231,6 +231,9 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		if(amount_remaining == 0){
 			return;
 		}
+		if(radius_begin >= radius_end){
+			return;
+		}
 		unsigned crate_count = 1;
 		if(amount_remaining >= separation_amount_threshold){
 			crate_count += Poseidon::rand32(1, number_limit);
@@ -243,12 +246,15 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		const auto resource_amount_per_crate = amount_remaining / crate_count;
 
 		std::vector<Coord> coords;
-		coords.reserve(256);
+		const unsigned n_radius = radius_end - radius_begin;
+		coords.reserve(n_radius * 6 + 1 + n_radius * (n_radius - 1) * 3);
 		for(unsigned i = radius_begin; i < radius_end; ++i){
 			get_surrounding_coords(coords, origin, i);
 		}
 
 		std::vector<boost::shared_ptr<MapObject>> adjacent_objects;
+		std::vector<boost::shared_ptr<ResourceCrate>> adjacent_crates;
+
 		std::vector<Coord> foundation;
 		const auto solid_offset = get_castle_foundation_solid_area();
 		coords.erase(
@@ -290,7 +296,15 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 							if(defense_building->get_coord() == coord){
 								return true;
 							}
-							continue;
+						}
+					}
+
+					adjacent_crates.clear();
+					WorldMap::get_resource_crates_by_rectangle(adjacent_crates, Rectangle(coord, 1, 1));
+					for(auto it = adjacent_crates.begin(); it != adjacent_crates.end(); ++it){
+						const auto &other_crate = *it;
+						if(other_crate->get_coord() == coord){
+							return true;
 						}
 					}
 
