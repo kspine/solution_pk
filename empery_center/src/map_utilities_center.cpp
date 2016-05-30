@@ -231,6 +231,9 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		if(amount_remaining == 0){
 			return;
 		}
+		if(radius_begin >= radius_end){
+			return;
+		}
 		unsigned crate_count = 1;
 		if(amount_remaining >= separation_amount_threshold){
 			crate_count += Poseidon::rand32(1, number_limit);
@@ -243,7 +246,8 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		const auto resource_amount_per_crate = amount_remaining / crate_count;
 
 		std::vector<Coord> coords;
-		coords.reserve(256);
+		const unsigned n_radius = radius_end - radius_begin;
+		coords.reserve(n_radius * 6 + 1 + n_radius * (n_radius - 1) * 3);
 		for(unsigned i = radius_begin; i < radius_end; ++i){
 			get_surrounding_coords(coords, origin, i);
 		}
