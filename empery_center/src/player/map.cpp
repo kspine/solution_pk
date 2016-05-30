@@ -760,8 +760,6 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<AccountUuid();
 	}
 
-	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
-
 	map_cell->pump_status();
 
 	boost::shared_ptr<Castle> virtual_castle;
@@ -783,6 +781,8 @@ PLAYER_SERVLET(Msg::CS_MapHarvestMapCell, account, session, req){
 			return Response(Msg::ERR_NOT_YOUR_MAP_CELL) <<virtual_castle->get_owner_uuid();
 		}
 	}
+
+	const auto task_box = TaskBoxMap::require(virtual_castle->get_owner_uuid());
 
 	if(map_cell->get_resource_amount() != 0){
 		const auto resource_id = map_cell->get_production_resource_id();
