@@ -28,7 +28,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 	auto pkey = get_config<std::string> ("cluster_cbpp_server_private_key");
 
 	const Poseidon::IpPort bind_addr(SharedNts(bind), port);
-	LOG_EMPERY_CENTER_INFO("Creating CBPP player server on ", bind_addr);
+	LOG_EMPERY_CENTER_INFO("Creating cluster CBPP server on ", bind_addr);
 	const auto server = boost::make_shared<ClusterServer>(bind_addr, cert, pkey);
 	Poseidon::EpollDaemon::register_server(server);
 	handles.push(server);

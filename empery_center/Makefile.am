@@ -16,6 +16,7 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-center.la
 
 lib_libposeidon_empery_center_la_SOURCES = \
+	src/singletons/controller_client.cpp	\
 	src/singletons/player_websocket_server.cpp	\
 	src/singletons/cluster_cbpp_server.cpp	\
 	src/singletons/data_http_server.cpp	\
