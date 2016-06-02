@@ -460,7 +460,11 @@ std::uint64_t MapObject::get_resource_amount_carried() const {
 		if(!resource_data){
 			continue;
 		}
-		amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(value));
+		const auto unit_weight = resource_data->unit_weight;
+		if(unit_weight <= 0){
+			continue;
+		}
+		amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(value * unit_weight));
 	}
 	return amount_total;
 }
@@ -468,6 +472,11 @@ std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amo
 	PROFILE_ME;
 
 	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto unit_weight = resource_data->unit_weight;
+	if(unit_weight <= 0){
+		LOG_EMPERY_CENTER_WARNING("Resource does not have a positive unit weight: resource_id = ", resource_id);
+		DEBUG_THROW(Exception, sslit("Resource does not have a positive unit weight"));
+	}
 	const auto carried_attribute_id = resource_data->carried_attribute_id;
 	if(!carried_attribute_id){
 		LOG_EMPERY_CENTER_WARNING("Resource is not harvestable: resource_id = ", resource_id);

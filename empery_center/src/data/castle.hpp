@@ -257,6 +257,7 @@ namespace Data {
 		ItemId undeployed_item_id;
 
 		AttributeId carried_attribute_id;
+		double unit_weight;
 
 		AutoIncType auto_inc_type;
 		std::uint64_t auto_inc_offset;
