@@ -287,7 +287,7 @@ PLAYER_SERVLET(Msg::CS_CastleDestroyBuilding, account, session, req){
 
 	case BuildingTypeIds::ID_MEDICAL_TENT.get():
 		if(castle->has_wounded_soldiers()){
-			return Response(Msg::ERR_MEDICAL_TENT_TREATMENT_IN_PROGRESS);
+			return Response(Msg::ERR_MEDICAL_TENT_NOT_EMPTY);
 		}
 		break;
 	}
