@@ -43,11 +43,13 @@ namespace {
 		Coord coord;
 		MapObjectUuid parent_object_uuid;
 		MapObjectUuid occupier_object_uuid;
+		bool auto_update;
 
 		explicit MapCellElement(boost::shared_ptr<MapCell> map_cell_)
 			: map_cell(std::move(map_cell_))
 			, coord(map_cell->get_coord()), parent_object_uuid(map_cell->get_parent_object_uuid())
 			, occupier_object_uuid(map_cell->get_occupier_object_uuid())
+			, auto_update(map_cell->should_auto_update())
 		{
 		}
 	};
@@ -56,6 +58,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 		MULTI_MEMBER_INDEX(occupier_object_uuid)
+		MULTI_MEMBER_INDEX(auto_update)
 	)
 
 	boost::weak_ptr<MapCellContainer> g_map_cell_map;
@@ -70,15 +73,10 @@ namespace {
 		}
 
 		std::vector<boost::shared_ptr<MapCell>> map_cells_to_pump;
-		map_cells_to_pump.reserve(map_cell_map->size());
-		for(auto it = map_cell_map->begin<0>(); it != map_cell_map->end<0>(); ++it){
+		const auto range = std::make_pair(map_cell_map->upper_bound<3>(false), map_cell_map->end<3>());
+		map_cells_to_pump.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
 			const auto &map_cell = it->map_cell;
-			if(map_cell->is_virtually_removed()){
-				continue;
-			}
-			if(!map_cell->should_auto_update()){
-				continue;
-			}
 			map_cells_to_pump.emplace_back(map_cell);
 		}
 		for(auto it = map_cells_to_pump.begin(); it != map_cells_to_pump.end(); ++it){
@@ -141,12 +139,14 @@ namespace {
 		AccountUuid owner_uuid;
 		MapObjectUuid parent_object_uuid;
 		MapObjectUuid garrisoning_object_uuid;
+		bool auto_update;
 
 		explicit MapObjectElement(boost::shared_ptr<MapObject> map_object_)
 			: map_object(std::move(map_object_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
 			, owner_uuid(map_object->get_owner_uuid()), parent_object_uuid(map_object->get_parent_object_uuid())
 			, garrisoning_object_uuid(get_garrisoning_object_uuid_aux(map_object))
+			, auto_update(map_object->should_auto_update())
 		{
 		}
 	};
@@ -157,6 +157,7 @@ namespace {
 		MULTI_MEMBER_INDEX(owner_uuid)
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 		MULTI_MEMBER_INDEX(garrisoning_object_uuid)
+		MULTI_MEMBER_INDEX(auto_update)
 	)
 
 	boost::weak_ptr<MapObjectContainer> g_map_object_map;
@@ -171,15 +172,10 @@ namespace {
 		}
 
 		std::vector<boost::shared_ptr<MapObject>> map_objects_to_pump;
-		map_objects_to_pump.reserve(map_object_map->size());
-		for(auto it = map_object_map->begin<0>(); it != map_object_map->end<0>(); ++it){
+		const auto range = std::make_pair(map_object_map->upper_bound<5>(false), map_object_map->end<5>());
+		map_objects_to_pump.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
 			const auto &map_object = it->map_object;
-			if(map_object->is_virtually_removed()){
-				continue;
-			}
-			if(!map_object->should_auto_update()){
-				continue;
-			}
 			map_objects_to_pump.emplace_back(map_object);
 		}
 		for(auto it = map_objects_to_pump.begin(); it != map_objects_to_pump.end(); ++it){
