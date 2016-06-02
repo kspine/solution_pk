@@ -25,6 +25,7 @@ namespace Data {
 		double              critical_damage_plus_rate;
 		unsigned            attack_type;
 		unsigned            defence_type;
+		std::uint32_t       hp;
 	};
 
 	class MapObjectRelative {

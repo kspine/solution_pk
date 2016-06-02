@@ -54,6 +54,7 @@ namespace {
 			csv.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
 			csv.get(elem.attack_type,         				"arm_attack_type");
 			csv.get(elem.defence_type,                      "arm_def_type");
+			csv.get(elem.hp,                                "hp");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -77,6 +78,7 @@ namespace {
 			csvMonster.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
 			csvMonster.get(elem.attack_type,         					"arm_attack_type");
 			csvMonster.get(elem.defence_type,                      		"arm_def_type");
+			csvMonster.get(elem.hp,                      		  "hp");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -105,6 +107,9 @@ namespace {
 			csvBuilding.get(elem.doge_rate,                         "arm_dodge");
 			csvBuilding.get(elem.critical_rate,                     "arm_crit");
 			csvBuilding.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
+			csvBuilding.get(elem.attack_type,         					"arm_attack_type");
+			csvBuilding.get(elem.defence_type,                      		"arm_def_type");
+			csvBuilding.get(elem.hp,                      		   "hp");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
