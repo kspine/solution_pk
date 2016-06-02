@@ -23,14 +23,30 @@ namespace Data {
 		double              doge_rate;
 		double              critical_rate;
 		double              critical_damage_plus_rate;
+		unsigned            attack_type;
+		unsigned            defence_type;
 	};
 
 	class MapObjectRelative {
+		public:
+		enum AttackType : unsigned {
+			ATTACK_NORMAL = 1,
+			ATTACK_STAB   = 2,
+			ATTACK_CITY   = 3,
+			ATTACK_FLAME  = 4,	
+		};
+		
+		enum DefenceType: unsigned {
+			DEFENCE_LIGHT         = 1,
+			DEFENCE_MIDDLE        = 2,
+			DEFENCE_HEAVY         = 3,
+			DEFENCE_REINFORCE	  = 4,
+		};
 	public:
-		static double get_relative(MapObjectWeaponId map_object_category_id,MapObjectWeaponId relateive_category_id);
+		static double get_relative(unsigned attack_type,unsigned defence_type);
 	public:
-		MapObjectWeaponId           category_id;
-		boost::container::flat_map<MapObjectWeaponId, double> arm_relative;
+		unsigned 	attack_type;
+		boost::container::flat_map<unsigned, double> arm_relative;
 	};
 
 	class MapObjectTypeMonster{

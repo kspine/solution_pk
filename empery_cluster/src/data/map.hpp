@@ -37,6 +37,7 @@ namespace Data {
 		double defense;
 		unsigned range;
 		unsigned protect;
+		unsigned defence_type;
 	};
 }
 

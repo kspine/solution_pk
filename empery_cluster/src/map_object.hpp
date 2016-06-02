@@ -138,7 +138,8 @@ private:
 	void          reset_attack_target_own_uuid();
 	AccountUuid   get_attack_target_own_uuid(); 
 	std::uint64_t search_attack();
-	MapObjectWeaponId get_arm_relative_id();
+	unsigned      get_arm_attack_type();
+	unsigned      get_arm_defence_type();
 	int           get_attacked_prority();
 	bool          move_able();
 	boost::shared_ptr<const Data::MapObjectType> get_map_object_type_data();

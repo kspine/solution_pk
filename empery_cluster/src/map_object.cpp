@@ -544,17 +544,15 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	bool bCritical = false;
 	int result_type = IMPACT_NORMAL;
 	std::uint64_t damage = 0;
-	double addition_params = 1.0;//加成参数
-	double damage_reduce_rate = 0.0;//伤害减免率
 	double attack_rate = map_object_type_data->attack_speed;
 	double doge_rate = emempy_type_data->doge_rate;
 	double critical_rate = map_object_type_data->critical_rate;
 	double critical_demage_plus_rate = map_object_type_data->critical_damage_plus_rate;
 	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0);
 	double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0);
-	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_relative_id(),target_object->get_arm_relative_id());
+	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),target_object->get_arm_defence_type());
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-	auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
+	//auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;
 	}
@@ -565,13 +563,8 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result_type = IMPACT_MISS;
 	}else{
 		//伤害计算
-		if(!target_object->is_castle()){
-			damage = (1.0 +(soldier_count/20000.0) + (soldier_count - ememy_solider_count)/20000.0 )*relative_rate*
-			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
-		}else{
-			damage =  (1.0 +(soldier_count/20000.0))*relative_rate*
-			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
-		}
+		damage = total_attack * soldier_count * relative_rate * (1 - 1 *total_defense/(1 + 1*total_defense));
+		LOG_EMPERY_CLUSTER_FATAL("damage damage damage:", damage);
 		result_type = IMPACT_NORMAL;
 		damage = damage < 1 ? 1 : damage ;
 		//暴击计算
@@ -652,20 +645,17 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 	}
 
 	std::uint64_t damage = 0;
-	double addition_params = 1.0;//加成参数
-	double damage_reduce_rate = 0.0;//伤害减免率
 	double attack_rate = map_object_type_data->attack_speed;
 	double total_attack  = map_object_type_data->attack;
 	double total_defense = resource_crate_data->defence;
-	double relative_rate = 1;
+	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),resource_crate_data->defence_type);
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;
 	}
 
-	damage =  (1.0 +(soldier_count/20000.0))*relative_rate*
-			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
+	damage = total_attack * soldier_count * relative_rate * (1 - 1 *total_defense/(1 + 1*total_defense));;
 	damage = damage < 1 ? 1 : damage ;
 	const auto amount_remainging = target_resource_crate->get_amount_remaining();
 	damage = (damage > amount_remainging) ? amount_remainging: damage;
@@ -729,20 +719,17 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 	}
 
 	std::uint64_t damage = 0;
-	double addition_params = 1.0;//加成参数
-	double damage_reduce_rate = 0.0;//伤害减免率
 	double attack_rate = map_object_type_data->attack_speed;
 	double total_attack  = map_object_type_data->attack;
 	double total_defense = map_cell_ticket->defense;
-	double relative_rate = 1;
+	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),map_cell_ticket->defence_type);
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;
 	}
 
-	damage =  (1.0 +(soldier_count/20000.0))*relative_rate*
-			pow((total_attack*addition_params),2)/(total_attack*addition_params + total_defense*addition_params)*map_object_type_data->attack_plus*(1.0+damage_reduce_rate);
+	damage = total_attack * soldier_count * relative_rate * (1 - 1 *total_defense/(1 + 1*total_defense));
 	damage = damage < 1 ? 1 : damage ;
 
 	Msg::KS_MapAttackMapCellAction msg;
@@ -1271,18 +1258,22 @@ std::uint64_t MapObject::get_shoot_range(){
 	return shoot_range;
 }
 
-MapObjectWeaponId MapObject::get_arm_relative_id(){
-	//野怪
-	const auto map_object_type_monster_data = Data::MapObjectTypeMonster::get(get_map_object_type_id());
-	if(map_object_type_monster_data){
-		return map_object_type_monster_data->arm_relative_id;
-	}
+unsigned MapObject::get_arm_attack_type(){
 	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		LOG_EMPERY_CLUSTER_DEBUG("No map object type data,id = ",get_map_object_type_id());
-		return MapObjectWeaponId(0);
+		return 0;
 	}
-	return map_object_type_data->category_id;
+	return map_object_type_data->attack_type;
+}
+
+unsigned MapObject::get_arm_defence_type(){
+	const auto map_object_type_data = get_map_object_type_data();
+	if(!map_object_type_data){
+		LOG_EMPERY_CLUSTER_DEBUG("No map object type data,id = ",get_map_object_type_id());
+		return 0;
+	}
+	return map_object_type_data->defence_type;
 }
 
 int MapObject::get_attacked_prority(){

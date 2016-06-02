@@ -14,6 +14,7 @@ namespace Data {
 		std::pair<ResourceId,std::uint64_t> resource_amount;
 		double                       defence;
 		double                       health;
+		unsigned                     defence_type;
 	};
 }
 
