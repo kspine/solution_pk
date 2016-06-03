@@ -463,7 +463,8 @@ namespace {
 			csv.get(elem.building_level, "filed_level");
 			read_upgrade_abstract(elem, csv);
 
-			csv.get(elem.max_battalion_count, "force_limit");
+			csv.get(elem.max_battalion_count,     "force_limit");
+			csv.get(elem.max_soldier_count_bonus, "arm_max");
 
 			if(!upgrade_parade_ground_map->emplace(elem.building_level, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeParadeGround: building_level = ", elem.building_level);

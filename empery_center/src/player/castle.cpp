@@ -1057,7 +1057,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	if(!map_object_type_data){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
 	}
-	const auto max_soldier_count = map_object_type_data->max_soldier_count;
+	const auto max_soldier_count_bonus = castle->get_max_soldier_count_bonus();
+	const auto max_soldier_count = checked_add(map_object_type_data->max_soldier_count, max_soldier_count_bonus);
 	if(soldier_count > max_soldier_count){
 		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_BATTALION) <<max_soldier_count;
 	}

@@ -83,6 +83,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/payment/create_bill.cpp	\
 	src/payment/promotion_callback.cpp	\
 	src/cluster/map.cpp	\
+	src/controller/account.cpp	\
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
 	src/account_utilities.cpp	\

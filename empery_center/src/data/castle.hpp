@@ -171,6 +171,7 @@ namespace Data {
 
 	public:
 		std::uint64_t max_battalion_count;
+		std::uint64_t max_soldier_count_bonus;
 	};
 
 	class CastleUpgradeMedicalTent : public CastleUpgradeAddonAbstract {

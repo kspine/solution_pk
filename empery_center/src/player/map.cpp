@@ -681,7 +681,8 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 
 	const auto old_soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const auto new_soldier_count = checked_add(old_soldier_count, soldier_count);
-	const auto max_soldier_count = map_object_type_data->max_soldier_count;
+	const auto max_soldier_count_bonus = castle->get_max_soldier_count_bonus();
+	const auto max_soldier_count = checked_add(map_object_type_data->max_soldier_count, max_soldier_count_bonus);
 	if(new_soldier_count > max_soldier_count){
 		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_BATTALION) <<max_soldier_count;
 	}

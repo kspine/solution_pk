@@ -161,6 +161,7 @@ public:
 	bool is_tech_upgrade_in_progress() const; // 学院
 	bool is_soldier_production_in_progress(BuildingBaseId building_base_id) const; // （通用）兵营
 	std::uint64_t get_max_battalion_count() const; // 校场
+	std::uint64_t get_max_soldier_count_bonus() const; // 校场
 	std::uint64_t get_medical_tent_capacity() const; // 医疗帐篷
 	bool is_treatment_in_progress() const; // 医疗帐篷
 
