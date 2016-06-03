@@ -5,7 +5,7 @@
 
 namespace EmperyController {
 
-const unsigned long long LOG_CATEGORY = 0x00010500;
+const unsigned long long LOG_CATEGORY = 0x00010200;
 
 }
 
