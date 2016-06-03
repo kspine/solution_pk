@@ -23,8 +23,6 @@ constexpr AttributeId
 	ID_COMBAT_VALUE                     ( 2500103 ),
 	ID_MONSTER_START_POINT_X            ( 2500104 ),
 	ID_MONSTER_START_POINT_Y            ( 2500105 ),
-
-	R_COMBAT_ATTRIBUTES_BEGIN           ( 2500106 ),
 	ID_ATTACK_BONUS                     ( 2500106 ),
 	ID_DEFENSE_BONUS                    ( 2500107 ),
 	ID_DODGING_RATIO_BONUS              ( 2500108 ),
@@ -34,8 +32,6 @@ constexpr AttributeId
 	ID_SIGHT_RANGE_BONUS                ( 2500112 ),
 	ID_RATE_OF_FIRE_BONUS               ( 2500113 ),
 	ID_SPEED_BONUS                      ( 2500114 ),
-	R_COMBAT_ATTRIBUTES_END             ( 2500115 ),
-
 	ID_SOLDIER_PRODUCTION_LIMIT_BONUS   ( 2500115 ),
 	ID_WOUNDED_SOLDIER_RATIO_BONUS      ( 2500116 ),
 	ID_DEFENSE_BUILDING_ATTACK_BONUS    ( 2500119 ),

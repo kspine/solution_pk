@@ -148,11 +148,22 @@ void MapObject::recalculate_attributes(bool recursive){
 				const auto &attributes = buff_data->attributes;
 				for(auto ait = attributes.begin(); ait != attributes.end(); ++ait){
 					const auto attribute_id = ait->first;
-					if((attribute_id < AttributeIds::R_COMBAT_ATTRIBUTES_BEGIN) || (AttributeIds::R_COMBAT_ATTRIBUTES_END <= attribute_id)){
-						continue;
+					switch(attribute_id.get()){
+					case AttributeIds::ID_ATTACK_BONUS.get():
+					case AttributeIds::ID_DEFENSE_BONUS.get():
+					case AttributeIds::ID_DODGING_RATIO_BONUS.get():
+					case AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS.get():
+					case AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS.get():
+					case AttributeIds::ID_ATTACK_RANGE_BONUS.get():
+					case AttributeIds::ID_SIGHT_RANGE_BONUS.get():
+					case AttributeIds::ID_RATE_OF_FIRE_BONUS.get():
+					case AttributeIds::ID_SPEED_BONUS.get():
+						{
+							auto &value = modifiers[ait->first];
+							value += std::round(ait->second * 1000.0);
+						}
+						break;
 					}
-					auto &value = modifiers[ait->first];
-					value += std::round(ait->second * 1000.0);
 				}
 			}
 		}
