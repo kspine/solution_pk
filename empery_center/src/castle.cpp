@@ -1079,6 +1079,28 @@ std::uint64_t Castle::get_max_battalion_count() const {
 	}
 	return count;
 }
+std::uint64_t Castle::get_max_soldier_count_bonus() const {
+	PROFILE_ME;
+
+	std::uint64_t count = 0;
+	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
+		const auto building_id = BuildingId(it->second->get_building_id());
+		if(!building_id){
+			continue;
+		}
+		const auto building_data = Data::CastleBuilding::require(building_id);
+		if(building_data->type != BuildingTypeIds::ID_PARADE_GROUND){
+			continue;
+		}
+		const unsigned current_level = it->second->get_building_level();
+		if(current_level == 0){
+			continue;
+		}
+		const auto upgrade_data = Data::CastleUpgradeParadeGround::require(current_level);
+		count = saturated_add(count, upgrade_data->max_soldier_count_bonus);
+	}
+	return count;
+}
 std::uint64_t Castle::get_medical_tent_capacity() const {
 	PROFILE_ME;
 
