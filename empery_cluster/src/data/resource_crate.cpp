@@ -29,6 +29,7 @@ namespace {
 			elem.resource_amount = std::make_pair(resouce_id,amount);
 			csv.get(elem.defence,                "chest_defense");
 			csv.get(elem.health,                 "chest_health");
+			csv.get(elem.defence_type,           "arm_def_type");
 			if(!resource_crate_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate ResourceCrate: Resourceid = ", resouce_id," amount = ",amount);
 				DEBUG_THROW(Exception, sslit("Duplicate ResourceCrate"));

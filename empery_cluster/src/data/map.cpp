@@ -73,6 +73,7 @@ namespace {
 			csv.get(elem.defense,            "territory_def");
 			csv.get(elem.range,            "range");
 			csv.get(elem.protect,            "protect");
+			csv.get(elem.defence_type,       "arm_def_type");
 			if(!ticket_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapCellTicket: ticket_item_id = ", elem.ticket_item_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapCellTicket"));

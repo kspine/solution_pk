@@ -15,7 +15,7 @@ namespace {
 	const char MAP_OBJECT_TYPE_FILE[] = "Arm";
 
 	MULTI_INDEX_MAP(MapObjectRelativeMap, Data::MapObjectRelative,
-		UNIQUE_MEMBER_INDEX(category_id)
+		UNIQUE_MEMBER_INDEX(attack_type)
 	)
 	boost::weak_ptr<const MapObjectRelativeMap> g_map_object_relative_map;
 	const char MAP_OBJECT_RELATIVE_FILE[] = "Arm_relative";
@@ -52,6 +52,9 @@ namespace {
 			csv.get(elem.doge_rate,                         "arm_dodge");
 			csv.get(elem.critical_rate,                     "arm_crit");
 			csv.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
+			csv.get(elem.attack_type,         				"arm_attack_type");
+			csv.get(elem.defence_type,                      "arm_def_type");
+			csv.get(elem.hp,                                "hp");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -73,6 +76,9 @@ namespace {
 			csvMonster.get(elem.doge_rate,                         "arm_dodge");
 			csvMonster.get(elem.critical_rate,                     "arm_crit");
 			csvMonster.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
+			csvMonster.get(elem.attack_type,         					"arm_attack_type");
+			csvMonster.get(elem.defence_type,                      		"arm_def_type");
+			csvMonster.get(elem.hp,                      		  "hp");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -101,6 +107,9 @@ namespace {
 			csvBuilding.get(elem.doge_rate,                         "arm_dodge");
 			csvBuilding.get(elem.critical_rate,                     "arm_crit");
 			csvBuilding.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
+			csvBuilding.get(elem.attack_type,         					"arm_attack_type");
+			csvBuilding.get(elem.defence_type,                      		"arm_def_type");
+			csvBuilding.get(elem.hp,                      		   "hp");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -118,23 +127,23 @@ namespace {
 		const auto map_object_relative_map = boost::make_shared<MapObjectRelativeMap>();
 		while(csvRelative.fetch_row()){
 			Data::MapObjectRelative elem = { };
-			csvRelative.get(elem.category_id,         "arm_type");
+			csvRelative.get(elem.attack_type,         "arm_attack_type");
 
 			Poseidon::JsonObject object;
-			csvRelative.get(object, "anti_relative");
+			csvRelative.get(object, "arm_def_type");
 			elem.arm_relative.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				const auto relative_category_id = boost::lexical_cast<MapObjectWeaponId>(it->first);
+				const auto defence_type = boost::lexical_cast<unsigned>(it->first);
 				const auto relateive = it->second.get<double>();
-				if(!elem.arm_relative.emplace(relative_category_id, relateive).second){
-					LOG_EMPERY_CLUSTER_ERROR("Duplicate arm  relateive: category_id = ", elem.category_id , "relative_category_id =",relative_category_id);
-					DEBUG_THROW(Exception, sslit("Duplicate category_id"));
+				if(!elem.arm_relative.emplace(defence_type, relateive).second){
+					LOG_EMPERY_CLUSTER_ERROR("Duplicate arm  relateive: attack_type = ", elem.attack_type , "defence type =",defence_type);
+					DEBUG_THROW(Exception, sslit("Duplicate attack type"));
 				}
 			}
 
 			if(!map_object_relative_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CLUSTER_ERROR("Duplicate arm relative: map_object_category_id = ", elem.category_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapObjectType"));
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate arm relative:attack type = ", elem.attack_type);
+				DEBUG_THROW(Exception, sslit("Duplicate MapRelative"));
 			}
 		}
 		g_map_object_relative_map = map_object_relative_map;
@@ -214,19 +223,19 @@ namespace Data {
 		return ret;
 	}
 
-	double MapObjectRelative::get_relative(MapObjectWeaponId map_object_category_id,MapObjectWeaponId relateive_category_id){
+	double MapObjectRelative::get_relative(unsigned attack_type,unsigned defence_type){
 		PROFILE_ME;
 		const auto map_object_relative_map = g_map_object_relative_map.lock();
 		if(!map_object_relative_map){
 			return 1.0;
 		}
 
-		const auto it = map_object_relative_map->find<0>(map_object_category_id);
+		const auto it = map_object_relative_map->find<0>(attack_type);
 		if(it == map_object_relative_map->end<0>()){
 			return 1.0;
 		}
 		const auto relatives_map = (*it).arm_relative;
-		const auto relative_it = relatives_map.find(relateive_category_id);
+		const auto relative_it = relatives_map.find(defence_type);
 		if(relative_it == relatives_map.end()){
 			return 1.0;
 		}
