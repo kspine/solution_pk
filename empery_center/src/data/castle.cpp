@@ -653,6 +653,7 @@ namespace {
 			csv.get(elem.undeployed_item_id,   "item_id");
 
 			csv.get(elem.carried_attribute_id, "weight_id");
+			csv.get(elem.unit_weight,          "weight");
 
 			std::string str;
 			csv.get(str, "autoinc_type");
