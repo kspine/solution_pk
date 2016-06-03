@@ -502,9 +502,6 @@ void Castle::pump_population_production(){
 		if(!map_object_type_data){
 			continue;
 		}
-		if(map_object_type_data->speed <= 0){ // 不会动的东西不吃粮食。
-			continue;
-		}
 		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
 			auto &amount_total = resources_to_consume_per_minute[rit->first];
 			amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(std::ceil(soldier_count * rit->second - 0.001)));

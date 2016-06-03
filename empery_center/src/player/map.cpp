@@ -577,10 +577,6 @@ PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	const auto speed = map_object_type_data->speed;
-	if(speed <= 0){
-		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
-	}
 
 	const auto castle_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
@@ -613,10 +609,6 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	const auto speed = map_object_type_data->speed;
-	if(speed <= 0){
-		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
-	}
 
 	const auto castle_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
@@ -672,10 +664,6 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 	}
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-	const auto speed = map_object_type_data->speed;
-	if(speed <= 0){
-		return Response(Msg::ERR_NOT_MOVABLE_MAP_OBJECT) <<map_object_type_id;
-	}
 
 	const auto castle_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));

@@ -410,7 +410,7 @@ try {
 			}
 
 			const auto child_object_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
-			if(child_object_data && (child_object_data->speed > 0)){
+			if(child_object_data){
 				child_object->pump_status();
 				child_object->unload_resources(castle);
 				child_object->set_coord(last_coord);
