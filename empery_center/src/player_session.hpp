@@ -19,10 +19,6 @@ namespace EmperyCenter {
 
 class PlayerSession : public Poseidon::Http::LowLevelSession {
 public:
-	enum : std::size_t {
-		RED_ZONE_SIZE = 64,
-	};
-
 	using ServletCallback = boost::function<
 		std::pair<long, std::string> (const boost::shared_ptr<PlayerSession> &, Poseidon::StreamBuffer)>;
 
