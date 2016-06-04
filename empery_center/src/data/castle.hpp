@@ -265,6 +265,8 @@ namespace Data {
 		std::uint64_t auto_inc_offset;
 		std::int64_t auto_inc_step;
 		std::uint64_t auto_inc_bound;
+
+		ResourceId resource_token_id;
 	};
 }
 

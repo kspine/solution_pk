@@ -18,11 +18,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (building_base_id)	\
-	FIELD_VUINT         (building_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
+	FIELD_VUINT         (building_id)
 #include <poseidon/cbpp/message_generator.hpp>
 /*
 #define MESSAGE_NAME    CS_CastleCancelBuildingMission
@@ -36,11 +32,7 @@ namespace Msg {
 #define MESSAGE_ID      403
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (building_base_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
+	FIELD_VUINT         (building_base_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_CastleDestroyBuilding
@@ -68,11 +60,7 @@ namespace Msg {
 #define MESSAGE_ID      407
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (tech_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
+	FIELD_VUINT         (tech_id)
 #include <poseidon/cbpp/message_generator.hpp>
 /*
 #define MESSAGE_NAME    CS_CastleCancelTechMission
@@ -152,11 +140,7 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (building_base_id)	\
 	FIELD_VUINT         (map_object_type_id)	\
-	FIELD_VUINT         (count)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
+	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
 /*
 #define MESSAGE_NAME    CS_CastleCancelSoldierProduction
@@ -186,11 +170,7 @@ namespace Msg {
 #define MESSAGE_ID      422
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (map_object_type_id)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
+	FIELD_VUINT         (map_object_type_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_CastleCreateBattalion
@@ -239,10 +219,6 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_ARRAY         (soldiers,	\
 		FIELD_VUINT         (map_object_type_id)	\
-		FIELD_VUINT         (count)	\
-	)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
 		FIELD_VUINT         (count)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>

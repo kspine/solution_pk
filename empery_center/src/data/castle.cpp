@@ -678,6 +678,8 @@ namespace {
 			csv.get(elem.auto_inc_step,        "autoinc_step");
 			csv.get(elem.auto_inc_bound,       "autoinc_bound");
 
+			csv.get(elem.resource_token_id,    "trade");
+
 			if(!resource_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate initial resource: resource_id = ", elem.resource_id,
 					", locked_resource_id = ", elem.locked_resource_id);

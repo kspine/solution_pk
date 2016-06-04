@@ -800,7 +800,6 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	castle->pump_status();
@@ -855,17 +854,10 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 
 	const auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));
 
-	boost::container::flat_map<ItemId, std::uint64_t> tokens;
-	tokens.reserve(req.tokens.size());
-	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
-		auto &count_total = tokens[ItemId(it->item_id)];
-		count_total = checked_add<std::uint64_t>(count_total, it->count);
-	}
-
 	const auto defense_building_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto dec_result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
+	const auto insuff_resource_id = try_decrement_resources(castle, task_box, upgrade_data->upgrade_cost,
 		ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), upgrade_data->building_level, 0,
 		[&]{
 			const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
@@ -878,11 +870,8 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
 				", map_object_type_id = ", map_object_type_id, ", account_uuid = ", account->get_account_uuid());
 		});
-	if(dec_result.first){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<dec_result.first;
-	}
-	if(dec_result.second){
-		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<dec_result.second;
+	if(insuff_resource_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
 	return Response();
@@ -904,7 +893,6 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeDefenseBuilding, account, session, req){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<parent_object_uuid;
 	}
 
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
 	defense_building->pump_status();
@@ -929,21 +917,11 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeDefenseBuilding, account, session, req){
 	}
 	const auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));
 
-	boost::container::flat_map<ItemId, std::uint64_t> tokens;
-	tokens.reserve(req.tokens.size());
-	for(auto it = req.tokens.begin(); it != req.tokens.end(); ++it){
-		auto &count_total = tokens[ItemId(it->item_id)];
-		count_total = checked_add<std::uint64_t>(count_total, it->count);
-	}
-
-	const auto result = try_decrement_resources(castle, item_box, task_box, upgrade_data->upgrade_cost, tokens,
+	const auto insuff_resource_id = try_decrement_resources(castle, task_box, upgrade_data->upgrade_cost,
 		ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), upgrade_data->building_level, 0,
 		[&]{ defense_building->create_mission(Castle::MIS_UPGRADE, duration, { }); });
-	if(result.first){
-		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<result.first;
-	}
-	if(result.second){
-		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<result.second;
+	if(insuff_resource_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
 	return Response();

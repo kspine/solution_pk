@@ -10,13 +10,10 @@
 namespace EmperyCenter {
 
 class Castle;
-class ItemBox;
 class TaskBox;
 
-extern std::pair<ResourceId, ItemId> try_decrement_resources(const boost::shared_ptr<Castle> &castle,
-	const boost::shared_ptr<ItemBox> &item_box, const boost::shared_ptr<TaskBox> &task_box,
+extern ResourceId try_decrement_resources(const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<TaskBox> &task_box,
 	const boost::container::flat_map<ResourceId, std::uint64_t> &resources_to_consume,
-	const boost::container::flat_map<ItemId, std::uint64_t> &tokens_to_consume,
 	ReasonId reason, std::uint64_t param1, std::uint64_t param2, std::uint64_t param3, const boost::function<void ()> &callback);
 
 }

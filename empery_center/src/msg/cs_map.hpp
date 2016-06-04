@@ -130,21 +130,13 @@ namespace Msg {
 	FIELD_STRING        (castle_uuid)	\
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_VINT          (coord_x)	\
-	FIELD_VINT          (coord_y)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
+	FIELD_VINT          (coord_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_MapUpgradeDefenseBuilding
 #define MESSAGE_ID      316
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_ARRAY         (tokens,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-	)
+	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_MapDestroyDefenseBuilding
