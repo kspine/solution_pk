@@ -79,7 +79,7 @@ std::uint64_t ResourceCrate::harvest(const boost::shared_ptr<MapObject> &harvest
 
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
-	const auto amount_added = harvester->load_resource(resource_id, rounded_amount_removable, false);
+	const auto amount_added = harvester->load_resource(resource_id, rounded_amount_removable, false, true);
 	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
 	m_obj->set_amount_remaining(saturated_sub(amount_remaining, amount_removed));
 

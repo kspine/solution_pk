@@ -97,6 +97,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(resource_id)
 		MULTI_MEMBER_INDEX(locked_resource_id)
 		MULTI_MEMBER_INDEX(carried_attribute_id)
+		MULTI_MEMBER_INDEX(carried_alt_attribute_id)
 		MULTI_MEMBER_INDEX(init_amount)
 		MULTI_MEMBER_INDEX(auto_inc_type)
 	)
@@ -653,8 +654,9 @@ namespace {
 			csv.get(elem.locked_resource_id,   "lock_material_id");
 			csv.get(elem.undeployed_item_id,   "item_id");
 
-			csv.get(elem.carried_attribute_id, "weight_id");
-			csv.get(elem.unit_weight,          "weight");
+			csv.get(elem.carried_attribute_id,     "weight_id");
+			csv.get(elem.carried_alt_attribute_id, "system_id");
+			csv.get(elem.unit_weight,              "weight");
 
 			std::string str;
 			csv.get(str, "autoinc_type");
@@ -1385,8 +1387,11 @@ namespace Data {
 
 		const auto it = resource_map->find<2>(attribute_id);
 		if(it == resource_map->end<2>()){
-			LOG_EMPERY_CENTER_TRACE("CastleResource not found: attribute_id = ", attribute_id);
-			return { };
+			const auto alt_it = resource_map->find<3>(attribute_id);
+			if(alt_it == resource_map->end<3>()){
+				LOG_EMPERY_CENTER_TRACE("CastleResource not found: attribute_id = ", attribute_id);
+				return { };
+			}
 		}
 		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
 	}
@@ -1400,8 +1405,8 @@ namespace Data {
 			return;
 		}
 
-		const auto begin = resource_map->upper_bound<3>(0);
-		const auto end = resource_map->end<3>();
+		const auto begin = resource_map->upper_bound<4>(0);
+		const auto end = resource_map->end<4>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
 			ret.emplace_back(resource_map, &*it);
@@ -1416,8 +1421,8 @@ namespace Data {
 			return;
 		}
 
-		const auto begin = resource_map->upper_bound<4>(AIT_NONE);
-		const auto end = resource_map->end<4>();
+		const auto begin = resource_map->upper_bound<5>(AIT_NONE);
+		const auto end = resource_map->end<5>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
 			ret.emplace_back(resource_map, &*it);

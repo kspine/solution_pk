@@ -72,7 +72,7 @@ std::uint64_t Overlay::harvest(const boost::shared_ptr<MapObject> &harvester, do
 
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
-	const auto amount_added = harvester->load_resource(resource_id, rounded_amount_removable, false);
+	const auto amount_added = harvester->load_resource(resource_id, rounded_amount_removable, false, false);
 	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
 	m_obj->set_resource_amount(saturated_sub(amount_remaining, amount_removed));
 

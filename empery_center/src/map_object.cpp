@@ -479,7 +479,7 @@ std::uint64_t MapObject::get_resource_amount_carried() const {
 	}
 	return amount_total;
 }
-std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amount_to_add, bool ignore_limit){
+std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amount_to_add, bool ignore_limit, bool use_alt_id){
 	PROFILE_ME;
 
 	const auto resource_data = Data::CastleResource::require(resource_id);
@@ -488,14 +488,13 @@ std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amo
 		LOG_EMPERY_CENTER_WARNING("Resource does not have a positive unit weight: resource_id = ", resource_id);
 		DEBUG_THROW(Exception, sslit("Resource does not have a positive unit weight"));
 	}
-	const auto carried_attribute_id = resource_data->carried_attribute_id;
-	if(!carried_attribute_id){
-		LOG_EMPERY_CENTER_WARNING("Resource is not harvestable: resource_id = ", resource_id);
+	const auto attribute_id = !use_alt_id ? resource_data->carried_attribute_id : resource_data->carried_alt_attribute_id;
+	if(!attribute_id){
+		LOG_EMPERY_CENTER_WARNING("Resource is not harvestable: resource_id = ", resource_id, ", use_alt_id = ", use_alt_id);
 		DEBUG_THROW(Exception, sslit("Resource is not harvestable"));
 	}
 
 	auto amount_added = amount_to_add;
-
 	if(!ignore_limit){
 		const auto map_object_type_id = get_map_object_type_id();
 		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
@@ -503,14 +502,14 @@ std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amo
 		const auto resource_capacity = static_cast<std::uint64_t>(std::floor(map_object_type_data->resource_carriable * soldier_count + 0.001));
 		const auto resource_amount_carried = get_resource_amount_carried();
 		const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);
-		if(amount_added > capacity_remaining){
-			amount_added = capacity_remaining;
+		const auto amount_addable = static_cast<std::uint64_t>(std::ceil(capacity_remaining / unit_weight - 0.001));
+		if(amount_added > amount_addable){
+			amount_added = amount_addable;
 		}
 	}
-	const auto amount_old = static_cast<std::uint64_t>(get_attribute(carried_attribute_id));
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers[carried_attribute_id] = static_cast<std::int64_t>(checked_add(amount_old, amount_added));
+	modifiers[attribute_id] = static_cast<std::int64_t>(checked_add(static_cast<std::uint64_t>(get_attribute(attribute_id)), amount_added));
 	set_attributes(std::move(modifiers));
 
 	return amount_to_add;
@@ -521,7 +520,7 @@ void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 	const auto map_object_uuid = get_map_object_uuid();
 	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 
-	boost::container::flat_map<ResourceId, std::uint64_t> resources_to_add;
+	boost::container::flat_map<ResourceId, std::pair<std::uint64_t, std::uint64_t>> resources_to_add; // <total, alt>
 	std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attribute_objs;
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 		const auto attribute_id = it->first;
@@ -530,12 +529,17 @@ void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 		if(value <= 0){
 			continue;
 		}
+		const auto delta_amount = static_cast<std::uint64_t>(value);
 		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
 		if(!resource_data){
 			continue;
 		}
-		auto &amount = resources_to_add[resource_data->resource_id];
-		amount = checked_add(amount, static_cast<std::uint64_t>(value));
+
+		auto &pair = resources_to_add[resource_data->resource_id];
+		pair.first = checked_add(pair.first, delta_amount);
+		if(attribute_id != resource_data->carried_attribute_id){
+			pair.second += delta_amount;
+		}
 		attribute_objs.emplace_back(obj);
 	}
 
@@ -543,11 +547,19 @@ void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 	transaction.reserve(resources_to_add.size());
 	for(auto it = resources_to_add.begin(); it != resources_to_add.end(); ++it){
 		const auto resource_id = it->first;
-		const auto amount = it->second;
 		const auto capacity_remaining = saturated_sub(castle->get_warehouse_capacity(resource_id),
 		                                              castle->get_resource(resource_id).amount);
-		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, std::min(amount, capacity_remaining),
-			ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
+		const auto amount_to_add_total = std::min(it->second.first, capacity_remaining);
+		const auto amount_to_add_normal = saturated_sub(amount_to_add_total, it->second.second);
+		if(amount_to_add_normal != 0){
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add_normal,
+				ReasonIds::ID_BATTALION_UNLOAD, map_object_uuid_head, 0, 0);
+		}
+		const auto amount_to_add_alt = saturated_sub(amount_to_add_total, amount_to_add_normal);
+		if(amount_to_add_alt != 0){
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add_alt,
+				ReasonIds::ID_BATTALION_UNLOAD_CRATE, map_object_uuid_head, 0, 0);
+		}
 	}
 	castle->commit_resource_transaction(transaction,
 		[&]{

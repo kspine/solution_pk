@@ -258,6 +258,7 @@ namespace Data {
 		ItemId undeployed_item_id;
 
 		AttributeId carried_attribute_id;
+		AttributeId carried_alt_attribute_id;
 		double unit_weight;
 
 		AutoIncType auto_inc_type;

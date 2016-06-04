@@ -176,7 +176,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	if(!forced_attack){
 		const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
 		const auto resource_carried = map_object->get_resource_amount_carried();
-		if(resource_carried + unit_weight > resource_capacity){
+		if(resource_carried > resource_capacity){
 			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 		}
 	}
@@ -355,7 +355,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	if(!forced_attack){
 		const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
 		const auto resource_carried = map_object->get_resource_amount_carried();
-		if(resource_carried + unit_weight > resource_capacity){
+		if(resource_carried > resource_capacity){
 			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 		}
 	}
@@ -1000,7 +1000,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	if(!forced_attack){
 		const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
 		const auto resource_carried = attacking_object->get_resource_amount_carried();
-		if(resource_carried + unit_weight > resource_capacity){
+		if(resource_carried > resource_capacity){
 			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 		}
 	}
@@ -1138,7 +1138,7 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 			const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 			const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
 			const auto resource_carried = attacking_object->get_resource_amount_carried();
-			if(resource_carried + unit_weight > resource_capacity){
+			if(resource_carried > resource_capacity){
 				return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
 			}
 		}
