@@ -834,7 +834,7 @@ _wounded_done:
 				const auto radius_inner = static_cast<unsigned>(radius_limits.at(0).get<double>());
 				const auto radius_outer = static_cast<unsigned>(radius_limits.at(1).get<double>());
 
-				std::vector<std::pair<ResourceId, std::uint64_t>> resources_dropped;
+				boost::container::flat_map<ResourceId, std::uint64_t> resources_dropped;
 				resources_dropped.reserve(16);
 
 				{
@@ -848,13 +848,14 @@ _wounded_done:
 							if(!resource_data){
 								continue;
 							}
-							if(!resource_data->carried_attribute_id){
+							if(!resource_data->carried_alt_attribute_id){
 								continue;
 							}
-
 							const auto amount_protected = castle->get_warehouse_protection(resource_id);
 							const auto amount_dropped = saturated_sub(it->amount, amount_protected);
-							resources_dropped.emplace_back(resource_id, amount_dropped);
+
+							auto &amount = resources_dropped[resource_id];
+							amount = checked_add(amount, amount_dropped);
 						}
 						std::vector<ResourceTransactionElement> transaction;
 						transaction.reserve(resources_dropped.size());
@@ -877,7 +878,15 @@ _wounded_done:
 						for(auto it = defense_data->debris.begin(); it != defense_data->debris.end(); ++it){
 							const auto resource_id = it->first;
 							const auto amount_dropped = it->second;
-							resources_dropped.emplace_back(resource_id, amount_dropped);
+							const auto resource_data = Data::CastleResource::get(resource_id);
+							if(!resource_data){
+								continue;
+							}
+							if(!resource_data->carried_alt_attribute_id){
+								continue;
+							}
+							auto &amount = resources_dropped[resource_id];
+							amount = checked_add(amount, amount_dropped);
 						}
 						goto _create_crates;
 					}
@@ -887,33 +896,33 @@ _wounded_done:
 					attacked_object->get_attributes(attributes);
 					for(auto it = attributes.begin(); it != attributes.end(); ++it){
 						const auto attribute_id = it->first;
-						const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
-						if(!resource_data){
-							continue;
-						}
-						if(!resource_data->carried_attribute_id){
-							continue;
-						}
-						const auto resource_id = resource_data->resource_id;
-
 						const auto value = it->second;
 						if(value <= 0){
 							continue;
 						}
+						const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+						if(!resource_data){
+							continue;
+						}
+						if(!resource_data->carried_alt_attribute_id){
+							continue;
+						}
+						const auto resource_id = resource_data->resource_id;
 						const auto amount_dropped = static_cast<std::uint64_t>(value);
-						resources_dropped.emplace_back(resource_id, amount_dropped);
+						auto &amount = resources_dropped[resource_id];
+						amount = checked_add(amount, amount_dropped);
 					}
 				}
 			_create_crates:
 				;
 
-				for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
+				while(!resources_dropped.empty()){
 					const auto rand = Poseidon::rand32(0, resources_dropped.size());
-					std::swap(*it, resources_dropped.at(rand));
-				}
-				for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
+					const auto it = resources_dropped.begin() + static_cast<std::ptrdiff_t>(rand);
 					const auto resource_id = it->first;
 					const auto amount = it->second;
+					resources_dropped.erase(it);
+
 					try {
 						create_resource_crates(attacked_object->get_coord(), resource_id, amount,
 							radius_inner, radius_outer, attacked_object_type_id);
