@@ -8,6 +8,8 @@
 #include "../singletons/item_box_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/player_session_map.hpp"
+#include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 
 namespace EmperyCenter {
 
@@ -31,9 +33,9 @@ CONTROLLER_SERVLET(Msg::TS_AccountAddItems, controller, req){
 	return Response();
 }
 
-CONTROLLER_SERVLET(Msg::TS_AccountUnloadAccount, controller, req){
+CONTROLLER_SERVLET(Msg::TS_AccountInvalidateAccount, controller, req){
 	const auto account_uuid = AccountUuid(req.account_uuid);
-	const auto account = AccountMap::get(account_uuid);
+	const auto account = AccountMap::reload(account_uuid);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
@@ -42,6 +44,9 @@ CONTROLLER_SERVLET(Msg::TS_AccountUnloadAccount, controller, req){
 	if(session){
 		session->shutdown(req.reason, req.param.c_str());
 	}
+
+	const auto promise = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
+	Poseidon::JobDispatcher::yield(promise, false);
 
 	return Response();
 }

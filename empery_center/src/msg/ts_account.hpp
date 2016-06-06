@@ -21,7 +21,7 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    TS_AccountUnloadAccount
+#define MESSAGE_NAME    TS_AccountInvalidateAccount
 #define MESSAGE_ID      20298
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\

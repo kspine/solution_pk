@@ -16,7 +16,7 @@ class ItemBox;
 struct AccountMap {
 	static boost::shared_ptr<Account> get(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> require(AccountUuid account_uuid);
-
+	static boost::shared_ptr<Account> reload(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> get_by_login_name(PlatformId platform_id, const std::string &login_name);
 	static boost::shared_ptr<Account> require_by_login_name(PlatformId platform_id, const std::string &login_name);
 

@@ -74,21 +74,23 @@ boost::shared_ptr<Account> AccountMap::reload(AccountUuid account_uuid){
 	PROFILE_ME;
 
 	std::vector<boost::shared_ptr<EmperyCenter::MySql::Center_Account>> sink;
-	std::ostringstream oss;
-	oss <<"SELECT * FROM `Center_Account` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
-	const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-		[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-			auto obj = boost::make_shared<EmperyCenter::MySql::Center_Account>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			sink.emplace_back(std::move(obj));
-		}, "Center_Account", oss.str());
-	Poseidon::JobDispatcher::yield(promise, false);
-
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_Account` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<EmperyCenter::MySql::Center_Account>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink.emplace_back(std::move(obj));
+			}, "Center_Account", oss.str());
+		Poseidon::JobDispatcher::yield(promise, false);
+	}
 	if(sink.empty()){
 		LOG_EMPERY_CONTROLLER_DEBUG("Account not found in database: account_uuid = ", account_uuid);
 		return { };
 	}
+
 	auto account = boost::make_shared<Account>(std::move(sink.front()));
 
 	auto it = g_account_map->find<0>(account_uuid);

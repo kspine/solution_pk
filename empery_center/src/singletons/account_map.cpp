@@ -3,6 +3,7 @@
 #include "../mmain.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include <tuple>
 #include "player_session_map.hpp"
 #include "../mysql/account.hpp"
@@ -276,7 +277,53 @@ boost::shared_ptr<Account> AccountMap::require(AccountUuid account_uuid){
 	}
 	return account;
 }
+boost::shared_ptr<Account> AccountMap::reload(AccountUuid account_uuid){
+	PROFILE_ME;
 
+	std::vector<boost::shared_ptr<MySql::Center_Account>> sink;
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_Account` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::Center_Account>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink.emplace_back(std::move(obj));
+			}, "Center_Account", oss.str());
+		Poseidon::JobDispatcher::yield(promise, false);
+	}
+	if(sink.empty()){
+		LOG_EMPERY_CENTER_DEBUG("Account not found in database: account_uuid = ", account_uuid);
+		return { };
+	}
+
+	std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> attribute_sink;
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_AccountAttribute` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::Center_Account>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink.emplace_back(std::move(obj));
+			}, "Center_AccountAttribute", oss.str());
+		Poseidon::JobDispatcher::yield(promise, false);
+	}
+
+	auto account = boost::make_shared<Account>(std::move(sink.front()), attribute_sink);
+
+	auto it = g_account_map->find<0>(account_uuid);
+	if(it == g_account_map->end<0>()){
+		it = g_account_map->insert<0>(AccountElement(account)).first;
+	} else {
+		g_account_map->replace<0>(it, AccountElement(account));
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
+	return std::move(account);
+}
 boost::shared_ptr<Account> AccountMap::get_by_login_name(PlatformId platform_id, const std::string &login_name){
 	PROFILE_ME;
 
