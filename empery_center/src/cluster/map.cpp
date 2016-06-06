@@ -187,7 +187,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * interval / 60000.0;
 	const auto amount_harvested = overlay->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
-		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
+		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack);
 
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
 
@@ -374,7 +375,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * interval / 60000.0;
 	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
-		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
+		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack);
 
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
 
@@ -435,11 +437,11 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 
 	// 结算战斗伤害。
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-	if(!attacking_object){
+	if(!attacking_object || attacking_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
 	}
 	const auto attacked_object = WorldMap::get_map_object(attacked_object_uuid);
-	if(!attacked_object){
+	if(!attacked_object || attacked_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
 
@@ -1016,11 +1018,11 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	const auto resource_crate_uuid   = ResourceCrateUuid(req.resource_crate_uuid);
 
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-	if(!attacking_object){
+	if(!attacking_object || attacking_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
 	}
 	const auto resource_crate = WorldMap::get_resource_crate(resource_crate_uuid);
-	if(!resource_crate){
+	if(!resource_crate || resource_crate->is_virtually_removed()){
 		return Response(Msg::ERR_RESOURCE_CRATE_NOT_FOUND) <<resource_crate_uuid;
 	}
 
@@ -1061,7 +1063,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	const auto amount_to_harvest = req.amount_harvested;
 	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: attacking_object_uuid = ", attacking_object_uuid, ", attacking_object_type_id = ", attacking_object_type_id,
-		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
+		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack);
 	amount_remaining = resource_crate->get_amount_remaining();
 
 	const auto attacked_coord = resource_crate->get_coord();
@@ -1126,11 +1129,11 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 
 	// 结算战斗伤害。
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-	if(!attacking_object){
+	if(!attacking_object || attacking_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
 	}
 	const auto attacked_cell = WorldMap::get_map_cell(attacked_coord);
-	if(!attacked_cell){
+	if(!attacked_cell || attacked_cell->is_virtually_removed()){
 		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
 	}
 	if(!attacked_cell->get_owner_uuid()){
@@ -1204,7 +1207,8 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		const auto amount_harvested = attacked_cell->harvest(attacking_object, amount_to_harvest / unit_weight, forced_attack);
 		LOG_EMPERY_CENTER_DEBUG("Plunder: attacking_object_uuid = ", attacking_object_uuid,
 			", attacking_object_type_id = ", attacking_object_type_id, ", attacked_coord = ", attacked_cell->get_coord(),
-			", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
+			", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested,
+			", forced_attack = ", forced_attack);
 	}
 
 	if(soldiers_remaining <= 0){
