@@ -6,6 +6,8 @@
 #include "../transaction_element.hpp"
 #include "../item_box.hpp"
 #include "../singletons/item_box_map.hpp"
+#include "../player_session.hpp"
+#include "../singletons/player_session_map.hpp"
 
 namespace EmperyCenter {
 
@@ -22,9 +24,24 @@ CONTROLLER_SERVLET(Msg::TS_AccountAddItems, controller, req){
 	transaction.reserve(req.items.size());
 	for(auto it = req.items.begin(); it != req.items.end(); ++it){
 		transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemId(it->item_id), it->count,
-			ReasonId(req.reason), req.param1, req.param2, req.param3);
+			ReasonId(it->reason), it->param1, it->param2, it->param3);
 	}
 	item_box->commit_transaction(transaction, false);
+
+	return Response();
+}
+
+CONTROLLER_SERVLET(Msg::TS_AccountUnloadAccount, controller, req){
+	const auto account_uuid = AccountUuid(req.account_uuid);
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+		session->shutdown(req.reason, req.param.c_str());
+	}
 
 	return Response();
 }
