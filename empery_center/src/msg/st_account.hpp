@@ -19,7 +19,7 @@ namespace Msg {
 	FIELD_STRING        (account_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    ST_AccountInvalidateAccount
+#define MESSAGE_NAME    ST_AccountInvalidate
 #define MESSAGE_ID      20202
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)
