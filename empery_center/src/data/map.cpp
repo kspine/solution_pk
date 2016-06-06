@@ -312,6 +312,7 @@ namespace {
 			csv.get(elem.defense_combat_id, "id");
 			csv.get(elem.soldiers_max,      "force_mnax");
 			csv.get(elem.self_healing_rate, "building_recover");
+			csv.get(elem.hp_per_soldier,    "hp");
 
 			if(!defense_combat_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapDefenseCombat: defense_combat_id = ", elem.defense_combat_id);

@@ -46,6 +46,7 @@ namespace {
 
 		csv.get(elem.max_soldier_count,      "force_mnax");
 		csv.get(elem.speed,                  "speed");
+		csv.get(elem.hp_per_soldier,         "hp");
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){

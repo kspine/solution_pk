@@ -41,7 +41,8 @@ constexpr AttributeId
 	ID_DEFENSE_BUILDING_MISSION         ( 2500127 ),
 	ID_CASTLE_LAST_COORD_X              ( 2500131 ),
 	ID_CASTLE_LAST_COORD_Y              ( 2500132 ),
-	ID_GARRISONING_BATTALION_TYPE_ID    ( 2500133 );
+	ID_GARRISONING_BATTALION_TYPE_ID    ( 2500133 ),
+	ID_HP_TOTAL                         ( 2500134 );
 
 }
 

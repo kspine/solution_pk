@@ -698,10 +698,12 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 	if(new_soldier_count_max < 1){
 		new_soldier_count_max = 1;
 	}
+	const auto new_hp_total = checked_mul(new_soldier_count, map_object_type_data->hp_per_soldier);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(new_soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(new_soldier_count);
 	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = new_soldier_count_max;
+	modifiers[AttributeIds::ID_HP_TOTAL]          = static_cast<std::int64_t>(new_hp_total);
 
 	std::vector<SoldierTransactionElement> transaction;
 	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, soldier_count,

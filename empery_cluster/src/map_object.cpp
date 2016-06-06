@@ -552,12 +552,12 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0);
 	double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0);
 	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),target_object->get_arm_defence_type());
-	std::uint32_t hp =  map_object_type_data->hp ;
-	hp = (hp == 0 )? 1:hp;
+//	std::uint32_t hp =  map_object_type_data->hp ;
+//	hp = (hp == 0 )? 1:hp;
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-	if(soldier_count%hp != 0){
-		soldier_count = (soldier_count/hp + 1)*hp;
-	}
+//	if(soldier_count%hp != 0){
+//		soldier_count = (soldier_count/hp + 1)*hp;
+//	}
 	//auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;
@@ -655,12 +655,12 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 	double total_attack  = map_object_type_data->attack;
 	double total_defense = resource_crate_data->defence;
 	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),resource_crate_data->defence_type);
-	std::uint32_t hp =  map_object_type_data->hp ;
-	hp = (hp == 0 )? 1:hp;
+//	std::uint32_t hp =  map_object_type_data->hp ;
+//	hp = (hp == 0 )? 1:hp;
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-	if(soldier_count%hp != 0){
-		soldier_count = (soldier_count/hp + 1)*hp;
-	}
+//	if(soldier_count%hp != 0){
+//		soldier_count = (soldier_count/hp + 1)*hp;
+//	}
 
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;
@@ -735,12 +735,12 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 	double total_attack  = map_object_type_data->attack;
 	double total_defense = map_cell_ticket->defense;
 	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),map_cell_ticket->defence_type);
-	std::uint32_t hp =  map_object_type_data->hp ;
-	hp = (hp == 0 )? 1:hp;
+//	std::uint32_t hp =  map_object_type_data->hp ;
+//	hp = (hp == 0 )? 1:hp;
 	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-	if(soldier_count%hp != 0){
-		soldier_count = (soldier_count/hp + 1)*hp;
-	}
+//	if(soldier_count%hp != 0){
+//		soldier_count = (soldier_count/hp + 1)*hp;
+//	}
 
 	if(attack_rate < 0.0001 && attack_rate > -0.0001){
 		return UINT64_MAX;

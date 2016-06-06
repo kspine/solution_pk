@@ -291,8 +291,8 @@ void DefenseBuilding::self_heal(){
 	const auto map_object_type_id = get_map_object_type_id();
 	const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
 	const auto defense_combat_data = Data::MapDefenseCombat::require(defense_building_data->defense_combat_id);
-	const auto max_soldier_count = defense_combat_data->soldiers_max;
-	if(max_soldier_count <= 0){
+	const auto max_hp_total = checked_mul(defense_combat_data->soldiers_max, defense_combat_data->hp_per_soldier);
+	if(max_hp_total <= 0){
 		return;
 	}
 
@@ -300,26 +300,29 @@ void DefenseBuilding::self_heal(){
 		", building_level = ", building_level, ", self_healing_rate = ", defense_combat_data->self_healing_rate);
 
 	const auto old_self_healed_time = m_defense_obj->get_last_self_healed_time();
-	const auto old_soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto old_hp_total = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_HP_TOTAL));
 
 	const auto utc_now = Poseidon::get_utc_time();
 
 	double amount_healed;
 	if(old_self_healed_time == 0){
-		amount_healed = saturated_sub(max_soldier_count, old_soldier_count);
+		amount_healed = saturated_sub(max_hp_total, old_hp_total);
 	} else {
 		const auto self_healing_rate = defense_combat_data->self_healing_rate;
-		const auto soldiers_healed_perminute = std::ceil(self_healing_rate * max_soldier_count - 0.001);
+		const auto soldiers_healed_perminute = std::ceil(self_healing_rate * max_hp_total - 0.001);
 		const auto self_healing_duration = saturated_sub(utc_now, old_self_healed_time);
 		amount_healed = self_healing_duration * soldiers_healed_perminute / 60000.0 + m_self_healing_remainder;
 	}
 	const auto rounded_amount_healed = static_cast<std::uint64_t>(amount_healed);
-	const auto new_soldier_count = std::min<std::uint64_t>(saturated_add(old_soldier_count, rounded_amount_healed), max_soldier_count);
-	if(new_soldier_count > old_soldier_count){
+	const auto new_hp_total = std::min<std::uint64_t>(saturated_add(old_hp_total, rounded_amount_healed), max_hp_total);
+	if(new_hp_total > old_hp_total){
+		const auto hp_per_soldier = std::max<std::uint64_t>(defense_combat_data->hp_per_soldier, 1);
+		const auto new_soldier_count = static_cast<std::uint64_t>(std::ceil(new_hp_total / hp_per_soldier) * hp_per_soldier - 0.001);
 		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 		modifiers.reserve(16);
-		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(max_soldier_count);
+		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(defense_combat_data->soldiers_max);
 		modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(new_soldier_count);
+		modifiers[AttributeIds::ID_HP_TOTAL]          = static_cast<std::int64_t>(new_hp_total);
 		set_attributes(std::move(modifiers));
 	}
 	m_self_healing_remainder = amount_healed - rounded_amount_healed;

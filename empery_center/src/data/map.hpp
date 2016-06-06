@@ -135,6 +135,7 @@ namespace Data {
 		DefenseCombatId defense_combat_id;
 		std::uint64_t soldiers_max;
 		double self_healing_rate;
+		std::uint64_t hp_per_soldier;
 	};
 }
 

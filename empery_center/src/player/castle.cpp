@@ -1028,9 +1028,12 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(battalion_uuid.get()[0]));
 
+	const auto hp_total = checked_mul(soldier_count, map_object_type_data->hp_per_soldier);
+
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(soldier_count);
 	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_HP_TOTAL]          = static_cast<std::int64_t>(hp_total);
 
 	std::vector<SoldierTransactionElement> transaction;
 	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, soldier_count,

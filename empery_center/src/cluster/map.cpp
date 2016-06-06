@@ -282,6 +282,14 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
 	}
 
+	const auto battalion_data = Data::MapObjectTypeBattalion::require(map_object->get_map_object_type_id());
+	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto hp_total = checked_mul(soldier_count, battalion_data->hp_per_soldier);
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[AttributeIds::ID_HP_TOTAL] = static_cast<std::int64_t>(hp_total);
+	map_object->set_attributes(std::move(modifiers));
+
 	map_object->unload_resources(castle);
 
 	map_object->set_coord(castle->get_coord());
@@ -458,11 +466,27 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	update_attributes_single(attacked_object, [&]{ return attacked_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
 	const auto result_type = req.result_type;
-	const auto soldiers_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto soldiers_damaged = std::min(soldiers_previous, req.soldiers_damaged);
-	const auto soldiers_remaining = checked_sub(soldiers_previous, soldiers_damaged);
+//	const auto soldiers_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+//	const auto soldiers_damaged = std::min(soldiers_previous, req.soldiers_damaged);
+//	const auto soldiers_remaining = checked_sub(soldiers_previous, soldiers_damaged);
+//	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
+//		", soldiers_previous = ", soldiers_previous, ", soldiers_damaged = ", soldiers_damaged, ", soldiers_remaining = ", soldiers_remaining);
+	const auto hp_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_HP_TOTAL));
+	const auto hp_damaged = std::min(hp_previous, req.soldiers_damaged);
+	const auto hp_remaining = checked_sub(hp_previous, hp_damaged);
 	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
-		", soldiers_previous = ", soldiers_previous, ", soldiers_damaged = ", soldiers_damaged, ", soldiers_remaining = ", soldiers_remaining);
+		", hp_previous = ", hp_previous, ", hp_damaged = ", hp_damaged, ", hp_remaining = ", hp_remaining);
+
+	std::uint64_t hp_per_soldier;
+	const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+	if(attacked_type_data){
+		hp_per_soldier = std::max<std::uint64_t>(attacked_type_data->hp_per_soldier, 1);
+	} else {
+		hp_per_soldier = 1;
+	}
+	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(hp_previous / hp_per_soldier) * hp_per_soldier - 0.001);
+	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(hp_remaining / hp_per_soldier) * hp_per_soldier - 0.001);
+	const auto soldiers_damaged = saturated_sub(soldiers_previous, soldiers_remaining);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
@@ -484,11 +508,10 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	{
 		PROFILE_ME;
 
-		const auto battalion_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
-		if(!battalion_type_data){
+		if(!attacked_type_data){
 			goto _wounded_done;
 		}
-		if(battalion_type_data->speed <= 0){
+		if(attacked_type_data->speed <= 0){
 			goto _wounded_done;
 		}
 
