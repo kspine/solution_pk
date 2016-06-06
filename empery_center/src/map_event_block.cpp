@@ -340,7 +340,8 @@ void MapEventBlock::refresh_events(bool first_time){
 						continue;
 					}
 					const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
-					if(basic_data->terrain_id != event_data->restricted_terrain_id){
+					const auto &restricted_terrains = event_data->restricted_terrains;
+					if(restricted_terrains.find(basic_data->terrain_id) == restricted_terrains.end()){
 						// 事件不能刷在非指定类型的土地上。
 						coords_avail.erase(coord);
 						continue;
