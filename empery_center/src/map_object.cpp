@@ -506,6 +506,10 @@ std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amo
 		if(amount_added > amount_addable){
 			amount_added = amount_addable;
 		}
+		LOG_EMPERY_CENTER_DEBUG("map_object_type_id = ", map_object_type_id, ", soldier_count = ", soldier_count,
+			", resource_capacity = ", resource_capacity, ", resource_amount_carried = ", resource_amount_carried,
+			", capacity_remaining = ", capacity_remaining, ", unit_weight = ", unit_weight,
+			", amount_addable = ", amount_addable, ", amount_added = ", amount_added);
 	}
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
