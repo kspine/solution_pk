@@ -73,38 +73,52 @@ namespace {
 	{
 		PROFILE_ME;
 
-		const auto commit_or_cancel = [](const boost::shared_ptr<AuctionCenter> &auction_center, MapObjectUuid map_object_uuid){
-			PROFILE_ME;
-			LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(),
-				", map_object_uuid = ", map_object_uuid);
+		const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+		if(!castle){
+			LOG_EMPERY_CENTER_ERROR("No such castle: map_object_uuid = ", map_object_uuid);
+			return;
+		}
 
-			const auto item_box = ItemBoxMap::require(auction_center->get_account_uuid());
-
-			const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
-			if(!castle){
-				LOG_EMPERY_CENTER_ERROR("No such castle: map_object_uuid = ", map_object_uuid);
-				DEBUG_THROW(Exception, sslit("No such castle"));
-			}
-
-			const auto insuff_resource_id = auction_center->commit_transfer(castle);
-			if(insuff_resource_id){
-				LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
-				auction_center->cancel_transfer(castle, item_box, true);
-			}
-		};
-
+		bool forced_cancel = false;
 		for(auto it = transfers.begin(); it != transfers.end(); ++it){
 			const auto &obj = it->second;
 			if(obj->get_created_time() == 0){
 				continue;
 			}
-			if(utc_now < obj->get_due_time()){
-				continue;
+			if(obj->get_due_time() < utc_now){
+				forced_cancel = false;
+				goto _check_it_now;
 			}
-
-			Poseidon::enqueue_async_job(
-				std::bind(commit_or_cancel, auction_center, map_object_uuid));
+			const auto resource_id = ResourceId(obj->get_resource_id());
+			const auto resource_data = Data::CastleResource::require(resource_id);
+			const auto locked_resource_id = resource_data->locked_resource_id;
+			const auto locked_info = castle->get_resource(locked_resource_id);
+			const auto locked_amount = obj->get_resource_amount_locked();
+			if(locked_info.amount < locked_amount){
+				forced_cancel = true;
+				goto _check_it_now;
+			}
 		}
+		return;
+
+	_check_it_now:
+		Poseidon::enqueue_async_job(
+			[=]{
+				PROFILE_ME;
+				LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(),
+					", map_object_uuid = ", map_object_uuid);
+
+				const auto item_box = ItemBoxMap::require(auction_center->get_account_uuid());
+
+				if(!forced_cancel){
+					const auto insuff_resource_id = auction_center->commit_transfer(castle);
+					if(insuff_resource_id == ResourceId()){
+						return;
+					}
+					LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
+				}
+				auction_center->cancel_transfer(castle, item_box, true);
+			});
 	}
 }
 

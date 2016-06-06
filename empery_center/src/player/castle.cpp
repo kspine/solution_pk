@@ -33,6 +33,8 @@
 #include "../item_ids.hpp"
 #include "../buff_ids.hpp"
 #include "../cluster_session.hpp"
+#include "../auction_center.hpp"
+#include "../singletons/auction_center_map.hpp"
 
 namespace EmperyCenter {
 
@@ -45,6 +47,10 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 	if(castle->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
+
+	const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
+
+	auction_center->pump_status();
 
 	castle->pump_status();
 	castle->synchronize_with_player(session);

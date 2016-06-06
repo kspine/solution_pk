@@ -865,6 +865,8 @@ _wounded_done:
 					if(castle){
 						std::vector<Castle::ResourceInfo> resources;
 						castle->get_all_resources(resources);
+						std::vector<ResourceTransactionElement> transaction;
+						transaction.reserve(resources.size());
 						for(auto it = resources.begin(); it != resources.end(); ++it){
 							const auto resource_id = it->resource_id;
 							const auto resource_data = Data::CastleResource::get(resource_id);
@@ -874,17 +876,36 @@ _wounded_done:
 							if(!resource_data->carried_alt_attribute_id){
 								continue;
 							}
+							std::uint64_t amount_dropped, locked_amount_dropped;
+							const auto locked_resource_id = resource_data->locked_resource_id;
 							const auto amount_protected = castle->get_warehouse_protection(resource_id);
-							const auto amount_dropped = saturated_sub(it->amount, amount_protected);
+							if(it->amount >= amount_protected){
+								amount_dropped = amount_protected;
+								locked_amount_dropped = 0;
+							} else if(!locked_resource_id){
+								amount_dropped = it->amount;
+								locked_amount_dropped = 0;
+							} else {
+								const auto amount_total = saturated_add(it->amount, castle->get_resource(locked_resource_id).amount);
+								if(amount_total >= amount_protected){
+									amount_dropped = it->amount;
+									locked_amount_dropped = amount_protected - it->amount;
+								} else {
+									amount_dropped = it->amount;
+									locked_amount_dropped = amount_total - it->amount;
+								}
+							}
+							if(amount_dropped != 0){
+								transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, amount_dropped,
+									ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
+							} else {
+								transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, locked_resource_id, locked_amount_dropped,
+									ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
+							}
 
 							auto &amount = resources_dropped[resource_id];
 							amount = checked_add(amount, amount_dropped);
-						}
-						std::vector<ResourceTransactionElement> transaction;
-						transaction.reserve(resources_dropped.size());
-						for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
-							transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-								ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
+							amount = checked_add(amount, locked_amount_dropped);
 						}
 						castle->commit_resource_transaction(transaction);
 						goto _create_crates;
