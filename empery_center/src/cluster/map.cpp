@@ -476,8 +476,6 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto hp_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_HP_TOTAL));
 	const auto hp_damaged = std::min(hp_previous, req.soldiers_damaged);
 	const auto hp_remaining = checked_sub(hp_previous, hp_damaged);
-	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
-		", hp_previous = ", hp_previous, ", hp_damaged = ", hp_damaged, ", hp_remaining = ", hp_remaining);
 
 	std::uint64_t hp_per_soldier;
 	const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
@@ -489,6 +487,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(hp_previous / hp_per_soldier) * hp_per_soldier - 0.001);
 	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(hp_remaining / hp_per_soldier) * hp_per_soldier - 0.001);
 	const auto soldiers_damaged = saturated_sub(soldiers_previous, soldiers_remaining);
+	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
+		", hp_previous = ", hp_previous, ", hp_damaged = ", hp_damaged, ", hp_remaining = ", hp_remaining,
+		", soldiers_previous = ", soldiers_previous, ", soldiers_damaged = ", soldiers_damaged, ", soldiers_remaining = ", soldiers_remaining);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
