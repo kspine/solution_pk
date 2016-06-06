@@ -33,7 +33,7 @@ CONTROLLER_SERVLET(Msg::TS_AccountAddItems, controller, req){
 	return Response();
 }
 
-CONTROLLER_SERVLET(Msg::TS_AccountInvalidateAccount, controller, req){
+CONTROLLER_SERVLET(Msg::TS_AccountInvalidate, controller, req){
 	const auto account_uuid = AccountUuid(req.account_uuid);
 	const auto account = AccountMap::reload(account_uuid);
 	if(!account){

@@ -76,7 +76,7 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 
 	client.reset(new ControllerClient(*sock_addr, use_ssl, keep_alive));
 	client->go_resident();
-
+	g_singleton = client;
 	return client;
 }
 

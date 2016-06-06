@@ -24,29 +24,6 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 }
 */
 
-#define PLAYER_SERVLET_RAW(MsgType_, session_arg_, req_arg_)	\
-	namespace {	\
-		namespace Impl_ {	\
-			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
-				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &, MsgType_);	\
-			::std::pair<long, ::std::string> TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_) (	\
-				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
-			{	\
-				PROFILE_ME;	\
-				MsgType_ msg_(payload_);	\
-				LOG_EMPERY_CENTER_TRACE("Received request from ", session_->get_remote_info(), ": ", msg_);	\
-				return TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (session_, ::std::move(msg_));	\
-			}	\
-		}	\
-	}	\
-	MODULE_RAII(handles_){	\
-		handles_.push(PlayerSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Entry_)));	\
-	}	\
-	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(PlayerServletRaw, __LINE__, Proc_) (	\
-		const ::boost::shared_ptr<PlayerSession> & session_arg_ __attribute__((__unused__)),	\
-		MsgType_ req_arg_	\
-		)	\
-
 #define PLAYER_SERVLET(MsgType_, account_arg_, session_arg_, req_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
