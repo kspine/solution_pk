@@ -489,8 +489,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			hp_per_soldier = std::max<std::uint64_t>(attacked_type_data->hp_per_soldier, 1);
 		}
 	}
-	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(hp_previous / hp_per_soldier) * hp_per_soldier - 0.001);
-	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(hp_remaining / hp_per_soldier) * hp_per_soldier - 0.001);
+	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(hp_previous / hp_per_soldier) - 0.001);
+	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(hp_remaining / hp_per_soldier) - 0.001);
 	const auto soldiers_damaged = saturated_sub(soldiers_previous, soldiers_remaining);
 	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
 		", hp_previous = ", hp_previous, ", hp_damaged = ", hp_damaged, ", hp_remaining = ", hp_remaining,
