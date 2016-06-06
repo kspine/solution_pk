@@ -477,12 +477,17 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	const auto hp_damaged = std::min(hp_previous, req.soldiers_damaged);
 	const auto hp_remaining = checked_sub(hp_previous, hp_damaged);
 
-	std::uint64_t hp_per_soldier;
-	const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
-	if(attacked_type_data){
-		hp_per_soldier = std::max<std::uint64_t>(attacked_type_data->hp_per_soldier, 1);
+	std::uint64_t hp_per_soldier = 1;
+	const auto attacked_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacked_object);
+	if(attacked_defense){
+		const auto defense_data = Data::MapDefenseBuildingAbstract::require(attacked_object_type_id, attacked_defense->get_level());
+		const auto combat_data = Data::MapDefenseCombat::require(defense_data->defense_combat_id);
+		hp_per_soldier = std::max<std::uint64_t>(combat_data->hp_per_soldier, 1);
 	} else {
-		hp_per_soldier = 1;
+		const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+		if(attacked_type_data){
+			hp_per_soldier = std::max<std::uint64_t>(attacked_type_data->hp_per_soldier, 1);
+		}
 	}
 	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(hp_previous / hp_per_soldier) * hp_per_soldier - 0.001);
 	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(hp_remaining / hp_per_soldier) * hp_per_soldier - 0.001);
@@ -512,6 +517,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	{
 		PROFILE_ME;
 
+		const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
 		if(!attacked_type_data){
 			goto _wounded_done;
 		}

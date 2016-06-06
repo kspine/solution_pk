@@ -42,7 +42,16 @@ constexpr AttributeId
 	ID_CASTLE_LAST_COORD_X              ( 2500131 ),
 	ID_CASTLE_LAST_COORD_Y              ( 2500132 ),
 	ID_GARRISONING_BATTALION_TYPE_ID    ( 2500133 ),
-	ID_HP_TOTAL                         ( 2500143 );
+	ID_HP_TOTAL                         ( 2500143 ),
+	ID_ATTACK_ADD                       ( 2500144 ),
+	ID_DEFENSE_ADD                      ( 2500145 ),
+	ID_DODGING_RATIO_ADD                ( 2500146 ),
+	ID_CRITICAL_DAMAGE_RATIO_ADD        ( 2500147 ),
+	ID_CRITICAL_DAMAGE_MULTIPLIER_ADD   ( 2500148 ),
+	ID_ATTACK_RANGE_ADD                 ( 2500149 ),
+	ID_SIGHT_RANGE_ADD                  ( 2500150 ),
+	ID_RATE_OF_FIRE_ADD                 ( 2500151 ),
+	ID_SPEED_ADD                        ( 2500152 );
 
 }
 
