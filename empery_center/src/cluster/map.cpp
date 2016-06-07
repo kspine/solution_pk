@@ -1011,11 +1011,16 @@ CLUSTER_SERVLET(Msg::KS_MapHealMonster, cluster, req){
 	if(soldier_count < 1){
 		soldier_count = 1;
 	}
+	auto hp_total = static_cast<std::int64_t>(checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier));
+	if(hp_total < 1){
+		hp_total = 1;
+	}
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(8);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = soldier_count;
-	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = soldier_count;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = soldier_count;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = soldier_count;
+	modifiers[AttributeIds::ID_HP_TOTAL]          = hp_total;
 	map_object->set_attributes(std::move(modifiers));
 
 	return Response();
