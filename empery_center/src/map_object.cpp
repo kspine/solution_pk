@@ -117,7 +117,7 @@ void MapObject::recalculate_attributes(bool recursive){
 		std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
 		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
 			Data::MapObjectTypeAttributeBonus::AKT_ALL, 0);
-		const auto defense = virtual_shared_from_this<DefenseBuilding>();
+		const auto defense = boost::dynamic_pointer_cast<Castle>(shared_from_this());
 		if(defense){
 			const auto defense_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, defense->get_level());
 			if(defense_data){
