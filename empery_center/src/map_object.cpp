@@ -457,6 +457,17 @@ void MapObject::clear_buff(BuffId buff_id) noexcept {
 	}
 }
 
+std::uint64_t MapObject::get_resource_amount_carriable() const {
+	PROFILE_ME;
+
+	const auto map_object_type_id = get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
+	const auto carriage_bonus = get_attribute(AttributeIds::ID_CARRIAGE_BONUS) / 1000.0;
+	const auto carriage_add = get_attribute(AttributeIds::ID_CARRIAGE_ADD) / 1000.0;
+	const auto soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	return static_cast<std::uint64_t>(std::max<double>(0,
+		std::floor((map_object_type_data->resource_carriable * (1 + carriage_bonus) + carriage_add) * soldier_count + 0.001)));
+}
 std::uint64_t MapObject::get_resource_amount_carried() const {
 	PROFILE_ME;
 
@@ -496,18 +507,15 @@ std::uint64_t MapObject::load_resource(ResourceId resource_id, std::uint64_t amo
 
 	auto amount_added = amount_to_add;
 	if(!ignore_limit){
-		const auto map_object_type_id = get_map_object_type_id();
-		const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-		const auto soldier_count = static_cast<std::uint64_t>(get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-		const auto resource_capacity = static_cast<std::uint64_t>(std::floor(map_object_type_data->resource_carriable * soldier_count + 0.001));
+		const auto resource_amount_carriable = get_resource_amount_carriable();
 		const auto resource_amount_carried = get_resource_amount_carried();
-		const auto capacity_remaining = saturated_sub(resource_capacity, resource_amount_carried);
+		const auto capacity_remaining = saturated_sub(resource_amount_carriable, resource_amount_carried);
 		const auto amount_addable = static_cast<std::uint64_t>(std::ceil(capacity_remaining / unit_weight - 0.001));
 		if(amount_added > amount_addable){
 			amount_added = amount_addable;
 		}
-		LOG_EMPERY_CENTER_DEBUG("map_object_type_id = ", map_object_type_id, ", soldier_count = ", soldier_count,
-			", resource_capacity = ", resource_capacity, ", resource_amount_carried = ", resource_amount_carried,
+		LOG_EMPERY_CENTER_DEBUG("map_object_type_id = ", get_map_object_type_id(),
+			", resource_amount_carriable = ", resource_amount_carriable, ", resource_amount_carried = ", resource_amount_carried,
 			", capacity_remaining = ", capacity_remaining, ", unit_weight = ", unit_weight,
 			", amount_addable = ", amount_addable, ", amount_added = ", amount_added);
 	}
