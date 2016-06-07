@@ -317,7 +317,7 @@ void DefenseBuilding::self_heal(){
 	const auto rounded_amount_healed = static_cast<std::uint64_t>(amount_healed);
 	const auto new_hp_total = std::min<std::uint64_t>(saturated_add(old_hp_total, rounded_amount_healed), max_hp_total);
 	if(new_hp_total > old_hp_total){
-		const auto new_soldier_count = static_cast<std::uint64_t>(std::ceil(new_hp_total / hp_per_soldier - 0.001));
+		const auto new_soldier_count = static_cast<std::uint64_t>(std::ceil(static_cast<double>(new_hp_total) / hp_per_soldier - 0.001));
 		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 		modifiers.reserve(16);
 		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(defense_combat_data->soldiers_max);

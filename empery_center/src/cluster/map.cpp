@@ -491,8 +491,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			hp_per_soldier = std::max<std::uint64_t>(attacked_type_data->hp_per_soldier, 1);
 		}
 	}
-	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(hp_previous / hp_per_soldier - 0.001));
-	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(hp_remaining / hp_per_soldier - 0.001));
+	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(static_cast<double>(hp_previous) / hp_per_soldier - 0.001));
+	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(static_cast<double>(hp_remaining) / hp_per_soldier - 0.001));
 	const auto soldiers_damaged = saturated_sub(soldiers_previous, soldiers_remaining);
 	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
 		", hp_previous = ", hp_previous, ", hp_damaged = ", hp_damaged, ", hp_remaining = ", hp_remaining,
@@ -1009,20 +1009,14 @@ CLUSTER_SERVLET(Msg::KS_MapHealMonster, cluster, req){
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto monster_data = Data::MapObjectTypeMonster::require(map_object_type_id);
 
-	auto soldier_count = static_cast<std::int64_t>(monster_data->max_soldier_count);
-	if(soldier_count < 1){
-		soldier_count = 1;
-	}
-	auto hp_total = static_cast<std::int64_t>(checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier));
-	if(hp_total < 1){
-		hp_total = 1;
-	}
+	const auto soldier_count = monster_data->max_soldier_count;
+	const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(8);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = soldier_count;
-	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = soldier_count;
-	modifiers[AttributeIds::ID_HP_TOTAL]          = hp_total;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_HP_TOTAL]          = static_cast<std::int64_t>(hp_total);
 	map_object->set_attributes(std::move(modifiers));
 
 	return Response();

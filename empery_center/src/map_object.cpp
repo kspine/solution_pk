@@ -123,8 +123,8 @@ void MapObject::recalculate_attributes(bool recursive){
 		modifiers.emplace_hint(modifiers.end(), attribute_id, 0);
 	}
 
-	boost::shared_ptr<Castle> parent_castle, tech_castle;
 	const auto map_object_type_id = get_map_object_type_id();
+	boost::shared_ptr<Castle> parent_castle, tech_castle;
 	if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
 		// parent_castle = { };
 		tech_castle = virtual_shared_from_this<Castle>();
