@@ -551,7 +551,6 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	double critical_demage_plus_rate = map_object_type_data->critical_damage_plus_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0;
 	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
 	double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
-	LOG_EMPERY_CLUSTER_FATAL("ATTACK_RATE_ADD:",get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0, " doge_rate:",get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0," critical_rate:",get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0, " critical_demage_plus_rate:",get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0, " total_attack:", get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0, " total_defense:", target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0);
 	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),target_object->get_arm_defence_type());
 //	std::uint32_t hp =  map_object_type_data->hp ;
 //	hp = (hp == 0 )? 1:hp;
@@ -652,7 +651,7 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 
 	std::uint64_t damage = 0;
 	double k = 0.35;
-	double attack_rate = map_object_type_data->attack_speed + get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0;
+	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;;
 	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
 	double total_defense = resource_crate_data->defence;
 	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),resource_crate_data->defence_type);
