@@ -1388,14 +1388,15 @@ namespace Data {
 		}
 
 		const auto it = resource_map->find<2>(attribute_id);
-		if(it == resource_map->end<2>()){
-			const auto alt_it = resource_map->find<3>(attribute_id);
-			if(alt_it == resource_map->end<3>()){
-				LOG_EMPERY_CENTER_TRACE("CastleResource not found: attribute_id = ", attribute_id);
-				return { };
-			}
+		if(it != resource_map->end<2>()){
+			return boost::shared_ptr<const CastleResource>(resource_map, &*it);
 		}
-		return boost::shared_ptr<const CastleResource>(resource_map, &*it);
+		const auto alt_it = resource_map->find<3>(attribute_id);
+		if(alt_it != resource_map->end<3>()){
+			return boost::shared_ptr<const CastleResource>(resource_map, &*alt_it);
+		}
+		LOG_EMPERY_CENTER_TRACE("CastleResource not found: attribute_id = ", attribute_id);
+		return { };
 	}
 
 	void CastleResource::get_init(std::vector<boost::shared_ptr<const CastleResource>> &ret){
