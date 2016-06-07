@@ -133,6 +133,7 @@ namespace Data {
 
 	public:
 		DefenseCombatId defense_combat_id;
+		MapObjectWeaponId map_object_weapon_id;
 		std::uint64_t soldiers_max;
 		double self_healing_rate;
 		std::uint64_t hp_per_soldier;

@@ -10,6 +10,7 @@
 #include "singletons/account_map.hpp"
 #include "attribute_ids.hpp"
 #include "data/map_object_type.hpp"
+#include "data/map.hpp"
 #include "data/castle.hpp"
 #include "data/buff.hpp"
 #include "castle.hpp"
@@ -97,73 +98,83 @@ void MapObject::recalculate_attributes(bool recursive){
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(32);
 
+	boost::shared_ptr<Castle> parent_castle, tech_castle;
 	const auto map_object_type_id = get_map_object_type_id();
-	const auto map_object_data = Data::MapObjectTypeAbstract::get(map_object_type_id);
-	if(map_object_data){
-		boost::shared_ptr<Castle> parent_object, tech_object;
-		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-			// parent_object = { };
-			tech_object = virtual_shared_from_this<Castle>();
-		} else {
-			const auto parent_object_uuid = get_parent_object_uuid();
-			if(parent_object_uuid){
-				parent_object = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
-			}
-			tech_object = parent_object;
+	if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+		// parent_castle = { };
+		tech_castle = virtual_shared_from_this<Castle>();
+	} else {
+		const auto parent_castle_uuid = get_parent_object_uuid();
+		if(parent_castle_uuid){
+			parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_castle_uuid));
 		}
-		if(tech_object){
-			LOG_EMPERY_CENTER_TRACE("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
-				", tech_object_uuid = ", tech_object->get_map_object_uuid());
+		tech_castle = parent_castle;
+	}
+	if(tech_castle){
+		LOG_EMPERY_CENTER_TRACE("Updating attributes from castle: map_object_uuid = ", get_map_object_uuid(),
+			", tech_castle_uuid = ", tech_castle->get_map_object_uuid());
 
-			std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
-			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-				Data::MapObjectTypeAttributeBonus::AKT_ALL, 0);
-			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-				Data::MapObjectTypeAttributeBonus::AKT_CHASSIS_ID, map_object_data->map_object_chassis_id.get());
-			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-				Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
-			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-				Data::MapObjectTypeAttributeBonus::AKT_MAP_OBJECT_TYPE_ID, map_object_data->map_object_type_id.get());
-			for(auto it = attribute_bonus_applicable_data.begin(); it != attribute_bonus_applicable_data.end(); ++it){
-				const auto &attribute_bonus_data = *it;
-				const auto tech_attribute_id = attribute_bonus_data->tech_attribute_id;
-				const auto bonus_attribute_id = attribute_bonus_data->bonus_attribute_id;
-				const auto tech_attribute_value = tech_object->get_attribute(tech_attribute_id);
-				LOG_EMPERY_CENTER_TRACE("> Applying attribute bonus: tech_attribute_id = ", tech_attribute_id,
-					", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
-				modifiers[bonus_attribute_id] += tech_attribute_value;
+		std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
+		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+			Data::MapObjectTypeAttributeBonus::AKT_ALL, 0);
+		const auto defense = virtual_shared_from_this<DefenseBuilding>();
+		if(defense){
+			const auto defense_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, defense->get_level());
+			if(defense_data){
+				const auto combat_data = Data::MapDefenseCombat::require(defense_data->defense_combat_id);
+				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+					Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, combat_data->map_object_weapon_id.get());
+			}
+		} else {
+			const auto map_object_data = Data::MapObjectTypeAbstract::get(map_object_type_id);
+			if(map_object_data){
+				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+					Data::MapObjectTypeAttributeBonus::AKT_CHASSIS_ID, map_object_data->map_object_chassis_id.get());
+				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+					Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
 			}
 		}
-		if(parent_object){
-			for(auto it = parent_object->m_buffs.begin(); it != parent_object->m_buffs.end(); ++it){
-				const auto buff_id = it->first;
-				const auto time_end = it->second->get_time_end();
-				if(utc_now >= time_end){
-					continue;
-				}
-				const auto buff_data = Data::Buff::get(buff_id);
-				if(!buff_data){
-					continue;
-				}
-				const auto &attributes = buff_data->attributes;
-				for(auto ait = attributes.begin(); ait != attributes.end(); ++ait){
-					const auto attribute_id = ait->first;
-					switch(attribute_id.get()){
-					case AttributeIds::ID_ATTACK_BONUS.get():
-					case AttributeIds::ID_DEFENSE_BONUS.get():
-					case AttributeIds::ID_DODGING_RATIO_BONUS.get():
-					case AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS.get():
-					case AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS.get():
-					case AttributeIds::ID_ATTACK_RANGE_BONUS.get():
-					case AttributeIds::ID_SIGHT_RANGE_BONUS.get():
-					case AttributeIds::ID_RATE_OF_FIRE_BONUS.get():
-					case AttributeIds::ID_SPEED_BONUS.get():
-						{
-							auto &value = modifiers[ait->first];
-							value += std::round(ait->second * 1000.0);
-						}
-						break;
+		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+			Data::MapObjectTypeAttributeBonus::AKT_MAP_OBJECT_TYPE_ID, map_object_type_id.get());
+		for(auto it = attribute_bonus_applicable_data.begin(); it != attribute_bonus_applicable_data.end(); ++it){
+			const auto &attribute_bonus_data = *it;
+			const auto tech_attribute_id = attribute_bonus_data->tech_attribute_id;
+			const auto bonus_attribute_id = attribute_bonus_data->bonus_attribute_id;
+			const auto tech_attribute_value = tech_castle->get_attribute(tech_attribute_id);
+			LOG_EMPERY_CENTER_TRACE("> Applying attribute bonus: tech_attribute_id = ", tech_attribute_id,
+				", bonus_attribute_id = ", bonus_attribute_id, ", tech_attribute_value = ", tech_attribute_value);
+			modifiers[bonus_attribute_id] += tech_attribute_value;
+		}
+	}
+	if(parent_castle){
+		for(auto it = parent_castle->m_buffs.begin(); it != parent_castle->m_buffs.end(); ++it){
+			const auto buff_id = it->first;
+			const auto time_end = it->second->get_time_end();
+			if(utc_now >= time_end){
+				continue;
+			}
+			const auto buff_data = Data::Buff::get(buff_id);
+			if(!buff_data){
+				continue;
+			}
+			const auto &attributes = buff_data->attributes;
+			for(auto ait = attributes.begin(); ait != attributes.end(); ++ait){
+				const auto attribute_id = ait->first;
+				switch(attribute_id.get()){
+				case AttributeIds::ID_ATTACK_BONUS.get():
+				case AttributeIds::ID_DEFENSE_BONUS.get():
+				case AttributeIds::ID_DODGING_RATIO_BONUS.get():
+				case AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS.get():
+				case AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS.get():
+				case AttributeIds::ID_ATTACK_RANGE_BONUS.get():
+				case AttributeIds::ID_SIGHT_RANGE_BONUS.get():
+				case AttributeIds::ID_RATE_OF_FIRE_BONUS.get():
+				case AttributeIds::ID_SPEED_BONUS.get():
+					{
+						auto &value = modifiers[ait->first];
+						value += std::round(ait->second * 1000.0);
 					}
+					break;
 				}
 			}
 		}
