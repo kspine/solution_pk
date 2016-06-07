@@ -127,31 +127,26 @@ void DefenseBuilding::recalculate_attributes(bool recursive){
 		modifiers[AttributeIds::ID_DEFENSE_BUILDING_MISSION] = mission;
 	}
 
-	if(map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER){
-		auto &garrisoning_battalion_type_id_val = modifiers[AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID];
-
-		const auto garrisoning_object_uuid = get_garrisoning_object_uuid();
-		if(!garrisoning_object_uuid){
-			goto _bunker_done;
-		}
+	const auto garrisoning_object_uuid = get_garrisoning_object_uuid();
+	if(garrisoning_object_uuid){
 		const auto garrisoning_object = WorldMap::get_map_object(garrisoning_object_uuid);
 		if(!garrisoning_object){
 			goto _bunker_done;
 		}
+		if(!garrisoning_object->is_garrisoned()){
+			goto _bunker_done;
+		}
+		const auto garrisoning_object_type_id = garrisoning_object->get_map_object_type_id();
 
-		garrisoning_battalion_type_id_val = garrisoning_object->get_map_object_type_id().get();
+		modifiers[AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID] = garrisoning_object_type_id.get();
 
 		garrisoning_object->recalculate_attributes(false);
 
-		const auto add_attribute = [&](AttributeId attribute_id){
-			modifiers[attribute_id] += garrisoning_object->get_attribute(attribute_id);
-		};
-		add_attribute(AttributeIds::ID_ATTACK_BONUS);
-		add_attribute(AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS);
-		add_attribute(AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS);
-		add_attribute(AttributeIds::ID_ATTACK_RANGE_BONUS);
-		add_attribute(AttributeIds::ID_SIGHT_RANGE_BONUS);
-		add_attribute(AttributeIds::ID_RATE_OF_FIRE_BONUS);
+		for(auto it = COMBAT_ATTRIBUTES.begin(); it != COMBAT_ATTRIBUTES.end(); ++it){
+			const auto attribute_id = *it;
+			auto &value = modifiers[attribute_id];
+			value += garrisoning_object->get_attribute(attribute_id);
+		}
 	}
 _bunker_done:
 	;

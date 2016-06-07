@@ -31,6 +31,27 @@ namespace {
 	}
 }
 
+const std::initializer_list<AttributeId> MapObject::COMBAT_ATTRIBUTES = {
+	AttributeIds::ID_ATTACK_BONUS,
+	AttributeIds::ID_DEFENSE_BONUS,
+	AttributeIds::ID_DODGING_RATIO_BONUS,
+	AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS,
+	AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS,
+	AttributeIds::ID_ATTACK_RANGE_BONUS,
+	AttributeIds::ID_SIGHT_RANGE_BONUS,
+	AttributeIds::ID_RATE_OF_FIRE_BONUS,
+	AttributeIds::ID_SPEED_BONUS,
+	AttributeIds::ID_ATTACK_ADD,
+	AttributeIds::ID_DEFENSE_ADD,
+	AttributeIds::ID_DODGING_RATIO_ADD,
+	AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD,
+	AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD,
+	AttributeIds::ID_ATTACK_RANGE_ADD,
+	AttributeIds::ID_SIGHT_RANGE_ADD,
+	AttributeIds::ID_RATE_OF_FIRE_ADD,
+	AttributeIds::ID_SPEED_ADD,
+};
+
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time, bool garrisoned)
 	: m_obj(
@@ -93,32 +114,11 @@ void MapObject::recalculate_attributes(bool recursive){
 
 	(void)recursive;
 
-	static const auto combat_attributes = {
-		AttributeIds::ID_ATTACK_BONUS,
-		AttributeIds::ID_DEFENSE_BONUS,
-		AttributeIds::ID_DODGING_RATIO_BONUS,
-		AttributeIds::ID_CRITICAL_DAMAGE_RATIO_BONUS,
-		AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_BONUS,
-		AttributeIds::ID_ATTACK_RANGE_BONUS,
-		AttributeIds::ID_SIGHT_RANGE_BONUS,
-		AttributeIds::ID_RATE_OF_FIRE_BONUS,
-		AttributeIds::ID_SPEED_BONUS,
-		AttributeIds::ID_ATTACK_ADD,
-		AttributeIds::ID_DEFENSE_ADD,
-		AttributeIds::ID_DODGING_RATIO_ADD,
-		AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD,
-		AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD,
-		AttributeIds::ID_ATTACK_RANGE_ADD,
-		AttributeIds::ID_SIGHT_RANGE_ADD,
-		AttributeIds::ID_RATE_OF_FIRE_ADD,
-		AttributeIds::ID_SPEED_ADD,
-	};
-
 	const auto utc_now = Poseidon::get_utc_time();
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(64);
-	for(auto it = combat_attributes.begin(); it != combat_attributes.end(); ++it){
+	for(auto it = COMBAT_ATTRIBUTES.begin(); it != COMBAT_ATTRIBUTES.end(); ++it){
 		const auto attribute_id = *it;
 		modifiers.emplace_hint(modifiers.end(), attribute_id, 0);
 	}
@@ -185,7 +185,7 @@ void MapObject::recalculate_attributes(bool recursive){
 			const auto &attributes = buff_data->attributes;
 			for(auto ait = attributes.begin(); ait != attributes.end(); ++ait){
 				const auto attribute_id = ait->first;
-				if(std::find(combat_attributes.begin(), combat_attributes.end(), attribute_id) == combat_attributes.end()){
+				if(std::find(COMBAT_ATTRIBUTES.begin(), COMBAT_ATTRIBUTES.end(), attribute_id) == COMBAT_ATTRIBUTES.end()){
 					continue;
 				}
 				auto &value = modifiers[ait->first];

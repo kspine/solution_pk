@@ -21,6 +21,9 @@ class ClusterSession;
 
 class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
+	static const std::initializer_list<AttributeId> COMBAT_ATTRIBUTES;
+
+public:
 	struct BuffInfo {
 		BuffId buff_id;
 		std::uint64_t duration;
