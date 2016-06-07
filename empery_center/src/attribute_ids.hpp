@@ -51,7 +51,10 @@ constexpr AttributeId
 	ID_ATTACK_RANGE_ADD                 ( 2500149 ),
 	ID_SIGHT_RANGE_ADD                  ( 2500150 ),
 	ID_RATE_OF_FIRE_ADD                 ( 2500151 ),
-	ID_SPEED_ADD                        ( 2500152 );
+	ID_SPEED_ADD                        ( 2500152 ),
+	ID_CARRIAGE_BONUS                   ( 2500162 ),
+	ID_CARRIAGE_ADD                     ( 2500163 ),
+	ID_HARVEST_SPEED_ADD                ( 2500164 );
 
 }
 
