@@ -697,7 +697,7 @@ _wounded_done:
 
 				battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
 					attacked_account_uuid, attacked_object_type_id, attacked_coord,
-					result_type, soldiers_wounded, soldiers_wounded_added, hp_damaged, hp_remaining);
+					result_type, soldiers_wounded, soldiers_wounded_added, soldiers_damaged, soldiers_remaining);
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
