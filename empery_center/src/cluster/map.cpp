@@ -600,8 +600,8 @@ _wounded_done:
 		msg.result_type            = result_type;
 		msg.soldiers_wounded       = soldiers_wounded;
 		msg.soldiers_wounded_added = soldiers_wounded_added;
-		msg.soldiers_damaged       = soldiers_damaged;
-		msg.soldiers_remaining     = soldiers_remaining;
+		msg.soldiers_damaged       = hp_damaged;
+		msg.soldiers_remaining     = hp_remaining;
 		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
 
 		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
@@ -712,7 +712,7 @@ _wounded_done:
 
 				battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
 					attacking_account_uuid, attacking_object_type_id, attacking_coord,
-					-result_type, soldiers_wounded, soldiers_wounded_added, soldiers_damaged, soldiers_remaining);
+					-result_type, soldiers_wounded, soldiers_wounded_added, hp_damaged, hp_remaining);
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
