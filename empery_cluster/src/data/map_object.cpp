@@ -49,6 +49,7 @@ namespace {
 			csv.get(elem.shoot_range,                       "shoot_range");
 			csv.get(elem.attack_speed,                      "attack_speed");
 			csv.get(elem.attack_plus,                      "attack_plus");
+			csv.get(elem.harvest_speed,                    "collect_speed");
 			csv.get(elem.doge_rate,                         "arm_dodge");
 			csv.get(elem.critical_rate,                     "arm_crit");
 			csv.get(elem.critical_damage_plus_rate,         "arm_crit_damege");

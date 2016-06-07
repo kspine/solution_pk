@@ -20,6 +20,7 @@ namespace Data {
 		unsigned            shoot_range;
 		double              attack_speed;
 		double              attack_plus;
+		double              harvest_speed;
 		double              doge_rate;
 		double              critical_rate;
 		double              critical_damage_plus_rate;

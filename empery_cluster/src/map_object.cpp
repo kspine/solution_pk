@@ -651,7 +651,7 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 
 	std::uint64_t damage = 0;
 	double k = 0.35;
-	double attack_rate = map_object_type_data->attack_speed + get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0;
+	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;;
 	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
 	double total_defense = resource_crate_data->defence;
 	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),resource_crate_data->defence_type);
