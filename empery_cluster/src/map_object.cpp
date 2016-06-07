@@ -1146,10 +1146,12 @@ bool  MapObject::is_monster(){
 
 bool  MapObject::attacked_able(std::pair<long, std::string> &reason){
 	PROFILE_ME;
+	/*
 	if(is_die()){
 		reason = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
 		return false;
 	}
+	*/
 	if(is_garrisoned()){
 		reason = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 		return false;
