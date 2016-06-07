@@ -291,7 +291,8 @@ void DefenseBuilding::self_heal(){
 	const auto map_object_type_id = get_map_object_type_id();
 	const auto defense_building_data = Data::MapDefenseBuildingAbstract::require(map_object_type_id, building_level);
 	const auto defense_combat_data = Data::MapDefenseCombat::require(defense_building_data->defense_combat_id);
-	const auto max_hp_total = checked_mul(defense_combat_data->soldiers_max, defense_combat_data->hp_per_soldier);
+	const auto hp_per_soldier = std::max<std::uint64_t>(defense_combat_data->hp_per_soldier, 1);
+	const auto max_hp_total = checked_mul(defense_combat_data->soldiers_max, hp_per_soldier);
 	if(max_hp_total <= 0){
 		return;
 	}
@@ -316,7 +317,6 @@ void DefenseBuilding::self_heal(){
 	const auto rounded_amount_healed = static_cast<std::uint64_t>(amount_healed);
 	const auto new_hp_total = std::min<std::uint64_t>(saturated_add(old_hp_total, rounded_amount_healed), max_hp_total);
 	if(new_hp_total > old_hp_total){
-		const auto hp_per_soldier = std::max<std::uint64_t>(defense_combat_data->hp_per_soldier, 1);
 		const auto new_soldier_count = static_cast<std::uint64_t>(std::ceil(new_hp_total / hp_per_soldier - 0.001));
 		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 		modifiers.reserve(16);
