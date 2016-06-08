@@ -62,7 +62,7 @@ namespace {
 	)
 
 	boost::weak_ptr<MapCellContainer> g_map_cell_map;
-
+/*
 	void map_cell_refresh_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Map cell refresh timer: now = ", now);
@@ -88,7 +88,7 @@ namespace {
 			}
 		}
 	}
-
+*/
 	void map_cell_occupation_refresh_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Map cell occupation refresh timer: now = ", now);
@@ -804,14 +804,14 @@ namespace {
 				}
 				LOG_EMPERY_CENTER_DEBUG("Done recalculating castle attributes.");
 			});
-
+/*
 		const auto map_cell_refresh_interval = get_config<std::uint64_t>("map_cell_refresh_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, map_cell_refresh_interval,
 			std::bind(&map_cell_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
-
+*/
 		const auto map_cell_occupation_refresh_interval = get_config<std::uint64_t>("map_cell_occupation_refresh_interval", 30000);
-		timer = Poseidon::TimerDaemon::register_timer(0, map_cell_occupation_refresh_interval,
+		auto timer = Poseidon::TimerDaemon::register_timer(0, map_cell_occupation_refresh_interval,
 			std::bind(&map_cell_occupation_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 
