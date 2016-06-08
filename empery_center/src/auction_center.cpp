@@ -85,11 +85,14 @@ namespace {
 			if(obj->get_created_time() == 0){
 				continue;
 			}
+			const auto resource_id = ResourceId(obj->get_resource_id());
+			if(!resource_id){
+				continue;
+			}
 			if(obj->get_due_time() < utc_now){
 				forced_cancel = false;
 				goto _check_it_now;
 			}
-			const auto resource_id = ResourceId(obj->get_resource_id());
 			const auto resource_data = Data::CastleResource::require(resource_id);
 			const auto locked_resource_id = resource_data->locked_resource_id;
 			const auto locked_info = castle->get_resource(locked_resource_id);
