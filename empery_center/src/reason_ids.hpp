@@ -35,11 +35,11 @@ constexpr ReasonId
 	ID_DISSOLVE_BATTALION            ( 672023 ), // 0                   0                   0
 	ID_BATTALION_UNLOAD              ( 672024 ), // 部队 UUID 高位      0                   0
 	ID_SOLDIER_WOUNDED               ( 672025 ), // 部队 UUID 高位      部队受到伤害        伤兵率加成 * 1000
-	ID_SOLDIER_HEALED                ( 672025 ), // 0                   0                   0
 	ID_BEGIN_SOLDIER_TREATMENT       ( 672026 ), // 0                   0                   0
 	ID_SPEED_UP_SOLDIER_TREATMENT    ( 672027 ), // 0                   0                   0
 	ID_CASTLE_CAPTURED               ( 672028 ), // 0                   0                   0
 	ID_BATTALION_UNLOAD_CRATE        ( 672029 ), // 部队 UUID 高位      0                   0
+	ID_SOLDIER_HEALED                ( 672030 ), // 0                   0                   0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0
