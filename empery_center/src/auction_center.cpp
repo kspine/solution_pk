@@ -79,7 +79,12 @@ namespace {
 			return;
 		}
 
-		bool forced_cancel = false;
+		enum {
+			R_WAIT,
+			R_COMMIT,
+			R_CANCEL,
+		} recipe = R_WAIT;
+
 		for(auto it = transfers.begin(); it != transfers.end(); ++it){
 			const auto &obj = it->second;
 			if(obj->get_created_time() == 0){
@@ -90,35 +95,36 @@ namespace {
 				continue;
 			}
 			if(obj->get_due_time() < utc_now){
-				forced_cancel = false;
-				goto _check_it_now;
+				recipe = R_COMMIT;
+				break;
 			}
 			const auto resource_data = Data::CastleResource::require(resource_id);
 			const auto locked_resource_id = resource_data->locked_resource_id;
 			const auto locked_info = castle->get_resource(locked_resource_id);
-			const auto locked_amount = obj->get_resource_amount_locked();
-			if(locked_info.amount < locked_amount){
-				forced_cancel = true;
-				goto _check_it_now;
+			if(locked_info.amount < obj->get_resource_amount_locked()){
+				recipe = R_CANCEL;
+				break;
 			}
 		}
-		return;
 
-	_check_it_now:
+		if(recipe == R_WAIT){
+			return;
+		}
 		Poseidon::enqueue_async_job(
 			[=]{
 				PROFILE_ME;
-				LOG_EMPERY_CENTER_DEBUG("Committing transfer: account_uuid = ", auction_center->get_account_uuid(),
-					", map_object_uuid = ", map_object_uuid);
 
-				const auto item_box = ItemBoxMap::require(auction_center->get_account_uuid());
+				const auto account_uuid = auction_center->get_account_uuid();
+				LOG_EMPERY_CENTER_DEBUG("Checking transfer: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid,
+					", recipe = ", static_cast<int>(recipe));
 
-				if(!forced_cancel){
-					const auto insuff_resource_id = auction_center->commit_transfer(castle);
-					if(insuff_resource_id == ResourceId()){
+				const auto item_box = ItemBoxMap::require(account_uuid);
+
+				if(recipe == R_COMMIT){
+					const auto insuff_resource_iud = auction_center->commit_transfer(castle);
+					if(!insuff_resource_iud){
 						return;
 					}
-					LOG_EMPERY_CENTER_DEBUG("Failed to commit transfer. Cancel it.");
 				}
 				auction_center->cancel_transfer(castle, item_box, true);
 			});
