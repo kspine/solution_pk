@@ -90,20 +90,22 @@ namespace {
 			if(obj->get_created_time() == 0){
 				continue;
 			}
-			const auto resource_id = ResourceId(obj->get_resource_id());
-			if(!resource_id){
+			if(obj->get_item_count() == 0){
 				continue;
 			}
 			if(obj->get_due_time() < utc_now){
 				recipe = R_COMMIT;
 				break;
 			}
-			const auto resource_data = Data::CastleResource::require(resource_id);
-			const auto locked_resource_id = resource_data->locked_resource_id;
-			const auto locked_info = castle->get_resource(locked_resource_id);
-			if(locked_info.amount < obj->get_resource_amount_locked()){
-				recipe = R_CANCEL;
-				break;
+			const auto resource_id = ResourceId(obj->get_resource_id());
+			if(resource_id){
+				const auto resource_data = Data::CastleResource::require(resource_id);
+				const auto locked_resource_id = resource_data->locked_resource_id;
+				const auto locked_info = castle->get_resource(locked_resource_id);
+				if(locked_info.amount < obj->get_resource_amount_locked()){
+					recipe = R_CANCEL;
+					break;
+				}
 			}
 		}
 
@@ -115,17 +117,19 @@ namespace {
 				PROFILE_ME;
 
 				const auto account_uuid = auction_center->get_account_uuid();
-				LOG_EMPERY_CENTER_DEBUG("Checking transfer: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid,
-					", recipe = ", static_cast<int>(recipe));
 
 				const auto item_box = ItemBoxMap::require(account_uuid);
 
 				if(recipe == R_COMMIT){
+					LOG_EMPERY_CENTER_INFO("Try committing transfer: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid,
+						", recipe = ", static_cast<int>(recipe));
 					const auto insuff_resource_iud = auction_center->commit_transfer(castle);
 					if(!insuff_resource_iud){
 						return;
 					}
 				}
+				LOG_EMPERY_CENTER_INFO("Cancelling transfer: account_uuid = ", account_uuid, ", map_object_uuid = ", map_object_uuid,
+					", recipe = ", static_cast<int>(recipe));
 				auction_center->cancel_transfer(castle, item_box, true);
 			});
 	}
