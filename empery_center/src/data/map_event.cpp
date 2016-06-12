@@ -33,7 +33,16 @@ namespace {
 	template<typename ElementT>
 	void read_map_event_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
 		csv.get(elem.map_event_id,          "event_id");
-		csv.get(elem.restricted_terrain_id, "land_id");
+
+		Poseidon::JsonArray array;
+		csv.get(array, "land_id");
+		for(auto it = array.begin(); it != array.end(); ++it){
+			const auto terrain_id = TerrainId(it->get<double>());
+			if(!elem.restricted_terrains.insert(terrain_id).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate terrain id: terrain_id = ", terrain_id);
+				DEBUG_THROW(Exception, sslit("Duplicate terrain id"));
+			}
+		}
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){

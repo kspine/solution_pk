@@ -20,6 +20,7 @@ namespace Data {
 
 		std::uint64_t max_soldier_count;
 		double speed;
+		std::uint64_t hp_per_soldier;
 	};
 
 	class MapObjectTypeBattalion : public MapObjectTypeAbstract {

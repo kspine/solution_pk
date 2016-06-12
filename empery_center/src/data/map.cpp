@@ -68,7 +68,7 @@ namespace {
 
 	template<typename ElementT>
 	void read_defense_building_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
-		csv.get(elem.upgrade_duration,       "building_upgrade_time");
+		csv.get(elem.upgrade_duration, "building_upgrade_time");
 
 		Poseidon::JsonObject object;
 		csv.get(object, "building_upgrade_cost");
@@ -106,8 +106,8 @@ namespace {
 			}
 		}
 
-		csv.get(elem.destruct_duration,      "building_dismantling_time");
-		csv.get(elem.defense_combat_id,      "building_combat_attributes");
+		csv.get(elem.destruct_duration, "building_dismantling_time");
+		csv.get(elem.defense_combat_id, "building_combat_attributes");
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){
@@ -309,9 +309,11 @@ namespace {
 		while(csv.fetch_row()){
 			Data::MapDefenseCombat elem = { };
 
-			csv.get(elem.defense_combat_id, "id");
-			csv.get(elem.soldiers_max,      "force_mnax");
-			csv.get(elem.self_healing_rate, "building_recover");
+			csv.get(elem.defense_combat_id,    "id");
+			csv.get(elem.map_object_weapon_id, "arm_type");
+			csv.get(elem.soldiers_max,         "force_mnax");
+			csv.get(elem.self_healing_rate,    "building_recover");
+			csv.get(elem.hp_per_soldier,       "hp");
 
 			if(!defense_combat_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapDefenseCombat: defense_combat_id = ", elem.defense_combat_id);

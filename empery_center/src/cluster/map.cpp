@@ -174,22 +174,24 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestOverlay, cluster, req){
 	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const bool forced_attack = req.forced_attack;
 	if(!forced_attack){
-		const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+		const auto resource_carriable = map_object->get_resource_amount_carriable();
 		const auto resource_carried = map_object->get_resource_amount_carried();
-		if(resource_carried > resource_capacity){
-			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+		if(resource_carried >= resource_carriable){
+			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
 		}
 	}
 
-	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+	const auto harvest_speed_bonus = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+	const auto harvest_speed_add = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
+	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
 
-	const auto interval = req.interval;
-	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * interval / 60000.0;
+	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0;
 	const auto amount_harvested = overlay->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
-		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
+		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack);
 
-	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
+	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, req.interval);
 
 	return Response();
 }
@@ -282,6 +284,14 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 		return Response(Msg::ERR_TOO_FAR_FROM_CASTLE);
 	}
 
+	const auto battalion_data = Data::MapObjectTypeBattalion::require(map_object->get_map_object_type_id());
+	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto hp_total = checked_mul(soldier_count, battalion_data->hp_per_soldier);
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[AttributeIds::ID_HP_TOTAL] = static_cast<std::int64_t>(hp_total);
+	map_object->set_attributes(std::move(modifiers));
+
 	map_object->unload_resources(castle);
 
 	map_object->set_coord(castle->get_coord());
@@ -353,22 +363,24 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const bool forced_attack = req.forced_attack;
 	if(!forced_attack){
-		const auto resource_capacity = static_cast<std::uint64_t>(map_object_type_data->resource_carriable * soldier_count);
+		const auto resource_carriable = map_object->get_resource_amount_carriable();
 		const auto resource_carried = map_object->get_resource_amount_carried();
-		if(resource_carried > resource_capacity){
-			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+		if(resource_carried >= resource_carriable){
+			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
 		}
 	}
 
-	const auto harvest_speed_turbo = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+	const auto harvest_speed_bonus = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+	const auto harvest_speed_add = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
+	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
 
-	const auto interval = req.interval;
-	const auto amount_to_harvest = harvest_speed * (1 + harvest_speed_turbo) * soldier_count * interval / 60000.0;
+	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0;
 	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
-		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested);
+		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack);
 
-	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
+	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, req.interval);
 
 	return Response();
 }
@@ -427,11 +439,11 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 
 	// 结算战斗伤害。
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-	if(!attacking_object){
+	if(!attacking_object || attacking_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
 	}
 	const auto attacked_object = WorldMap::get_map_object(attacked_object_uuid);
-	if(!attacked_object){
+	if(!attacked_object || attacked_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacked_object_uuid;
 	}
 
@@ -458,14 +470,37 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	update_attributes_single(attacked_object, [&]{ return attacked_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
 	const auto result_type = req.result_type;
-	const auto soldiers_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-	const auto soldiers_damaged = std::min(soldiers_previous, req.soldiers_damaged);
-	const auto soldiers_remaining = checked_sub(soldiers_previous, soldiers_damaged);
+//	const auto soldiers_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+//	const auto soldiers_damaged = std::min(soldiers_previous, req.soldiers_damaged);
+//	const auto soldiers_remaining = checked_sub(soldiers_previous, soldiers_damaged);
+//	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
+//		", soldiers_previous = ", soldiers_previous, ", soldiers_damaged = ", soldiers_damaged, ", soldiers_remaining = ", soldiers_remaining);
+	const auto hp_previous = static_cast<std::uint64_t>(attacked_object->get_attribute(AttributeIds::ID_HP_TOTAL));
+	const auto hp_damaged = std::min(hp_previous, req.soldiers_damaged);
+	const auto hp_remaining = checked_sub(hp_previous, hp_damaged);
+
+	std::uint64_t hp_per_soldier = 1;
+	const auto attacked_defense = boost::dynamic_pointer_cast<DefenseBuilding>(attacked_object);
+	if(attacked_defense){
+		const auto defense_data = Data::MapDefenseBuildingAbstract::require(attacked_object_type_id, attacked_defense->get_level());
+		const auto combat_data = Data::MapDefenseCombat::require(defense_data->defense_combat_id);
+		hp_per_soldier = std::max<std::uint64_t>(combat_data->hp_per_soldier, 1);
+	} else {
+		const auto attacked_type_data = Data::MapObjectTypeAbstract::get(attacked_object_type_id);
+		if(attacked_type_data){
+			hp_per_soldier = std::max<std::uint64_t>(attacked_type_data->hp_per_soldier, 1);
+		}
+	}
+	const auto soldiers_previous = static_cast<std::uint64_t>(std::ceil(static_cast<double>(hp_previous) / hp_per_soldier - 0.001));
+	const auto soldiers_remaining = static_cast<std::uint64_t>(std::ceil(static_cast<double>(hp_remaining) / hp_per_soldier - 0.001));
+	const auto soldiers_damaged = saturated_sub(soldiers_previous, soldiers_remaining);
 	LOG_EMPERY_CENTER_DEBUG("Map object damaged: attacked_object_uuid = ", attacked_object_uuid,
+		", hp_previous = ", hp_previous, ", hp_damaged = ", hp_damaged, ", hp_remaining = ", hp_remaining,
 		", soldiers_previous = ", soldiers_previous, ", soldiers_damaged = ", soldiers_damaged, ", soldiers_remaining = ", soldiers_remaining);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
+	modifiers[AttributeIds::ID_HP_TOTAL]      = static_cast<std::int64_t>(hp_remaining);
 	attacked_object->set_attributes(std::move(modifiers));
 
 	if(soldiers_remaining <= 0){
@@ -484,11 +519,11 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	{
 		PROFILE_ME;
 
-		const auto battalion_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
-		if(!battalion_type_data){
+		const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+		if(!attacked_type_data){
 			goto _wounded_done;
 		}
-		if(battalion_type_data->speed <= 0){
+		if(attacked_type_data->speed <= 0){
 			goto _wounded_done;
 		}
 
@@ -567,8 +602,8 @@ _wounded_done:
 		msg.result_type            = result_type;
 		msg.soldiers_wounded       = soldiers_wounded;
 		msg.soldiers_wounded_added = soldiers_wounded_added;
-		msg.soldiers_damaged       = soldiers_damaged;
-		msg.soldiers_remaining     = soldiers_remaining;
+		msg.soldiers_damaged       = hp_damaged;
+		msg.soldiers_remaining     = hp_remaining;
 		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
 
 		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
@@ -679,7 +714,7 @@ _wounded_done:
 
 				battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
 					attacking_account_uuid, attacking_object_type_id, attacking_coord,
-					-result_type, soldiers_wounded, soldiers_wounded_added, soldiers_damaged, soldiers_remaining);
+					-result_type, soldiers_wounded, soldiers_wounded_added,soldiers_damaged, soldiers_remaining);
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
@@ -842,6 +877,8 @@ _wounded_done:
 					if(castle){
 						std::vector<Castle::ResourceInfo> resources;
 						castle->get_all_resources(resources);
+						std::vector<ResourceTransactionElement> transaction;
+						transaction.reserve(resources.size());
 						for(auto it = resources.begin(); it != resources.end(); ++it){
 							const auto resource_id = it->resource_id;
 							const auto resource_data = Data::CastleResource::get(resource_id);
@@ -851,17 +888,36 @@ _wounded_done:
 							if(!resource_data->carried_alt_attribute_id){
 								continue;
 							}
+							std::uint64_t amount_dropped, locked_amount_dropped;
+							const auto locked_resource_id = resource_data->locked_resource_id;
 							const auto amount_protected = castle->get_warehouse_protection(resource_id);
-							const auto amount_dropped = saturated_sub(it->amount, amount_protected);
+							if(it->amount >= amount_protected){
+								amount_dropped = amount_protected;
+								locked_amount_dropped = 0;
+							} else if(!locked_resource_id){
+								amount_dropped = it->amount;
+								locked_amount_dropped = 0;
+							} else {
+								const auto amount_total = saturated_add(it->amount, castle->get_resource(locked_resource_id).amount);
+								if(amount_total >= amount_protected){
+									amount_dropped = it->amount;
+									locked_amount_dropped = amount_protected - it->amount;
+								} else {
+									amount_dropped = it->amount;
+									locked_amount_dropped = amount_total - it->amount;
+								}
+							}
+							if(amount_dropped != 0){
+								transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, amount_dropped,
+									ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
+							} else {
+								transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, locked_resource_id, locked_amount_dropped,
+									ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
+							}
 
 							auto &amount = resources_dropped[resource_id];
 							amount = checked_add(amount, amount_dropped);
-						}
-						std::vector<ResourceTransactionElement> transaction;
-						transaction.reserve(resources_dropped.size());
-						for(auto it = resources_dropped.begin(); it != resources_dropped.end(); ++it){
-							transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, it->second,
-								ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
+							amount = checked_add(amount, locked_amount_dropped);
 						}
 						castle->commit_resource_transaction(transaction);
 						goto _create_crates;
@@ -953,15 +1009,14 @@ CLUSTER_SERVLET(Msg::KS_MapHealMonster, cluster, req){
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto monster_data = Data::MapObjectTypeMonster::require(map_object_type_id);
 
-	auto soldier_count = static_cast<std::int64_t>(monster_data->max_soldier_count);
-	if(soldier_count < 1){
-		soldier_count = 1;
-	}
+	const auto soldier_count = monster_data->max_soldier_count;
+	const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(8);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = soldier_count;
-	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = soldier_count;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_HP_TOTAL]          = static_cast<std::int64_t>(hp_total);
 	map_object->set_attributes(std::move(modifiers));
 
 	return Response();
@@ -972,11 +1027,11 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	const auto resource_crate_uuid   = ResourceCrateUuid(req.resource_crate_uuid);
 
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-	if(!attacking_object){
+	if(!attacking_object || attacking_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
 	}
 	const auto resource_crate = WorldMap::get_resource_crate(resource_crate_uuid);
-	if(!resource_crate){
+	if(!resource_crate || resource_crate->is_virtually_removed()){
 		return Response(Msg::ERR_RESOURCE_CRATE_NOT_FOUND) <<resource_crate_uuid;
 	}
 
@@ -1003,21 +1058,20 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
 
-	const auto attacking_object_type_data = Data::MapObjectTypeBattalion::require(attacking_object_type_id);
-	const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const bool forced_attack = req.forced_attack;
 	if(!forced_attack){
-		const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
+		const auto resource_carriable = attacking_object->get_resource_amount_carriable();
 		const auto resource_carried = attacking_object->get_resource_amount_carried();
-		if(resource_carried > resource_capacity){
-			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+		if(resource_carried >= resource_carriable){
+			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
 		}
 	}
 
 	const auto amount_to_harvest = req.amount_harvested;
 	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: attacking_object_uuid = ", attacking_object_uuid, ", attacking_object_type_id = ", attacking_object_type_id,
-		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
+		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack);
 	amount_remaining = resource_crate->get_amount_remaining();
 
 	const auto attacked_coord = resource_crate->get_coord();
@@ -1082,11 +1136,11 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 
 	// 结算战斗伤害。
 	const auto attacking_object = WorldMap::get_map_object(attacking_object_uuid);
-	if(!attacking_object){
+	if(!attacking_object || attacking_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<attacking_object_uuid;
 	}
 	const auto attacked_cell = WorldMap::get_map_cell(attacked_coord);
-	if(!attacked_cell){
+	if(!attacked_cell || attacked_cell->is_virtually_removed()){
 		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<attacked_coord;
 	}
 	if(!attacked_cell->get_owner_uuid()){
@@ -1143,12 +1197,10 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		}
 		const bool forced_attack = req.forced_attack;
 		if(!forced_attack){
-			const auto attacking_object_type_data = Data::MapObjectTypeBattalion::require(attacking_object_type_id);
-			const auto soldier_count = static_cast<std::uint64_t>(attacking_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-			const auto resource_capacity = static_cast<std::uint64_t>(attacking_object_type_data->resource_carriable * soldier_count);
+			const auto resource_carriable = attacking_object->get_resource_amount_carriable();
 			const auto resource_carried = attacking_object->get_resource_amount_carried();
-			if(resource_carried > resource_capacity){
-				return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_capacity;
+			if(resource_carried >= resource_carriable){
+				return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
 			}
 		}
 
@@ -1160,7 +1212,8 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 		const auto amount_harvested = attacked_cell->harvest(attacking_object, amount_to_harvest / unit_weight, forced_attack);
 		LOG_EMPERY_CENTER_DEBUG("Plunder: attacking_object_uuid = ", attacking_object_uuid,
 			", attacking_object_type_id = ", attacking_object_type_id, ", attacked_coord = ", attacked_cell->get_coord(),
-			", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested);
+			", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested,
+			", forced_attack = ", forced_attack);
 	}
 
 	if(soldiers_remaining <= 0){

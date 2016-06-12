@@ -70,8 +70,18 @@ boost::shared_ptr<Account> AccountMap::require(AccountUuid account_uuid){
 	}
 	return account;
 }
-boost::shared_ptr<Account> AccountMap::reload(AccountUuid account_uuid){
+boost::shared_ptr<Account> AccountMap::get_or_reload(AccountUuid account_uuid){
 	PROFILE_ME;
+
+	auto account = get(account_uuid);
+	if(!account){
+		account = forced_reload(account_uuid);
+	}
+	return account;
+}
+boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
+	PROFILE_ME;
+	LOG_EMPERY_CONTROLLER_DEBUG("Reloading account: account_uuid = ", account_uuid);
 
 	std::vector<boost::shared_ptr<EmperyCenter::MySql::Center_Account>> sink;
 	{

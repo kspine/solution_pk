@@ -13,7 +13,8 @@ class ControllerSession;
 struct AccountMap {
 	static boost::shared_ptr<Account> get(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> require(AccountUuid account_uuid);
-	static boost::shared_ptr<Account> reload(AccountUuid account_uuid);
+	static boost::shared_ptr<Account> get_or_reload(AccountUuid account_uuid);
+	static boost::shared_ptr<Account> forced_reload(AccountUuid account_uuid);
 	static void update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists = true);
 
 	static void get_all_controllers(std::vector<boost::shared_ptr<ControllerSession>> &ret);

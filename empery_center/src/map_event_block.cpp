@@ -52,17 +52,16 @@ namespace {
 			const auto monster_data = Data::MapObjectTypeMonster::require(event_monster_data->monster_type_id);
 			const auto monster_uuid = MapObjectUuid(meta_uuid);
 
-			auto soldier_count = static_cast<std::int64_t>(monster_data->max_soldier_count);
-			if(soldier_count < 1){
-				soldier_count = 1;
-			}
+			const auto soldier_count = monster_data->max_soldier_count;
+			const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
 
 			boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 			modifiers.reserve(8);
-			modifiers[AttributeIds::ID_SOLDIER_COUNT]         = soldier_count;
-			modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = soldier_count;
+			modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(soldier_count);
+			modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(soldier_count);
 			modifiers[AttributeIds::ID_MONSTER_START_POINT_X] = coord.x();
 			modifiers[AttributeIds::ID_MONSTER_START_POINT_Y] = coord.y();
+			modifiers[AttributeIds::ID_HP_TOTAL]              = static_cast<std::int64_t>(hp_total);
 
 			const auto monster = boost::make_shared<MapObject>(monster_uuid, event_monster_data->monster_type_id,
 				AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
@@ -335,7 +334,8 @@ void MapEventBlock::refresh_events(bool first_time){
 						continue;
 					}
 					const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
-					if(basic_data->terrain_id != event_data->restricted_terrain_id){
+					const auto &restricted_terrains = event_data->restricted_terrains;
+					if(restricted_terrains.find(basic_data->terrain_id) == restricted_terrains.end()){
 						// 事件不能刷在非指定类型的土地上。
 						coords_avail.erase(coord);
 						continue;

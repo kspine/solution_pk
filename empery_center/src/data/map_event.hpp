@@ -45,7 +45,7 @@ namespace Data {
 
 	public:
 		MapEventId map_event_id;
-		TerrainId restricted_terrain_id;
+		boost::container::flat_set<TerrainId> restricted_terrains;
 	};
 
 	class MapEventResource : public MapEventAbstract {
