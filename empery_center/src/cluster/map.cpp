@@ -486,7 +486,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		const auto combat_data = Data::MapDefenseCombat::require(defense_data->defense_combat_id);
 		hp_per_soldier = std::max<std::uint64_t>(combat_data->hp_per_soldier, 1);
 	} else {
-		const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+		const auto attacked_type_data = Data::MapObjectTypeAbstract::get(attacked_object_type_id);
 		if(attacked_type_data){
 			hp_per_soldier = std::max<std::uint64_t>(attacked_type_data->hp_per_soldier, 1);
 		}
