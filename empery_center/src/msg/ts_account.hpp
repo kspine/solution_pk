@@ -14,11 +14,11 @@ namespace Msg {
 	FIELD_ARRAY         (items,	\
 		FIELD_VUINT         (item_id)	\
 		FIELD_VUINT         (count)	\
-	)	\
-	FIELD_VUINT         (reason)	\
-	FIELD_VINT          (param1)	\
-	FIELD_VINT          (param2)	\
-	FIELD_VINT          (param3)
+		FIELD_VUINT         (reason)    \
+		FIELD_VINT          (param1)    \
+		FIELD_VINT          (param2)    \
+		FIELD_VINT          (param3)    \
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    TS_AccountUnloadAccount

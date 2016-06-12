@@ -22,7 +22,7 @@ CONTROLLER_SERVLET(Msg::TS_AccountAddItems, controller, req){
 	transaction.reserve(req.items.size());
 	for(auto it = req.items.begin(); it != req.items.end(); ++it){
 		transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemId(it->item_id), it->count,
-			ReasonId(req.reason), req.param1, req.param2, req.param3);
+			ReasonId(it->reason), it->param1, it->param2, it->param3);
 	}
 	item_box->commit_transaction(transaction, false);
 

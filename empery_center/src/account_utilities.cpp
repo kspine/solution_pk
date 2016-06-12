@@ -19,6 +19,8 @@
 #include "task_type_ids.hpp"
 #include "singletons/world_map.hpp"
 #include "castle.hpp"
+#include "singletons/controller_client.hpp"
+#include "msg/st_account.hpp"
 
 namespace EmperyCenter {
 
@@ -90,11 +92,29 @@ try {
 		const auto old_gold_amount = item_box->get(ItemIds::ID_GOLD).count;
 		const auto new_gold_amount = checked_add(old_gold_amount, amount_to_add);
 
-		std::vector<ItemTransactionElement> transaction;
-		transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_GOLD, amount_to_add,
-			reason, taxer_uuid_head, account->get_promotion_level(), 0);
-		item_box->commit_transaction(transaction, false,
-			[&]{ tax_record_box->push(utc_now, taxer_uuid, reason, old_gold_amount, new_gold_amount); });
+		const auto controller = ControllerClient::require();
+		Msg::ST_AccountAddItems treq;
+		treq.account_uuid = account_uuid.str();
+		auto &item = *treq.items.emplace(treq.items.end());
+		item.item_id = ItemIds::ID_GOLD.get();
+		item.count   = amount_to_add;
+		item.reason  = reason.get();
+		item.param1  = static_cast<std::int64_t>(taxer_uuid_head);
+		item.param2  = account->get_promotion_level();
+		item.param3  = 0;
+		LOG_EMPERY_CENTER_DEBUG("Sending tax request: treq = ", treq);
+		auto result = controller->send_and_wait(treq);
+		if(result.first != 0){
+			LOG_EMPERY_CENTER_WARNING("Failed to send tax: account_uuid = ", account_uuid,
+				", code = ", result.first, ", msg = ", result.second);
+			return;
+		}
+
+		try {
+			tax_record_box->push(utc_now, taxer_uuid, reason, old_gold_amount, new_gold_amount);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
 	};
 
 	const auto withdrawn = boost::make_shared<bool>(true);
