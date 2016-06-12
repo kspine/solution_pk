@@ -103,10 +103,10 @@ try {
 		item.param2  = account->get_promotion_level();
 		item.param3  = 0;
 		LOG_EMPERY_CENTER_DEBUG("Sending tax request: treq = ", treq);
-		auto result = controller->send_and_wait(treq);
-		if(result.first != 0){
+		auto tresult = controller->send_and_wait(treq);
+		if(tresult.first != 0){
 			LOG_EMPERY_CENTER_WARNING("Failed to send tax: account_uuid = ", account_uuid,
-				", code = ", result.first, ", msg = ", result.second);
+				", code = ", tresult.first, ", msg = ", tresult.second);
 			return;
 		}
 

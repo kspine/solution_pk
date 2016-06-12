@@ -31,6 +31,7 @@ CONTROLLER_SERVLET(Msg::ST_AccountAddItems, controller, req){
 		item.param2  = it->param2;
 		item.param3  = it->param3;
 	}
+	LOG_EMPERY_CONTROLLER_DEBUG("Adding items: msg = ", msg);
 
 	auto using_controller = account->get_controller();
 	if(!using_controller){
