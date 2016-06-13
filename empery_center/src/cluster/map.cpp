@@ -883,41 +883,34 @@ _wounded_done:
 							const auto resource_id = it->resource_id;
 							const auto resource_data = Data::CastleResource::get(resource_id);
 							if(!resource_data){
+								LOG_EMPERY_CENTER_WARNING("Unknown resource: resource_id = ", resource_id);
 								continue;
 							}
-							if(!resource_data->carried_alt_attribute_id){
-								continue;
-							}
-							std::uint64_t amount_dropped, locked_amount_dropped;
+							std::uint64_t amount_normal = it->amount, amount_locked = 0;
 							const auto locked_resource_id = resource_data->locked_resource_id;
-							const auto amount_protected = castle->get_warehouse_protection(resource_id);
-							if(it->amount >= amount_protected){
-								amount_dropped = amount_protected;
-								locked_amount_dropped = 0;
-							} else if(!locked_resource_id){
-								amount_dropped = it->amount;
-								locked_amount_dropped = 0;
-							} else {
-								const auto amount_total = saturated_add(it->amount, castle->get_resource(locked_resource_id).amount);
-								if(amount_total >= amount_protected){
-									amount_dropped = it->amount;
-									locked_amount_dropped = amount_protected - it->amount;
-								} else {
-									amount_dropped = it->amount;
-									locked_amount_dropped = amount_total - it->amount;
-								}
+							if(locked_resource_id){
+								amount_locked = castle->get_resource(locked_resource_id).amount;
 							}
+							const auto amount_protected = castle->get_warehouse_protection(resource_id);
+							const auto amount_to_drop_total = saturated_sub(saturated_add(amount_normal, amount_locked), amount_protected);
+							LOG_EMPERY_CENTER_DEBUG("> Castle drop: resource_id = ", resource_id,
+								", amount_normal = ", amount_normal, ", amount_locked = ", amount_locked, ", amount_protected = ", amount_protected,
+								", amount_to_drop_total = ", amount_to_drop_total);
+							if(amount_to_drop_total == 0){
+								continue;
+							}
+							const auto amount_dropped = std::min(amount_normal, amount_to_drop_total);
 							if(amount_dropped != 0){
 								transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, amount_dropped,
 									ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
-							} else {
-								transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, locked_resource_id, locked_amount_dropped,
+							}
+							const auto amount_locked_dropped = saturated_sub(amount_to_drop_total, amount_dropped);
+							if(amount_locked_dropped != 0){
+								transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, locked_resource_id, amount_locked_dropped,
 									ReasonIds::ID_CASTLE_CAPTURED, 0, 0, 0);
 							}
-
 							auto &amount = resources_dropped[resource_id];
-							amount = checked_add(amount, amount_dropped);
-							amount = checked_add(amount, locked_amount_dropped);
+							amount = checked_add(amount, amount_to_drop_total);
 						}
 						castle->commit_resource_transaction(transaction);
 						goto _create_crates;
@@ -978,6 +971,11 @@ _wounded_done:
 					const auto resource_id = it->first;
 					const auto amount = it->second;
 					resources_dropped.erase(it);
+
+					const auto resource_data = Data::CastleResource::require(resource_id);
+					if(!resource_data->carried_alt_attribute_id){
+						continue;
+					}
 
 					try {
 						create_resource_crates(attacked_object->get_coord(), resource_id, amount,
