@@ -362,6 +362,8 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 }
 
 void WorldMap::get_map_objects_by_account(std::vector<boost::shared_ptr<MapObject>> &ret,AccountUuid owner_uuid){
+	PROFILE_ME;
+
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
 		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
@@ -456,24 +458,27 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		}
 		return;
 	}
+	if(it->map_object != map_object){
+		LOG_EMPERY_CLUSTER_DEBUG("Map object expired: map_object_uuid = ", map_object_uuid);
+		return;
+	}
 	const auto old_coord = it->coord;
 	const auto new_coord = map_object->get_coord();
 
-	bool out_of_scope = true;
 	const auto cit = cluster_map->find<1>(it->master);
-	if(cit != cluster_map->end<1>()){
-		const auto scope = get_cluster_scope(cit->cluster_coord);
-		if(scope.hit_test(new_coord)){
-			out_of_scope = false;
-		}
+	if(cit == cluster_map->end<1>()){
+		LOG_EMPERY_CLUSTER_DEBUG("Master expired? map_object_uuid = ", map_object_uuid);
+		return;
 	}
-	if(out_of_scope){
+	const auto scope = get_cluster_scope(cit->cluster_coord);
+	if(!scope.hit_test(new_coord)){
 		LOG_EMPERY_CLUSTER_DEBUG("Map object is out of the scope of its master: map_object_uuid = ", map_object_uuid);
-	} else {
-		LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
-			", old_coord = ", old_coord, ", new_coord = ", new_coord);
-		map_object_map->replace<1>(it, MapObjectElement(map_object, it->master));
+		return;
 	}
+
+	LOG_EMPERY_CLUSTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid,
+		", old_coord = ", old_coord, ", new_coord = ", new_coord);
+	map_object_map->replace<1>(it, MapObjectElement(map_object, it->master));
 
 	const auto old_cluster = get_cluster(old_coord);
 	if(old_cluster){
