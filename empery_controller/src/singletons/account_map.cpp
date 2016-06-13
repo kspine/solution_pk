@@ -7,8 +7,12 @@
 #include "../account.hpp"
 #include "../controller_session.hpp"
 #include "../../../empery_center/src/mysql/account.hpp"
+#include "../../../empery_center/src/string_utilities.hpp"
 
 namespace EmperyController {
+
+using EmperyCenter::hash_string_nocase;
+using EmperyCenter::are_strings_equal_nocase;
 
 namespace {
 	struct AccountElement {
@@ -16,10 +20,12 @@ namespace {
 
 		AccountUuid account_uuid;
 		boost::weak_ptr<ControllerSession> weak_controller;
+		std::pair<PlatformId, std::size_t> platform_id_login_name_hash;
 
 		explicit AccountElement(boost::shared_ptr<Account> account_)
 			: account(std::move(account_))
 			, account_uuid(account->get_account_uuid()), weak_controller(account->get_weak_controller())
+			, platform_id_login_name_hash(account->get_platform_id(), hash_string_nocase(account->get_login_name()))
 		{
 		}
 	};
@@ -27,6 +33,7 @@ namespace {
 	MULTI_INDEX_MAP(AccountContainer, AccountElement,
 		UNIQUE_MEMBER_INDEX(account_uuid)
 		MULTI_MEMBER_INDEX(weak_controller)
+		MULTI_MEMBER_INDEX(platform_id_login_name_hash)
 	)
 
 	boost::shared_ptr<AccountContainer> g_account_map;
@@ -115,6 +122,30 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 	LOG_EMPERY_CONTROLLER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
 	return std::move(account);
 }
+boost::shared_ptr<Account> AccountMap::get_by_login_name(PlatformId platform_id, const std::string &login_name){
+	PROFILE_ME;
+
+	const auto key = std::make_pair(platform_id, hash_string_nocase(login_name));
+	const auto range = g_account_map->equal_range<2>(key);
+	for(auto it = range.first; it != range.second; ++it){
+		if(are_strings_equal_nocase(it->account->get_login_name(), login_name)){
+			return it->account;
+		}
+	}
+	LOG_EMPERY_CONTROLLER_DEBUG("Login name not found: platform_id = ", platform_id, ", login_name = ", login_name);
+	return { };
+}
+boost::shared_ptr<Account> AccountMap::require_by_login_name(PlatformId platform_id, const std::string &login_name){
+	PROFILE_ME;
+
+	auto account = get_by_login_name(platform_id, login_name);
+	if(!account){
+		LOG_EMPERY_CONTROLLER_WARNING("Login name not found: platform_id = ", platform_id, ", login_name = ", login_name);
+		DEBUG_THROW(Exception, sslit("Login name not found"));
+	}
+	return account;
+}
+
 void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists){
 	PROFILE_ME;
 

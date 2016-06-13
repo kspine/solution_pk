@@ -35,7 +35,7 @@ CONTROLLER_SERVLET(Msg::TS_AccountAddItems, controller, req){
 
 CONTROLLER_SERVLET(Msg::TS_AccountInvalidate, controller, req){
 	const auto account_uuid = AccountUuid(req.account_uuid);
-	const auto account = AccountMap::reload(account_uuid);
+	const auto account = AccountMap::forced_reload(account_uuid);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
