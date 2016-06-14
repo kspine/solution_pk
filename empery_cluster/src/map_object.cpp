@@ -593,7 +593,12 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	msg.attacked_coord_y = target_object->get_coord().y();
 	msg.result_type = result_type;
 	msg.soldiers_damaged = damage;
-	cluster->send(msg);
+	auto sresult = cluster->send_and_wait(msg);
+	if(sresult.first != Msg::ST_OK){
+		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+		result = std::move(sresult);
+		return UINT64_MAX;
+	}
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<MapObject>(),damage);
@@ -682,7 +687,12 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 	if(force_attack){
 		msg.forced_attack = true;
 	}
-	cluster->send(msg);
+	auto sresult = cluster->send_and_wait(msg);
+	if(sresult.first != Msg::ST_OK){
+		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+		result = std::move(sresult);
+		return UINT64_MAX;
+	}
 
 	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
 	return attack_delay;
@@ -763,7 +773,12 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 	if(forced_attack){
 		msg.forced_attack = true;
 	}
-	cluster->send(msg);
+	auto sresult = cluster->send_and_wait(msg);
+	if(sresult.first != Msg::ST_OK){
+		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+		result = std::move(sresult);
+		return UINT64_MAX;
+	}
 	map_cell->on_attack(virtual_shared_from_this<MapObject>());
 	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
 	return attack_delay;
