@@ -883,7 +883,7 @@ _wounded_done:
 							const auto resource_id = it->resource_id;
 							const auto resource_data = Data::CastleResource::get(resource_id);
 							if(!resource_data){
-								LOG_EMPERY_CENTER_WARNING("Unknown resource: resource_id = ", resource_id);
+								LOG_EMPERY_CENTER_DEBUG("Unknown resource: resource_id = ", resource_id);
 								continue;
 							}
 							std::uint64_t amount_normal = it->amount, amount_locked = 0;

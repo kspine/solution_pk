@@ -476,6 +476,8 @@ void Castle::pump_population_production(){
 	const auto consumption_minutes = saturated_sub(utc_now, last_consumption_time) / 60000;
 	if(consumption_minutes > 0){
 		const auto consumption_duration = consumption_minutes * 60000;
+		LOG_EMPERY_CENTER_DEBUG("Checking population consumption: map_object_uuid = ", get_map_object_uuid(),
+			", consumption_minutes = ", consumption_minutes);
 
 		boost::container::flat_map<ResourceId, std::uint64_t> resources_to_consume;
 		for(auto it = m_soldiers.begin(); it != m_soldiers.end(); ++it){
