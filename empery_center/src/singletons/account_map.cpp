@@ -260,8 +260,14 @@ namespace {
 boost::shared_ptr<Account> AccountMap::get(AccountUuid account_uuid){
 	PROFILE_ME;
 
-	const auto it = g_account_map->find<0>(account_uuid);
-	if(it == g_account_map->end<0>()){
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return { };
+	}
+
+	const auto it = account_map->find<0>(account_uuid);
+	if(it == account_map->end<0>()){
 		LOG_EMPERY_CENTER_TRACE("Account not found: account_uuid = ", account_uuid);
 		return { };
 	}
@@ -288,6 +294,12 @@ boost::shared_ptr<Account> AccountMap::get_or_reload(AccountUuid account_uuid){
 }
 boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 	PROFILE_ME;
+
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return { };
+	}
 
 	std::vector<boost::shared_ptr<MySql::Center_Account>> sink;
 	{
@@ -323,11 +335,11 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 
 	auto account = boost::make_shared<Account>(std::move(sink.front()), attribute_sink);
 
-	auto it = g_account_map->find<0>(account_uuid);
-	if(it == g_account_map->end<0>()){
-		it = g_account_map->insert<0>(AccountElement(account)).first;
+	auto it = account_map->find<0>(account_uuid);
+	if(it == account_map->end<0>()){
+		it = account_map->insert<0>(AccountElement(account)).first;
 	} else {
-		g_account_map->replace<0>(it, AccountElement(account));
+		account_map->replace<0>(it, AccountElement(account));
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
@@ -336,8 +348,14 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 boost::shared_ptr<Account> AccountMap::get_by_login_name(PlatformId platform_id, const std::string &login_name){
 	PROFILE_ME;
 
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return { };
+	}
+
 	const auto key = std::make_pair(platform_id, hash_string_nocase(login_name));
-	const auto range = g_account_map->equal_range<1>(key);
+	const auto range = account_map->equal_range<1>(key);
 	for(auto it = range.first; it != range.second; ++it){
 		if(are_strings_equal_nocase(it->account->get_login_name(), login_name)){
 			return it->account;
@@ -358,34 +376,64 @@ boost::shared_ptr<Account> AccountMap::require_by_login_name(PlatformId platform
 }
 
 std::uint64_t AccountMap::get_count(){
-	return g_account_map->size();
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return 0;
+	}
+
+	return account_map->size();
 }
 void AccountMap::get_all(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count){
 	PROFILE_ME;
 
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return;
+	}
+
 	really_append_account(ret,
-		std::make_pair(g_account_map->begin<0>(), g_account_map->end<0>()),
+		std::make_pair(account_map->begin<0>(), account_map->end<0>()),
 		begin, count);
 }
 void AccountMap::get_banned(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count){
 	PROFILE_ME;
 
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return;
+	}
+
 	really_append_account(ret,
-		std::make_pair(g_account_map->upper_bound<4>(0), g_account_map->end<4>()),
+		std::make_pair(account_map->upper_bound<4>(0), account_map->end<4>()),
 		begin, count);
 }
 void AccountMap::get_quieted(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count){
 	PROFILE_ME;
 
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return;
+	}
+
 	really_append_account(ret,
-		std::make_pair(g_account_map->upper_bound<5>(0), g_account_map->end<5>()),
+		std::make_pair(account_map->upper_bound<5>(0), account_map->end<5>()),
 		begin, count);
 }
 void AccountMap::get_by_nick(std::vector<boost::shared_ptr<Account>> &ret, const std::string &nick){
 	PROFILE_ME;
 
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return;
+	}
+
 	const auto key = hash_string_nocase(nick);
-	const auto range = g_account_map->equal_range<2>(key);
+	const auto range = account_map->equal_range<2>(key);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		if(!are_strings_equal_nocase(it->account->get_nick(), nick)){
@@ -397,7 +445,13 @@ void AccountMap::get_by_nick(std::vector<boost::shared_ptr<Account>> &ret, const
 void AccountMap::get_by_referrer(std::vector<boost::shared_ptr<Account>> &ret, AccountUuid referrer_uuid){
 	PROFILE_ME;
 
-	const auto range = g_account_map->equal_range<3>(referrer_uuid);
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return;
+	}
+
+	const auto range = account_map->equal_range<3>(referrer_uuid);
 	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->account);
@@ -407,13 +461,19 @@ void AccountMap::get_by_referrer(std::vector<boost::shared_ptr<Account>> &ret, A
 void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::string &remote_ip){
 	PROFILE_ME;
 
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		DEBUG_THROW(Exception, sslit("Account map not loaded"));
+	}
+
 	const auto account_uuid = account->get_account_uuid();
 
 	const auto withdrawn = boost::make_shared<bool>(true);
 	Poseidon::async_raise_event(boost::make_shared<Events::AccountCreated>(account_uuid, remote_ip), withdrawn);
 
 	LOG_EMPERY_CENTER_DEBUG("Inserting account: account_uuid = ", account_uuid);
-	if(!g_account_map->insert(AccountElement(account)).second){
+	if(!account_map->insert(AccountElement(account)).second){
 		LOG_EMPERY_CENTER_WARNING("Account already exists: account_uuid = ", account_uuid);
 		DEBUG_THROW(Exception, sslit("Account already exists"));
 	}
@@ -423,10 +483,19 @@ void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::st
 void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists){
 	PROFILE_ME;
 
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Account map not loaded"));
+		}
+		return;
+	}
+
 	const auto account_uuid = account->get_account_uuid();
 
-	const auto it = g_account_map->find<0>(account_uuid);
-	if(it == g_account_map->end<0>()){
+	const auto it = account_map->find<0>(account_uuid);
+	if(it == account_map->end<0>()){
 		LOG_EMPERY_CENTER_WARNING("Account not found: account_uuid = ", account_uuid);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Account not found"));
@@ -435,7 +504,7 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating account: account_uuid = ", account_uuid);
-	g_account_map->replace<0>(it, AccountElement(account));
+	account_map->replace<0>(it, AccountElement(account));
 }
 
 void AccountMap::synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
