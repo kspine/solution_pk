@@ -985,7 +985,7 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 		}
 		target_coord = target_object->get_coord();
 		in_attack_scope = is_in_attack_scope(target_object);
-	} else if( m_action == ACT_HARVEST_RESOURCE_CRATE ){
+	} else if( m_action == ACT_HARVEST_RESOURCE_CRATE || m_action == ACT_HARVEST_RESOURCE_CRATE_FORCE ){
 		const auto target_resource_crate = get_attack_resouce_crate();
 		if(!target_resource_crate){
 			result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
@@ -993,7 +993,7 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 		}
 		target_coord = target_resource_crate->get_coord();
 		in_attack_scope = is_in_attack_scope(target_resource_crate);
-	} else if( m_action == ACT_ATTACK_TERRITORY){
+	} else if( m_action == ACT_ATTACK_TERRITORY || m_action == ACT_ATTACK_TERRITORY_FORCE){
 		const auto target_map_cell = get_attack_territory();
 		if(!target_map_cell){
 			result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
