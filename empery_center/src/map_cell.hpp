@@ -56,6 +56,8 @@ public:
 	virtual void pump_status();
 	virtual void recalculate_attributes(bool recursive);
 
+	virtual bool is_protectable() const;
+
 	Coord get_coord() const;
 
 	MapObjectUuid get_parent_object_uuid() const;

@@ -44,6 +44,8 @@ public:
 	void pump_status() override;
 	void recalculate_attributes(bool recursive) override;
 
+	bool is_protectable() const override;
+
 	virtual unsigned get_level() const;
 	Mission get_mission() const;
 	std::uint64_t get_mission_duration() const;

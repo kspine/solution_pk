@@ -158,6 +158,10 @@ _bunker_done:
 	MapObject::recalculate_attributes(recursive);
 }
 
+bool DefenseBuilding::is_protectable() const {
+	return true;
+}
+
 unsigned DefenseBuilding::get_level() const {
 	return m_defense_obj->get_building_level();
 }

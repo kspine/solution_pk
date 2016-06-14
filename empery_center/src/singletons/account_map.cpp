@@ -316,6 +316,7 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 	}
 	if(sink.empty()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found in database: account_uuid = ", account_uuid);
+		account_map->erase<0>(account_uuid);
 		return { };
 	}
 
