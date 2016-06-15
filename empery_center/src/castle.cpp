@@ -275,7 +275,7 @@ Castle::Castle(MapObjectUuid map_object_uuid, AccountUuid owner_uuid, MapObjectU
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
-	boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj,
+	const std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>> &defense_objs,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
@@ -283,7 +283,7 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment)
-	: DefenseBuilding(std::move(obj), attributes, buffs, std::move(defense_obj))
+	: DefenseBuilding(std::move(obj), attributes, buffs, defense_objs)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
 		const auto &obj = *it;

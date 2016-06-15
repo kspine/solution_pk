@@ -12,6 +12,15 @@
 namespace EmperyCenter {
 
 namespace {
+	boost::shared_ptr<MySql::Center_DefenseBuilding> create_default_defense_obj(MapObjectUuid map_object_uuid){
+		PROFILE_ME;
+
+		auto obj = boost::make_shared<MySql::Center_DefenseBuilding>(map_object_uuid.get(),
+			0, DefenseBuilding::MIS_NONE, 0, 0, 0, Poseidon::Uuid(), 0);
+		obj->async_save(true);
+		return obj;
+	}
+
 	bool check_defense_building_mission(const boost::shared_ptr<MySql::Center_DefenseBuilding> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
@@ -67,21 +76,16 @@ namespace {
 DefenseBuilding::DefenseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
 	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord, created_time, false)
-	, m_defense_obj(
-		[&]{
-			auto obj = boost::make_shared<MySql::Center_DefenseBuilding>(map_object_uuid.get(),
-				0, MIS_NONE, 0, 0, 0, Poseidon::Uuid(), 0);
-			obj->async_save(true);
-			return obj;
-		}())
+	, m_defense_obj(create_default_defense_obj(map_object_uuid))
 {
 }
 DefenseBuilding::DefenseBuilding(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
-	boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj)
+	const std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>> &defense_objs)
 	: MapObject(std::move(obj), attributes, buffs)
-	, m_defense_obj(std::move(defense_obj))
+	, m_defense_obj(defense_objs.empty() ? create_default_defense_obj(MapObject::get_map_object_uuid())
+	                                     : std::move(defense_objs.front()))
 {
 }
 DefenseBuilding::~DefenseBuilding(){

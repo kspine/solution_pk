@@ -120,13 +120,15 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 
 	auto account = boost::make_shared<Account>(std::move(sink.front()));
 
-	auto it = account_map->find<0>(account_uuid);
-	if(it == account_map->end<0>()){
-		// account->set_controller({ });
-		it = account_map->insert<0>(AccountElement(account)).first;
-	} else {
-		account->set_controller(it->weak_controller.lock());
-		account_map->replace<0>(it, AccountElement(account));
+	const auto old_it = account_map->find<0>(account_uuid);
+	if(old_it != account_map->end<0>()){
+		account->set_controller(old_it->weak_controller.lock());
+	}
+
+	const auto elem = AccountElement(account);
+	const auto result = account_map->insert(elem);
+	if(result.second){
+		account_map->replace(result.first, elem);
 	}
 
 	LOG_EMPERY_CONTROLLER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);

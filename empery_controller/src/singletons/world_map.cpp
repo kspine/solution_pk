@@ -129,7 +129,7 @@ boost::shared_ptr<Castle> WorldMap::get_or_reload_castle(MapObjectUuid map_objec
 }
 boost::shared_ptr<Castle> WorldMap::forced_reload_castle(MapObjectUuid map_object_uuid){
 	PROFILE_ME;
-	LOG_EMPERY_CONTROLLER_DEBUG("Reloading account: map_object_uuid = ", map_object_uuid);
+	LOG_EMPERY_CONTROLLER_DEBUG("Reloading castle: map_object_uuid = ", map_object_uuid);
 
 	const auto castle_map = g_castle_map.lock();
 	if(!castle_map){

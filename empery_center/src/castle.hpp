@@ -111,7 +111,7 @@ public:
 	Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
-		boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj,
+		const std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>> &defense_objs,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,

@@ -336,11 +336,10 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 
 	auto account = boost::make_shared<Account>(std::move(sink.front()), attribute_sink);
 
-	auto it = account_map->find<0>(account_uuid);
-	if(it == account_map->end<0>()){
-		it = account_map->insert<0>(AccountElement(account)).first;
-	} else {
-		account_map->replace<0>(it, AccountElement(account));
+	const auto elem = AccountElement(account);
+	const auto result = account_map->insert(elem);
+	if(result.second){
+		account_map->replace(result.first, elem);
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
