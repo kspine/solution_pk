@@ -989,18 +989,17 @@ namespace {
 		}
 	}
 
-	void invalidate_castle(const boost::shared_ptr<Castle> &castle) noexcept {
+	void invalidate_castle(const boost::shared_ptr<Castle> &castle) noexcept
+	try {
 		PROFILE_ME;
 
-		try {
-			const auto controller = ControllerClient::require();
+		const auto controller = ControllerClient::require();
 
-			Msg::ST_MapInvalidateCastle msg;
-			msg.map_object_uuid = castle->get_map_object_uuid().str();
-			controller->send(msg);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-		}
+		Msg::ST_MapInvalidateCastle msg;
+		msg.map_object_uuid = castle->get_map_object_uuid().str();
+		controller->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
 }
 
@@ -2150,7 +2149,7 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 		if(!cluster){
 			continue;
 		}
-		ret.emplace(it->cluster_coord, std::move(cluster));
+		ret.insert(std::make_pair(it->cluster_coord, std::move(cluster)));
 	}
 }
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
@@ -2218,7 +2217,8 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 	const auto result = cluster_map->insert(ClusterElement(cluster_coord, cluster));
 	if(!result.second){
 		const auto old_cluster = result.first->cluster.lock();
-		if(old_cluster){
+		if(old_cluster && (old_cluster != cluster)){
+			LOG_EMPERY_CENTER_WARNING("Killing old cluster server: cluster_coord = ", cluster_coord);
 			old_cluster->shutdown(Msg::KILL_CLUSTER_SERVER_CONFLICT, "");
 		}
 		cluster_map->replace(result.first, ClusterElement(cluster_coord, cluster));

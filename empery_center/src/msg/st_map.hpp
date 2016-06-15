@@ -7,8 +7,15 @@ namespace EmperyCenter {
 
 namespace Msg {
 
-#define MESSAGE_NAME    ST_MapInvalidateCastle
+#define MESSAGE_NAME    ST_MapRegisterMapServer
 #define MESSAGE_ID      20300
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (numerical_x)	\
+	FIELD_VINT          (numerical_y)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    ST_MapInvalidateCastle
+#define MESSAGE_ID      20301
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>

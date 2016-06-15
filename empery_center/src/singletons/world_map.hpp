@@ -47,6 +47,7 @@ struct WorldMap {
 
 	static boost::shared_ptr<Castle> get_or_reload_castle(MapObjectUuid map_object_uuid);
 	static boost::shared_ptr<Castle> forced_reload_castle(MapObjectUuid map_object_uuid);
+	static void forced_reload_child_map_objects(MapObjectUuid parent_object_uuid);
 
 	// Overlay
 	static boost::shared_ptr<Overlay> get_overlay(Coord cluster_coord, const std::string &overlay_group_name);

@@ -10,7 +10,9 @@ namespace Msg {
 #define MESSAGE_NAME    TS_MapInvalidateCastle
 #define MESSAGE_ID      20399
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VINT          (coord_x)	\
+	FIELD_VINT          (coord_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
