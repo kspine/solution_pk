@@ -81,8 +81,9 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 		return Response(Msg::KILL_CLUSTER_SERVER_CONFLICT_GLOBAL) <<tresult.second;
 	}
 
-	WorldMap::set_cluster(cluster, cluster_coord);
 	cluster->set_name(std::move(req.name));
+	WorldMap::set_cluster(cluster, cluster_coord);
+	WorldMap::forced_reload_cluster(cluster_coord);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();

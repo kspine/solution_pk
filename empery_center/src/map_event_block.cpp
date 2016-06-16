@@ -5,7 +5,6 @@
 #include "data/map.hpp"
 #include "data/global.hpp"
 #include <poseidon/json.hpp>
-#include "singletons/map_event_block_map.hpp"
 #include "singletons/world_map.hpp"
 #include "strategic_resource.hpp"
 #include "map_cell.hpp"

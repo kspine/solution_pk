@@ -16,6 +16,7 @@ class MapCell;
 class MapObject;
 class Overlay;
 class StrategicResource;
+class MapEventBlock;
 class ResourceCrate;
 class ClusterSession;
 class PlayerSession;
@@ -64,6 +65,12 @@ struct WorldMap {
 
 	static void get_strategic_resources_by_rectangle(std::vector<boost::shared_ptr<StrategicResource>> &ret, Rectangle rectangle);
 
+	// MapEventBlock
+	static boost::shared_ptr<MapEventBlock> get_map_event_block(Coord coord);
+	static boost::shared_ptr<MapEventBlock> require_map_event_block(Coord coord);
+	static void insert_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block);
+	static void update_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block, bool throws_if_not_exists = true);
+
 	// ResourceCrate
 	static boost::shared_ptr<ResourceCrate> get_resource_crate(ResourceCrateUuid resource_crate_uuid);
 	static boost::shared_ptr<ResourceCrate> require_resource_crate(ResourceCrateUuid resource_crate_uuid);
@@ -83,6 +90,7 @@ struct WorldMap {
 	static boost::shared_ptr<ClusterSession> get_cluster(Coord coord);
 	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
+	static void forced_reload_cluster(Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept;
 
 	// 出生点
