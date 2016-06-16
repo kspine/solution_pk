@@ -19,7 +19,6 @@
 #include "../events/account.hpp"
 #include "../singletons/war_status_map.hpp"
 #include "../singletons/controller_client.hpp"
-#include "../msg/st_account.hpp"
 
 namespace EmperyCenter {
 
@@ -41,7 +40,7 @@ namespace {
 		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account->get_account_uuid();
 	}
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	auto account = AccountMap::get_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
 	}
@@ -59,6 +58,9 @@ namespace {
 		return Response(Msg::ERR_TOKEN_INVALIDATED) <<login_name;
 	}
 
+	AccountMap::require_controller_token(account_uuid);
+	account = AccountMap::forced_reload(account_uuid);
+
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);
 	if(utc_now >= expected_token_expiry_time){
@@ -75,16 +77,6 @@ namespace {
 	}
 	if(utc_now < account->get_banned_until()){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
-	}
-
-	const auto controller = ControllerClient::require();
-
-	Msg::ST_AccountAcquireToken treq;
-	treq.account_uuid = account_uuid.str();
-	auto tresult = controller->send_and_wait(treq);
-	LOG_EMPERY_CENTER_DEBUG("Controller response: code = ", tresult.first, ", msg = ", tresult.second);
-	if(tresult.first != Msg::ST_OK){
-		return std::move(tresult);
 	}
 
 	PlayerSessionMap::add(account, session);

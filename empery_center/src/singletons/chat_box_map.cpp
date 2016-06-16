@@ -77,9 +77,8 @@ boost::shared_ptr<ChatBox> ChatBoxMap::get(AccountUuid account_uuid){
 		return { };
 	}
 
-	const auto account = AccountMap::get(account_uuid);
-	if(!account){
-		LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
+	if(!AccountMap::is_holding_controller_token(account_uuid)){
+		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
 		return { };
 	}
 

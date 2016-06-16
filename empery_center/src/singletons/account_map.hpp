@@ -14,6 +14,9 @@ class PlayerSession;
 class ItemBox;
 
 struct AccountMap {
+	static bool is_holding_controller_token(AccountUuid account_uuid);
+	static void require_controller_token(AccountUuid account_uuid);
+
 	static boost::shared_ptr<Account> get(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> require(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> get_or_reload(AccountUuid account_uuid);

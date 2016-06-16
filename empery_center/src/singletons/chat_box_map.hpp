@@ -11,6 +11,7 @@ class ChatBox;
 struct ChatBoxMap {
 	static boost::shared_ptr<ChatBox> get(AccountUuid account_uuid);
 	static boost::shared_ptr<ChatBox> require(AccountUuid account_uuid);
+	static void unload(AccountUuid account_uuid);
 
 private:
 	ChatBoxMap() = delete;

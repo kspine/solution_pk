@@ -16,6 +16,8 @@
 #include "../item_box.hpp"
 #include "../data/item.hpp"
 #include "../string_utilities.hpp"
+#include "controller_client.hpp"
+#include "../msg/st_account.hpp"
 
 namespace EmperyCenter {
 
@@ -257,6 +259,47 @@ namespace {
 	}
 }
 
+bool AccountMap::is_holding_controller_token(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return false;
+	}
+
+	const auto controller = ControllerClient::require();
+
+	Msg::ST_AccountQueryToken treq;
+	treq.account_uuid = account_uuid.str();
+	auto tresult = controller->send_and_wait(treq);
+	LOG_EMPERY_CENTER_DEBUG("Controller response: code = ", tresult.first, ", msg = ", tresult.second);
+	if(tresult.first != 0){
+		return false;
+	}
+	return true;
+}
+void AccountMap::require_controller_token(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		DEBUG_THROW(Exception, sslit("Account map not loaded."));
+	}
+
+	const auto controller = ControllerClient::require();
+
+	Msg::ST_AccountAcquireToken treq;
+	treq.account_uuid = account_uuid.str();
+	auto tresult = controller->send_and_wait(treq);
+	LOG_EMPERY_CENTER_DEBUG("Controller response: code = ", tresult.first, ", msg = ", tresult.second);
+	if(tresult.first != 0){
+		LOG_EMPERY_CENTER_INFO("Failed to acquire controller token: code = ", tresult.first, ", msg = ", tresult.second);
+		DEBUG_THROW(Exception, sslit("Account map not load."));
+	}
+}
+
 boost::shared_ptr<Account> AccountMap::get(AccountUuid account_uuid){
 	PROFILE_ME;
 
@@ -326,10 +369,10 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 		oss <<"SELECT * FROM `Center_AccountAttribute` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<MySql::Center_Account>();
+				auto obj = boost::make_shared<MySql::Center_AccountAttribute>();
 				obj->fetch(conn);
 				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
+				attribute_sink.emplace_back(std::move(obj));
 			}, "Center_AccountAttribute", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}

@@ -150,15 +150,19 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		return { };
 	}
 
-	auto account = AccountMap::get(account_uuid);
-	if(!account){
-		if(account_uuid != GLOBAL_MAIL_ACCCOUNT_UUID){
-			LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
-			return { };
+	if(account_uuid == GLOBAL_MAIL_ACCCOUNT_UUID){
+		auto account = AccountMap::get(account_uuid);
+		if(!account){
+			const auto utc_now = Poseidon::get_utc_time();
+			account = boost::make_shared<Account>(account_uuid,
+				PlatformId(1), std::string(), AccountUuid(), 0, utc_now, "Global mail account");
+			AccountMap::insert(account, std::string());
 		}
-		const auto utc_now = Poseidon::get_utc_time();
-		account = boost::make_shared<Account>(account_uuid, PlatformId(1), std::string(), AccountUuid(), 0, utc_now, "Global mail account");
-		AccountMap::insert(account, std::string());
+	}
+
+	if(!AccountMap::is_holding_controller_token(account_uuid)){
+		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+		return { };
 	}
 
 	auto it = mail_box_map->find<0>(account_uuid);

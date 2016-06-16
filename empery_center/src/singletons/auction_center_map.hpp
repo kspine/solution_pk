@@ -11,6 +11,7 @@ class AuctionCenter;
 struct AuctionCenterMap {
 	static boost::shared_ptr<AuctionCenter> get(AccountUuid account_uuid);
 	static boost::shared_ptr<AuctionCenter> require(AccountUuid account_uuid);
+	static void unload(AccountUuid account_uuid);
 
 private:
 	AuctionCenterMap() = delete;
