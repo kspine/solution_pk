@@ -55,7 +55,7 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() > 1) || (it->battle_record_box.use_count() > 1)){
+			if((it->promise.use_count() | it->battle_record_box.use_count()) != 1){ // (a > 1) || (b > 1) || ((a == 0) && b == 0))
 				battle_record_box_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming battle record box: account_uuid = ", it->account_uuid);
@@ -110,7 +110,7 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() > 1) || (it->crate_record_box.use_count() > 1)){
+			if((it->promise.use_count() | it->crate_record_box.use_count()) != 1){ // (a > 1) || (b > 1) || ((a == 0) && b == 0))
 				crate_record_box_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming crate record box: account_uuid = ", it->account_uuid);
@@ -167,25 +167,28 @@ boost::shared_ptr<BattleRecordBox> BattleRecordBoxMap::get(AccountUuid account_u
 	if(!it->battle_record_box){
 		LOG_EMPERY_CENTER_DEBUG("Loading battle record box: account_uuid = ", account_uuid);
 
-		if(!it->promise){
-			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_BattleRecord>>>();
-			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_BattleRecord` WHERE `first_account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get())
-			    <<"  AND `deleted` = 0";
-			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-					auto obj = boost::make_shared<MySql::Center_BattleRecord>();
-					obj->fetch(conn);
-					obj->enable_auto_saving();
-					sink->emplace_back(std::move(obj));
-				}, "Center_BattleRecord", oss.str());
-			it->promise = std::move(promise);
-			it->sink    = std::move(sink);
-		}
-		// 复制一个智能指针，并且导致 use_count() 增加。
-		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
-		const auto promise = it->promise;
-		Poseidon::JobDispatcher::yield(promise, true);
+		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
+		do {
+			if(!it->promise){
+				auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_BattleRecord>>>();
+				std::ostringstream oss;
+				oss <<"SELECT * FROM `Center_BattleRecord` WHERE `first_account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get())
+				    <<"  AND `deleted` = 0";
+				auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+					[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+						auto obj = boost::make_shared<MySql::Center_BattleRecord>();
+						obj->fetch(conn);
+						obj->enable_auto_saving();
+						sink->emplace_back(std::move(obj));
+					}, "Center_BattleRecord", oss.str());
+				it->promise = std::move(promise);
+				it->sink    = std::move(sink);
+			}
+			// 复制一个智能指针，并且导致 use_count() 增加。
+			// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
+			promise_tack = it->promise;
+			Poseidon::JobDispatcher::yield(promise_tack, true);
+		} while(promise_tack != it->promise);
 
 		if(it->sink){
 			battle_record_box_map->set_key<0, 1>(it, 0);
@@ -240,25 +243,28 @@ boost::shared_ptr<CrateRecordBox> BattleRecordBoxMap::get_crate(AccountUuid acco
 	if(!it->crate_record_box){
 		LOG_EMPERY_CENTER_DEBUG("Loading crate record box: account_uuid = ", account_uuid);
 
-		if(!it->promise){
-			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_BattleRecordCrate>>>();
-			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_BattleRecordCrate` WHERE `first_account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get())
-			    <<"  AND `deleted` = 0";
-			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-					auto obj = boost::make_shared<MySql::Center_BattleRecordCrate>();
-					obj->fetch(conn);
-					obj->enable_auto_saving();
-					sink->emplace_back(std::move(obj));
-				}, "Center_BattleRecordCrate", oss.str());
-			it->promise = std::move(promise);
-			it->sink    = std::move(sink);
-		}
-		// 复制一个智能指针，并且导致 use_count() 增加。
-		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
-		const auto promise = it->promise;
-		Poseidon::JobDispatcher::yield(promise, true);
+		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
+		do {
+			if(!it->promise){
+				auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_BattleRecordCrate>>>();
+				std::ostringstream oss;
+				oss <<"SELECT * FROM `Center_BattleRecordCrate` WHERE `first_account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get())
+				    <<"  AND `deleted` = 0";
+				auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+					[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+						auto obj = boost::make_shared<MySql::Center_BattleRecordCrate>();
+						obj->fetch(conn);
+						obj->enable_auto_saving();
+						sink->emplace_back(std::move(obj));
+					}, "Center_BattleRecordCrate", oss.str());
+				it->promise = std::move(promise);
+				it->sink    = std::move(sink);
+			}
+			// 复制一个智能指针，并且导致 use_count() 增加。
+			// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
+			promise_tack = it->promise;
+			Poseidon::JobDispatcher::yield(promise_tack, true);
+		} while(promise_tack != it->promise);
 
 		if(it->sink){
 			crate_record_box_map->set_key<0, 1>(it, 0);

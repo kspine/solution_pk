@@ -47,7 +47,7 @@ namespace {
 				break;
 			}
 
-			if(it->chat_box.use_count() > 1){
+			if(it->chat_box.use_count() != 1){
 				chat_box_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming chat box: account_uuid = ", it->account_uuid);
