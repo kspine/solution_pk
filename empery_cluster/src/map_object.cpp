@@ -117,6 +117,9 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
+	if(map_object_type_data->attack == 0){
+		return UINT64_MAX;
+	}
 
 	if(garrisoned){
 	 	result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
@@ -239,9 +242,7 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	const auto waypoint  = m_waypoints.front();
 	const auto new_coord = Coord(coord.x() + waypoint.first, coord.y() + waypoint.second);
 
-	const auto map_object_type_id = get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectType::require(map_object_type_id);
-
+	const auto map_object_type_data = get_map_object_type_data();
 	std::uint64_t delay;
 	const auto speed = map_object_type_data->speed * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0;
 	if(speed <= 0){
