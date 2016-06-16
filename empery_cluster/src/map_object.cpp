@@ -117,7 +117,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
-	if(map_object_type_data->attack == 0){
+	if(abs(map_object_type_data->attack) < 0.000001){
 		return UINT64_MAX;
 	}
 
