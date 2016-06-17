@@ -19,6 +19,7 @@
 #include "../events/account.hpp"
 #include "../singletons/war_status_map.hpp"
 #include "../singletons/controller_client.hpp"
+#include "../singletons/world_map.hpp"
 
 namespace EmperyCenter {
 
@@ -78,6 +79,8 @@ namespace {
 	if(utc_now < account->get_banned_until()){
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
+
+	WorldMap::forced_reload_map_objects_by_owner(account_uuid);
 
 	PlayerSessionMap::add(account, session);
 
