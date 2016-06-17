@@ -132,6 +132,8 @@ namespace {
 	boost::shared_ptr<Account> reload_account_aux(boost::shared_ptr<MySql::Center_Account> obj){
 		PROFILE_ME;
 
+		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
+
 		std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> attributes;
 
 #define RELOAD_PART_(sink_, table_)	\
@@ -139,18 +141,22 @@ namespace {
 			std::ostringstream oss;	\
 			const auto account_uuid = obj->unlocked_get_account_uuid();	\
 			oss <<"SELECT * FROM `" #table_ "` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid);	\
-			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
 				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
 					(sink_) .emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
-			Poseidon::JobDispatcher::yield(promise, false);	\
+			promises.emplace_back(std::move(promise));	\
 		}
 //=============================================================================
 		RELOAD_PART_(attributes,         Center_AccountAttribute)
 //=============================================================================
+		for(const auto &promise : promises){
+			Poseidon::JobDispatcher::yield(promise, false);
+		}
+#undef RELOAD_PART_
 
 		return boost::make_shared<Account>(std::move(obj), attributes);
 	}

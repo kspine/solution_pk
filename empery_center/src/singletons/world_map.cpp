@@ -569,6 +569,8 @@ namespace {
 	boost::shared_ptr<MapCell> reload_map_cell_aux(boost::shared_ptr<MySql::Center_MapCell> obj){
 		PROFILE_ME;
 
+		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
+
 		std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>> attributes;
 		std::vector<boost::shared_ptr<MySql::Center_MapCellBuff>> buffs;
 
@@ -578,25 +580,30 @@ namespace {
 			const auto x = obj->get_x();	\
 			const auto y = obj->get_y();	\
 			oss <<"SELECT * FROM `" #table_ "` WHERE `x` = " <<x <<" AND `y` = " <<y;	\
-			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
 				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
 					(sink_) .emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
-			Poseidon::JobDispatcher::yield(promise, false);	\
+			promises.emplace_back(std::move(promise));	\
 		}
 //=============================================================================
 		RELOAD_PART_(attributes,         Center_MapCellAttribute)
 		RELOAD_PART_(buffs,              Center_MapCellBuff)
 //=============================================================================
+		for(const auto &promise : promises){
+			Poseidon::JobDispatcher::yield(promise, false);
+		}
 #undef RELOAD_PART_
 
 		return boost::make_shared<MapCell>(std::move(obj), attributes, buffs);
 	}
 	boost::shared_ptr<MapObject> reload_map_object_aux(boost::shared_ptr<MySql::Center_MapObject> obj){
 		PROFILE_ME;
+
+		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
 
 		// MapObject
 		std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attributes;
@@ -617,14 +624,14 @@ namespace {
 			std::ostringstream oss;	\
 			const auto &map_object_uuid = obj->unlocked_get_map_object_uuid();	\
 			oss <<"SELECT * FROM `" #table_ "` WHERE `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid);	\
-			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
 				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
 					(sink_) .emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
-			Poseidon::JobDispatcher::yield(promise, false);	\
+			promises.emplace_back(std::move(promise));	\
 		}
 //=============================================================================
 		switch(obj->get_map_object_type_id()){
@@ -644,6 +651,9 @@ namespace {
 			RELOAD_PART_(buffs,              Center_MapObjectBuff)
 		}
 //=============================================================================
+		for(const auto &promise : promises){
+			Poseidon::JobDispatcher::yield(promise, false);
+		}
 #undef RELOAD_PART_
 
 		switch(obj->get_map_object_type_id()){
@@ -660,6 +670,8 @@ namespace {
 	boost::shared_ptr<MapEventBlock> reload_map_event_block_aux(boost::shared_ptr<MySql::Center_MapEventBlock> obj){
 		PROFILE_ME;
 
+		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
+
 		std::vector<boost::shared_ptr<MySql::Center_MapEvent>> events;
 
 #define RELOAD_PART_(sink_, table_)	\
@@ -668,19 +680,22 @@ namespace {
 			const auto block_x = obj->get_block_x();	\
 			const auto block_y = obj->get_block_y();	\
 			oss <<"SELECT * FROM `" #table_ "` WHERE " <<block_x <<" <= `x` AND `x` < " <<(block_x + EVENT_BLOCK_WIDTH)	\
-				<<"  AND " <<block_y <<" <= `y` AND `y` < " <<(block_y + EVENT_BLOCK_HEIGHT);	\
-			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+			    <<"  AND " <<block_y <<" <= `y` AND `y` < " <<(block_y + EVENT_BLOCK_HEIGHT);	\
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
 				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
 					(sink_) .emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
-			Poseidon::JobDispatcher::yield(promise, false);	\
+			promises.emplace_back(std::move(promise));	\
 		}
 //=============================================================================
 		RELOAD_PART_(events,             Center_MapEvent)
 //=============================================================================
+		for(const auto &promise : promises){
+			Poseidon::JobDispatcher::yield(promise, false);
+		}
 #undef RELOAD_PART_
 
 		return boost::make_shared<MapEventBlock>(std::move(obj), events);
