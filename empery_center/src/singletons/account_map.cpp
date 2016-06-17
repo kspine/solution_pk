@@ -129,6 +129,32 @@ namespace {
 		handles.push(info_cache_map);
 	}
 
+	boost::shared_ptr<Account> reload_account_aux(boost::shared_ptr<MySql::Center_Account> obj){
+		PROFILE_ME;
+
+		std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> attributes;
+
+#define RELOAD_PART_(sink_, table_)	\
+		{	\
+			std::ostringstream oss;	\
+			const auto account_uuid = obj->unlocked_get_account_uuid();	\
+			oss <<"SELECT * FROM `" #table_ "` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid);	\
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+					auto obj = boost::make_shared<MySql:: table_ >();	\
+					obj->fetch(conn);	\
+					obj->enable_auto_saving();	\
+					(sink_) .emplace_back(std::move(obj));	\
+				}, #table_, oss.str());	\
+			Poseidon::JobDispatcher::yield(promise, false);	\
+		}
+//=============================================================================
+		RELOAD_PART_(attributes,         Center_AccountAttribute)
+//=============================================================================
+
+		return boost::make_shared<Account>(std::move(obj), attributes);
+	}
+
 	template<typename IteratorT>
 	void really_append_account(std::vector<boost::shared_ptr<Account>> &ret,
 		const std::pair<IteratorT, IteratorT> &range, std::uint64_t begin, std::uint64_t count)
@@ -357,38 +383,24 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 			}, "Center_Account", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}
+	account_map->erase<0>(account_uuid);
 	if(sink.empty()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found in database: account_uuid = ", account_uuid);
-		account_map->erase<0>(account_uuid);
 		return { };
 	}
 
-	std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> attribute_sink;
-	{
-		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_AccountAttribute` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
-		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<MySql::Center_AccountAttribute>();
-				obj->fetch(conn);
-				obj->enable_auto_saving();
-				attribute_sink.emplace_back(std::move(obj));
-			}, "Center_AccountAttribute", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
-	}
-
-	auto account = boost::make_shared<Account>(std::move(sink.front()), attribute_sink);
+	auto account = reload_account_aux(std::move(sink.front()));
 
 	const auto elem = AccountElement(account);
 	const auto result = account_map->insert(elem);
-	if(result.second){
+	if(!result.second){
 		account_map->replace(result.first, elem);
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
 	return std::move(account);
 }
-boost::shared_ptr<Account> AccountMap::get_by_login_name(PlatformId platform_id, const std::string &login_name){
+boost::shared_ptr<Account> AccountMap::get_or_reload_by_login_name(PlatformId platform_id, const std::string &login_name){
 	PROFILE_ME;
 
 	const auto &account_map = g_account_map;
@@ -404,18 +416,39 @@ boost::shared_ptr<Account> AccountMap::get_by_login_name(PlatformId platform_id,
 			return it->account;
 		}
 	}
-	LOG_EMPERY_CENTER_DEBUG("Login name not found: platform_id = ", platform_id, ", login_name = ", login_name);
-	return { };
-}
-boost::shared_ptr<Account> AccountMap::require_by_login_name(PlatformId platform_id, const std::string &login_name){
-	PROFILE_ME;
+	LOG_EMPERY_CENTER_DEBUG("Login name not found. Reloading: platform_id = ", platform_id, ", login_name = ", login_name);
 
-	auto account = get_by_login_name(platform_id, login_name);
-	if(!account){
-		LOG_EMPERY_CENTER_WARNING("Login name not found: platform_id = ", platform_id, ", login_name = ", login_name);
-		DEBUG_THROW(Exception, sslit("Login name not found"));
+	std::vector<boost::shared_ptr<MySql::Center_Account>> sink;
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_Account` WHERE `platform_id` = " <<platform_id
+		    <<" AND `login_name` = " <<Poseidon::MySql::StringEscaper(login_name);
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::Center_Account>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink.emplace_back(std::move(obj));
+			}, "Center_Account", oss.str());
+		Poseidon::JobDispatcher::yield(promise, false);
 	}
-	return account;
+	if(sink.empty()){
+		LOG_EMPERY_CENTER_DEBUG("Account not found in database: platform_id = ", platform_id, ", login_name = ", login_name);
+		return { };
+	}
+
+	auto account = reload_account_aux(std::move(sink.front()));
+	const auto account_uuid = account->get_account_uuid();
+
+	const auto elem = AccountElement(account);
+	const auto result = account_map->insert(elem);
+	if(!result.second){
+		account_map->replace(result.first, elem);
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid,
+		", platform_id = ", platform_id, ", login_name = ", login_name);
+	return std::move(account);
 }
 
 std::uint64_t AccountMap::get_count(){
@@ -543,6 +576,10 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Account not found"));
 		}
+		return;
+	}
+	if(it->account != account){
+		LOG_EMPERY_CENTER_DEBUG("Account expired: account_uuid = ", account_uuid);
 		return;
 	}
 

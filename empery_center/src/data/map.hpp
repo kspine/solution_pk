@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include <vector>
+#include <boost/container/flat_set.hpp>
 
 namespace EmperyCenter {
 
@@ -12,6 +13,7 @@ namespace Data {
 		static boost::shared_ptr<const MapCellBasic> get(unsigned map_x, unsigned map_y);
 		static boost::shared_ptr<const MapCellBasic> require(unsigned map_x, unsigned map_y);
 
+		static void get_unique_overlay_groups(boost::container::flat_set<std::string> &ret);
 		static void get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group_name);
 
 	public:

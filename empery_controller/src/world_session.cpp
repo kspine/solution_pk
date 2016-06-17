@@ -1,5 +1,5 @@
 #include "precompiled.hpp"
-#include "log_session.hpp"
+#include "world_session.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/http/verbs.hpp>
 #include <poseidon/http/status_codes.hpp>
@@ -10,36 +10,35 @@
 #include <poseidon/job_base.hpp>
 #include <poseidon/json.hpp>
 
-namespace EmperyCenterLog {
+namespace EmperyController {
 
-using ServletCallback = LogSession::ServletCallback;
+using ServletCallback = WorldSession::ServletCallback;
 
 namespace {
 	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-LogSession::LogSession(Poseidon::UniqueFile socket,
-	boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix)
+WorldSession::WorldSession(Poseidon::UniqueFile socket, std::string prefix)
 	: Poseidon::Http::Session(std::move(socket))
-	, m_auth_info(std::move(auth_info)), m_prefix(std::move(prefix))
+	, m_prefix(std::move(prefix))
 {
 }
-LogSession::~LogSession(){
+WorldSession::~WorldSession(){
 }
 
-boost::shared_ptr<const ServletCallback> LogSession::create_servlet(const std::string &uri, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> WorldSession::create_servlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[uri];
 	if(!weak.expired()){
-		LOG_EMPERY_CENTER_LOG_ERROR("Duplicate log HTTP servlet: uri = ", uri);
-		DEBUG_THROW(Exception, sslit("Duplicate log HTTP servlet"));
+		LOG_EMPERY_CONTROLLER_ERROR("Duplicate world HTTP servlet: uri = ", uri);
+		DEBUG_THROW(Exception, sslit("Duplicate world HTTP servlet"));
 	}
 	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> LogSession::get_servlet(const std::string &uri){
+boost::shared_ptr<const ServletCallback> WorldSession::get_servlet(const std::string &uri){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(uri);
@@ -54,10 +53,10 @@ boost::shared_ptr<const ServletCallback> LogSession::get_servlet(const std::stri
 	return servlet;
 }
 
-void LogSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
+void WorldSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_LOG(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-		"Accepted log HTTP request from ", get_remote_info());
+	LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+		"Accepted world HTTP request from ", get_remote_info());
 
 	Poseidon::OptionalMap headers;
 	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
@@ -66,11 +65,10 @@ void LogSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers,
 		send(Poseidon::Http::ST_OK, std::move(headers));
 		return;
 	}
-	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
 
 	auto uri = Poseidon::Http::url_decode(request_headers.uri);
 	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){
-		LOG_EMPERY_CENTER_LOG_WARNING("Inacceptable log HTTP request: uri = ", uri, ", prefix = ", m_prefix);
+		LOG_EMPERY_CONTROLLER_WARNING("Inacceptable world HTTP request: uri = ", uri, ", prefix = ", m_prefix);
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 	uri.erase(0, m_prefix.size());
@@ -81,28 +79,28 @@ void LogSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers,
 
 	const auto servlet = get_servlet(uri);
 	if(!servlet){
-		LOG_EMPERY_CENTER_LOG_WARNING("No servlet available: uri = ", uri);
+		LOG_EMPERY_CONTROLLER_WARNING("No servlet available: uri = ", uri);
 		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
 	}
 
 	std::pair<long, std::string> result;
 	Poseidon::JsonObject root;
 	try {
-		result = (*servlet)(root, virtual_shared_from_this<LogSession>(), std::move(request_headers.get_params));
+		result = (*servlet)(root, virtual_shared_from_this<WorldSession>(), std::move(request_headers.get_params));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(Poseidon::Cbpp::Exception &e){
-		LOG_EMPERY_CENTER_LOG_WARNING("Poseidon::Cbpp::Exception thrown: what = ", e.what());
+		LOG_EMPERY_CONTROLLER_WARNING("Poseidon::Cbpp::Exception thrown: what = ", e.what());
 		result.first = e.status_code();
 		result.second = e.what();
 	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_LOG_WARNING("std::exception thrown: what = ", e.what());
+		LOG_EMPERY_CONTROLLER_WARNING("std::exception thrown: what = ", e.what());
 		result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 		result.second = e.what();
 	}
 	root[sslit("err_code")] = result.first;
 	root[sslit("err_msg")] = std::move(result.second);
-	LOG_EMPERY_CENTER_LOG_DEBUG("Sending response: ", root.dump());
+	LOG_EMPERY_CONTROLLER_DEBUG("Sending response: ", root.dump());
 	headers.set(sslit("Content-Type"), "application/json");
 	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(root.dump()));
 }

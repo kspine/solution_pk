@@ -197,27 +197,31 @@ void AuctionTransactionMap::update(const boost::shared_ptr<AuctionTransaction> &
 	const auto &serial = auction_transaction->get_serial();
 
 	const auto range = auction_transaction_map->equal_range<0>(hash_string_nocase(serial));
-	auto acit = range.second;
-	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(it->auction_transaction->get_serial(), serial)){
-			acit = it;
+	auto it = range.second;
+	for(auto tit = range.first; tit != range.second; ++tit){
+		if(are_strings_equal_nocase(tit->auction_transaction->get_serial(), serial)){
+			it = tit;
 			break;
 		}
 	}
-	if(acit == range.second){
+	if(it == range.second){
 		LOG_EMPERY_CENTER_WARNING("Auction transaction not found: serial = ", serial);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Auction transaction not found"));
 		}
 		return;
 	}
+	if(it->auction_transaction != auction_transaction){
+		LOG_EMPERY_CENTER_DEBUG("Auction transaction expired: serial = ", serial);
+		return;
+	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating auction transaction: serial = ", serial);
 	const auto utc_now = Poseidon::get_utc_time();
 	if(auction_transaction->get_expiry_time() < utc_now){
-		auction_transaction_map->erase<0>(acit);
+		auction_transaction_map->erase<0>(it);
 	} else {
-		auction_transaction_map->replace<0>(acit, AuctionTransactionElement(auction_transaction));
+		auction_transaction_map->replace<0>(it, AuctionTransactionElement(auction_transaction));
 	}
 }
 void AuctionTransactionMap::remove(const std::string &serial) noexcept {
@@ -230,20 +234,20 @@ void AuctionTransactionMap::remove(const std::string &serial) noexcept {
 	}
 
 	const auto range = auction_transaction_map->equal_range<0>(hash_string_nocase(serial));
-	auto acit = range.second;
-	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(it->auction_transaction->get_serial(), serial)){
-			acit = it;
+	auto it = range.second;
+	for(auto tit = range.first; tit != range.second; ++tit){
+		if(are_strings_equal_nocase(tit->auction_transaction->get_serial(), serial)){
+			it = tit;
 			break;
 		}
 	}
-	if(acit == range.second){
+	if(it == range.second){
 		LOG_EMPERY_CENTER_WARNING("Auction transaction not found: serial = ", serial);
 		return;
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Removing auction transaction: serial = ", serial);
-	auction_transaction_map->erase<0>(acit);
+	auction_transaction_map->erase<0>(it);
 }
 
 }

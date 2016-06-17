@@ -40,7 +40,7 @@ namespace {
 		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account->get_account_uuid();
 	}
 
-	auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
 	}

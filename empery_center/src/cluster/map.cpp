@@ -12,6 +12,7 @@
 #include "../msg/st_map.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
@@ -83,7 +84,9 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 
 	cluster->set_name(std::move(req.name));
 	WorldMap::set_cluster(cluster, cluster_coord);
-	WorldMap::forced_reload_cluster(cluster_coord);
+
+	const auto promise = WorldMap::forced_reload_cluster(cluster_coord);
+	Poseidon::JobDispatcher::yield(promise, true);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();

@@ -20,7 +20,7 @@ AUCTION_SERVLET("transfer/begin", root, session, params){
 	const auto map_object_uuid = MapObjectUuid(params.at("map_object_uuid"));
 	const auto item_object = boost::lexical_cast<Poseidon::JsonObject>(params.at("items"));
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}

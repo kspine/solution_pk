@@ -20,7 +20,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}

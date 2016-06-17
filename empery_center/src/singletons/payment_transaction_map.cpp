@@ -196,27 +196,31 @@ void PaymentTransactionMap::update(const boost::shared_ptr<PaymentTransaction> &
 	const auto &serial = payment_transaction->get_serial();
 
 	const auto range = payment_transaction_map->equal_range<0>(hash_string_nocase(serial));
-	auto acit = range.second;
-	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(it->payment_transaction->get_serial(), serial)){
-			acit = it;
+	auto it = range.second;
+	for(auto tit = range.first; tit != range.second; ++tit){
+		if(are_strings_equal_nocase(tit->payment_transaction->get_serial(), serial)){
+			it = tit;
 			break;
 		}
 	}
-	if(acit == range.second){
+	if(it == range.second){
 		LOG_EMPERY_CENTER_WARNING("Payment transaction not found: serial = ", serial);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Payment transaction not found"));
 		}
 		return;
 	}
+	if(it->payment_transaction != payment_transaction){
+		LOG_EMPERY_CENTER_DEBUG("Payment transaction expired: serial = ", serial);
+		return;
+	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating payment transaction: serial = ", serial);
 	const auto utc_now = Poseidon::get_utc_time();
 	if(payment_transaction->get_expiry_time() < utc_now){
-		payment_transaction_map->erase<0>(acit);
+		payment_transaction_map->erase<0>(it);
 	} else {
-		payment_transaction_map->replace<0>(acit, PaymentTransactionElement(payment_transaction));
+		payment_transaction_map->replace<0>(it, PaymentTransactionElement(payment_transaction));
 	}
 }
 void PaymentTransactionMap::remove(const std::string &serial) noexcept {
@@ -229,20 +233,20 @@ void PaymentTransactionMap::remove(const std::string &serial) noexcept {
 	}
 
 	const auto range = payment_transaction_map->equal_range<0>(hash_string_nocase(serial));
-	auto acit = range.second;
-	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(it->payment_transaction->get_serial(), serial)){
-			acit = it;
+	auto it = range.second;
+	for(auto tit = range.first; tit != range.second; ++tit){
+		if(are_strings_equal_nocase(tit->payment_transaction->get_serial(), serial)){
+			it = tit;
 			break;
 		}
 	}
-	if(acit == range.second){
+	if(it == range.second){
 		LOG_EMPERY_CENTER_WARNING("Payment transaction not found: serial = ", serial);
 		return;
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Removing payment transaction: serial = ", serial);
-	payment_transaction_map->erase<0>(acit);
+	payment_transaction_map->erase<0>(it);
 }
 
 }

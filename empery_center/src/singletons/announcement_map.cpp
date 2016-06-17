@@ -171,6 +171,10 @@ void AnnouncementMap::update(const boost::shared_ptr<Announcement> &announcement
 		}
 		return;
 	}
+	if(it->announcement != announcement){
+		LOG_EMPERY_CENTER_DEBUG("Announcement expired: announcement_uuid = ", announcement_uuid);
+		return;
+	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating announcement: announcement_uuid = ", announcement_uuid);
 

@@ -15,8 +15,7 @@ struct AccountMap {
 	static boost::shared_ptr<Account> require(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> get_or_reload(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> forced_reload(AccountUuid account_uuid);
-	static boost::shared_ptr<Account> get_by_login_name(PlatformId platform_id, const std::string &login_name);
-	static boost::shared_ptr<Account> require_by_login_name(PlatformId platform_id, const std::string &login_name);
+	static boost::shared_ptr<Account> get_or_reload_by_login_name(PlatformId platform_id, const std::string &login_name);
 
 	static void update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists = true);
 

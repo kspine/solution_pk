@@ -7,6 +7,7 @@
 #include <vector>
 #include "id_types.hpp"
 #include "coord.hpp"
+#include "rectangle.hpp"
 
 namespace EmperyCenter {
 
@@ -50,6 +51,9 @@ public:
 	void refresh_events(bool first_time);
 
 	Coord get_block_coord() const;
+	Rectangle get_block_scope() const {
+		return Rectangle(get_block_coord(), BLOCK_WIDTH, BLOCK_HEIGHT);
+	}
 	std::uint64_t get_next_refresh_time() const;
 
 	EventInfo get(Coord coord) const;

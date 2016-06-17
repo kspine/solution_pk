@@ -34,7 +34,7 @@ AUCTION_SERVLET("create_bill", root, session, params){
 	const auto item_count  = boost::lexical_cast<std::uint64_t>(params.at("item_count"));
 	const auto &remarks    = params.get("remarks");
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}

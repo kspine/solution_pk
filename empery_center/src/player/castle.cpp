@@ -1448,7 +1448,7 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
-	WorldMap::forced_reload_child_map_objects(map_object_uuid);
+	WorldMap::forced_reload_child_map_objects(castle);
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
@@ -1605,7 +1605,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
 	}
 
-	WorldMap::forced_reload_child_map_objects(map_object_uuid);
+	WorldMap::forced_reload_child_map_objects(castle);
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
@@ -1810,7 +1810,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
 	}
 
-	WorldMap::forced_reload_child_map_objects(map_object_uuid);
+	WorldMap::forced_reload_child_map_objects(castle);
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);

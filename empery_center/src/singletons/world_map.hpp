@@ -2,13 +2,14 @@
 #define EMPERY_CENTER_SINGLETONS_WORLD_MAP_HPP_
 
 #include "../id_types.hpp"
-#include "../coord.hpp"
-#include "../rectangle.hpp"
+#include <poseidon/fwd.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/function.hpp>
 #include <vector>
 #include <string>
+#include "../coord.hpp"
+#include "../rectangle.hpp"
 
 namespace EmperyCenter {
 
@@ -38,7 +39,7 @@ struct WorldMap {
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
 	static boost::shared_ptr<MapObject> get_or_reload_map_object(MapObjectUuid map_object_uuid);
 	static boost::shared_ptr<MapObject> forced_reload_map_object(MapObjectUuid map_object_uuid);
-	static void forced_reload_child_map_objects(MapObjectUuid parent_object_uuid);
+	static void forced_reload_child_map_objects(const boost::shared_ptr<Castle> &castle);
 	static void insert_map_object(const boost::shared_ptr<MapObject> &map_object);
 	static void update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists = true);
 
@@ -90,7 +91,7 @@ struct WorldMap {
 	static boost::shared_ptr<ClusterSession> get_cluster(Coord coord);
 	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
-	static void forced_reload_cluster(Coord coord);
+	static boost::shared_ptr<const Poseidon::JobPromise> forced_reload_cluster(Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept;
 
 	// 出生点
