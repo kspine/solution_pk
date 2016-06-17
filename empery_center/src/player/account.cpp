@@ -42,7 +42,7 @@ namespace {
 
 	auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
-		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
+		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
 	if(!account->has_been_activated()){
 		return Response(Msg::ERR_ACTIVATE_YOUR_ACCOUNT) <<login_name;

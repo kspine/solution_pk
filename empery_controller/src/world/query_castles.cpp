@@ -15,7 +15,7 @@ WORLD_SERVLET("query_castles", root, session, params){
 
 	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
-		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<login_name;
+		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
 	const auto account_uuid = account->get_account_uuid();
 
@@ -27,7 +27,6 @@ WORLD_SERVLET("query_castles", root, session, params){
 		const auto &castle = *it;
 
 		Poseidon::JsonObject meta;
-		meta[sslit("ownerUuid")]        = castle->get_owner_uuid().str();
 		meta[sslit("parentObjectUuid")] = castle->get_parent_object_uuid().str();
 		meta[sslit("name")]             = castle->get_name();
 		meta[sslit("coordX")]           = castle->get_coord().x();
