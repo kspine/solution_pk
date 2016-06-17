@@ -2351,7 +2351,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		std::vector<boost::shared_ptr<MySql::Center_ResourceCrate>> resource_crate_sink;
 		{
 			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0 "
+			oss <<"SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0 AND "
 				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
