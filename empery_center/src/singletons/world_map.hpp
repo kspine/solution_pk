@@ -39,13 +39,14 @@ struct WorldMap {
 	static boost::shared_ptr<MapObject> get_map_object(MapObjectUuid map_object_uuid);
 	static boost::shared_ptr<MapObject> get_or_reload_map_object(MapObjectUuid map_object_uuid);
 	static boost::shared_ptr<MapObject> forced_reload_map_object(MapObjectUuid map_object_uuid);
-	static void forced_reload_child_map_objects(const boost::shared_ptr<Castle> &castle);
 	static void insert_map_object(const boost::shared_ptr<MapObject> &map_object);
 	static void update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists = true);
 
 	static void get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret);
 	static void get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>> &ret, AccountUuid owner_uuid);
+	static void forced_reload_map_objects_by_owner(AccountUuid owner_uuid);
 	static void get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
+	static void forced_reload_map_objects_by_parent_object(MapObjectUuid parent_object_uuid);
 	static void get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid);
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 	static MapObjectUuid get_primary_castle_uuid(AccountUuid owner_uuid);

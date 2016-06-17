@@ -686,6 +686,37 @@ namespace {
 		return boost::make_shared<MapEventBlock>(std::move(obj), events);
 	}
 
+	bool should_erase_map_object(const boost::shared_ptr<MapObject> &map_object){
+		PROFILE_ME;
+
+		const auto coord = map_object->get_coord();
+		const auto cluster = WorldMap::get_cluster(coord);
+		if(cluster){
+			return false;
+		}
+
+		// 如果部队所属城堡还在这个地图上就不能删除。
+		const auto parent_object_uuid = map_object->get_parent_object_uuid();
+		if(parent_object_uuid){
+			const auto parent_object = WorldMap::get_map_object(parent_object_uuid);
+			if(parent_object){
+				const auto parent_coord = parent_object->get_coord();
+				const auto parent_cluster = WorldMap::get_cluster(parent_coord);
+				if(parent_cluster){
+					return false;
+				}
+			}
+		}
+
+		const auto owner_uuid = map_object->get_owner_uuid();
+		const auto session = PlayerSessionMap::get(owner_uuid);
+		if(session){
+			return false;
+		}
+
+		return true;
+	}
+
 	template<typename T>
 	void synchronize_map_object_or_other(const boost::shared_ptr<T> &ptr,
 		const boost::shared_ptr<PlayerSession> &session, Coord old_coord, Coord new_coord)
@@ -1140,50 +1171,6 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
 	return std::move(map_object);
 }
-void WorldMap::forced_reload_child_map_objects(const boost::shared_ptr<Castle> &castle){
-	PROFILE_ME;
-
-	const auto map_object_map = g_map_object_map.lock();
-	if(!map_object_map){
-		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
-		return;
-	}
-
-	const auto parent_object_uuid = castle->get_map_object_uuid();
-
-	std::vector<boost::shared_ptr<MySql::Center_MapObject>> sink;
-	{
-		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
-		    <<"  AND `map_object_type_id` != " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
-		    <<"  AND `parent_object_uuid` = " <<Poseidon::MySql::UuidFormatter(parent_object_uuid.get());
-		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
-				obj->fetch(conn);
-				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
-			}, "Center_MapObject", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
-	}
-	map_object_map->erase<3>(parent_object_uuid);
-	for(auto it = sink.begin(); it != sink.end(); ++it){
-		auto map_object = reload_map_object_aux(std::move(*it));
-		const auto map_object_uuid = map_object->get_map_object_uuid();
-
-		const auto elem = MapObjectElement(std::move(map_object));
-		const auto result = map_object_map->insert(elem);
-		if(!result.second){
-			map_object_map->replace(result.first, elem);
-		}
-
-		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
-	}
-
-	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
-	castle->pump_status();
-	castle->recalculate_attributes(true);
-}
 void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object){
 	PROFILE_ME;
 
@@ -1248,29 +1235,10 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto new_coord = map_object->get_coord();
 
 	LOG_EMPERY_CENTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord, ", new_coord = ", new_coord);
-	if(map_object->is_virtually_removed()){
+	if(map_object->is_virtually_removed() || should_erase_map_object(map_object)){
 		map_object_map->erase<0>(it);
 	} else {
-		auto test_cluster = get_cluster(new_coord);
-		if(!test_cluster){
-			// 如果部队所属城堡还在这个地图上就不能删除。
-			const auto parent_object_uuid = map_object->get_parent_object_uuid();
-			if(parent_object_uuid){
-				const auto pit = map_object_map->find<0>(parent_object_uuid);
-				if(pit != map_object_map->end<0>()){
-					const auto &parent_object = pit->map_object;
-					const auto parent_coord = parent_object->get_coord();
-					test_cluster = get_cluster(parent_coord);
-				}
-			}
-		}
-		if(!test_cluster){
-			LOG_EMPERY_CENTER_DEBUG("Map object has moved out of this server: map_object_uuid = ", map_object_uuid,
-				", old_coord = ", old_coord, ", new_coord = ", new_coord);
-			map_object_map->erase<0>(it);
-		} else {
-			map_object_map->replace<0>(it, MapObjectElement(map_object));
-		}
+		map_object_map->replace<0>(it, MapObjectElement(map_object));
 	}
 
 	const auto owner_uuid = map_object->get_owner_uuid();
@@ -1317,6 +1285,54 @@ void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>
 		ret.emplace_back(it->map_object);
 	}
 }
+void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	std::vector<boost::shared_ptr<MySql::Center_MapObject>> sink;
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		    <<"  AND `owner_uuid` = " <<Poseidon::MySql::UuidFormatter(owner_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink.emplace_back(std::move(obj));
+			}, "Center_MapObject", oss.str());
+		Poseidon::JobDispatcher::yield(promise, false);
+	}
+	map_object_map->erase<2>(owner_uuid);
+	for(auto it = sink.begin(); it != sink.end(); ++it){
+		auto map_object = reload_map_object_aux(std::move(*it));
+		const auto map_object_uuid = map_object->get_map_object_uuid();
+
+		const auto elem = MapObjectElement(std::move(map_object));
+		const auto result = map_object_map->insert(elem);
+		if(!result.second){
+			map_object_map->replace(result.first, elem);
+		}
+
+		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
+	const auto range = std::make_pair(map_object_map->lower_bound<2>(owner_uuid), map_object_map->upper_bound<2>(owner_uuid));
+	for(auto it = range.first; it != range.second; ++it){
+		const auto &castle = boost::dynamic_pointer_cast<Castle>(it->map_object);
+		if(!castle){
+			continue;
+		}
+		castle->pump_status();
+		castle->recalculate_attributes(true);
+	}
+}
 void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid){
 	PROFILE_ME;
 
@@ -1331,6 +1347,54 @@ void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<Ma
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->map_object);
 	}
+}
+void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_object_uuid){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	const auto castle = boost::dynamic_pointer_cast<Castle>(get_map_object(parent_object_uuid));
+	if(!castle){
+		LOG_EMPERY_CENTER_WARNING("Castle not found: parent_object_uuid = ", parent_object_uuid);
+		return;
+	}
+
+	std::vector<boost::shared_ptr<MySql::Center_MapObject>> sink;
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		    <<"  AND `map_object_type_id` != " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
+		    <<"  AND `parent_object_uuid` = " <<Poseidon::MySql::UuidFormatter(parent_object_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink.emplace_back(std::move(obj));
+			}, "Center_MapObject", oss.str());
+		Poseidon::JobDispatcher::yield(promise, false);
+	}
+	map_object_map->erase<3>(parent_object_uuid);
+	for(auto it = sink.begin(); it != sink.end(); ++it){
+		auto map_object = reload_map_object_aux(std::move(*it));
+		const auto map_object_uuid = map_object->get_map_object_uuid();
+
+		const auto elem = MapObjectElement(std::move(map_object));
+		const auto result = map_object_map->insert(elem);
+		if(!result.second){
+			map_object_map->replace(result.first, elem);
+		}
+
+		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
+	castle->pump_status();
+	castle->recalculate_attributes(true);
 }
 void WorldMap::get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid){
 	PROFILE_ME;

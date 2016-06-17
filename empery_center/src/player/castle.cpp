@@ -1440,7 +1440,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryTreatmentInfo, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_or_reload_map_object(map_object_uuid));
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
@@ -1448,7 +1448,7 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
-	WorldMap::forced_reload_child_map_objects(castle);
+	WorldMap::forced_reload_map_objects_by_parent_object(map_object_uuid);
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
@@ -1593,7 +1593,7 @@ PLAYER_SERVLET(Msg::CS_CastleActivateBuff, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_or_reload_map_object(map_object_uuid));
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
@@ -1605,7 +1605,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
 	}
 
-	WorldMap::forced_reload_child_map_objects(castle);
+	WorldMap::forced_reload_map_objects_by_parent_object(map_object_uuid);
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
@@ -1798,7 +1798,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
-	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_or_reload_map_object(map_object_uuid));
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
 	}
@@ -1810,7 +1810,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
 	}
 
-	WorldMap::forced_reload_child_map_objects(castle);
+	WorldMap::forced_reload_map_objects_by_parent_object(map_object_uuid);
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
