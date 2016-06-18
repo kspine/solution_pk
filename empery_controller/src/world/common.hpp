@@ -52,9 +52,7 @@ WORLD_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 
 namespace EmperyController {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 using Response = ::EmperyCenter::CbppResponse;
 

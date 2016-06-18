@@ -12,9 +12,7 @@
 
 namespace EmperyController {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 using Result          = ControllerSession::Result;
 using ServletCallback = ControllerSession::ServletCallback;

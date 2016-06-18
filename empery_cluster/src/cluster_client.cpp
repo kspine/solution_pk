@@ -14,9 +14,7 @@
 
 namespace EmperyCluster {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 using Result          = ClusterClient::Result;
 using ServletCallback = ClusterClient::ServletCallback;

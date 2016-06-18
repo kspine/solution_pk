@@ -7,18 +7,11 @@ namespace EmperyCenter {
 
 namespace Msg {
 
-#define MESSAGE_NAME    ST_AccountAddItems
+#define MESSAGE_NAME    ST_AccountAccumulatePromotionBonus
 #define MESSAGE_ID      20200
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
-	FIELD_ARRAY         (items,	\
-		FIELD_VUINT         (item_id)	\
-		FIELD_VUINT         (count)	\
-		FIELD_VUINT         (reason)	\
-		FIELD_VINT          (param1)	\
-		FIELD_VINT          (param2)	\
-		FIELD_VINT          (param3)	\
-	)
+	FIELD_VUINT         (taxing_amount)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    ST_AccountAcquireToken

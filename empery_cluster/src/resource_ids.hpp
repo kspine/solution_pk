@@ -5,9 +5,7 @@
 
 namespace EmperyCluster {
 
-namespace ResourceIds {
-	using namespace ::EmperyCenter::ResourceIds;
-}
+namespace ResourceIds = ::EmperyCenter::ResourceIds;
 
 }
 
