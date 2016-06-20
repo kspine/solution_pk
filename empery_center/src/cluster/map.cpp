@@ -49,6 +49,7 @@
 #include "../buff_ids.hpp"
 #include "../map_cell.hpp"
 #include "../singletons/controller_client.hpp"
+#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -86,15 +87,38 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	WorldMap::set_cluster(cluster, cluster_coord);
 
 	const auto promise = WorldMap::forced_reload_cluster(cluster_coord);
-	// FIXME: 数据库加载时间太长了。
-	// Poseidon::JobDispatcher::yield(promise, true);
+	Poseidon::enqueue_async_job(
+		std::bind(
+			[cluster_scope, promise](const boost::weak_ptr<ClusterSession> &weak_cluster){
+				PROFILE_ME;
+				for(;;){
+					bool done = false;
+					try {
+						Poseidon::JobDispatcher::yield(promise, true);
+						done = true;
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_DEBUG("std::exception thrown: what = ", e.what());
+					}
+					const auto cluster = weak_cluster.lock();
+					if(!cluster){
+						LOG_EMPERY_CENTER_INFO("Cluster is gone: cluster_scope = ", cluster_scope);
+						break;
+					}
+					if(done){
+						LOG_EMPERY_CENTER_INFO("Synchronizing cluster: cluster_scope = ", cluster_scope);
+						WorldMap::synchronize_cluster(cluster, cluster_scope);
+						break;
+					}
+				}
+			},
+			boost::weak_ptr<ClusterSession>(cluster)
+		));
+
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();
 	msg.cluster_y = cluster_coord.y();
 	cluster->send(msg);
-
-	WorldMap::synchronize_cluster(cluster, cluster_scope);
 
 	return Response();
 }
