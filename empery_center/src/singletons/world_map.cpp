@@ -2153,25 +2153,21 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 	const auto scope = get_cluster_scope(coord);
 	const auto cluster_coord = scope.bottom_left();
 
-#define ASYNC_INFINITE_LOOP_BEGIN	\
+#define ASYNC_LOAD_BEGIN	\
 	Poseidon::enqueue_async_job(	\
 		[=]{	\
 			PROFILE_ME;	\
 			const SharedPromiseGuard guard_(shared_promise);	\
-			for(;;){	\
-				try
-#define ASYNC_INFINITE_LOOP_END	\
-				catch(std::exception &e_){	\
-					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e_.what());	\
-					continue;	\
-				}	\
-				break;	\
+			try
+#define ASYNC_LOAD_END	\
+			catch(std::exception &e_){	\
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e_.what());	\
 			}	\
 		})
 
 #define ENABLE_PARALLEL_LOADING     0
 
-	ASYNC_INFINITE_LOOP_BEGIN {
+	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading map cells: scope = ", scope);
 
 		const auto map_cell_map = g_map_cell_map.lock();
@@ -2196,7 +2192,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
-			ASYNC_INFINITE_LOOP_BEGIN {
+			ASYNC_LOAD_BEGIN {
 #endif
 				auto map_cell = reload_map_cell_aux(obj);
 				const auto elem = MapCellElement(std::move(map_cell));
@@ -2205,12 +2201,12 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					map_cell_map->replace(result.first, elem);
 				}
 #if ENABLE_PARALLEL_LOADING
-			} ASYNC_INFINITE_LOOP_END;
+			} ASYNC_LOAD_END;
 #endif
 		}
-	} ASYNC_INFINITE_LOOP_END;
+	} ASYNC_LOAD_END;
 
-	ASYNC_INFINITE_LOOP_BEGIN {
+	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading map objects: scope = ", scope);
 
 		const auto map_object_map = g_map_object_map.lock();
@@ -2235,7 +2231,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
-			ASYNC_INFINITE_LOOP_BEGIN {
+			ASYNC_LOAD_BEGIN {
 #endif
 				auto map_object = reload_map_object_aux(obj);
 				const auto elem = MapObjectElement(std::move(map_object));
@@ -2244,12 +2240,12 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					map_object_map->replace(result.first, elem);
 				}
 #if ENABLE_PARALLEL_LOADING
-			} ASYNC_INFINITE_LOOP_END;
+			} ASYNC_LOAD_END;
 #endif
 		}
-	} ASYNC_INFINITE_LOOP_END;
+	} ASYNC_LOAD_END;
 /*
-	ASYNC_INFINITE_LOOP_BEGIN {
+	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading overlays: scope = ", scope);
 
 		const auto overlay_map = g_overlay_map.lock();
@@ -2321,9 +2317,9 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 				overlay_map->replace(result.first, elem);
 			}
 		}
-	} ASYNC_INFINITE_LOOP_END;
+	} ASYNC_LOAD_END;
 */
-	ASYNC_INFINITE_LOOP_BEGIN {
+	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading strategic resources: scope = ", scope);
 
 		const auto strategic_resource_map = g_strategic_resource_map.lock();
@@ -2348,7 +2344,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
-			ASYNC_INFINITE_LOOP_BEGIN {
+			ASYNC_LOAD_BEGIN {
 #endif
 				auto strategic_resource = boost::make_shared<StrategicResource>(obj);
 				const auto elem = StrategicResourceElement(std::move(strategic_resource));
@@ -2357,12 +2353,12 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					strategic_resource_map->replace(result.first, elem);
 				}
 #if ENABLE_PARALLEL_LOADING
-			} ASYNC_INFINITE_LOOP_END;
+			} ASYNC_LOAD_END;
 #endif
 		}
-	} ASYNC_INFINITE_LOOP_END;
+	} ASYNC_LOAD_END;
 
-	ASYNC_INFINITE_LOOP_BEGIN {
+	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading map event block: scope = ", scope);
 
 		const auto map_event_block_map = g_map_event_block_map.lock();
@@ -2388,7 +2384,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
-			ASYNC_INFINITE_LOOP_BEGIN {
+			ASYNC_LOAD_BEGIN {
 #endif
 				auto map_event_block = reload_map_event_block_aux(obj);
 				const auto elem = MapEventBlockElement(std::move(map_event_block));
@@ -2397,7 +2393,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					map_event_block_map->replace(result.first, elem);
 				}
 #if ENABLE_PARALLEL_LOADING
-			} ASYNC_INFINITE_LOOP_END;
+			} ASYNC_LOAD_END;
 #endif
 		}
 
@@ -2416,7 +2412,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		LOG_EMPERY_CENTER_DEBUG("?!> Number of map event blocks to create: ", map_event_block_new.size());
 		for(const auto &coord : map_event_block_new){
 #if ENABLE_PARALLEL_LOADING
-			ASYNC_INFINITE_LOOP_BEGIN {
+			ASYNC_LOAD_BEGIN {
 #endif
 				auto map_event_block = boost::make_shared<MapEventBlock>(coord);
 				const auto elem = MapEventBlockElement(std::move(map_event_block));
@@ -2425,13 +2421,13 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					map_event_block_map->replace(result.first, elem);
 				}
 #if ENABLE_PARALLEL_LOADING
-			} ASYNC_INFINITE_LOOP_END;
+			} ASYNC_LOAD_END;
 #endif
 		}
 
-	} ASYNC_INFINITE_LOOP_END;
+	} ASYNC_LOAD_END;
 
-	ASYNC_INFINITE_LOOP_BEGIN {
+	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading resource crates: scope = ", scope);
 
 		const auto resource_crate_map = g_resource_crate_map.lock();
@@ -2456,7 +2452,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
-			ASYNC_INFINITE_LOOP_BEGIN {
+			ASYNC_LOAD_BEGIN {
 #endif
 				auto resource_crate = boost::make_shared<ResourceCrate>(obj);
 				const auto elem = ResourceCrateElement(std::move(resource_crate));
@@ -2465,10 +2461,10 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					resource_crate_map->replace(result.first, elem);
 				}
 #if ENABLE_PARALLEL_LOADING
-			} ASYNC_INFINITE_LOOP_END;
+			} ASYNC_LOAD_END;
 #endif
 		}
-	} ASYNC_INFINITE_LOOP_END;
+	} ASYNC_LOAD_END;
 
 	return boost::shared_ptr<const Poseidon::JobPromise>(shared_promise, shared_promise->get_promise());
 }
