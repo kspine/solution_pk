@@ -1815,6 +1815,36 @@ void WorldMap::update_map_event_block(const boost::shared_ptr<MapEventBlock> &ma
 	map_event_block_map->replace<0>(it, MapEventBlockElement(map_event_block));
 }
 
+void WorldMap::refresh_activity_event(unsigned map_event_type){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("refresh activity event ");
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		return;
+	}
+
+	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+		const auto &map_event_block = it->map_event_block;
+		map_event_block->refresh_events(false,map_event_type);
+	}
+}
+
+void WorldMap::remove_activity_event(unsigned map_event_type){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Map event block remove activity" );
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+		const auto &map_event_block = it->map_event_block;
+		map_event_block->remove_expired_events(utc_now,map_event_type,true);
+	}
+}
+
 boost::shared_ptr<ResourceCrate> WorldMap::get_resource_crate(ResourceCrateUuid resource_crate_uuid){
 	PROFILE_ME;
 

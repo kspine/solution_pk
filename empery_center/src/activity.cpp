@@ -3,7 +3,7 @@
 #include "data/activity.hpp"
 #include "activity_ids.hpp"
 #include "msg/sc_activity.hpp"
-#include "singletons/map_event_block_map.hpp"
+#include "singletons/world_map.hpp"
 #include "map_event_block.hpp"
 
 
@@ -92,16 +92,16 @@ MapActivity::MapActivityDetailInfo MapActivity::get_activity_info(MapActivityId 
 
 void MapActivity::on_activity_change(MapActivityId old_ativity,MapActivityId new_activity){
 	if(old_ativity == ActivityIds::ID_MAP_ACTIVITY_RESOURCE){
-		MapEventBlockMap::remove_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_RESOUCE);
+		WorldMap::remove_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_RESOUCE);
 	}
 	if(old_ativity == ActivityIds::ID_MAP_ACTIVITY_GOBLIN){
-		MapEventBlockMap::remove_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_GOBLIN);
+		WorldMap::remove_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_GOBLIN);
 	}
 	if(new_activity == ActivityIds::ID_MAP_ACTIVITY_RESOURCE){
-		MapEventBlockMap::refresh_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_RESOUCE);
+		WorldMap::refresh_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_RESOUCE);
 	}
 	if(new_activity == ActivityIds::ID_MAP_ACTIVITY_GOBLIN){
-		MapEventBlockMap::refresh_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_GOBLIN);
+		WorldMap::refresh_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_GOBLIN);
 	}
 }
 
