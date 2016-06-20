@@ -2158,6 +2158,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		[=]{	\
 			PROFILE_ME;	\
 			const SharedPromiseGuard guard_(shared_promise);	\
+			unsigned concurrency_counter = 0;	\
 			try
 #define ASYNC_LOAD_END	\
 			catch(std::exception &e_){	\
@@ -2165,7 +2166,16 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			}	\
 		})
 
-#define ENABLE_PARALLEL_LOADING     1
+#define CONCURRENT_LOAD_BEGIN	\
+	{
+#define CONCURRENT_LOAD_END	\
+		if(++concurrency_counter >= 1000){	\
+			LOG_EMPERY_CENTER_DEBUG("Too many async requests have been enqueued. Yielding...");	\
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();	\
+			Poseidon::JobDispatcher::yield(promise, true);	\
+			concurrency_counter = 0;	\
+		}	\
+	}
 
 	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading map cells: scope = ", scope);
@@ -2191,18 +2201,14 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
-#if ENABLE_PARALLEL_LOADING
-			ASYNC_LOAD_BEGIN {
-#endif
+			CONCURRENT_LOAD_BEGIN {
 				auto map_cell = reload_map_cell_aux(obj);
 				const auto elem = MapCellElement(std::move(map_cell));
 				const auto result = map_cell_map->insert(elem);
 				if(!result.second){
 					map_cell_map->replace(result.first, elem);
 				}
-#if ENABLE_PARALLEL_LOADING
-			} ASYNC_LOAD_END;
-#endif
+			} CONCURRENT_LOAD_END;
 		}
 	} ASYNC_LOAD_END;
 
@@ -2230,18 +2236,14 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
-#if ENABLE_PARALLEL_LOADING
-			ASYNC_LOAD_BEGIN {
-#endif
+			CONCURRENT_LOAD_BEGIN {
 				auto map_object = reload_map_object_aux(obj);
 				const auto elem = MapObjectElement(std::move(map_object));
 				const auto result = map_object_map->insert(elem);
 				if(!result.second){
 					map_object_map->replace(result.first, elem);
 				}
-#if ENABLE_PARALLEL_LOADING
-			} ASYNC_LOAD_END;
-#endif
+			} CONCURRENT_LOAD_END;
 		}
 	} ASYNC_LOAD_END;
 /*
@@ -2343,18 +2345,14 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
-#if ENABLE_PARALLEL_LOADING
-			ASYNC_LOAD_BEGIN {
-#endif
+			CONCURRENT_LOAD_BEGIN {
 				auto strategic_resource = boost::make_shared<StrategicResource>(obj);
 				const auto elem = StrategicResourceElement(std::move(strategic_resource));
 				const auto result = strategic_resource_map->insert(elem);
 				if(!result.second){
 					strategic_resource_map->replace(result.first, elem);
 				}
-#if ENABLE_PARALLEL_LOADING
-			} ASYNC_LOAD_END;
-#endif
+			} CONCURRENT_LOAD_END;
 		}
 	} ASYNC_LOAD_END;
 
@@ -2383,18 +2381,14 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
-#if ENABLE_PARALLEL_LOADING
-			ASYNC_LOAD_BEGIN {
-#endif
+			CONCURRENT_LOAD_BEGIN {
 				auto map_event_block = reload_map_event_block_aux(obj);
 				const auto elem = MapEventBlockElement(std::move(map_event_block));
 				const auto result = map_event_block_map->insert(elem);
 				if(!result.second){
 					map_event_block_map->replace(result.first, elem);
 				}
-#if ENABLE_PARALLEL_LOADING
-			} ASYNC_LOAD_END;
-#endif
+			} CONCURRENT_LOAD_END;
 		}
 
 		boost::container::flat_set<Coord> map_event_block_new;
@@ -2411,18 +2405,14 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		}
 		LOG_EMPERY_CENTER_DEBUG("?!> Number of map event blocks to create: ", map_event_block_new.size());
 		for(const auto &coord : map_event_block_new){
-#if ENABLE_PARALLEL_LOADING
-			ASYNC_LOAD_BEGIN {
-#endif
+			CONCURRENT_LOAD_BEGIN {
 				auto map_event_block = boost::make_shared<MapEventBlock>(coord);
 				const auto elem = MapEventBlockElement(std::move(map_event_block));
 				const auto result = map_event_block_map->insert(elem);
 				if(!result.second){
 					map_event_block_map->replace(result.first, elem);
 				}
-#if ENABLE_PARALLEL_LOADING
-			} ASYNC_LOAD_END;
-#endif
+			} CONCURRENT_LOAD_END;
 		}
 
 	} ASYNC_LOAD_END;
@@ -2451,18 +2441,14 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
-#if ENABLE_PARALLEL_LOADING
-			ASYNC_LOAD_BEGIN {
-#endif
+			CONCURRENT_LOAD_BEGIN {
 				auto resource_crate = boost::make_shared<ResourceCrate>(obj);
 				const auto elem = ResourceCrateElement(std::move(resource_crate));
 				const auto result = resource_crate_map->insert(elem);
 				if(!result.second){
 					resource_crate_map->replace(result.first, elem);
 				}
-#if ENABLE_PARALLEL_LOADING
-			} ASYNC_LOAD_END;
-#endif
+			} CONCURRENT_LOAD_END;
 		}
 	} ASYNC_LOAD_END;
 
