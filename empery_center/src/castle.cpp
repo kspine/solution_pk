@@ -275,7 +275,7 @@ Castle::Castle(MapObjectUuid map_object_uuid, AccountUuid owner_uuid, MapObjectU
 Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 	const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
-	boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj,
+	const std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>> &defense_objs,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> &buildings,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTech>> &techs,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleResource>> &resources,
@@ -283,7 +283,7 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment)
-	: DefenseBuilding(std::move(obj), attributes, buffs, std::move(defense_obj))
+	: DefenseBuilding(std::move(obj), attributes, buffs, defense_objs)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
 		const auto &obj = *it;
@@ -472,56 +472,77 @@ void Castle::pump_population_production(){
 	// production_time_end 是上次人口产出的时间。
 
 	// 人口消耗。
-	boost::container::flat_map<ResourceId, std::uint64_t> resources_to_consume_per_minute;
-	for(auto it = m_soldiers.begin(); it != m_soldiers.end(); ++it){
-		const auto &obj = it->second;
-		const auto soldier_count = obj->get_count();
-		if(soldier_count == 0){
-			continue;
-		}
-		const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
-		const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
-		if(!map_object_type_data){
-			continue;
-		}
-		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
-			auto &amount_total = resources_to_consume_per_minute[rit->first];
-			amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(std::ceil(soldier_count * rit->second - 0.001)));
-		}
-	}
-	std::vector<boost::shared_ptr<MapObject>> child_objects;
-	WorldMap::get_map_objects_by_parent_object(child_objects, get_map_object_uuid());
-	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
-		const auto &child_object = *it;
-		const auto soldier_count = static_cast<std::uint64_t>(child_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
-		if(soldier_count == 0){
-			continue;
-		}
-		const auto map_object_type_id = child_object->get_map_object_type_id();
-		const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
-		if(!map_object_type_data){
-			continue;
-		}
-		for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
-			auto &amount_total = resources_to_consume_per_minute[rit->first];
-			amount_total = saturated_add(amount_total, static_cast<std::uint64_t>(std::ceil(soldier_count * rit->second - 0.001)));
-		}
-	}
 	const auto last_consumption_time = m_population_production_stamps->get_production_time_begin();
 	const auto consumption_minutes = saturated_sub(utc_now, last_consumption_time) / 60000;
-	const auto consumption_duration = consumption_minutes * 60000;
 	if(consumption_minutes > 0){
-		LOG_EMPERY_CENTER_TRACE("Checking population consumption: map_object_uuid = ", get_map_object_uuid(),
+		const auto consumption_duration = consumption_minutes * 60000;
+		LOG_EMPERY_CENTER_DEBUG("Checking population consumption: map_object_uuid = ", get_map_object_uuid(),
 			", consumption_minutes = ", consumption_minutes);
-		std::vector<ResourceTransactionElement> transaction;
-		transaction.reserve(resources_to_consume_per_minute.size());
-		for(auto it = resources_to_consume_per_minute.begin(); it != resources_to_consume_per_minute.end(); ++it){
-			transaction.emplace_back(ResourceTransactionElement::OP_REMOVE_SATURATED, it->first, saturated_mul(it->second, consumption_minutes),
-				ReasonIds::ID_POPULATION_CONSUMPTION, consumption_duration, 0, 0);
+
+		boost::container::flat_map<ResourceId, std::uint64_t> resources_to_consume;
+		for(auto it = m_soldiers.begin(); it != m_soldiers.end(); ++it){
+			const auto &obj = it->second;
+			const auto soldier_count = obj->get_count();
+			if(soldier_count <= 0){
+				continue;
+			}
+			const auto map_object_type_id = MapObjectTypeId(obj->get_map_object_type_id());
+			const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+			if(!map_object_type_data){
+				continue;
+			}
+			for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
+				auto &amount_total = resources_to_consume[rit->first];
+				amount_total = saturated_add(amount_total,
+					static_cast<std::uint64_t>(std::ceil(static_cast<double>(consumption_minutes) * soldier_count * rit->second - 0.001)));
+			}
 		}
-		commit_resource_transaction(transaction);
+		std::vector<boost::shared_ptr<MapObject>> child_objects;
+		WorldMap::get_map_objects_by_parent_object(child_objects, get_map_object_uuid());
+		for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
+			const auto &child_object = *it;
+			const auto soldier_count = child_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT);
+			if(soldier_count <= 0){
+				continue;
+			}
+			const auto map_object_type_id = child_object->get_map_object_type_id();
+			const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+			if(!map_object_type_data){
+				continue;
+			}
+			for(auto rit = map_object_type_data->maintenance_cost.begin(); rit != map_object_type_data->maintenance_cost.end(); ++rit){
+				auto &amount_total = resources_to_consume[rit->first];
+				amount_total = saturated_add(amount_total,
+					static_cast<std::uint64_t>(std::ceil(static_cast<double>(consumption_minutes) * soldier_count * rit->second - 0.001)));
+			}
+		}
+		std::vector<ResourceTransactionElement> transaction;
+		transaction.reserve(resources_to_consume.size());
+		for(auto it = resources_to_consume.begin(); it != resources_to_consume.end(); ++it){
+			const auto resource_id = it->first;
+			const auto amount_total = it->second;
+
+			const auto resource_data = Data::CastleResource::require(resource_id);
+
+			std::uint64_t amount_normal = amount_total, amount_token = 0;
+			const auto resource_token_id = resource_data->resource_token_id;
+			if(resource_token_id){
+				const auto tokens_avail = get_resource(resource_token_id).amount;
+				amount_token = std::min(amount_total, tokens_avail);
+				amount_normal = saturated_sub(amount_total, amount_token);
+			}
+			if(amount_normal != 0){
+				transaction.emplace_back(ResourceTransactionElement::OP_REMOVE_SATURATED, resource_id, amount_normal,
+					ReasonIds::ID_POPULATION_CONSUMPTION, consumption_duration, 0, 0);
+			}
+			if(amount_token != 0){
+				transaction.emplace_back(ResourceTransactionElement::OP_REMOVE_SATURATED, resource_token_id, amount_token,
+					ReasonIds::ID_POPULATION_CONSUMPTION, consumption_duration, 0, 0);
+			}
+		}
+		commit_resource_transaction(transaction,
+			[&]{ m_population_production_stamps->set_production_time_begin(last_consumption_time + consumption_duration); });
 	}
-	m_population_production_stamps->set_production_time_begin(last_consumption_time + consumption_duration);
 
 	// 人口产出。
 	double production_rate = 0;

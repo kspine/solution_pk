@@ -9,8 +9,10 @@
 #include "../msg/err_castle.hpp"
 #include "../msg/err_account.hpp"
 #include "../msg/kill.hpp"
+#include "../msg/st_map.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
@@ -51,6 +53,7 @@
 #include "../singletons/map_activity_accumulate_map.hpp"
 #include "../activity_ids.hpp"
 #include "../data/activity.hpp"
+#include "../singletons/controller_client.hpp"
 
 namespace EmperyCenter {
 
@@ -66,12 +69,30 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 		LOG_EMPERY_CENTER_WARNING("Invalid numerical coord: num_coord = ", num_coord, ", inf_x = ", inf_x, ", inf_y = ", inf_y);
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;
 	}
+
 	const auto cluster_scope = WorldMap::get_cluster_scope(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
 	const auto cluster_coord = cluster_scope.bottom_left();
-	LOG_EMPERY_CENTER_DEBUG("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
+	LOG_EMPERY_CENTER_INFO("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
 
-	WorldMap::set_cluster(cluster, cluster_coord);
+	const auto controller = ControllerClient::require();
+
+	Msg::ST_MapRegisterMapServer treq;
+	treq.numerical_x = num_coord.x();
+	treq.numerical_y = num_coord.y();
+	LOG_EMPERY_CENTER_DEBUG("%> Allocating map server from controller server: num_coord = ", num_coord);
+	auto tresult = controller->send_and_wait(treq);
+	LOG_EMPERY_CENTER_DEBUG("%> Result: num_coord = ", num_coord, ", code = ", tresult.first, ", msg = ", tresult.second);
+	if(tresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_WARNING("Failed to allocate map server from controller server: code = ", tresult.first, ", msg = ", tresult.second);
+		return Response(Msg::KILL_CLUSTER_SERVER_CONFLICT_GLOBAL) <<tresult.second;
+	}
+
 	cluster->set_name(std::move(req.name));
+	WorldMap::set_cluster(cluster, cluster_coord);
+
+	const auto promise = WorldMap::forced_reload_cluster(cluster_coord);
+	// FIXME: 数据库加载时间太长了。
+	// Poseidon::JobDispatcher::yield(promise, true);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();
@@ -910,7 +931,7 @@ _wounded_done:
 							const auto resource_id = it->resource_id;
 							const auto resource_data = Data::CastleResource::get(resource_id);
 							if(!resource_data){
-								LOG_EMPERY_CENTER_WARNING("Unknown resource: resource_id = ", resource_id);
+								LOG_EMPERY_CENTER_DEBUG("Unknown resource: resource_id = ", resource_id);
 								continue;
 							}
 							std::uint64_t amount_normal = it->amount, amount_locked = 0;

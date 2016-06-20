@@ -13,6 +13,7 @@ class MailData;
 struct MailBoxMap {
 	static boost::shared_ptr<MailBox> get(AccountUuid account_uuid);
 	static boost::shared_ptr<MailBox> require(AccountUuid account_uuid);
+	static void unload(AccountUuid account_uuid);
 
 	static boost::shared_ptr<MailBox> get_global();
 	static boost::shared_ptr<MailBox> require_global();

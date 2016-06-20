@@ -156,7 +156,7 @@ void ClusterSession::on_sync_data_message(std::uint16_t message_id, Poseidon::St
 				result.second = e.what();
 			}
 			if(result.first != 0){
-				LOG_EMPERY_CENTER_DEBUG("Sending response to center server: message_id = ", packed.message_id,
+				LOG_EMPERY_CENTER_DEBUG("Sending response to cluster server: message_id = ", packed.message_id,
 					", code = ", result.first, ", message = ", result.second);
 			}
 

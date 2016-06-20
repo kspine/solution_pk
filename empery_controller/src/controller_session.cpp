@@ -12,9 +12,7 @@
 
 namespace EmperyController {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 using Result          = ControllerSession::Result;
 using ServletCallback = ControllerSession::ServletCallback;
@@ -157,7 +155,7 @@ void ControllerSession::on_sync_data_message(std::uint16_t message_id, Poseidon:
 				result.second = e.what();
 			}
 			if(result.first != 0){
-				LOG_EMPERY_CONTROLLER_DEBUG("Sending response to controller server: message_id = ", packed.message_id,
+				LOG_EMPERY_CONTROLLER_DEBUG("Sending response to controller client: message_id = ", packed.message_id,
 					", code = ", result.first, ", message = ", result.second);
 			}
 

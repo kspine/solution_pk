@@ -48,9 +48,7 @@ CONTROLLER_SERVLET(消息类型, 会话形参名, 消息形参名){
 
 namespace EmperyController {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 using Response = CbppResponse;
 

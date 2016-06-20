@@ -386,9 +386,6 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 	const auto transfer_fee_ratio = Data::Global::as_double(Data::Global::SLOT_AUCTION_TRANSFER_FEE_RATIO);
 	const auto transfer_duration  = Data::Global::as_double(Data::Global::SLOT_AUCTION_TRANSFER_DURATION);
 
-	const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
-	const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
-
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto due_time = saturated_add(utc_now, static_cast<std::uint64_t>(transfer_duration * 60000));
 
@@ -410,7 +407,7 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 			const auto resource_data = Data::CastleResource::require(resource_id);
 			const auto locked_resource_id = resource_data->locked_resource_id;
 
-			const auto resource_amount_locked = checked_mul(item_count, resource_amount_per_box);
+			const auto resource_amount_locked = checked_mul(item_count, item_data->value);
 			const auto resource_amount_fee = static_cast<std::uint64_t>(std::ceil(resource_amount_locked * transfer_fee_ratio - 0.001));
 
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, resource_amount_locked,
@@ -427,8 +424,8 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 			LOG_EMPERY_CENTER_DEBUG("%% Lock resource: map_object_uuid = ", map_object_uuid, ", item_id = ", item_id, ", item_count = ", item_count,
 				", resource_id = ", resource_id, ", resource_amount_locked = ", resource_amount_locked,
 				", resource_amount_fee = ", resource_amount_fee);
-		} else {
-			const auto item_count_locked = checked_mul(item_count, item_count_per_box);
+		} else if(item_data->type.first == Data::Item::CAT_ITEM_BOX){
+			const auto item_count_locked = checked_mul(item_count, item_data->value);
 			const auto item_count_fee = static_cast<std::uint64_t>(std::ceil(item_count_locked * transfer_fee_ratio - 0.001));
 
 			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, item_count_locked,
@@ -442,6 +439,9 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 
 			LOG_EMPERY_CENTER_DEBUG("%% Lock item: account_uuid = ", account_uuid, ", item_id = ", item_id, ", item_count = ", item_count,
 				", item_count_locked = ", item_count_locked, ", item_count_fee = ", item_count_fee);
+		} else {
+			LOG_EMPERY_CENTER_ERROR("Not something for auction: item_id = ", item_id, ", type = ", (int)item_data->type.first);
+			DEBUG_THROW(Exception, sslit("Not something for auction"));
 		}
 	}
 

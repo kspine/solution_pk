@@ -63,7 +63,7 @@ ADMIN_SERVLET("account/get_by_login_name", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -111,7 +111,7 @@ ADMIN_SERVLET("account/insert", root, session, params){
 	const auto promotion_level = boost::lexical_cast<unsigned>(params.at("promotion_level"));
 	const auto &login_token = params.get("login_token");
 
-	auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(account){
 		return Response(Msg::ERR_DUPLICATE_PLATFORM_LOGIN_NAME) <<login_name;
 	}

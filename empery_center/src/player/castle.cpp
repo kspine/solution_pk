@@ -778,17 +778,18 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_RESOURCE_BOX;
 	}
 	const auto resource_id = ResourceId(item_data->type.second);
+	const auto count_to_consume = req.repeat_count;
+	const auto amount_to_add = checked_mul(count_to_consume, item_data->value);
 
 	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
 
-	const auto count_to_consume = req.repeat_count;
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
 		ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
 		[&]{
 			std::vector<ResourceTransactionElement> res_transaction;
-			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, checked_mul(count_to_consume, item_data->value),
+			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add,
 				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
 			castle->commit_resource_transaction(res_transaction);
 		});
@@ -1448,6 +1449,8 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
+	WorldMap::forced_reload_map_objects_by_parent_object(map_object_uuid);
+
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	const auto relocation_card_count = item_box->get(ItemIds::ID_RELOCATION_CARD).count;
@@ -1602,6 +1605,8 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 	if(!castle->is_garrisoned()){
 		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
 	}
+
+	WorldMap::forced_reload_map_objects_by_parent_object(map_object_uuid);
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
@@ -1805,6 +1810,8 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 	if(!castle->is_garrisoned()){
 		return Response(Msg::ERR_CASTLE_NOT_HUNG_UP) <<map_object_uuid;
 	}
+
+	WorldMap::forced_reload_map_objects_by_parent_object(map_object_uuid);
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);

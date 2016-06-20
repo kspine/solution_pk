@@ -215,6 +215,10 @@ void MapObject::recalculate_attributes(bool recursive){
 	m_last_updated_time = utc_now;
 }
 
+bool MapObject::is_protectable() const {
+	return false;
+}
+
 MapObjectUuid MapObject::get_map_object_uuid() const {
 	return MapObjectUuid(m_obj->unlocked_get_map_object_uuid());
 }

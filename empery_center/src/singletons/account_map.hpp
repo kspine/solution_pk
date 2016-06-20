@@ -14,11 +14,14 @@ class PlayerSession;
 class ItemBox;
 
 struct AccountMap {
+	static bool is_holding_controller_token(AccountUuid account_uuid);
+	static void require_controller_token(AccountUuid account_uuid);
+
 	static boost::shared_ptr<Account> get(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> require(AccountUuid account_uuid);
-
-	static boost::shared_ptr<Account> get_by_login_name(PlatformId platform_id, const std::string &login_name);
-	static boost::shared_ptr<Account> require_by_login_name(PlatformId platform_id, const std::string &login_name);
+	static boost::shared_ptr<Account> get_or_reload(AccountUuid account_uuid);
+	static boost::shared_ptr<Account> forced_reload(AccountUuid account_uuid);
+	static boost::shared_ptr<Account> get_or_reload_by_login_name(PlatformId platform_id, const std::string &login_name);
 
 	static std::uint64_t get_count();
 	static void get_all(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count);

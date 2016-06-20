@@ -94,7 +94,7 @@ namespace {
 					", cur_level = ", cur_level, ", cur_nick = ", cur_nick, ", is_auction_center_enabled = ", is_auction_center_enabled,
 					", has_acceleration_cards = ", has_acceleration_cards, ", has_enough_gold_coins = ", has_enough_gold_coins);
 
-				auto account = AccountMap::get_by_login_name(g_platform_id, cur_login_name);
+				auto account = AccountMap::get_or_reload_by_login_name(g_platform_id, cur_login_name);
 				if(!account){
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 					const auto utc_now = Poseidon::get_utc_time();
@@ -428,7 +428,7 @@ ACCOUNT_SERVLET("promotion/reset_password", root, session, params){
 	const auto &verification_code = params.at("verificationCode");
 	const auto &new_password      = params.at("newPassword");
 
-	const auto account = AccountMap::get_by_login_name(g_platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(g_platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -456,7 +456,7 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 	const auto &code         = params.at("activationCode");
 	const auto &initial_nick = params.get("initialNick");
 
-	const auto account = AccountMap::get_by_login_name(g_platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(g_platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}

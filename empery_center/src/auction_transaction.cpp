@@ -117,19 +117,9 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 			const auto default_mail_expiry_duration = Data::Global::as_double(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
 			const auto expiry_duration = static_cast<std::uint64_t>(default_mail_expiry_duration * 60000);
 
-			const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
-			const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
-
 			const auto item_id = get_item_id();
 			const auto item_data = Data::Item::require(item_id);
 			const auto item_box_count = get_item_count();
-
-			std::uint64_t item_count_unlocked;
-			if(item_data->type.first == Data::Item::CAT_RESOURCE_BOX){
-				item_count_unlocked = checked_mul(item_box_count, resource_amount_per_box) / item_data->value;
-			} else {
-				item_count_unlocked = checked_mul(item_box_count, item_count_per_box);
-			}
 
 			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 			segments.reserve(2);
@@ -137,7 +127,7 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_BOX_COUNT, boost::lexical_cast<std::string>(item_box_count));
 
 			boost::container::flat_map<ItemId, std::uint64_t> attachments;
-			attachments.emplace(item_id, item_count_unlocked);
+			attachments.emplace(item_id, item_box_count);
 
 			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
 				ChatMessageTypeIds::ID_AUCTION_RESULT, AccountUuid(), std::string(), std::move(segments), std::move(attachments));

@@ -17,9 +17,7 @@
 
 namespace EmperyCluster {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 
 ResourceCrate::ResourceCrate(ResourceCrateUuid resource_crate_uuid, ResourceId resource_id,

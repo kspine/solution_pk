@@ -28,9 +28,7 @@
 
 namespace EmperyCluster {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 namespace {
 	void fill_buff_info(MapObject::BuffInfo &dest, const MapObject::BuffInfo &src){

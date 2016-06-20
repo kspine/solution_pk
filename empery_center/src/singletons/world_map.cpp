@@ -5,8 +5,9 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/async_job.hpp>
+#include <poseidon/job_promise.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include "player_session_map.hpp"
-#include "map_event_block_map.hpp"
 #include "account_map.hpp"
 #include "../msg/sc_map.hpp"
 #include "../msg/kill.hpp"
@@ -27,16 +28,70 @@
 #include "../mysql/strategic_resource.hpp"
 #include "../resource_crate.hpp"
 #include "../mysql/resource_crate.hpp"
+#include "../map_event_block.hpp"
+#include "../mysql/map_event.hpp"
 #include "../player_session.hpp"
 #include "../cluster_session.hpp"
 #include "../map_utilities_center.hpp"
 #include "../map_event_block.hpp"
 #include "../account.hpp"
 #include "../account_attribute_ids.hpp"
+#include "controller_client.hpp"
+#include "../msg/st_map.hpp"
 
 namespace EmperyCenter {
 
 namespace {
+	enum : unsigned {
+		MAP_WIDTH          = 600,
+		MAP_HEIGHT         = 640,
+
+		SECTOR_SIDE_LENGTH = 32,
+
+		EVENT_BLOCK_WIDTH  = MapEventBlock::BLOCK_WIDTH,
+		EVENT_BLOCK_HEIGHT = MapEventBlock::BLOCK_HEIGHT,
+	};
+
+	inline Coord get_sector_coord_from_world_coord(Coord coord){
+		const auto mask_x = coord.x() >> 63;
+		const auto mask_y = coord.y() >> 63;
+
+		const auto sector_x = ((coord.x() ^ mask_x) / SECTOR_SIDE_LENGTH ^ mask_x) * SECTOR_SIDE_LENGTH;
+		const auto sector_y = ((coord.y() ^ mask_y) / SECTOR_SIDE_LENGTH ^ mask_y) * SECTOR_SIDE_LENGTH;
+
+		return Coord(sector_x, sector_y);
+	}
+
+	inline Coord get_event_block_coord_from_world_coord(Coord coord){
+		const auto mask_x = coord.x() >> 63;
+		const auto mask_y = coord.y() >> 63;
+
+		const auto block_x = ((coord.x() ^ mask_x) / EVENT_BLOCK_WIDTH  ^ mask_x) * EVENT_BLOCK_WIDTH;
+		const auto block_y = ((coord.y() ^ mask_y) / EVENT_BLOCK_HEIGHT ^ mask_y) * EVENT_BLOCK_HEIGHT;
+
+		return Coord(block_x, block_y);
+	}
+
+	inline Coord get_cluster_coord_from_world_coord(Coord coord){
+		const auto mask_x = coord.x() >> 63;
+		const auto mask_y = coord.y() >> 63;
+
+		const auto cluster_x = ((coord.x() ^ mask_x) / MAP_WIDTH  ^ mask_x) * MAP_WIDTH;
+		const auto cluster_y = ((coord.y() ^ mask_y) / MAP_HEIGHT ^ mask_y) * MAP_HEIGHT;
+
+		return Coord(cluster_x, cluster_y);
+	}
+
+	struct PlayerViewElement {
+		boost::weak_ptr<PlayerSession> session;
+		Coord sector_coord;
+
+		PlayerViewElement(boost::weak_ptr<PlayerSession> session_, Coord sector_coord_)
+			: session(std::move(session_)), sector_coord(sector_coord_)
+		{
+		}
+	};
+
 	struct MapCellElement {
 		boost::shared_ptr<MapCell> map_cell;
 
@@ -62,33 +117,7 @@ namespace {
 	)
 
 	boost::weak_ptr<MapCellContainer> g_map_cell_map;
-/*
-	void map_cell_refresh_timer_proc(std::uint64_t now){
-		PROFILE_ME;
-		LOG_EMPERY_CENTER_TRACE("Map cell refresh timer: now = ", now);
 
-		const auto map_cell_map = g_map_cell_map.lock();
-		if(!map_cell_map){
-			return;
-		}
-
-		std::vector<boost::shared_ptr<MapCell>> map_cells_to_pump;
-		const auto range = std::make_pair(map_cell_map->upper_bound<3>(false), map_cell_map->end<3>());
-		map_cells_to_pump.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
-		for(auto it = range.first; it != range.second; ++it){
-			const auto &map_cell = it->map_cell;
-			map_cells_to_pump.emplace_back(map_cell);
-		}
-		for(auto it = map_cells_to_pump.begin(); it != map_cells_to_pump.end(); ++it){
-			const auto &map_cell = *it;
-			try {
-				map_cell->pump_status();
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-			}
-		}
-	}
-*/
 	void map_cell_occupation_refresh_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Map cell occupation refresh timer: now = ", now);
@@ -115,9 +144,14 @@ namespace {
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
 		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapEvent",
+			"DELETE QUICK `e`.*"
+			"  FROM `Center_MapEvent` AS `e` "
+			"  WHERE `e`.`expiry_time` = '0000-00-00 00:00:00'");
 	}
 
-	inline MapObjectUuid get_garrisoning_object_uuid_aux(const boost::shared_ptr<MapObject> map_object){
+	inline MapObjectUuid get_garrisoning_object_uuid(const boost::shared_ptr<MapObject> map_object){
 		PROFILE_ME;
 
 		const auto map_object_type_id = map_object->get_map_object_type_id();
@@ -145,7 +179,7 @@ namespace {
 			: map_object(std::move(map_object_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
 			, owner_uuid(map_object->get_owner_uuid()), parent_object_uuid(map_object->get_parent_object_uuid())
-			, garrisoning_object_uuid(get_garrisoning_object_uuid_aux(map_object))
+			, garrisoning_object_uuid(get_garrisoning_object_uuid(map_object))
 			, auto_update(map_object->should_auto_update())
 		{
 		}
@@ -328,6 +362,43 @@ namespace {
 			"  WHERE `r`.`resource_amount` = 0");
 	}
 
+	struct MapEventBlockElement {
+		boost::shared_ptr<MapEventBlock> map_event_block;
+
+		Coord block_coord;
+
+		explicit MapEventBlockElement(boost::shared_ptr<MapEventBlock> map_event_block_)
+			: map_event_block(std::move(map_event_block_))
+			, block_coord(get_event_block_coord_from_world_coord(map_event_block->get_block_coord()))
+		{
+		}
+	};
+
+	MULTI_INDEX_MAP(MapEventBlockContainer, MapEventBlockElement,
+		UNIQUE_MEMBER_INDEX(block_coord)
+	)
+
+	boost::weak_ptr<MapEventBlockContainer> g_map_event_block_map;
+
+	void map_event_block_refresh_timer_proc(std::uint64_t now){
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("Map event block refresh timer: now = ", now);
+
+		const auto map_event_block_map = g_map_event_block_map.lock();
+		if(!map_event_block_map){
+			return;
+		}
+
+		for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+			const auto &map_event_block = it->map_event_block;
+			try {
+				map_event_block->pump_status();
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		}
+	}
+
 	struct ResourceCrateElement {
 		boost::shared_ptr<ResourceCrate> resource_crate;
 
@@ -380,49 +451,12 @@ namespace {
 			"  WHERE `c`.`amount_remaining` = 0");
 	}
 
-	enum : unsigned {
-		MAP_WIDTH          = 600,
-		MAP_HEIGHT         = 640,
-
-		SECTOR_SIDE_LENGTH = 32,
-	};
-
-	inline Coord get_sector_coord_from_world_coord(Coord coord){
-		const auto mask_x = coord.x() >> 63;
-		const auto mask_y = coord.y() >> 63;
-
-		const auto sector_x = ((coord.x() ^ mask_x) / SECTOR_SIDE_LENGTH ^ mask_x) * SECTOR_SIDE_LENGTH;
-		const auto sector_y = ((coord.y() ^ mask_y) / SECTOR_SIDE_LENGTH ^ mask_y) * SECTOR_SIDE_LENGTH;
-
-		return Coord(sector_x, sector_y);
-	}
-
-	struct PlayerViewElement {
-		boost::weak_ptr<PlayerSession> session;
-		Coord sector_coord;
-
-		PlayerViewElement(boost::weak_ptr<PlayerSession> session_, Coord sector_coord_)
-			: session(std::move(session_)), sector_coord(sector_coord_)
-		{
-		}
-	};
-
 	MULTI_INDEX_MAP(PlayerViewContainer, PlayerViewElement,
 		MULTI_MEMBER_INDEX(session)
 		MULTI_MEMBER_INDEX(sector_coord)
 	)
 
 	boost::weak_ptr<PlayerViewContainer> g_player_view_map;
-
-	inline Coord get_cluster_coord_from_world_coord(Coord coord){
-		const auto mask_x = coord.x() >> 63;
-		const auto mask_y = coord.y() >> 63;
-
-		const auto cluster_x = ((coord.x() ^ mask_x) / MAP_WIDTH  ^ mask_x) * MAP_WIDTH;
-		const auto cluster_y = ((coord.y() ^ mask_y) / MAP_HEIGHT ^ mask_y) * MAP_HEIGHT;
-
-		return Coord(cluster_x, cluster_y);
-	}
 
 	struct ClusterElement {
 		Coord cluster_coord;
@@ -470,346 +504,42 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5300){
-		const auto conn = Poseidon::MySqlDaemon::create_connection();
-
-		// MapCell
-		struct TempMapCellElement {
-			boost::shared_ptr<MySql::Center_MapCell> obj;
-			std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>> attributes;
-			std::vector<boost::shared_ptr<MySql::Center_MapCellBuff>> buffs;
-		};
-		std::map<Coord, TempMapCellElement> temp_map_cell_map;
-
-		LOG_EMPERY_CENTER_INFO("Loading map cells...");
-		conn->execute_sql("SELECT * FROM `Center_MapCell`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_MapCell>();
-			obj->fetch(conn);
-			const auto ticket_item_id = ItemId(obj->get_ticket_item_id());
-			if(!ticket_item_id){
-				continue;
-			}
-			obj->enable_auto_saving();
-			const auto coord = Coord(obj->get_x(), obj->get_y());
-			temp_map_cell_map[coord].obj = std::move(obj);
-		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", temp_map_cell_map.size(), " map cell(s).");
-
-		LOG_EMPERY_CENTER_INFO("Loading map cell attributes...");
-		conn->execute_sql("SELECT * FROM `Center_MapCellAttribute`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_MapCellAttribute>();
-			obj->fetch(conn);
-			const auto coord = Coord(obj->get_x(), obj->get_y());
-			const auto it = temp_map_cell_map.find(coord);
-			if(it == temp_map_cell_map.end()){
-				continue;
-			}
-			obj->enable_auto_saving();
-			it->second.attributes.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading map cell attributes.");
-
-		LOG_EMPERY_CENTER_INFO("Loading map cell buffs...");
-		conn->execute_sql("SELECT * FROM `Center_MapCellBuff`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_MapCellBuff>();
-			obj->fetch(conn);
-			const auto coord = Coord(obj->get_x(), obj->get_y());
-			const auto it = temp_map_cell_map.find(coord);
-			if(it == temp_map_cell_map.end()){
-				continue;
-			}
-			obj->enable_auto_saving();
-			it->second.buffs.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading map cell buffs.");
-
 		const auto map_cell_map = boost::make_shared<MapCellContainer>();
-		for(auto it = temp_map_cell_map.begin(); it != temp_map_cell_map.end(); ++it){
-			auto map_cell = boost::make_shared<MapCell>(std::move(it->second.obj), it->second.attributes, it->second.buffs);
-			map_cell_map->insert(MapCellElement(std::move(map_cell)));
-		}
 		g_map_cell_map = map_cell_map;
 		handles.push(map_cell_map);
 
-		// MapObject
-		struct TempMapObjectElement {
-			boost::shared_ptr<MySql::Center_MapObject> obj;
-			std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attributes;
-			std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> buffs;
-		};
-		std::map<MapObjectUuid, TempMapObjectElement> temp_map_object_map;
-
-		LOG_EMPERY_CENTER_INFO("Loading map objects...");
-		conn->execute_sql("SELECT * FROM `Center_MapObject` WHERE `deleted` = 0");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_MapObject>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_map_object_map[map_object_uuid].obj = std::move(obj);
-		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", temp_map_object_map.size(), " map object(s).");
-
-		LOG_EMPERY_CENTER_INFO("Loading map object attributes...");
-		conn->execute_sql("SELECT * FROM `Center_MapObjectAttribute`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_MapObjectAttribute>();
-			obj->fetch(conn);
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			const auto it = temp_map_object_map.find(map_object_uuid);
-			if(it == temp_map_object_map.end()){
-				continue;
-			}
-			obj->enable_auto_saving();
-			it->second.attributes.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading map object attributes.");
-
-		LOG_EMPERY_CENTER_INFO("Loading map object buffs...");
-		conn->execute_sql("SELECT * FROM `Center_MapObjectBuff`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_MapObjectBuff>();
-			obj->fetch(conn);
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			const auto it = temp_map_object_map.find(map_object_uuid);
-			if(it == temp_map_object_map.end()){
-				continue;
-			}
-			obj->enable_auto_saving();
-			it->second.buffs.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading map object buffs.");
-
-		struct TempDefenseBuildingElement {
-			boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj;
-
-			void touch(MapObjectUuid map_object_uuid){
-				if(!defense_obj){
-					defense_obj = boost::make_shared<MySql::Center_DefenseBuilding>(map_object_uuid.get(), 1,
-						DefenseBuilding::MIS_NONE, 0, 0, 0, Poseidon::Uuid(), 0);
-					defense_obj->async_save(true);
-				}
-			}
-		};
-		std::map<MapObjectUuid, TempDefenseBuildingElement> temp_defense_building_map;
-
-		LOG_EMPERY_CENTER_INFO("Loading defense buildings...");
-		conn->execute_sql("SELECT * FROM `Center_DefenseBuilding`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_DefenseBuilding>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_defense_building_map[map_object_uuid].defense_obj = std::move(obj);
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading defense buildings.");
-
-		struct TempCastleElement {
-			std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> buildings;
-			std::vector<boost::shared_ptr<MySql::Center_CastleTech>> techs;
-			std::vector<boost::shared_ptr<MySql::Center_CastleResource>> resources;
-			std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> soldiers;
-			std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> soldier_production;
-			std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> wounded_soldiers;
-			std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> treatment;
-
-			void touch(MapObjectUuid map_object_uuid){
-				const auto utc_now = Poseidon::get_utc_time();
-				(void)map_object_uuid;
-				(void)utc_now;
-			}
-		};
-		std::map<MapObjectUuid, TempCastleElement> temp_castle_map;
-
-		LOG_EMPERY_CENTER_INFO("Loading castle building bases...");
-		conn->execute_sql("SELECT * FROM `Center_CastleBuildingBase`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_castle_map[map_object_uuid].buildings.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading castle buildings.");
-
-		LOG_EMPERY_CENTER_INFO("Loading castle tech...");
-		conn->execute_sql("SELECT * FROM `Center_CastleTech`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_CastleTech>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_castle_map[map_object_uuid].techs.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading castle techs.");
-
-		LOG_EMPERY_CENTER_INFO("Loading castle resource...");
-		conn->execute_sql("SELECT * FROM `Center_CastleResource`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_CastleResource>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_castle_map[map_object_uuid].resources.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading castle resources.");
-
-		LOG_EMPERY_CENTER_INFO("Loading castle soldiers...");
-		conn->execute_sql("SELECT * FROM `Center_CastleBattalion`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_CastleBattalion>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_castle_map[map_object_uuid].soldiers.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading castle soldiers.");
-
-		LOG_EMPERY_CENTER_INFO("Loading castle soldier production...");
-		conn->execute_sql("SELECT * FROM `Center_CastleBattalionProduction`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_CastleBattalionProduction>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_castle_map[map_object_uuid].soldier_production.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading castle soldier production.");
-
-		LOG_EMPERY_CENTER_INFO("Loading castle wounded soldiers...");
-		conn->execute_sql("SELECT * FROM `Center_CastleWoundedSoldier`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_CastleWoundedSoldier>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_castle_map[map_object_uuid].wounded_soldiers.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading castle wounded soldiers.");
-
-		LOG_EMPERY_CENTER_INFO("Loading castle treatment...");
-		conn->execute_sql("SELECT * FROM `Center_CastleTreatment`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_CastleTreatment>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			const auto map_object_uuid = MapObjectUuid(obj->unlocked_get_map_object_uuid());
-			temp_castle_map[map_object_uuid].treatment.emplace_back(std::move(obj));
-		}
-		LOG_EMPERY_CENTER_INFO("Done loading castle treatment.");
-
-		LOG_EMPERY_CENTER_INFO("Loaded ", temp_castle_map.size(), " castle(s).");
-
 		const auto map_object_map = boost::make_shared<MapObjectContainer>();
-		for(auto it = temp_map_object_map.begin(); it != temp_map_object_map.end(); ++it){
-			boost::shared_ptr<MapObject> map_object;
-			const auto map_object_type_id = MapObjectTypeId(it->second.obj->get_map_object_type_id());
-			LOG_EMPERY_CENTER_TRACE(">> Initializing: map_object_uuid = ", it->first, ", map_object_type_id = ", map_object_type_id);
-			if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-				auto &def = temp_defense_building_map[it->first];
-				def.touch(it->first);
-				auto &meta = temp_castle_map[it->first];
-				meta.touch(it->first);
-				map_object = boost::make_shared<Castle>(std::move(it->second.obj), it->second.attributes, it->second.buffs,
-					def.defense_obj,
-					meta.buildings, meta.techs, meta.resources, meta.soldiers, meta.soldier_production, meta.wounded_soldiers, meta.treatment);
-			} else if((map_object_type_id == MapObjectTypeIds::ID_DEFENSE_TOWER) || (map_object_type_id == MapObjectTypeIds::ID_BATTLE_BUNKER)){
-				auto &def = temp_defense_building_map[it->first];
-				def.touch(it->first);
-				map_object = boost::make_shared<DefenseBuilding>(std::move(it->second.obj), it->second.attributes, it->second.buffs,
-					def.defense_obj);
-			} else {
-				map_object = boost::make_shared<MapObject>(std::move(it->second.obj), it->second.attributes, it->second.buffs);
-			}
-			map_object_map->insert(MapObjectElement(std::move(map_object)));
-		}
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
 
-		// Overlay
 		const auto overlay_map = boost::make_shared<OverlayContainer>();
-		LOG_EMPERY_CENTER_INFO("Loading overlays...");
-		conn->execute_sql("SELECT * FROM `Center_Overlay`");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_Overlay>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			auto overlay = boost::make_shared<Overlay>(std::move(obj));
-			overlay_map->insert(OverlayElement(std::move(overlay)));
-		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", overlay_map->size(), " overlay(s).");
 		g_overlay_map = overlay_map;
 		handles.push(overlay_map);
 
-		// StrategicResource
 		const auto strategic_resource_map = boost::make_shared<StrategicResourceContainer>();
-		LOG_EMPERY_CENTER_INFO("Loading strategic resources...");
-		conn->execute_sql("SELECT * FROM `Center_StrategicResource` WHERE `resource_amount` > 0");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_StrategicResource>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			auto strategic_resource = boost::make_shared<StrategicResource>(std::move(obj));
-			strategic_resource_map->insert(StrategicResourceElement(std::move(strategic_resource)));
-		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", strategic_resource_map->size(), " strategic resources(s).");
 		g_strategic_resource_map = strategic_resource_map;
 		handles.push(strategic_resource_map);
 
-		// ResourceCrate
+		const auto map_event_block_map = boost::make_shared<MapEventBlockContainer>();
+		g_map_event_block_map = map_event_block_map;
+		handles.push(map_event_block_map);
+
 		const auto resource_crate_map = boost::make_shared<ResourceCrateContainer>();
-		LOG_EMPERY_CENTER_INFO("Loading resource crates...");
-		conn->execute_sql("SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0");
-		while(conn->fetch_row()){
-			auto obj = boost::make_shared<MySql::Center_ResourceCrate>();
-			obj->fetch(conn);
-			obj->enable_auto_saving();
-			auto resource_crate = boost::make_shared<ResourceCrate>(std::move(obj));
-			resource_crate_map->insert(ResourceCrateElement(std::move(resource_crate)));
-		}
-		LOG_EMPERY_CENTER_INFO("Loaded ", resource_crate_map->size(), " resource crate(s).");
 		g_resource_crate_map = resource_crate_map;
 		handles.push(resource_crate_map);
 
-		// PlayerSession
 		const auto player_view_map = boost::make_shared<PlayerViewContainer>();
 		g_player_view_map = player_view_map;
 		handles.push(player_view_map);
 
-		// ClusterSession
 		const auto cluster_map = boost::make_shared<ClusterContainer>();
 		g_cluster_map = cluster_map;
 		handles.push(cluster_map);
 
-		// DelayedWorldSynchronization
 		const auto synchronization_queue = boost::make_shared<SynchronizationQueue>();
 		g_synchronization_queue = synchronization_queue;
 		handles.push(synchronization_queue);
 
-		Poseidon::enqueue_async_job(
-			[=]{
-				PROFILE_ME;
-				LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
-				for(auto it = map_object_map->begin(); it != map_object_map->end(); ++it){
-					const auto castle = boost::dynamic_pointer_cast<Castle>(it->map_object);
-					if(!castle){
-						continue;
-					}
-					castle->check_init_buildings();
-					castle->check_init_resources();
-					castle->pump_status();
-					castle->recalculate_attributes(true);
-				}
-				LOG_EMPERY_CENTER_DEBUG("Done recalculating castle attributes.");
-			});
-/*
-		const auto map_cell_refresh_interval = get_config<std::uint64_t>("map_cell_refresh_interval", 300000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, map_cell_refresh_interval,
-			std::bind(&map_cell_refresh_timer_proc, std::placeholders::_2));
-		handles.push(timer);
-*/
 		const auto map_cell_occupation_refresh_interval = get_config<std::uint64_t>("map_cell_occupation_refresh_interval", 30000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, map_cell_occupation_refresh_interval,
 			std::bind(&map_cell_occupation_refresh_timer_proc, std::placeholders::_2));
@@ -830,10 +560,181 @@ namespace {
 			std::bind(&strategic_resource_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 
+		const auto map_event_block_refresh_interval = get_config<std::uint64_t>("map_event_block_refresh_interval", 300000);
+		timer = Poseidon::TimerDaemon::register_timer(0, map_event_block_refresh_interval,
+			std::bind(&map_event_block_refresh_timer_proc, std::placeholders::_2));
+		handles.push(timer);
+
 		const auto resource_crate_refresh_interval = get_config<std::uint64_t>("resource_crate_refresh_interval", 300000);
 		timer = Poseidon::TimerDaemon::register_timer(0, resource_crate_refresh_interval,
 			std::bind(&resource_crate_refresh_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+	}
+
+	boost::shared_ptr<MapCell> reload_map_cell_aux(boost::shared_ptr<MySql::Center_MapCell> obj){
+		PROFILE_ME;
+
+		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
+
+		const auto attributes = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>>>();
+		const auto buffs      = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCellBuff>>>();
+
+#define RELOAD_PART_(sink_, table_)	\
+		{	\
+			std::ostringstream oss;	\
+			const auto x = obj->get_x();	\
+			const auto y = obj->get_y();	\
+			oss <<"SELECT * FROM `" #table_ "` WHERE `x` = " <<x <<" AND `y` = " <<y;	\
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+				[sink_](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+					auto obj = boost::make_shared<MySql:: table_ >();	\
+					obj->fetch(conn);	\
+					obj->enable_auto_saving();	\
+					(sink_)->emplace_back(std::move(obj));	\
+				}, #table_, oss.str());	\
+			promises.emplace_back(std::move(promise));	\
+		}
+//=============================================================================
+		RELOAD_PART_(attributes,         Center_MapCellAttribute)
+		RELOAD_PART_(buffs,              Center_MapCellBuff)
+//=============================================================================
+		for(const auto &promise : promises){
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+#undef RELOAD_PART_
+
+		return boost::make_shared<MapCell>(std::move(obj), *attributes, *buffs);
+	}
+	boost::shared_ptr<MapObject> reload_map_object_aux(boost::shared_ptr<MySql::Center_MapObject> obj){
+		PROFILE_ME;
+
+		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
+
+		// MapObject
+		const auto attributes         = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>>>();
+		const auto buffs              = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>>>();
+		// DefenseBuilding
+		const auto defense_objs       = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>>>();
+		// Castle
+		const auto buildings          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>>>();
+		const auto techs              = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleTech>>>();
+		const auto resources          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleResource>>>();
+		const auto soldiers           = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>>>();
+		const auto soldier_production = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>>>();
+		const auto wounded_soldiers   = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>>>();
+		const auto treatment          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>>>();
+
+#define RELOAD_PART_(sink_, table_)	\
+		{	\
+			std::ostringstream oss;	\
+			const auto &map_object_uuid = obj->unlocked_get_map_object_uuid();	\
+			oss <<"SELECT * FROM `" #table_ "` WHERE `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid);	\
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+				[sink_](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+					auto obj = boost::make_shared<MySql:: table_ >();	\
+					obj->fetch(conn);	\
+					obj->enable_auto_saving();	\
+					(sink_)->emplace_back(std::move(obj));	\
+				}, #table_, oss.str());	\
+			promises.emplace_back(std::move(promise));	\
+		}
+//=============================================================================
+		switch(obj->get_map_object_type_id()){
+		case MapObjectTypeIds::ID_CASTLE.get():
+			RELOAD_PART_(buildings,          Center_CastleBuildingBase)
+			RELOAD_PART_(techs,              Center_CastleTech)
+			RELOAD_PART_(resources,          Center_CastleResource)
+			RELOAD_PART_(soldiers,           Center_CastleBattalion)
+			RELOAD_PART_(soldier_production, Center_CastleBattalionProduction)
+			RELOAD_PART_(wounded_soldiers,   Center_CastleWoundedSoldier)
+			RELOAD_PART_(treatment,          Center_CastleTreatment)
+		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
+		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
+			RELOAD_PART_(defense_objs,       Center_DefenseBuilding)
+		default:
+			RELOAD_PART_(attributes,         Center_MapObjectAttribute)
+			RELOAD_PART_(buffs,              Center_MapObjectBuff)
+		}
+//=============================================================================
+		for(const auto &promise : promises){
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+#undef RELOAD_PART_
+
+		switch(obj->get_map_object_type_id()){
+		case MapObjectTypeIds::ID_CASTLE.get():
+			return boost::make_shared<Castle>(std::move(obj), *attributes, *buffs, *defense_objs,
+				*buildings, *techs, *resources, *soldiers, *soldier_production, *wounded_soldiers, *treatment);
+		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
+		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
+			return boost::make_shared<DefenseBuilding>(std::move(obj), *attributes, *buffs, *defense_objs);
+		default:
+			return boost::make_shared<MapObject>(std::move(obj), *attributes, *buffs);
+		}
+	}
+	boost::shared_ptr<MapEventBlock> reload_map_event_block_aux(boost::shared_ptr<MySql::Center_MapEventBlock> obj){
+		PROFILE_ME;
+
+		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
+
+		const auto events = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapEvent>>>();
+
+#define RELOAD_PART_(sink_, table_)	\
+		{	\
+			std::ostringstream oss;	\
+			const auto block_x = obj->get_block_x();	\
+			const auto block_y = obj->get_block_y();	\
+			oss <<"SELECT * FROM `" #table_ "` WHERE " <<block_x <<" <= `x` AND `x` < " <<(block_x + EVENT_BLOCK_WIDTH)	\
+			    <<"  AND " <<block_y <<" <= `y` AND `y` < " <<(block_y + EVENT_BLOCK_HEIGHT);	\
+			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
+				[sink_](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+					auto obj = boost::make_shared<MySql:: table_ >();	\
+					obj->fetch(conn);	\
+					obj->enable_auto_saving();	\
+					(sink_)->emplace_back(std::move(obj));	\
+				}, #table_, oss.str());	\
+			promises.emplace_back(std::move(promise));	\
+		}
+//=============================================================================
+		RELOAD_PART_(events,             Center_MapEvent)
+//=============================================================================
+		for(const auto &promise : promises){
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+#undef RELOAD_PART_
+
+		return boost::make_shared<MapEventBlock>(std::move(obj), *events);
+	}
+
+	bool should_erase_map_object(const boost::shared_ptr<MapObject> &map_object){
+		PROFILE_ME;
+
+		const auto coord = map_object->get_coord();
+		const auto cluster = WorldMap::get_cluster(coord);
+		if(cluster){
+			return false;
+		}
+
+		// 如果部队所属城堡还在这个地图上就不能删除。
+		const auto parent_object_uuid = map_object->get_parent_object_uuid();
+		if(parent_object_uuid){
+			const auto parent_object = WorldMap::get_map_object(parent_object_uuid);
+			if(parent_object){
+				const auto parent_coord = parent_object->get_coord();
+				const auto parent_cluster = WorldMap::get_cluster(parent_coord);
+				if(parent_cluster){
+					return false;
+				}
+			}
+		}
+
+		const auto owner_uuid = map_object->get_owner_uuid();
+		const auto session = PlayerSessionMap::get(owner_uuid);
+		if(session){
+			return false;
+		}
+
+		return true;
 	}
 
 	template<typename T>
@@ -960,6 +861,88 @@ namespace {
 			synchronize_in_cluster(new_cluster_coord);
 		}
 	}
+	void synchronize_with_controller(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
+		PROFILE_ME;
+
+		boost::shared_ptr<ControllerClient> controller;
+		try {
+			controller = ControllerClient::require();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+		if(!controller){
+			LOG_EMPERY_CENTER_FATAL("Could not connect to controller server!");
+			return;
+		}
+
+		const auto map_object_uuid = map_object->get_map_object_uuid();
+		const auto map_object_type_id = map_object->get_map_object_type_id();
+
+		if((old_coord != new_coord) && (map_object_type_id == MapObjectTypeIds::ID_CASTLE)){
+			const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+			if(castle){
+				try {
+					Msg::ST_MapInvalidateCastle msg;
+					msg.map_object_uuid = map_object_uuid.str();
+					msg.coord_x         = new_coord.x();
+					msg.coord_y         = new_coord.y();
+					controller->send(msg);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				}
+			}
+		}
+
+		if(map_object->is_virtually_removed()){
+			try {
+				Msg::ST_MapRemoveMapObject msg;
+				msg.map_object_uuid = map_object_uuid.str();
+				controller->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+	}
+
+	class SharedPromise : NONCOPYABLE, public boost::enable_shared_from_this<SharedPromise> {
+		friend class SharedPromiseGuard;
+
+	private:
+		boost::shared_ptr<Poseidon::JobPromise> m_promise;
+		std::size_t m_ref_count;
+
+	public:
+		SharedPromise()
+			: m_promise(boost::make_shared<Poseidon::JobPromise>()), m_ref_count(0)
+		{
+		}
+
+	public:
+		const Poseidon::JobPromise *get_promise() const {
+			return m_promise.get();
+		}
+	};
+
+	class SharedPromiseGuard : NONCOPYABLE {
+	private:
+		const boost::shared_ptr<SharedPromise> m_shared_promise;
+
+	public:
+		explicit SharedPromiseGuard(boost::shared_ptr<SharedPromise> shared_promise)
+			: m_shared_promise(std::move(shared_promise))
+		{
+			++(m_shared_promise->m_ref_count);
+		}
+		~SharedPromiseGuard(){
+			if((--(m_shared_promise->m_ref_count) == 0) && !m_shared_promise->m_promise->is_satisfied()){
+				try {
+					m_shared_promise->m_promise->set_success();
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				}
+			}
+		}
+	};
 }
 
 boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
@@ -1151,6 +1134,63 @@ boost::shared_ptr<MapObject> WorldMap::get_map_object(MapObjectUuid map_object_u
 	}
 	return it->map_object;
 }
+boost::shared_ptr<MapObject> WorldMap::get_or_reload_map_object(MapObjectUuid map_object_uuid){
+	PROFILE_ME;
+
+	auto map_object = get_map_object(map_object_uuid);
+	if(!map_object){
+		map_object = forced_reload_map_object(map_object_uuid);
+	}
+	return map_object;
+}
+boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid map_object_uuid){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return { };
+	}
+
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		    <<"  AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
+		    <<"  AND `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink->emplace_back(std::move(obj));
+			}, "Center_MapObject", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
+	}
+	if(sink->empty()){
+		map_object_map->erase<0>(map_object_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Castle not found in database: map_object_uuid = ", map_object_uuid);
+		return { };
+	}
+
+	auto map_object = reload_map_object_aux(std::move(sink->front()));
+	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+	if(castle){
+		castle->check_init_buildings();
+		castle->check_init_resources();
+	}
+	map_object->pump_status();
+	// map_object->recalculate_attributes(true);
+
+	const auto elem = MapObjectElement(map_object);
+	const auto result = map_object_map->insert(elem);
+	if(!result.second){
+		map_object_map->replace(result.first, elem);
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+	return std::move(map_object);
+}
 void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object){
 	PROFILE_ME;
 
@@ -1187,6 +1227,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 	}
 	synchronize_with_all_players(map_object, new_coord, new_coord, session);
 	synchronize_with_all_clusters(map_object, new_coord, new_coord);
+	synchronize_with_controller(map_object, new_coord, new_coord);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -1214,7 +1255,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto new_coord = map_object->get_coord();
 
 	LOG_EMPERY_CENTER_TRACE("Updating map object: map_object_uuid = ", map_object_uuid, ", old_coord = ", old_coord, ", new_coord = ", new_coord);
-	if(map_object->is_virtually_removed()){
+	if(map_object->is_virtually_removed() || should_erase_map_object(map_object)){
 		map_object_map->erase<0>(it);
 	} else {
 		map_object_map->replace<0>(it, MapObjectElement(map_object));
@@ -1232,6 +1273,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	}
 	synchronize_with_all_players(map_object, old_coord, new_coord, session);
 	synchronize_with_all_clusters(map_object, old_coord, new_coord);
+	synchronize_with_controller(map_object, old_coord, new_coord);
 }
 
 void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret){
@@ -1263,6 +1305,62 @@ void WorldMap::get_map_objects_by_owner(std::vector<boost::shared_ptr<MapObject>
 		ret.emplace_back(it->map_object);
 	}
 }
+void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		    <<"  AND `owner_uuid` = " <<Poseidon::MySql::UuidFormatter(owner_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink->emplace_back(std::move(obj));
+			}, "Center_MapObject", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
+	}
+	for(const auto &obj : *sink){
+		auto map_object = reload_map_object_aux(obj);
+		const auto map_object_uuid = map_object->get_map_object_uuid();
+
+		const auto elem = MapObjectElement(std::move(map_object));
+		const auto result = map_object_map->insert(elem);
+		if(!result.second){
+			map_object_map->replace(result.first, elem);
+		}
+
+		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
+	std::deque<boost::shared_ptr<Castle>> castles_to_pump;
+	const auto range = map_object_map->equal_range<2>(owner_uuid);
+	for(auto it = range.first; it != range.second; ++it){
+		auto castle = boost::dynamic_pointer_cast<Castle>(it->map_object);
+		if(!castle){
+			continue;
+		}
+		castles_to_pump.emplace_back(std::move(castle));
+	}
+	for(auto it = castles_to_pump.begin(); it != castles_to_pump.end(); ++it){
+		const auto &castle = *it;
+		try {
+			castle->pump_status();
+			// castle->recalculate_attributes(true);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+}
 void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid){
 	PROFILE_ME;
 
@@ -1277,6 +1375,53 @@ void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<Ma
 	for(auto it = range.first; it != range.second; ++it){
 		ret.emplace_back(it->map_object);
 	}
+}
+void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_object_uuid){
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+		return;
+	}
+
+	const auto castle = boost::dynamic_pointer_cast<Castle>(get_map_object(parent_object_uuid));
+	if(!castle){
+		LOG_EMPERY_CENTER_WARNING("Castle not found: parent_object_uuid = ", parent_object_uuid);
+		return;
+	}
+
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
+	{
+		std::ostringstream oss;
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		    <<"  AND `map_object_type_id` != " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
+		    <<"  AND `parent_object_uuid` = " <<Poseidon::MySql::UuidFormatter(parent_object_uuid.get());
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
+				obj->fetch(conn);
+				obj->enable_auto_saving();
+				sink->emplace_back(std::move(obj));
+			}, "Center_MapObject", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
+	}
+	for(const auto &obj : *sink){
+		auto map_object = reload_map_object_aux(obj);
+		const auto map_object_uuid = map_object->get_map_object_uuid();
+
+		const auto elem = MapObjectElement(std::move(map_object));
+		const auto result = map_object_map->insert(elem);
+		if(!result.second){
+			map_object_map->replace(result.first, elem);
+		}
+
+		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
+	castle->pump_status();
+	// castle->recalculate_attributes(true);
 }
 void WorldMap::get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid){
 	PROFILE_ME;
@@ -1598,6 +1743,78 @@ _exit_while:
 	;
 }
 
+boost::shared_ptr<MapEventBlock> WorldMap::get_map_event_block(Coord coord){
+	PROFILE_ME;
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		LOG_EMPERY_CENTER_WARNING("Map event block map not loaded.");
+		return { };
+	}
+
+	const auto block_coord = get_event_block_coord_from_world_coord(coord);
+	const auto it = map_event_block_map->find<0>(block_coord);
+	if(it == map_event_block_map->end<0>()){
+		LOG_EMPERY_CENTER_TRACE("Map event block not found: coord = ", coord, ", block_coord = ", block_coord);
+		return { };
+	}
+	return it->map_event_block;
+}
+boost::shared_ptr<MapEventBlock> WorldMap::require_map_event_block(Coord coord){
+	PROFILE_ME;
+
+	auto ret = get_map_event_block(coord);
+	if(!ret){
+		LOG_EMPERY_CENTER_WARNING("Map event block not found: coord = ", coord);
+		DEBUG_THROW(Exception, sslit("Map event block map not found"));
+	}
+	return ret;
+}
+void WorldMap::insert_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block){
+	PROFILE_ME;
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		LOG_EMPERY_CENTER_WARNING("Map event block map not loaded.");
+		DEBUG_THROW(Exception, sslit("Map event block map not loaded"));
+	}
+
+	const auto block_coord = map_event_block->get_block_coord();
+
+	LOG_EMPERY_CENTER_TRACE("Inserting map event block: block_coord = ", block_coord);
+	const auto result = map_event_block_map->insert(MapEventBlockElement(map_event_block));
+	if(!result.second){
+		LOG_EMPERY_CENTER_WARNING("Map event block already exists: block_coord = ", block_coord);
+		DEBUG_THROW(Exception, sslit("Map event block already exists"));
+	}
+}
+void WorldMap::update_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		LOG_EMPERY_CENTER_WARNING("Map event block map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Map event block map not loaded"));
+		}
+		return;
+	}
+
+	const auto block_coord = map_event_block->get_block_coord();
+
+	const auto it = map_event_block_map->find<0>(block_coord);
+	if(it == map_event_block_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("Map event block map not found: block_coord = ", block_coord);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Map event block map not found"));
+		}
+		return;
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Updating map event block: block_coord = ", block_coord);
+	map_event_block_map->replace<0>(it, MapEventBlockElement(map_event_block));
+}
+
 boost::shared_ptr<ResourceCrate> WorldMap::get_resource_crate(ResourceCrateUuid resource_crate_uuid){
 	PROFILE_ME;
 
@@ -1891,7 +2108,7 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 		if(!cluster){
 			continue;
 		}
-		ret.emplace(it->cluster_coord, std::move(cluster));
+		ret.insert(std::make_pair(it->cluster_coord, std::move(cluster)));
 	}
 }
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
@@ -1911,59 +2128,345 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 
 	const auto scope = get_cluster_scope(coord);
 	const auto cluster_coord = scope.bottom_left();
-	LOG_EMPERY_CENTER_INFO("Initiating map for cluster server: scope = ", scope);
-
-	for(unsigned map_y = 0; map_y < scope.height(); ++map_y){
-		for(unsigned map_x = 0; map_x < scope.width(); ++map_x){
-			const auto coord = Coord(scope.left() + map_x, scope.bottom() + map_y);
-/*
-			auto map_cell = get_map_cell(coord);
-			if(!map_cell){
-				map_cell = boost::make_shared<MapCell>(coord);
-				map_cell->pump_status();
-				insert_map_cell(map_cell);
-			}
-*/
-			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
-			if(!basic_data->overlay_group_name.empty() && basic_data->overlay_id){
-				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
-				if(!overlay){
-					std::vector<boost::shared_ptr<const Data::MapCellBasic>> cells_in_group;
-					Data::MapCellBasic::get_by_overlay_group(cells_in_group, basic_data->overlay_group_name);
-					const auto overlay_data = Data::MapOverlay::require(basic_data->overlay_id);
-
-					std::uint64_t resource_amount = 0;
-					for(auto it = cells_in_group.begin(); it != cells_in_group.end(); ++it){
-						const auto &basic_data = *it;
-						const auto overlay_data = Data::MapOverlay::require(basic_data->overlay_id);
-						resource_amount = checked_add(resource_amount, overlay_data->reward_resource_amount);
-					}
-					overlay = boost::make_shared<Overlay>(cluster_coord, basic_data->overlay_group_name,
-						basic_data->overlay_id, overlay_data->reward_resource_id, resource_amount);
-					overlay->pump_status();
-					insert_overlay(overlay);
-				}
-			}
-
-			const auto event_block_coord = MapEventBlockMap::get_block_coord_from_world_coord(coord);
-			auto map_event_block = MapEventBlockMap::get(event_block_coord);
-			if(!map_event_block){
-				map_event_block = boost::make_shared<MapEventBlock>(event_block_coord);
-				map_event_block->pump_status();
-				MapEventBlockMap::insert(map_event_block);
-			}
-		}
-	}
-
 	LOG_EMPERY_CENTER_INFO("Setting up cluster server: cluster_coord = ", cluster_coord);
 	const auto result = cluster_map->insert(ClusterElement(cluster_coord, cluster));
 	if(!result.second){
 		const auto old_cluster = result.first->cluster.lock();
-		if(old_cluster){
+		if(old_cluster && (old_cluster != cluster)){
+			LOG_EMPERY_CENTER_WARNING("Killing old cluster server: cluster_coord = ", cluster_coord);
 			old_cluster->shutdown(Msg::KILL_CLUSTER_SERVER_CONFLICT, "");
 		}
 		cluster_map->replace(result.first, ClusterElement(cluster_coord, cluster));
 	}
+}
+boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Coord coord){
+	PROFILE_ME;
+
+	const auto cluster_map = g_cluster_map.lock();
+	if(!cluster_map){
+		LOG_EMPERY_CENTER_WARNING("Cluster map not loaded.");
+		DEBUG_THROW(Exception, sslit("Cluster map not loaded"));
+	}
+
+	const auto shared_promise = boost::make_shared<SharedPromise>();
+
+	const auto scope = get_cluster_scope(coord);
+	const auto cluster_coord = scope.bottom_left();
+
+#define ASYNC_LOAD_BEGIN	\
+	Poseidon::enqueue_async_job(	\
+		[=]{	\
+			PROFILE_ME;	\
+			const SharedPromiseGuard guard_(shared_promise);	\
+			try
+#define ASYNC_LOAD_END	\
+			catch(std::exception &e_){	\
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e_.what());	\
+			}	\
+		})
+
+#define ENABLE_PARALLEL_LOADING     0
+
+	ASYNC_LOAD_BEGIN {
+		LOG_EMPERY_CENTER_INFO("Loading map cells: scope = ", scope);
+
+		const auto map_cell_map = g_map_cell_map.lock();
+		if(!map_cell_map){
+			LOG_EMPERY_CENTER_WARNING("Map_cell map not loaded.");
+			return;
+		}
+
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCell>>>();
+		{
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_MapCell` WHERE "
+				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapCell>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_MapCell", oss.str());
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+		for(const auto &obj : *sink){
+#if ENABLE_PARALLEL_LOADING
+			ASYNC_LOAD_BEGIN {
+#endif
+				auto map_cell = reload_map_cell_aux(obj);
+				const auto elem = MapCellElement(std::move(map_cell));
+				const auto result = map_cell_map->insert(elem);
+				if(!result.second){
+					map_cell_map->replace(result.first, elem);
+				}
+#if ENABLE_PARALLEL_LOADING
+			} ASYNC_LOAD_END;
+#endif
+		}
+	} ASYNC_LOAD_END;
+
+	ASYNC_LOAD_BEGIN {
+		LOG_EMPERY_CENTER_INFO("Loading map objects: scope = ", scope);
+
+		const auto map_object_map = g_map_object_map.lock();
+		if(!map_object_map){
+			LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
+			return;
+		}
+
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
+		{
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND "
+				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_MapObject", oss.str());
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+		for(const auto &obj : *sink){
+#if ENABLE_PARALLEL_LOADING
+			ASYNC_LOAD_BEGIN {
+#endif
+				auto map_object = reload_map_object_aux(obj);
+				const auto elem = MapObjectElement(std::move(map_object));
+				const auto result = map_object_map->insert(elem);
+				if(!result.second){
+					map_object_map->replace(result.first, elem);
+				}
+#if ENABLE_PARALLEL_LOADING
+			} ASYNC_LOAD_END;
+#endif
+		}
+	} ASYNC_LOAD_END;
+/*
+	ASYNC_LOAD_BEGIN {
+		LOG_EMPERY_CENTER_INFO("Loading overlays: scope = ", scope);
+
+		const auto overlay_map = g_overlay_map.lock();
+		if(!overlay_map){
+			LOG_EMPERY_CENTER_WARNING("Overlay map not loaded.");
+			return;
+		}
+
+		// FIXME: make_shared
+		std::vector<boost::shared_ptr<MySql::Center_Overlay>> map_overlay_sink;
+		{
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_Overlay` WHERE `cluster_x` = " <<cluster_coord.x() <<" AND `cluster_y` = " << cluster_coord.y();
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<EmperyCenter::MySql::Center_Overlay>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					map_overlay_sink.emplace_back(std::move(obj));
+				}, "Center_Overlay", oss.str());
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+
+		boost::container::flat_set<std::string> overlay_groups_new;
+		Data::MapCellBasic::get_unique_overlay_groups(overlay_groups_new);
+		LOG_EMPERY_CENTER_DEBUG("?!> Number of initial overlays: ", overlay_groups_new.size());
+
+		for(const auto &obj : map_overlay_sink){
+			auto overlay = boost::make_shared<Overlay>(obj);
+			const auto &overlay_group_name = overlay->get_overlay_group_name();
+
+			overlay_groups_new.erase(overlay_group_name);
+
+			const auto elem = OverlayElement(std::move(overlay));
+			const auto result = overlay_map->insert(elem);
+			if(!result.second){
+				overlay_map->replace(result.first, elem);
+			}
+
+			LOG_EMPERY_CENTER_TRACE("Successfully reloaded overlay: overlay_group_name = ", overlay_group_name);
+		}
+
+		LOG_EMPERY_CENTER_DEBUG("?!> Number of overlays to create: ", overlay_groups_new.size());
+		std::vector<boost::shared_ptr<const Data::MapCellBasic>> map_cell_data_all;
+		for(const auto &overlay_group_name : overlay_groups_new){
+			boost::shared_ptr<const Data::MapOverlay> overlay_data;
+			std::uint64_t resource_amount = 0;
+
+			map_cell_data_all.clear();
+			Data::MapCellBasic::get_by_overlay_group(map_cell_data_all, overlay_group_name);
+			for(const auto &basic_data : map_cell_data_all){
+				const auto overlay_id = basic_data->overlay_id;
+				if(!overlay_id){
+					continue;
+				}
+				overlay_data = Data::MapOverlay::require(overlay_id);
+				resource_amount = checked_add(resource_amount, overlay_data->reward_resource_amount);
+			}
+			if(!overlay_data){
+				LOG_EMPERY_CENTER_WARNING("No map cells in overlay group: overlay_group_name = ", overlay_group_name);
+				continue;
+			}
+
+			auto overlay = boost::make_shared<Overlay>(cluster_coord, overlay_group_name,
+				overlay_data->overlay_id, overlay_data->reward_resource_id, resource_amount);
+			const auto elem = OverlayElement(std::move(overlay));
+			const auto result = overlay_map->insert(elem);
+			if(!result.second){
+				overlay_map->replace(result.first, elem);
+			}
+		}
+	} ASYNC_LOAD_END;
+*/
+	ASYNC_LOAD_BEGIN {
+		LOG_EMPERY_CENTER_INFO("Loading strategic resources: scope = ", scope);
+
+		const auto strategic_resource_map = g_strategic_resource_map.lock();
+		if(!strategic_resource_map){
+			LOG_EMPERY_CENTER_WARNING("Strategic resource map not loaded.");
+			return;
+		}
+
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_StrategicResource>>>();
+		{
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_StrategicResource` WHERE "
+				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<EmperyCenter::MySql::Center_StrategicResource>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_StrategicResource", oss.str());
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+		for(const auto &obj : *sink){
+#if ENABLE_PARALLEL_LOADING
+			ASYNC_LOAD_BEGIN {
+#endif
+				auto strategic_resource = boost::make_shared<StrategicResource>(obj);
+				const auto elem = StrategicResourceElement(std::move(strategic_resource));
+				const auto result = strategic_resource_map->insert(elem);
+				if(!result.second){
+					strategic_resource_map->replace(result.first, elem);
+				}
+#if ENABLE_PARALLEL_LOADING
+			} ASYNC_LOAD_END;
+#endif
+		}
+	} ASYNC_LOAD_END;
+
+	ASYNC_LOAD_BEGIN {
+		LOG_EMPERY_CENTER_INFO("Loading map event block: scope = ", scope);
+
+		const auto map_event_block_map = g_map_event_block_map.lock();
+		if(!map_event_block_map){
+			LOG_EMPERY_CENTER_WARNING("Map event block map not loaded.");
+			return;
+		}
+
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapEventBlock>>>();
+		{
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_MapEventBlock` WHERE "
+				<<scope.left() <<" <= `block_x` AND `block_x` < " <<scope.right() <<"  AND "
+				<<scope.bottom() <<" <= `block_y` AND `block_y` < " <<scope.top();
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapEventBlock>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_MapEventBlock", oss.str());
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+		for(const auto &obj : *sink){
+#if ENABLE_PARALLEL_LOADING
+			ASYNC_LOAD_BEGIN {
+#endif
+				auto map_event_block = reload_map_event_block_aux(obj);
+				const auto elem = MapEventBlockElement(std::move(map_event_block));
+				const auto result = map_event_block_map->insert(elem);
+				if(!result.second){
+					map_event_block_map->replace(result.first, elem);
+				}
+#if ENABLE_PARALLEL_LOADING
+			} ASYNC_LOAD_END;
+#endif
+		}
+
+		boost::container::flat_set<Coord> map_event_block_new;
+		map_event_block_new.reserve((MAP_WIDTH / EVENT_BLOCK_WIDTH) * (MAP_HEIGHT / EVENT_BLOCK_HEIGHT));
+		for(unsigned map_y = 0; map_y < MAP_HEIGHT; map_y += EVENT_BLOCK_HEIGHT){
+			for(unsigned map_x = 0; map_x < MAP_WIDTH; map_x += EVENT_BLOCK_WIDTH){
+				map_event_block_new.insert(Coord(cluster_coord.x() + map_x, cluster_coord.y() + map_y));
+			}
+		}
+		LOG_EMPERY_CENTER_DEBUG("?!> Number of initial map event blocks: ", map_event_block_new.size());
+		for(const auto &obj : *sink){
+			const auto block_coord = Coord(obj->get_block_x(), obj->get_block_y());
+			map_event_block_new.erase(block_coord);
+		}
+		LOG_EMPERY_CENTER_DEBUG("?!> Number of map event blocks to create: ", map_event_block_new.size());
+		for(const auto &coord : map_event_block_new){
+#if ENABLE_PARALLEL_LOADING
+			ASYNC_LOAD_BEGIN {
+#endif
+				auto map_event_block = boost::make_shared<MapEventBlock>(coord);
+				const auto elem = MapEventBlockElement(std::move(map_event_block));
+				const auto result = map_event_block_map->insert(elem);
+				if(!result.second){
+					map_event_block_map->replace(result.first, elem);
+				}
+#if ENABLE_PARALLEL_LOADING
+			} ASYNC_LOAD_END;
+#endif
+		}
+
+	} ASYNC_LOAD_END;
+
+	ASYNC_LOAD_BEGIN {
+		LOG_EMPERY_CENTER_INFO("Loading resource crates: scope = ", scope);
+
+		const auto resource_crate_map = g_resource_crate_map.lock();
+		if(!resource_crate_map){
+			LOG_EMPERY_CENTER_WARNING("Resource crate map not loaded.");
+			return;
+		}
+
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_ResourceCrate>>>();
+		{
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0 AND "
+				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<EmperyCenter::MySql::Center_ResourceCrate>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_ResourceCrate", oss.str());
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+		for(const auto &obj : *sink){
+#if ENABLE_PARALLEL_LOADING
+			ASYNC_LOAD_BEGIN {
+#endif
+				auto resource_crate = boost::make_shared<ResourceCrate>(obj);
+				const auto elem = ResourceCrateElement(std::move(resource_crate));
+				const auto result = resource_crate_map->insert(elem);
+				if(!result.second){
+					resource_crate_map->replace(result.first, elem);
+				}
+#if ENABLE_PARALLEL_LOADING
+			} ASYNC_LOAD_END;
+#endif
+		}
+	} ASYNC_LOAD_END;
+
+	return boost::shared_ptr<const Poseidon::JobPromise>(shared_promise, shared_promise->get_promise());
 }
 void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept
 try {
@@ -2042,7 +2545,9 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 			const auto result = can_deploy_castle_at(coord, { });
 			if(result.first == 0){
 				castle = factory(coord);
-				assert(castle);
+				if(!castle){
+					DEBUG_THROW(Exception, sslit("No castle allocated"));
+				}
 				castle->pump_status();
 				castle->recalculate_attributes(false);
 
@@ -2095,8 +2600,9 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle(
 	while(!clusters.empty()){
 		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, clusters.size()));
 _use_hint:
-		LOG_EMPERY_CENTER_DEBUG("Trying cluster server: cluster_coord = ", it->first);
-		auto castle = create_init_castle_restricted(factory, it->first);
+		const auto cluster_coord = it->first;
+		LOG_EMPERY_CENTER_DEBUG("Trying cluster server: cluster_coord = ", cluster_coord);
+		auto castle = create_init_castle_restricted(factory, cluster_coord);
 		if(castle){
 			LOG_EMPERY_CENTER_INFO("Init castle created successfully: map_object_uuid = ", castle->get_map_object_uuid(),
 				", owner_uuid = ", castle->get_owner_uuid(), ", coord = ", castle->get_coord());

@@ -64,7 +64,7 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 	}
 
 	const auto host       = get_config<std::string>   ("controller_cbpp_client_host",         "127.0.0.1");
-	const auto port       = get_config<unsigned>      ("controller_cbpp_client_port",         13213);
+	const auto port       = get_config<unsigned>      ("controller_cbpp_client_port",         13223);
 	const auto use_ssl    = get_config<bool>          ("controller_cbpp_client_use_ssl",      false);
 	const auto keep_alive = get_config<std::uint64_t> ("controller_cbpp_keep_alive_interval", 15000);
 
@@ -76,7 +76,7 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 
 	client.reset(new ControllerClient(*sock_addr, use_ssl, keep_alive));
 	client->go_resident();
-
+	g_singleton = client;
 	return client;
 }
 

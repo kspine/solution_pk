@@ -12,22 +12,22 @@
 
 namespace EmperyCenterLog {
 
-using ServletCallback = LogHttpSession::ServletCallback;
+using ServletCallback = LogSession::ServletCallback;
 
 namespace {
 	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-LogHttpSession::LogHttpSession(Poseidon::UniqueFile socket,
+LogSession::LogSession(Poseidon::UniqueFile socket,
 	boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_auth_info(std::move(auth_info)), m_prefix(std::move(prefix))
 {
 }
-LogHttpSession::~LogHttpSession(){
+LogSession::~LogSession(){
 }
 
-boost::shared_ptr<const ServletCallback> LogHttpSession::create_servlet(const std::string &uri, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> LogSession::create_servlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[uri];
@@ -39,7 +39,7 @@ boost::shared_ptr<const ServletCallback> LogHttpSession::create_servlet(const st
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> LogHttpSession::get_servlet(const std::string &uri){
+boost::shared_ptr<const ServletCallback> LogSession::get_servlet(const std::string &uri){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(uri);
@@ -54,7 +54,7 @@ boost::shared_ptr<const ServletCallback> LogHttpSession::get_servlet(const std::
 	return servlet;
 }
 
-void LogHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
+void LogSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_LOG(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted log HTTP request from ", get_remote_info());
@@ -88,7 +88,7 @@ void LogHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_head
 	std::pair<long, std::string> result;
 	Poseidon::JsonObject root;
 	try {
-		result = (*servlet)(root, virtual_shared_from_this<LogHttpSession>(), std::move(request_headers.get_params));
+		result = (*servlet)(root, virtual_shared_from_this<LogSession>(), std::move(request_headers.get_params));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(Poseidon::Cbpp::Exception &e){

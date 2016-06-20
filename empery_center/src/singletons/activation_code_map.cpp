@@ -162,27 +162,31 @@ void ActivationCodeMap::update(const boost::shared_ptr<ActivationCode> &activati
 	const auto &code = activation_code->get_code();
 
 	const auto range = activation_code_map->equal_range<0>(hash_string_nocase(code));
-	auto acit = range.second;
-	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(it->activation_code->get_code(), code)){
-			acit = it;
+	auto it = range.second;
+	for(auto tit = range.first; tit != range.second; ++tit){
+		if(are_strings_equal_nocase(tit->activation_code->get_code(), code)){
+			it = tit;
 			break;
 		}
 	}
-	if(acit == range.second){
+	if(it == range.second){
 		LOG_EMPERY_CENTER_WARNING("Activation code not found: code = ", code);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Activation code not found"));
 		}
 		return;
 	}
+	if(it->activation_code != activation_code){
+		LOG_EMPERY_CENTER_DEBUG("Activation code expired: code = ", code);
+		return;
+	}
 
 	LOG_EMPERY_CENTER_DEBUG("Updating activation code: code = ", code);
 	const auto utc_now = Poseidon::get_utc_time();
 	if(activation_code->get_expiry_time() < utc_now){
-		activation_code_map->erase<0>(acit);
+		activation_code_map->erase<0>(it);
 	} else {
-		activation_code_map->replace<0>(acit, ActivationCodeElement(activation_code));
+		activation_code_map->replace<0>(it, ActivationCodeElement(activation_code));
 	}
 }
 void ActivationCodeMap::remove(const std::string &code) noexcept {
@@ -195,20 +199,20 @@ void ActivationCodeMap::remove(const std::string &code) noexcept {
 	}
 
 	const auto range = activation_code_map->equal_range<0>(hash_string_nocase(code));
-	auto acit = range.second;
-	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(it->activation_code->get_code(), code)){
-			acit = it;
+	auto it = range.second;
+	for(auto tit = range.first; tit != range.second; ++tit){
+		if(are_strings_equal_nocase(tit->activation_code->get_code(), code)){
+			it = tit;
 			break;
 		}
 	}
-	if(acit == range.second){
+	if(it == range.second){
 		LOG_EMPERY_CENTER_WARNING("Activation code not found: code = ", code);
 		return;
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Removing activation code: code = ", code);
-	activation_code_map->erase<0>(acit);
+	activation_code_map->erase<0>(it);
 }
 
 }

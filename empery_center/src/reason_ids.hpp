@@ -57,6 +57,7 @@ constexpr ReasonId
 	ID_MONSTER_REWARD                ( 673014 ), // 怪物兵种 ID         掉落表内的 ID       0
 	ID_MONSTER_REWARD_EXTRA          ( 673015 ), // 怪物兵种 ID         额外掉落表内的 ID   0
 	ID_MONSTER_REWARD_COUNT          ( 673016 ), // 怪物兵种 ID         0                   0
+	ID_UNPACK                        ( 673017 ), // 0                   道具 ID             重复次数
 
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0

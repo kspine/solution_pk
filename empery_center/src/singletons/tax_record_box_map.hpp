@@ -11,6 +11,7 @@ class TaxRecordBox;
 struct TaxRecordBoxMap {
 	static boost::shared_ptr<TaxRecordBox> get(AccountUuid account_uuid);
 	static boost::shared_ptr<TaxRecordBox> require(AccountUuid account_uuid);
+	static void unload(AccountUuid account_uuid);
 
 private:
 	TaxRecordBoxMap() = delete;

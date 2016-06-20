@@ -11,6 +11,7 @@ class ItemBox;
 struct ItemBoxMap {
 	static boost::shared_ptr<ItemBox> get(AccountUuid account_uuid);
 	static boost::shared_ptr<ItemBox> require(AccountUuid account_uuid);
+	static void unload(AccountUuid account_uuid);
 
 private:
 	ItemBoxMap() = delete;

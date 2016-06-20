@@ -61,7 +61,7 @@ PAYMENT_SERVLET("create_bill/diamonds", root, session, params){
 	const auto amount      = boost::lexical_cast<std::uint64_t>(params.at("amount"));
 	const auto &remarks    = params.get("remarks");
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -88,7 +88,7 @@ PAYMENT_SERVLET("create_bill/alternative_gold_coins", root, session, params){
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
 			boost::shared_ptr<long>(), platform_id, login_name, std::string()));
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -115,7 +115,7 @@ PAYMENT_SERVLET("create_bill/alternative_gift_box", root, session, params){
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
 			boost::shared_ptr<long>(), platform_id, login_name, std::string()));
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -143,7 +143,7 @@ PAYMENT_SERVLET("create_bill/alternative_large_gift_box", root, session, params)
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
 			boost::shared_ptr<long>(), platform_id, login_name, std::string()));
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}

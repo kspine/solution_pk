@@ -39,7 +39,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/global_status.cpp	\
 	src/singletons/tax_record_box_map.cpp	\
 	src/singletons/task_box_map.cpp	\
-	src/singletons/map_event_block_map.cpp	\
 	src/singletons/battle_record_box_map.cpp	\
 	src/singletons/war_status_map.cpp	\
 	src/singletons/activity_map.cpp \
@@ -88,6 +87,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/payment/promotion_callback.cpp	\
 	src/cluster/map.cpp	\
 	src/controller/account.cpp	\
+	src/controller/map.cpp	\
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
 	src/account_utilities.cpp	\

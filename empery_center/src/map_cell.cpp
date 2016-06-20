@@ -89,6 +89,20 @@ void MapCell::recalculate_attributes(bool recursive){
 	// 无事可做。
 }
 
+bool MapCell::is_protectable() const {
+	PROFILE_ME;
+
+	const auto ticket_item_id = get_ticket_item_id();
+	if(!ticket_item_id){
+		return false;
+	}
+	const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
+	if(!ticket_data->protectable){
+		return false;
+	}
+	return true;
+}
+
 Coord MapCell::get_coord() const {
 	return Coord(m_obj->get_x(), m_obj->get_y());
 }

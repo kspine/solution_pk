@@ -355,6 +355,20 @@ namespace Data {
 		return ret;
 	}
 
+	void MapCellBasic::get_unique_overlay_groups(boost::container::flat_set<std::string> &ret){
+		PROFILE_ME;
+
+		const auto basic_map = g_basic_map.lock();
+		if(!basic_map){
+			LOG_EMPERY_CENTER_WARNING("MapCellBasicMap has not been loaded.");
+			return;
+		}
+
+		ret.reserve(ret.size() + basic_map->size() / 5);
+		for(auto it = basic_map->begin<1>(); it != basic_map->end<1>(); it = basic_map->upper_bound<1>(it->overlay_group_name)){
+			ret.insert(it->overlay_group_name);
+		}
+	}
 	void MapCellBasic::get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group_name){
 		PROFILE_ME;
 

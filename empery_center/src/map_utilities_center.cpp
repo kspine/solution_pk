@@ -527,26 +527,6 @@ try {
 }
 
 namespace {
-	bool is_protectable(const boost::shared_ptr<MapObject> &map_object){
-		PROFILE_ME;
-
-		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(map_object);
-		if(!defense){
-			return false;
-		}
-		return true;
-	}
-	bool is_protectable(const boost::shared_ptr<MapCell> &map_cell){
-		PROFILE_ME;
-
-		const auto ticket_item_id = map_cell->get_ticket_item_id();
-		const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
-		if(!ticket_data->protectable){
-			return false;
-		}
-		return true;
-	}
-
 	template<typename T>
 	bool is_protection_in_effect(const boost::shared_ptr<T> &ptr){
 		PROFILE_ME;
@@ -567,16 +547,15 @@ std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObje
 	PROFILE_ME;
 
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
-
 	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
 
-	if(attacked_account_uuid && is_protectable(attacking_object)){
+	if(attacked_account_uuid && attacking_object->is_protectable()){
 		// 处于保护状态下的防御建筑不能攻击其他玩家的部队。
 		if(is_protection_in_effect(attacking_object)){
 			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
 		}
 	}
-	if(attacking_account_uuid && is_protectable(attacked_object)){
+	if(attacking_account_uuid && attacked_object->is_protectable()){
 		// 处于保护状态下的防御建筑不能遭到其他玩家的部队攻击。
 		if(is_protection_in_effect(attacked_object)){
 			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object->get_map_object_uuid();
@@ -594,19 +573,18 @@ std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObje
 	PROFILE_ME;
 
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
-
 	auto attacked_account_uuid = attacked_cell->get_occupier_owner_uuid();
 	if(!attacked_account_uuid){
 		attacked_account_uuid = attacked_cell->get_owner_uuid();
 	}
 
-	if(attacked_account_uuid && is_protectable(attacking_object)){
+	if(attacked_account_uuid && attacking_object->is_protectable()){
 		// 处于保护状态下的领地不能攻击其他玩家的部队。
 		if(is_protection_in_effect(attacking_object)){
 			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
 		}
 	}
-	if(attacking_account_uuid && is_protectable(attacked_cell)){
+	if(attacking_account_uuid && attacked_cell->is_protectable()){
 		// 处于保护状态下的领地不能遭到其他玩家的部队攻击。
 		if(is_protection_in_effect(attacked_cell)){
 			return CbppResponse(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_cell->get_coord();

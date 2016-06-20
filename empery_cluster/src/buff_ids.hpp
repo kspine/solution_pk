@@ -5,9 +5,8 @@
 
 namespace EmperyCluster {
 
-namespace BuffIds {
-	using namespace ::EmperyCenter::BuffIds;
-}
+namespace BuffIds = ::EmperyCenter::BuffIds;
+
 }
 
 #endif

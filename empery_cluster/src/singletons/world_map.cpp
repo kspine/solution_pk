@@ -19,9 +19,7 @@
 
 namespace EmperyCluster {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 namespace {
 	struct MapCellElement {

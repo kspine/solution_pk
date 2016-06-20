@@ -20,7 +20,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 	const auto platform_id = boost::lexical_cast<PlatformId>(params.at("platform_id"));
 	const auto &login_name = params.at("login_name");
 
-	const auto account = AccountMap::get_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -63,7 +63,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 				elem_castle[sslit("due_time")]               = it->due_time;
 
 				char str[64];
-				unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->item_id.get());
+				unsigned len = (unsigned)std::sprintf(str, "%llu", (unsigned long long)it->item_id.get());
 				castle_map[it->map_object_uuid][SharedNts(str, len)] = std::move(elem_castle);
 			}
 
@@ -90,7 +90,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 			Poseidon::JsonObject elem_items;
 			for(auto it = items.begin(); it != items.end(); ++it){
 				char str[64];
-				unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->item_id.get());
+				unsigned len = (unsigned)std::sprintf(str, "%llu", (unsigned long long)it->item_id.get());
 				elem_items[SharedNts(str, len)] = it->count;
 			}
 			elem_auction_center[sslit("items")] = std::move(elem_items);
@@ -98,9 +98,6 @@ AUCTION_SERVLET("query/account", root, session, params){
 
 		root[sslit("auction_center")] = std::move(elem_auction_center);
 	}
-
-	const auto resource_amount_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_RESOURCE_AMOUNT_PER_BOX);
-	const auto item_count_per_box = Data::Global::as_unsigned(Data::Global::SLOT_AUCTION_TRANSFER_ITEM_COUNT_PER_BOX);
 
 	// 获取城堡状态。
 	{
@@ -139,8 +136,8 @@ AUCTION_SERVLET("query/account", root, session, params){
 						continue;
 					}
 					char str[64];
-					unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)resource_data->undeployed_item_id.get());
-					elem_resources[SharedNts(str, len)] = amount / resource_amount_per_box;
+					unsigned len = (unsigned)std::sprintf(str, "%llu", (unsigned long long)resource_data->undeployed_item_id.get());
+					elem_resources[SharedNts(str, len)] = amount;
 				}
 
 				elem_castle[sslit("resources")] = std::move(elem_resources);
@@ -172,8 +169,8 @@ AUCTION_SERVLET("query/account", root, session, params){
 				continue;
 			}
 			char str[64];
-			unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)item_id.get());
-			elem_items[SharedNts(str, len)] = count / item_count_per_box;
+			unsigned len = (unsigned)std::sprintf(str, "%llu", (unsigned long long)item_id.get());
+			elem_items[SharedNts(str, len)] = count;
 		}
 
 		root[sslit("items")] = std::move(elem_items);

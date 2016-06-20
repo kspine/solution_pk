@@ -81,7 +81,7 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() > 1) || (it->mail_box.use_count() > 1)){
+			if((it->promise.use_count() | it->mail_box.use_count()) != 1){ // (a > 1) || (b > 1) || ((a == 0) && b == 0))
 				mail_box_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail box: account_uuid = ", it->account_uuid);
@@ -109,7 +109,7 @@ namespace {
 			}
 
 			// 判定 use_count() 为 0 或 1 的情况。参看 require() 中的注释。
-			if((it->promise.use_count() > 1) || (it->mail_data.use_count() > 1)){
+			if((it->promise.use_count() | it->mail_data.use_count()) != 1){ // (a > 1) || (b > 1) || ((a == 0) && b == 0))
 				mail_data_map->set_key<1, 1>(it, now + 1000);
 			} else {
 				LOG_EMPERY_CENTER_DEBUG("Reclaiming mail data: mail_uuid = ", it->pkey.first);
@@ -150,15 +150,19 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		return { };
 	}
 
-	auto account = AccountMap::get(account_uuid);
-	if(!account){
-		if(account_uuid != GLOBAL_MAIL_ACCCOUNT_UUID){
-			LOG_EMPERY_CENTER_DEBUG("Account not found: account_uuid = ", account_uuid);
-			return { };
+	if(account_uuid == GLOBAL_MAIL_ACCCOUNT_UUID){
+		auto account = AccountMap::get(account_uuid);
+		if(!account){
+			const auto utc_now = Poseidon::get_utc_time();
+			account = boost::make_shared<Account>(account_uuid,
+				PlatformId(1), std::string(), AccountUuid(), 0, utc_now, "Global mail account");
+			AccountMap::insert(account, std::string());
 		}
-		const auto utc_now = Poseidon::get_utc_time();
-		account = boost::make_shared<Account>(account_uuid, PlatformId(1), std::string(), AccountUuid(), 0, utc_now, "Global mail account");
-		AccountMap::insert(account, std::string());
+	}
+
+	if(!AccountMap::is_holding_controller_token(account_uuid)){
+		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+		return { };
 	}
 
 	auto it = mail_box_map->find<0>(account_uuid);
@@ -168,26 +172,29 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 	if(!it->mail_box){
 		LOG_EMPERY_CENTER_DEBUG("Loading mail box: account_uuid = ", account_uuid);
 
-		if(!it->promise){
-			auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Mail>>>();
-			std::ostringstream oss;
-			const auto utc_now = Poseidon::get_utc_time();
-			oss <<"SELECT * FROM `Center_Mail` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now)
-			    <<"  AND `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
-			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-					auto obj = boost::make_shared<MySql::Center_Mail>();
-					obj->fetch(conn);
-					obj->enable_auto_saving();
-					sink->emplace_back(std::move(obj));
-				}, "Center_Mail", oss.str());
-			it->promise = std::move(promise);
-			it->sink    = std::move(sink);
-		}
-		// 复制一个智能指针，并且导致 use_count() 增加。
-		// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
-		const auto promise = it->promise;
-		Poseidon::JobDispatcher::yield(promise, true);
+		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
+		do {
+			if(!it->promise){
+				auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Mail>>>();
+				std::ostringstream oss;
+				const auto utc_now = Poseidon::get_utc_time();
+				oss <<"SELECT * FROM `Center_Mail` WHERE `expiry_time` > " <<Poseidon::MySql::DateTimeFormatter(utc_now)
+				    <<"  AND `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
+				auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+					[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+						auto obj = boost::make_shared<MySql::Center_Mail>();
+						obj->fetch(conn);
+						obj->enable_auto_saving();
+						sink->emplace_back(std::move(obj));
+					}, "Center_Mail", oss.str());
+				it->promise = std::move(promise);
+				it->sink    = std::move(sink);
+			}
+			// 复制一个智能指针，并且导致 use_count() 增加。
+			// 在 GC 定时器中我们用 use_count() 判定是否有异步操作进行中。
+			promise_tack = it->promise;
+			Poseidon::JobDispatcher::yield(promise_tack, true);
+		} while(promise_tack != it->promise);
 
 		if(it->sink){
 			mail_box_map->set_key<0, 1>(it, 0);

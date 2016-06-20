@@ -11,6 +11,7 @@ class TaskBox;
 struct TaskBoxMap {
 	static boost::shared_ptr<TaskBox> get(AccountUuid account_uuid);
 	static boost::shared_ptr<TaskBox> require(AccountUuid account_uuid);
+	static void unload(AccountUuid account_uuid);
 
 private:
 	TaskBoxMap() = delete;

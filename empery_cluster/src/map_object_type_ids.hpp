@@ -5,9 +5,7 @@
 
 namespace EmperyCluster {
 
-namespace MapObjectTypeIds {
-	using namespace ::EmperyCenter::MapObjectTypeIds;
-}
+namespace MapObjectTypeIds = ::EmperyCenter::MapObjectTypeIds;
 
 }
 

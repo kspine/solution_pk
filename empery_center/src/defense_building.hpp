@@ -34,7 +34,7 @@ public:
 	DefenseBuilding(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
-		boost::shared_ptr<MySql::Center_DefenseBuilding> defense_obj);
+		const std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>> &defense_objs);
 	~DefenseBuilding();
 
 protected:
@@ -43,6 +43,8 @@ protected:
 public:
 	void pump_status() override;
 	void recalculate_attributes(bool recursive) override;
+
+	bool is_protectable() const override;
 
 	virtual unsigned get_level() const;
 	Mission get_mission() const;

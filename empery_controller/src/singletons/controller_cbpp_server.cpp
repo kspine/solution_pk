@@ -23,7 +23,7 @@ namespace {
 
 MODULE_RAII_PRIORITY(handles, 9000){
 	auto bind = get_config<std::string> ("controller_cbpp_server_bind", "0.0.0.0");
-	auto port = get_config<unsigned>    ("controller_cbpp_server_port", 13213);
+	auto port = get_config<unsigned>    ("controller_cbpp_server_port", 13223);
 	auto cert = get_config<std::string> ("controller_cbpp_server_certificate");
 	auto pkey = get_config<std::string> ("controller_cbpp_server_private_key");
 

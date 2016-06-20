@@ -28,9 +28,9 @@ LOG_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 	namespace {	\
 		namespace Impl_ {	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(LogServlet, __LINE__, Proc_) (	\
-				::Poseidon::JsonObject &, const ::boost::shared_ptr< ::EmperyCenterLog::LogHttpSession> &, ::Poseidon::OptionalMap);	\
+				::Poseidon::JsonObject &, const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> &, ::Poseidon::OptionalMap);	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(LogServlet, __LINE__, Entry_) (	\
-				::Poseidon::JsonObject &root_, const ::boost::shared_ptr< ::EmperyCenterLog::LogHttpSession> &session_,	\
+				::Poseidon::JsonObject &root_, const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> &session_,	\
 				::Poseidon::OptionalMap params_)	\
 			{	\
 				PROFILE_ME;	\
@@ -40,11 +40,11 @@ LOG_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(LogHttpSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(LogServlet, __LINE__, Entry_)));	\
+		handles_.push(LogSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(LogServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(LogServlet, __LINE__, Proc_) (	\
 		::Poseidon::JsonObject & root_arg_ __attribute__((__unused__)),	\
-		const ::boost::shared_ptr< ::EmperyCenterLog::LogHttpSession> & session_arg_ __attribute__((__unused__)),	\
+		const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> & session_arg_ __attribute__((__unused__)),	\
 		::Poseidon::OptionalMap params_arg_	\
 		)
 
@@ -52,9 +52,7 @@ LOG_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 
 namespace EmperyCenterLog {
 
-namespace Msg {
-	using namespace ::EmperyCenter::Msg;
-}
+namespace Msg = ::EmperyCenter::Msg;
 
 using Response = ::EmperyCenter::CbppResponse;
 
