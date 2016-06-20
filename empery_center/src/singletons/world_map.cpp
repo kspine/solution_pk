@@ -1337,14 +1337,22 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
-	const auto range = std::make_pair(map_object_map->lower_bound<2>(owner_uuid), map_object_map->upper_bound<2>(owner_uuid));
+	std::deque<boost::shared_ptr<Castle>> castles_to_pump;
+	const auto range = map_object_map->equal_range<2>(owner_uuid);
 	for(auto it = range.first; it != range.second; ++it){
-		const auto &castle = boost::dynamic_pointer_cast<Castle>(it->map_object);
+		auto castle = boost::dynamic_pointer_cast<Castle>(it->map_object);
 		if(!castle){
 			continue;
 		}
-		castle->pump_status();
-		castle->recalculate_attributes(true);
+		castles_to_pump.emplace_back(std::move(castle));
+	}
+	for(auto it = castles_to_pump.begin(); it != castles_to_pump.end(); ++it){
+		const auto &castle = *it;
+		try {
+			castle->pump_status();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
 	}
 }
 void WorldMap::get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid){
