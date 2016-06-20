@@ -9,8 +9,8 @@ namespace ActivityIds {
 
 constexpr ActivityId
 	ID_MAP_ACTIVITY                    ( 3500001 );
-	
-constexpr MapActivityId 
+
+constexpr MapActivityId
     ID_MAP_ACTIVITY_HARVEST			   (1),
 	ID_MAP_ACTIVITY_RESOURCE           (2),
 	ID_MAP_ACTIVITY_MONSTER            (3),
