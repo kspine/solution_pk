@@ -903,46 +903,6 @@ namespace {
 			}
 		}
 	}
-
-	class SharedPromise : NONCOPYABLE, public boost::enable_shared_from_this<SharedPromise> {
-		friend class SharedPromiseGuard;
-
-	private:
-		boost::shared_ptr<Poseidon::JobPromise> m_promise;
-		std::size_t m_ref_count;
-
-	public:
-		SharedPromise()
-			: m_promise(boost::make_shared<Poseidon::JobPromise>()), m_ref_count(0)
-		{
-		}
-
-	public:
-		const Poseidon::JobPromise *get_promise() const {
-			return m_promise.get();
-		}
-	};
-
-	class SharedPromiseGuard : NONCOPYABLE {
-	private:
-		const boost::shared_ptr<SharedPromise> m_shared_promise;
-
-	public:
-		explicit SharedPromiseGuard(boost::shared_ptr<SharedPromise> shared_promise)
-			: m_shared_promise(std::move(shared_promise))
-		{
-			++(m_shared_promise->m_ref_count);
-		}
-		~SharedPromiseGuard(){
-			if((--(m_shared_promise->m_ref_count) == 0) && !m_shared_promise->m_promise->is_satisfied()){
-				try {
-					m_shared_promise->m_promise->set_success();
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				}
-			}
-		}
-	};
 }
 
 boost::shared_ptr<MapCell> WorldMap::get_map_cell(Coord coord){
@@ -2139,7 +2099,7 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coo
 		cluster_map->replace(result.first, ClusterElement(cluster_coord, cluster));
 	}
 }
-boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Coord coord){
+void WorldMap::forced_reload_cluster(Coord coord){
 	PROFILE_ME;
 
 	const auto cluster_map = g_cluster_map.lock();
@@ -2148,43 +2108,34 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		DEBUG_THROW(Exception, sslit("Cluster map not loaded"));
 	}
 
-	const auto shared_promise = boost::make_shared<SharedPromise>();
-
 	const auto scope = get_cluster_scope(coord);
 	const auto cluster_coord = scope.bottom_left();
 
-#define ASYNC_LOAD_BEGIN	\
-	Poseidon::enqueue_async_job(	\
-		[=]{	\
-			PROFILE_ME;	\
-			const SharedPromiseGuard guard_(shared_promise);	\
-			unsigned concurrency_counter = 0;	\
-			try
-#define ASYNC_LOAD_END	\
-			catch(std::exception &e_){	\
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e_.what());	\
-			}	\
-		})
+	std::size_t concurrency_counter = 0;
 
 #define CONCURRENT_LOAD_BEGIN	\
-	{
+	{	\
+		auto promise_ = boost::make_shared<Poseidon::JobPromise>();	\
+		Poseidon::enqueue_async_job(	\
+			[=]{	\
+				PROFILE_ME;	\
+				try
 #define CONCURRENT_LOAD_END	\
-		if(++concurrency_counter >= 1000){	\
+				catch(std::exception &e_){	\
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e_.what());	\
+				}	\
+			});	\
+		if(++concurrency_counter >= 100){	\
 			LOG_EMPERY_CENTER_DEBUG("Too many async requests have been enqueued. Yielding...");	\
-			const auto promise = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();	\
-			Poseidon::JobDispatcher::yield(promise, true);	\
+			const auto promise_ = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();	\
+			Poseidon::JobDispatcher::yield(promise_, true);	\
 			concurrency_counter = 0;	\
 		}	\
 	}
 
-	ASYNC_LOAD_BEGIN {
+	const auto map_cell_map = g_map_cell_map.lock();
+	if(map_cell_map){
 		LOG_EMPERY_CENTER_INFO("Loading map cells: scope = ", scope);
-
-		const auto map_cell_map = g_map_cell_map.lock();
-		if(!map_cell_map){
-			LOG_EMPERY_CENTER_WARNING("Map_cell map not loaded.");
-			return;
-		}
 
 		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCell>>>();
 		{
@@ -2210,16 +2161,11 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 				}
 			} CONCURRENT_LOAD_END;
 		}
-	} ASYNC_LOAD_END;
+	}
 
-	ASYNC_LOAD_BEGIN {
+	const auto map_object_map = g_map_object_map.lock();
+	if(map_object_map){
 		LOG_EMPERY_CENTER_INFO("Loading map objects: scope = ", scope);
-
-		const auto map_object_map = g_map_object_map.lock();
-		if(!map_object_map){
-			LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
-			return;
-		}
 
 		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 		{
@@ -2245,7 +2191,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 				}
 			} CONCURRENT_LOAD_END;
 		}
-	} ASYNC_LOAD_END;
+	}
 /*
 	ASYNC_LOAD_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading overlays: scope = ", scope);
@@ -2321,14 +2267,9 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 		}
 	} ASYNC_LOAD_END;
 */
-	ASYNC_LOAD_BEGIN {
+	const auto strategic_resource_map = g_strategic_resource_map.lock();
+	if(strategic_resource_map){
 		LOG_EMPERY_CENTER_INFO("Loading strategic resources: scope = ", scope);
-
-		const auto strategic_resource_map = g_strategic_resource_map.lock();
-		if(!strategic_resource_map){
-			LOG_EMPERY_CENTER_WARNING("Strategic resource map not loaded.");
-			return;
-		}
 
 		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_StrategicResource>>>();
 		{
@@ -2354,16 +2295,11 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 				}
 			} CONCURRENT_LOAD_END;
 		}
-	} ASYNC_LOAD_END;
+	}
 
-	ASYNC_LOAD_BEGIN {
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(map_event_block_map){
 		LOG_EMPERY_CENTER_INFO("Loading map event block: scope = ", scope);
-
-		const auto map_event_block_map = g_map_event_block_map.lock();
-		if(!map_event_block_map){
-			LOG_EMPERY_CENTER_WARNING("Map event block map not loaded.");
-			return;
-		}
 
 		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapEventBlock>>>();
 		{
@@ -2414,17 +2350,11 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 				}
 			} CONCURRENT_LOAD_END;
 		}
+	}
 
-	} ASYNC_LOAD_END;
-
-	ASYNC_LOAD_BEGIN {
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(resource_crate_map){
 		LOG_EMPERY_CENTER_INFO("Loading resource crates: scope = ", scope);
-
-		const auto resource_crate_map = g_resource_crate_map.lock();
-		if(!resource_crate_map){
-			LOG_EMPERY_CENTER_WARNING("Resource crate map not loaded.");
-			return;
-		}
 
 		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_ResourceCrate>>>();
 		{
@@ -2450,9 +2380,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 				}
 			} CONCURRENT_LOAD_END;
 		}
-	} ASYNC_LOAD_END;
-
-	return boost::shared_ptr<const Poseidon::JobPromise>(shared_promise, shared_promise->get_promise());
+	}
 }
 void WorldMap::synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept
 try {

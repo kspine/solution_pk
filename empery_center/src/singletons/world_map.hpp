@@ -2,7 +2,6 @@
 #define EMPERY_CENTER_SINGLETONS_WORLD_MAP_HPP_
 
 #include "../id_types.hpp"
-#include <poseidon/fwd.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/function.hpp>
@@ -92,7 +91,7 @@ struct WorldMap {
 	static boost::shared_ptr<ClusterSession> get_cluster(Coord coord);
 	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret);
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
-	static boost::shared_ptr<const Poseidon::JobPromise> forced_reload_cluster(Coord coord);
+	static void forced_reload_cluster(Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept;
 
 	// 出生点

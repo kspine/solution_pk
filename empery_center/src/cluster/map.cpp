@@ -66,8 +66,8 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;
 	}
 
-	const auto cluster_scope = WorldMap::get_cluster_scope(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
-	const auto cluster_coord = cluster_scope.bottom_left();
+	const auto cluster_coord = Coord(num_coord.x() * map_width, num_coord.y() * map_height);
+	const auto cluster_scope = WorldMap::get_cluster_scope(cluster_coord);
 	LOG_EMPERY_CENTER_INFO("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
 
 	const auto controller = ControllerClient::require();
@@ -84,36 +84,21 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	}
 
 	cluster->set_name(std::move(req.name));
-	WorldMap::set_cluster(cluster, cluster_coord);
 
-	const auto promise = WorldMap::forced_reload_cluster(cluster_coord);
 	Poseidon::enqueue_async_job(
-		std::bind(
-			[cluster_scope, promise](const boost::weak_ptr<ClusterSession> &weak_cluster){
-				PROFILE_ME;
-				for(;;){
-					bool done = false;
-					try {
-						Poseidon::JobDispatcher::yield(promise, true);
-						done = true;
-					} catch(std::exception &e){
-						LOG_EMPERY_CENTER_DEBUG("std::exception thrown: what = ", e.what());
-					}
-					const auto cluster = weak_cluster.lock();
-					if(!cluster){
-						LOG_EMPERY_CENTER_INFO("Cluster is gone: cluster_scope = ", cluster_scope);
-						break;
-					}
-					if(done){
-						LOG_EMPERY_CENTER_INFO("Synchronizing cluster: cluster_scope = ", cluster_scope);
-						WorldMap::synchronize_cluster(cluster, cluster_scope);
-						break;
-					}
-				}
-			},
-			boost::weak_ptr<ClusterSession>(cluster)
-		));
+		[=]{
+			PROFILE_ME;
+			try {
+				WorldMap::forced_reload_cluster(cluster_coord);
+				LOG_EMPERY_CENTER_INFO("Finished reloading cluster: cluster_scope = ", cluster_scope);
+				WorldMap::synchronize_cluster(cluster, cluster_scope);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				cluster->shutdown(e.what());
+			}
+		});
 
+	WorldMap::set_cluster(cluster, cluster_coord);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();
