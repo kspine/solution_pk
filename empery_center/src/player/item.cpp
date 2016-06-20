@@ -152,4 +152,34 @@ PLAYER_SERVLET(Msg::CS_ItemBuyAccelerationCards, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_ItemUseItemBox, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	item_box->pump_status();
+
+	const auto repeat_count = req.repeat_count;
+	if(repeat_count == 0){
+		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
+	}
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::require(item_id);
+	if(item_data->type.first != Data::Item::CAT_ITEM_BOX){
+		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_ITEM_BOX;
+	}
+	const auto new_item_id = ItemId(item_data->type.second);
+	const auto count_to_consume = req.repeat_count;
+	const auto count_to_add = checked_mul(count_to_consume, item_data->value);
+
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
+		ReasonIds::ID_UNPACK, 0, item_id.get(), count_to_consume);
+	transaction.emplace_back(ItemTransactionElement::OP_ADD, new_item_id, count_to_add,
+		ReasonIds::ID_UNPACK, 0, item_id.get(), count_to_consume);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false);
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
 }
