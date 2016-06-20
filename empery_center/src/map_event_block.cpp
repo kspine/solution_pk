@@ -32,8 +32,8 @@ namespace {
 		info.meta_uuid    = obj->get_meta_uuid();
 	}
 
-	void really_create_map_event_at_coord(MapEventId map_event_id,
-		Coord coord, std::uint64_t created_time, std::uint64_t expiry_time, Poseidon::Uuid meta_uuid)
+	void really_create_map_event_at_coord(MapEventId map_event_id, Coord coord,
+		std::uint64_t created_time, std::uint64_t expiry_time, Poseidon::Uuid meta_uuid)
 	{
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("&& Creating map event: map_event_id = ", map_event_id, ", coord = ", coord);
@@ -74,8 +74,8 @@ namespace {
 		LOG_EMPERY_CENTER_ERROR("Unknown map event type id: ", map_event_id);
 		DEBUG_THROW(Exception, sslit("Unknown map event type id"));
 	}
-	void really_destroy_map_event_at_coord(MapEventId map_event_id,
-		Coord coord, Poseidon::Uuid meta_uuid)
+	void really_destroy_map_event_at_coord(MapEventId map_event_id, Coord coord,
+		Poseidon::Uuid meta_uuid)
 	{
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("&& Creating map event: map_event_id = ", map_event_id, ", coord = ", coord);

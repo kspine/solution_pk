@@ -144,6 +144,11 @@ namespace {
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
 		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapEvent",
+			"DELETE QUICK `e`.*"
+			"  FROM `Center_MapEvent` AS `e` "
+			"  WHERE `e`.`expiry_time` = '0000-00-00 00:00:00'");
 	}
 
 	inline MapObjectUuid get_garrisoning_object_uuid(const boost::shared_ptr<MapObject> map_object){
