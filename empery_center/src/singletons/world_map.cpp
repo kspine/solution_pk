@@ -1175,7 +1175,7 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 		castle->check_init_resources();
 	}
 	map_object->pump_status();
-	map_object->recalculate_attributes(true);
+	// map_object->recalculate_attributes(true);
 
 	const auto elem = MapObjectElement(map_object);
 	const auto result = map_object_map->insert(elem);
@@ -1350,6 +1350,7 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 		const auto &castle = *it;
 		try {
 			castle->pump_status();
+			// castle->recalculate_attributes(true);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
@@ -1415,7 +1416,7 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 
 	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
 	castle->pump_status();
-	castle->recalculate_attributes(true);
+	// castle->recalculate_attributes(true);
 }
 void WorldMap::get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid){
 	PROFILE_ME;
