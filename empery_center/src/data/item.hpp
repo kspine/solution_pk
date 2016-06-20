@@ -30,7 +30,7 @@ namespace Data {
 			// = 7, // ???
 			CAT_CURRENCY              =  8, // 黄金，钻石
 			CAT_ACCELERATION_CARD     =  9, // 效率卡
-			CAT_RESOURCE_BOX          = 10, // 资源包
+			CAT_RESOURCE_BOX          = 10, // 资源木箱
 			// = 11, // ???
 			CAT_GIFT_BOX              = 12, // 加速礼包
 			CAT_RESOURCE_TOKEN        = 13, // 资源代币
@@ -38,6 +38,7 @@ namespace Data {
 			CAT_SOLDIER_BOX           = 15, // 长枪兵，轻骑兵
 			CAT_RELOCATION_CARD       = 16, // 迁城卡
 			CAT_CASTLE_BUFF           = 17, // 城堡增益
+			CAT_ITEM_BOX              = 18, // 道具木箱
 		};
 
 	public:
