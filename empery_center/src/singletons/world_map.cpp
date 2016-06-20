@@ -2169,7 +2169,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			}	\
 		})
 
-#define ENABLE_PARALLEL_LOADING 1
+#define ENABLE_PARALLEL_LOADING     0
 
 	ASYNC_INFINITE_LOOP_BEGIN {
 		LOG_EMPERY_CENTER_INFO("Loading map cells: scope = ", scope);
