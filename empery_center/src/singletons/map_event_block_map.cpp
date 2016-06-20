@@ -201,4 +201,34 @@ Coord MapEventBlockMap::get_block_coord_from_world_coord(Coord coord){
 	return Coord(block_x, block_y);
 }
 
+void MapEventBlockMap::refresh_activity_event(unsigned map_event_type){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Map event block refresh activity ");
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		return;
+	}
+
+	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+		const auto &map_event_block = it->map_event_block;
+		map_event_block->refresh_events(false,map_event_type);
+	}
+}
+
+void MapEventBlockMap::remove_activity_event(unsigned map_event_type){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Map event block remove activity" );
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+		const auto &map_event_block = it->map_event_block;
+		map_event_block->remove_expired_events(utc_now,map_event_type,true);
+	}
+}
+
 }

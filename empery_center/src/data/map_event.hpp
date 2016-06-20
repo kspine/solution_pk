@@ -25,14 +25,17 @@ namespace Data {
 	public:
 		static boost::shared_ptr<const MapEventGeneration> get(std::uint64_t unique_id);
 		static boost::shared_ptr<const MapEventGeneration> require(std::uint64_t unique_id);
+		static unsigned get_event_type(MapEventId event_id);
 
-		static void get_by_map_event_circle_id(std::vector<boost::shared_ptr<const MapEventGeneration>> &ret,
-			MapEventCircleId map_event_circle_id);
+		static void get_by_map_event_circle_id_and_type(std::vector<boost::shared_ptr<const MapEventGeneration>> &ret,
+			MapEventCircleId map_event_circle_id,unsigned map_event_type);
 
 	public:
 		std::uint64_t unique_id;
 		MapEventCircleId map_event_circle_id;
 		MapEventId map_event_id;
+		unsigned   map_event_type;
+		std::pair<unsigned,MapEventCircleId> type_circle;
 		double event_count_multiplier;
 		std::uint64_t expiry_duration;
 		unsigned priority;

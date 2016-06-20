@@ -162,7 +162,7 @@ void MapEventBlock::pump_status(){
 	m_obj->set_next_refresh_time(new_next_refresh_time);
 }
 
-void MapEventBlock::refresh_events(bool first_time){
+void MapEventBlock::refresh_events(bool first_time,unsigned event_type){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Refresh map events: block_coord = ", get_block_coord(), ", first_time = ", first_time);
 
@@ -174,37 +174,7 @@ void MapEventBlock::refresh_events(bool first_time){
 	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
 	std::vector<Coord> castle_foundation;
 
-	// 移除过期的地图事件。
-	std::deque<Coord> events_to_remove;
-	for(auto it = m_events.begin(); it != m_events.end(); ++it){
-		const auto &obj = it->second;
-		const auto expiry_time = obj->get_expiry_time();
-		if(utc_now < expiry_time){
-			continue;
-		}
-		const auto coord = it->first;
-		const auto map_event_id = MapEventId(obj->get_map_event_id());
-		// 判定是否应当移除事件。
-		const auto resource_event_data = Data::MapEventResource::get(map_event_id);
-		if(resource_event_data){
-			map_objects.clear();
-			WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord, 1, 1));
-			if(!map_objects.empty()){
-				const auto &map_object = map_objects.front();
-				const auto owner_uuid = map_object->get_owner_uuid();
-				if(owner_uuid){
-					// 假设有部队正在采集。
-					continue;
-				}
-			}
-		}
-		events_to_remove.emplace_back(it->first);
-	}
-	for(auto it = events_to_remove.begin(); it != events_to_remove.end(); ++it){
-		const auto coord = *it;
-		LOG_EMPERY_CENTER_TRACE("Removing expired map event: coord = ", coord);
-		remove(coord);
-	}
+	remove_expired_events(utc_now,event_type);
 
 	// 刷新新的地图事件。
 	const auto block_coord = get_block_coord();
@@ -294,7 +264,7 @@ void MapEventBlock::refresh_events(bool first_time){
 
 	using GenerationDataPtr = boost::shared_ptr<const Data::MapEventGeneration>;
 	std::vector<GenerationDataPtr> generation_data_all;
-	Data::MapEventGeneration::get_by_map_event_circle_id(generation_data_all, map_event_circle_id);
+	Data::MapEventGeneration::get_by_map_event_circle_id_and_type(generation_data_all, map_event_circle_id,event_type);
 	std::sort(generation_data_all.begin(), generation_data_all.end(),
 		[](const GenerationDataPtr &lhs, const GenerationDataPtr &rhs){ return lhs->priority < rhs->priority; });
 	for(auto gdit = generation_data_all.begin(); gdit != generation_data_all.end(); ++gdit){
@@ -428,6 +398,46 @@ void MapEventBlock::refresh_events(bool first_time){
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
+	}
+}
+
+void MapEventBlock::remove_expired_events(boost::uint64_t utc_now,unsigned event_type,bool force){
+	// 移除过期的地图事件。
+	std::deque<Coord> events_to_remove;
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	for(auto it = m_events.begin(); it != m_events.end(); ++it){
+		const auto &obj = it->second;
+		const auto expiry_time = obj->get_expiry_time();
+		if((utc_now < expiry_time) && !force){
+			continue;
+		}
+		const auto coord = it->first;
+		const auto map_event_id = MapEventId(obj->get_map_event_id());
+
+		const auto type = Data::MapEventGeneration::get_event_type(map_event_id);
+		if((type != event_type)){
+			continue;
+		}
+		// 判定是否应当移除事件。
+		const auto resource_event_data = Data::MapEventResource::get(map_event_id);
+		if(resource_event_data){
+			map_objects.clear();
+			WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord, 1, 1));
+			if(!map_objects.empty()){
+				const auto &map_object = map_objects.front();
+				const auto owner_uuid = map_object->get_owner_uuid();
+				if(owner_uuid){
+					// 假设有部队正在采集。
+					continue;
+				}
+			}
+		}
+		events_to_remove.emplace_back(it->first);
+	}
+	for(auto it = events_to_remove.begin(); it != events_to_remove.end(); ++it){
+		const auto coord = *it;
+		LOG_EMPERY_CENTER_TRACE("Removing expired map event: coord = ", coord);
+		remove(coord);
 	}
 }
 

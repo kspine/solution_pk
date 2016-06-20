@@ -19,6 +19,8 @@ struct MapEventBlockMap {
 	static void get_all(std::vector<boost::shared_ptr<MapEventBlock>> &ret);
 
 	static Coord get_block_coord_from_world_coord(Coord coord);
+	static void refresh_activity_event(unsigned map_event_type);
+	static void remove_activity_event(unsigned map_event_type);
 
 private:
 	MapEventBlockMap() = delete;

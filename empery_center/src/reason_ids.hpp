@@ -68,7 +68,9 @@ constexpr ReasonId
 	ID_CASTLE_PROTECTION             ( 674008 ), // 部队 UUID 高位      城堡等级            保护时间（天）
 	ID_CASTLE_PROTECTION_REFUND      ( 674009 ), // 部队 UUID 高位      城堡等级            保护时间（天）
 	ID_RETURN_OCCUPIED_MAP_CELL      ( 674010 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
-	ID_OCCUPATION_END_RELOCATED      ( 674011 ); // 世界坐标 X          世界坐标 Y          0
+	ID_OCCUPATION_END_RELOCATED      ( 674011 ), // 世界坐标 X          世界坐标 Y          0
+	ID_SOLDIER_KILL_ACCUMULATE       ( 674012 ), // 满足累计战力        原来累计战力        新累计战力
+	ID_CASTLE_DMAGE_ACCUMULATE       ( 674013 ); // 满足伤害            原来累计伤害         新累计伤害
 
 }
 

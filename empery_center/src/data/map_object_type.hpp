@@ -44,6 +44,7 @@ namespace Data {
 
 		boost::container::flat_map<ResourceId, std::uint64_t> healing_cost;
 		double healing_time;
+		double warfare;
 	};
 
 	class MapObjectTypeMonster : public MapObjectTypeAbstract {
