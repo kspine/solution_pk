@@ -571,8 +571,8 @@ namespace {
 
 		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
 
-		std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>> attributes;
-		std::vector<boost::shared_ptr<MySql::Center_MapCellBuff>> buffs;
+		const auto attributes = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCellAttribute>>>();
+		const auto buffs      = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCellBuff>>>();
 
 #define RELOAD_PART_(sink_, table_)	\
 		{	\
@@ -581,11 +581,11 @@ namespace {
 			const auto y = obj->get_y();	\
 			oss <<"SELECT * FROM `" #table_ "` WHERE `x` = " <<x <<" AND `y` = " <<y;	\
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+				[sink_](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
-					(sink_) .emplace_back(std::move(obj));	\
+					(sink_)->emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
 			promises.emplace_back(std::move(promise));	\
 		}
@@ -598,7 +598,7 @@ namespace {
 		}
 #undef RELOAD_PART_
 
-		return boost::make_shared<MapCell>(std::move(obj), attributes, buffs);
+		return boost::make_shared<MapCell>(std::move(obj), *attributes, *buffs);
 	}
 	boost::shared_ptr<MapObject> reload_map_object_aux(boost::shared_ptr<MySql::Center_MapObject> obj){
 		PROFILE_ME;
@@ -606,18 +606,18 @@ namespace {
 		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
 
 		// MapObject
-		std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attributes;
-		std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> buffs;
+		const auto attributes         = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>>>();
+		const auto buffs              = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>>>();
 		// DefenseBuilding
-		std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>> defense_objs;
+		const auto defense_objs       = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>>>();
 		// Castle
-		std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>> buildings;
-		std::vector<boost::shared_ptr<MySql::Center_CastleTech>> techs;
-		std::vector<boost::shared_ptr<MySql::Center_CastleResource>> resources;
-		std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> soldiers;
-		std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> soldier_production;
-		std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> wounded_soldiers;
-		std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> treatment;
+		const auto buildings          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>>>();
+		const auto techs              = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleTech>>>();
+		const auto resources          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleResource>>>();
+		const auto soldiers           = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>>>();
+		const auto soldier_production = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>>>();
+		const auto wounded_soldiers   = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>>>();
+		const auto treatment          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>>>();
 
 #define RELOAD_PART_(sink_, table_)	\
 		{	\
@@ -625,11 +625,11 @@ namespace {
 			const auto &map_object_uuid = obj->unlocked_get_map_object_uuid();	\
 			oss <<"SELECT * FROM `" #table_ "` WHERE `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid);	\
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+				[sink_](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
-					(sink_) .emplace_back(std::move(obj));	\
+					(sink_)->emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
 			promises.emplace_back(std::move(promise));	\
 		}
@@ -658,13 +658,13 @@ namespace {
 
 		switch(obj->get_map_object_type_id()){
 		case MapObjectTypeIds::ID_CASTLE.get():
-			return boost::make_shared<Castle>(std::move(obj), attributes, buffs, defense_objs,
-				buildings, techs, resources, soldiers, soldier_production, wounded_soldiers, treatment);
+			return boost::make_shared<Castle>(std::move(obj), *attributes, *buffs, *defense_objs,
+				*buildings, *techs, *resources, *soldiers, *soldier_production, *wounded_soldiers, *treatment);
 		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
 		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
-			return boost::make_shared<DefenseBuilding>(std::move(obj), attributes, buffs, defense_objs);
+			return boost::make_shared<DefenseBuilding>(std::move(obj), *attributes, *buffs, *defense_objs);
 		default:
-			return boost::make_shared<MapObject>(std::move(obj), attributes, buffs);
+			return boost::make_shared<MapObject>(std::move(obj), *attributes, *buffs);
 		}
 	}
 	boost::shared_ptr<MapEventBlock> reload_map_event_block_aux(boost::shared_ptr<MySql::Center_MapEventBlock> obj){
@@ -672,7 +672,7 @@ namespace {
 
 		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
 
-		std::vector<boost::shared_ptr<MySql::Center_MapEvent>> events;
+		const auto events = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapEvent>>>();
 
 #define RELOAD_PART_(sink_, table_)	\
 		{	\
@@ -682,11 +682,11 @@ namespace {
 			oss <<"SELECT * FROM `" #table_ "` WHERE " <<block_x <<" <= `x` AND `x` < " <<(block_x + EVENT_BLOCK_WIDTH)	\
 			    <<"  AND " <<block_y <<" <= `y` AND `y` < " <<(block_y + EVENT_BLOCK_HEIGHT);	\
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+				[sink_](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
-					(sink_) .emplace_back(std::move(obj));	\
+					(sink_)->emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
 			promises.emplace_back(std::move(promise));	\
 		}
@@ -698,7 +698,7 @@ namespace {
 		}
 #undef RELOAD_PART_
 
-		return boost::make_shared<MapEventBlock>(std::move(obj), events);
+		return boost::make_shared<MapEventBlock>(std::move(obj), *events);
 	}
 
 	bool should_erase_map_object(const boost::shared_ptr<MapObject> &map_object){
@@ -1147,28 +1147,28 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 		return { };
 	}
 
-	std::vector<boost::shared_ptr<MySql::Center_MapObject>> sink;
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
 		    <<"  AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
 				obj->fetch(conn);
 				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
+				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}
-	map_object_map->erase<0>(map_object_uuid);
-	if(sink.empty()){
+	if(sink->empty()){
+		map_object_map->erase<0>(map_object_uuid);
 		LOG_EMPERY_CENTER_DEBUG("Castle not found in database: map_object_uuid = ", map_object_uuid);
 		return { };
 	}
 
-	auto map_object = reload_map_object_aux(std::move(sink.front()));
+	auto map_object = reload_map_object_aux(std::move(sink->front()));
 	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 	if(castle){
 		castle->check_init_buildings();
@@ -1309,23 +1309,22 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 		return;
 	}
 
-	std::vector<boost::shared_ptr<MySql::Center_MapObject>> sink;
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
 		    <<"  AND `owner_uuid` = " <<Poseidon::MySql::UuidFormatter(owner_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
 				obj->fetch(conn);
 				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
+				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}
-	map_object_map->erase<2>(owner_uuid);
-	for(auto it = sink.begin(); it != sink.end(); ++it){
-		auto map_object = reload_map_object_aux(std::move(*it));
+	for(const auto &obj : *sink){
+		auto map_object = reload_map_object_aux(obj);
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
 		const auto elem = MapObjectElement(std::move(map_object));
@@ -1378,24 +1377,23 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 		return;
 	}
 
-	std::vector<boost::shared_ptr<MySql::Center_MapObject>> sink;
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
 		    <<"  AND `map_object_type_id` != " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `parent_object_uuid` = " <<Poseidon::MySql::UuidFormatter(parent_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
 				obj->fetch(conn);
 				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
+				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}
-	map_object_map->erase<3>(parent_object_uuid);
-	for(auto it = sink.begin(); it != sink.end(); ++it){
-		auto map_object = reload_map_object_aux(std::move(*it));
+	for(const auto &obj : *sink){
+		auto map_object = reload_map_object_aux(obj);
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
 		const auto elem = MapObjectElement(std::move(map_object));
@@ -2168,21 +2166,21 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			return;
 		}
 
-		std::vector<boost::shared_ptr<MySql::Center_MapCell>> map_cell_sink;
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCell>>>();
 		{
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_MapCell` WHERE "
 				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 					auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapCell>();
 					obj->fetch(conn);
 					obj->enable_auto_saving();
-					map_cell_sink.emplace_back(std::move(obj));
+					sink->emplace_back(std::move(obj));
 				}, "Center_MapCell", oss.str());
 			Poseidon::JobDispatcher::yield(promise, false);
 		}
-		for(const auto &obj : map_cell_sink){
+		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
 			ASYNC_INFINITE_LOOP_BEGIN {
 #endif
@@ -2207,21 +2205,21 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			return;
 		}
 
-		std::vector<boost::shared_ptr<MySql::Center_MapObject>> map_object_sink;
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 		{
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND "
 				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 					auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
 					obj->fetch(conn);
 					obj->enable_auto_saving();
-					map_object_sink.emplace_back(std::move(obj));
+					sink->emplace_back(std::move(obj));
 				}, "Center_MapObject", oss.str());
 			Poseidon::JobDispatcher::yield(promise, false);
 		}
-		for(const auto &obj : map_object_sink){
+		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
 			ASYNC_INFINITE_LOOP_BEGIN {
 #endif
@@ -2246,6 +2244,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			return;
 		}
 
+		// FIXME: make_shared
 		std::vector<boost::shared_ptr<MySql::Center_Overlay>> map_overlay_sink;
 		{
 			std::ostringstream oss;
@@ -2319,21 +2318,21 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			return;
 		}
 
-		std::vector<boost::shared_ptr<MySql::Center_StrategicResource>> strategic_resource_sink;
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_StrategicResource>>>();
 		{
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_StrategicResource` WHERE "
 				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 					auto obj = boost::make_shared<EmperyCenter::MySql::Center_StrategicResource>();
 					obj->fetch(conn);
 					obj->enable_auto_saving();
-					strategic_resource_sink.emplace_back(std::move(obj));
+					sink->emplace_back(std::move(obj));
 				}, "Center_StrategicResource", oss.str());
 			Poseidon::JobDispatcher::yield(promise, false);
 		}
-		for(const auto &obj : strategic_resource_sink){
+		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
 			ASYNC_INFINITE_LOOP_BEGIN {
 #endif
@@ -2358,22 +2357,22 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			return;
 		}
 
-		std::vector<boost::shared_ptr<MySql::Center_MapEventBlock>> map_event_block_sink;
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapEventBlock>>>();
 		{
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_MapEventBlock` WHERE "
 				<<scope.left() <<" <= `block_x` AND `block_x` < " <<scope.right() <<"  AND "
 				<<scope.bottom() <<" <= `block_y` AND `block_y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 					auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapEventBlock>();
 					obj->fetch(conn);
 					obj->enable_auto_saving();
-					map_event_block_sink.emplace_back(std::move(obj));
+					sink->emplace_back(std::move(obj));
 				}, "Center_MapEventBlock", oss.str());
 			Poseidon::JobDispatcher::yield(promise, false);
 		}
-		for(const auto &obj : map_event_block_sink){
+		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
 			ASYNC_INFINITE_LOOP_BEGIN {
 #endif
@@ -2396,7 +2395,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			}
 		}
 		LOG_EMPERY_CENTER_DEBUG("?!> Number of initial map event blocks: ", map_event_block_new.size());
-		for(const auto &obj : map_event_block_sink){
+		for(const auto &obj : *sink){
 			const auto block_coord = Coord(obj->get_block_x(), obj->get_block_y());
 			map_event_block_new.erase(block_coord);
 		}
@@ -2427,21 +2426,21 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 			return;
 		}
 
-		std::vector<boost::shared_ptr<MySql::Center_ResourceCrate>> resource_crate_sink;
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_ResourceCrate>>>();
 		{
 			std::ostringstream oss;
 			oss <<"SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0 AND "
 				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 					auto obj = boost::make_shared<EmperyCenter::MySql::Center_ResourceCrate>();
 					obj->fetch(conn);
 					obj->enable_auto_saving();
-					resource_crate_sink.emplace_back(std::move(obj));
+					sink->emplace_back(std::move(obj));
 				}, "Center_ResourceCrate", oss.str());
 			Poseidon::JobDispatcher::yield(promise, false);
 		}
-		for(const auto &obj : resource_crate_sink){
+		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
 			ASYNC_INFINITE_LOOP_BEGIN {
 #endif

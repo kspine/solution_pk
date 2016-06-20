@@ -134,7 +134,7 @@ namespace {
 
 		std::deque<boost::shared_ptr<const Poseidon::JobPromise>> promises;
 
-		std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> attributes;
+		const auto attributes = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>>>();
 
 #define RELOAD_PART_(sink_, table_)	\
 		{	\
@@ -142,11 +142,11 @@ namespace {
 			const auto account_uuid = obj->unlocked_get_account_uuid();	\
 			oss <<"SELECT * FROM `" #table_ "` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid);	\
 			auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(	\
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
+				[sink_](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){	\
 					auto obj = boost::make_shared<MySql:: table_ >();	\
 					obj->fetch(conn);	\
 					obj->enable_auto_saving();	\
-					(sink_) .emplace_back(std::move(obj));	\
+					(sink_)->emplace_back(std::move(obj));	\
 				}, #table_, oss.str());	\
 			promises.emplace_back(std::move(promise));	\
 		}
@@ -158,7 +158,7 @@ namespace {
 		}
 #undef RELOAD_PART_
 
-		return boost::make_shared<Account>(std::move(obj), attributes);
+		return boost::make_shared<Account>(std::move(obj), *attributes);
 	}
 
 	template<typename IteratorT>
@@ -376,26 +376,25 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 		return { };
 	}
 
-	std::vector<boost::shared_ptr<MySql::Center_Account>> sink;
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Account>>>();
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_Account` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<MySql::Center_Account>();
 				obj->fetch(conn);
 				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
+				sink->emplace_back(std::move(obj));
 			}, "Center_Account", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}
-	account_map->erase<0>(account_uuid);
-	if(sink.empty()){
+	if(sink->empty()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found in database: account_uuid = ", account_uuid);
 		return { };
 	}
 
-	auto account = reload_account_aux(std::move(sink.front()));
+	auto account = reload_account_aux(std::move(sink->front()));
 
 	const auto elem = AccountElement(account);
 	const auto result = account_map->insert(elem);
@@ -424,26 +423,26 @@ boost::shared_ptr<Account> AccountMap::get_or_reload_by_login_name(PlatformId pl
 	}
 	LOG_EMPERY_CENTER_DEBUG("Login name not found. Reloading: platform_id = ", platform_id, ", login_name = ", login_name);
 
-	std::vector<boost::shared_ptr<MySql::Center_Account>> sink;
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Account>>>();
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_Account` WHERE `platform_id` = " <<platform_id
 		    <<" AND `login_name` = " <<Poseidon::MySql::StringEscaper(login_name);
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<MySql::Center_Account>();
 				obj->fetch(conn);
 				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
+				sink->emplace_back(std::move(obj));
 			}, "Center_Account", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}
-	if(sink.empty()){
+	if(sink->empty()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found in database: platform_id = ", platform_id, ", login_name = ", login_name);
 		return { };
 	}
 
-	auto account = reload_account_aux(std::move(sink.front()));
+	auto account = reload_account_aux(std::move(sink->front()));
 	const auto account_uuid = account->get_account_uuid();
 
 	const auto elem = AccountElement(account);

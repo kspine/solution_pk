@@ -137,33 +137,32 @@ boost::shared_ptr<Castle> WorldMap::forced_reload_castle(MapObjectUuid map_objec
 		return { };
 	}
 
-	std::vector<boost::shared_ptr<EmperyCenter::MySql::Center_MapObject>> sink;
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<EmperyCenter::MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
 		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
 				obj->fetch(conn);
 				obj->enable_auto_saving();
-				sink.emplace_back(std::move(obj));
+				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
 		Poseidon::JobDispatcher::yield(promise, false);
 	}
-	if(sink.empty()){
-		LOG_EMPERY_CONTROLLER_DEBUG("Castle not found in database: map_object_uuid = ", map_object_uuid);
+	if(sink->empty()){
 		castle_map->erase<0>(map_object_uuid);
+		LOG_EMPERY_CONTROLLER_DEBUG("Castle not found in database: map_object_uuid = ", map_object_uuid);
 		return { };
 	}
 
-	auto castle = boost::make_shared<Castle>(std::move(sink.front()));
+	auto castle = boost::make_shared<Castle>(std::move(sink->front()));
 
-	auto it = castle_map->find<0>(map_object_uuid);
-	if(it == castle_map->end<0>()){\
-		it = castle_map->insert<0>(CastleElement(castle)).first;
-	} else {
-		castle_map->replace<0>(it, CastleElement(castle));
+	const auto elem = CastleElement(castle);
+	const auto result = castle_map->insert(elem);
+	if(!result.second){
+		castle_map->replace(result.first, elem);
 	}
 
 	LOG_EMPERY_CONTROLLER_DEBUG("Successfully reloaded castle: map_object_uuid = ", map_object_uuid);
