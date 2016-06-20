@@ -2,20 +2,25 @@
 #include "common.hpp"
 #include "../msg/err_account.hpp"
 #include "../msg/err_item.hpp"
+#include "../singletons/account_map.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
+#include "../account_utilities.hpp"
 
 namespace EmperyCenter {
 
 ADMIN_SERVLET("item/get_all", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 
-	const auto item_box = ItemBoxMap::get(account_uuid);
-	if(!item_box){
+	const auto account = AccountMap::get(account_uuid);
+	if(!account_uuid){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
+	AccountMap::require_controller_token(account_uuid);
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
 
 	std::vector<ItemBox::ItemInfo> items;
 	item_box->get_all(items);
@@ -41,10 +46,13 @@ ADMIN_SERVLET("item/add", root, session, params){
 	const auto param2          = boost::lexical_cast<std::uint64_t>(params.at("param2"));
 	const auto param3          = boost::lexical_cast<std::uint64_t>(params.at("param3"));
 
-	const auto item_box = ItemBoxMap::get(account_uuid);
-	if(!item_box){
+	const auto account = AccountMap::get(account_uuid);
+	if(!account_uuid){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
+	AccountMap::require_controller_token(account_uuid);
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
 
 	std::vector<ItemTransactionElement> transaction;
 	const auto operation = ItemTransactionElement::OP_ADD;
@@ -64,10 +72,13 @@ ADMIN_SERVLET("item/remove", root, session, params){
 	const auto param2          = boost::lexical_cast<std::uint64_t>(params.at("param2"));
 	const auto param3          = boost::lexical_cast<std::uint64_t>(params.at("param3"));
 
-	const auto item_box = ItemBoxMap::get(account_uuid);
-	if(!item_box){
+	const auto account = AccountMap::get(account_uuid);
+	if(!account_uuid){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
+	AccountMap::require_controller_token(account_uuid);
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
 
 	std::vector<ItemTransactionElement> transaction;
 	const auto operation = saturated ? ItemTransactionElement::OP_REMOVE_SATURATED : ItemTransactionElement::OP_REMOVE;
