@@ -149,7 +149,7 @@ boost::shared_ptr<Castle> WorldMap::forced_reload_castle(MapObjectUuid map_objec
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	if(sink->empty()){
 		castle_map->erase<0>(map_object_uuid);

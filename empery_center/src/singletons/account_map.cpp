@@ -154,7 +154,7 @@ namespace {
 		RELOAD_PART_(attributes,         Center_AccountAttribute)
 //=============================================================================
 		for(const auto &promise : promises){
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 #undef RELOAD_PART_
 
@@ -387,7 +387,7 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_Account", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	if(sink->empty()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found in database: account_uuid = ", account_uuid);
@@ -435,7 +435,7 @@ boost::shared_ptr<Account> AccountMap::get_or_reload_by_login_name(PlatformId pl
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_Account", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	if(sink->empty()){
 		LOG_EMPERY_CENTER_DEBUG("Account not found in database: platform_id = ", platform_id, ", login_name = ", login_name);

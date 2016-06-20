@@ -594,7 +594,7 @@ namespace {
 		RELOAD_PART_(buffs,              Center_MapCellBuff)
 //=============================================================================
 		for(const auto &promise : promises){
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 #undef RELOAD_PART_
 
@@ -652,7 +652,7 @@ namespace {
 		}
 //=============================================================================
 		for(const auto &promise : promises){
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 #undef RELOAD_PART_
 
@@ -694,7 +694,7 @@ namespace {
 		RELOAD_PART_(events,             Center_MapEvent)
 //=============================================================================
 		for(const auto &promise : promises){
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 #undef RELOAD_PART_
 
@@ -1160,7 +1160,7 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	if(sink->empty()){
 		map_object_map->erase<0>(map_object_uuid);
@@ -1321,7 +1321,7 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	for(const auto &obj : *sink){
 		auto map_object = reload_map_object_aux(obj);
@@ -1398,7 +1398,7 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_MapObject", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	for(const auto &obj : *sink){
 		auto map_object = reload_map_object_aux(obj);
@@ -2186,7 +2186,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					obj->enable_auto_saving();
 					sink->emplace_back(std::move(obj));
 				}, "Center_MapCell", oss.str());
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
@@ -2225,7 +2225,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					obj->enable_auto_saving();
 					sink->emplace_back(std::move(obj));
 				}, "Center_MapObject", oss.str());
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
@@ -2264,7 +2264,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					obj->enable_auto_saving();
 					map_overlay_sink.emplace_back(std::move(obj));
 				}, "Center_Overlay", oss.str());
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 
 		boost::container::flat_set<std::string> overlay_groups_new;
@@ -2338,7 +2338,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					obj->enable_auto_saving();
 					sink->emplace_back(std::move(obj));
 				}, "Center_StrategicResource", oss.str());
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
@@ -2378,7 +2378,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					obj->enable_auto_saving();
 					sink->emplace_back(std::move(obj));
 				}, "Center_MapEventBlock", oss.str());
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING
@@ -2446,7 +2446,7 @@ boost::shared_ptr<const Poseidon::JobPromise> WorldMap::forced_reload_cluster(Co
 					obj->enable_auto_saving();
 					sink->emplace_back(std::move(obj));
 				}, "Center_ResourceCrate", oss.str());
-			Poseidon::JobDispatcher::yield(promise, false);
+			Poseidon::JobDispatcher::yield(promise, true);
 		}
 		for(const auto &obj : *sink){
 #if ENABLE_PARALLEL_LOADING

@@ -110,7 +110,7 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_Account", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	if(sink->empty()){
 		account_map->erase<0>(account_uuid);
@@ -164,7 +164,7 @@ boost::shared_ptr<Account> AccountMap::get_or_reload_by_login_name(PlatformId pl
 				obj->enable_auto_saving();
 				sink->emplace_back(std::move(obj));
 			}, "Center_Account", oss.str());
-		Poseidon::JobDispatcher::yield(promise, false);
+		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	if(sink->empty()){
 		// account_map->erase<0>(account_uuid);
