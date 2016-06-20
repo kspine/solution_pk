@@ -86,7 +86,8 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	WorldMap::set_cluster(cluster, cluster_coord);
 
 	const auto promise = WorldMap::forced_reload_cluster(cluster_coord);
-	Poseidon::JobDispatcher::yield(promise, true);
+	// FIXME: 数据库加载时间太长了。
+	// Poseidon::JobDispatcher::yield(promise, true);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();
