@@ -66,8 +66,8 @@ constexpr ReasonId
 	ID_RELOCATE_CASTLE               ( 674005 ), // 世界坐标 X          世界坐标 Y          0
 	ID_CASTLE_BUFF                   ( 674006 ), // Buff ID             0                   0
 	ID_HANG_UP_CASTLE                ( 674007 ), // 部队 UUID 高位      0                   0
-	ID_CASTLE_PROTECTION             ( 674008 ), // 部队 UUID 高位      城堡等级            保护时间（天）
-	ID_CASTLE_PROTECTION_REFUND      ( 674009 ), // 部队 UUID 高位      城堡等级            保护时间（天）
+	ID_CASTLE_PROTECTION             ( 674008 ), // 部队 UUID 高位      城堡等级            保护时间（毫秒）
+	ID_CASTLE_PROTECTION_REFUND      ( 674009 ), // 部队 UUID 高位      城堡等级            保护时间（毫秒）
 	ID_RETURN_OCCUPIED_MAP_CELL      ( 674010 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
 	ID_OCCUPATION_END_RELOCATED      ( 674011 ); // 世界坐标 X          世界坐标 Y          0
 

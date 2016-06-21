@@ -33,6 +33,7 @@
 #include "../defense_building.hpp"
 #include "../map_utilities_center.hpp"
 #include "../buff_ids.hpp"
+#include "../resource_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -202,16 +203,17 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	if(!castle){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
 	}
+	const auto castle_level = castle->get_level();
+	const auto updrade_data = Data::CastleUpgradePrimary::require(castle_level);
+	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: castle_level = ", castle_level,
+		", max_map_cell_count = ", updrade_data->max_map_cell_count, ", max_map_cell_distance = ", updrade_data->max_map_cell_distance);
+
 	const auto coord = Coord(req.x, req.y);
 	const auto cell_cluster_scope   = WorldMap::get_cluster_scope(coord);
 	const auto castle_cluster_scope = WorldMap::get_cluster_scope(castle->get_coord());
 	if(cell_cluster_scope.bottom_left() != castle_cluster_scope.bottom_left()){
 		return Response(Msg::ERR_NOT_ON_THE_SAME_MAP_SERVER);
 	}
-	const auto castle_level = castle->get_level();
-	const auto updrade_data = Data::CastleUpgradePrimary::require(castle_level);
-	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: castle_level = ", castle_level,
-		", max_map_cell_count = ", updrade_data->max_map_cell_count, ", max_map_cell_distance = ", updrade_data->max_map_cell_distance);
 
 	std::vector<boost::shared_ptr<MapCell>> current_cells;
 	WorldMap::get_map_cells_by_parent_object(current_cells, parent_object_uuid);
@@ -224,12 +226,12 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	}
 
 	const auto ticket_item_id = ItemId(req.ticket_item_id);
-	const auto item_data = Data::Item::get(ticket_item_id);
-	if(!item_data){
+	const auto ticket_item_data = Data::Item::get(ticket_item_id);
+	if(!ticket_item_data){
 		return Response(Msg::ERR_LAND_PURCHASE_TICKET_NOT_FOUND) <<ticket_item_id;
 	}
-	if(item_data->type.first != Data::Item::CAT_LAND_PURCHASE_TICKET){
-		return Response(Msg::ERR_BAD_LAND_PURCHASE_TICKET_TYPE) <<item_data->type.first;
+	if(ticket_item_data->type.first != Data::Item::CAT_LAND_PURCHASE_TICKET){
+		return Response(Msg::ERR_BAD_LAND_PURCHASE_TICKET_TYPE) <<ticket_item_data->type.first;
 	}
 
 	auto map_cell = WorldMap::get_map_cell(coord);
@@ -251,14 +253,45 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		}
 	}
 
+	std::vector<ResourceTransactionElement> resource_transaction;
+	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
+	const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
+	if((protection_info.duration != 0) && ticket_data->protectable){
+		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+		const auto days = checked_add<std::uint64_t>(protection_duration, 86400 - 1) / 86400;
+
+		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(parent_object_uuid.get()[0]));
+
+		const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+		const auto basic_data = Data::MapCellBasic::require(static_cast<unsigned>(coord.x() - cluster_scope.left()),
+		                                                    static_cast<unsigned>(coord.y() - cluster_scope.bottom()));
+		const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
+		const auto amount_to_cost = checked_mul(terrain_data->protection_cost, days);
+		resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_SPRING_WATER, amount_to_cost,
+			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
+	}
+
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ticket_item_id, 1,
 		ReasonIds::ID_MAP_CELL_PURCHASE, coord.x(), coord.y(), 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
-		[&]{
-			map_cell->set_parent_object(castle, resource_id, ticket_item_id);
-		});
-	if(insuff_item_id){
+	try {
+		const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
+			[&]{
+				const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
+					[&]{
+						map_cell->set_parent_object(castle, resource_id, ticket_item_id);
+					});
+				if(insuff_resource_id){
+					throw insuff_resource_id;
+				}
+			});
+		if(insuff_item_id){
+			throw insuff_item_id;
+		}
+	} catch(ResourceId insuff_resource_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	} catch(ItemId insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}
 
@@ -286,24 +319,72 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	if(!old_ticket_item_id){
 		return Response(Msg::ERR_NO_TICKET_ON_MAP_CELL) <<coord;
 	}
-	const auto old_ticket_data = Data::Item::require(old_ticket_item_id);
-	const auto new_ticket_data = Data::Item::get_by_type(old_ticket_data->type.first, old_ticket_data->type.second + 1);
-	if(!new_ticket_data){
+	const auto old_ticket_item_data = Data::Item::require(old_ticket_item_id);
+	const auto new_ticket_item_data = Data::Item::get_by_type(old_ticket_item_data->type.first, old_ticket_item_data->type.second + 1);
+	if(!new_ticket_item_data){
 		return Response(Msg::ERR_MAX_MAP_CELL_LEVEL_EXCEEDED);
 	}
-	const auto new_ticket_item_id = new_ticket_data->item_id;
+	const auto new_ticket_item_id = new_ticket_item_data->item_id;
+
+	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
+	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<parent_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+	if(!castle){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_A_CASTLE) <<map_object_type_id;
+	}
+	const auto castle_level = castle->get_level();
+
+	std::vector<ResourceTransactionElement> resource_transaction;
+	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
+	const auto old_ticket_data = Data::MapCellTicket::require(old_ticket_item_id);
+	const auto new_ticket_data = Data::MapCellTicket::require(new_ticket_item_id);
+	if((protection_info.duration != 0) && !old_ticket_data->protectable && new_ticket_data->protectable){
+		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+		const auto days = checked_add<std::uint64_t>(protection_duration, 86400 - 1) / 86400;
+
+		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(parent_object_uuid.get()[0]));
+
+		const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+		const auto basic_data = Data::MapCellBasic::require(static_cast<unsigned>(coord.x() - cluster_scope.left()),
+		                                                    static_cast<unsigned>(coord.y() - cluster_scope.bottom()));
+		const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
+		const auto amount_to_cost = checked_mul(terrain_data->protection_cost, days);
+		resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_SPRING_WATER, amount_to_cost,
+			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
+	}
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_LAND_UPGRADE_TICKET, 1,
 		ReasonIds::ID_MAP_CELL_UPGRADE, coord.x(), coord.y(), old_ticket_item_id.get());
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
-		[&]{
-			map_cell->set_ticket_item_id(new_ticket_item_id);
-			map_cell->pump_status();
-		});
-	if(insuff_item_id){
+	try {
+		const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
+			[&]{
+				const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
+					[&]{
+						map_cell->set_ticket_item_id(new_ticket_item_id);
+					});
+				if(insuff_resource_id){
+					throw insuff_resource_id;
+				}
+			});
+		if(insuff_item_id){
+			throw insuff_item_id;
+		}
+	} catch(ResourceId insuff_resource_id){
+		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
+	} catch(ItemId insuff_item_id){
 		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
 	}
+
+	map_cell->pump_status();
 
 	return Response();
 }

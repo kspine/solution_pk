@@ -49,6 +49,7 @@ namespace Data {
 		std::uint64_t best_capacity;
 		bool buildable;
 		bool passable;
+		std::uint64_t protection_cost;
 	};
 
 	class MapOverlay {
