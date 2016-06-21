@@ -10,6 +10,7 @@
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
 #include "../msg/g_packed.hpp"
+#include "../msg/kill.hpp"
 
 namespace EmperyCenter {
 
@@ -76,6 +77,11 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 
 	client.reset(new ControllerClient(*sock_addr, use_ssl, keep_alive));
 	client->go_resident();
+	const auto old_client = g_singleton.lock();
+	if(old_client){
+		LOG_EMPERY_CENTER_INFO("Another controller client has been created. Shut it down...");
+		old_client->shutdown(Msg::KILL_CLUSTER_SERVER_CONFLICT_GLOBAL, "");
+	}
 	g_singleton = client;
 	return client;
 }
