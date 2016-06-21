@@ -1671,8 +1671,8 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
 	map_objects.erase(
 		std::remove_if(map_objects.begin(), map_objects.end(),
-			[&](const boost::shared_ptr<MapObject> &child){ return child->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE; })
-		);
+			[&](const boost::shared_ptr<MapObject> &child){ return child->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE; }),
+		map_objects.end());
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
@@ -1753,8 +1753,8 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
 	map_objects.erase(
 		std::remove_if(map_objects.begin(), map_objects.end(),
-			[&](const boost::shared_ptr<MapObject> &child){ return child->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE; })
-		);
+			[&](const boost::shared_ptr<MapObject> &child){ return child->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE; }),
+		map_objects.end());
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
