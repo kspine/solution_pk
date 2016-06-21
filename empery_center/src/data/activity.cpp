@@ -4,7 +4,6 @@
 #include <string.h>
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
-#include "../data_session.hpp"
 
 namespace EmperyCenter {
 
@@ -31,6 +30,14 @@ namespace {
 	)
 	boost::weak_ptr<const MapActivityMap> g_map_activity_map;
 	const char MAP_ACTIVITY_FILE[] = "worldmap_activity";
+
+	MULTI_INDEX_MAP(ActivityAwardMap, Data::ActivityAward,
+		UNIQUE_MEMBER_INDEX(unique_id)
+		MULTI_MEMBER_INDEX(activity_id)
+	)
+	boost::weak_ptr<const ActivityAwardMap> g_activity_award_map;
+	const char ACTIVITY_AWARD_FILE[] = "rank_reward";
+
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 
@@ -82,6 +89,32 @@ namespace {
 		}
 		g_map_activity_map = map_activity_map;
 		handles.push(map_activity_map);
+
+		csv = Data::sync_load_data(ACTIVITY_AWARD_FILE);
+		const auto activity_award_map = boost::make_shared<ActivityAwardMap>();
+		while(csv.fetch_row()){
+			Data::ActivityAward elem = { };
+			csv.get(elem.unique_id,                "id");
+			csv.get(elem.activity_id,                "type");
+			Poseidon::JsonArray rank_array;
+			csv.get(rank_array,                "rank");
+			elem.rank_begin = boost::lexical_cast<std::uint64_t>(rank_array.at(0));
+			elem.rank_end =  boost::lexical_cast<std::uint64_t>(rank_array.at(1));
+			Poseidon::JsonObject object;
+			csv.get(object, "reward");
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto item_id = boost::lexical_cast<std::uint64_t>(std::string(it->first));
+				auto num = boost::lexical_cast<std::uint64_t>(it->second.get<double>());
+				elem.rewards.push_back(std::make_pair(item_id,num));
+			}
+
+			if(!activity_award_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate Activity award: unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate Activity award"));
+			}
+		}
+		g_activity_award_map = activity_award_map;
+		handles.push(activity_award_map);
 	}
 }
 
@@ -155,7 +188,7 @@ namespace Data {
 
 	void MapActivity::get_all(std::vector<boost::shared_ptr<const MapActivity>> &ret){
 		PROFILE_ME;
-			PROFILE_ME;
+
 		const auto map_activity_map = g_map_activity_map.lock();
 		if(!map_activity_map){
 			LOG_EMPERY_CENTER_WARNING("MapActivityMap has not been loaded.");
@@ -165,6 +198,25 @@ namespace Data {
 		for(auto it = map_activity_map->begin<0>(); it != map_activity_map->end<0>(); ++it){
 			ret.emplace_back(map_activity_map, &*it);
 		}
+	}
+
+	bool ActivityAward::get_activity_rank_award(std::uint64_t activity_id,const std::uint64_t rank,std::vector<std::pair<std::uint64_t,std::uint64_t>> &rewards){
+		PROFILE_ME;
+
+		const auto activity_award_map = g_activity_award_map.lock();
+		if(!activity_award_map){
+			LOG_EMPERY_CENTER_WARNING("activity award map has not been loaded.");
+			return false;
+		}
+
+		const auto range = activity_award_map->equal_range<1>(activity_id);
+		for(auto it = range.first; it != range.second; ++it){
+			if(it->rank_begin <= rank && it->rank_end >= rank){
+				rewards = it->rewards;
+				return true;
+			}
+		}
+		return false;
 	}
 }
 }

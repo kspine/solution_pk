@@ -38,6 +38,7 @@ public:
 	void pump_status() override;
 	void on_activity_change(MapActivityId old_ativity,MapActivityId new_activity);
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
+	bool settle_kill_soliders_activity(std::uint64_t now);
 public:
 	void set_current_activity(MapActivityId);
 	MapActivityId get_current_activity();

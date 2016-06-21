@@ -25,6 +25,19 @@ private:
 	MapActivityAccumulateMap() = delete;
 };
 
+struct MapActivityRankMap {
+	struct MapActivityRankInfo {
+		AccountUuid      account_uuid;
+		MapActivityId    activity_id;
+		std::uint64_t    settle_date;
+		std::uint64_t    rank;
+		std::uint64_t    accumulate_value;
+		std::uint64_t    process_date;
+	};
+	static void get_recent_rank_list(MapActivityId activity_id, std::uint64_t settle_date,std::vector<MapActivityRankInfo> &ret);
+	static void insert(MapActivityRankInfo info);
+};
+
 }
 
 #endif

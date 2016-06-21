@@ -30,6 +30,17 @@ namespace Data {
 		std::uint64_t continued_time;
 		boost::container::flat_map<std::uint64_t, std::vector<std::pair<std::uint64_t,std::uint64_t>>> rewards;
 	};
+
+	class ActivityAward{
+	public:
+		static bool get_activity_rank_award(std::uint64_t activity_id,const std::uint64_t rank,std::vector<std::pair<std::uint64_t,std::uint64_t>> &rewards);
+	public:
+		std::uint64_t unique_id;
+		std::uint64_t activity_id;
+		std::uint64_t rank_begin;
+		std::uint64_t rank_end;
+		std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
+	};
 }
 
 }

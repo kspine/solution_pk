@@ -12,6 +12,12 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
         //
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_MapActivityKillSolidersRank
+#define MESSAGE_ID      1401
+#define MESSAGE_FIELDS  \
+        //
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }
