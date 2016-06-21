@@ -107,7 +107,7 @@ MapEventBlock::MapEventBlock(Coord block_coord)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapEventBlock>(block_coord.x(), block_coord.y(), 0);
-			obj->async_save(true);
+			obj->async_save(true, true);
 			return obj;
 		}())
 {
