@@ -1747,7 +1747,7 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 	}
 	const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 	const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
-	const auto days = checked_add<std::uint64_t>(protection_duration, 86400 - 1) / 86400;
+	const auto days = checked_add<std::uint64_t>(protection_duration, 86400000 - 1) / 86400000;
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
