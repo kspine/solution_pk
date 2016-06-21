@@ -553,10 +553,9 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 {
 	PROFILE_ME;
 
-	const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(castle->get_owner_uuid());
+	const auto primary_castle = WorldMap::require_primary_castle(castle->get_owner_uuid());
 
-	check(type, key, count,
-		(castle->get_map_object_uuid() == primary_castle_uuid) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2);
+	check(type, key, count, (castle == primary_castle) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2);
 }
 
 void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {

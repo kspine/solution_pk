@@ -46,7 +46,7 @@ try {
 
 			BuildingLevelMap building_levels_primary, building_levels_non_primary;
 
-			const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(account_uuid);
+			const auto primary_castle = WorldMap::require_primary_castle(account_uuid);
 
 			std::vector<boost::shared_ptr<MapObject>> map_objects;
 			WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
@@ -59,7 +59,7 @@ try {
 				if(!castle){
 					continue;
 				}
-				if(castle->get_map_object_uuid() == primary_castle_uuid){
+				if(castle == primary_castle){
 					castle->accumulate_building_levels(building_levels_primary);
 				} else {
 					castle->accumulate_building_levels(building_levels_non_primary);
