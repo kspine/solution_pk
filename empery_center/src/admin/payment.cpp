@@ -7,6 +7,7 @@
 #include "../account.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../singletons/mail_box_map.hpp"
+#include "../account_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -57,8 +58,11 @@ ADMIN_SERVLET("payment/commit_transaction", root, session, params){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_NOT_FOUND) <<serial;
 	}
 
-	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
-	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
+	const auto account_uuid = payment_transaction->get_account_uuid();
+	AccountMap::require_controller_token(account_uuid);
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto mail_box = MailBoxMap::require(account_uuid);
 
 	if(payment_transaction->has_been_committed()){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_COMMITTED) <<serial;
@@ -94,6 +98,9 @@ ADMIN_SERVLET("payment/cancel_transaction", root, session, params){
 	if(payment_transaction->get_expiry_time() < utc_now){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_EXPIRED) <<serial;
 	}
+
+	const auto account_uuid = payment_transaction->get_account_uuid();
+	AccountMap::require_controller_token(account_uuid);
 
 	payment_transaction->cancel(remarks);
 

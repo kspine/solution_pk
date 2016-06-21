@@ -20,7 +20,7 @@ ResourceCrate::ResourceCrate(ResourceCrateUuid resource_crate_uuid, ResourceId r
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_ResourceCrate>(resource_crate_uuid.get(),
 				resource_id.get(), amount_max, coord.x(), coord.y(), created_time, expiry_time, amount_max);
-			obj->async_save(true);
+			obj->async_save(true, true);
 			return obj;
 		}())
 {

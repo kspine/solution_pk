@@ -10,6 +10,7 @@
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
 #include "../msg/g_packed.hpp"
+#include "../msg/kill.hpp"
 
 namespace EmperyCenter {
 
@@ -19,7 +20,12 @@ using ServletCallback = ControllerClient::ServletCallback;
 namespace {
 	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 
-	boost::weak_ptr<ControllerClient> g_singleton;
+	struct {
+		boost::shared_ptr<const Poseidon::JobPromise> promise;
+		boost::shared_ptr<Poseidon::SockAddr> sock_addr;
+
+		boost::weak_ptr<ControllerClient> client;
+	} g_singleton;
 }
 
 boost::shared_ptr<const ServletCallback> ControllerClient::create_servlet(std::uint16_t message_id, ServletCallback callback){
@@ -52,31 +58,41 @@ boost::shared_ptr<const ServletCallback> ControllerClient::get_servlet(std::uint
 boost::shared_ptr<ControllerClient> ControllerClient::get(){
 	PROFILE_ME;
 
-	auto client = g_singleton.lock();
+	auto client = g_singleton.client.lock();
 	return client;
 }
 boost::shared_ptr<ControllerClient> ControllerClient::require(){
 	PROFILE_ME;
 
-	auto client = g_singleton.lock();
-	if(client){
-		return client;
+	boost::shared_ptr<ControllerClient> client;
+	while(!(client = g_singleton.client.lock())){
+		const auto host       = get_config<std::string>   ("controller_cbpp_client_host",         "127.0.0.1");
+		const auto port       = get_config<unsigned>      ("controller_cbpp_client_port",         13223);
+		const auto use_ssl    = get_config<bool>          ("controller_cbpp_client_use_ssl",      false);
+		const auto keep_alive = get_config<std::uint64_t> ("controller_cbpp_keep_alive_interval", 15000);
+		LOG_EMPERY_CENTER_INFO("Creating controller client: host = ", host, ", port = ", port, ", use_ssl = ", use_ssl);
+
+		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
+		do {
+			if(!g_singleton.promise){
+				auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
+				auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
+				g_singleton.promise   = std::move(promise);
+				g_singleton.sock_addr = std::move(sock_addr);
+			}
+			promise_tack = g_singleton.promise;
+			Poseidon::JobDispatcher::yield(promise_tack, true);
+		} while(promise_tack != g_singleton.promise);
+
+		if(g_singleton.sock_addr){
+			client.reset(new ControllerClient(*g_singleton.sock_addr, use_ssl, keep_alive));
+			client->go_resident();
+
+			g_singleton.promise.reset();
+			g_singleton.sock_addr.reset();
+			g_singleton.client = client;
+		}
 	}
-
-	const auto host       = get_config<std::string>   ("controller_cbpp_client_host",         "127.0.0.1");
-	const auto port       = get_config<unsigned>      ("controller_cbpp_client_port",         13223);
-	const auto use_ssl    = get_config<bool>          ("controller_cbpp_client_use_ssl",      false);
-	const auto keep_alive = get_config<std::uint64_t> ("controller_cbpp_keep_alive_interval", 15000);
-
-	const auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
-
-	const auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
-	Poseidon::JobDispatcher::yield(promise, true);
-	LOG_EMPERY_CENTER_DEBUG("DNS lookup succeeded: host = ", host, ", ip = ", Poseidon::get_ip_port_from_sock_addr(*sock_addr).ip);
-
-	client.reset(new ControllerClient(*sock_addr, use_ssl, keep_alive));
-	client->go_resident();
-	g_singleton = client;
 	return client;
 }
 

@@ -9,7 +9,7 @@ namespace ItemIds {
 
 constexpr ItemId
 	ID_GOLD_COINS           ( 1103001 ),
-	ID_SPRING_WATER         ( 1103002 ),
+//	ID_SPRING_WATER         ( 1103002 ),
 	ID_DIAMONDS             ( 1103003 ),
 	ID_GOLD                 ( 1103004 ),
 

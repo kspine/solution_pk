@@ -35,6 +35,8 @@
 #include "../cluster_session.hpp"
 #include "../auction_center.hpp"
 #include "../singletons/auction_center_map.hpp"
+#include "../data/map.hpp"
+#include "../resource_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -1173,7 +1175,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
 			const auto child_castle = boost::make_shared<Castle>(child_castle_uuid,
-				account->get_account_uuid(), castle->get_map_object_uuid(), std::move(req.name), coord, utc_now);
+				account->get_account_uuid(), map_object_uuid, std::move(req.name), coord, utc_now);
 			child_castle->check_init_buildings();
 			child_castle->check_init_resources();
 			child_castle->pump_status();
@@ -1469,7 +1471,10 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	}
 
 	if(castle->is_buff_in_effect(BuffIds::ID_BATTLE_STATUS)){
-		return Response(Msg::ERR_BATTLE_IN_PROGRESS) <<castle->get_map_object_uuid();
+		return Response(Msg::ERR_BATTLE_IN_PROGRESS) <<map_object_uuid;
+	}
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
+		return Response(Msg::ERR_PROTECTION_IN_PROGRESS) <<map_object_uuid;
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
@@ -1649,21 +1654,11 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 
 	castle->pump_status();
 
-	const auto castle_level = castle->get_level();
-	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
-	const auto &protection_cost = upgrade_data->protection_cost;
+	std::vector<ResourceTransactionElement> transaction;
+	transaction.reserve(64);
+
 	const auto days = req.days;
 	const auto protection_duration = checked_mul<std::uint64_t>(days, 86400000);
-
-	std::vector<ResourceTransactionElement> transaction;
-	transaction.reserve(protection_cost.size());
-	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
-	for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
-		const auto resource_id = it->first;
-		const auto amount = checked_mul(it->second, days);
-		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, amount,
-			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
-	}
 
 	std::uint64_t delta_preparation_duration = 0;
 	if(!castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
@@ -1676,32 +1671,44 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
 	map_objects.erase(
 		std::remove_if(map_objects.begin(), map_objects.end(),
-			[&](const boost::shared_ptr<MapObject> &map_object){
-				const auto map_object_type_id = map_object->get_map_object_type_id();
-				if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-					return true;
-				}
-				return false;
-			}),
+			[&](const boost::shared_ptr<MapObject> &child){ return child->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE; }),
 		map_objects.end());
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
-	map_cells.erase(
-		std::remove_if(map_cells.begin(), map_cells.end(),
-			[&](const boost::shared_ptr<MapCell> &map_cell){
-				if(map_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
-					return true;
-				}
-				return false;
-			}),
-		map_cells.end());
+
+	const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+	const auto castle_level = castle->get_level();
+	const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+	const auto &protection_cost = upgrade_data->protection_cost;
+
+	for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
+		const auto amount_to_cost = checked_mul(it->second, days);
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, it->first, amount_to_cost,
+			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
+	}
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		if(!map_cell->is_protectable()){
+			continue;
+		}
+		const auto coord = map_cell->get_coord();
+		const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+		const auto basic_data = Data::MapCellBasic::require(static_cast<unsigned>(coord.x() - cluster_scope.left()),
+		                                                    static_cast<unsigned>(coord.y() - cluster_scope.bottom()));
+		const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
+		const auto amount_to_cost = checked_mul(terrain_data->protection_cost, days);
+		transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_SPRING_WATER, amount_to_cost,
+			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
+	}
 
 	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
 		[&]{
 			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 				const auto &map_object = *it;
+				map_object->clear_buff(BuffIds::ID_OCCUPATION_PROTECTION);
 				map_object->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, delta_preparation_duration);
 				map_object->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
 			}
@@ -1715,6 +1722,7 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 	if(insuff_resource_id){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
+
 	return Response();
 }
 
@@ -1728,61 +1736,65 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
 	}
 
-	if(!castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
-		return Response(Msg::ERR_BATTALION_UNDER_PROTECTION) <<map_object_uuid;
-	}
+	castle->pump_status();
 
 	std::vector<ResourceTransactionElement> transaction;
-	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
-		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-		const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
-		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+	transaction.reserve(64);
 
-		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_PROTECTION_REFUND_RATIO);
-
-		const auto castle_level = castle->get_level();
-		const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
-		const auto &protection_cost = upgrade_data->protection_cost;
-		transaction.reserve(protection_cost.size());
-		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
-		for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
-			const auto resource_id = it->first;
-			const auto amount = static_cast<std::uint64_t>(it->second * (protection_duration / 86400000.0) * refund_ratio + 0.001);
-			transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount,
-				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
-		}
+	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
+	if(protection_info.duration == 0){
+		return Response(Msg::ERR_CASTLE_NOT_UNDER_PROTECTION) <<map_object_uuid;
 	}
+	const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+	const auto days = checked_add<std::uint64_t>(protection_duration, 86400000 - 1) / 86400000;
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	WorldMap::get_map_objects_by_parent_object(map_objects, map_object_uuid);
 	map_objects.erase(
 		std::remove_if(map_objects.begin(), map_objects.end(),
-			[&](const boost::shared_ptr<MapObject> &map_object){
-				const auto map_object_type_id = map_object->get_map_object_type_id();
-				if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-					return true;
-				}
-				return false;
-			}),
+			[&](const boost::shared_ptr<MapObject> &child){ return child->get_map_object_type_id() == MapObjectTypeIds::ID_CASTLE; }),
 		map_objects.end());
 	map_objects.emplace_back(castle);
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
-	map_cells.erase(
-		std::remove_if(map_cells.begin(), map_cells.end(),
-			[&](const boost::shared_ptr<MapCell> &map_cell){
-				if(map_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL)){
-					return true;
-				}
-				return false;
-			}),
-		map_cells.end());
+
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+		const auto refund_ratio = Data::Global::as_double(Data::Global::SLOT_CASTLE_PROTECTION_REFUND_RATIO);
+
+		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+
+		const auto castle_level = castle->get_level();
+		const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+		const auto &protection_cost = upgrade_data->protection_cost;
+
+		for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
+			const auto amount_to_cost = checked_mul(it->second, days);
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, amount_to_cost * refund_ratio + 0.001,
+				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
+		}
+		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+			const auto &map_cell = *it;
+			if(!map_cell->is_protectable()){
+				continue;
+			}
+			const auto coord = map_cell->get_coord();
+			const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+			const auto basic_data = Data::MapCellBasic::require(static_cast<unsigned>(coord.x() - cluster_scope.left()),
+		                                                    	static_cast<unsigned>(coord.y() - cluster_scope.bottom()));
+			const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
+			const auto amount_to_cost = checked_mul(terrain_data->protection_cost, days);
+			transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_SPRING_WATER, amount_to_cost * refund_ratio + 0.001,
+				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
+		}
+	}
 
 	castle->commit_resource_transaction(transaction,
 		[&]{
 			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 				const auto &map_object = *it;
+				map_object->clear_buff(BuffIds::ID_OCCUPATION_PROTECTION);
 				map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 				map_object->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
 			}

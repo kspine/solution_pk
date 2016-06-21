@@ -101,7 +101,7 @@ Account::Account(AccountUuid account_uuid, PlatformId platformId, std::string lo
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_Account>(account_uuid.get(), platformId.get(), std::move(login_name),
 				referrer_uuid.get(), promotion_level, created_time, std::move(nick), false, 0, 0);
-			obj->async_save(true);
+			obj->async_save(true, true);
 			return obj;
 		}())
 {

@@ -54,6 +54,7 @@
 #include "../activity_ids.hpp"
 #include "../data/activity.hpp"
 #include "../singletons/controller_client.hpp"
+#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -70,8 +71,8 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 		return Response(Msg::KILL_INVALID_NUMERICAL_COORD) <<num_coord;
 	}
 
-	const auto cluster_scope = WorldMap::get_cluster_scope(Coord(num_coord.x() * map_width, num_coord.y() * map_height));
-	const auto cluster_coord = cluster_scope.bottom_left();
+	const auto cluster_coord = Coord(num_coord.x() * map_width, num_coord.y() * map_height);
+	const auto cluster_scope = WorldMap::get_cluster_scope(cluster_coord);
 	LOG_EMPERY_CENTER_INFO("Registering cluster server: num_coord = ", num_coord, ", cluster_scope = ", cluster_scope);
 
 	const auto controller = ControllerClient::require();
@@ -88,18 +89,26 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	}
 
 	cluster->set_name(std::move(req.name));
-	WorldMap::set_cluster(cluster, cluster_coord);
 
-	const auto promise = WorldMap::forced_reload_cluster(cluster_coord);
-	// FIXME: 数据库加载时间太长了。
-	// Poseidon::JobDispatcher::yield(promise, true);
+	Poseidon::enqueue_async_job(
+		[=]{
+			PROFILE_ME;
+			try {
+				WorldMap::forced_reload_cluster(cluster_coord);
+				LOG_EMPERY_CENTER_INFO("Finished reloading cluster: cluster_scope = ", cluster_scope);
+				WorldMap::synchronize_cluster(cluster, cluster_scope);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				cluster->shutdown(e.what());
+			}
+		});
+
+	WorldMap::set_cluster(cluster, cluster_coord);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();
 	msg.cluster_y = cluster_coord.y();
 	cluster->send(msg);
-
-	WorldMap::synchronize_cluster(cluster, cluster_scope);
 
 	return Response();
 }

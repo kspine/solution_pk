@@ -317,7 +317,7 @@ void AccountMap::require_controller_token(AccountUuid account_uuid){
 	const auto &account_map = g_account_map;
 	if(!account_map){
 		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
-		DEBUG_THROW(Exception, sslit("Account map not loaded."));
+		DEBUG_THROW(Exception, sslit("Account map not loaded"));
 	}
 
 	const auto controller = ControllerClient::require();
@@ -328,7 +328,7 @@ void AccountMap::require_controller_token(AccountUuid account_uuid){
 	LOG_EMPERY_CENTER_DEBUG("Controller response: code = ", tresult.first, ", msg = ", tresult.second);
 	if(tresult.first != 0){
 		LOG_EMPERY_CENTER_INFO("Failed to acquire controller token: code = ", tresult.first, ", msg = ", tresult.second);
-		DEBUG_THROW(Exception, sslit("Account map not load."));
+		DEBUG_THROW(Exception, sslit("Failed to acquire controller token"));
 	}
 }
 

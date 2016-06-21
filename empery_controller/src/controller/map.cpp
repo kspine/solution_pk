@@ -25,9 +25,9 @@ CONTROLLER_SERVLET(Msg::ST_MapRegisterMapServer, controller, req){
 
 	const auto old_controller = WorldMap::get_controller(controller_coord);
 	if(old_controller != controller){
-		if(old_controller){
-			return Response(Msg::ERR_MAP_SERVER_CONFLICT) <<old_controller->get_remote_info().ip;
-		}
+//		if(old_controller){
+//			return Response(Msg::ERR_MAP_SERVER_CONFLICT) <<old_controller->get_remote_info().ip;
+//		}
 		WorldMap::set_controller(controller, controller_coord);
 	}
 
