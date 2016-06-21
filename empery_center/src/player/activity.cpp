@@ -6,8 +6,11 @@
 #include "../msg/err_activity.hpp"
 #include "../singletons/activity_map.hpp"
 #include "../singletons/map_activity_accumulate_map.hpp"
+#include "../singletons/account_map.hpp"
+#include "../singletons/world_map.hpp"
 #include "../activity.hpp"
 #include "../activity_ids.hpp"
+#include "../castle.hpp"
 
 
 namespace EmperyCenter {
@@ -45,15 +48,16 @@ PLAYER_SERVLET(Msg::CS_MapActivityKillSolidersRank, account, session, /* req */)
 			Msg::SC_MapActivityKillSolidersRank msgRankList;
 			for(auto it = ret.begin(); it != ret.end(); ++it){
 				auto &rank_item = *msgRankList.rank_list.emplace(msgRankList.rank_list.end());
+				const auto &account = AccountMap::require(it->account_uuid);
+				const auto &castle = WorldMap::require_primary_castle(it->account_uuid);
 				rank_item.account_uuid      = it->account_uuid.str();
-				rank_item.nick              = "";
-				rank_item.castle_name       = "";
+				rank_item.nick              = account->get_nick();
+				rank_item.castle_name       = castle->get_name();
 				rank_item.leagues           = "";
 				rank_item.rank              = it->rank;
 				rank_item.accumulate_value  = it->accumulate_value;
 			}
 			session->send(msgRankList);
-			LOG_EMPERY_CENTER_FATAL("msgRankList:",msgRankList);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
