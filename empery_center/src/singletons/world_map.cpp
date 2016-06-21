@@ -1429,15 +1429,15 @@ void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObj
 _exit_while:
 	;
 }
-MapObjectUuid WorldMap::get_primary_castle_uuid(AccountUuid owner_uuid){
+boost::shared_ptr<Castle> WorldMap::require_primary_castle(AccountUuid owner_uuid){
 	PROFILE_ME;
 
-	MapObjectUuid min_castle_uuid;
+	boost::shared_ptr<Castle> test_castle;
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
-		return min_castle_uuid;
+		DEBUG_THROW(Exception, sslit("Map object map not loaded"));
 	}
 
 	const auto range = map_object_map->equal_range<2>(owner_uuid);
@@ -1446,14 +1446,21 @@ MapObjectUuid WorldMap::get_primary_castle_uuid(AccountUuid owner_uuid){
 		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		const auto castle_uuid = map_object->get_map_object_uuid();
-		if(min_castle_uuid && (min_castle_uuid <= castle_uuid)){
+		const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+		if(!castle){
 			continue;
 		}
-		min_castle_uuid = castle_uuid;
+		if(test_castle && (test_castle->get_map_object_uuid() <= castle->get_map_object_uuid())){
+			continue;
+		}
+		test_castle = castle;
 	}
 
-	return min_castle_uuid;
+	if(!test_castle){
+		LOG_EMPERY_CENTER_WARNING("Player has no castle? owner_uuid = ", owner_uuid);
+		DEBUG_THROW(Exception, sslit("Player has no castle"));
+	}
+	return test_castle;
 }
 
 boost::shared_ptr<Overlay> WorldMap::get_overlay(Coord cluster_coord, const std::string &overlay_group_name){

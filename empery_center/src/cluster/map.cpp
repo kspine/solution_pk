@@ -898,7 +898,8 @@ _wounded_done:
 
 				const auto task_box = TaskBoxMap::require(attacking_account_uuid);
 
-				const auto primary_castle_uuid = WorldMap::get_primary_castle_uuid(attacking_account_uuid);
+				const auto primary_castle = WorldMap::require_primary_castle(attacking_account_uuid);
+				const auto primary_castle_uuid = primary_castle->get_map_object_uuid();
 
 				auto task_type_id = TaskTypeIds::ID_WIPE_OUT_MONSTERS;
 				if(attacked_account_uuid){
