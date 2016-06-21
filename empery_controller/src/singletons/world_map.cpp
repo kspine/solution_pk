@@ -8,8 +8,12 @@
 #include "../castle.hpp"
 #include "../../../empery_center/src/mysql/map_object.hpp"
 #include "../../../empery_center/src/map_object_type_ids.hpp"
+#include "../../../empery_center/src/msg/kill.hpp"
+#include "../controller_session.hpp"
 
 namespace EmperyController {
+
+namespace Msg = ::EmperyCenter::Msg;
 
 namespace {
 	struct CastleElement {
@@ -259,9 +263,10 @@ void WorldMap::set_controller(const boost::shared_ptr<ControllerSession> &contro
 	const auto cluster_coord = get_cluster_coord_from_world_coord(coord);
 	const auto result = controller_map->insert(ControllerElement(cluster_coord, controller));
 	if(!result.second){
-		if(!result.first->controller.expired()){
-			LOG_EMPERY_CONTROLLER_WARNING("Map server conflict: cluster_coord = ", cluster_coord);
-			DEBUG_THROW(Exception, sslit("Map server conflict"));
+		const auto old_controller = result.first->controller.lock();
+		if(old_controller){
+			LOG_EMPERY_CONTROLLER_WARNING("Killing old map server: cluster_coord = ", cluster_coord);
+			old_controller->shutdown(Msg::KILL_CLUSTER_SERVER_CONFLICT_GLOBAL, "");
 		}
 		controller_map->replace(result.first, ControllerElement(cluster_coord, controller));
 	}
