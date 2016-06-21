@@ -34,72 +34,75 @@ CONTROLLER_SERVLET(Msg::ST_MapRegisterMapServer, controller, req){
 	return Response();
 }
 
+namespace {
+	void invalidate_castle_aux(void *old_controller, MapObjectUuid map_object_uuid, Coord coord_expected){
+		PROFILE_ME;
+
+		const auto delay = get_config<std::uint64_t>("mysql_synchronization_delay", 5000);
+		const auto retry_count = get_config<unsigned>("mysql_synchronization_retry_count", 12);
+
+		unsigned count = 0;
+		for(;;){
+			LOG_EMPERY_CONTROLLER_DEBUG("Try loading castle: map_object_uuid = ", map_object_uuid);
+			try {
+				const auto castle = WorldMap::forced_reload_castle(map_object_uuid);
+				if(!castle){
+					LOG_EMPERY_CONTROLLER_DEBUG("Failed to load castle: map_object_uuid = ", map_object_uuid);
+					goto _retry;
+				}
+				const auto new_coord = castle->get_coord();
+				LOG_EMPERY_CONTROLLER_DEBUG("Loaded castle: map_object_uuid = ", map_object_uuid,
+					", new_coord = ", new_coord, ", coord_expected = ", coord_expected);
+				if(new_coord != coord_expected){
+					LOG_EMPERY_CONTROLLER_DEBUG("Coord mismatch: map_object_uuid = ", map_object_uuid,
+						", new_coord = ", new_coord, ", coord_expected = ", coord_expected);
+					goto _retry;
+				}
+				const auto new_controller = WorldMap::get_controller(new_coord);
+				if(!new_controller){
+					LOG_EMPERY_CONTROLLER_DEBUG("No controller? new_coord = ", new_coord);
+					goto _retry;
+				}
+				if(new_controller.get() != old_controller){
+					Msg::TS_MapInvalidateCastle sreq;
+					sreq.map_object_uuid = map_object_uuid.str();
+					sreq.coord_x         = new_coord.x();
+					sreq.coord_y         = new_coord.y();
+					auto sresult = new_controller->send_and_wait(sreq);
+					LOG_EMPERY_CONTROLLER_DEBUG("!> Result: code = ", sresult.first, ", msg = ", sresult.second);
+					if(sresult.first != Msg::ST_OK){
+						goto _retry;
+					}
+				}
+				break;
+			} catch(std::exception &e){
+				LOG_EMPERY_CONTROLLER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		_retry:
+			;
+
+			if(count >= retry_count){
+				LOG_EMPERY_CONTROLLER_ERROR("Failed to load castle: map_object_uuid = ", map_object_uuid);
+				break;
+			}
+			LOG_EMPERY_CONTROLLER_DEBUG("Retrying: count = ", count, ", retry_count = ", retry_count);
+			++count;
+
+			LOG_EMPERY_CONTROLLER_DEBUG("Preparing to load castle: map_object_uuid = ", map_object_uuid, ", delay = ", delay);
+			const auto promise = boost::make_shared<Poseidon::JobPromise>();
+			const auto timer = Poseidon::TimerDaemon::register_timer(delay, 0, std::bind([&]{ promise->set_success(); }));
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+	}
+}
+
 CONTROLLER_SERVLET(Msg::ST_MapInvalidateCastle, controller, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 	const auto coord_expected = Coord(req.coord_x, req.coord_y);
 
 	const auto old_castle = WorldMap::get_castle(map_object_uuid);
 	if(!old_castle || (old_castle->get_coord() != coord_expected)){
-		Poseidon::enqueue_async_job(
-			[=]{
-				PROFILE_ME;
-
-				const auto delay = get_config<std::uint64_t>("mysql_synchronization_delay", 5000);
-				const auto retry_count = get_config<unsigned>("mysql_synchronization_retry_count", 12);
-
-				unsigned count = 0;
-				for(;;){
-					LOG_EMPERY_CONTROLLER_DEBUG("Try loading castle: map_object_uuid = ", map_object_uuid);
-					try {
-						const auto castle = WorldMap::forced_reload_castle(map_object_uuid);
-						if(!castle){
-							LOG_EMPERY_CONTROLLER_DEBUG("Failed to load castle: map_object_uuid = ", map_object_uuid);
-							goto _retry;
-						}
-						const auto new_coord = castle->get_coord();
-						LOG_EMPERY_CONTROLLER_DEBUG("Loaded castle: map_object_uuid = ", map_object_uuid,
-							", new_coord = ", new_coord, ", coord_expected = ", coord_expected);
-						if(new_coord != coord_expected){
-							LOG_EMPERY_CONTROLLER_DEBUG("Coord mismatch: map_object_uuid = ", map_object_uuid,
-								", new_coord = ", new_coord, ", coord_expected = ", coord_expected);
-							goto _retry;
-						}
-						const auto new_controller = WorldMap::get_controller(new_coord);
-						if(!new_controller){
-							LOG_EMPERY_CONTROLLER_DEBUG("No controller? new_coord = ", new_coord);
-							goto _retry;
-						}
-						if(new_controller != controller){
-							Msg::TS_MapInvalidateCastle sreq;
-							sreq.map_object_uuid = map_object_uuid.str();
-							sreq.coord_x         = new_coord.x();
-							sreq.coord_y         = new_coord.y();
-							auto sresult = new_controller->send_and_wait(sreq);
-							LOG_EMPERY_CONTROLLER_DEBUG("!> Result: code = ", sresult.first, ", msg = ", sresult.second);
-							if(sresult.first != Msg::ST_OK){
-								goto _retry;
-							}
-						}
-						break;
-					} catch(std::exception &e){
-						LOG_EMPERY_CONTROLLER_WARNING("std::exception thrown: what = ", e.what());
-					}
-				_retry:
-					;
-
-					if(count >= retry_count){
-						LOG_EMPERY_CONTROLLER_ERROR("Failed to load castle: map_object_uuid = ", map_object_uuid);
-						break;
-					}
-					LOG_EMPERY_CONTROLLER_DEBUG("Retrying: count = ", count, ", retry_count = ", retry_count);
-					++count;
-
-					LOG_EMPERY_CONTROLLER_DEBUG("Preparing to load castle: map_object_uuid = ", map_object_uuid, ", delay = ", delay);
-					const auto promise = boost::make_shared<Poseidon::JobPromise>();
-					const auto timer = Poseidon::TimerDaemon::register_timer(delay, 0, std::bind([&]{ promise->set_success(); }));
-					Poseidon::JobDispatcher::yield(promise, true);
-				}
-			});
+		Poseidon::enqueue_async_job(std::bind(&invalidate_castle_aux, controller.get(), map_object_uuid, coord_expected));
 	}
 
 	return Response();
