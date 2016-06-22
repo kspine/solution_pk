@@ -876,20 +876,17 @@ namespace {
 		}
 
 		const auto map_object_uuid = map_object->get_map_object_uuid();
-		const auto map_object_type_id = map_object->get_map_object_type_id();
 
-		if((old_coord != new_coord) && (map_object_type_id == MapObjectTypeIds::ID_CASTLE)){
-			const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
-			if(castle){
-				try {
-					Msg::ST_MapInvalidateCastle msg;
-					msg.map_object_uuid = map_object_uuid.str();
-					msg.coord_x         = new_coord.x();
-					msg.coord_y         = new_coord.y();
-					controller->send(msg);
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-				}
+		const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+		if(castle){
+			try {
+				Msg::ST_MapInvalidateCastle msg;
+				msg.map_object_uuid = map_object_uuid.str();
+				msg.coord_x         = new_coord.x();
+				msg.coord_y         = new_coord.y();
+				controller->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
 		}
 
