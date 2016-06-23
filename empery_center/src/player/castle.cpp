@@ -1771,7 +1771,8 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 
 		for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
 			const auto amount_to_cost = checked_mul(it->second, days);
-			transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, amount_to_cost * refund_ratio + 0.001,
+			const auto amount_to_refund = static_cast<std::uint64_t>(amount_to_cost * refund_ratio + 0.001);
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, amount_to_refund,
 				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 		}
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
@@ -1785,7 +1786,8 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 		                                                    	static_cast<unsigned>(coord.y() - cluster_scope.bottom()));
 			const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
 			const auto amount_to_cost = checked_mul(terrain_data->protection_cost, days);
-			transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_SPRING_WATER, amount_to_cost * refund_ratio + 0.001,
+			const auto amount_to_refund = static_cast<std::uint64_t>(amount_to_cost * refund_ratio + 0.001);
+			transaction.emplace_back(ResourceTransactionElement::OP_ADD, ResourceIds::ID_SPRING_WATER, amount_to_refund,
 				ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 		}
 	}
