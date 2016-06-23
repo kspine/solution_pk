@@ -239,6 +239,26 @@ boost::shared_ptr<MailBox> MailBoxMap::require(AccountUuid account_uuid){
 	}
 	return ret;
 }
+void MailBoxMap::unload(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto mail_box_map = g_mail_box_map.lock();
+	if(!mail_box_map){
+		LOG_EMPERY_CENTER_WARNING("MailBoxMap is not loaded.");
+		return;
+	}
+
+	const auto it = mail_box_map->find<0>(account_uuid);
+	if(it == mail_box_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Mail box not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	mail_box_map->set_key<0, 1>(it, 0);
+	it->promise.reset();
+	const auto now = Poseidon::get_fast_mono_clock();
+	gc_timer_proc(now);
+}
 
 boost::shared_ptr<MailBox> MailBoxMap::get_global(){
 	PROFILE_ME;

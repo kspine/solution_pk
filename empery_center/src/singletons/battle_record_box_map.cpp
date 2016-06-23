@@ -219,6 +219,26 @@ boost::shared_ptr<BattleRecordBox> BattleRecordBoxMap::require(AccountUuid accou
 	}
 	return ret;
 }
+void BattleRecordBoxMap::unload(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto battle_record_box_map = g_battle_record_box_map.lock();
+	if(!battle_record_box_map){
+		LOG_EMPERY_CENTER_WARNING("BattleRecordBoxMap is not loaded.");
+		return;
+	}
+
+	const auto it = battle_record_box_map->find<0>(account_uuid);
+	if(it == battle_record_box_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Battle record box not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	battle_record_box_map->set_key<0, 1>(it, 0);
+	it->promise.reset();
+	const auto now = Poseidon::get_fast_mono_clock();
+	gc_timer_proc(now);
+}
 
 boost::shared_ptr<CrateRecordBox> BattleRecordBoxMap::get_crate(AccountUuid account_uuid){
 	PROFILE_ME;
@@ -293,6 +313,26 @@ boost::shared_ptr<CrateRecordBox> BattleRecordBoxMap::require_crate(AccountUuid 
 		DEBUG_THROW(Exception, sslit("Crate record box not found"));
 	}
 	return ret;
+}
+void BattleRecordBoxMap::unload_crate(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto crate_record_box_map = g_crate_record_box_map.lock();
+	if(!crate_record_box_map){
+		LOG_EMPERY_CENTER_WARNING("CrateRecordBoxMap is not loaded.");
+		return;
+	}
+
+	const auto it = crate_record_box_map->find<0>(account_uuid);
+	if(it == crate_record_box_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Crate record box not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	crate_record_box_map->set_key<0, 1>(it, 0);
+	it->promise.reset();
+	const auto now = Poseidon::get_fast_mono_clock();
+	crate_box_gc_timer_proc(now);
 }
 
 }

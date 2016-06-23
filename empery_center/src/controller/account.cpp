@@ -2,6 +2,8 @@
 #include "common.hpp"
 #include "../msg/err_account.hpp"
 #include "../msg/ts_account.hpp"
+#include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include "../singletons/account_map.hpp"
 #include "../transaction_element.hpp"
 #include "../item_box.hpp"
@@ -11,8 +13,10 @@
 #include "../singletons/tax_record_box_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/player_session_map.hpp"
-#include <poseidon/singletons/mysql_daemon.hpp>
-#include <poseidon/singletons/job_dispatcher.hpp>
+#include "../singletons/battle_record_box_map.hpp"
+#include "../singletons/task_box_map.hpp"
+#include "../singletons/auction_center_map.hpp"
+#include "../singletons/mail_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -55,6 +59,12 @@ CONTROLLER_SERVLET(Msg::TS_AccountInvalidate, controller, req){
 	if(session){
 		session->shutdown(req.reason, req.param.c_str());
 	}
+
+	BattleRecordBoxMap::unload(account_uuid);
+	BattleRecordBoxMap::unload_crate(account_uuid);
+	TaskBoxMap::unload(account_uuid);
+	AuctionCenterMap::unload(account_uuid);
+	MailBoxMap::unload(account_uuid);
 
 	const auto promise = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
 	Poseidon::JobDispatcher::yield(promise, false);

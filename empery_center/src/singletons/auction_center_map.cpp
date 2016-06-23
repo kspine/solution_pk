@@ -162,5 +162,25 @@ boost::shared_ptr<AuctionCenter> AuctionCenterMap::require(AccountUuid account_u
 	}
 	return ret;
 }
+void AuctionCenterMap::unload(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto auction_center_map = g_auction_center_map.lock();
+	if(!auction_center_map){
+		LOG_EMPERY_CENTER_WARNING("AuctionCenterMap is not loaded.");
+		return;
+	}
+
+	const auto it = auction_center_map->find<0>(account_uuid);
+	if(it == auction_center_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Auction center not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	auction_center_map->set_key<0, 1>(it, 0);
+	it->promise.reset();
+	const auto now = Poseidon::get_fast_mono_clock();
+	gc_timer_proc(now);
+}
 
 }

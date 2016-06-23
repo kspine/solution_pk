@@ -163,5 +163,25 @@ boost::shared_ptr<TaskBox> TaskBoxMap::require(AccountUuid account_uuid){
 	}
 	return ret;
 }
+void TaskBoxMap::unload(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto task_box_map = g_task_box_map.lock();
+	if(!task_box_map){
+		LOG_EMPERY_CENTER_WARNING("TaskBoxMap is not loaded.");
+		return;
+	}
+
+	const auto it = task_box_map->find<0>(account_uuid);
+	if(it == task_box_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Task box not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	task_box_map->set_key<0, 1>(it, 0);
+	it->promise.reset();
+	const auto now = Poseidon::get_fast_mono_clock();
+	gc_timer_proc(now);
+}
 
 }
