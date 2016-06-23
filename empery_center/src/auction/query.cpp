@@ -143,6 +143,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 				elem_castle[sslit("resources")] = std::move(elem_resources);
 			}
 			elem_castle[sslit("name")] = castle->get_name();
+			elem_castle[sslit("level")] = castle->get_level();
 
 			elem_castles[boost::lexical_cast<SharedNts>(castle->get_map_object_uuid())] = std::move(elem_castle);
 		}
