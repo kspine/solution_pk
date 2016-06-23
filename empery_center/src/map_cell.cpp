@@ -293,6 +293,16 @@ void MapCell::set_parent_object(const boost::shared_ptr<Castle> &parent_object, 
 	m_obj->set_last_production_time(now);
 	m_obj->set_resource_amount(0);
 
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		it->second->set_value(0);
+	}
+
+	for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
+		it->second->set_duration(0);
+		it->second->set_time_begin(0);
+		it->second->set_time_end(0);
+	}
+
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 void MapCell::set_ticket_item_id(ItemId ticket_item_id){
