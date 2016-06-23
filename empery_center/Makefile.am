@@ -31,7 +31,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/mail_box_map.cpp	\
 	src/singletons/chat_box_map.cpp	\
 	src/singletons/announcement_map.cpp	\
-	src/singletons/activation_code_map.cpp	\
 	src/singletons/simple_http_client_daemon.cpp	\
 	src/singletons/auction_center_map.cpp	\
 	src/singletons/payment_transaction_map.cpp	\
@@ -71,7 +70,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/castle_resource.cpp	\
 	src/admin/castle_soldier.cpp	\
 	src/admin/announcement.cpp	\
-	src/admin/activation_code.cpp	\
 	src/admin/payment.cpp	\
 	src/admin/auction.cpp	\
 	src/auction/query.cpp	\
@@ -108,7 +106,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/chat_message.cpp	\
 	src/announcement.cpp	\
 	src/overlay.cpp	\
-	src/activation_code.cpp	\
 	src/auction_center.cpp	\
 	src/payment_transaction.cpp	\
 	src/auction_transaction.cpp	\

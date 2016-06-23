@@ -38,6 +38,7 @@
 #include "../account_attribute_ids.hpp"
 #include "controller_client.hpp"
 #include "../msg/st_map.hpp"
+#include "global_status.hpp"
 
 namespace EmperyCenter {
 
@@ -864,6 +865,8 @@ namespace {
 	void synchronize_with_controller(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
 		PROFILE_ME;
 
+		(void)old_coord;
+
 		boost::shared_ptr<ControllerClient> controller;
 		try {
 			controller = ControllerClient::require();
@@ -1426,10 +1429,11 @@ void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObj
 _exit_while:
 	;
 }
-boost::shared_ptr<Castle> WorldMap::require_primary_castle(AccountUuid owner_uuid){
+
+boost::shared_ptr<Castle> WorldMap::get_primary_castle(AccountUuid owner_uuid){
 	PROFILE_ME;
 
-	boost::shared_ptr<Castle> test_castle;
+	boost::shared_ptr<Castle> primary_castle;
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
@@ -1447,17 +1451,23 @@ boost::shared_ptr<Castle> WorldMap::require_primary_castle(AccountUuid owner_uui
 		if(!castle){
 			continue;
 		}
-		if(test_castle && (test_castle->get_map_object_uuid() <= castle->get_map_object_uuid())){
+		if(primary_castle && (primary_castle->get_map_object_uuid() <= castle->get_map_object_uuid())){
 			continue;
 		}
-		test_castle = castle;
+		primary_castle = castle;
 	}
 
-	if(!test_castle){
+	return primary_castle;
+}
+boost::shared_ptr<Castle> WorldMap::require_primary_castle(AccountUuid owner_uuid){
+	PROFILE_ME;
+
+	auto ret = get_primary_castle(owner_uuid);
+	if(!ret){
 		LOG_EMPERY_CENTER_WARNING("Player has no castle? owner_uuid = ", owner_uuid);
 		DEBUG_THROW(Exception, sslit("Player has no castle"));
 	}
-	return test_castle;
+	return ret;
 }
 
 boost::shared_ptr<Overlay> WorldMap::get_overlay(Coord cluster_coord, const std::string &overlay_group_name){
@@ -2424,7 +2434,7 @@ try {
 	cluster->shutdown(e.what());
 }
 
-boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
+boost::shared_ptr<Castle> WorldMap::place_castle_random_restricted(
 	const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint)
 {
 	PROFILE_ME;
@@ -2458,7 +2468,7 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 			}
 			const auto index = static_cast<std::size_t>(Poseidon::rand64() % point_count);
 			const auto coord = cached_start_points.at(index);
-			LOG_EMPERY_CENTER_DEBUG("Try creating init castle: coord = ", coord);
+			LOG_EMPERY_CENTER_DEBUG("Try placing castle: coord = ", coord);
 
 			const auto result = can_deploy_castle_at(coord, { });
 			if(result.first == 0){
@@ -2476,7 +2486,7 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 			cached_start_points.erase(cached_start_points.begin() + static_cast<std::ptrdiff_t>(index));
 
 			if(castle){
-				LOG_EMPERY_CENTER_DEBUG("Init castle created successfully: map_object_uuid = ", castle->get_map_object_uuid(),
+				LOG_EMPERY_CENTER_DEBUG("Castle placed successfully: map_object_uuid = ", castle->get_map_object_uuid(),
 					", owner_uuid = ", castle->get_owner_uuid(), ", coord = ", coord);
 				break;
 			}
@@ -2501,16 +2511,100 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle_restricted(
 	}
 	return castle;
 }
-boost::shared_ptr<Castle> WorldMap::create_init_castle(
-	const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint)
+boost::shared_ptr<Castle> WorldMap::place_castle_random(
+	const boost::function<boost::shared_ptr<Castle> (Coord)> &factory)
 {
 	PROFILE_ME;
 
 	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
 	get_all_clusters(clusters);
+	if(clusters.empty()){
+		LOG_EMPERY_CENTER_WARNING("No clusters available");
+		return { };
+	}
 
-	const auto cluster_coord_hint = get_cluster_coord_from_world_coord(coord_hint);
-	auto it = clusters.find(cluster_coord_hint);
+	const auto get_cluster_hint = [&]{
+		PROFILE_ME;
+
+		std::vector<boost::shared_ptr<MapObject>> map_objects;
+
+		const auto count_castles_in_clusters = [&](Coord coord_hint){
+			std::size_t castle_count = 0;
+			map_objects.clear();
+			WorldMap::get_map_objects_by_rectangle(map_objects, WorldMap::get_cluster_scope(coord_hint));
+			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+				const auto &map_object = *it;
+				const auto map_object_type_id = map_object->get_map_object_type_id();
+				if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
+					continue;
+				}
+				++castle_count;
+			}
+			return castle_count;
+		};
+
+		const auto old_limit = GlobalStatus::cast<std::uint64_t>(GlobalStatus::SLOT_INIT_SERVER_LIMIT);
+		if(old_limit != 0){
+			const auto cluster_x = GlobalStatus::cast<std::int64_t>(GlobalStatus::SLOT_INIT_SERVER_X);
+			const auto cluster_y = GlobalStatus::cast<std::int64_t>(GlobalStatus::SLOT_INIT_SERVER_Y);
+			const auto coord_hint = Coord(cluster_x, cluster_y);
+			LOG_EMPERY_CENTER_DEBUG("Testing cluster: coord_hint = ", coord_hint);
+			const auto hint_it = clusters.find(coord_hint);
+			if(hint_it == clusters.end()){
+				LOG_EMPERY_CENTER_WARNING("Cluster is gone! coord_hint = ", coord_hint);
+				goto _reselect;
+			}
+			const auto castle_count = count_castles_in_clusters(coord_hint);
+			LOG_EMPERY_CENTER_DEBUG("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
+			if(castle_count >= old_limit){
+				LOG_EMPERY_CENTER_DEBUG("Max number of castles exceeded: castle_count = ", castle_count, ", old_limit = ", old_limit);
+				goto _reselect;
+			}
+			return hint_it;
+		}
+	_reselect:
+		;
+		LOG_EMPERY_CENTER_INFO("Reselecting init cluster server...");
+
+		boost::container::flat_multimap<std::size_t, Coord> clusters_by_castle_count;
+		clusters_by_castle_count.reserve(clusters.size());
+		for(auto it = clusters.begin(); it != clusters.end(); ++it){
+			const auto cluster_coord = it->first;
+			const auto castle_count = count_castles_in_clusters(cluster_coord);
+			LOG_EMPERY_CENTER_INFO("Number of castles on cluster: cluster_coord = ", cluster_coord, ", castle_count = ", castle_count);
+			clusters_by_castle_count.emplace(castle_count, cluster_coord);
+		}
+		const auto limit_max = get_config<std::uint64_t>("cluster_map_castle_limit_max", 700);
+		clusters_by_castle_count.erase(clusters_by_castle_count.lower_bound(limit_max), clusters_by_castle_count.end());
+
+		if(clusters_by_castle_count.empty()){
+			LOG_EMPERY_CENTER_WARNING("No clusters available");
+			return clusters.end();
+		}
+		const auto front_it = clusters_by_castle_count.begin();
+
+		const auto limit_init = get_config<std::uint64_t>("cluster_map_castle_limit_init", 300);
+		auto new_limit = limit_init;
+		if(front_it->first >= limit_init){
+			const auto limit_increment = get_config<std::uint64_t>("cluster_map_castle_limit_increment", 200);
+			new_limit = saturated_add(new_limit, saturated_mul((front_it->first - limit_init) / limit_increment + 1, limit_increment));
+		}
+		LOG_EMPERY_CENTER_DEBUG("Resetting castle limit: old_limit = ", old_limit, ", new_limit = ", new_limit);
+
+		auto limit_str = boost::lexical_cast<std::string>(new_limit);
+		auto x_str     = boost::lexical_cast<std::string>(front_it->second.x());
+		auto y_str     = boost::lexical_cast<std::string>(front_it->second.y());
+		GlobalStatus::set(GlobalStatus::SLOT_INIT_SERVER_LIMIT, std::move(limit_str));
+		GlobalStatus::set(GlobalStatus::SLOT_INIT_SERVER_X,     std::move(x_str));
+		GlobalStatus::set(GlobalStatus::SLOT_INIT_SERVER_Y,     std::move(y_str));
+
+		const auto cluster_coord = front_it->second;
+		LOG_EMPERY_CENTER_DEBUG("Selected cluster server: cluster_coord = ", cluster_coord);
+		const auto hint_it = clusters.find(cluster_coord);
+		return hint_it;
+	};
+
+	auto it = get_cluster_hint();
 	if(it != clusters.end()){
 		goto _use_hint;
 	}
@@ -2520,9 +2614,9 @@ boost::shared_ptr<Castle> WorldMap::create_init_castle(
 _use_hint:
 		const auto cluster_coord = it->first;
 		LOG_EMPERY_CENTER_DEBUG("Trying cluster server: cluster_coord = ", cluster_coord);
-		auto castle = create_init_castle_restricted(factory, cluster_coord);
+		auto castle = place_castle_random_restricted(factory, cluster_coord);
 		if(castle){
-			LOG_EMPERY_CENTER_INFO("Init castle created successfully: map_object_uuid = ", castle->get_map_object_uuid(),
+			LOG_EMPERY_CENTER_INFO("Castle placed successfully: map_object_uuid = ", castle->get_map_object_uuid(),
 				", owner_uuid = ", castle->get_owner_uuid(), ", coord = ", castle->get_coord());
 			castle->check_init_buildings();
 			castle->check_init_resources();

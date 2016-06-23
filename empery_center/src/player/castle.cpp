@@ -1828,17 +1828,18 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
 
-	const auto last_castle_coord = Coord(castle->get_attribute(AttributeIds::ID_CASTLE_LAST_COORD_X),
-	                                     castle->get_attribute(AttributeIds::ID_CASTLE_LAST_COORD_Y));
-	const auto last_cluster = WorldMap::get_cluster(last_castle_coord);
-	if(last_cluster){
-		auto result = can_deploy_castle_at(last_castle_coord, map_object_uuid);
-		if(result.first == Msg::ST_OK){
-			castle->set_coord(last_castle_coord);
-			goto _reactivated;
-		}
-	}
 	{
+		const auto last_castle_coord = Coord(castle->get_attribute(AttributeIds::ID_CASTLE_LAST_COORD_X),
+		                                     castle->get_attribute(AttributeIds::ID_CASTLE_LAST_COORD_Y));
+		const auto last_cluster = WorldMap::get_cluster(last_castle_coord);
+		if(last_cluster){
+			auto result = can_deploy_castle_at(last_castle_coord, map_object_uuid);
+			if(result.first == Msg::ST_OK){
+				castle->set_coord(last_castle_coord);
+				goto _reactivated;
+			}
+		}
+
 		boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
 		WorldMap::get_all_clusters(clusters);
 
@@ -1860,7 +1861,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 		}
 
 		while(!cluster_coords_avail.empty()){
-			const auto new_castle = WorldMap::create_init_castle_restricted(
+			const auto new_castle = WorldMap::place_castle_random_restricted(
 				[&](Coord coord){
 					castle->set_coord(coord);
 					return castle;
@@ -1871,9 +1872,11 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 			}
 			cluster_coords_avail.pop_front();
 		}
+
+		return Response(Msg::ERR_NO_START_POINTS_AVAILABLE);
 	}
-	return Response(Msg::ERR_NO_START_POINTS_AVAILABLE);
 _reactivated:
+	;
 	castle->set_garrisoned(false);
 
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
@@ -1886,6 +1889,45 @@ _reactivated:
 	}
 
 	castle->pump_status();
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleSetName, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+	auto &name = req.name;
+	constexpr std::size_t MAX_NAME_LEN = 31;
+	if(name.size() > MAX_NAME_LEN){
+		return Response(Msg::ERR_NICK_TOO_LONG) <<MAX_NAME_LEN;
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	std::vector<ItemTransactionElement> transaction;
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	const auto first_castle_name_set = account->cast_attribute<bool>(AccountAttributeIds::ID_FIRST_CASTLE_NAME_SET);
+	if(first_castle_name_set){
+		const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_NAME_MODIFICATION_TRADE_ID));
+		const auto trade_data = Data::ItemTrade::require(trade_id);
+		Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+		modifiers[AccountAttributeIds::ID_FIRST_CASTLE_NAME_SET] = "1";
+	}
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{
+			castle->set_name(std::move(name));
+			account->set_attributes(std::move(modifiers));
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
 
 	return Response();
 }

@@ -24,7 +24,7 @@ void ChatMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 
 	const auto from_account_uuid = get_from_account_uuid();
 	if(from_account_uuid){
-		AccountMap::cached_synchronize_account_with_player(from_account_uuid, session);
+		AccountMap::cached_synchronize_account_with_player_all(from_account_uuid, session);
 	}
 
 	presend_chat_message_segments(m_segments, session);
@@ -57,7 +57,7 @@ void presend_chat_message_segments(const std::vector<std::pair<ChatMessageSlotId
 		switch(slot_id.get()){
 		case ChatMessageSlotIds::ID_TAXER.get():
 		case ChatMessageSlotIds::ID_NEW_CASTLE_OWNER.get():
-			AccountMap::cached_synchronize_account_with_player(AccountUuid(value), session);
+			AccountMap::cached_synchronize_account_with_player_all(AccountUuid(value), session);
 			break;
 		}
 	}

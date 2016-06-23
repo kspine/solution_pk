@@ -28,7 +28,7 @@ PLAYER_SERVLET(Msg::CS_TaxRecordGetPagedRecords, account, session, req){
 	msg.begin = req.begin;
 	msg.records.reserve(static_cast<std::size_t>(rend - rbegin));
 	for(auto it = rbegin; it != rend; ++it){
-		AccountMap::cached_synchronize_account_with_player(it->from_account_uuid, session);
+		AccountMap::cached_synchronize_account_with_player_all(it->from_account_uuid, session);
 
 		auto &record = *msg.records.emplace(msg.records.end());
 		record.timestamp         = it->timestamp;

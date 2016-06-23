@@ -33,12 +33,12 @@ struct AccountMap {
 	static void insert(const boost::shared_ptr<Account> &account, const std::string &remote_ip);
 	static void update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists = true);
 
-	static void synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
+	static void synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
 		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept;
 
-	static void cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
+	static void cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
 		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept;
-	static void cached_synchronize_account_with_player(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept;
+	static void cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept;
 
 private:
 	AccountMap() = delete;

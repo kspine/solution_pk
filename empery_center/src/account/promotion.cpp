@@ -13,10 +13,11 @@
 #include "../singletons/simple_http_client_daemon.hpp"
 #include "../account.hpp"
 #include "../checked_arithmetic.hpp"
-#include "../singletons/activation_code_map.hpp"
-#include "../activation_code.hpp"
 #include "../account_attribute_ids.hpp"
 #include "../events/account.hpp"
+#include "../singletons/world_map.hpp"
+#include "../castle.hpp"
+#include "../msg/err_castle.hpp"
 
 namespace EmperyCenter {
 
@@ -88,11 +89,8 @@ namespace {
 				}
 				const auto &cur_nick = elem.at(sslit("nick")).get<std::string>();
 				const auto is_auction_center_enabled = elem.at(sslit("isAuctionCenterEnabled")).get<bool>();
-				const auto has_acceleration_cards = elem.at(sslit("hasAccelerationCards")).get<bool>();
-				const auto has_enough_gold_coins = elem.at(sslit("hasEnoughGoldCoins")).get<bool>();
 				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
-					", cur_level = ", cur_level, ", cur_nick = ", cur_nick, ", is_auction_center_enabled = ", is_auction_center_enabled,
-					", has_acceleration_cards = ", has_acceleration_cards, ", has_enough_gold_coins = ", has_enough_gold_coins);
+					", cur_level = ", cur_level, ", cur_nick = ", cur_nick, ", is_auction_center_enabled = ", is_auction_center_enabled);
 
 				auto account = AccountMap::get_or_reload_by_login_name(g_platform_id, cur_login_name);
 				if(!account){
@@ -110,9 +108,6 @@ namespace {
 					boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 					modifiers.emplace(AccountAttributeIds::ID_AUCTION_CENTER_ENABLED, "1");
 					account->set_attributes(std::move(modifiers));
-				}
-				if(has_acceleration_cards || has_enough_gold_coins){
-					account->activate();
 				}
 				return account;
 			};
@@ -138,7 +133,6 @@ namespace {
 			if(ret != 0){
 				const int err_code = errno;
 				LOG_EMPERY_CENTER_FATAL("::iconv_close() failed: err_code = ", err_code);
-				std::abort();
 			}
 		}
 	};
@@ -453,7 +447,6 @@ ACCOUNT_SERVLET("promotion/reset_password", root, session, params){
 
 ACCOUNT_SERVLET("promotion/activate", root, session, params){
 	const auto &login_name   = params.at("loginName");
-	const auto &code         = params.at("activationCode");
 	const auto &initial_nick = params.get("initialNick");
 
 	const auto account = AccountMap::get_or_reload_by_login_name(g_platform_id, login_name);
@@ -463,10 +456,7 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 	if(account->has_been_activated()){
 		return Response(Msg::ERR_ACCOUNT_ALREADY_ACTIVATED);
 	}
-	const auto activation_code = ActivationCodeMap::get(code);
-	if(!activation_code || activation_code->is_virtually_removed()){
-		return Response(Msg::ERR_ACTIVATION_CODE_DELETED);
-	}
+	const auto account_uuid = account->get_account_uuid();
 
 	if(!initial_nick.empty()){
 		std::vector<boost::shared_ptr<Account>> other_accounts;
@@ -474,7 +464,7 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 		for(auto it = other_accounts.begin(); it != other_accounts.end(); ++it){
 			const auto &other_account = *it;
 			if(other_account != account){
-				LOG_EMPERY_CENTER_DEBUG("Nick conflict: initial_nick = ", initial_nick, ", account_uuid = ", account->get_account_uuid(),
+				LOG_EMPERY_CENTER_DEBUG("Nick conflict: initial_nick = ", initial_nick, ", account_uuid = ", account_uuid,
 					", other_nick = ", other_account->get_nick(), ", other_account_uuid = ", other_account->get_account_uuid());
 				return Response(Msg::ERR_NICK_CONFLICT) <<other_account->get_nick();
 			}
@@ -483,10 +473,21 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 		account->set_nick(initial_nick);
 	}
 
-	const auto utc_now = Poseidon::get_utc_time();
+	auto primary_castle = WorldMap::get_primary_castle(account_uuid);
+	if(!primary_castle){
+		LOG_EMPERY_CENTER_INFO("Creating initial castle: account_uuid = ", account_uuid);
+		primary_castle = WorldMap::place_castle_random(
+			[&](Coord coord){
+				const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
+				const auto utc_now = Poseidon::get_utc_time();
+				return boost::make_shared<Castle>(castle_uuid, account_uuid, MapObjectUuid(), account->get_nick(), coord, utc_now);
+			});
+		if(!primary_castle){
+			return Response(Msg::ERR_NO_START_POINTS_AVAILABLE);
+		}
+	}
 
-	account->activate();
-	activation_code->set_used_by_account(account->get_account_uuid(), utc_now);
+	account->set_activated(true);
 
 	return Response();
 }

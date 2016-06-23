@@ -713,7 +713,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		}
 		const auto owner_uuid = get_owner_uuid();
 		if(owner_uuid){
-			AccountMap::cached_synchronize_account_with_player(owner_uuid, session);
+			AccountMap::cached_synchronize_account_with_player_all(owner_uuid, session);
 		}
 
 		const auto occupier_object_uuid = get_occupier_object_uuid();
@@ -723,7 +723,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		}
 		const auto occupier_owner_uuid = get_occupier_owner_uuid();
 		if(occupier_owner_uuid){
-			AccountMap::cached_synchronize_account_with_player(occupier_owner_uuid, session);
+			AccountMap::cached_synchronize_account_with_player_all(occupier_owner_uuid, session);
 		}
 
 		Msg::SC_MapCellInfo msg;

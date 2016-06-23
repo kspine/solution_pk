@@ -294,11 +294,7 @@ bool MapObject::is_garrisoned() const {
 void MapObject::set_garrisoned(bool garrisoned){
 	PROFILE_ME;
 
-	if(is_garrisoned() == garrisoned){
-		return;
-	}
 	m_obj->set_garrisoned(garrisoned);
-
 	++m_stamp;
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
@@ -637,7 +633,7 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 
 		const auto owner_uuid = get_owner_uuid();
 		if(owner_uuid){
-			AccountMap::cached_synchronize_account_with_player(owner_uuid, session);
+			AccountMap::cached_synchronize_account_with_player_all(owner_uuid, session);
 		}
 
 		Msg::SC_MapObjectInfo msg;

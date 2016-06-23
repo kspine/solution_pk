@@ -87,7 +87,7 @@ namespace {
 	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
 
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
-	AccountMap::synchronize_account_with_player(account_uuid, session, true, true, true, { });
+	AccountMap::synchronize_account_with_player_all(account_uuid, session, true, true, true, { });
 
 	return Response();
 }
@@ -167,13 +167,12 @@ PLAYER_SERVLET(Msg::CS_AccountSetAttribute, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
 	auto &nick = req.nick;
-
-	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
-
 	constexpr std::size_t MAX_NICK_LEN = 31;
 	if(nick.size() > MAX_NICK_LEN){
 		return Response(Msg::ERR_NICK_TOO_LONG) <<MAX_NICK_LEN;
 	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
 	std::vector<boost::shared_ptr<Account>> other_accounts;
 	AccountMap::get_by_nick(other_accounts, nick);
@@ -187,9 +186,9 @@ PLAYER_SERVLET(Msg::CS_AccountSetNick, account, session, req){
 	}
 
 	std::vector<ItemTransactionElement> transaction;
-//	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
-//	const auto trade_data = Data::ItemTrade::require(trade_id);
-//	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{ account->set_nick(std::move(nick)); });
 	if(insuff_item_id){
@@ -209,7 +208,7 @@ PLAYER_SERVLET(Msg::CS_AccountFindByNick, account, session, req){
 		const auto other_account_uuid = other_account->get_account_uuid();
 		const auto other_item_box = ItemBoxMap::require(other_account_uuid);
 
-		AccountMap::synchronize_account_with_player(other_account_uuid, session, true, true, false, other_item_box);
+		AccountMap::synchronize_account_with_player_all(other_account_uuid, session, true, true, false, other_item_box);
 	}
 
 	return Response();
@@ -244,7 +243,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
 			other_item_box = ItemBoxMap::require(other_account_uuid);
 		}
 
-		AccountMap::synchronize_account_with_player(other_account_uuid, session,
+		AccountMap::synchronize_account_with_player_all(other_account_uuid, session,
 			wants_nick, wants_attributes, wants_private_attributes, other_item_box);
 		elem.error_code = Msg::ST_OK;
 	}
@@ -303,6 +302,31 @@ PLAYER_SERVLET(Msg::CS_AccountSynchronizeSystemClock, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_AccountGetWarStatus, account, session, /* req */){
 	WarStatusMap::synchronize_with_player_by_account(session, account->get_account_uuid());
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_AccountSetAvatar, account, session, req){
+	auto &avatar = req.avatar;
+	constexpr std::size_t MAX_AVATAR_LEN = 255;
+	if(avatar.size() > MAX_AVATAR_LEN){
+		return Response(Msg::ERR_ATTR_TOO_LONG) <<MAX_AVATAR_LEN;
+	}
+
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers[AccountAttributeIds::ID_AVATAR] = std::move(avatar);
+
+	std::vector<ItemTransactionElement> transaction;
+	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_NICK_MODIFICATION_TRADE_ID));
+	const auto trade_data = Data::ItemTrade::require(trade_id);
+	Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{ account->set_attributes(std::move(modifiers)); });
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
 
 	return Response();
 }

@@ -14,6 +14,8 @@ namespace MySql {
 	class Center_AccountAttribute;
 }
 
+class PlayerSession;
+
 class Account : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const boost::shared_ptr<MySql::Center_Account> m_obj;
@@ -43,7 +45,7 @@ public:
 	void set_nick(std::string nick);
 
 	bool has_been_activated() const;
-	void activate();
+	void set_activated(bool activated);
 
 	std::uint64_t get_banned_until() const;
 	void set_banned_until(std::uint64_t banned_until);
@@ -63,7 +65,20 @@ public:
 		}
 		return boost::lexical_cast<T>(str);
 	}
+
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
+
+inline void synchronize_account_with_player(const boost::shared_ptr<const Account> &account,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	account->synchronize_with_player(session);
+}
+inline void synchronize_account_with_player(const boost::shared_ptr<Account> &account,
+	const boost::shared_ptr<PlayerSession> &session)
+{
+	account->synchronize_with_player(session);
+}
 
 }
 

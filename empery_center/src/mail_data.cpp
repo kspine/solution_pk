@@ -166,7 +166,7 @@ void MailData::synchronize_with_player(const boost::shared_ptr<PlayerSession> &s
 
 	const auto from_account_uuid = get_from_account_uuid();
 	if(from_account_uuid){
-		AccountMap::cached_synchronize_account_with_player(from_account_uuid, session);
+		AccountMap::cached_synchronize_account_with_player_all(from_account_uuid, session);
 	}
 
 	presend_chat_message_segments(m_segments, session);

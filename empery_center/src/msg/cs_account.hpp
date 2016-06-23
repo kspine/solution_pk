@@ -61,6 +61,12 @@ namespace Msg {
 	//
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_AccountSetAvatar
+#define MESSAGE_ID      208
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (avatar)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

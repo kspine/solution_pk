@@ -156,8 +156,6 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 			", level = ", level, ", item_count = ", item_count);
 		const auto unit_price = g_level_prices.at(level);
 		taxing_amount = checked_mul(unit_price, item_count);
-
-		account->activate();
 	}
 
 	ChatMessageTypeId type;

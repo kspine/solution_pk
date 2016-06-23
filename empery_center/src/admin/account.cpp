@@ -157,19 +157,6 @@ ADMIN_SERVLET("account/set_nick", root, session, params){
 	return Response();
 }
 
-ADMIN_SERVLET("account/activate", root, session, params){
-	const auto account_uuid = AccountUuid(params.at("account_uuid"));
-
-	const auto account = AccountMap::get(account_uuid);
-	if(!account){
-		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
-	}
-
-	account->activate();
-
-	return Response();
-}
-
 ADMIN_SERVLET("account/get_banned", root, session, params){
 	const auto &begin_str = params.get("begin");
 	const auto &count_str = params.get("count");

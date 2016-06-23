@@ -30,7 +30,7 @@ PLAYER_SERVLET(Msg::CS_BattleRecordGetPagedRecords, account, session, req){
 	msg.records.reserve(static_cast<std::size_t>(rend - rbegin));
 	for(auto it = rbegin; it != rend; ++it){
 		if(it->second_account_uuid){
-			AccountMap::cached_synchronize_account_with_player(it->second_account_uuid, session);
+			AccountMap::cached_synchronize_account_with_player_all(it->second_account_uuid, session);
 		}
 
 		auto &record = *msg.records.emplace(msg.records.end());

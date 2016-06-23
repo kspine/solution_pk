@@ -48,6 +48,8 @@ struct WorldMap {
 	static void forced_reload_map_objects_by_parent_object(MapObjectUuid parent_object_uuid);
 	static void get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid);
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
+
+	static boost::shared_ptr<Castle> get_primary_castle(AccountUuid owner_uuid);
 	static boost::shared_ptr<Castle> require_primary_castle(AccountUuid owner_uuid);
 
 	// Overlay
@@ -96,11 +98,11 @@ struct WorldMap {
 
 	// 出生点
 	// 限定在指定小地图内。
-	static boost::shared_ptr<Castle> create_init_castle_restricted(
+	static boost::shared_ptr<Castle> place_castle_random_restricted(
 		const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint);
 	// 如果指定小地图放满，就放别处。
-	static boost::shared_ptr<Castle> create_init_castle(
-		const boost::function<boost::shared_ptr<Castle> (Coord)> &factory, Coord coord_hint);
+	static boost::shared_ptr<Castle> place_castle_random(
+		const boost::function<boost::shared_ptr<Castle> (Coord)> &factory);
 
 private:
 	WorldMap() = delete;

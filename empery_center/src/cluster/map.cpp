@@ -440,7 +440,7 @@ namespace {
 			const auto utc_now = Poseidon::get_utc_time();
 
 			if(other_account_uuid){
-				AccountMap::cached_synchronize_account_with_player(other_account_uuid, session);
+				AccountMap::cached_synchronize_account_with_player_all(other_account_uuid, session);
 			}
 
 			Msg::SC_BattleRecordNotification msg;
