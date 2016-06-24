@@ -105,7 +105,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/chat_box.cpp	\
 	src/chat_message.cpp	\
 	src/announcement.cpp	\
-	src/overlay.cpp	\
 	src/auction_center.cpp	\
 	src/payment_transaction.cpp	\
 	src/auction_transaction.cpp	\
