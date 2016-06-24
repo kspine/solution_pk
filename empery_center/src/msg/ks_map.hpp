@@ -32,7 +32,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
-*/
+
 #define MESSAGE_NAME    KS_MapHarvestOverlay
 #define MESSAGE_ID      32303
 #define MESSAGE_FIELDS  \
@@ -40,7 +40,7 @@ namespace Msg {
 	FIELD_VUINT         (interval)	\
 	FIELD_VUINT         (forced_attack)
 #include <poseidon/cbpp/message_generator.hpp>
-/*
+
 #define MESSAGE_NAME    KS_MapDeployImmigrants
 #define MESSAGE_ID      32304
 #define MESSAGE_FIELDS  \

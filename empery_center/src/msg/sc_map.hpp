@@ -96,7 +96,7 @@ namespace Msg {
 		FIELD_STRING        (map_object_uuid)   \
 	)
 #include <poseidon/cbpp/message_generator.hpp>
-
+/*
 #define MESSAGE_NAME    SC_MapOverlayInfo
 #define MESSAGE_ID      393
 #define MESSAGE_FIELDS  \
@@ -119,7 +119,7 @@ namespace Msg {
 	FIELD_VINT          (coord_hint_x)	\
 	FIELD_VINT          (coord_hint_y)
 #include <poseidon/cbpp/message_generator.hpp>
-
+*/
 #define MESSAGE_NAME    SC_MapObjectStopped
 #define MESSAGE_ID      391
 #define MESSAGE_FIELDS  \

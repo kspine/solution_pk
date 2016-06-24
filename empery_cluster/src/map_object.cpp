@@ -173,13 +173,13 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 	}
-*/	ON_ACTION(ACT_HARVEST_OVERLAY){
+	ON_ACTION(ACT_HARVEST_OVERLAY){
 		return on_action_harvest_overplay(result,now);
 	}
 	ON_ACTION(ACT_HARVEST_OVERLAY_FORCE){
 		return on_action_harvest_overplay(result,now,true);
 	}
-	ON_ACTION(ACT_ENTER_CASTLE){
+*/	ON_ACTION(ACT_ENTER_CASTLE){
 		const auto cluster = get_cluster();
 		if(!cluster){
 			break;
@@ -1424,8 +1424,8 @@ boost::shared_ptr<ResourceCrate> MapObject::get_attack_resouce_crate(){
 	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
 	return target_resource_crate;
 }
-
-std::uint64_t MapObject::on_action_harvest_overplay(std::pair<long, std::string> &result, std::uint64_t /*now*/,bool forced_attack){
+/*
+std::uint64_t MapObject::on_action_harvest_overplay(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
 	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
 	const auto cluster = get_cluster();
 	if(!cluster){
@@ -1444,7 +1444,7 @@ std::uint64_t MapObject::on_action_harvest_overplay(std::pair<long, std::string>
 		return UINT64_MAX;
 	}
 	return harvest_interval;
-}
+}*/
 std::uint64_t MapObject::on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t /*now*/,bool forced_attack){
 	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
 	const auto cluster = get_cluster();

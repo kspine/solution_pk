@@ -198,7 +198,7 @@ namespace IdTypes {
 	using ChatMessageSlotId         = GenericId<std::uint32_t, 110008>;
 
 	using TerrainId                 = GenericId<std::uint32_t, 120001>;
-	using OverlayId                 = GenericId<std::uint32_t, 120002>;
+	//
 	using ResourceId                = GenericId<std::uint32_t, 120003>;
 	using MapObjectTypeId           = GenericId<std::uint32_t, 120004>;
 	using AttributeId               = GenericId<std::uint32_t, 120005>;

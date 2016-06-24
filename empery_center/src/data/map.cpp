@@ -11,7 +11,6 @@ namespace EmperyCenter {
 namespace {
 	MULTI_INDEX_MAP(BasicMap, Data::MapCellBasic,
 		UNIQUE_MEMBER_INDEX(map_coord)
-		MULTI_MEMBER_INDEX(overlay_group_name)
 	)
 	boost::weak_ptr<const BasicMap> g_basic_map;
 	const char BASIC_FILE[] = "map";
@@ -27,12 +26,6 @@ namespace {
 	)
 	boost::weak_ptr<const TerrainMap> g_terrain_map;
 	const char TERRAIN_FILE[] = "Territory_product";
-
-	MULTI_INDEX_MAP(OverlayMap, Data::MapOverlay,
-		UNIQUE_MEMBER_INDEX(overlay_id)
-	)
-	boost::weak_ptr<const OverlayMap> g_overlay_map;
-	const char OVERLAY_FILE[] = "remove";
 
 	MULTI_INDEX_MAP(StartPointMap, Data::MapStartPoint,
 		UNIQUE_MEMBER_INDEX(start_point_id)
@@ -123,8 +116,6 @@ namespace {
 			elem.map_coord = std::make_pair(x, y);
 
 			csv.get(elem.terrain_id,         "property_id");
-			csv.get(elem.overlay_id,         "remove_id");
-			csv.get(elem.overlay_group_name, "group_id");
 
 			if(!basic_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellBasic: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);
@@ -180,26 +171,6 @@ namespace {
 		g_terrain_map = terrain_map;
 		handles.push(terrain_map);
 		servlet = DataSession::create_servlet(TERRAIN_FILE, Data::encode_csv_as_json(csv, "territory_id"));
-		handles.push(std::move(servlet));
-
-		csv = Data::sync_load_data(OVERLAY_FILE);
-		const auto overlay_map = boost::make_shared<OverlayMap>();
-		while(csv.fetch_row()){
-			Data::MapOverlay elem = { };
-
-			csv.get(elem.overlay_id,             "remove_id");
-
-			csv.get(elem.reward_resource_id,     "product");
-			csv.get(elem.reward_resource_amount, "number");
-
-			if(!overlay_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapOverlay: overlay_id = ", elem.overlay_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapOverlay"));
-			}
-		}
-		g_overlay_map = overlay_map;
-		handles.push(overlay_map);
-		servlet = DataSession::create_servlet(OVERLAY_FILE, Data::encode_csv_as_json(csv, "remove_id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(START_POINT_FILE);
@@ -356,36 +327,6 @@ namespace Data {
 		return ret;
 	}
 
-	void MapCellBasic::get_unique_overlay_groups(boost::container::flat_set<std::string> &ret){
-		PROFILE_ME;
-
-		const auto basic_map = g_basic_map.lock();
-		if(!basic_map){
-			LOG_EMPERY_CENTER_WARNING("MapCellBasicMap has not been loaded.");
-			return;
-		}
-
-		ret.reserve(ret.size() + basic_map->size() / 5);
-		for(auto it = basic_map->begin<1>(); it != basic_map->end<1>(); it = basic_map->upper_bound<1>(it->overlay_group_name)){
-			ret.insert(it->overlay_group_name);
-		}
-	}
-	void MapCellBasic::get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group_name){
-		PROFILE_ME;
-
-		const auto basic_map = g_basic_map.lock();
-		if(!basic_map){
-			LOG_EMPERY_CENTER_WARNING("MapCellBasicMap has not been loaded.");
-			return;
-		}
-
-		const auto range = basic_map->equal_range<1>(overlay_group_name);
-		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-		for(auto it = range.first; it != range.second; ++it){
-			ret.emplace_back(basic_map, &*it);
-		}
-	}
-
 	boost::shared_ptr<const MapCellTicket> MapCellTicket::get(ItemId ticket_item_id){
 		PROFILE_ME;
 
@@ -436,33 +377,6 @@ namespace Data {
 		if(!ret){
 			LOG_EMPERY_CENTER_WARNING("MapTerrain not found: terrain_id = ", terrain_id);
 			DEBUG_THROW(Exception, sslit("MapTerrain not found"));
-		}
-		return ret;
-	}
-
-	boost::shared_ptr<const MapOverlay> MapOverlay::get(OverlayId overlay_id){
-		PROFILE_ME;
-
-		const auto overlay_map = g_overlay_map.lock();
-		if(!overlay_map){
-			LOG_EMPERY_CENTER_WARNING("MapOverlayMap has not been loaded.");
-			return { };
-		}
-
-		const auto it = overlay_map->find<0>(overlay_id);
-		if(it == overlay_map->end<0>()){
-			LOG_EMPERY_CENTER_TRACE("MapOverlay not found: overlay_id = ", overlay_id);
-			return { };
-		}
-		return boost::shared_ptr<const MapOverlay>(overlay_map, &*it);
-	}
-	boost::shared_ptr<const MapOverlay> MapOverlay::require(OverlayId overlay_id){
-		PROFILE_ME;
-
-		auto ret = get(overlay_id);
-		if(!ret){
-			LOG_EMPERY_CENTER_WARNING("MapOverlay not found: overlay_id = ", overlay_id);
-			DEBUG_THROW(Exception, sslit("MapOverlay not found"));
 		}
 		return ret;
 	}

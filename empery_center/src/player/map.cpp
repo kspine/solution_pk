@@ -24,7 +24,6 @@
 #include "../item_ids.hpp"
 #include "../reason_ids.hpp"
 #include "../data/global.hpp"
-#include "../overlay.hpp"
 #include "../map_object_type_ids.hpp"
 #include "../attribute_ids.hpp"
 #include "../singletons/task_box_map.hpp"
@@ -242,15 +241,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	}
 	if(map_cell->get_owner_uuid()){
 		return Response(Msg::ERR_MAP_CELL_ALREADY_HAS_AN_OWNER) <<map_cell->get_owner_uuid();
-	}
-
-	std::vector<boost::shared_ptr<Overlay>> overlays;
-	WorldMap::get_overlays_by_rectangle(overlays, Rectangle(coord, 1, 1));
-	for(auto it = overlays.begin(); it != overlays.end(); ++it){
-		const auto &overlay = *it;
-		if(!overlay->is_virtually_removed()){
-			return Response(Msg::ERR_UNPURCHASABLE_WITH_OVERLAY) <<coord;
-		}
 	}
 
 	std::vector<ResourceTransactionElement> resource_transaction;

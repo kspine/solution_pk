@@ -13,14 +13,9 @@ namespace Data {
 		static boost::shared_ptr<const MapCellBasic> get(unsigned map_x, unsigned map_y);
 		static boost::shared_ptr<const MapCellBasic> require(unsigned map_x, unsigned map_y);
 
-		static void get_unique_overlay_groups(boost::container::flat_set<std::string> &ret);
-		static void get_by_overlay_group(std::vector<boost::shared_ptr<const MapCellBasic>> &ret, const std::string &overlay_group_name);
-
 	public:
 		std::pair<unsigned, unsigned> map_coord;
 		TerrainId terrain_id;
-		OverlayId overlay_id;
-		std::string overlay_group_name;
 	};
 
 	class MapCellTicket {
@@ -50,17 +45,6 @@ namespace Data {
 		bool buildable;
 		bool passable;
 		std::uint64_t protection_cost;
-	};
-
-	class MapOverlay {
-	public:
-		static boost::shared_ptr<const MapOverlay> get(OverlayId overlay_id);
-		static boost::shared_ptr<const MapOverlay> require(OverlayId overlay_id);
-
-	public:
-		OverlayId overlay_id;
-		ResourceId reward_resource_id;
-		std::uint64_t reward_resource_amount;
 	};
 
 	class MapStartPoint {

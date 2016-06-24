@@ -14,7 +14,6 @@ namespace EmperyCenter {
 
 class MapCell;
 class MapObject;
-class Overlay;
 class StrategicResource;
 class MapEventBlock;
 class ResourceCrate;
@@ -51,14 +50,6 @@ struct WorldMap {
 
 	static boost::shared_ptr<Castle> get_primary_castle(AccountUuid owner_uuid);
 	static boost::shared_ptr<Castle> require_primary_castle(AccountUuid owner_uuid);
-
-	// Overlay
-	static boost::shared_ptr<Overlay> get_overlay(Coord cluster_coord, const std::string &overlay_group_name);
-	static boost::shared_ptr<Overlay> require_overlay(Coord cluster_coord, const std::string &overlay_group_name);
-	static void insert_overlay(const boost::shared_ptr<Overlay> &overlay);
-	static void update_overlay(const boost::shared_ptr<Overlay> &overlay, bool throws_if_not_exists = true);
-
-	static void get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle);
 
 	// StrategicResource
 	static boost::shared_ptr<StrategicResource> get_strategic_resource(Coord coord);

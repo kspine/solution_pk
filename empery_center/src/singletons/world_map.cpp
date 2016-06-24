@@ -22,8 +22,6 @@
 #include "../mysql/castle.hpp"
 #include "../defense_building.hpp"
 #include "../castle.hpp"
-#include "../overlay.hpp"
-#include "../mysql/overlay.hpp"
 #include "../strategic_resource.hpp"
 #include "../mysql/strategic_resource.hpp"
 #include "../resource_crate.hpp"
@@ -295,24 +293,6 @@ namespace {
 		}
 	}
 
-	struct OverlayElement {
-		boost::shared_ptr<Overlay> overlay;
-
-		std::pair<Coord, SharedNts> cluster_coord_group_name;
-
-		explicit OverlayElement(boost::shared_ptr<Overlay> overlay_)
-			: overlay(std::move(overlay_))
-			, cluster_coord_group_name(overlay->get_cluster_coord(), SharedNts(overlay->get_overlay_group_name()))
-		{
-		}
-	};
-
-	MULTI_INDEX_MAP(OverlayContainer, OverlayElement,
-		UNIQUE_MEMBER_INDEX(cluster_coord_group_name)
-	)
-
-	boost::weak_ptr<OverlayContainer> g_overlay_map;
-
 	struct StrategicResourceElement {
 		boost::shared_ptr<StrategicResource> strategic_resource;
 
@@ -512,10 +492,6 @@ namespace {
 		const auto map_object_map = boost::make_shared<MapObjectContainer>();
 		g_map_object_map = map_object_map;
 		handles.push(map_object_map);
-
-		const auto overlay_map = boost::make_shared<OverlayContainer>();
-		g_overlay_map = overlay_map;
-		handles.push(overlay_map);
 
 		const auto strategic_resource_map = boost::make_shared<StrategicResourceContainer>();
 		g_strategic_resource_map = strategic_resource_map;
@@ -1470,142 +1446,6 @@ boost::shared_ptr<Castle> WorldMap::require_primary_castle(AccountUuid owner_uui
 	return ret;
 }
 
-boost::shared_ptr<Overlay> WorldMap::get_overlay(Coord cluster_coord, const std::string &overlay_group_name){
-	PROFILE_ME;
-
-	const auto overlay_map = g_overlay_map.lock();
-	if(!overlay_map){
-		LOG_EMPERY_CENTER_WARNING("Overlay map not loaded.");
-		return { };
-	}
-
-	const auto it = overlay_map->find<0>(std::make_pair(cluster_coord, SharedNts::view(overlay_group_name.c_str())));
-	if(it == overlay_map->end<0>()){
-		LOG_EMPERY_CENTER_TRACE("Overlay not found: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
-		return { };
-	}
-	return it->overlay;
-}
-boost::shared_ptr<Overlay> WorldMap::require_overlay(Coord cluster_coord, const std::string &overlay_group_name){
-	PROFILE_ME;
-
-	auto ret = get_overlay(cluster_coord, overlay_group_name);
-	if(!ret){
-		LOG_EMPERY_CENTER_WARNING("Overlay not found: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
-		DEBUG_THROW(Exception, sslit("Overlay not found"));
-	}
-	return ret;
-}
-void WorldMap::insert_overlay(const boost::shared_ptr<Overlay> &overlay){
-	PROFILE_ME;
-
-	const auto overlay_map = g_overlay_map.lock();
-	if(!overlay_map){
-		LOG_EMPERY_CENTER_WARNING("Overlay map not loaded.");
-		DEBUG_THROW(Exception, sslit("Overlay map not loaded"));
-	}
-
-	const auto cluster_coord = overlay->get_cluster_coord();
-	const auto &overlay_group_name = overlay->get_overlay_group_name();
-
-	std::vector<boost::shared_ptr<const Data::MapCellBasic>> basic_data_elements;
-	Data::MapCellBasic::get_by_overlay_group(basic_data_elements, overlay_group_name);
-	if(basic_data_elements.empty()){
-		LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", overlay_group_name);
-		DEBUG_THROW(Exception, sslit("Overlay group not found"));
-	}
-	std::uint64_t sum_x = 0, sum_y = 0;
-	for(auto it = basic_data_elements.begin(); it != basic_data_elements.end(); ++it){
-		const auto &basic_data = *it;
-		sum_x += basic_data->map_coord.first;
-		sum_y += basic_data->map_coord.second;
-	}
-	const auto coord = Coord(cluster_coord.x() + static_cast<std::int64_t>(sum_x / basic_data_elements.size()),
-	                         cluster_coord.y() + static_cast<std::int64_t>(sum_y / basic_data_elements.size()));
-
-	LOG_EMPERY_CENTER_TRACE("Inserting overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
-	const auto result = overlay_map->insert(OverlayElement(overlay));
-	if(!result.second){
-		LOG_EMPERY_CENTER_WARNING("Overlay already exists: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
-		DEBUG_THROW(Exception, sslit("Overlay already exists"));
-	}
-
-	synchronize_with_all_players(overlay, coord, coord, { });
-}
-void WorldMap::update_overlay(const boost::shared_ptr<Overlay> &overlay, bool throws_if_not_exists){
-	PROFILE_ME;
-
-	const auto overlay_map = g_overlay_map.lock();
-	if(!overlay_map){
-		LOG_EMPERY_CENTER_WARNING("Overlay map not loaded.");
-		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Overlay map not loaded"));
-		}
-		return;
-	}
-
-	const auto cluster_coord = overlay->get_cluster_coord();
-	const auto &overlay_group_name = overlay->get_overlay_group_name();
-
-	std::vector<boost::shared_ptr<const Data::MapCellBasic>> basic_data_elements;
-	Data::MapCellBasic::get_by_overlay_group(basic_data_elements, overlay_group_name);
-	if(basic_data_elements.empty()){
-		LOG_EMPERY_CENTER_ERROR("Overlay group not found: overlay_group_name = ", overlay_group_name);
-		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Overlay group not found"));
-		}
-		return;
-	}
-	std::uint64_t sum_x = 0, sum_y = 0;
-	for(auto it = basic_data_elements.begin(); it != basic_data_elements.end(); ++it){
-		const auto &basic_data = *it;
-		sum_x += basic_data->map_coord.first;
-		sum_y += basic_data->map_coord.second;
-	}
-	const auto coord = Coord(cluster_coord.x() + static_cast<std::int64_t>(sum_x / basic_data_elements.size()),
-	                         cluster_coord.y() + static_cast<std::int64_t>(sum_y / basic_data_elements.size()));
-
-	const auto it = overlay_map->find<0>(std::make_pair(cluster_coord, SharedNts::view(overlay_group_name.c_str())));
-	if(it == overlay_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Overlay not found: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
-		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Overlay not found"));
-		}
-		return;
-	}
-
-	LOG_EMPERY_CENTER_DEBUG("Updating overlay: cluster_coord = ", cluster_coord, ", overlay_group_name = ", overlay_group_name);
-	if(overlay->is_virtually_removed()){
-		overlay_map->erase<0>(it);
-	} else {
-		overlay_map->replace<0>(it, OverlayElement(overlay));
-	}
-
-	synchronize_with_all_players(overlay, coord, coord, { });
-}
-
-void WorldMap::get_overlays_by_rectangle(std::vector<boost::shared_ptr<Overlay>> &ret, Rectangle rectangle){
-	PROFILE_ME;
-
-	boost::container::flat_set<boost::shared_ptr<Overlay>> temp;
-	for(auto x = rectangle.left(); x < rectangle.right(); ++x){
-		for(auto y = rectangle.bottom(); y < rectangle.top(); ++y){
-			const auto cluster_coord = get_cluster_coord_from_world_coord(Coord(x, y));
-			const auto map_x = static_cast<unsigned>(x - cluster_coord.x());
-			const auto map_y = static_cast<unsigned>(y - cluster_coord.y());
-			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
-			if(!basic_data->overlay_group_name.empty()){
-				auto overlay = get_overlay(cluster_coord, basic_data->overlay_group_name);
-				if(overlay){
-					temp.insert(std::move(overlay));
-				}
-			}
-		}
-	}
-	ret.reserve(ret.size() + temp.size());
-	std::move(temp.begin(), temp.end(), std::back_inserter(ret));
-}
-
 boost::shared_ptr<StrategicResource> WorldMap::get_strategic_resource(Coord coord){
 	PROFILE_ME;
 
@@ -2004,16 +1844,6 @@ try {
 		synchronize_map_object_with_player(map_object, session);
 	}
 
-	std::vector<boost::shared_ptr<Overlay>> overlays;
-	get_overlays_by_rectangle(overlays, view);
-	for(auto it = overlays.begin(); it != overlays.end(); ++it){
-		const auto &overlay = *it;
-		if(overlay->is_virtually_removed()){
-			continue;
-		}
-		synchronize_overlay_with_player(overlay, session);
-	}
-
 	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
 	get_strategic_resources_by_rectangle(strategic_resources, view);
 	for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
@@ -2206,81 +2036,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 			} CONCURRENT_LOAD_END;
 		}
 	}
-/*
-	ASYNC_LOAD_BEGIN {
-		LOG_EMPERY_CENTER_INFO("Loading overlays: scope = ", scope);
 
-		const auto overlay_map = g_overlay_map.lock();
-		if(!overlay_map){
-			LOG_EMPERY_CENTER_WARNING("Overlay map not loaded.");
-			return;
-		}
-
-		// FIXME: make_shared
-		std::vector<boost::shared_ptr<MySql::Center_Overlay>> map_overlay_sink;
-		{
-			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_Overlay` WHERE `cluster_x` = " <<cluster_coord.x() <<" AND `cluster_y` = " << cluster_coord.y();
-			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[&](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-					auto obj = boost::make_shared<EmperyCenter::MySql::Center_Overlay>();
-					obj->fetch(conn);
-					obj->enable_auto_saving();
-					map_overlay_sink.emplace_back(std::move(obj));
-				}, "Center_Overlay", oss.str());
-			Poseidon::JobDispatcher::yield(promise, true);
-		}
-
-		boost::container::flat_set<std::string> overlay_groups_new;
-		Data::MapCellBasic::get_unique_overlay_groups(overlay_groups_new);
-		LOG_EMPERY_CENTER_DEBUG("?!> Number of initial overlays: ", overlay_groups_new.size());
-
-		for(const auto &obj : map_overlay_sink){
-			auto overlay = boost::make_shared<Overlay>(obj);
-			const auto &overlay_group_name = overlay->get_overlay_group_name();
-
-			overlay_groups_new.erase(overlay_group_name);
-
-			const auto elem = OverlayElement(std::move(overlay));
-			const auto result = overlay_map->insert(elem);
-			if(!result.second){
-				overlay_map->replace(result.first, elem);
-			}
-
-			LOG_EMPERY_CENTER_TRACE("Successfully reloaded overlay: overlay_group_name = ", overlay_group_name);
-		}
-
-		LOG_EMPERY_CENTER_DEBUG("?!> Number of overlays to create: ", overlay_groups_new.size());
-		std::vector<boost::shared_ptr<const Data::MapCellBasic>> map_cell_data_all;
-		for(const auto &overlay_group_name : overlay_groups_new){
-			boost::shared_ptr<const Data::MapOverlay> overlay_data;
-			std::uint64_t resource_amount = 0;
-
-			map_cell_data_all.clear();
-			Data::MapCellBasic::get_by_overlay_group(map_cell_data_all, overlay_group_name);
-			for(const auto &basic_data : map_cell_data_all){
-				const auto overlay_id = basic_data->overlay_id;
-				if(!overlay_id){
-					continue;
-				}
-				overlay_data = Data::MapOverlay::require(overlay_id);
-				resource_amount = checked_add(resource_amount, overlay_data->reward_resource_amount);
-			}
-			if(!overlay_data){
-				LOG_EMPERY_CENTER_WARNING("No map cells in overlay group: overlay_group_name = ", overlay_group_name);
-				continue;
-			}
-
-			auto overlay = boost::make_shared<Overlay>(cluster_coord, overlay_group_name,
-				overlay_data->overlay_id, overlay_data->reward_resource_id, resource_amount);
-			const auto elem = OverlayElement(std::move(overlay));
-			const auto result = overlay_map->insert(elem);
-			if(!result.second){
-				overlay_map->replace(result.first, elem);
-			}
-		}
-	} ASYNC_LOAD_END;
-*/
 	const auto strategic_resource_map = g_strategic_resource_map.lock();
 	if(strategic_resource_map){
 		LOG_EMPERY_CENTER_INFO("Loading strategic resources: scope = ", scope);
