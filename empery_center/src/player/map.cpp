@@ -348,7 +348,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	if((protection_info.duration != 0) && !old_ticket_data->protectable && new_ticket_data->protectable){
 		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
-		const auto days = checked_add<std::uint64_t>(protection_duration, 86400 - 1) / 86400;
+		const auto days = checked_add<std::uint64_t>(protection_duration, 86400000 - 1) / 86400000;
 
 		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(parent_object_uuid.get()[0]));
 
