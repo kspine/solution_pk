@@ -8,24 +8,13 @@
 #include "id_types.hpp"
 #include "coord.hpp"
 #include "data/map_object.hpp"
+#include "ai_control.hpp"
 
 namespace EmperyCluster {
 
 class MapObject;
 class ResourceCrate;
 class MapCell;
-class AiControl{
-public:
-	AiControl(boost::weak_ptr<MapObject> parent);
-public:
-	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
-	void          troops_attack(boost::shared_ptr<MapObject> target,bool passive = false);
-	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
-	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
-	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
-private:
-	boost::weak_ptr<MapObject> m_parent_object;
-};
 
 class ClusterClient;
 
