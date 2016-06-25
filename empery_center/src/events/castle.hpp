@@ -72,6 +72,23 @@ namespace Events {
 		{
 		}
 	};
+
+	struct CastleProtection : public Poseidon::EventBase<340304> {
+		MapObjectUuid map_object_uuid;
+		AccountUuid owner_uuid;
+		std::uint64_t delta_preparation_duration;
+		std::uint64_t delta_protection_duration;
+		std::uint64_t protection_end;
+
+		CastleProtection(MapObjectUuid map_object_uuid_, AccountUuid owner_uuid_,
+			std::uint64_t delta_preparation_duration_, std::uint64_t delta_protection_duration_,
+			std::uint64_t protection_end_)
+			: map_object_uuid(map_object_uuid_), owner_uuid(owner_uuid_)
+			, delta_preparation_duration(delta_preparation_duration_), delta_protection_duration(delta_protection_duration_)
+			, protection_end(protection_end_)
+		{
+		}
+	};
 }
 
 }

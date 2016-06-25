@@ -37,6 +37,7 @@
 #include "../singletons/auction_center_map.hpp"
 #include "../data/map.hpp"
 #include "../resource_ids.hpp"
+#include "../events/castle.hpp"
 
 namespace EmperyCenter {
 
@@ -1723,6 +1724,12 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
+	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
+	Poseidon::async_raise_event(
+		boost::make_shared<Events::CastleProtection>(
+			map_object_uuid, castle->get_owner_uuid(), delta_preparation_duration, delta_protection_duration, protection_info.time_end)
+		);
+
 	return Response();
 }
 
@@ -1807,6 +1814,11 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
 			}
 		});
+
+	Poseidon::async_raise_event(
+		boost::make_shared<Events::CastleProtection>(
+			map_object_uuid, castle->get_owner_uuid(), 0, 0, 0)
+		);
 
 	return Response();
 }
