@@ -1037,17 +1037,10 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
 
-	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
+	const auto attacked_account_uuid = attacked_cell->get_virtual_owner_uuid();
 
-	const auto occupier_owner_uuid = attacked_cell->get_occupier_owner_uuid();
-	if(occupier_owner_uuid){
-		if(attacking_account_uuid == occupier_owner_uuid){
-			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
-		}
-	} else {
-		if(attacking_account_uuid == attacked_account_uuid){
-			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
-		}
+	if(attacking_account_uuid == attacked_account_uuid){
+		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
 
 	auto result = is_under_protection(attacking_object, attacked_cell);
