@@ -650,7 +650,7 @@ namespace {
 		}
 		g_tech_map = tech_map;
 		handles.push(tech_map);
-		servlet = DataSession::create_servlet(TECH_FILE, Data::encode_csv_as_json(csv, "tech_id_level"));
+		servlet = DataSession::create_servlet(TECH_FILE, Data::encode_csv_as_json(csv, "tech_level_id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(RESOURCE_FILE);
