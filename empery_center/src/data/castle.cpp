@@ -577,7 +577,7 @@ namespace {
 			Data::CastleTech elem = { };
 
 			Poseidon::JsonArray array;
-			csv.get(array, "tech_id_level");
+			csv.get(array, "tech_level_id");
 			elem.tech_id_level.first = TechId(array.at(0).get<double>());
 			elem.tech_id_level.second = array.at(1).get<double>();
 
@@ -600,8 +600,8 @@ namespace {
 			elem.prerequisite.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				const auto building_id = boost::lexical_cast<BuildingId>(it->first);
-				const auto building_level = static_cast<unsigned>(it->second.get<double>());
-				if(!elem.prerequisite.emplace(building_id, building_level).second){
+				const auto level = static_cast<unsigned>(it->second.get<double>());
+				if(!elem.prerequisite.emplace(building_id, level).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate prerequisite: building_id = ", building_id);
 					DEBUG_THROW(Exception, sslit("Duplicate prerequisite"));
 				}
@@ -612,10 +612,22 @@ namespace {
 			elem.display_prerequisite.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				const auto building_id = boost::lexical_cast<BuildingId>(it->first);
-				const auto building_level = static_cast<unsigned>(it->second.get<double>());
-				if(!elem.display_prerequisite.emplace(building_id, building_level).second){
+				const auto level = static_cast<unsigned>(it->second.get<double>());
+				if(!elem.display_prerequisite.emplace(building_id, level).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate display prerequisite: building_id = ", building_id);
 					DEBUG_THROW(Exception, sslit("Duplicate display prerequisite"));
+				}
+			}
+
+			object.clear();
+			csv.get(object, "level_need");
+			elem.tech_prerequisite.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto tech_id = boost::lexical_cast<TechId>(it->first);
+				const auto level = static_cast<unsigned>(it->second.get<double>());
+				if(!elem.tech_prerequisite.emplace(tech_id, level).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate tech prerequisite: tech_id = ", tech_id);
+					DEBUG_THROW(Exception, sslit("Duplicate tech prerequisite"));
 				}
 			}
 
