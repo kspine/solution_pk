@@ -85,17 +85,17 @@ boost::shared_ptr<AuctionCenter> AuctionCenterMap::get(AccountUuid account_uuid)
 		return { };
 	}
 
-	if(!AccountMap::is_holding_controller_token(account_uuid)){
-		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
-		return { };
-	}
-
 	auto it = auction_center_map->find<0>(account_uuid);
 	if(it == auction_center_map->end<0>()){
 		it = auction_center_map->insert<0>(it, AuctionCenterElement(account_uuid, 0));
 	}
 	if(!it->auction_center){
 		LOG_EMPERY_CENTER_DEBUG("Loading auction center: account_uuid = ", account_uuid);
+
+		if(!AccountMap::is_holding_controller_token(account_uuid)){
+			LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+			return { };
+		}
 
 		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
 		do {

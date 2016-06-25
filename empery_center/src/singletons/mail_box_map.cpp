@@ -160,16 +160,16 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		}
 	}
 
-	if(!AccountMap::is_holding_controller_token(account_uuid)){
-		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
-		return { };
-	}
-
 	auto it = mail_box_map->find<0>(account_uuid);
 	if(it == mail_box_map->end<0>()){
 		it = mail_box_map->insert<0>(it, MailBoxElement(account_uuid, 0));
 	}
 	if(!it->mail_box){
+		if(!AccountMap::is_holding_controller_token(account_uuid)){
+			LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+			return { };
+		}
+
 		LOG_EMPERY_CENTER_DEBUG("Loading mail box: account_uuid = ", account_uuid);
 
 		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;

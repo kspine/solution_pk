@@ -85,16 +85,16 @@ boost::shared_ptr<TaskBox> TaskBoxMap::get(AccountUuid account_uuid){
 		return { };
 	}
 
-	if(!AccountMap::is_holding_controller_token(account_uuid)){
-		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
-		return { };
-	}
-
 	auto it = task_box_map->find<0>(account_uuid);
 	if(it == task_box_map->end<0>()){
 		it = task_box_map->insert<0>(it, TaskBoxElement(account_uuid, 0));
 	}
 	if(!it->task_box){
+		if(!AccountMap::is_holding_controller_token(account_uuid)){
+			LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+			return { };
+		}
+
 		LOG_EMPERY_CENTER_DEBUG("Loading task box: account_uuid = ", account_uuid);
 
 		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
