@@ -40,6 +40,8 @@ try {
 		[=]{
 			PROFILE_ME;
 
+			AccountMap::require_controller_token(account_uuid);
+
 			const auto task_box = TaskBoxMap::require(account_uuid);
 
 			using BuildingLevelMap = boost::container::flat_map<BuildingId, boost::container::flat_map<unsigned, std::size_t>>;
