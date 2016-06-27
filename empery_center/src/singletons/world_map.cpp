@@ -1359,20 +1359,20 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 	castle->pump_status();
 	// castle->recalculate_attributes(true);
 }
-void WorldMap::get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid){
+boost::shared_ptr<MapObject> WorldMap::get_map_object_by_garrisoning_object(MapObjectUuid garrisoning_object_uuid){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
 	if(!map_object_map){
 		LOG_EMPERY_CENTER_WARNING("Map object map not loaded.");
-		return;
+		return { };
 	}
 
-	const auto range = map_object_map->equal_range<4>(garrisoning_object_uuid);
-	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
-	for(auto it = range.first; it != range.second; ++it){
-		ret.emplace_back(it->map_object);
+	const auto it = map_object_map->find<4>(garrisoning_object_uuid);
+	if(it == map_object_map->end<4>()){
+		return { };
 	}
+	return it->map_object;
 }
 void WorldMap::get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle){
 	PROFILE_ME;

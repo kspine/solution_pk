@@ -651,7 +651,7 @@ PLAYER_SERVLET(Msg::CS_MapDismissBattalion, account, session, req){
 
 	const auto castle_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
-	if(castle && map_object->is_garrisoned()){
+	if(castle && map_object->is_idle()){
 		const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 
 		const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
@@ -686,14 +686,8 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 	if(!castle){
 		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
 	}
-	if(!map_object->is_garrisoned()){
+	if(!map_object->is_idle()){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
-	}
-
-	std::vector<boost::shared_ptr<MapObject>> bunkers;
-	WorldMap::get_map_objects_by_garrisoning_object(bunkers, map_object_uuid);
-	if(!bunkers.empty()){
-		return Response(Msg::ERR_BATTALION_IN_ANOTHER_BUNKER) <<bunkers.front()->get_map_object_uuid();
 	}
 
 	std::vector<Coord> foundation;
@@ -1168,14 +1162,8 @@ PLAYER_SERVLET(Msg::CS_MapGarrisonBattleBunker, account, session, req){
 	if(battalion->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<battalion->get_owner_uuid();
 	}
-	if(!battalion->is_garrisoned()){
+	if(!battalion->is_idle()){
 		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
-	}
-
-	std::vector<boost::shared_ptr<MapObject>> bunkers;
-	WorldMap::get_map_objects_by_garrisoning_object(bunkers, battalion_uuid);
-	if(!bunkers.empty()){
-		return Response(Msg::ERR_BATTALION_IN_ANOTHER_BUNKER) <<bunkers.front()->get_map_object_uuid();
 	}
 
 	const auto battalion_type_id = battalion->get_map_object_type_id();

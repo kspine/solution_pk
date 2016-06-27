@@ -469,7 +469,6 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 				return Response(Msg::ERR_NICK_CONFLICT) <<other_account->get_nick();
 			}
 		}
-
 		account->set_nick(initial_nick);
 	}
 

@@ -308,6 +308,19 @@ void MapObject::set_garrisoned(bool garrisoned){
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
 
+bool MapObject::is_idle() const {
+	PROFILE_ME;
+
+	if(!is_garrisoned()){
+		return false;
+	}
+	const auto bunker = WorldMap::get_map_object_by_garrisoning_object(get_map_object_uuid());
+	if(bunker){
+		return false;
+	}
+	return true;
+}
+
 std::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
 	PROFILE_ME;
 

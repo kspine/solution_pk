@@ -45,7 +45,7 @@ struct WorldMap {
 	static void forced_reload_map_objects_by_owner(AccountUuid owner_uuid);
 	static void get_map_objects_by_parent_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid parent_object_uuid);
 	static void forced_reload_map_objects_by_parent_object(MapObjectUuid parent_object_uuid);
-	static void get_map_objects_by_garrisoning_object(std::vector<boost::shared_ptr<MapObject>> &ret, MapObjectUuid garrisoning_object_uuid);
+	static boost::shared_ptr<MapObject> get_map_object_by_garrisoning_object(MapObjectUuid garrisoning_object_uuid);
 	static void get_map_objects_by_rectangle(std::vector<boost::shared_ptr<MapObject>> &ret, Rectangle rectangle);
 
 	static boost::shared_ptr<Castle> get_primary_castle(AccountUuid owner_uuid);
