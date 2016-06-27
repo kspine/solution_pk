@@ -221,6 +221,7 @@ namespace Data {
 		boost::container::flat_map<ResourceId, std::uint64_t> upgrade_cost;
 		boost::container::flat_map<BuildingId, unsigned> prerequisite;
 		boost::container::flat_map<BuildingId, unsigned> display_prerequisite;
+		boost::container::flat_map<TechId, unsigned> tech_prerequisite;
 		boost::container::flat_map<AttributeId, double> attributes;
 	};
 

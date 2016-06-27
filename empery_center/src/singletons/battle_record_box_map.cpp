@@ -154,16 +154,16 @@ boost::shared_ptr<BattleRecordBox> BattleRecordBoxMap::get(AccountUuid account_u
 		return { };
 	}
 
-	if(!AccountMap::is_holding_controller_token(account_uuid)){
-		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
-		return { };
-	}
-
 	auto it = battle_record_box_map->find<0>(account_uuid);
 	if(it == battle_record_box_map->end<0>()){
 		it = battle_record_box_map->insert<0>(it, BattleRecordBoxElement(account_uuid, 0));
 	}
 	if(!it->battle_record_box){
+		if(!AccountMap::is_holding_controller_token(account_uuid)){
+			LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+			return { };
+		}
+
 		LOG_EMPERY_CENTER_DEBUG("Loading battle record box: account_uuid = ", account_uuid);
 
 		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
@@ -249,16 +249,16 @@ boost::shared_ptr<CrateRecordBox> BattleRecordBoxMap::get_crate(AccountUuid acco
 		return { };
 	}
 
-	if(!AccountMap::is_holding_controller_token(account_uuid)){
-		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
-		return { };
-	}
-
 	auto it = crate_record_box_map->find<0>(account_uuid);
 	if(it == crate_record_box_map->end<0>()){
 		it = crate_record_box_map->insert<0>(it, CrateRecordBoxElement(account_uuid, 0));
 	}
 	if(!it->crate_record_box){
+		if(!AccountMap::is_holding_controller_token(account_uuid)){
+			LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+			return { };
+		}
+
 		LOG_EMPERY_CENTER_DEBUG("Loading crate record box: account_uuid = ", account_uuid);
 
 		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;

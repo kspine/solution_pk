@@ -220,6 +220,8 @@ namespace IdTypes {
 	using CrateId                   = GenericId<std::uint32_t, 120021>;
 	using DefenseCombatId           = GenericId<std::uint32_t, 120022>;
 	using BuffId                    = GenericId<std::uint32_t, 120023>;
+	using BattalionLevelId          = GenericId<std::uint32_t, 120024>;
+	using DungeonId                 = GenericId<std::uint32_t, 120025>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;

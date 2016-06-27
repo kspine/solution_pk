@@ -1959,7 +1959,6 @@ void WorldMap::forced_reload_cluster(Coord coord){
 
 #define CONCURRENT_LOAD_BEGIN	\
 	{	\
-		auto promise_ = boost::make_shared<Poseidon::JobPromise>();	\
 		Poseidon::enqueue_async_job(	\
 			[=]{	\
 				PROFILE_ME;	\

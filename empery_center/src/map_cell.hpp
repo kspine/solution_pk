@@ -104,6 +104,8 @@ public:
 	AccountUuid get_occupier_owner_uuid() const;
 	void set_occupier_object(const boost::shared_ptr<Castle> &occupier_object);
 
+	AccountUuid get_virtual_owner_uuid() const;
+
 	void check_occupation();
 
 	bool is_virtually_removed() const;

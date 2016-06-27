@@ -9,26 +9,26 @@
 namespace EmperyCenter {
 
 namespace {
-	MULTI_INDEX_MAP(MapEventBlockMap, Data::MapEventBlock,
+	MULTI_INDEX_MAP(MapEventBlockContainer, Data::MapEventBlock,
 		UNIQUE_MEMBER_INDEX(num_coord)
 	)
-	boost::weak_ptr<const MapEventBlockMap> g_map_event_block_map;
-	const char MAP_EVENT_BLOCK_FILE[] = "event_circle";
+	boost::weak_ptr<const MapEventBlockContainer> g_map_event_block_container;
+	const char BLOCK_FILE[] = "event_circle";
 
-	MULTI_INDEX_MAP(MapEventGenerationMap, Data::MapEventGeneration,
+	MULTI_INDEX_MAP(MapEventGenerationContainer, Data::MapEventGeneration,
 		UNIQUE_MEMBER_INDEX(unique_id)
 		MULTI_MEMBER_INDEX(map_event_circle_id)
 	)
-	boost::weak_ptr<const MapEventGenerationMap> g_map_event_generation_map;
-	const char MAP_EVENT_GENERATION_FILE[] = "event_fresh";
+	boost::weak_ptr<const MapEventGenerationContainer> g_map_event_generation_container;
+	const char GENERATION_FILE[] = "event_fresh";
 
-	using MapEventResourceMap = boost::container::flat_map<MapEventId, Data::MapEventResource>;
-	boost::weak_ptr<const MapEventResourceMap> g_map_event_resource_map;
-	const char MAP_EVENT_RESOURCE_FILE[] = "event_resource";
+	using MapEventResourceContainer = boost::container::flat_map<MapEventId, Data::MapEventResource>;
+	boost::weak_ptr<const MapEventResourceContainer> g_map_event_resource_container;
+	const char RESOURCE_FILE[] = "event_resource";
 
-	using MapEventMonsterMap = boost::container::flat_map<MapEventId, Data::MapEventMonster>;
-	boost::weak_ptr<const MapEventMonsterMap> g_map_event_monster_map;
-	const char MAP_EVENT_MONSTER_FILE[] = "event_monster";
+	using MapEventMonsterContainer = boost::container::flat_map<MapEventId, Data::MapEventMonster>;
+	boost::weak_ptr<const MapEventMonsterContainer> g_map_event_monster_container;
+	const char MONSTER_FILE[] = "event_monster";
 
 	template<typename ElementT>
 	void read_map_event_abstract(ElementT &elem, const Poseidon::CsvParser &csv){
@@ -46,8 +46,8 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		auto csv = Data::sync_load_data(MAP_EVENT_BLOCK_FILE);
-		const auto map_event_block_map = boost::make_shared<MapEventBlockMap>();
+		auto csv = Data::sync_load_data(BLOCK_FILE);
+		const auto map_event_block_container = boost::make_shared<MapEventBlockContainer>();
 		while(csv.fetch_row()){
 			Data::MapEventBlock elem = { };
 
@@ -60,18 +60,18 @@ namespace {
 			csv.get(elem.refresh_interval,    "refresh_time");
 			csv.get(elem.priority,            "precedence");
 
-			if(!map_event_block_map->insert(std::move(elem)).second){
+			if(!map_event_block_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapEventBlock: num_coord = ", elem.num_coord.first, ", ", elem.num_coord.second);
 				DEBUG_THROW(Exception, sslit("Duplicate MapEventBlock"));
 			}
 		}
-		g_map_event_block_map = map_event_block_map;
-		handles.push(map_event_block_map);
-		auto servlet = DataSession::create_servlet(MAP_EVENT_BLOCK_FILE, Data::encode_csv_as_json(csv, "refresh_circle"));
+		g_map_event_block_container = map_event_block_container;
+		handles.push(map_event_block_container);
+		auto servlet = DataSession::create_servlet(BLOCK_FILE, Data::encode_csv_as_json(csv, "refresh_circle"));
 		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(MAP_EVENT_GENERATION_FILE);
-		const auto map_event_generation_map = boost::make_shared<MapEventGenerationMap>();
+		csv = Data::sync_load_data(GENERATION_FILE);
+		const auto map_event_generation_container = boost::make_shared<MapEventGenerationContainer>();
 		while(csv.fetch_row()){
 			Data::MapEventGeneration elem = { };
 
@@ -82,18 +82,18 @@ namespace {
 			csv.get(elem.expiry_duration,        "event_active_time");
 			csv.get(elem.priority,               "priority");
 
-			if(!map_event_generation_map->insert(std::move(elem)).second){
+			if(!map_event_generation_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapEventGeneration: unique_id = ", elem.unique_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapEventGeneration"));
 			}
 		}
-		g_map_event_generation_map = map_event_generation_map;
-		handles.push(map_event_generation_map);
-		servlet = DataSession::create_servlet(MAP_EVENT_GENERATION_FILE, Data::encode_csv_as_json(csv, "id"));
+		g_map_event_generation_container = map_event_generation_container;
+		handles.push(map_event_generation_container);
+		servlet = DataSession::create_servlet(GENERATION_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(MAP_EVENT_RESOURCE_FILE);
-		const auto map_event_resource_map = boost::make_shared<MapEventResourceMap>();
+		csv = Data::sync_load_data(RESOURCE_FILE);
+		const auto map_event_resource_container = boost::make_shared<MapEventResourceContainer>();
 		while(csv.fetch_row()){
 			Data::MapEventResource elem = { };
 
@@ -102,18 +102,18 @@ namespace {
 			csv.get(elem.resource_id,     "resource_id");
 			csv.get(elem.resource_amount, "resource_number");
 
-			if(!map_event_resource_map->emplace(elem.map_event_id, std::move(elem)).second){
+			if(!map_event_resource_container->emplace(elem.map_event_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapEventResource: map_event_id = ", elem.map_event_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapEventResource"));
 			}
 		}
-		g_map_event_resource_map = map_event_resource_map;
-		handles.push(map_event_resource_map);
-		servlet = DataSession::create_servlet(MAP_EVENT_RESOURCE_FILE, Data::encode_csv_as_json(csv, "event_id"));
+		g_map_event_resource_container = map_event_resource_container;
+		handles.push(map_event_resource_container);
+		servlet = DataSession::create_servlet(RESOURCE_FILE, Data::encode_csv_as_json(csv, "event_id"));
 		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(MAP_EVENT_MONSTER_FILE);
-		const auto map_event_monster_map = boost::make_shared<MapEventMonsterMap>();
+		csv = Data::sync_load_data(MONSTER_FILE);
+		const auto map_event_monster_container = boost::make_shared<MapEventMonsterContainer>();
 		while(csv.fetch_row()){
 			Data::MapEventMonster elem = { };
 
@@ -121,14 +121,14 @@ namespace {
 
 			csv.get(elem.monster_type_id, "event_monster");
 
-			if(!map_event_monster_map->emplace(elem.map_event_id, std::move(elem)).second){
+			if(!map_event_monster_container->emplace(elem.map_event_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate MapEventMonster: map_event_id = ", elem.map_event_id);
 				DEBUG_THROW(Exception, sslit("Duplicate MapEventMonster"));
 			}
 		}
-		g_map_event_monster_map = map_event_monster_map;
-		handles.push(map_event_monster_map);
-		servlet = DataSession::create_servlet(MAP_EVENT_MONSTER_FILE, Data::encode_csv_as_json(csv, "event_id"));
+		g_map_event_monster_container = map_event_monster_container;
+		handles.push(map_event_monster_container);
+		servlet = DataSession::create_servlet(MONSTER_FILE, Data::encode_csv_as_json(csv, "event_id"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -137,18 +137,18 @@ namespace Data {
 	boost::shared_ptr<const MapEventBlock> MapEventBlock::get(unsigned num_x, unsigned num_y){
 		PROFILE_ME;
 
-		const auto map_event_block_map = g_map_event_block_map.lock();
-		if(!map_event_block_map){
-			LOG_EMPERY_CENTER_WARNING("MapEventBlockMap has not been loaded.");
+		const auto map_event_block_container = g_map_event_block_container.lock();
+		if(!map_event_block_container){
+			LOG_EMPERY_CENTER_WARNING("MapEventBlockContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = map_event_block_map->find<0>(std::make_pair(num_x, num_y));
-		if(it == map_event_block_map->end<0>()){
+		const auto it = map_event_block_container->find<0>(std::make_pair(num_x, num_y));
+		if(it == map_event_block_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapEventBlock not found: num_x = ", num_x, ", num_y = ", num_y);
 			return { };
 		}
-		return boost::shared_ptr<const MapEventBlock>(map_event_block_map, &*it);
+		return boost::shared_ptr<const MapEventBlock>(map_event_block_container, &*it);
 	}
 	boost::shared_ptr<const MapEventBlock> MapEventBlock::require(unsigned num_x, unsigned num_y){
 		PROFILE_ME;
@@ -164,33 +164,33 @@ namespace Data {
 	void MapEventBlock::get_all(std::vector<boost::shared_ptr<const MapEventBlock>> &ret){
 		PROFILE_ME;
 
-		const auto map_event_block_map = g_map_event_block_map.lock();
-		if(!map_event_block_map){
-			LOG_EMPERY_CENTER_WARNING("MapEventBlockMap has not been loaded.");
+		const auto map_event_block_container = g_map_event_block_container.lock();
+		if(!map_event_block_container){
+			LOG_EMPERY_CENTER_WARNING("MapEventBlockContainer has not been loaded.");
 			return;
 		}
 
-		ret.reserve(ret.size() + map_event_block_map->size());
-		for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
-			ret.emplace_back(map_event_block_map, &*it);
+		ret.reserve(ret.size() + map_event_block_container->size());
+		for(auto it = map_event_block_container->begin<0>(); it != map_event_block_container->end<0>(); ++it){
+			ret.emplace_back(map_event_block_container, &*it);
 		}
 	}
 
 	boost::shared_ptr<const MapEventGeneration> MapEventGeneration::get(std::uint64_t unique_id){
 		PROFILE_ME;
 
-		const auto map_event_generation_map = g_map_event_generation_map.lock();
-		if(!map_event_generation_map){
-			LOG_EMPERY_CENTER_WARNING("MapEventGenerationMap has not been loaded.");
+		const auto map_event_generation_container = g_map_event_generation_container.lock();
+		if(!map_event_generation_container){
+			LOG_EMPERY_CENTER_WARNING("MapEventGenerationContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = map_event_generation_map->find<0>(unique_id);
-		if(it == map_event_generation_map->end<0>()){
+		const auto it = map_event_generation_container->find<0>(unique_id);
+		if(it == map_event_generation_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapEventGeneration not found: unique_id = ", unique_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapEventGeneration>(map_event_generation_map, &*it);
+		return boost::shared_ptr<const MapEventGeneration>(map_event_generation_container, &*it);
 	}
 	boost::shared_ptr<const MapEventGeneration> MapEventGeneration::require(std::uint64_t unique_id){
 		PROFILE_ME;
@@ -208,16 +208,16 @@ namespace Data {
 	{
 		PROFILE_ME;
 
-		const auto map_event_generation_map = g_map_event_generation_map.lock();
-		if(!map_event_generation_map){
-			LOG_EMPERY_CENTER_WARNING("MapEventGenerationMap has not been loaded.");
+		const auto map_event_generation_container = g_map_event_generation_container.lock();
+		if(!map_event_generation_container){
+			LOG_EMPERY_CENTER_WARNING("MapEventGenerationContainer has not been loaded.");
 			return;
 		}
 
-		const auto range = map_event_generation_map->equal_range<1>(map_event_circle_id);
+		const auto range = map_event_generation_container->equal_range<1>(map_event_circle_id);
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 		for(auto it = range.first; it != range.second; ++it){
-			ret.emplace_back(map_event_generation_map, &*it);
+			ret.emplace_back(map_event_generation_container, &*it);
 		}
 	}
 
@@ -247,18 +247,18 @@ namespace Data {
 	boost::shared_ptr<const MapEventResource> MapEventResource::get(MapEventId map_event_id){
 		PROFILE_ME;
 
-		const auto map_event_resource_map = g_map_event_resource_map.lock();
-		if(!map_event_resource_map){
-			LOG_EMPERY_CENTER_WARNING("MapEventResourceMap has not been loaded.");
+		const auto map_event_resource_container = g_map_event_resource_container.lock();
+		if(!map_event_resource_container){
+			LOG_EMPERY_CENTER_WARNING("MapEventResourceContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = map_event_resource_map->find(map_event_id);
-		if(it == map_event_resource_map->end()){
+		const auto it = map_event_resource_container->find(map_event_id);
+		if(it == map_event_resource_container->end()){
 			LOG_EMPERY_CENTER_TRACE("MapEventResource not found: map_event_id = ", map_event_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapEventResource>(map_event_resource_map, &it->second);
+		return boost::shared_ptr<const MapEventResource>(map_event_resource_container, &it->second);
 	}
 	boost::shared_ptr<const MapEventResource> MapEventResource::require(MapEventId map_event_id){
 		PROFILE_ME;
@@ -274,18 +274,18 @@ namespace Data {
 	boost::shared_ptr<const MapEventMonster> MapEventMonster::get(MapEventId map_event_id){
 		PROFILE_ME;
 
-		const auto map_event_monster_map = g_map_event_monster_map.lock();
-		if(!map_event_monster_map){
-			LOG_EMPERY_CENTER_WARNING("MapEventMonsterMap has not been loaded.");
+		const auto map_event_monster_container = g_map_event_monster_container.lock();
+		if(!map_event_monster_container){
+			LOG_EMPERY_CENTER_WARNING("MapEventMonsterContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = map_event_monster_map->find(map_event_id);
-		if(it == map_event_monster_map->end()){
+		const auto it = map_event_monster_container->find(map_event_id);
+		if(it == map_event_monster_container->end()){
 			LOG_EMPERY_CENTER_TRACE("MapEventMonster not found: map_event_id = ", map_event_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapEventMonster>(map_event_monster_map, &it->second);
+		return boost::shared_ptr<const MapEventMonster>(map_event_monster_container, &it->second);
 	}
 	boost::shared_ptr<const MapEventMonster> MapEventMonster::require(MapEventId map_event_id){
 		PROFILE_ME;

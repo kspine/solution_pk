@@ -37,6 +37,7 @@
 #include "../singletons/auction_center_map.hpp"
 #include "../data/map.hpp"
 #include "../resource_ids.hpp"
+#include "../events/castle.hpp"
 
 namespace EmperyCenter {
 
@@ -394,7 +395,7 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	for(auto it = tech_data->prerequisite.begin(); it != tech_data->prerequisite.end(); ++it){
 		const auto max_level = castle->get_max_level(it->first);
 		if(max_level < it->second){
-			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: tech_id = ", it->first,
+			LOG_EMPERY_CENTER_DEBUG("Prerequisite not met: building_id = ", it->first,
 				", level_required = ", it->second, ", max_level = ", max_level);
 			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
@@ -402,9 +403,17 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeTech, account, session, req){
 	for(auto it = tech_data->display_prerequisite.begin(); it != tech_data->display_prerequisite.end(); ++it){
 		const auto max_level = castle->get_max_level(it->first);
 		if(max_level < it->second){
-			LOG_EMPERY_CENTER_DEBUG("Display prerequisite not met: tech_id = ", it->first,
+			LOG_EMPERY_CENTER_DEBUG("Display prerequisite not met: building_id = ", it->first,
 				", level_required = ", it->second, ", max_level = ", max_level);
 			return Response(Msg::ERR_DISPLAY_PREREQUISITE_NOT_MET) <<it->first;
+		}
+	}
+	for(auto it = tech_data->tech_prerequisite.begin(); it != tech_data->tech_prerequisite.end(); ++it){
+		const auto tech_info = castle->get_tech(it->first);
+		if(tech_info.tech_level < it->second){
+			LOG_EMPERY_CENTER_DEBUG("Tech prerequisite not met: tech_id = ", it->first,
+				", level_required = ", it->second, ", tech_level = ", tech_info.tech_level);
+			return Response(Msg::ERR_TECH_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
 
@@ -1723,6 +1732,12 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
+	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
+	Poseidon::async_raise_event(
+		boost::make_shared<Events::CastleProtection>(
+			map_object_uuid, castle->get_owner_uuid(), delta_preparation_duration, delta_protection_duration, protection_info.time_end)
+		);
+
 	return Response();
 }
 
@@ -1807,6 +1822,11 @@ PLAYER_SERVLET(Msg::CS_CastleCancelProtection, account, session, req){
 				map_cell->clear_buff(BuffIds::ID_CASTLE_PROTECTION);
 			}
 		});
+
+	Poseidon::async_raise_event(
+		boost::make_shared<Events::CastleProtection>(
+			map_object_uuid, castle->get_owner_uuid(), 0, 0, 0)
+		);
 
 	return Response();
 }

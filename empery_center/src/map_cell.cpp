@@ -607,6 +607,16 @@ void MapCell::set_occupier_object(const boost::shared_ptr<Castle> &occupier_obje
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
 
+AccountUuid MapCell::get_virtual_owner_uuid() const {
+	PROFILE_ME;
+
+	auto virtual_owner_uuid = get_occupier_owner_uuid();
+	if(!virtual_owner_uuid){
+		virtual_owner_uuid = get_owner_uuid();
+	}
+	return virtual_owner_uuid;
+}
+
 void MapCell::check_occupation(){
 	PROFILE_ME;
 

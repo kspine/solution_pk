@@ -77,17 +77,17 @@ boost::shared_ptr<ChatBox> ChatBoxMap::get(AccountUuid account_uuid){
 		return { };
 	}
 
-	if(!AccountMap::is_holding_controller_token(account_uuid)){
-		LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
-		return { };
-	}
-
 	auto it = chat_box_map->find<0>(account_uuid);
 	if(it == chat_box_map->end<0>()){
 		it = chat_box_map->insert<0>(it, ChatBoxElement(account_uuid, 0));
 	}
 	if(!it->chat_box){
 		LOG_EMPERY_CENTER_DEBUG("Loading chat box: account_uuid = ", account_uuid);
+
+		if(!AccountMap::is_holding_controller_token(account_uuid)){
+			LOG_EMPERY_CENTER_DEBUG("Failed to acquire controller token: account_uuid = ", account_uuid);
+			return { };
+		}
 
 		auto chat_box = boost::make_shared<ChatBox>(account_uuid);
 

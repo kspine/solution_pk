@@ -1,11 +1,10 @@
 #include "../precompiled.hpp"
+#include "common.hpp"
 #include <poseidon/singletons/event_dispatcher.hpp>
 #include "../mysql/map_events_overflowed.hpp"
 #include "../../../empery_center/src/events/map.hpp"
 
 namespace EmperyCenterLog {
-
-using namespace EmperyCenter;
 
 MODULE_RAII_PRIORITY(handles, 5000){
 	auto listener = Poseidon::EventDispatcher::register_listener<Events::MapEventsOverflowed>(

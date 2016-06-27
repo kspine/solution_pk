@@ -582,7 +582,11 @@ _wounded_done:
 			Poseidon::enqueue_async_job([=]{
 				PROFILE_ME;
 
-				const auto battle_record_box = BattleRecordBoxMap::require(attacking_account_uuid);
+				const auto battle_record_box = BattleRecordBoxMap::get(attacking_account_uuid);
+				if(!battle_record_box){
+					LOG_EMPERY_CENTER_DEBUG("Failed to load battle record box: attacking_account_uuid = ", attacking_account_uuid);
+					return;
+				}
 
 				battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
 					attacked_account_uuid, attacked_object_type_id, attacked_coord,
@@ -597,7 +601,11 @@ _wounded_done:
 			Poseidon::enqueue_async_job([=]{
 				PROFILE_ME;
 
-				const auto battle_record_box = BattleRecordBoxMap::require(attacked_account_uuid);
+				const auto battle_record_box = BattleRecordBoxMap::get(attacked_account_uuid);
+				if(!battle_record_box){
+					LOG_EMPERY_CENTER_DEBUG("Failed to load battle record box: attacked_account_uuid = ", attacked_account_uuid);
+					return;
+				}
 
 				battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
 					attacking_account_uuid, attacking_object_type_id, attacking_coord,
@@ -619,7 +627,11 @@ _wounded_done:
 					return;
 				}
 
-				const auto item_box = ItemBoxMap::require(attacking_account_uuid);
+				const auto item_box = ItemBoxMap::get(attacking_account_uuid);
+				if(!item_box){
+					LOG_EMPERY_CENTER_DEBUG("Failed to load item box: attacking_account_uuid = ", attacking_account_uuid);
+					return;
+				}
 
 				const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
 				if(!parent_object_uuid){
@@ -726,7 +738,11 @@ _wounded_done:
 			Poseidon::enqueue_async_job([=]{
 				PROFILE_ME;
 
-				const auto task_box = TaskBoxMap::require(attacking_account_uuid);
+				const auto task_box = TaskBoxMap::get(attacking_account_uuid);
+				if(!task_box){
+					LOG_EMPERY_CENTER_DEBUG("Failed to load task box: attacking_account_uuid = ", attacking_account_uuid);
+					return;
+				}
 
 				const auto primary_castle = WorldMap::require_primary_castle(attacking_account_uuid);
 				const auto primary_castle_uuid = primary_castle->get_map_object_uuid();
@@ -1003,7 +1019,11 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 			Poseidon::enqueue_async_job([=]{
 				PROFILE_ME;
 
-				const auto crate_record_box = BattleRecordBoxMap::require_crate(attacking_account_uuid);
+				const auto crate_record_box = BattleRecordBoxMap::get_crate(attacking_account_uuid);
+				if(!crate_record_box){
+					LOG_EMPERY_CENTER_DEBUG("Failed to load crate record box: attacking_account_uuid = ", attacking_account_uuid);
+					return;
+				}
 
 				crate_record_box->push(utc_now, attacking_object_type_id, attacking_coord, attacked_coord,
 					resource_id, amount_to_harvest, amount_harvested, amount_remaining);
@@ -1037,17 +1057,10 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacking_coord = attacking_object->get_coord();
 
-	const auto attacked_account_uuid = attacked_cell->get_owner_uuid();
+	const auto attacked_account_uuid = attacked_cell->get_virtual_owner_uuid();
 
-	const auto occupier_owner_uuid = attacked_cell->get_occupier_owner_uuid();
-	if(occupier_owner_uuid){
-		if(attacking_account_uuid == occupier_owner_uuid){
-			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
-		}
-	} else {
-		if(attacking_account_uuid == attacked_account_uuid){
-			return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
-		}
+	if(attacking_account_uuid == attacked_account_uuid){
+		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
 
 	auto result = is_under_protection(attacking_object, attacked_cell);

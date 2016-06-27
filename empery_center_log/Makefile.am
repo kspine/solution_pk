@@ -26,6 +26,7 @@ lib_libposeidon_empery_center_log_la_SOURCES = \
 	src/handlers/map_event_overflowed.cpp	\
 	src/handlers/soldier_changed.cpp	\
 	src/handlers/wounded_soldier_changed.cpp	\
+	src/handlers/castle_protection.cpp	\
 	src/singletons/log_http_server.cpp	\
 	src/log/account.cpp	\
 	src/log_session.cpp	\

@@ -8,12 +8,12 @@
 namespace EmperyCenter {
 
 namespace {
-	using TaskPrimaryMap = boost::container::flat_map<TaskId, Data::TaskPrimary>;
-	boost::weak_ptr<const TaskPrimaryMap> g_task_primary_map;
+	using TaskPrimaryContainer = boost::container::flat_map<TaskId, Data::TaskPrimary>;
+	boost::weak_ptr<const TaskPrimaryContainer> g_task_primary_container;
 	const char TASK_PRIMARY_FILE[] = "task";
 
-	using TaskDailyMap = boost::container::flat_map<TaskId, Data::TaskDaily>;
-	boost::weak_ptr<const TaskDailyMap> g_task_daily_map;
+	using TaskDailyContainer = boost::container::flat_map<TaskId, Data::TaskDaily>;
+	boost::weak_ptr<const TaskDailyContainer> g_task_daily_container;
 	const char TASK_DAILY_FILE[] = "task_everyday";
 
 	template<typename ElementT>
@@ -55,7 +55,7 @@ namespace {
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(TASK_PRIMARY_FILE);
-		const auto task_primary_map = boost::make_shared<TaskPrimaryMap>();
+		const auto task_primary_container = boost::make_shared<TaskPrimaryContainer>();
 		while(csv.fetch_row()){
 			Data::TaskPrimary elem = { };
 
@@ -63,18 +63,18 @@ namespace {
 
 			csv.get(elem.previous_id, "task_last");
 
-			if(!task_primary_map->emplace(elem.task_id, std::move(elem)).second){
+			if(!task_primary_container->emplace(elem.task_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate TaskPrimary: task_id = ", elem.task_id);
 				DEBUG_THROW(Exception, sslit("Duplicate TaskPrimary"));
 			}
 		}
-		g_task_primary_map = task_primary_map;
-		handles.push(task_primary_map);
+		g_task_primary_container = task_primary_container;
+		handles.push(task_primary_container);
 		auto servlet = DataSession::create_servlet(TASK_PRIMARY_FILE, Data::encode_csv_as_json(csv, "task_id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TASK_DAILY_FILE);
-		const auto task_daily_map = boost::make_shared<TaskDailyMap>();
+		const auto task_daily_container = boost::make_shared<TaskDailyContainer>();
 		while(csv.fetch_row()){
 			Data::TaskDaily elem = { };
 
@@ -85,13 +85,13 @@ namespace {
 			elem.level_limit_min = array.at(0).get<double>();
 			elem.level_limit_max = array.at(1).get<double>();
 
-			if(!task_daily_map->emplace(elem.task_id, std::move(elem)).second){
+			if(!task_daily_container->emplace(elem.task_id, std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate TaskDaily: task_id = ", elem.task_id);
 				DEBUG_THROW(Exception, sslit("Duplicate TaskDaily"));
 			}
 		}
-		g_task_daily_map = task_daily_map;
-		handles.push(task_daily_map);
+		g_task_daily_container = task_daily_container;
+		handles.push(task_daily_container);
 		servlet = DataSession::create_servlet(TASK_DAILY_FILE, Data::encode_csv_as_json(csv, "task_id"));
 		handles.push(std::move(servlet));
 	}
@@ -124,18 +124,18 @@ namespace Data {
 	boost::shared_ptr<const TaskPrimary> TaskPrimary::get(TaskId task_id){
 		PROFILE_ME;
 
-		const auto task_primary_map = g_task_primary_map.lock();
-		if(!task_primary_map){
-			LOG_EMPERY_CENTER_WARNING("TaskPrimaryMap has not been loaded.");
+		const auto task_primary_container = g_task_primary_container.lock();
+		if(!task_primary_container){
+			LOG_EMPERY_CENTER_WARNING("TaskPrimaryContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = task_primary_map->find(task_id);
-		if(it == task_primary_map->end()){
+		const auto it = task_primary_container->find(task_id);
+		if(it == task_primary_container->end()){
 			LOG_EMPERY_CENTER_TRACE("TaskPrimary not found: task_id = ", task_id);
 			return { };
 		}
-		return boost::shared_ptr<const TaskPrimary>(task_primary_map, &(it->second));
+		return boost::shared_ptr<const TaskPrimary>(task_primary_container, &(it->second));
 	}
 	boost::shared_ptr<const TaskPrimary> TaskPrimary::require(TaskId task_id){
 		PROFILE_ME;
@@ -151,33 +151,33 @@ namespace Data {
 	void TaskPrimary::get_all(std::vector<boost::shared_ptr<const TaskPrimary>> &ret){
 		PROFILE_ME;
 
-		const auto task_primary_map = g_task_primary_map.lock();
-		if(!task_primary_map){
-			LOG_EMPERY_CENTER_WARNING("TaskPrimaryMap has not been loaded.");
+		const auto task_primary_container = g_task_primary_container.lock();
+		if(!task_primary_container){
+			LOG_EMPERY_CENTER_WARNING("TaskPrimaryContainer has not been loaded.");
 			return;
 		}
 
-		ret.reserve(ret.size() + task_primary_map->size());
-		for(auto it = task_primary_map->begin(); it != task_primary_map->end(); ++it){
-			ret.emplace_back(task_primary_map, &(it->second));
+		ret.reserve(ret.size() + task_primary_container->size());
+		for(auto it = task_primary_container->begin(); it != task_primary_container->end(); ++it){
+			ret.emplace_back(task_primary_container, &(it->second));
 		}
 	}
 
 	boost::shared_ptr<const TaskDaily> TaskDaily::get(TaskId task_id){
 		PROFILE_ME;
 
-		const auto task_daily_map = g_task_daily_map.lock();
-		if(!task_daily_map){
-			LOG_EMPERY_CENTER_WARNING("TaskDailyMap has not been loaded.");
+		const auto task_daily_container = g_task_daily_container.lock();
+		if(!task_daily_container){
+			LOG_EMPERY_CENTER_WARNING("TaskDailyContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = task_daily_map->find(task_id);
-		if(it == task_daily_map->end()){
+		const auto it = task_daily_container->find(task_id);
+		if(it == task_daily_container->end()){
 			LOG_EMPERY_CENTER_TRACE("TaskDaily not found: task_id = ", task_id);
 			return { };
 		}
-		return boost::shared_ptr<const TaskDaily>(task_daily_map, &(it->second));
+		return boost::shared_ptr<const TaskDaily>(task_daily_container, &(it->second));
 	}
 	boost::shared_ptr<const TaskDaily> TaskDaily::require(TaskId task_id){
 		PROFILE_ME;
@@ -193,15 +193,15 @@ namespace Data {
 	void TaskDaily::get_all(std::vector<boost::shared_ptr<const TaskDaily>> &ret){
 		PROFILE_ME;
 
-		const auto task_daily_map = g_task_daily_map.lock();
-		if(!task_daily_map){
-			LOG_EMPERY_CENTER_WARNING("TaskDailyMap has not been loaded.");
+		const auto task_daily_container = g_task_daily_container.lock();
+		if(!task_daily_container){
+			LOG_EMPERY_CENTER_WARNING("TaskDailyContainer has not been loaded.");
 			return;
 		}
 
-		ret.reserve(ret.size() + task_daily_map->size());
-		for(auto it = task_daily_map->begin(); it != task_daily_map->end(); ++it){
-			ret.emplace_back(task_daily_map, &(it->second));
+		ret.reserve(ret.size() + task_daily_container->size());
+		for(auto it = task_daily_container->begin(); it != task_daily_container->end(); ++it){
+			ret.emplace_back(task_daily_container, &(it->second));
 		}
 	}
 }

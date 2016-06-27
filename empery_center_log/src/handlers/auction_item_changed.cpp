@@ -1,11 +1,10 @@
 #include "../precompiled.hpp"
+#include "common.hpp"
 #include <poseidon/singletons/event_dispatcher.hpp>
 #include "../mysql/auction_item_changed.hpp"
 #include "../../../empery_center/src/events/auction.hpp"
 
 namespace EmperyCenterLog {
-
-using namespace EmperyCenter;
 
 MODULE_RAII_PRIORITY(handles, 5000){
 	auto listener = Poseidon::EventDispatcher::register_listener<Events::AuctionItemChanged>(
