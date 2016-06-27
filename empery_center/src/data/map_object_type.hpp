@@ -17,7 +17,6 @@ namespace Data {
 		MapObjectTypeId map_object_type_id;
 		MapObjectWeaponId map_object_weapon_id;
 		MapObjectChassisId map_object_chassis_id;
-		MapObjectLevelId map_object_level_id;
 
 		std::uint64_t max_soldier_count;
 		double speed;
@@ -30,6 +29,8 @@ namespace Data {
 		static boost::shared_ptr<const MapObjectTypeBattalion> require(MapObjectTypeId map_object_type_id);
 
 	public:
+		BattalionLevelId battalion_level_id;
+
 		double harvest_speed;
 		double resource_carriable;
 
