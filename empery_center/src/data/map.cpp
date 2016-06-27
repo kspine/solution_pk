@@ -9,54 +9,54 @@
 namespace EmperyCenter {
 
 namespace {
-	MULTI_INDEX_MAP(BasicMap, Data::MapCellBasic,
+	MULTI_INDEX_MAP(BasicContainer, Data::MapCellBasic,
 		UNIQUE_MEMBER_INDEX(map_coord)
 	)
-	boost::weak_ptr<const BasicMap> g_basic_map;
+	boost::weak_ptr<const BasicContainer> g_basic_container;
 	const char BASIC_FILE[] = "map";
 
-	MULTI_INDEX_MAP(TicketMap, Data::MapCellTicket,
+	MULTI_INDEX_MAP(TicketContainer, Data::MapCellTicket,
 		UNIQUE_MEMBER_INDEX(ticket_item_id)
 	)
-	boost::weak_ptr<const TicketMap> g_ticket_map;
+	boost::weak_ptr<const TicketContainer> g_ticket_container;
 	const char TICKET_FILE[] = "Territory_levelup";
 
-	MULTI_INDEX_MAP(TerrainMap, Data::MapTerrain,
+	MULTI_INDEX_MAP(TerrainContainer, Data::MapTerrain,
 		UNIQUE_MEMBER_INDEX(terrain_id)
 	)
-	boost::weak_ptr<const TerrainMap> g_terrain_map;
+	boost::weak_ptr<const TerrainContainer> g_terrain_container;
 	const char TERRAIN_FILE[] = "Territory_product";
 
-	MULTI_INDEX_MAP(StartPointMap, Data::MapStartPoint,
+	MULTI_INDEX_MAP(StartPointContainer, Data::MapStartPoint,
 		UNIQUE_MEMBER_INDEX(start_point_id)
 		UNIQUE_MEMBER_INDEX(map_coord)
 	)
-	boost::weak_ptr<const StartPointMap> g_start_point_map;
+	boost::weak_ptr<const StartPointContainer> g_start_point_container;
 	const char START_POINT_FILE[] = "birth_point";
 
-	MULTI_INDEX_MAP(CrateMap, Data::MapCrate,
+	MULTI_INDEX_MAP(CrateContainer, Data::MapCrate,
 		UNIQUE_MEMBER_INDEX(crate_id)
 		UNIQUE_MEMBER_INDEX(resource_amount_key)
 	)
-	boost::weak_ptr<const CrateMap> g_crate_map;
+	boost::weak_ptr<const CrateContainer> g_crate_container;
 	const char CRATE_FILE[] = "chest";
 
-	using CastleMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingCastle>;
-	boost::weak_ptr<const CastleMap> g_castle_map;
+	using CastleContainer = boost::container::flat_map<unsigned, Data::MapDefenseBuildingCastle>;
+	boost::weak_ptr<const CastleContainer> g_castle_container;
 	const char CASTLE_FILE[] = "Building_castel";
 
-	using DefenseTowerMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingDefenseTower>;
-	boost::weak_ptr<const DefenseTowerMap> g_defense_tower_map;
+	using DefenseTowerContainer = boost::container::flat_map<unsigned, Data::MapDefenseBuildingDefenseTower>;
+	boost::weak_ptr<const DefenseTowerContainer> g_defense_tower_container;
 	const char DEFENSE_TOWER_FILE[] = "Building_towers";
 
-	using BattleBunkerMap = boost::container::flat_map<unsigned, Data::MapDefenseBuildingBattleBunker>;
-	boost::weak_ptr<const BattleBunkerMap> g_battle_bunker_map;
+	using BattleBunkerContainer = boost::container::flat_map<unsigned, Data::MapDefenseBuildingBattleBunker>;
+	boost::weak_ptr<const BattleBunkerContainer> g_battle_bunker_container;
 	const char BATTLE_BUNKER_FILE[] = "Building_bunker";
 
-	MULTI_INDEX_MAP(DefenseCombatMap, Data::MapDefenseCombat,
+	MULTI_INDEX_MAP(DefenseCombatContainer, Data::MapDefenseCombat,
 		UNIQUE_MEMBER_INDEX(defense_combat_id)
 	)
-	boost::weak_ptr<const DefenseCombatMap> g_defense_combat_map;
+	boost::weak_ptr<const DefenseCombatContainer> g_defense_combat_container;
 	const char DEFENSE_COMBAT_FILE[] = "Building_combat_attributes";
 
 	template<typename ElementT>
@@ -68,7 +68,7 @@ namespace {
 		elem.upgrade_cost.reserve(object.size());
 		for(auto it = object.begin(); it != object.end(); ++it){
 			const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
-			const auto resource_amount = it->second.get<double>();
+			const auto resource_amount = static_cast<std::uint64_t>(it->second.get<double>());
 			if(!elem.upgrade_cost.emplace(resource_id, resource_amount).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade resource cost: resource_id = ", resource_id);
 				DEBUG_THROW(Exception, sslit("Duplicate upgrade resource cost"));
@@ -92,7 +92,7 @@ namespace {
 		elem.debris.reserve(object.size());
 		for(auto it = object.begin(); it != object.end(); ++it){
 			const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
-			const auto resource_amount = it->second.get<double>();
+			const auto resource_amount = static_cast<std::uint64_t>(it->second.get<double>());
 			if(!elem.debris.emplace(resource_id, resource_amount).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate upgrade resource cost: resource_id = ", resource_id);
 				DEBUG_THROW(Exception, sslit("Duplicate upgrade resource cost"));
@@ -105,7 +105,7 @@ namespace {
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(BASIC_FILE);
-		const auto basic_map = boost::make_shared<BasicMap>();
+		const auto basic_container = boost::make_shared<BasicContainer>();
 		while(csv.fetch_row()){
 			Data::MapCellBasic elem = { };
 
@@ -117,18 +117,18 @@ namespace {
 
 			csv.get(elem.terrain_id,         "property_id");
 
-			if(!basic_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellBasic: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);
-				DEBUG_THROW(Exception, sslit("Duplicate MapCellBasic"));
+			if(!basic_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerCellBasic: x = ", elem.map_coord.first, ", y = ", elem.map_coord.second);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerCellBasic"));
 			}
 		}
-		g_basic_map = basic_map;
-		handles.push(basic_map);
+		g_basic_container = basic_container;
+		handles.push(basic_container);
 		// servlet = DataSession::create_servlet(BASIC_FILE, Data::encode_csv_as_json(csv, "xy"));
 		// handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TICKET_FILE);
-		const auto ticket_map = boost::make_shared<TicketMap>();
+		const auto ticket_container = boost::make_shared<TicketContainer>();
 		while(csv.fetch_row()){
 			Data::MapCellTicket elem = { };
 
@@ -139,18 +139,18 @@ namespace {
 			csv.get(elem.self_healing_rate,        "recovery_hp");
 			csv.get(elem.protectable,              "protect");
 
-			if(!ticket_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapCellTicket: ticket_item_id = ", elem.ticket_item_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapCellTicket"));
+			if(!ticket_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerCellTicket: ticket_item_id = ", elem.ticket_item_id);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerCellTicket"));
 			}
 		}
-		g_ticket_map = ticket_map;
-		handles.push(ticket_map);
+		g_ticket_container = ticket_container;
+		handles.push(ticket_container);
 		auto servlet = DataSession::create_servlet(TICKET_FILE, Data::encode_csv_as_json(csv, "territory_certificate"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TERRAIN_FILE);
-		const auto terrain_map = boost::make_shared<TerrainMap>();
+		const auto terrain_container = boost::make_shared<TerrainContainer>();
 		while(csv.fetch_row()){
 			Data::MapTerrain elem = { };
 
@@ -163,18 +163,18 @@ namespace {
 			csv.get(elem.passable,             "mobile");
 			csv.get(elem.protection_cost,      "need_fountain");
 
-			if(!terrain_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapTerrain: terrain_id = ", elem.terrain_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapTerrain"));
+			if(!terrain_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerTerrain: terrain_id = ", elem.terrain_id);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerTerrain"));
 			}
 		}
-		g_terrain_map = terrain_map;
-		handles.push(terrain_map);
+		g_terrain_container = terrain_container;
+		handles.push(terrain_container);
 		servlet = DataSession::create_servlet(TERRAIN_FILE, Data::encode_csv_as_json(csv, "territory_id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(START_POINT_FILE);
-		const auto start_point_map = boost::make_shared<StartPointMap>();
+		const auto start_point_container = boost::make_shared<StartPointContainer>();
 		while(csv.fetch_row()){
 			Data::MapStartPoint elem = { };
 
@@ -183,19 +183,19 @@ namespace {
 			csv.get(elem.map_coord.first,  "x");
 			csv.get(elem.map_coord.second, "y");
 
-			if(!start_point_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapStartPoint: start_point_id = ", elem.start_point_id,
+			if(!start_point_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerStartPoint: start_point_id = ", elem.start_point_id,
 					", map_x = ", elem.map_coord.first, ", map_y = ", elem.map_coord.second);
-				DEBUG_THROW(Exception, sslit("Duplicate MapStartPoint"));
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerStartPoint"));
 			}
 		}
-		g_start_point_map = start_point_map;
-		handles.push(start_point_map);
+		g_start_point_container = start_point_container;
+		handles.push(start_point_container);
 		// servlet = DataSession::create_servlet(START_POINT_FILE, Data::encode_csv_as_json(csv, "birth_point_id"));
 		// handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(CRATE_FILE);
-		const auto crate_map = boost::make_shared<CrateMap>();
+		const auto crate_container = boost::make_shared<CrateContainer>();
 		while(csv.fetch_row()){
 			Data::MapCrate elem = { };
 
@@ -204,20 +204,20 @@ namespace {
 			Poseidon::JsonArray array;
 			csv.get(array, "resource_id");
 			elem.resource_amount_key.first  = ResourceId(array.at(0).get<double>());
-			elem.resource_amount_key.second = array.at(1).get<double>();
+			elem.resource_amount_key.second = static_cast<std::uint64_t>(array.at(1).get<double>());
 
-			if(!crate_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapCrate: crate_id = ", elem.crate_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapCrate"));
+			if(!crate_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerCrate: crate_id = ", elem.crate_id);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerCrate"));
 			}
 		}
-		g_crate_map = crate_map;
-		handles.push(crate_map);
+		g_crate_container = crate_container;
+		handles.push(crate_container);
 		servlet = DataSession::create_servlet(CRATE_FILE, Data::encode_csv_as_json(csv, "chest_id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(CASTLE_FILE);
-		const auto castle_map = boost::make_shared<CastleMap>();
+		const auto castle_container = boost::make_shared<CastleContainer>();
 		while(csv.fetch_row()){
 			Data::MapDefenseBuildingCastle elem = { };
 
@@ -226,18 +226,18 @@ namespace {
 
 			//
 
-			if(!castle_map->emplace(elem.building_level, std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectCastle: building_level = ", elem.building_level);
-				DEBUG_THROW(Exception, sslit("Duplicate MapObjectCastle"));
+			if(!castle_container->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerObjectCastle: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerObjectCastle"));
 			}
 		}
-		g_castle_map = castle_map;
-		handles.push(castle_map);
+		g_castle_container = castle_container;
+		handles.push(castle_container);
 		servlet = DataSession::create_servlet(CASTLE_FILE, Data::encode_csv_as_json(csv, "building_level"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(DEFENSE_TOWER_FILE);
-		const auto defense_tower_map = boost::make_shared<DefenseTowerMap>();
+		const auto defense_tower_container = boost::make_shared<DefenseTowerContainer>();
 		while(csv.fetch_row()){
 			Data::MapDefenseBuildingDefenseTower elem = { };
 
@@ -246,18 +246,18 @@ namespace {
 
 			//
 
-			if(!defense_tower_map->emplace(elem.building_level, std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectDefenseTower: building_level = ", elem.building_level);
-				DEBUG_THROW(Exception, sslit("Duplicate MapObjectDefenseTower"));
+			if(!defense_tower_container->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerObjectDefenseTower: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerObjectDefenseTower"));
 			}
 		}
-		g_defense_tower_map = defense_tower_map;
-		handles.push(defense_tower_map);
+		g_defense_tower_container = defense_tower_container;
+		handles.push(defense_tower_container);
 		servlet = DataSession::create_servlet(DEFENSE_TOWER_FILE, Data::encode_csv_as_json(csv, "building_level"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(BATTLE_BUNKER_FILE);
-		const auto battle_bunker_map = boost::make_shared<BattleBunkerMap>();
+		const auto battle_bunker_container = boost::make_shared<BattleBunkerContainer>();
 		while(csv.fetch_row()){
 			Data::MapDefenseBuildingBattleBunker elem = { };
 
@@ -266,18 +266,18 @@ namespace {
 
 			//
 
-			if(!battle_bunker_map->emplace(elem.building_level, std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectBattleBunker: building_level = ", elem.building_level);
-				DEBUG_THROW(Exception, sslit("Duplicate MapObjectBattleBunker"));
+			if(!battle_bunker_container->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerObjectBattleBunker: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerObjectBattleBunker"));
 			}
 		}
-		g_battle_bunker_map = battle_bunker_map;
-		handles.push(battle_bunker_map);
+		g_battle_bunker_container = battle_bunker_container;
+		handles.push(battle_bunker_container);
 		servlet = DataSession::create_servlet(BATTLE_BUNKER_FILE, Data::encode_csv_as_json(csv, "building_level"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(DEFENSE_COMBAT_FILE);
-		const auto defense_combat_map = boost::make_shared<DefenseCombatMap>();
+		const auto defense_combat_container = boost::make_shared<DefenseCombatContainer>();
 		while(csv.fetch_row()){
 			Data::MapDefenseCombat elem = { };
 
@@ -287,13 +287,13 @@ namespace {
 			csv.get(elem.self_healing_rate,    "building_recover");
 			csv.get(elem.hp_per_soldier,       "hp");
 
-			if(!defense_combat_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapDefenseCombat: defense_combat_id = ", elem.defense_combat_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapDefenseCombat"));
+			if(!defense_combat_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerDefenseCombat: defense_combat_id = ", elem.defense_combat_id);
+				DEBUG_THROW(Exception, sslit("Duplicate ContainerDefenseCombat"));
 			}
 		}
-		g_defense_combat_map = defense_combat_map;
-		handles.push(defense_combat_map);
+		g_defense_combat_container = defense_combat_container;
+		handles.push(defense_combat_container);
 		servlet = DataSession::create_servlet(DEFENSE_COMBAT_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 	}
@@ -303,18 +303,18 @@ namespace Data {
 	boost::shared_ptr<const MapCellBasic> MapCellBasic::get(unsigned map_x, unsigned map_y){
 		PROFILE_ME;
 
-		const auto basic_map = g_basic_map.lock();
-		if(!basic_map){
-			LOG_EMPERY_CENTER_WARNING("MapCellBasicMap has not been loaded.");
+		const auto basic_container = g_basic_container.lock();
+		if(!basic_container){
+			LOG_EMPERY_CENTER_WARNING("MapCellBasicContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = basic_map->find<0>(std::make_pair(map_x, map_y));
-		if(it == basic_map->end<0>()){
+		const auto it = basic_container->find<0>(std::make_pair(map_x, map_y));
+		if(it == basic_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapCellBasic not found: map_x = ", map_x, ", map_y = ", map_y);
 			return { };
 		}
-		return boost::shared_ptr<const MapCellBasic>(basic_map, &*it);
+		return boost::shared_ptr<const MapCellBasic>(basic_container, &*it);
 	}
 	boost::shared_ptr<const MapCellBasic> MapCellBasic::require(unsigned map_x, unsigned map_y){
 		PROFILE_ME;
@@ -330,18 +330,18 @@ namespace Data {
 	boost::shared_ptr<const MapCellTicket> MapCellTicket::get(ItemId ticket_item_id){
 		PROFILE_ME;
 
-		const auto ticket_map = g_ticket_map.lock();
-		if(!ticket_map){
-			LOG_EMPERY_CENTER_WARNING("MapCellTicketMap has not been loaded.");
+		const auto ticket_container = g_ticket_container.lock();
+		if(!ticket_container){
+			LOG_EMPERY_CENTER_WARNING("MapCellTicketContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = ticket_map->find<0>(ticket_item_id);
-		if(it == ticket_map->end<0>()){
+		const auto it = ticket_container->find<0>(ticket_item_id);
+		if(it == ticket_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapCellTicket not found: ticket_item_id = ", ticket_item_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapCellTicket>(ticket_map, &*it);
+		return boost::shared_ptr<const MapCellTicket>(ticket_container, &*it);
 	}
 	boost::shared_ptr<const MapCellTicket> MapCellTicket::require(ItemId ticket_item_id){
 		PROFILE_ME;
@@ -357,18 +357,18 @@ namespace Data {
 	boost::shared_ptr<const MapTerrain> MapTerrain::get(TerrainId terrain_id){
 		PROFILE_ME;
 
-		const auto terrain_map = g_terrain_map.lock();
-		if(!terrain_map){
-			LOG_EMPERY_CENTER_WARNING("MapTerrainMap has not been loaded.");
+		const auto terrain_container = g_terrain_container.lock();
+		if(!terrain_container){
+			LOG_EMPERY_CENTER_WARNING("MapTerrainContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = terrain_map->find<0>(terrain_id);
-		if(it == terrain_map->end<0>()){
+		const auto it = terrain_container->find<0>(terrain_id);
+		if(it == terrain_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapTerrain not found: terrain_id = ", terrain_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapTerrain>(terrain_map, &*it);
+		return boost::shared_ptr<const MapTerrain>(terrain_container, &*it);
 	}
 	boost::shared_ptr<const MapTerrain> MapTerrain::require(TerrainId terrain_id){
 		PROFILE_ME;
@@ -384,18 +384,18 @@ namespace Data {
 	boost::shared_ptr<const MapStartPoint> MapStartPoint::get(StartPointId start_point_id){
 		PROFILE_ME;
 
-		const auto start_point_map = g_start_point_map.lock();
-		if(!start_point_map){
-			LOG_EMPERY_CENTER_WARNING("MapStartPointMap has not been loaded.");
+		const auto start_point_container = g_start_point_container.lock();
+		if(!start_point_container){
+			LOG_EMPERY_CENTER_WARNING("MapStartPointContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = start_point_map->find<0>(start_point_id);
-		if(it == start_point_map->end<0>()){
+		const auto it = start_point_container->find<0>(start_point_id);
+		if(it == start_point_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapStartPoint not found: start_point_id = ", start_point_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapStartPoint>(start_point_map, &*it);
+		return boost::shared_ptr<const MapStartPoint>(start_point_container, &*it);
 	}
 	boost::shared_ptr<const MapStartPoint> MapStartPoint::require(StartPointId start_point_id){
 		PROFILE_ME;
@@ -411,33 +411,33 @@ namespace Data {
 	void MapStartPoint::get_all(std::vector<boost::shared_ptr<const MapStartPoint>> &ret){
 		PROFILE_ME;
 
-		const auto start_point_map = g_start_point_map.lock();
-		if(!start_point_map){
-			LOG_EMPERY_CENTER_WARNING("MapStartPointMap has not been loaded.");
+		const auto start_point_container = g_start_point_container.lock();
+		if(!start_point_container){
+			LOG_EMPERY_CENTER_WARNING("MapStartPointContainer has not been loaded.");
 			return;
 		}
 
-		ret.reserve(ret.size() + start_point_map->size());
-		for(auto it = start_point_map->begin<1>(); it != start_point_map->end<1>(); ++it){
-			ret.emplace_back(start_point_map, &*it);
+		ret.reserve(ret.size() + start_point_container->size());
+		for(auto it = start_point_container->begin<1>(); it != start_point_container->end<1>(); ++it){
+			ret.emplace_back(start_point_container, &*it);
 		}
 	}
 
 	boost::shared_ptr<const MapCrate> MapCrate::get(CrateId crate_id){
 		PROFILE_ME;
 
-		const auto crate_map = g_crate_map.lock();
-		if(!crate_map){
-			LOG_EMPERY_CENTER_WARNING("MapCrateMap has not been loaded.");
+		const auto crate_container = g_crate_container.lock();
+		if(!crate_container){
+			LOG_EMPERY_CENTER_WARNING("MapCrateContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = crate_map->find<0>(crate_id);
-		if(it == crate_map->end<0>()){
+		const auto it = crate_container->find<0>(crate_id);
+		if(it == crate_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapCrate not found: crate_id = ", crate_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapCrate>(crate_map, &*it);
+		return boost::shared_ptr<const MapCrate>(crate_container, &*it);
 	}
 	boost::shared_ptr<const MapCrate> MapCrate::require(CrateId crate_id){
 		PROFILE_ME;
@@ -453,24 +453,24 @@ namespace Data {
 	boost::shared_ptr<const MapCrate> MapCrate::get_by_resource_amount(ResourceId resource_id, std::uint64_t amount){
 		PROFILE_ME;
 
-		const auto crate_map = g_crate_map.lock();
-		if(!crate_map){
-			LOG_EMPERY_CENTER_WARNING("MapCrateMap has not been loaded.");
+		const auto crate_container = g_crate_container.lock();
+		if(!crate_container){
+			LOG_EMPERY_CENTER_WARNING("MapCrateContainer has not been loaded.");
 			return { };
 		}
 
-		auto it = crate_map->upper_bound<1>(std::make_pair(resource_id, amount));
-		if(it != crate_map->begin<1>()){
+		auto it = crate_container->upper_bound<1>(std::make_pair(resource_id, amount));
+		if(it != crate_container->begin<1>()){
 			auto prev = std::prev(it);
 			if(prev->resource_amount_key.first == resource_id){
 				it = prev;
 			}
 		}
-		if((it == crate_map->end<1>()) || (it->resource_amount_key.first != resource_id)){
+		if((it == crate_container->end<1>()) || (it->resource_amount_key.first != resource_id)){
 			LOG_EMPERY_CENTER_TRACE("MapCrate not found: resource_id = ", resource_id, ", amount = ", amount);
 			return { };
 		}
-		return boost::shared_ptr<const MapCrate>(crate_map, &*it);
+		return boost::shared_ptr<const MapCrate>(crate_container, &*it);
 	}
 
 	boost::shared_ptr<const MapDefenseBuildingAbstract> MapDefenseBuildingAbstract::get(
@@ -507,18 +507,18 @@ namespace Data {
 	boost::shared_ptr<const MapDefenseBuildingCastle> MapDefenseBuildingCastle::get(unsigned building_level){
 		PROFILE_ME;
 
-		const auto castle_map = g_castle_map.lock();
-		if(!castle_map){
-			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingCastle has not been loaded.");
+		const auto castle_container = g_castle_container.lock();
+		if(!castle_container){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingCastleContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = castle_map->find(building_level);
-		if(it == castle_map->end()){
+		const auto it = castle_container->find(building_level);
+		if(it == castle_container->end()){
 			LOG_EMPERY_CENTER_TRACE("MapDefenseBuildingCastle not found: building_level = ", building_level);
 			return { };
 		}
-		return boost::shared_ptr<const MapDefenseBuildingCastle>(castle_map, &(it->second));
+		return boost::shared_ptr<const MapDefenseBuildingCastle>(castle_container, &(it->second));
 	}
 	boost::shared_ptr<const MapDefenseBuildingCastle> MapDefenseBuildingCastle::require(unsigned building_level){
 		PROFILE_ME;
@@ -534,18 +534,18 @@ namespace Data {
 	boost::shared_ptr<const MapDefenseBuildingDefenseTower> MapDefenseBuildingDefenseTower::get(unsigned building_level){
 		PROFILE_ME;
 
-		const auto defense_tower_map = g_defense_tower_map.lock();
-		if(!defense_tower_map){
-			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingDefenseTower has not been loaded.");
+		const auto defense_tower_container = g_defense_tower_container.lock();
+		if(!defense_tower_container){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingDefenseTowerContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = defense_tower_map->find(building_level);
-		if(it == defense_tower_map->end()){
+		const auto it = defense_tower_container->find(building_level);
+		if(it == defense_tower_container->end()){
 			LOG_EMPERY_CENTER_TRACE("MapDefenseBuildingDefenseTower not found: building_level = ", building_level);
 			return { };
 		}
-		return boost::shared_ptr<const MapDefenseBuildingDefenseTower>(defense_tower_map, &(it->second));
+		return boost::shared_ptr<const MapDefenseBuildingDefenseTower>(defense_tower_container, &(it->second));
 	}
 	boost::shared_ptr<const MapDefenseBuildingDefenseTower> MapDefenseBuildingDefenseTower::require(unsigned building_level){
 		PROFILE_ME;
@@ -561,18 +561,18 @@ namespace Data {
 	boost::shared_ptr<const MapDefenseBuildingBattleBunker> MapDefenseBuildingBattleBunker::get(unsigned building_level){
 		PROFILE_ME;
 
-		const auto battle_bunker_map = g_battle_bunker_map.lock();
-		if(!battle_bunker_map){
-			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingBattleBunker has not been loaded.");
+		const auto battle_bunker_container = g_battle_bunker_container.lock();
+		if(!battle_bunker_container){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseBuildingBattleBunkerContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = battle_bunker_map->find(building_level);
-		if(it == battle_bunker_map->end()){
+		const auto it = battle_bunker_container->find(building_level);
+		if(it == battle_bunker_container->end()){
 			LOG_EMPERY_CENTER_TRACE("MapDefenseBuildingBattleBunker not found: building_level = ", building_level);
 			return { };
 		}
-		return boost::shared_ptr<const MapDefenseBuildingBattleBunker>(battle_bunker_map, &(it->second));
+		return boost::shared_ptr<const MapDefenseBuildingBattleBunker>(battle_bunker_container, &(it->second));
 	}
 	boost::shared_ptr<const MapDefenseBuildingBattleBunker> MapDefenseBuildingBattleBunker::require(unsigned building_level){
 		PROFILE_ME;
@@ -588,18 +588,18 @@ namespace Data {
 	boost::shared_ptr<const MapDefenseCombat> MapDefenseCombat::get(DefenseCombatId defense_combat_id){
 		PROFILE_ME;
 
-		const auto defense_combat_map = g_defense_combat_map.lock();
-		if(!defense_combat_map){
-			LOG_EMPERY_CENTER_WARNING("MapDefenseCombat has not been loaded.");
+		const auto defense_combat_container = g_defense_combat_container.lock();
+		if(!defense_combat_container){
+			LOG_EMPERY_CENTER_WARNING("MapDefenseCombatContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = defense_combat_map->find<0>(defense_combat_id);
-		if(it == defense_combat_map->end<0>()){
+		const auto it = defense_combat_container->find<0>(defense_combat_id);
+		if(it == defense_combat_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("MapDefenseCombat not found: defense_combat_id = ", defense_combat_id);
 			return { };
 		}
-		return boost::shared_ptr<const MapDefenseCombat>(defense_combat_map, &*it);
+		return boost::shared_ptr<const MapDefenseCombat>(defense_combat_container, &*it);
 	}
 	boost::shared_ptr<const MapDefenseCombat> MapDefenseCombat::require(DefenseCombatId defense_combat_id){
 		PROFILE_ME;

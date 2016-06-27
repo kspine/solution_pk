@@ -141,22 +141,22 @@ void MapObject::recalculate_attributes(bool recursive){
 
 		std::vector<boost::shared_ptr<const Data::MapObjectTypeAttributeBonus>> attribute_bonus_applicable_data;
 		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-			Data::MapObjectTypeAttributeBonus::AKT_ALL, 0);
+			Data::AKT_ALL, 0);
 		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-			Data::MapObjectTypeAttributeBonus::AKT_TYPE_ID, map_object_type_id.get());
+			Data::AKT_TYPE_ID, map_object_type_id.get());
 		const auto defense = boost::dynamic_pointer_cast<Castle>(shared_from_this());
 		if(defense){
 			const auto defense_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, defense->get_level());
 			if(defense_data){
 				const auto combat_data = Data::MapDefenseCombat::require(defense_data->defense_combat_id);
 				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-					Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, combat_data->map_object_weapon_id.get());
+					Data::AKT_WEAPON_ID, combat_data->map_object_weapon_id.get());
 			}
 		} else {
 			const auto battalion_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
 			if(battalion_data){
 				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-					Data::MapObjectTypeAttributeBonus::AKT_LEVEL_ID, battalion_data->battalion_level_id.get());
+					Data::AKT_LEVEL_ID, battalion_data->battalion_level_id.get());
 			}
 			auto map_object_data = boost::shared_ptr<const Data::MapObjectTypeAbstract>(battalion_data);
 			if(!map_object_data){
@@ -164,9 +164,9 @@ void MapObject::recalculate_attributes(bool recursive){
 			}
 			if(map_object_data){
 				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-					Data::MapObjectTypeAttributeBonus::AKT_CHASSIS_ID, map_object_data->map_object_chassis_id.get());
+					Data::AKT_CHASSIS_ID, map_object_data->map_object_chassis_id.get());
 				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-					Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
+					Data::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
 			}
 		}
 		for(auto it = attribute_bonus_applicable_data.begin(); it != attribute_bonus_applicable_data.end(); ++it){

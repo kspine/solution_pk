@@ -11,37 +11,37 @@
 namespace EmperyCenter {
 
 namespace {
-	MULTI_INDEX_MAP(ItemMap, Data::Item,
+	MULTI_INDEX_MAP(ItemContainer, Data::Item,
 		UNIQUE_MEMBER_INDEX(item_id)
 		MULTI_MEMBER_INDEX(type)
 		MULTI_MEMBER_INDEX(init_count)
 		MULTI_MEMBER_INDEX(auto_inc_type)
 		MULTI_MEMBER_INDEX(is_public)
 	)
-	boost::weak_ptr<const ItemMap> g_item_map;
+	boost::weak_ptr<const ItemContainer> g_item_container;
 	const char ITEM_FILE[] = "item";
 
-	MULTI_INDEX_MAP(TradeMap, Data::ItemTrade,
+	MULTI_INDEX_MAP(TradeContainer, Data::ItemTrade,
 		UNIQUE_MEMBER_INDEX(trade_id)
 	)
-	boost::weak_ptr<const TradeMap> g_trade_map;
+	boost::weak_ptr<const TradeContainer> g_trade_container;
 	const char TRADE_FILE[] = "item_trading";
 
-	MULTI_INDEX_MAP(RechargeMap, Data::ItemRecharge,
+	MULTI_INDEX_MAP(RechargeContainer, Data::ItemRecharge,
 		UNIQUE_MEMBER_INDEX(recharge_id)
 	)
-	boost::weak_ptr<const RechargeMap> g_recharge_map;
+	boost::weak_ptr<const RechargeContainer> g_recharge_container;
 	const char RECHARGE_FILE[] = "Pay";
 
-	MULTI_INDEX_MAP(ShopMap, Data::ItemShop,
+	MULTI_INDEX_MAP(ShopContainer, Data::ItemShop,
 		UNIQUE_MEMBER_INDEX(shop_id)
 	)
-	boost::weak_ptr<const ShopMap> g_shop_map;
+	boost::weak_ptr<const ShopContainer> g_shop_container;
 	const char SHOP_FILE[] = "shop";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(ITEM_FILE);
-		const auto item_map = boost::make_shared<ItemMap>();
+		const auto item_container = boost::make_shared<ItemContainer>();
 		while(csv.fetch_row()){
 			Data::Item elem = { };
 
@@ -79,18 +79,18 @@ namespace {
 
 			csv.get(elem.is_public,       "is_public");
 
-			if(!item_map->insert(std::move(elem)).second){
+			if(!item_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate item: item_id = ", elem.item_id);
 				DEBUG_THROW(Exception, sslit("Duplicate item"));
 			}
 		}
-		g_item_map = item_map;
-		handles.push(item_map);
+		g_item_container = item_container;
+		handles.push(item_container);
 		auto servlet = DataSession::create_servlet(ITEM_FILE, Data::encode_csv_as_json(csv, "itemid"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(TRADE_FILE);
-		const auto trade_map = boost::make_shared<TradeMap>();
+		const auto trade_container = boost::make_shared<TradeContainer>();
 		while(csv.fetch_row()){
 			Data::ItemTrade elem = { };
 
@@ -120,49 +120,49 @@ namespace {
 				}
 			}
 
-			if(!trade_map->insert(std::move(elem)).second){
+			if(!trade_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate trade element: trade_id = ", elem.trade_id);
 				DEBUG_THROW(Exception, sslit("Duplicate trade element"));
 			}
 		}
-		g_trade_map = trade_map;
-		handles.push(trade_map);
+		g_trade_container = trade_container;
+		handles.push(trade_container);
 		servlet = DataSession::create_servlet(TRADE_FILE, Data::encode_csv_as_json(csv, "trading_id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(RECHARGE_FILE);
-		const auto recharge_map = boost::make_shared<RechargeMap>();
+		const auto recharge_container = boost::make_shared<RechargeContainer>();
 		while(csv.fetch_row()){
 			Data::ItemRecharge elem = { };
 
 			csv.get(elem.recharge_id, "recharge_id");
 			csv.get(elem.trade_id,    "trading_id");
 
-			if(!recharge_map->insert(std::move(elem)).second){
+			if(!recharge_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate recharge element: recharge_id = ", elem.recharge_id);
 				DEBUG_THROW(Exception, sslit("Duplicate recharge element"));
 			}
 		}
-		g_recharge_map = recharge_map;
-		handles.push(recharge_map);
+		g_recharge_container = recharge_container;
+		handles.push(recharge_container);
 		servlet = DataSession::create_servlet(RECHARGE_FILE, Data::encode_csv_as_json(csv, "recharge_id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(SHOP_FILE);
-		const auto shop_map = boost::make_shared<ShopMap>();
+		const auto shop_container = boost::make_shared<ShopContainer>();
 		while(csv.fetch_row()){
 			Data::ItemShop elem = { };
 
 			csv.get(elem.shop_id,  "shop_id");
 			csv.get(elem.trade_id, "trading_id");
 
-			if(!shop_map->insert(std::move(elem)).second){
+			if(!shop_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate shop element: shop_id = ", elem.shop_id);
 				DEBUG_THROW(Exception, sslit("Duplicate shop element"));
 			}
 		}
-		g_shop_map = shop_map;
-		handles.push(shop_map);
+		g_shop_container = shop_container;
+		handles.push(shop_container);
 		servlet = DataSession::create_servlet(SHOP_FILE, Data::encode_csv_as_json(csv, "shop_id"));
 		handles.push(std::move(servlet));
 	}
@@ -172,18 +172,18 @@ namespace Data {
 	boost::shared_ptr<const Item> Item::get(ItemId item_id){
 		PROFILE_ME;
 
-		const auto item_map = g_item_map.lock();
-		if(!item_map){
-			LOG_EMPERY_CENTER_WARNING("ItemMap has not been loaded.");
+		const auto item_container = g_item_container.lock();
+		if(!item_container){
+			LOG_EMPERY_CENTER_WARNING("ItemContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = item_map->find<0>(item_id);
-		if(it == item_map->end<0>()){
+		const auto it = item_container->find<0>(item_id);
+		if(it == item_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("Item not found: item_id = ", item_id);
 			return { };
 		}
-		return boost::shared_ptr<const Item>(item_map, &*it);
+		return boost::shared_ptr<const Item>(item_container, &*it);
 	}
 	boost::shared_ptr<const Item> Item::require(ItemId item_id){
 		PROFILE_ME;
@@ -199,18 +199,18 @@ namespace Data {
 	boost::shared_ptr<const Item> Item::get_by_type(Item::Category category, std::uint32_t type){
 		PROFILE_ME;
 
-		const auto item_map = g_item_map.lock();
-		if(!item_map){
-			LOG_EMPERY_CENTER_WARNING("ItemMap has not been loaded.");
+		const auto item_container = g_item_container.lock();
+		if(!item_container){
+			LOG_EMPERY_CENTER_WARNING("ItemContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = item_map->find<1>(std::make_pair(category, type));
-		if(it == item_map->end<1>()){
+		const auto it = item_container->find<1>(std::make_pair(category, type));
+		if(it == item_container->end<1>()){
 			LOG_EMPERY_CENTER_TRACE("Item not found: category = ", (unsigned)category, ", type = ", type);
 			return { };
 		}
-		return boost::shared_ptr<const Item>(item_map, &*it);
+		return boost::shared_ptr<const Item>(item_container, &*it);
 	}
 	boost::shared_ptr<const Item> Item::require_by_type(Item::Category category, std::uint32_t type){
 		PROFILE_ME;
@@ -226,68 +226,68 @@ namespace Data {
 	void Item::get_init(std::vector<boost::shared_ptr<const Item>> &ret){
 		PROFILE_ME;
 
-		const auto item_map = g_item_map.lock();
-		if(!item_map){
-			LOG_EMPERY_CENTER_WARNING("ItemMap has not been loaded.");
+		const auto item_container = g_item_container.lock();
+		if(!item_container){
+			LOG_EMPERY_CENTER_WARNING("ItemContainer has not been loaded.");
 			return;
 		}
 
-		const auto begin = item_map->upper_bound<2>(0);
-		const auto end = item_map->end<2>();
+		const auto begin = item_container->upper_bound<2>(0);
+		const auto end = item_container->end<2>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
-			ret.emplace_back(item_map, &*it);
+			ret.emplace_back(item_container, &*it);
 		}
 	}
 	void Item::get_auto_inc(std::vector<boost::shared_ptr<const Item>> &ret){
 		PROFILE_ME;
 
-		const auto item_map = g_item_map.lock();
-		if(!item_map){
-			LOG_EMPERY_CENTER_WARNING("ItemMap has not been loaded.");
+		const auto item_container = g_item_container.lock();
+		if(!item_container){
+			LOG_EMPERY_CENTER_WARNING("ItemContainer has not been loaded.");
 			return;
 		}
 
-		const auto begin = item_map->upper_bound<3>(AIT_NONE);
-		const auto end = item_map->end<3>();
+		const auto begin = item_container->upper_bound<3>(AIT_NONE);
+		const auto end = item_container->end<3>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
-			ret.emplace_back(item_map, &*it);
+			ret.emplace_back(item_container, &*it);
 		}
 	}
 
 	void Item::get_public(std::vector<boost::shared_ptr<const Item>> &ret){
 		PROFILE_ME;
 
-		const auto item_map = g_item_map.lock();
-		if(!item_map){
-			LOG_EMPERY_CENTER_WARNING("ItemMap has not been loaded.");
+		const auto item_container = g_item_container.lock();
+		if(!item_container){
+			LOG_EMPERY_CENTER_WARNING("ItemContainer has not been loaded.");
 			return;
 		}
 
-		const auto begin = item_map->upper_bound<4>(false);
-		const auto end = item_map->end<4>();
+		const auto begin = item_container->upper_bound<4>(false);
+		const auto end = item_container->end<4>();
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(begin, end)));
 		for(auto it = begin; it != end; ++it){
-			ret.emplace_back(item_map, &*it);
+			ret.emplace_back(item_container, &*it);
 		}
 	}
 
 	boost::shared_ptr<const ItemTrade> ItemTrade::get(TradeId trade_id){
 		PROFILE_ME;
 
-		const auto trade_map = g_trade_map.lock();
-		if(!trade_map){
-			LOG_EMPERY_CENTER_WARNING("TradeMap has not been loaded.");
+		const auto trade_container = g_trade_container.lock();
+		if(!trade_container){
+			LOG_EMPERY_CENTER_WARNING("TradeContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = trade_map->find<0>(trade_id);
-		if(it == trade_map->end<0>()){
+		const auto it = trade_container->find<0>(trade_id);
+		if(it == trade_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("ItemTrade not found: trade_id = ", trade_id);
 			return { };
 		}
-		return boost::shared_ptr<const ItemTrade>(trade_map, &*it);
+		return boost::shared_ptr<const ItemTrade>(trade_container, &*it);
 	}
 	boost::shared_ptr<const ItemTrade> ItemTrade::require(TradeId trade_id){
 		PROFILE_ME;
@@ -303,18 +303,18 @@ namespace Data {
 	boost::shared_ptr<const ItemRecharge> ItemRecharge::get(RechargeId recharge_id){
 		PROFILE_ME;
 
-		const auto recharge_map = g_recharge_map.lock();
-		if(!recharge_map){
-			LOG_EMPERY_CENTER_WARNING("RechargeMap has not been loaded.");
+		const auto recharge_container = g_recharge_container.lock();
+		if(!recharge_container){
+			LOG_EMPERY_CENTER_WARNING("RechargeContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = recharge_map->find<0>(recharge_id);
-		if(it == recharge_map->end<0>()){
+		const auto it = recharge_container->find<0>(recharge_id);
+		if(it == recharge_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("ItemRecharge not found: recharge_id = ", recharge_id);
 			return { };
 		}
-		return boost::shared_ptr<const ItemRecharge>(recharge_map, &*it);
+		return boost::shared_ptr<const ItemRecharge>(recharge_container, &*it);
 	}
 	boost::shared_ptr<const ItemRecharge> ItemRecharge::require(RechargeId recharge_id){
 		PROFILE_ME;
@@ -330,18 +330,18 @@ namespace Data {
 	boost::shared_ptr<const ItemShop> ItemShop::get(ShopId shop_id){
 		PROFILE_ME;
 
-		const auto shop_map = g_shop_map.lock();
-		if(!shop_map){
-			LOG_EMPERY_CENTER_WARNING("ShopMap has not been loaded.");
+		const auto shop_container = g_shop_container.lock();
+		if(!shop_container){
+			LOG_EMPERY_CENTER_WARNING("ShopContainer has not been loaded.");
 			return { };
 		}
 
-		const auto it = shop_map->find<0>(shop_id);
-		if(it == shop_map->end<0>()){
+		const auto it = shop_container->find<0>(shop_id);
+		if(it == shop_container->end<0>()){
 			LOG_EMPERY_CENTER_TRACE("ItemShop not found: shop_id = ", shop_id);
 			return { };
 		}
-		return boost::shared_ptr<const ItemShop>(shop_map, &*it);
+		return boost::shared_ptr<const ItemShop>(shop_container, &*it);
 	}
 	boost::shared_ptr<const ItemShop> ItemShop::require(ShopId shop_id){
 		PROFILE_ME;
