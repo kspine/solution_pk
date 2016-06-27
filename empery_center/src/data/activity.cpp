@@ -4,6 +4,7 @@
 #include <string.h>
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
+#include "../data_session.hpp"
 
 namespace EmperyCenter {
 
@@ -55,6 +56,8 @@ namespace {
 		}
 		g_activity_map = activity_map;
 		handles.push(activity_map);
+		auto servlet = DataSession::create_servlet(ACTIVITY_FILE, Data::encode_csv_as_json(csv, "activity_ID"));
+		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(MAP_ACTIVITY_FILE);
 		const auto map_activity_map = boost::make_shared<MapActivityMap>();
@@ -89,6 +92,8 @@ namespace {
 		}
 		g_map_activity_map = map_activity_map;
 		handles.push(map_activity_map);
+		servlet = DataSession::create_servlet(MAP_ACTIVITY_FILE, Data::encode_csv_as_json(csv, "activity_ID"));
+		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(ACTIVITY_AWARD_FILE);
 		const auto activity_award_map = boost::make_shared<ActivityAwardMap>();
@@ -115,6 +120,8 @@ namespace {
 		}
 		g_activity_award_map = activity_award_map;
 		handles.push(activity_award_map);
+		servlet = DataSession::create_servlet(ACTIVITY_AWARD_FILE, Data::encode_csv_as_json(csv, "id"));
+		handles.push(std::move(servlet));
 	}
 }
 
