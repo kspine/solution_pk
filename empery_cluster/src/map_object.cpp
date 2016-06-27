@@ -83,7 +83,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 
 	// 移动。
 	if(!m_waypoints.empty()){
-		return move(result);
+		return require_ai_control()->move(result);
 	}
 
 	switch(m_action){
@@ -444,7 +444,27 @@ boost::shared_ptr<AiControl>  MapObject::require_ai_control(){
 	PROFILE_ME;
 
 	if(!m_ai_control){
-		m_ai_control = boost::make_shared<AiControl>(100001,virtual_weak_from_this<MapObject>());
+		const auto map_object_type_data = get_map_object_type_data();
+		switch(map_object_type_data->ai_id){
+			case AI_SOLIDER:
+				m_ai_control = boost::make_shared<AiControl>(AI_SOLIDER,virtual_weak_from_this<MapObject>());
+				break;
+			case AI_MONSTER:
+				m_ai_control = boost::make_shared<AiControlMonsterCommon>(AI_MONSTER,virtual_weak_from_this<MapObject>());
+				break;
+			case AI_BUILDING:
+				m_ai_control = boost::make_shared<AiControlDefenseBuilding>(AI_BUILDING,virtual_weak_from_this<MapObject>());
+				break;
+			case AI_BUILDING_NO_ATTACK:
+			    m_ai_control = boost::make_shared<AiControlDefenseBuildingNoAttack>(AI_BUILDING_NO_ATTACK,virtual_weak_from_this<MapObject>());
+			    break;
+			case AI_GOBLIN:
+				m_ai_control = boost::make_shared<AiControlMonsterGoblin>(AI_GOBLIN,virtual_weak_from_this<MapObject>());
+				break;
+			default:
+				LOG_EMPERY_CLUSTER_FATAL("invalid ai type:",map_object_type_data->ai_id);
+				break;
+		}
 	}
 	return m_ai_control;
 }
@@ -554,7 +574,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	return attack_delay;
 }
 
-std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
+std::uint64_t MapObject::on_attack_common(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
 	PROFILE_ME;
 
 	if(!attacker){
@@ -564,8 +584,46 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	if(m_action != ACT_ATTACK && m_waypoints.empty() && m_action != ACT_ENTER_CASTLE){
 		attack_new_target(attacker);
 	}
-	troops_attack(attacker,true);
+	require_ai_control()->troops_attack(attacker,true);
 	return UINT64_MAX;
+}
+
+std::uint64_t MapObject::on_attack_goblin(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
+	PROFILE_ME;
+
+	if(!attacker){
+		return UINT64_MAX;
+	}
+	const auto ai_id = require_ai_control()->get_ai_id();
+	if(ai_id != AI_GOBLIN){
+		return UINT64_MAX;
+	}
+
+	//移动逃跑
+	if(m_waypoints.empty()){
+		try{
+			const auto ai_data = Data::MapObjectAi::get(ai_id);
+			std::istringstream iss(ai_data->params);
+			auto temp_array = Poseidon::JsonParser::parse_array(iss);
+			auto random_left = temp_array.at(0).get<double>();
+			auto random_right = temp_array.at(1).get<double>();
+			const auto rand_x = Poseidon::rand32(random_left, random_right);
+			const auto rand_y = Poseidon::rand32(random_left, random_right);
+			auto direct_x = Poseidon::rand32(0, 2) ? 1 : -1;
+			auto direct_y = Poseidon::rand32(0, 2) ? 1 : -1;
+			std::int64_t  target_x = get_coord().x() + (std::int64_t)rand_x*direct_x;
+			std::int64_t  target_y = get_coord().y() + (std::int64_t)rand_y*direct_y;
+		    std::deque<std::pair<signed char, signed char>> waypoints;
+			if(find_way_points(waypoints,get_coord(),Coord(target_x,target_y),true)){
+				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_GUARD),"");
+			}else{
+				LOG_EMPERY_CLUSTER_DEBUG("goblin find way fail");
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+	return 0;
 }
 
 std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool force_attack){
@@ -1056,17 +1114,16 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 	}
 }
 
-std::uint64_t   MapObject::lost_target(){
+std::uint64_t   MapObject::lost_target_common(){
 	PROFILE_ME;
 
-	if(is_monster()){
-		monster_regress();
-	}else{
-		m_waypoints.clear();
-		m_action = ACT_GUARD;
-		m_action_param.clear();
-		notify_way_points(m_waypoints,m_action,m_action_param);
-	}
+	set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_GUARD),"");
+	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+	return stand_by_interval;
+}
+
+std::uint64_t MapObject::lost_target_monster(){
+	monster_regress();
 	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 	return stand_by_interval;
 }
@@ -1224,7 +1281,7 @@ std::uint64_t MapObject::search_attack(){
 	if(is_get_new_enemy){
 		attack_new_target(near_enemy_object);
 	}else{
-		lost_target();
+		require_ai_control()->on_lose_target();
 	}
 	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 	return stand_by_interval;

@@ -43,6 +43,14 @@ public:
 		IMPACT_CRITICAL          = 3,
 	};
 
+	enum AI {
+		AI_SOLIDER                           = 5000101,
+		AI_MONSTER                           = 5000201,
+		AI_BUILDING                          = 5000301,
+		AI_BUILDING_NO_ATTACK                = 5000302,
+		AI_GOBLIN                            = 5000601,
+	};
+
 public:
 	struct BuffInfo {
 		BuffId buff_id;
@@ -102,19 +110,20 @@ public:
 	std::uint64_t move(std::pair<long, std::string> &result);
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(boost::shared_ptr<MapObject> target, bool passive = false);
-	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t on_attack_common(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t on_attack_goblin(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_overplay(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t lost_target_common();
+	std::uint64_t lost_target_monster();
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const MapObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
-
-	std::uint64_t lost_target();
 	void          monster_regress();
 	bool          is_monster();
 	bool          is_building();

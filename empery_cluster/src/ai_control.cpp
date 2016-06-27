@@ -11,12 +11,17 @@ AiControl::AiControl(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent)
 }
 
 AiControl::~AiControl(){
-	
+}
+
+std::uint64_t  AiControl::get_ai_id(){
+	PROFILE_ME;
+
+	return m_unique_id;
 }
 
 std::uint64_t AiControl::move(std::pair<long, std::string> &result){
 	PROFILE_ME;
-	
+
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
 		return UINT64_MAX;
@@ -49,7 +54,7 @@ std::uint64_t AiControl::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->on_attack(attacker,demage);
+	return parent_object->on_attack_common(attacker,demage);
 }
 
 std::uint64_t AiControl::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool force_attack){
@@ -74,31 +79,63 @@ std::uint64_t AiControl::patrol(){
 	return 0;
 }
 std::uint64_t AiControl::on_lose_target(){
-	return 0;
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->lost_target_common();
 }
 
+AiControlDefenseBuilding::AiControlDefenseBuilding(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent):AiControl(unique_id,parent){
+}
+
+AiControlDefenseBuilding::~AiControlDefenseBuilding(){}
+
+std::uint64_t AiControlDefenseBuilding::move(std::pair<long, std::string> &result){
+	PROFILE_ME;
+
+	return UINT64_MAX;
+}
+
+AiControlDefenseBuildingNoAttack::AiControlDefenseBuildingNoAttack(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent):AiControlDefenseBuilding(unique_id,parent){
+}
+
+AiControlDefenseBuildingNoAttack::~AiControlDefenseBuildingNoAttack(){}
+
+std::uint64_t  AiControlDefenseBuildingNoAttack::attack(std::pair<long, std::string> &result, std::uint64_t now){
+	return UINT64_MAX;
+}
+
+AiControlMonsterCommon::AiControlMonsterCommon(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent):AiControl(unique_id,parent){
+}
+
+AiControlMonsterCommon::~AiControlMonsterCommon(){}
+
 std::uint64_t AiControlMonsterCommon::on_lose_target(){
-	return 0;
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->lost_target_monster();
+}
+
+AiControlMonsterGoblin::AiControlMonsterGoblin(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent):AiControl(unique_id,parent){
+}
+
+AiControlMonsterGoblin::~AiControlMonsterGoblin(){
 }
 
 std::uint64_t AiControlMonsterGoblin::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage){
-	return 0;
-}
+	PROFILE_ME;
 
-std::uint64_t AiControlMonsterActive::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage){
-	return 0;
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->on_attack_goblin(attacker,demage);
 }
-
-std::uint64_t AiControlMonsterActive::patrol(){
-	return 0;
-}
-
-std::uint64_t AiControlMonsterPatrol::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage){
-	return 0;
-}
-
-std::uint64_t AiControlMonsterPatrol::patrol(){
-	return 0;
-}
-
 }

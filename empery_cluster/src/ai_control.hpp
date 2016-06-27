@@ -20,38 +20,43 @@ public:
 	virtual std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	virtual std::uint64_t patrol();
 	virtual std::uint64_t on_lose_target();
-private:
+public:
+	std::uint64_t          get_ai_id();
+public:
 	std::uint64_t              m_unique_id;
 	boost::weak_ptr<MapObject> m_parent_object;
 };
 
-class AiControlDefenseBuilding : public AiControl{
-	
+class AiControlDefenseBuilding : public AiControl {
+public:
+	AiControlDefenseBuilding(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent);
+	~AiControlDefenseBuilding();
+public:
+	std::uint64_t move(std::pair<long, std::string> &result) override;
 };
 
-class AiControlArm : public AiControl{
-	
+class AiControlDefenseBuildingNoAttack : public AiControlDefenseBuilding{
+public:
+	AiControlDefenseBuildingNoAttack(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent);
+	~AiControlDefenseBuildingNoAttack();
+public:
+	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now) override;
 };
 
 class AiControlMonsterCommon : public AiControl {
+public:
+	AiControlMonsterCommon(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent);
+	~AiControlMonsterCommon();
+public:
 	std::uint64_t on_lose_target() override;
 };
 
 class AiControlMonsterGoblin : public AiControl{
 public:
-	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage) override;
-};
-
-class AiControlMonsterActive : public AiControl{
+	AiControlMonsterGoblin(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent);
+	~AiControlMonsterGoblin();
 public:
 	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage) override;
-	std::uint64_t patrol() override;
-};
-
-class AiControlMonsterPatrol : public AiControl{
-public:
-	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage) override;
-	std::uint64_t patrol() override;
 };
 
 }
