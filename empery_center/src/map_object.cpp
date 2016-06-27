@@ -158,9 +158,11 @@ void MapObject::recalculate_attributes(bool recursive){
 				Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
 					Data::MapObjectTypeAttributeBonus::AKT_WEAPON_ID, map_object_data->map_object_weapon_id.get());
 			}
+			Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
+				Data::MapObjectTypeAttributeBonus::AKT_LEVEL_ID, map_object_data->map_object_level_id.get());
 		}
 		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
-			Data::MapObjectTypeAttributeBonus::AKT_MAP_OBJECT_TYPE_ID, map_object_type_id.get());
+			Data::MapObjectTypeAttributeBonus::AKT_TYPE_ID, map_object_type_id.get());
 		for(auto it = attribute_bonus_applicable_data.begin(); it != attribute_bonus_applicable_data.end(); ++it){
 			const auto &attribute_bonus_data = *it;
 			const auto tech_attribute_id = attribute_bonus_data->tech_attribute_id;

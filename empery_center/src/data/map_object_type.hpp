@@ -17,6 +17,7 @@ namespace Data {
 		MapObjectTypeId map_object_type_id;
 		MapObjectWeaponId map_object_weapon_id;
 		MapObjectChassisId map_object_chassis_id;
+		MapObjectLevelId map_object_level_id;
 
 		std::uint64_t max_soldier_count;
 		double speed;
@@ -95,10 +96,11 @@ namespace Data {
 	class MapObjectTypeAttributeBonus {
 	public:
 		enum ApplicabilityKeyType {
-			AKT_ALL                 = 1,
-			AKT_CHASSIS_ID          = 2,
-			AKT_WEAPON_ID           = 3,
-			AKT_MAP_OBJECT_TYPE_ID  = 4,
+			AKT_ALL        = 1,
+			AKT_CHASSIS_ID = 2,
+			AKT_WEAPON_ID  = 3,
+			AKT_TYPE_ID    = 4,
+			AKT_LEVEL_ID   = 5,
 		};
 
 	public:

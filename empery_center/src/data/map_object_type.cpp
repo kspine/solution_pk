@@ -43,6 +43,7 @@ namespace {
 		csv.get(elem.map_object_type_id,     "arm_id");
 		csv.get(elem.map_object_weapon_id,   "arm_type");
 		csv.get(elem.map_object_chassis_id,  "arm_class");
+		csv.get(elem.map_object_level_id,    "arm_tech");
 
 		csv.get(elem.max_soldier_count,      "force_mnax");
 		csv.get(elem.speed,                  "speed");
