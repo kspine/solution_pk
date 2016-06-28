@@ -197,16 +197,6 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		delay = static_cast<std::uint64_t>(std::round(1000 / speed));
 	}
 
-	if(is_monster()){
-		const unsigned monster_active_scope = Data::Global::as_unsigned(Data::Global::SLOT_MAP_MONSTER_ACTIVE_SCOPE);
-		auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
-		auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
-		const auto distance = get_distance_of_coords(new_coord, Coord(birth_x,birth_y));
-		if(distance >= monster_active_scope){
-			return search_attack();
-		}
-	}
-
 	const auto new_cluster = WorldMap::get_cluster(new_coord);
 	if(!new_cluster){
 		LOG_EMPERY_CLUSTER_DEBUG("Lost connection to center server: new_coord = ", new_coord);
@@ -611,8 +601,18 @@ std::uint64_t MapObject::on_attack_goblin(boost::shared_ptr<MapObject> attacker,
 			const auto rand_y = Poseidon::rand32(random_left, random_right);
 			auto direct_x = Poseidon::rand32(0, 2) ? 1 : -1;
 			auto direct_y = Poseidon::rand32(0, 2) ? 1 : -1;
-			std::int64_t  target_x = get_coord().x() + (std::int64_t)rand_x*direct_x;
-			std::int64_t  target_y = get_coord().y() + (std::int64_t)rand_y*direct_y;
+			std::int64_t  target_x = get_coord().x() + static_cast<std::int64_t>(rand_x)*direct_x;
+			std::int64_t  target_y = get_coord().y() + static_cast<std::int64_t>(rand_y)*direct_y;
+			const auto cluster_scope = WorldMap::get_cluster_scope(get_coord());
+			auto left = cluster_scope.left();
+			auto right = cluster_scope.left() + static_cast<std::int64_t>(cluster_scope.width());
+			auto bottom = cluster_scope.bottom();
+			auto top = cluster_scope.bottom() + static_cast<std::int64_t>(cluster_scope.height());
+			target_x = ( left > target_x ? left  : target_x );
+			target_x = ( right < target_x ? right : target_x );
+			target_y = ( bottom > target_y ? bottom : target_y );
+			target_y = ( target_y > top ? top : target_y);
+
 		    std::deque<std::pair<signed char, signed char>> waypoints;
 			if(find_way_points(waypoints,get_coord(),Coord(target_x,target_y),true)){
 				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_GUARD),"");
@@ -1497,5 +1497,21 @@ bool         MapObject::is_protect_solider_ignore_target(const boost::shared_ptr
 		return true;
 	}
 	return false;
+}
+
+bool       MapObject::is_in_monster_active_scope(){
+	if(is_monster()){
+		const auto coord           = get_coord();
+		const auto waypoint  = m_waypoints.front();
+		const auto new_coord = Coord(coord.x() + waypoint.first, coord.y() + waypoint.second);
+		const unsigned monster_active_scope = Data::Global::as_unsigned(Data::Global::SLOT_MAP_MONSTER_ACTIVE_SCOPE);
+		auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
+		auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+		const auto distance = get_distance_of_coords(new_coord, Coord(birth_x,birth_y));
+		if(distance >= monster_active_scope){
+			return false;
+		}
+	}
+	return true;
 }
 }

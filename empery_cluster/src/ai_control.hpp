@@ -48,6 +48,7 @@ public:
 	AiControlMonsterCommon(std::uint64_t unique_id,boost::weak_ptr<MapObject> parent);
 	~AiControlMonsterCommon();
 public:
+	std::uint64_t move(std::pair<long, std::string> &result) override;
 	std::uint64_t on_lose_target() override;
 };
 

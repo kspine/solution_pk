@@ -113,6 +113,19 @@ AiControlMonsterCommon::AiControlMonsterCommon(std::uint64_t unique_id,boost::we
 
 AiControlMonsterCommon::~AiControlMonsterCommon(){}
 
+std::uint64_t AiControlMonsterCommon::move(std::pair<long, std::string> &result){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	if(!parent_object->is_in_monster_active_scope()){
+		return parent_object->search_attack();
+	}
+	return AiControl::move(result);
+}
+
 std::uint64_t AiControlMonsterCommon::on_lose_target(){
 	PROFILE_ME;
 

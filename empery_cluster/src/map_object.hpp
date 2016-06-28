@@ -99,12 +99,14 @@ public:
 	bool is_in_attack_scope(boost::shared_ptr<ResourceCrate> target_resource_crate);
 	bool is_in_attack_scope(boost::shared_ptr<MapCell> target_territory);
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
+	bool is_in_monster_active_scope();
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
 	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object);
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
 	bool          attacked_able(std::pair<long, std::string> &reason);
 	bool          attacking_able(std::pair<long, std::string> &reason);
+	std::uint64_t search_attack();
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
@@ -135,7 +137,6 @@ private:
 	bool          is_protect_solider_ignore_target(const boost::shared_ptr<MapObject> &target);
 	void          reset_attack_target_own_uuid();
 	AccountUuid   get_attack_target_own_uuid(); 
-	std::uint64_t search_attack();
 	unsigned      get_arm_attack_type();
 	unsigned      get_arm_defence_type();
 	int           get_attacked_prority();
