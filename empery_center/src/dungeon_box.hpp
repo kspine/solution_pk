@@ -19,7 +19,13 @@ class PlayerSession;
 
 class DungeonBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
-	
+	enum Score {
+		S_NONE        = 0,
+		S_PASSED      = 1,
+		S_ONE_STAR    = 7,
+		S_TWO_STARS   = 8,
+		S_THREE_START = 9,
+	};
 
 	struct DungeonInfo {
 		DungeonId dungeon_id;
@@ -29,46 +35,38 @@ public:
 private:
 	const AccountUuid m_account_uuid;
 
-	boost::container::flat_map<ItemId,
-		boost::shared_ptr<MySql::Center_Item>> m_items;
-	bool m_locked_by_transaction = false;
+	boost::container::flat_map<DungeonId,
+		boost::shared_ptr<MySql::Center_Dungeon>> m_dungeons;
 
 public:
-	ItemBox(AccountUuid account_uuid,
-		const std::vector<boost::shared_ptr<MySql::Center_Item>> &items);
-	~ItemBox();
+	DungeonBox(AccountUuid account_uuid,
+		const std::vector<boost::shared_ptr<MySql::Center_Dungeon>> &dungeons);
+	~DungeonBox();
 
 public:
-	virtual void pump_status();
-
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
 	}
 
-	void check_init_items();
-	void check_auto_inc_items();
+	DungeonInfo get(DungeonId dungeon_id) const;
+	void get_all(std::vector<DungeonInfo> &ret) const;
 
-	ItemInfo get(ItemId item_id) const;
-	void get_all(std::vector<ItemInfo> &ret) const;
-
-	__attribute__((__warn_unused_result__))
-	ItemId commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction, bool tax,
-		const boost::function<void ()> &callback = boost::function<void ()>());
-	void commit_transaction(const std::vector<ItemTransactionElement> &transaction, bool tax,
-		const boost::function<void ()> &callback = boost::function<void ()>());
+	void insert(DungeonInfo info);
+	void update(DungeonInfo info, bool throws_if_not_exists = true);
+	bool remove(DungeonId dungeon_id) noexcept;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_item_box_with_player(const boost::shared_ptr<const ItemBox> &item_box,
+inline void synchronize_dungeon_box_with_player(const boost::shared_ptr<const DungeonBox> &dungeon_box,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	item_box->synchronize_with_player(session);
+	dungeon_box->synchronize_with_player(session);
 }
-inline void synchronize_item_box_with_player(const boost::shared_ptr<ItemBox> &item_box,
+inline void synchronize_dungeon_box_with_player(const boost::shared_ptr<DungeonBox> &dungeon_box,
 	const boost::shared_ptr<PlayerSession> &session)
 {
-	item_box->synchronize_with_player(session);
+	dungeon_box->synchronize_with_player(session);
 }
 
 }

@@ -120,7 +120,9 @@ TaskBox::TaskBox(AccountUuid account_uuid,
 		if(!task_id){
 			m_stamps = obj;
 		} else {
-			m_tasks.emplace(task_id, std::make_pair(obj, boost::make_shared<Progress>(decode_progress(obj->unlocked_get_progress()))));
+			m_tasks.emplace(task_id,
+				std::make_pair(obj,
+					boost::make_shared<Progress>(decode_progress(obj->unlocked_get_progress()))));
 		}
 	}
 }
@@ -383,7 +385,7 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 	const auto task_id = info.task_id;
 	const auto it = m_tasks.find(task_id);
 	if(it == m_tasks.end()){
-	    LOG_EMPERY_CENTER_WARNING("Task not found: account_uuid = ", get_account_uuid(), ", task_uuid = ", task_id);
+	    LOG_EMPERY_CENTER_WARNING("Task not found: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Task not found"));
 		}
