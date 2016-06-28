@@ -44,6 +44,8 @@ public:
 	~DungeonBox();
 
 public:
+	virtual void pump_status();
+
 	AccountUuid get_account_uuid() const {
 		return m_account_uuid;
 	}

@@ -35,6 +35,12 @@ DungeonBox::DungeonBox(AccountUuid account_uuid,
 DungeonBox::~DungeonBox(){
 }
 
+void DungeonBox::pump_status(){
+	PROFILE_ME;
+
+	//
+}
+
 DungeonBox::DungeonInfo DungeonBox::get(DungeonId dungeon_id) const {
 	PROFILE_ME;
 
