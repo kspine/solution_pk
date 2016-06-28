@@ -69,7 +69,12 @@ constexpr ReasonId
 	ID_CASTLE_PROTECTION             ( 674008 ), // 部队 UUID 高位      城堡等级            保护时间（毫秒）
 	ID_CASTLE_PROTECTION_REFUND      ( 674009 ), // 部队 UUID 高位      城堡等级            保护时间（毫秒）
 	ID_RETURN_OCCUPIED_MAP_CELL      ( 674010 ), // 世界坐标 X          世界坐标 Y          土地购买券 ID
-	ID_OCCUPATION_END_RELOCATED      ( 674011 ); // 世界坐标 X          世界坐标 Y          0
+	ID_OCCUPATION_END_RELOCATED      ( 674011 ), // 世界坐标 X          世界坐标 Y          0
+	ID_CREATE_DUNGEON                ( 674012 ), // 副本 ID             0                   0
+	ID_DUNGEON_MONSTER_REWARD        ( 674013 ), // 副本 ID             掉落表内的 ID       0
+	ID_DUNGEON_TASK_REWARD           ( 674014 ); // 副本 ID             星级                0
+	                                             //                     1 无星  7 一星
+	                                             //                     8 二星  9 三星
 
 }
 

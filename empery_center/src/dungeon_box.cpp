@@ -65,43 +65,15 @@ void DungeonBox::get_all(std::vector<DungeonBox::DungeonInfo> &ret) const {
 	}
 }
 
-void DungeonBox::insert(DungeonBox::DungeonInfo info){
+void DungeonBox::set(DungeonBox::DungeonInfo info){
 	PROFILE_ME;
 
 	const auto dungeon_id = info.dungeon_id;
 	auto it = m_dungeons.find(dungeon_id);
-	if(it != m_dungeons.end()){
-		LOG_EMPERY_CENTER_WARNING("Dungeon exists: account_uuid = ", get_account_uuid(), ", dungeon_id = ", dungeon_id);
-		DEBUG_THROW(Exception, sslit("Dungeon exists"));
-	}
-
-	const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_id.get(), S_NONE);
-	obj->async_save(true);
-	it = m_dungeons.emplace(dungeon_id, obj).first;
-
-	const auto session = PlayerSessionMap::get(get_account_uuid());
-	if(session){
-		try {
-			Msg::SC_DungeonChanged msg;
-			fill_dungeon_message(msg, it->second);
-			session->send(msg);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
-}
-void DungeonBox::update(DungeonBox::DungeonInfo info, bool throws_if_not_exists){
-	PROFILE_ME;
-
-	const auto dungeon_id = info.dungeon_id;
-	const auto it = m_dungeons.find(dungeon_id);
 	if(it == m_dungeons.end()){
-		LOG_EMPERY_CENTER_WARNING("Dungeon not found: account_uuid = ", get_account_uuid(), ", dungeon_id = ", dungeon_id);
-		if(throws_if_not_exists){
-			DEBUG_THROW(Exception, sslit("Task not found"));
-		}
-		return;
+		const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_id.get(), S_NONE);
+		obj->async_save(true);
+		it = m_dungeons.emplace(dungeon_id, obj).first;
 	}
 	const auto &obj = it->second;
 

@@ -10,6 +10,7 @@ namespace EmperyCenter {
 PLAYER_SERVLET(Msg::CS_AuctionQueryStatus, account, session, /* req */){
 	const auto auction_center = AuctionCenterMap::require(account->get_account_uuid());
 	auction_center->pump_status();
+
 	auction_center->synchronize_with_player(session);
 
 	return Response();

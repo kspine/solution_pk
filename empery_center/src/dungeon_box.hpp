@@ -52,9 +52,7 @@ public:
 
 	DungeonInfo get(DungeonId dungeon_id) const;
 	void get_all(std::vector<DungeonInfo> &ret) const;
-
-	void insert(DungeonInfo info);
-	void update(DungeonInfo info, bool throws_if_not_exists = true);
+	void set(DungeonInfo info);
 	bool remove(DungeonId dungeon_id) noexcept;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

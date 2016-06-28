@@ -20,6 +20,7 @@ namespace EmperyCenter {
 PLAYER_SERVLET(Msg::CS_MailGetAllMails, account, session, /* req */){
 	const auto mail_box = MailBoxMap::require(account->get_account_uuid());
 	mail_box->pump_status();
+
 	mail_box->synchronize_with_player(session);
 
 	return Response();
