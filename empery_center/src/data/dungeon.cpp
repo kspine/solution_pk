@@ -22,6 +22,7 @@ namespace {
 			Data::Dungeon elem = { };
 
 			csv.get(elem.dungeon_id,              "dungeon_id");
+			csv.get(elem.reentrant,               "dungeon_class");
 			csv.get(elem.prerequisite_dungeon_id, "dungeon_need");
 
 			Poseidon::JsonObject object;

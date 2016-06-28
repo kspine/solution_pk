@@ -11,8 +11,10 @@ namespace {
 	void fill_dungeon_info(DungeonBox::DungeonInfo &info, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
-		info.dungeon_id = DungeonId(obj->get_dungeon_id());
-		info.score      = DungeonBox::Score(obj->get_score());
+		info.dungeon_id   = DungeonId(obj->get_dungeon_id());
+		info.score        = DungeonBox::Score(obj->get_score());
+		info.entry_count  = obj->get_entry_count();
+		info.finish_count = obj->get_finish_count();
 	}
 
 	void fill_dungeon_message(Msg::SC_DungeonChanged &msg, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
@@ -71,13 +73,16 @@ void DungeonBox::set(DungeonBox::DungeonInfo info){
 	const auto dungeon_id = info.dungeon_id;
 	auto it = m_dungeons.find(dungeon_id);
 	if(it == m_dungeons.end()){
-		const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_id.get(), S_NONE);
+		const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_id.get(),
+			S_NONE, 0, 0);
 		obj->async_save(true);
 		it = m_dungeons.emplace(dungeon_id, obj).first;
 	}
 	const auto &obj = it->second;
 
 	obj->set_score(static_cast<unsigned>(info.score));
+	obj->set_entry_count(info.entry_count);
+	obj->set_finish_count(info.finish_count);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){

@@ -13,6 +13,7 @@
 #include "../cluster_session.hpp"
 #include "../msg/sk_map.hpp"
 #include "../data/map_object_type.hpp"
+#include "../data/map_defense.hpp"
 #include "../map_cell.hpp"
 #include "../castle.hpp"
 #include "../data/castle.hpp"

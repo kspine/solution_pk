@@ -30,6 +30,8 @@ public:
 	struct DungeonInfo {
 		DungeonId dungeon_id;
 		Score score;
+		std::uint64_t entry_count;
+		std::uint64_t finish_count;
 	};
 
 private:

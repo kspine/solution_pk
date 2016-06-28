@@ -10,7 +10,7 @@
 #include "singletons/account_map.hpp"
 #include "attribute_ids.hpp"
 #include "data/map_object_type.hpp"
-#include "data/map.hpp"
+#include "data/map_defense.hpp"
 #include "data/castle.hpp"
 #include "data/buff.hpp"
 #include "castle.hpp"
@@ -144,7 +144,7 @@ void MapObject::recalculate_attributes(bool recursive){
 			Data::AKT_ALL, 0);
 		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
 			Data::AKT_TYPE_ID, map_object_type_id.get());
-		const auto defense = boost::dynamic_pointer_cast<Castle>(shared_from_this());
+		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(shared_from_this());
 		if(defense){
 			const auto defense_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, defense->get_level());
 			if(defense_data){

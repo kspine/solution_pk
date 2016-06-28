@@ -16,6 +16,8 @@ namespace Msg {
 		ERR_DUNGEON_TOO_MANY_SOLDIERS           = 72505,
 		ERR_BATTALION_TYPE_FORBIDDEN            = 72506,
 		ERR_BATTALION_NOT_IDLE                  = 72507,
+		ERR_DUNGEON_NO_BATTALIONS               = 72508,
+		ERR_DUNGEON_TOO_MANY_BATTALIONS         = 72509,
 	};
 }
 

@@ -15,8 +15,8 @@ namespace Data {
 
 	public:
 		DungeonId dungeon_id;
+		bool reentrant;
 		DungeonId prerequisite_dungeon_id;
-
 		boost::container::flat_map<ItemId, std::uint64_t> entry_cost;
 		// std::string map_name;
 
