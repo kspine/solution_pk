@@ -31,14 +31,19 @@ PLAYER_SERVLET(Msg::CS_DungeonGetAll, account, session, /* req */){
 }
 
 PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
-	const auto dungeon_box = DungeonBoxMap::require(account->get_account_uuid());
-	dungeon_box->pump_status();
-
 	const auto dungeon_id = DungeonId(req.dungeon_id);
 	const auto dungeon_data = Data::Dungeon::get(dungeon_id);
 	if(!dungeon_data){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON_ID) <<dungeon_id;
 	}
+
+	const auto account_uuid = account->get_account_uuid();
+
+	const auto dungeon_box = DungeonBoxMap::require(account_uuid);
+	const auto item_box = ItemBoxMap::require(account_uuid);
+
+	dungeon_box->pump_status();
+
 	const auto prerequisite_dungeon_id = dungeon_data->prerequisite_dungeon_id;
 	if(prerequisite_dungeon_id){
 		const auto prerequisite_info = dungeon_box->get(prerequisite_dungeon_id);
@@ -136,12 +141,25 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 		battalions.emplace_back(std::move(map_object));
 	}
 
-	// TODO
-	auto info = dungeon_box->get(dungeon_id);
-	info.score = DungeonBox::S_TWO_STARS;
-	info.entry_count += 1;
-	info.finish_count += 1;
-	dungeon_box->set(std::move(info));
+	const auto &entry_cost = dungeon_data->entry_cost;
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(entry_cost.size());
+	for(auto it = entry_cost.begin(); it != entry_cost.end(); ++it){
+		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
+			ReasonIds::ID_CREATE_DUNGEON, dungeon_id.get(), 0, 0);
+	}
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{
+			// TODO
+			auto info = dungeon_box->get(dungeon_id);
+			info.score = DungeonBox::S_TWO_STARS;
+			info.entry_count += 1;
+			info.finish_count += 1;
+			dungeon_box->set(std::move(info));
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
 
 	return Response();
 }
