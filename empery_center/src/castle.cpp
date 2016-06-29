@@ -18,6 +18,7 @@
 #include "building_type_ids.hpp"
 #include "account_utilities.hpp"
 #include "singletons/world_map.hpp"
+#include "buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -349,6 +350,10 @@ void Castle::pump_status(){
 
 	pump_population_production();
 	pump_treatment();
+
+	if(!is_buff_in_effect(BuffIds::ID_NOVICIATE_PROTECTION)){
+		async_cancel_noviciate_protection(get_owner_uuid());
+	}
 }
 void Castle::recalculate_attributes(bool recursive){
 	PROFILE_ME;

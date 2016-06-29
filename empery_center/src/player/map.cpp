@@ -288,6 +288,7 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 
 	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_cell, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 
 	map_cell->pump_status();
 
@@ -713,6 +714,7 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 
 	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_object, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 
 	map_object->pump_status();
 
@@ -933,6 +935,7 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			defense_building->pump_status();
 			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION);
+			copy_buff(defense_building, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
 			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,

@@ -12,6 +12,12 @@
 #include "castle.hpp"
 #include "singletons/controller_client.hpp"
 #include "msg/st_account.hpp"
+#include "account_attribute_ids.hpp"
+#include "mail_box.hpp"
+#include "singletons/mail_box_map.hpp"
+#include "mail_data.hpp"
+#include "chat_message_type_ids.hpp"
+#include "chat_message_slot_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -101,7 +107,56 @@ try {
 				}
 			}
 			check_all(building_levels_primary,     TaskBox::TCC_ALL);
-	});
+		});
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+}
+void async_cancel_noviciate_protection(AccountUuid account_uuid) noexcept
+try {
+	PROFILE_ME;
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return;
+	}
+	const auto protection_expired = account->cast_attribute<bool>(AccountAttributeIds::ID_NOVICIATE_PROTECTION_EXPIRED);
+	if(protection_expired){
+		return;
+	}
+
+	Poseidon::enqueue_async_job(
+		[=]{
+			PROFILE_ME;
+
+			AccountMap::require_controller_token(account_uuid);
+
+			const auto mail_box = MailBoxMap::require(account_uuid);
+
+			const auto protection_expired = account->cast_attribute<bool>(AccountAttributeIds::ID_NOVICIATE_PROTECTION_EXPIRED);
+			if(protection_expired){
+				return;
+			}
+
+			const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
+			const auto language_id = LanguageId(); // neutral
+
+			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+			const auto utc_now = Poseidon::get_utc_time();
+			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
+				ChatMessageTypeIds::ID_NOVICIATE_PROTECTION_FINISH, AccountUuid(), std::string(), std::move(segments),
+				boost::container::flat_map<ItemId, std::uint64_t>());
+			MailBoxMap::insert_mail_data(mail_data);
+
+			MailBox::MailInfo mail_info = { };
+			mail_info.mail_uuid   = mail_uuid;
+			mail_info.expiry_time = UINT64_MAX;
+			mail_info.system      = true;
+			mail_box->insert(std::move(mail_info));
+
+			boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+			modifiers[AccountAttributeIds::ID_NOVICIATE_PROTECTION_EXPIRED] = "1";
+			account->set_attributes(std::move(modifiers));
+		});
 } catch(std::exception &e){
 	LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 }
