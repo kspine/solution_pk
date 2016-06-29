@@ -9,6 +9,7 @@
 #include "map_object_type_ids.hpp"
 #include "task_type_ids.hpp"
 #include "singletons/world_map.hpp"
+#include "map_cell.hpp"
 #include "castle.hpp"
 #include "singletons/controller_client.hpp"
 #include "msg/st_account.hpp"
@@ -18,6 +19,7 @@
 #include "mail_data.hpp"
 #include "chat_message_type_ids.hpp"
 #include "chat_message_slot_ids.hpp"
+#include "buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -135,6 +137,22 @@ try {
 			const auto protection_expired = account->cast_attribute<bool>(AccountAttributeIds::ID_NOVICIATE_PROTECTION_EXPIRED);
 			if(protection_expired){
 				return;
+			}
+
+			std::vector<boost::shared_ptr<MapObject>> owning_objects;
+			WorldMap::get_map_objects_by_owner(owning_objects, account_uuid);
+
+			std::vector<boost::shared_ptr<MapCell>> owning_cells;
+			owning_cells.reserve(owning_objects.size() * 16);
+			for(const auto &map_object : owning_objects){
+				WorldMap::get_map_cells_by_parent_object(owning_cells, map_object->get_map_object_uuid());
+			}
+
+			for(const auto &map_object : owning_objects){
+				map_object->clear_buff(BuffIds::ID_NOVICIATE_PROTECTION);
+			}
+			for(const auto &map_cell : owning_cells){
+				map_cell->clear_buff(BuffIds::ID_NOVICIATE_PROTECTION);
 			}
 
 			const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
