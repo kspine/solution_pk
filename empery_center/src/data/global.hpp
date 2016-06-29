@@ -70,6 +70,8 @@ namespace Data {
 			SLOT_MAP_CELL_PROTECTION_DURATION                       = 100076,
 			SLOT_CASTLE_SIEGE_PROTECTION_DURATION                   = 100077,
 			SLOT_BATTLE_BUNKER_GARRISON_PREPARATION_DURATION        = 100078,
+			SLOT_GOBLIN_DROP_AWARD_HP_PERCENT                       = 100090,
+			SLOT_GOBLIN_DROP_AWARD                                  = 100091,
 		};
 
 	public:

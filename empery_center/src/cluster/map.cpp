@@ -732,6 +732,104 @@ _wounded_done:
 		}
 	}
 
+	//哥布林掉落
+	if(attacking_account_uuid){
+		try {
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+
+				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
+				if(!monster_type_data){
+					return;
+				}
+				static constexpr auto GOBLIN_WEAPON_ID = MapObjectWeaponId(2605001);
+				if(monster_type_data->map_object_weapon_id == GOBLIN_WEAPON_ID)
+				{
+					const auto item_box = ItemBoxMap::get(attacking_account_uuid);
+					if(!item_box){
+						LOG_EMPERY_CENTER_DEBUG("Failed to load item box: attacking_account_uuid = ", attacking_account_uuid);
+						return;
+					}
+					const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
+					if(!parent_object_uuid){
+						return;
+					}
+					const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+					if(!parent_castle){
+						LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
+						return;
+					}
+					const auto hp_total = checked_mul(monster_type_data->max_soldier_count, monster_type_data->hp_per_soldier);
+					const auto hp_damaged_now = checked_sub(hp_total,hp_remaining);
+					const auto hp_damaged_last = checked_sub(hp_damaged_now,hp_damaged);
+					const auto interval  = hp_total*Data::Global::as_double(Data::Global::SLOT_GOBLIN_DROP_AWARD_HP_PERCENT);
+					const auto reward_count = hp_damaged_now/interval - hp_damaged_last/interval;
+					const auto goblin_award_object = Data::Global::as_object(Data::Global::SLOT_GOBLIN_DROP_AWARD);
+					boost::container::flat_map<std::string, std::uint64_t> goblin_rewards;
+					goblin_rewards.reserve(goblin_award_object.size());
+					for(auto it = goblin_award_object.begin(); it != goblin_award_object.end(); ++it){
+						auto collection_name = std::string(it->first.get());
+						const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+						if(!goblin_rewards.emplace(std::move(collection_name), count).second){
+							LOG_EMPERY_CENTER_ERROR("Duplicate reward set: collection_name = ", collection_name);
+							DEBUG_THROW(Exception, sslit("Duplicate reward set"));
+						}
+					}
+					boost::container::flat_map<ItemId, std::uint64_t> items_basic;
+					std::vector<ItemTransactionElement> transaction;
+					const auto push_monster_rewards = [&](const boost::container::flat_map<std::string, std::uint64_t> &monster_rewards){
+						for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
+							const auto &collection_name = rit->first;
+							const auto repeat_count = rit->second;
+							for(std::size_t i = 0; i < repeat_count; ++i){
+								const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
+								if(!reward_data){
+									LOG_EMPERY_CENTER_WARNING("Error getting random reward: attacked_object_type_id = ", attacked_object_type_id,
+										", collection_name = ", collection_name);
+									continue;
+								}
+								for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
+									const auto item_id = it->first;
+									const auto count = it->second;
+									transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+											ReasonIds::ID_MONSTER_REWARD, attacked_object_type_id.get(),
+											static_cast<std::int64_t>(reward_data->unique_id), 0);
+										items_basic[item_id] += count;
+								}
+							}
+						}
+					};
+					for(int index = 0; index < reward_count; ++index){
+						push_monster_rewards(goblin_rewards);
+					}
+					item_box->commit_transaction(transaction, false);
+					const auto session = PlayerSessionMap::get(attacking_account_uuid);
+					if(session){
+						try {
+							Msg::SC_MapGoblinRewardGot msg;
+							msg.x                  = attacked_coord.x();
+							msg.y                  = attacked_coord.y();
+							msg.map_object_type_id = attacked_object_type_id.get();
+							msg.items_basic.reserve(items_basic.size());
+							for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
+								auto &elem = *msg.items_basic.emplace(msg.items_basic.end());
+								elem.item_id = it->first.get();
+								elem.count   = it->second;
+							}
+							msg.castle_uuid        = parent_castle->get_map_object_uuid().str();
+							session->send(msg);
+						} catch(std::exception &e){
+							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+							session->shutdown(e.what());
+						}
+					}
+				}
+			});
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+
 	// 任务。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try {

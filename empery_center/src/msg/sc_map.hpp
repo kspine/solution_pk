@@ -288,6 +288,19 @@ namespace Msg {
 	FIELD_VINT          (new_coord_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_MapGoblinRewardGot
+#define MESSAGE_ID      375
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_ARRAY         (items_basic,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)	\
+	FIELD_STRING        (castle_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
