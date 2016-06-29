@@ -1176,7 +1176,7 @@ bool  MapObject::attacked_able(std::pair<long, std::string> &reason){
 	}
 
 	if(is_in_protect()&&is_building()){
-		reason = CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION );
+		reason = CbppResponse(Msg::ERR_TARGET_UNDER_CASTLE_PROTECTION); // XXX
 		return false;
 	}
 	return true;
