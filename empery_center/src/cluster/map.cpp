@@ -48,6 +48,11 @@
 #include "../resource_crate.hpp"
 #include "../buff_ids.hpp"
 #include "../map_cell.hpp"
+#include "../activity.hpp"
+#include "../singletons/activity_map.hpp"
+#include "../singletons/map_activity_accumulate_map.hpp"
+#include "../activity_ids.hpp"
+#include "../data/activity.hpp"
 #include "../singletons/controller_client.hpp"
 #include <poseidon/async_job.hpp>
 
@@ -262,11 +267,18 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto harvest_speed_add = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
 	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
 
-	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0;
+	auto  activity_add_rate = 1;
+	const auto map_activity = ActivityMap::get_map_activity();
+	if(map_activity){
+		if(map_activity->get_current_activity() == ActivityIds::ID_MAP_ACTIVITY_HARVEST){
+			activity_add_rate = 2;
+		}
+	}
+	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0 * activity_add_rate;
 	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
-		", forced_attack = ", forced_attack);
+		", forced_attack = ", forced_attack,", activity_add_rate = ", activity_add_rate);
 
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, req.interval);
 
@@ -647,7 +659,13 @@ _wounded_done:
 				const auto utc_now = Poseidon::get_utc_time();
 
 				boost::container::flat_map<ItemId, std::uint64_t> items_basic, items_extra;
-
+				std::uint64_t  activity_add_rate = 1;
+				const auto map_activity = ActivityMap::get_map_activity();
+				if(map_activity){
+					if(map_activity->get_current_activity() == ActivityIds::ID_MAP_ACTIVITY_MONSTER){
+						activity_add_rate = 2;
+					}
+				}
 				const auto reward_counter = parent_castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
 				if(reward_counter > 0){
 					std::vector<ResourceTransactionElement> resource_transaction;
@@ -659,7 +677,10 @@ _wounded_done:
 					const auto push_monster_rewards = [&](const boost::container::flat_map<std::string, std::uint64_t> &monster_rewards, bool extra){
 						for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
 							const auto &collection_name = rit->first;
-							const auto repeat_count = rit->second;
+							auto repeat_count = rit->second;
+							if(!extra){
+								repeat_count = repeat_count * activity_add_rate;
+							}
 							for(std::size_t i = 0; i < repeat_count; ++i){
 								const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
 								if(!reward_data){
@@ -894,7 +915,125 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
-
+	const auto map_activity_acculate_rewards = [=](MapActivityId activity_id,std::uint64_t delta,ReasonId reason_id){
+		{
+			{
+				const auto map_activity = ActivityMap::get_map_activity();
+				if(map_activity){
+					if(map_activity->get_current_activity() != activity_id){
+						goto _activity_acculate_done;
+					}
+				}
+				MapActivity::MapActivityDetailInfo map_activity_info = map_activity->get_activity_info(activity_id);
+				if(map_activity_info.unique_id != activity_id.get()){
+					goto _activity_acculate_done;
+				}
+				std::uint64_t old_accumulate,new_accumulate;
+				boost::container::flat_map<ItemId, std::uint64_t> items_basic;
+				std::vector<std::uint64_t> acculate_condition;
+				MapActivityAccumulateMap::AccumulateInfo info = MapActivityAccumulateMap::get(attacking_account_uuid,activity_id);
+				if(info.activity_id != MapActivityId(0) && (info.account_uuid == attacking_account_uuid) && (info.activity_id == activity_id)){
+					old_accumulate = info.accumulate_value;
+					info.accumulate_value += delta;
+					MapActivityAccumulateMap::update(info,false);
+					new_accumulate = info.accumulate_value;
+				}else{
+					info.account_uuid = attacking_account_uuid;
+					info.activity_id = activity_id;
+					info.avaliable_since = map_activity_info.available_since;
+					info.avaliable_util = map_activity_info.available_until;
+					old_accumulate = 0;
+					info.accumulate_value += delta;
+					MapActivityAccumulateMap::insert(info);
+					new_accumulate = info.accumulate_value;
+				}
+				boost::shared_ptr<const Data::MapActivity> map_activity_data  = Data::MapActivity::get(activity_id.get());
+				if(!map_activity_data){
+					goto _activity_acculate_done;
+				}
+				if(old_accumulate == new_accumulate){
+					goto _activity_acculate_done;
+				}
+				const auto item_box = ItemBoxMap::require(attacking_account_uuid);
+				std::vector<ItemTransactionElement> transaction;
+				const auto &rewards = map_activity_data->rewards;
+				for(auto it = rewards.begin(); it != rewards.end(); ++it){
+					if((it->first > old_accumulate) && (it->first <= new_accumulate)){
+						const auto &items_vec = it->second;
+						for(auto iit = items_vec.begin(); iit != items_vec.end(); ++iit){
+							const auto item_id = ItemId(iit->first);
+							const auto count = iit->second;
+							transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+											reason_id,it->first,
+											old_accumulate,new_accumulate);
+							items_basic[item_id] += count;
+						}
+						acculate_condition.push_back(it->first);
+					}
+				}
+				if(acculate_condition.empty()){
+					goto _activity_acculate_done;
+				}
+				item_box->commit_transaction(transaction, false);
+				const auto session = PlayerSessionMap::get(attacking_account_uuid);
+				if(session){
+					try {
+						Msg::SC_MapActivityAcculateReward msg;
+						msg.x                  = attacked_coord.x();
+						msg.y                  = attacked_coord.y();
+						msg.activity_id        = activity_id.get();
+						msg.items_basic.reserve(items_basic.size());
+						for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
+							auto &elem = *msg.items_basic.emplace(msg.items_basic.end());
+							elem.item_id = it->first.get();
+							elem.count   = it->second;
+						}
+						for(auto it = acculate_condition.begin(); it != acculate_condition.end(); ++it){
+							auto &elem = *msg.reward_acculate.emplace(msg.reward_acculate.end());
+							elem.acculate = *it;
+						}
+						session->send(msg);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						session->shutdown(e.what());
+					}
+				}
+			}
+	}
+			_activity_acculate_done:
+				;
+	};
+	//杀兵活动
+	if(attacking_account_uuid && attacked_account_uuid && soldiers_remaining == 0){
+		try{
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+				{
+					const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+					if(!attacked_type_data || attacked_type_data->warfare == 0){
+							goto _activity_kill_solider_done;
+					}
+					map_activity_acculate_rewards(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER,attacked_type_data->warfare,ReasonIds::ID_SOLDIER_KILL_ACCUMULATE);
+				}
+				_activity_kill_solider_done:
+				;
+			});
+		} catch (std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+	//攻城活动
+	const auto castle = boost::dynamic_pointer_cast<Castle>(attacked_object);
+	if(castle){
+		try{
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+				map_activity_acculate_rewards(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE,hp_damaged,ReasonIds::ID_CASTLE_DMAGE_ACCUMULATE);
+			});
+		} catch (std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
 	return Response();
 }
 

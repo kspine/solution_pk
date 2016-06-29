@@ -72,9 +72,12 @@ constexpr ReasonId
 	ID_OCCUPATION_END_RELOCATED      ( 674011 ), // 世界坐标 X          世界坐标 Y          0
 	ID_CREATE_DUNGEON                ( 674012 ), // 副本 ID             0                   0
 	ID_DUNGEON_MONSTER_REWARD        ( 674013 ), // 副本 ID             掉落表内的 ID       0
-	ID_DUNGEON_TASK_REWARD           ( 674014 ); // 副本 ID             星级                0
+	ID_DUNGEON_TASK_REWARD           ( 674014 ), // 副本 ID             星级                0
 	                                             //                     1 无星  7 一星
 	                                             //                     8 二星  9 三星
+	ID_SOLDIER_KILL_ACCUMULATE       ( 674015 ), // 满足累计战力        原来累计战力        新累计战力
+	ID_CASTLE_DMAGE_ACCUMULATE       ( 674016 ), // 满足伤害            原来累计伤害         新累计伤害
+	ID_SOLDIER_KILL_RANK             ( 674017 ); // 活动id              排名                活动结束时间
 
 }
 

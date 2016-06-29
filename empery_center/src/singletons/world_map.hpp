@@ -64,6 +64,8 @@ struct WorldMap {
 	static boost::shared_ptr<MapEventBlock> require_map_event_block(Coord coord);
 	static void insert_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block);
 	static void update_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block, bool throws_if_not_exists = true);
+	static void refresh_activity_event(unsigned map_event_type);
+	static void remove_activity_event(unsigned map_event_type);
 
 	// ResourceCrate
 	static boost::shared_ptr<ResourceCrate> get_resource_crate(ResourceCrateUuid resource_crate_uuid);

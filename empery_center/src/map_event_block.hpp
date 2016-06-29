@@ -25,6 +25,12 @@ public:
 		BLOCK_HEIGHT = 32,
 	};
 
+	enum : unsigned {
+		MAP_EVENT_COMMON = 1,
+		MAP_EVENT_ACTIVITY_RESOUCE = 2,
+		MAP_EVENT_ACTIVITY_GOBLIN = 3,
+	};
+
 	struct EventInfo {
 		Coord coord;
 		std::uint64_t created_time;
@@ -48,7 +54,8 @@ public:
 public:
 	virtual void pump_status();
 
-	void refresh_events(bool first_time);
+	void refresh_events(bool first_time,unsigned event_type = MAP_EVENT_COMMON);
+	void remove_expired_events(boost::uint64_t utc_now,unsigned event_type = MAP_EVENT_COMMON,bool force = false);
 
 	Coord get_block_coord() const;
 	Rectangle get_block_scope() const {
