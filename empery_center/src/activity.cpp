@@ -166,26 +166,30 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 		info.process_date     = now;
 		MapActivityRankMap::insert(std::move(info));
 		//发送奖励
-		std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
-		bool is_award_data = Data::ActivityAward::get_activity_rank_award(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),rank,rewards);
-		if(!is_award_data){
-			LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER has no award data, rank:",rank);
-			continue;
+		try{
+			std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
+			bool is_award_data = Data::ActivityAward::get_activity_rank_award(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),rank,rewards);
+			if(!is_award_data){
+				LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER has no award data, rank:",rank);
+				continue;
+			}
+			const auto item_box = ItemBoxMap::get(info.account_uuid);
+			if(!item_box){
+				LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER award cann't find item box, account_uuid:",info.account_uuid);
+				continue;
+			}
+			std::vector<ItemTransactionElement> transaction;
+			for(auto it = rewards.begin(); it != rewards.end(); ++it){
+				const auto item_id = ItemId(it->first);
+				const auto count = it->second;
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+								ReasonIds::ID_SOLDIER_KILL_RANK,ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),
+								rank,activity_kill_solider_info.available_until);
+			}
+			item_box->commit_transaction(transaction, false);
+		} catch (std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
-		const auto item_box = ItemBoxMap::get(info.account_uuid);
-		if(!item_box){
-			LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER award cann't find item box, account_uuid:",info.account_uuid);
-			continue;
-		}
-		std::vector<ItemTransactionElement> transaction;
-		for(auto it = rewards.begin(); it != rewards.end(); ++it){
-			const auto item_id = ItemId(it->first);
-			const auto count = it->second;
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-							ReasonIds::ID_SOLDIER_KILL_RANK,ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),
-							rank,activity_kill_solider_info.available_until);
-		}
-		item_box->commit_transaction(transaction, false);
 	}
 	return true;
 }
