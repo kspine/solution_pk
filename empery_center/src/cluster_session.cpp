@@ -5,7 +5,6 @@
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_base.hpp>
 #include <poseidon/job_promise.hpp>
-#include <poseidon/job_promise.hpp>
 #include <poseidon/atomic.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
