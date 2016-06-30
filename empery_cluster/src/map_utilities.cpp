@@ -1,9 +1,5 @@
 #include "precompiled.hpp"
 #include "map_utilities.hpp"
-
-#include "../../empery_center/src/map_utilities.cpp"
-#include "../../empery_center/src/buff_ids.hpp"
-
 #include "cluster_client.hpp"
 #include "singletons/world_map.hpp"
 #include "map_cell.hpp"
@@ -12,7 +8,10 @@
 #include "data/map.hpp"
 #include "data/global.hpp"
 #include "cbpp_response.hpp"
+#include "buff_ids.hpp"
+#include "../../empery_center/src/map_utilities.cpp"
 #include "../../empery_center/src/msg/err_map.hpp"
+#include "../../empery_center/src/msg/err_castle.hpp"
 
 
 namespace EmperyCluster {
@@ -24,8 +23,8 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 
 	// 检测阻挡。
 	const auto map_cell = WorldMap::get_map_cell(coord);
-	if(map_cell&&!map_cell->is_in_castle_protect()){
-		bool occupied = map_cell->is_buff_in_effect(EmperyCenter::BuffIds::ID_OCCUPATION_MAP_CELL);
+	if(map_cell){
+		bool occupied = map_cell->is_buff_in_effect(BuffIds::ID_OCCUPATION_MAP_CELL);
 		auto cell_owner_uuid = map_cell->get_owner_uuid();
 		if(occupied){
 			cell_owner_uuid = map_cell->get_occupier_owner_uuid();
@@ -104,6 +103,25 @@ namespace {
 
 	bool compare_astar_coords_by_distance_hint(const AStarCoordElement &lhs, const AStarCoordElement &rhs){
 		return lhs.distance_to_hint + lhs.distance_from > rhs.distance_to_hint + rhs.distance_from;
+	}
+
+	template<typename T>
+	long get_protection_error(const boost::shared_ptr<T> &ptr, bool is_attacker){
+		PROFILE_ME;
+
+		if(ptr->is_buff_in_effect(BuffIds::ID_NOVICIATE_PROTECTION)){
+			return is_attacker ? Msg::ERR_ATTACKER_UNDER_NOVICIATE_PROTECTION
+			                   :   Msg::ERR_TARGET_UNDER_NOVICIATE_PROTECTION;
+		}
+		if(ptr->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
+			return is_attacker ? Msg::ERR_ATTACKER_UNDER_OCCUPATION_PROTECTION
+			                   :   Msg::ERR_TARGET_UNDER_OCCUPATION_PROTECTION;
+		}
+		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+			return is_attacker ? Msg::ERR_ATTACKER_UNDER_CASTLE_PROTECTION
+			                   :   Msg::ERR_TARGET_UNDER_CASTLE_PROTECTION;
+		}
+		return Msg::ST_OK;
 	}
 }
 
@@ -200,4 +218,63 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 	}
 }
 
+std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObject> &attacking_object,
+	const boost::shared_ptr<MapObject> &attacked_object)
+{
+	PROFILE_ME;
+
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
+	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
+
+	long error;
+
+	if(attacked_account_uuid && attacking_object->is_protectable()){
+		// 处于保护状态下的防御建筑不能攻击其他玩家的部队。
+		if((error = get_protection_error(attacking_object, true)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	if(attacking_account_uuid && attacked_object->is_protectable()){
+		// 处于保护状态下的防御建筑不能遭到其他玩家的部队攻击。
+		if((error = get_protection_error(attacked_object, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacked_object->get_map_object_uuid();
+		}
+		// 防御建筑不能遭到其他玩家处于保护状态下的部队的攻击。
+		if((error = get_protection_error(attacking_object, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	return CbppResponse();
+}
+std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObject> &attacking_object,
+	const boost::shared_ptr<MapCell> &attacked_cell)
+{
+	PROFILE_ME;
+
+	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
+	auto attacked_account_uuid = attacked_cell->get_occupier_owner_uuid();
+	if(!attacked_account_uuid){
+		attacked_account_uuid = attacked_cell->get_owner_uuid();
+	}
+
+	long error;
+
+	if(attacked_account_uuid && attacking_object->is_protectable()){
+		// 处于保护状态下的领地不能攻击其他玩家的部队。
+		if((error = get_protection_error(attacking_object, true)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	if(attacking_account_uuid && attacked_cell->is_protectable()){
+		// 处于保护状态下的领地不能遭到其他玩家的部队攻击。
+		if((error = get_protection_error(attacked_cell, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacked_cell->get_coord();
+		}
+		// 领地不能遭到其他玩家处于保护状态下的部队的攻击。
+		if((error = get_protection_error(attacking_object, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
+		}
+	}
+	return CbppResponse();
+}
 }
