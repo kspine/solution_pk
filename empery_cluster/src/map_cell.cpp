@@ -184,15 +184,6 @@ bool MapCell::is_in_group_view_scope(boost::shared_ptr<MapObject> target_object)
 
 	return false;
 }
-bool MapCell::is_in_protect(){
-	if(is_in_castle_protect()){
-		return true;
-	}
-	if(is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
-		return true;
-	}
-	return false;
-}
 
 bool MapCell::is_in_castle_protect(){
 		PROFILE_ME;
@@ -206,8 +197,9 @@ bool MapCell::is_in_castle_protect(){
 	return false;
 }
 
-bool MapCell::is_have_preocted_ticket(){
-		PROFILE_ME;
+bool MapCell::is_protectable() const{
+	PROFILE_ME;
+
 	const auto map_cell_ticket = Data::MapCellTicket::get(get_ticket_item_id());
 	if(!map_cell_ticket){
 		return false;

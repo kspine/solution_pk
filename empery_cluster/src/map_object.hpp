@@ -108,6 +108,7 @@ public:
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
 	bool          attacked_able(std::pair<long, std::string> &reason);
 	bool          attacking_able(std::pair<long, std::string> &reason);
+	bool          is_protectable();
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
@@ -133,8 +134,6 @@ private:
 	bool          is_bunker();
 	bool          is_defense_tower();
 	bool          is_lost_attacked_target();
-	bool          is_in_protect();
-	bool          is_protect_solider_ignore_target(const boost::shared_ptr<MapObject> &target);
 	void          reset_attack_target_own_uuid();
 	AccountUuid   get_attack_target_own_uuid(); 
 	std::uint64_t search_attack();
