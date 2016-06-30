@@ -85,6 +85,8 @@ public:
 	bool is_garrisoned() const;
 	void set_garrisoned(bool garrisoned);
 
+	bool is_idle() const; // 进驻，进入副本等。
+
 	std::uint64_t get_stamp() const {
 		return m_stamp;
 	}

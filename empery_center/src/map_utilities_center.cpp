@@ -517,16 +517,22 @@ try {
 
 namespace {
 	template<typename T>
-	bool is_protection_in_effect(const boost::shared_ptr<T> &ptr){
+	long get_protection_error(const boost::shared_ptr<T> &ptr, bool is_attacker){
 		PROFILE_ME;
 
-		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
-			return true;
+		if(ptr->is_buff_in_effect(BuffIds::ID_NOVICIATE_PROTECTION)){
+			return is_attacker ? Msg::ERR_ATTACKER_UNDER_NOVICIATE_PROTECTION
+			                   :   Msg::ERR_TARGET_UNDER_NOVICIATE_PROTECTION;
 		}
 		if(ptr->is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
-			return true;
+			return is_attacker ? Msg::ERR_ATTACKER_UNDER_OCCUPATION_PROTECTION
+			                   :   Msg::ERR_TARGET_UNDER_OCCUPATION_PROTECTION;
 		}
-		return false;
+		if(ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !ptr->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+			return is_attacker ? Msg::ERR_ATTACKER_UNDER_CASTLE_PROTECTION
+			                   :   Msg::ERR_TARGET_UNDER_CASTLE_PROTECTION;
+		}
+		return Msg::ST_OK;
 	}
 }
 
@@ -538,20 +544,22 @@ std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObje
 	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
 	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
 
+	long error;
+
 	if(attacked_account_uuid && attacking_object->is_protectable()){
 		// 处于保护状态下的防御建筑不能攻击其他玩家的部队。
-		if(is_protection_in_effect(attacking_object)){
-			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		if((error = get_protection_error(attacking_object, true)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
 		}
 	}
 	if(attacking_account_uuid && attacked_object->is_protectable()){
 		// 处于保护状态下的防御建筑不能遭到其他玩家的部队攻击。
-		if(is_protection_in_effect(attacked_object)){
-			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacked_object->get_map_object_uuid();
+		if((error = get_protection_error(attacked_object, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacked_object->get_map_object_uuid();
 		}
 		// 防御建筑不能遭到其他玩家处于保护状态下的部队的攻击。
-		if(is_protection_in_effect(attacking_object)){
-			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		if((error = get_protection_error(attacking_object, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
 		}
 	}
 	return CbppResponse();
@@ -567,20 +575,22 @@ std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObje
 		attacked_account_uuid = attacked_cell->get_owner_uuid();
 	}
 
+	long error;
+
 	if(attacked_account_uuid && attacking_object->is_protectable()){
 		// 处于保护状态下的领地不能攻击其他玩家的部队。
-		if(is_protection_in_effect(attacking_object)){
-			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		if((error = get_protection_error(attacking_object, true)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
 		}
 	}
 	if(attacking_account_uuid && attacked_cell->is_protectable()){
 		// 处于保护状态下的领地不能遭到其他玩家的部队攻击。
-		if(is_protection_in_effect(attacked_cell)){
-			return CbppResponse(Msg::ERR_MAP_CELL_UNDER_PROTECTION) <<attacked_cell->get_coord();
+		if((error = get_protection_error(attacked_cell, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacked_cell->get_coord();
 		}
 		// 领地不能遭到其他玩家处于保护状态下的部队的攻击。
-		if(is_protection_in_effect(attacking_object)){
-			return CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION) <<attacking_object->get_map_object_uuid();
+		if((error = get_protection_error(attacking_object, false)) != Msg::ST_OK){
+			return CbppResponse(error) <<attacking_object->get_map_object_uuid();
 		}
 	}
 	return CbppResponse();

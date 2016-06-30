@@ -10,7 +10,7 @@
 #include "singletons/account_map.hpp"
 #include "attribute_ids.hpp"
 #include "data/map_object_type.hpp"
-#include "data/map.hpp"
+#include "data/map_defense.hpp"
 #include "data/castle.hpp"
 #include "data/buff.hpp"
 #include "castle.hpp"
@@ -144,7 +144,7 @@ void MapObject::recalculate_attributes(bool recursive){
 			Data::AKT_ALL, 0);
 		Data::MapObjectTypeAttributeBonus::get_applicable(attribute_bonus_applicable_data,
 			Data::AKT_TYPE_ID, map_object_type_id.get());
-		const auto defense = boost::dynamic_pointer_cast<Castle>(shared_from_this());
+		const auto defense = boost::dynamic_pointer_cast<DefenseBuilding>(shared_from_this());
 		if(defense){
 			const auto defense_data = Data::MapDefenseBuildingAbstract::get(map_object_type_id, defense->get_level());
 			if(defense_data){
@@ -308,6 +308,19 @@ void MapObject::set_garrisoned(bool garrisoned){
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 }
 
+bool MapObject::is_idle() const {
+	PROFILE_ME;
+
+	if(!is_garrisoned()){
+		return false;
+	}
+	const auto bunker = WorldMap::get_map_object_by_garrisoning_object(get_map_object_uuid());
+	if(bunker){
+		return false;
+	}
+	return true;
+}
+
 std::int64_t MapObject::get_attribute(AttributeId attribute_id) const {
 	PROFILE_ME;
 
@@ -442,18 +455,18 @@ void MapObject::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 	}
 	const auto &obj = it->second;
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto old_duration = obj->get_duration(), old_time_begin = obj->get_time_begin(), old_time_end = obj->get_time_end();
-	std::uint64_t new_duration, new_time_begin;
+	const auto old_time_begin = obj->get_time_begin(), old_time_end = obj->get_time_end();
+	std::uint64_t new_time_begin, new_time_end;
 	if(utc_now < old_time_end){
-		new_duration = saturated_add(old_duration, delta_duration);
 		new_time_begin = old_time_begin;
+		new_time_end = saturated_add(old_time_end, delta_duration);
 	} else {
-		new_duration = delta_duration;
 		new_time_begin = utc_now;
+		new_time_end = saturated_add(utc_now, delta_duration);
 	}
-	obj->set_duration(new_duration);
+	obj->set_duration(saturated_sub(new_time_end, new_time_begin));
 	obj->set_time_begin(new_time_begin);
-	obj->set_time_end(saturated_add(new_time_begin, new_duration));
+	obj->set_time_end(new_time_end);
 
 	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 

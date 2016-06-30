@@ -36,7 +36,8 @@ constexpr AccountAttributeId
 	ID_LOGIN_TOKEN                    ( 504 ),
 	ID_LOGIN_TOKEN_EXPIRY_TIME        ( 505 ),
 	ID_SAVED_THIRD_TOKEN              ( 506 ),
-	ID_FIRST_CASTLE_NAME_SET          ( 507 );
+	ID_FIRST_CASTLE_NAME_SET          ( 507 ),
+	ID_NOVICIATE_PROTECTION_EXPIRED   ( 508 );
 
 }
 

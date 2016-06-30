@@ -18,6 +18,7 @@ namespace EmperyCenter {
 PLAYER_SERVLET(Msg::CS_ItemGetAllItems, account, session, /* req */){
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 	item_box->pump_status();
+
 	item_box->synchronize_with_player(session);
 
 	return Response();

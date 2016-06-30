@@ -480,6 +480,16 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS) << get_owner_uuid();
 		return UINT64_MAX;
 	}
+	if(!attacking_able(result)){
+		return UINT64_MAX;
+	}
+	if(!target_object->attacked_able(result)){
+		return UINT64_MAX;
+	}
+	result = is_under_protection(virtual_shared_from_this<MapObject>(),target_object);
+	if(result.first != Msg::ST_OK){
+		return UINT64_MAX;
+	}
 	const auto cluster = get_cluster();
 	if(!cluster){
 		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
@@ -725,11 +735,11 @@ std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, 
 		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS) << get_owner_uuid();
 		return UINT64_MAX;
 	}
-	if(map_cell->is_in_protect()){
-		result = CbppResponse(Msg::ERR_MAP_CELL_UNDER_PROTECTION);
+
+	result = is_under_protection(virtual_shared_from_this<MapObject>(),map_cell);
+	if(result.first != Msg::ST_OK){
 		return UINT64_MAX;
 	}
-
 	const auto cluster = get_cluster();
 	if(!cluster){
 		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
@@ -981,13 +991,6 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 			result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
 			return false;
 		}
-		if(is_protect_solider_ignore_target(target_object)){
-			result = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
-			return false;
-		}
-		if(!target_object->attacked_able(result)){
-			return false;
-		}
 		target_coord = target_object->get_coord();
 		in_attack_scope = is_in_attack_scope(target_object);
 	} else if( m_action == ACT_HARVEST_RESOURCE_CRATE || m_action == ACT_HARVEST_RESOURCE_CRATE_FORCE ){
@@ -1059,7 +1062,8 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 	boost::shared_ptr<MapObject> select_object;
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
-		if(is_protect_solider_ignore_target(map_object)){
+		const auto result = is_under_protection(virtual_shared_from_this<MapObject>(),map_object);
+		if(result.first != Msg::ST_OK){
 			continue;
 		}
 		if(is_castle() && map_object->is_castle()){
@@ -1070,6 +1074,9 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 			continue;
 		}
 		if(map_object->is_monster()){
+			continue;
+		}
+		if(is_monster()&&map_object->is_building()){
 			continue;
 		}
 		if(map_object->get_owner_uuid() == owner_uuid){
@@ -1096,12 +1103,6 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 
 	if(!enemy_map_object)
 		return;
-	if(is_protect_solider_ignore_target(enemy_map_object)){
-		return;
-	}
-	if(is_castle() && enemy_map_object->is_castle()){
-		return;
-	}
 	if(is_in_attack_scope(enemy_map_object)){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
@@ -1165,23 +1166,13 @@ bool  MapObject::is_monster(){
 
 bool  MapObject::attacked_able(std::pair<long, std::string> &reason){
 	PROFILE_ME;
-	/*
-	if(is_die()){
-		reason = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
-		return false;
-	}
-	*/
+
 	if(is_garrisoned()){
 		reason = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 		return false;
 	}
 	if(is_monster() && (m_action == ACT_MONTER_REGRESS)){
 		reason = CbppResponse(Msg::ERR_TEMPORARILY_INVULNERABLE);
-		return false;
-	}
-
-	if(is_in_protect()&&is_building()){
-		reason = CbppResponse(Msg::ERR_BATTALION_UNDER_PROTECTION );
 		return false;
 	}
 	return true;
@@ -1192,28 +1183,7 @@ bool   MapObject::attacking_able(std::pair<long, std::string> &reason){
 		reason = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
 		return false;
 	}
-
-	if(is_in_protect()&&is_building()){
-		reason = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
-	    return false;
-	 }
-	 //受保护的兵不可以攻击敌方建筑和10级领地
-	 if(is_in_protect()){
-		 if(m_action == ACT_ATTACK){
-			const auto target = WorldMap::get_map_object(MapObjectUuid(m_action_param));
-			if(target && target->is_building()){
-				reason = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
-				return false;
-			}
-		 }else if(m_action == ACT_ATTACK_TERRITORY){
-			 const auto map_cell = get_attack_territory();
-			 if(map_cell && map_cell->is_have_preocted_ticket()){
-				 reason = CbppResponse(Msg::ERR_SELF_UNDER_PROTECTION);
-				 return false;
-			 }
-		 }
-	 }
-	 if(is_bunker()){
+	if(is_bunker()){
 		 const auto garrisoning_battalion_type_id  = get_attribute(EmperyCenter::AttributeIds::ID_GARRISONING_BATTALION_TYPE_ID);
 		if(!garrisoning_battalion_type_id){
 			reason = CbppResponse(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
@@ -1230,6 +1200,14 @@ bool   MapObject::attacking_able(std::pair<long, std::string> &reason){
 	 return true;
 }
 
+bool  MapObject::is_protectable(){
+	if(is_building()){
+		return true;
+	}else{
+		return false;
+	}
+}
+
 bool  MapObject::is_lost_attacked_target(){
 	PROFILE_ME;
 	if(m_action != ACT_ATTACK){
@@ -1241,17 +1219,6 @@ bool  MapObject::is_lost_attacked_target(){
 	}
 
 	if(target_object->is_garrisoned()){
-		return true;
-	}
-	return false;
-}
-
-bool MapObject::is_in_protect(){
-	PROFILE_ME;
-	if(is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)&&!is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
-		return true;
-	}
-	if(is_buff_in_effect(BuffIds::ID_OCCUPATION_PROTECTION)){
 		return true;
 	}
 	return false;
@@ -1484,19 +1451,6 @@ std::uint64_t MapObject::on_action_attack_territory(std::pair<long, std::string>
 		return UINT64_MAX;
 	}
 	return require_ai_control()->attack_territory(result,now,forced_attack);
-}
-
-bool         MapObject::is_protect_solider_ignore_target(const boost::shared_ptr<MapObject> &target){
-	if(is_building()){
-		return false;
-	}
-	if(!is_in_protect()){
-		return false;
-	}
-	if(target->is_building()){
-		return true;
-	}
-	return false;
 }
 
 bool       MapObject::is_in_monster_active_scope(){

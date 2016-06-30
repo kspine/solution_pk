@@ -3,6 +3,7 @@
 #include "../msg/err_account.hpp"
 #include "../auction_transaction.hpp"
 #include "../singletons/auction_transaction_map.hpp"
+#include "../singletons/account_map.hpp"
 #include "../singletons/mail_box_map.hpp"
 #include "../singletons/auction_center_map.hpp"
 
@@ -16,9 +17,12 @@ AUCTION_SERVLET("commit_bill", root, session, params){
 	if(!auction_transaction){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_NOT_FOUND) <<serial;
 	}
+	const auto account_uuid = auction_transaction->get_account_uuid();
 
-	const auto mail_box = MailBoxMap::require(auction_transaction->get_account_uuid());
-	const auto auction_center = AuctionCenterMap::require(auction_transaction->get_account_uuid());
+	AccountMap::require_controller_token(account_uuid);
+
+	const auto mail_box = MailBoxMap::require(account_uuid);
+	const auto auction_center = AuctionCenterMap::require(account_uuid);
 
 	if(auction_transaction->has_been_cancelled()){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_CANCELLED) <<serial;

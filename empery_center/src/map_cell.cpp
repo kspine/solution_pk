@@ -509,18 +509,18 @@ void MapCell::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 	}
 	const auto &obj = it->second;
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto old_duration = obj->get_duration(), old_time_begin = obj->get_time_begin(), old_time_end = obj->get_time_end();
-	std::uint64_t new_duration, new_time_begin;
+	const auto old_time_begin = obj->get_time_begin(), old_time_end = obj->get_time_end();
+	std::uint64_t new_time_begin, new_time_end;
 	if(utc_now < old_time_end){
-		new_duration = saturated_add(old_duration, delta_duration);
 		new_time_begin = old_time_begin;
+		new_time_end = saturated_add(old_time_end, delta_duration);
 	} else {
-		new_duration = delta_duration;
 		new_time_begin = utc_now;
+		new_time_end = saturated_add(utc_now, delta_duration);
 	}
-	obj->set_duration(new_duration);
+	obj->set_duration(saturated_sub(new_time_end, new_time_begin));
 	obj->set_time_begin(new_time_begin);
-	obj->set_time_end(saturated_add(new_time_begin, new_duration));
+	obj->set_time_end(new_time_end);
 
 	WorldMap::update_map_cell(virtual_shared_from_this<MapCell>(), false);
 }
@@ -627,6 +627,16 @@ void MapCell::check_occupation(){
 		if(!occupier_object_uuid){
 			return;
 		}
+		const auto occupier_owner_uuid = get_occupier_owner_uuid();
+		if(!occupier_owner_uuid){
+			return;
+		}
+
+		const auto coord = get_coord();
+		const auto owner_uuid = get_owner_uuid();
+
+		AccountMap::require_controller_token(owner_uuid);
+		const auto item_box = ItemBoxMap::require(owner_uuid);
 
 		const auto ticket_item_id = get_ticket_item_id();
 		if(!ticket_item_id){
@@ -640,11 +650,6 @@ void MapCell::check_occupation(){
 		if(!castle){
 			return;
 		}
-
-		const auto item_box = ItemBoxMap::require(castle->get_owner_uuid());
-
-		const auto coord = get_coord();
-		const auto occupier_owner_uuid = get_occupier_owner_uuid();
 
 		std::vector<boost::shared_ptr<MapObject>> pending_objects;
 		WorldMap::get_map_objects_by_rectangle(pending_objects, Rectangle(coord, 1, 1));

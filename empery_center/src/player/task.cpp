@@ -17,6 +17,7 @@ namespace EmperyCenter {
 PLAYER_SERVLET(Msg::CS_ItemGetAllTasks, account, session, /* req */){
 	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 	task_box->pump_status();
+
 	task_box->synchronize_with_player(session);
 
 	return Response();

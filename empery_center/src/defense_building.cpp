@@ -5,7 +5,7 @@
 #include "singletons/world_map.hpp"
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
-#include "data/map.hpp"
+#include "data/map_defense.hpp"
 #include "attribute_ids.hpp"
 #include "map_object_type_ids.hpp"
 

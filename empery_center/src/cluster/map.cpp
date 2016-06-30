@@ -22,6 +22,7 @@
 #include "../castle.hpp"
 #include "../strategic_resource.hpp"
 #include "../data/map_object_type.hpp"
+#include "../data/map_defense.hpp"
 #include "../data/global.hpp"
 #include "../attribute_ids.hpp"
 #include "../announcement.hpp"

@@ -18,6 +18,8 @@
 #include "../singletons/world_map.hpp"
 #include "../castle.hpp"
 #include "../msg/err_castle.hpp"
+#include "../data/global.hpp"
+#include "../buff_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -469,7 +471,6 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 				return Response(Msg::ERR_NICK_CONFLICT) <<other_account->get_nick();
 			}
 		}
-
 		account->set_nick(initial_nick);
 	}
 
@@ -480,7 +481,13 @@ ACCOUNT_SERVLET("promotion/activate", root, session, params){
 			[&](Coord coord){
 				const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
 				const auto utc_now = Poseidon::get_utc_time();
-				return boost::make_shared<Castle>(castle_uuid, account_uuid, MapObjectUuid(), account->get_nick(), coord, utc_now);
+
+				const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_NOVICIATE_PROTECTION_DURATION);
+				const auto protection_duration = saturated_mul<std::uint64_t>(protection_minutes, 60000);
+
+				auto castle = boost::make_shared<Castle>(castle_uuid, account_uuid, MapObjectUuid(), account->get_nick(), coord, utc_now);
+				castle->set_buff(BuffIds::ID_NOVICIATE_PROTECTION, utc_now, protection_duration);
+				return castle;
 			});
 		if(!primary_castle){
 			return Response(Msg::ERR_NO_START_POINTS_AVAILABLE);

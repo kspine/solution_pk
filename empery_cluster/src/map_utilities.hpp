@@ -9,6 +9,8 @@
 #include "coord.hpp"
 
 namespace EmperyCluster {
+class MapObject;
+class MapCell;
 
 using ::EmperyCenter::get_distance_of_coords;
 using ::EmperyCenter::get_surrounding_coords;
@@ -18,6 +20,11 @@ extern std::pair<long, std::string> get_move_result(Coord coord, AccountUuid acc
 
 extern bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 	Coord from_coord, Coord to_coord, AccountUuid account_uuid, std::uint64_t distance_limit, std::uint64_t distance_close_enough);
+
+extern std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObject> &attacking_object,
+	const boost::shared_ptr<MapObject> &attacked_object);
+extern std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObject> &attacking_object,
+	const boost::shared_ptr<MapCell> &attacked_cell);
 
 }
 
