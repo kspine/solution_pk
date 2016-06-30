@@ -42,6 +42,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/battle_record_box_map.cpp	\
 	src/singletons/war_status_map.cpp	\
 	src/singletons/dungeon_box_map.cpp	\
+	src/singletons/dungeon_map.cpp	\
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -123,4 +124,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/crate_record_box.cpp	\
 	src/resource_crate.cpp	\
 	src/dungeon_box.cpp	\
+	src/dungeon.cpp	\
 	src/mmain.cpp

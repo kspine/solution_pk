@@ -31,10 +31,10 @@ PLAYER_SERVLET(Msg::CS_DungeonGetAll, account, session, /* req */){
 }
 
 PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
-	const auto dungeon_id = DungeonId(req.dungeon_id);
-	const auto dungeon_data = Data::Dungeon::get(dungeon_id);
+	const auto dungeon_type_id = DungeonTypeId(req.dungeon_type_id);
+	const auto dungeon_data = Data::Dungeon::get(dungeon_type_id);
 	if(!dungeon_data){
-		return Response(Msg::ERR_NO_SUCH_DUNGEON_ID) <<dungeon_id;
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_ID) <<dungeon_type_id;
 	}
 
 	const auto account_uuid = account->get_account_uuid();
@@ -44,17 +44,17 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 
 	dungeon_box->pump_status();
 
-	const auto prerequisite_dungeon_id = dungeon_data->prerequisite_dungeon_id;
-	if(prerequisite_dungeon_id){
-		const auto prerequisite_info = dungeon_box->get(prerequisite_dungeon_id);
+	const auto prerequisite_dungeon_type_id = dungeon_data->prerequisite_dungeon_type_id;
+	if(prerequisite_dungeon_type_id){
+		const auto prerequisite_info = dungeon_box->get(prerequisite_dungeon_type_id);
 		if(prerequisite_info.score == DungeonBox::S_NONE){
-			return Response(Msg::ERR_DUNGEON_PREREQUISITE_NOT_MET) <<prerequisite_dungeon_id;
+			return Response(Msg::ERR_DUNGEON_PREREQUISITE_NOT_MET) <<prerequisite_dungeon_type_id;
 		}
 	}
 	if(!dungeon_data->reentrant){
-		const auto info = dungeon_box->get(dungeon_id);
+		const auto info = dungeon_box->get(dungeon_type_id);
 		if(info.score != DungeonBox::S_NONE){
-			return Response(Msg::ERR_DUNGEON_DISPOSED) <<dungeon_id;
+			return Response(Msg::ERR_DUNGEON_DISPOSED) <<dungeon_type_id;
 		}
 	}
 	if(req.battalions.empty()){
@@ -146,12 +146,12 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	transaction.reserve(entry_cost.size());
 	for(auto it = entry_cost.begin(); it != entry_cost.end(); ++it){
 		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_CREATE_DUNGEON, dungeon_id.get(), 0, 0);
+			ReasonIds::ID_CREATE_DUNGEON, dungeon_type_id.get(), 0, 0);
 	}
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
 			// TODO
-			auto info = dungeon_box->get(dungeon_id);
+			auto info = dungeon_box->get(dungeon_type_id);
 			info.score = DungeonBox::S_TWO_STARS;
 			info.entry_count += 1;
 			info.finish_count += 1;

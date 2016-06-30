@@ -4,9 +4,9 @@
 #include <poseidon/cxx_util.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
+#include <boost/container/flat_map.hpp>
+#include <deque>
 #include <vector>
-#include <boost/scoped_ptr.hpp>
-#include <boost/shared_ptr.hpp>
 #include "id_types.hpp"
 
 namespace EmperyCenter {
@@ -18,10 +18,11 @@ class ChatBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const AccountUuid m_account_uuid;
 
-	boost::shared_ptr<void> m_messages;
+	boost::container::flat_map<ChatChannelId,
+		boost::container::flat_map<ChatMessageUuid, boost::shared_ptr<ChatMessage>>> m_channels;
 
 public:
-	ChatBox(AccountUuid account_uuid);
+	explicit ChatBox(AccountUuid account_uuid);
 	~ChatBox();
 
 public:
@@ -31,6 +32,7 @@ public:
 
 	boost::shared_ptr<ChatMessage> get(ChatMessageUuid chat_message_uuid) const;
 	void get_all(std::vector<boost::shared_ptr<ChatMessage>> &ret) const;
+	void get_by_channel(std::vector<boost::shared_ptr<ChatMessage>> &ret, ChatChannelId channel) const;
 
 	void insert(const boost::shared_ptr<ChatMessage> &message);
 	// void update(ChatMessageInfo info, bool throws_if_not_exists = true);

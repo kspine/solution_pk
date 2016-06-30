@@ -1,7 +1,6 @@
 #include "precompiled.hpp"
 #include "chat_box.hpp"
 #include "chat_message.hpp"
-#include <poseidon/multi_index_map.hpp>
 #include "msg/sc_chat.hpp"
 #include "singletons/chat_box_map.hpp"
 #include "singletons/player_session_map.hpp"
@@ -12,24 +11,6 @@
 namespace EmperyCenter {
 
 namespace {
-	struct MessageElement {
-		boost::shared_ptr<ChatMessage> message;
-
-		ChatMessageUuid chat_message_uuid;
-		std::pair<ChatChannelId, std::uint64_t> channel_time;
-
-		explicit MessageElement(boost::shared_ptr<ChatMessage> message_)
-			: message(std::move(message_))
-			, chat_message_uuid(message->get_chat_message_uuid()), channel_time(message->get_channel(), message->get_created_time())
-		{
-		}
-	};
-
-	MULTI_INDEX_MAP(MessageContainer, MessageElement,
-		UNIQUE_MEMBER_INDEX(chat_message_uuid)
-		MULTI_MEMBER_INDEX(channel_time)
-	)
-
 	void fill_chat_message(Msg::SC_ChatMessageReceived &msg, const boost::shared_ptr<ChatMessage> &message){
 		PROFILE_ME;
 
@@ -51,28 +32,39 @@ ChatBox::~ChatBox(){
 boost::shared_ptr<ChatMessage> ChatBox::get(ChatMessageUuid chat_message_uuid) const {
 	PROFILE_ME;
 
-	const auto messages = boost::static_pointer_cast<MessageContainer>(m_messages);
-	if(!messages){
-		return { };
+	boost::shared_ptr<ChatMessage> message;
+	for(auto cit = m_channels.begin(); cit != m_channels.end(); ++cit){
+		const auto it = cit->second.find(chat_message_uuid);
+		if(it != cit->second.end()){
+			message = it->second;
+			break;
+		}
 	}
-
-	const auto it = messages->find<0>(chat_message_uuid);
-	if(it == messages->end<0>()){
-		return { };
-	}
-	return it->message;
+	return message;
 }
 void ChatBox::get_all(std::vector<boost::shared_ptr<ChatMessage>> &ret) const {
 	PROFILE_ME;
 
-	const auto messages = boost::static_pointer_cast<MessageContainer>(m_messages);
-	if(!messages){
-		return;
+	std::size_t count_total = 0;
+	for(auto cit = m_channels.begin(); cit != m_channels.end(); ++cit){
+		count_total += cit->second.size();
 	}
+	ret.reserve(ret.size() + count_total);
+	for(auto cit = m_channels.begin(); cit != m_channels.end(); ++cit){
+		for(auto it = cit->second.begin(); it != cit->second.end(); ++it){
+			ret.emplace_back(it->second);
+		}
+	}
+}
+void ChatBox::get_by_channel(std::vector<boost::shared_ptr<ChatMessage>> &ret, ChatChannelId channel) const {
+	PROFILE_ME;
 
-	ret.reserve(ret.size() + messages->size());
-	for(auto it = messages->begin<1>(); it != messages->end<1>(); ++it){
-		ret.emplace_back(it->message);
+	const auto cit = m_channels.find(channel);
+	if(cit != m_channels.end()){
+		ret.reserve(ret.size() + cit->second.size());
+		for(auto it = cit->second.begin(); it != cit->second.end(); ++it){
+			ret.emplace_back(it->second);
+		}
 	}
 }
 
@@ -95,32 +87,17 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 		return;
 	}
 
-	auto messages = boost::static_pointer_cast<MessageContainer>(m_messages);
-	if(!messages){
-		messages = boost::make_shared<MessageContainer>();
-		m_messages = messages;
-	}
+	auto &map = m_channels[channel];
+	map.reserve(max_count_in_channel + 1);
 
 	const auto chat_message_uuid = message->get_chat_message_uuid();
-	const auto result = messages->insert(MessageElement(message));
+	const auto result = map.emplace(chat_message_uuid, message);
 	if(!result.second){
-		LOG_EMPERY_CENTER_WARNING("Chat message exists: account_uuid = ", get_account_uuid(), ", chat_message_uuid = ", chat_message_uuid);
-		DEBUG_THROW(Exception, sslit("Chat message exists"));
+		LOG_EMPERY_CENTER_WARNING("Chat message already exists: chat_message_uuid = ", chat_message_uuid);
+		DEBUG_THROW(Exception, sslit("Chat message already exists"));
 	}
-
-	const auto channel_lower = messages->lower_bound<1>(std::make_pair(channel, 0));
-	auto channel_upper = messages->upper_bound<1>(std::make_pair(channel, UINT64_MAX));
-	std::size_t count = 0;
-	for(;;){
-		if(channel_upper == channel_lower){
-			break;
-		}
-		if(count >= max_count_in_channel){
-			messages->erase<1>(channel_lower, channel_upper);
-			break;
-		}
-		--channel_upper;
-		++count;
+	if(map.size() > max_count_in_channel){
+		map.erase(map.begin(), map.begin() + static_cast<std::ptrdiff_t>(max_count_in_channel));
 	}
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
@@ -135,36 +112,16 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 		}
 	}
 }
-bool ChatBox::remove(ChatMessageUuid chat_message_uuid) noexcept {
-	PROFILE_ME;
-
-	const auto messages = boost::static_pointer_cast<MessageContainer>(m_messages);
-	if(!messages){
-		return false;
-	}
-
-	const auto it = messages->find<0>(chat_message_uuid);
-	if(it == messages->end<0>()){
-		return false;
-	}
-	// const auto message = std::move(it->message);
-	messages->erase(it);
-
-	return true;
-}
 
 void ChatBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	const auto messages = boost::static_pointer_cast<MessageContainer>(m_messages);
-	if(!messages){
-		return;
-	}
-
-	for(auto it = messages->begin<1>(); it != messages->end<1>(); ++it){
-		Msg::SC_ChatMessageReceived msg;
-		fill_chat_message(msg, it->message);
-		session->send(msg);
+	for(auto cit = m_channels.begin(); cit != m_channels.end(); ++cit){
+		for(auto it = cit->second.begin(); it != cit->second.end(); ++it){
+			Msg::SC_ChatMessageReceived msg;
+			fill_chat_message(msg, it->second);
+			session->send(msg);
+		}
 	}
 }
 
