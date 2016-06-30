@@ -60,7 +60,9 @@ namespace {
 	}
 
 	AccountMap::require_controller_token(account_uuid);
-	account = AccountMap::forced_reload(account_uuid);
+
+	AccountMap::forced_reload(account_uuid);
+	account = AccountMap::require(account_uuid);
 
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);
