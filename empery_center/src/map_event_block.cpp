@@ -252,7 +252,10 @@ void MapEventBlock::refresh_events(bool first_time){
 			if(test_block_data->map_event_circle_id != map_event_circle_id){
 				continue;
 			}
-			const auto owner_account = AccountMap::require(map_object->get_owner_uuid());
+			const auto owner_account = AccountMap::get(map_object->get_owner_uuid());
+			if(!owner_account){
+				continue;
+			}
 			std::uint64_t last_logged_out_time = 0;
 			const auto &last_logged_in_time_str = owner_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_IN_TIME);
 			if(last_logged_in_time_str.empty()){
