@@ -1,5 +1,5 @@
 #include "../precompiled.hpp"
-#include "controller_client.hpp"
+#include "dungeon_client.hpp"
 #include "../mmain.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
@@ -9,13 +9,14 @@
 #include <poseidon/sock_addr.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
-#include "../msg/g_packed.hpp"
-#include "../msg/kill.hpp"
+#include "../../../empery_center/src/msg/g_packed.hpp"
 
-namespace EmperyCenter {
+namespace EmperyDungeon {
 
-using Result          = ControllerClient::Result;
-using ServletCallback = ControllerClient::ServletCallback;
+namespace Msg = ::EmperyCenter::Msg;
+
+using Result          = DungeonClient::Result;
+using ServletCallback = DungeonClient::ServletCallback;
 
 namespace {
 	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
@@ -24,23 +25,23 @@ namespace {
 		boost::shared_ptr<const Poseidon::JobPromise> promise;
 		boost::shared_ptr<Poseidon::SockAddr> sock_addr;
 
-		boost::weak_ptr<ControllerClient> client;
+		boost::weak_ptr<DungeonClient> client;
 	} g_singleton;
 }
 
-boost::shared_ptr<const ServletCallback> ControllerClient::create_servlet(std::uint16_t message_id, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> DungeonClient::create_servlet(std::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[message_id];
 	if(!weak.expired()){
-		LOG_EMPERY_CENTER_ERROR("Duplicate controller servlet: message_id = ", message_id);
-		DEBUG_THROW(Exception, sslit("Duplicate controller servlet"));
+		LOG_EMPERY_DUNGEON_ERROR("Duplicate dungeon servlet: message_id = ", message_id);
+		DEBUG_THROW(Exception, sslit("Duplicate dungeon servlet"));
 	}
 	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> ControllerClient::get_servlet(std::uint16_t message_id){
+boost::shared_ptr<const ServletCallback> DungeonClient::get_servlet(std::uint16_t message_id){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(message_id);
@@ -55,22 +56,22 @@ boost::shared_ptr<const ServletCallback> ControllerClient::get_servlet(std::uint
 	return servlet;
 }
 
-boost::shared_ptr<ControllerClient> ControllerClient::get(){
+boost::shared_ptr<DungeonClient> DungeonClient::get(){
 	PROFILE_ME;
 
 	auto client = g_singleton.client.lock();
 	return client;
 }
-boost::shared_ptr<ControllerClient> ControllerClient::require(){
+boost::shared_ptr<DungeonClient> DungeonClient::require(){
 	PROFILE_ME;
 
-	boost::shared_ptr<ControllerClient> client;
+	boost::shared_ptr<DungeonClient> client;
 	while(!(client = g_singleton.client.lock())){
-		const auto host       = get_config<std::string>   ("controller_cbpp_client_host",         "127.0.0.1");
-		const auto port       = get_config<unsigned>      ("controller_cbpp_client_port",         13223);
-		const auto use_ssl    = get_config<bool>          ("controller_cbpp_client_use_ssl",      false);
-		const auto keep_alive = get_config<std::uint64_t> ("controller_cbpp_keep_alive_interval", 15000);
-		LOG_EMPERY_CENTER_INFO("Creating controller client: host = ", host, ", port = ", port, ", use_ssl = ", use_ssl);
+		const auto host       = get_config<std::string>   ("dungeon_cbpp_client_host",         "127.0.0.1");
+		const auto port       = get_config<unsigned>      ("dungeon_cbpp_client_port",         13225);
+		const auto use_ssl    = get_config<bool>          ("dungeon_cbpp_client_use_ssl",      false);
+		const auto keep_alive = get_config<std::uint64_t> ("dungeon_cbpp_keep_alive_interval", 15000);
+		LOG_EMPERY_DUNGEON_INFO("Creating dungeon client: host = ", host, ", port = ", port, ", use_ssl = ", use_ssl);
 
 		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
 		do {
@@ -85,7 +86,7 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 		} while(promise_tack != g_singleton.promise);
 
 		if(g_singleton.sock_addr){
-			client.reset(new ControllerClient(*g_singleton.sock_addr, use_ssl, keep_alive));
+			client.reset(new DungeonClient(*g_singleton.sock_addr, use_ssl, keep_alive));
 			client->go_resident();
 
 			g_singleton.promise.reset();
@@ -96,19 +97,19 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 	return client;
 }
 
-ControllerClient::ControllerClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)
+DungeonClient::DungeonClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)
 	: Poseidon::Cbpp::Client(sock_addr, use_ssl, keep_alive_interval)
 	, m_serial(0)
 {
-	LOG_EMPERY_CENTER_INFO("Controller client constructor: this = ", (void *)this);
+	LOG_EMPERY_DUNGEON_INFO("Dungeon client constructor: this = ", (void *)this);
 }
-ControllerClient::~ControllerClient(){
-	LOG_EMPERY_CENTER_INFO("Controller client destructor: this = ", (void *)this);
+DungeonClient::~DungeonClient(){
+	LOG_EMPERY_DUNGEON_INFO("Dungeon client destructor: this = ", (void *)this);
 }
 
-void ControllerClient::on_close(int err_code) noexcept {
+void DungeonClient::on_close(int err_code) noexcept {
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_INFO("Controller client closed: err_code = ", err_code);
+	LOG_EMPERY_DUNGEON_INFO("Dungeon client closed: err_code = ", err_code);
 
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
@@ -122,14 +123,14 @@ void ControllerClient::on_close(int err_code) noexcept {
 			}
 			try {
 				try {
-					DEBUG_THROW(Exception, sslit("Lost connection to controller server"));
+					DEBUG_THROW(Exception, sslit("Lost connection to center server"));
 				} catch(Poseidon::Exception &e){
 					promise->set_exception(boost::copy_exception(e));
 				} catch(std::exception &e){
 					promise->set_exception(boost::copy_exception(e));
 				}
 			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				LOG_EMPERY_DUNGEON_ERROR("std::exception thrown: what = ", e.what());
 			}
 		}
 	}
@@ -137,9 +138,9 @@ void ControllerClient::on_close(int err_code) noexcept {
 	Poseidon::Cbpp::Client::on_close(err_code);
 }
 
-bool ControllerClient::on_low_level_data_message_end(std::uint64_t payload_size){
+bool DungeonClient::on_low_level_data_message_end(std::uint64_t payload_size){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Received data message from controller server: remote = ", get_remote_info(),
+	LOG_EMPERY_DUNGEON_TRACE("Received data message from center server: remote = ", get_remote_info(),
 		", message_id = ", get_low_level_message_id(), ", size = ", payload_size);
 
 	const auto message_id = get_low_level_message_id();
@@ -164,9 +165,9 @@ bool ControllerClient::on_low_level_data_message_end(std::uint64_t payload_size)
 	return Poseidon::Cbpp::Client::on_low_level_data_message_end(payload_size);
 }
 
-void ControllerClient::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+void DungeonClient::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Received data message from controller server: remote = ", get_remote_info(),
+	LOG_EMPERY_DUNGEON_TRACE("Received data message from center server: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", payload_size = ", payload.size());
 
 	if(message_id == Msg::G_PackedRequest::ID){
@@ -176,23 +177,23 @@ void ControllerClient::on_sync_data_message(std::uint16_t message_id, Poseidon::
 		try {
 			const auto servlet = get_servlet(packed.message_id);
 			if(!servlet){
-				LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", packed.message_id);
+				LOG_EMPERY_DUNGEON_WARNING("No servlet found: message_id = ", packed.message_id);
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
 			}
-			result = (*servlet)(virtual_shared_from_this<ControllerClient>(), Poseidon::StreamBuffer(packed.payload));
+			result = (*servlet)(virtual_shared_from_this<DungeonClient>(), Poseidon::StreamBuffer(packed.payload));
 		} catch(Poseidon::Cbpp::Exception &e){
-			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+			LOG_EMPERY_DUNGEON(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
 			result.first = e.status_code();
 			result.second = e.what();
 		} catch(std::exception &e){
-			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+			LOG_EMPERY_DUNGEON(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
 			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 			result.second = e.what();
 		}
 		if(result.first != 0){
-			LOG_EMPERY_CENTER_DEBUG("Sending response to controller server: message_id = ", packed.message_id,
+			LOG_EMPERY_DUNGEON_DEBUG("Sending response to center server: message_id = ", packed.message_id,
 				", code = ", result.first, ", message = ", result.second);
 		}
 
@@ -224,18 +225,18 @@ void ControllerClient::on_sync_data_message(std::uint16_t message_id, Poseidon::
 			}
 		}
 	} else {
-		LOG_EMPERY_CENTER_WARNING("Unknown message from controller server: remote = ", get_remote_info(), ", message_id = ", message_id);
+		LOG_EMPERY_DUNGEON_WARNING("Unknown message from center server: remote = ", get_remote_info(), ", message_id = ", message_id);
 		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 	}
 }
 
-void ControllerClient::on_sync_error_message(std::uint16_t message_id, Poseidon::Cbpp::StatusCode status_code, std::string reason){
+void DungeonClient::on_sync_error_message(std::uint16_t message_id, Poseidon::Cbpp::StatusCode status_code, std::string reason){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Message response from controller server: message_id = ", message_id,
+	LOG_EMPERY_DUNGEON_TRACE("Message response from center server: message_id = ", message_id,
 		", status_code = ", status_code, ", reason = ", reason);
 }
 
-bool ControllerClient::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+bool DungeonClient::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
 	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
@@ -246,12 +247,12 @@ bool ControllerClient::send(std::uint16_t message_id, Poseidon::StreamBuffer pay
 	return Poseidon::Cbpp::Client::send(msg.ID, Poseidon::StreamBuffer(msg));
 }
 
-void ControllerClient::shutdown(const char *message) noexcept {
+void DungeonClient::shutdown(const char *message) noexcept {
 	PROFILE_ME;
 
 	shutdown(Poseidon::Cbpp::ST_INTERNAL_ERROR, message);
 }
-void ControllerClient::shutdown(int code, const char *message) noexcept {
+void DungeonClient::shutdown(int code, const char *message) noexcept {
 	PROFILE_ME;
 
 	if(!message){
@@ -262,12 +263,12 @@ void ControllerClient::shutdown(int code, const char *message) noexcept {
 		shutdown_read();
 		shutdown_write();
 	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		LOG_EMPERY_DUNGEON_ERROR("std::exception thrown: what = ", e.what());
 		force_shutdown();
 	}
 }
 
-Result ControllerClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+Result DungeonClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
 	Result ret;
@@ -284,7 +285,7 @@ Result ControllerClient::send_and_wait(std::uint16_t message_id, Poseidon::Strea
 		msg.message_id = message_id;
 		msg.payload    = payload.dump();
 		if(!Poseidon::Cbpp::Client::send(msg.ID, Poseidon::StreamBuffer(msg))){
-			DEBUG_THROW(Exception, sslit("Could not send data to controller server"));
+			DEBUG_THROW(Exception, sslit("Could not send data to center server"));
 		}
 		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){
