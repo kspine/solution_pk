@@ -38,6 +38,7 @@
 #include "../data/map.hpp"
 #include "../resource_ids.hpp"
 #include "../events/castle.hpp"
+#include "../account_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -193,7 +194,12 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 		break;
 	}
 
-	const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, info.building_level + 1);
+	const auto new_level = info.building_level + 1;
+	const auto noviciate_level_threshold = Data::Global::as_unsigned(Data::Global::SLOT_NOVICIATE_PROTECTION_CASTLE_LEVEL_THRESHOLD);
+	if(new_level >= noviciate_level_threshold){
+		async_cancel_noviciate_protection(castle->get_owner_uuid());
+	}
+	const auto upgrade_data = Data::CastleUpgradeAbstract::get(building_data->type, new_level);
 	if(!upgrade_data){
 		return Response(Msg::ERR_BUILDING_UPGRADE_MAX) <<info.building_id;
 	}
