@@ -10,7 +10,7 @@ namespace EmperyCenter {
 
 namespace {
 	MULTI_INDEX_MAP(DungeonContainer, Data::Dungeon,
-		UNIQUE_MEMBER_INDEX(dungeon_id)
+		UNIQUE_MEMBER_INDEX(dungeon_type_id)
 	)
 	boost::weak_ptr<const DungeonContainer> g_dungeon_container;
 	const char DUNGEON_FILE[] = "dungeon";
@@ -21,9 +21,9 @@ namespace {
 		while(csv.fetch_row()){
 			Data::Dungeon elem = { };
 
-			csv.get(elem.dungeon_id,              "dungeon_id");
+			csv.get(elem.dungeon_type_id,              "dungeon_type_id");
 			csv.get(elem.reentrant,               "dungeon_class");
-			csv.get(elem.prerequisite_dungeon_id, "dungeon_need");
+			csv.get(elem.prerequisite_dungeon_type_id, "dungeon_need");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "dungeon_resource");
@@ -63,19 +63,19 @@ namespace {
 			}
 
 			if(!dungeon_container->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate Dungeon: dungeon_id = ", elem.dungeon_id);
+				LOG_EMPERY_CENTER_ERROR("Duplicate Dungeon: dungeon_type_id = ", elem.dungeon_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate Dungeon"));
 			}
 		}
 		g_dungeon_container = dungeon_container;
 		handles.push(dungeon_container);
-		auto servlet = DataSession::create_servlet(DUNGEON_FILE, Data::encode_csv_as_json(csv, "dungeon_id"));
+		auto servlet = DataSession::create_servlet(DUNGEON_FILE, Data::encode_csv_as_json(csv, "dungeon_type_id"));
 		handles.push(std::move(servlet));
 	}
 }
 
 namespace Data {
-	boost::shared_ptr<const Dungeon> Dungeon::get(DungeonId dungeon_id){
+	boost::shared_ptr<const Dungeon> Dungeon::get(DungeonTypeId dungeon_type_id){
 		PROFILE_ME;
 
 		const auto dungeon_container = g_dungeon_container.lock();
@@ -84,19 +84,19 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = dungeon_container->find<0>(dungeon_id);
+		const auto it = dungeon_container->find<0>(dungeon_type_id);
 		if(it == dungeon_container->end<0>()){
-			LOG_EMPERY_CENTER_TRACE("Dungeon not found: dungeon_id = ", dungeon_id);
+			LOG_EMPERY_CENTER_TRACE("Dungeon not found: dungeon_type_id = ", dungeon_type_id);
 			return { };
 		}
 		return boost::shared_ptr<const Dungeon>(dungeon_container, &*it);
 	}
-	boost::shared_ptr<const Dungeon> Dungeon::require(DungeonId dungeon_id){
+	boost::shared_ptr<const Dungeon> Dungeon::require(DungeonTypeId dungeon_type_id){
 		PROFILE_ME;
 
-		auto ret = get(dungeon_id);
+		auto ret = get(dungeon_type_id);
 		if(!ret){
-			LOG_EMPERY_CENTER_WARNING("Dungeon not found: dungeon_id = ", dungeon_id);
+			LOG_EMPERY_CENTER_WARNING("Dungeon not found: dungeon_type_id = ", dungeon_type_id);
 			DEBUG_THROW(Exception, sslit("Dungeon not found"));
 		}
 		return ret;

@@ -10,7 +10,7 @@ namespace Msg {
 #define MESSAGE_NAME    SC_DungeonChanged
 #define MESSAGE_ID      1599
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (dungeon_id)	\
+	FIELD_VUINT         (dungeon_type_id)	\
 	FIELD_VUINT         (score)
 #include <poseidon/cbpp/message_generator.hpp>
 

@@ -198,7 +198,6 @@ namespace IdTypes {
 	using ChatMessageSlotId         = GenericId<std::uint32_t, 110008>;
 
 	using TerrainId                 = GenericId<std::uint32_t, 120001>;
-	//
 	using ResourceId                = GenericId<std::uint32_t, 120003>;
 	using MapObjectTypeId           = GenericId<std::uint32_t, 120004>;
 	using AttributeId               = GenericId<std::uint32_t, 120005>;
@@ -221,7 +220,7 @@ namespace IdTypes {
 	using DefenseCombatId           = GenericId<std::uint32_t, 120022>;
 	using BuffId                    = GenericId<std::uint32_t, 120023>;
 	using BattalionLevelId          = GenericId<std::uint32_t, 120024>;
-	using DungeonId                 = GenericId<std::uint32_t, 120025>;
+	using DungeonTypeId             = GenericId<std::uint32_t, 120025>;
 	using ActivityId                = GenericId<std::uint32_t, 120026>;
 	using MapActivityId             = GenericId<std::uint32_t, 120027>;
 
@@ -231,6 +230,7 @@ namespace IdTypes {
 	using ChatMessageUuid           = GenericUuid<210004>;
 	using AnnouncementUuid          = GenericUuid<210005>;
 	using ResourceCrateUuid         = GenericUuid<210006>;
+	using DungeonUuid               = GenericUuid<210007>;
 }
 
 using namespace IdTypes;

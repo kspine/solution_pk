@@ -22,6 +22,7 @@ private:
 	const boost::shared_ptr<EmperyCenter::MySql::Center_Account> m_obj;
 
 	boost::weak_ptr<ControllerSession> m_controller;
+	std::uint64_t m_locked_until = 0;
 
 public:
 	explicit Account(boost::shared_ptr<EmperyCenter::MySql::Center_Account> obj);
@@ -47,6 +48,13 @@ public:
 		return m_controller.lock();
 	}
 	void set_controller(const boost::shared_ptr<ControllerSession> &controller);
+
+	std::uint64_t get_locked_until() const {
+		return m_locked_until;
+	}
+	void set_locked_until(std::uint64_t locked_until){
+		m_locked_until = locked_until;
+	}
 };
 
 }

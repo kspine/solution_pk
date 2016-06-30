@@ -26,10 +26,10 @@ ADMIN_SERVLET("dungeon/get_all", root, session, params){
 	Poseidon::JsonObject elem_object;
 	for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
 		Poseidon::JsonObject dungeon_object;
-		dungeon_object[sslit("dungeon_id")] = it->dungeon_id.get();
+		dungeon_object[sslit("dungeon_type_id")] = it->dungeon_type_id.get();
 		dungeon_object[sslit("score")]      = it->score;
 		char str[64];
-		unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->dungeon_id.get());
+		unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)it->dungeon_type_id.get());
 		elem_object[SharedNts(str, len)] = std::move(dungeon_object);
 	}
 	root[sslit("dungeons")] = std::move(elem_object);
@@ -39,7 +39,7 @@ ADMIN_SERVLET("dungeon/get_all", root, session, params){
 
 ADMIN_SERVLET("dungeon/set", root, session, params){
 	const auto account_uuid      = AccountUuid(params.at("account_uuid"));
-	const auto dungeon_id        = boost::lexical_cast<DungeonId>(params.at("dungeon_id"));
+	const auto dungeon_type_id        = boost::lexical_cast<DungeonTypeId>(params.at("dungeon_type_id"));
 	const auto &score_str        = params.get("score");
 	const auto &entry_count_str  = params.get("entry_count");
 	const auto &finish_count_str = params.get("finish_count");
@@ -53,7 +53,7 @@ ADMIN_SERVLET("dungeon/set", root, session, params){
 	const auto dungeon_box = DungeonBoxMap::require(account_uuid);
 	dungeon_box->pump_status();
 
-	auto info = dungeon_box->get(dungeon_id);
+	auto info = dungeon_box->get(dungeon_type_id);
 	if(!score_str.empty()){
 		info.score = static_cast<DungeonBox::Score>(boost::lexical_cast<unsigned>(score_str));
 	}

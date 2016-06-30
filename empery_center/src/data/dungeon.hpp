@@ -10,13 +10,13 @@ namespace EmperyCenter {
 namespace Data {
 	class Dungeon {
 	public:
-		static boost::shared_ptr<const Dungeon> get(DungeonId dungeon_id);
-		static boost::shared_ptr<const Dungeon> require(DungeonId dungeon_id);
+		static boost::shared_ptr<const Dungeon> get(DungeonTypeId dungeon_type_id);
+		static boost::shared_ptr<const Dungeon> require(DungeonTypeId dungeon_type_id);
 
 	public:
-		DungeonId dungeon_id;
+		DungeonTypeId dungeon_type_id;
 		bool reentrant;
-		DungeonId prerequisite_dungeon_id;
+		DungeonTypeId prerequisite_dungeon_type_id;
 		boost::container::flat_map<ItemId, std::uint64_t> entry_cost;
 		// std::string map_name;
 

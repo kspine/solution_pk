@@ -16,7 +16,7 @@ namespace Msg {
 #define MESSAGE_NAME    CS_DungeonCreate
 #define MESSAGE_ID      1501
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (dungeon_id)	\
+	FIELD_VUINT         (dungeon_type_id)	\
 	FIELD_ARRAY         (battalions,	\
 		FIELD_STRING        (map_object_uuid)	\
 	)

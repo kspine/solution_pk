@@ -28,7 +28,7 @@ public:
 	};
 
 	struct DungeonInfo {
-		DungeonId dungeon_id;
+		DungeonTypeId dungeon_type_id;
 		Score score;
 		std::uint64_t entry_count;
 		std::uint64_t finish_count;
@@ -37,7 +37,7 @@ public:
 private:
 	const AccountUuid m_account_uuid;
 
-	boost::container::flat_map<DungeonId,
+	boost::container::flat_map<DungeonTypeId,
 		boost::shared_ptr<MySql::Center_Dungeon>> m_dungeons;
 
 public:
@@ -52,10 +52,10 @@ public:
 		return m_account_uuid;
 	}
 
-	DungeonInfo get(DungeonId dungeon_id) const;
+	DungeonInfo get(DungeonTypeId dungeon_type_id) const;
 	void get_all(std::vector<DungeonInfo> &ret) const;
 	void set(DungeonInfo info);
-	bool remove(DungeonId dungeon_id) noexcept;
+	bool remove(DungeonTypeId dungeon_type_id) noexcept;
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

@@ -9,9 +9,6 @@
 #include "../reason_ids.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
-#include <poseidon/singletons/timer_daemon.hpp>
-#include <poseidon/singletons/job_dispatcher.hpp>
-#include <poseidon/job_promise.hpp>
 
 namespace EmperyController {
 
@@ -162,6 +159,12 @@ CONTROLLER_SERVLET(Msg::ST_AccountAcquireToken, controller, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 
+	const auto now = Poseidon::get_fast_mono_clock();
+	const auto locked_until = account->get_locked_until();
+	if(now < locked_until){
+		return Response(Msg::ERR_INVALIDATION_IN_PROGRESS);
+	}
+
 	LOG_EMPERY_CONTROLLER_DEBUG("Acquire token: controller = ", controller->get_remote_info(), ", account_uuid = ", account_uuid);
 	const auto old_controller = account->get_controller();
 	if(old_controller != controller){
@@ -176,12 +179,13 @@ CONTROLLER_SERVLET(Msg::ST_AccountAcquireToken, controller, req){
 				throw;
 			}
 
-			const auto promise = boost::make_shared<Poseidon::JobPromise>();
-			const auto invalidation_delay = get_config<std::uint64_t>("account_invalidation_delay", 10000);
-			const auto timer = Poseidon::TimerDaemon::register_timer(invalidation_delay, 0, std::bind([=]{ promise->set_success(); }));
 			LOG_EMPERY_CONTROLLER_DEBUG("Waiting for account invalidation...");
-			Poseidon::JobDispatcher::yield(promise, false);
+			const auto invalidation_delay = get_config<std::uint64_t>("account_invalidation_delay", 10000);
+			account->set_locked_until(saturated_add(now, invalidation_delay));
+
+			return Response(Msg::ERR_INVALIDATION_IN_PROGRESS);
 		}
+
 		account->set_controller(controller);
 	}
 

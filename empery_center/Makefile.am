@@ -19,6 +19,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/controller_client.cpp	\
 	src/singletons/player_websocket_server.cpp	\
 	src/singletons/cluster_cbpp_server.cpp	\
+	src/singletons/dungeon_cbpp_server.cpp	\
 	src/singletons/data_http_server.cpp	\
 	src/singletons/admin_http_server.cpp	\
 	src/singletons/auction_http_server.cpp	\
@@ -41,6 +42,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/battle_record_box_map.cpp	\
 	src/singletons/war_status_map.cpp	\
 	src/singletons/dungeon_box_map.cpp	\
+	src/singletons/dungeon_map.cpp	\
 	src/singletons/activity_map.cpp \
 	src/singletons/map_activity_accumulate_map.cpp \
 	src/data/common.cpp	\
@@ -98,6 +100,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/resource_utilities.cpp	\
 	src/player_session.cpp	\
 	src/cluster_session.cpp	\
+	src/dungeon_session.cpp	\
 	src/data_session.cpp	\
 	src/admin_session.cpp	\
 	src/auction_session.cpp	\
@@ -125,5 +128,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/crate_record_box.cpp	\
 	src/resource_crate.cpp	\
 	src/dungeon_box.cpp	\
+	src/dungeon.cpp	\
 	src/activity.cpp \
 	src/mmain.cpp

@@ -3,7 +3,9 @@
 #include "../mmain.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/job_promise.hpp>
 #include <tuple>
 #include "player_session_map.hpp"
 #include "../mysql/account.hpp"
@@ -18,6 +20,7 @@
 #include "../string_utilities.hpp"
 #include "controller_client.hpp"
 #include "../msg/st_account.hpp"
+#include "../msg/err_account.hpp"
 
 namespace EmperyCenter {
 
@@ -326,6 +329,16 @@ void AccountMap::require_controller_token(AccountUuid account_uuid){
 	treq.account_uuid = account_uuid.str();
 	auto tresult = controller->send_and_wait(treq);
 	LOG_EMPERY_CENTER_DEBUG("Controller response: code = ", tresult.first, ", msg = ", tresult.second);
+	if(tresult.first == Msg::ERR_INVALIDATION_IN_PROGRESS){
+		const auto wait_delay = get_config<std::uint64_t>("account_invalidation_wait_delay", 1500);
+
+		const auto promise = boost::make_shared<Poseidon::JobPromise>();
+		const auto timer = Poseidon::TimerDaemon::register_timer(wait_delay, 0, std::bind([=]{ promise->set_success(); }));
+		LOG_EMPERY_CENTER_DEBUG("Waiting for account invalidation...");
+		Poseidon::JobDispatcher::yield(promise, true);
+
+		tresult = controller->send_and_wait(treq);
+	}
 	if(tresult.first != 0){
 		LOG_EMPERY_CENTER_INFO("Failed to acquire controller token: code = ", tresult.first, ", msg = ", tresult.second);
 		DEBUG_THROW(Exception, sslit("Failed to acquire controller token"));

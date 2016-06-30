@@ -11,7 +11,7 @@ namespace {
 	void fill_dungeon_info(DungeonBox::DungeonInfo &info, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
-		info.dungeon_id   = DungeonId(obj->get_dungeon_id());
+		info.dungeon_type_id   = DungeonTypeId(obj->get_dungeon_type_id());
 		info.score        = DungeonBox::Score(obj->get_score());
 		info.entry_count  = obj->get_entry_count();
 		info.finish_count = obj->get_finish_count();
@@ -20,7 +20,7 @@ namespace {
 	void fill_dungeon_message(Msg::SC_DungeonChanged &msg, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
-		msg.dungeon_id = obj->get_dungeon_id();
+		msg.dungeon_type_id = obj->get_dungeon_type_id();
 		msg.score      = obj->get_score();
 	}
 }
@@ -31,7 +31,7 @@ DungeonBox::DungeonBox(AccountUuid account_uuid,
 {
 	for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
 		const auto &obj = *it;
-		m_dungeons.emplace(DungeonId(obj->get_dungeon_id()), obj);
+		m_dungeons.emplace(DungeonTypeId(obj->get_dungeon_type_id()), obj);
 	}
 }
 DungeonBox::~DungeonBox(){
@@ -43,13 +43,13 @@ void DungeonBox::pump_status(){
 	//
 }
 
-DungeonBox::DungeonInfo DungeonBox::get(DungeonId dungeon_id) const {
+DungeonBox::DungeonInfo DungeonBox::get(DungeonTypeId dungeon_type_id) const {
 	PROFILE_ME;
 
 	DungeonInfo info = { };
-	info.dungeon_id = dungeon_id;
+	info.dungeon_type_id = dungeon_type_id;
 
-	const auto it = m_dungeons.find(dungeon_id);
+	const auto it = m_dungeons.find(dungeon_type_id);
 	if(it == m_dungeons.end()){
 		return info;
 	}
@@ -70,13 +70,13 @@ void DungeonBox::get_all(std::vector<DungeonBox::DungeonInfo> &ret) const {
 void DungeonBox::set(DungeonBox::DungeonInfo info){
 	PROFILE_ME;
 
-	const auto dungeon_id = info.dungeon_id;
-	auto it = m_dungeons.find(dungeon_id);
+	const auto dungeon_type_id = info.dungeon_type_id;
+	auto it = m_dungeons.find(dungeon_type_id);
 	if(it == m_dungeons.end()){
-		const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_id.get(),
+		const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_type_id.get(),
 			S_NONE, 0, 0);
 		obj->async_save(true);
-		it = m_dungeons.emplace(dungeon_id, obj).first;
+		it = m_dungeons.emplace(dungeon_type_id, obj).first;
 	}
 	const auto &obj = it->second;
 
@@ -96,10 +96,10 @@ void DungeonBox::set(DungeonBox::DungeonInfo info){
 		}
 	}
 }
-bool DungeonBox::remove(DungeonId dungeon_id) noexcept {
+bool DungeonBox::remove(DungeonTypeId dungeon_type_id) noexcept {
 	PROFILE_ME;
 
-	const auto it = m_dungeons.find(dungeon_id);
+	const auto it = m_dungeons.find(dungeon_type_id);
 	if(it == m_dungeons.end()){
 		return false;
 	}
