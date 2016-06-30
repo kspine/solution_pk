@@ -854,11 +854,22 @@ namespace {
 			return;
 		}
 
+		bool async_invalidation_requested = false;
+		const auto request_async_invalidation = [&]{
+			if(async_invalidation_requested){
+				return;
+			}
+			Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
+			async_invalidation_requested = true;
+		};
+
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
 		const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 		if(castle){
 			try {
+				request_async_invalidation();
+
 				Msg::ST_MapInvalidateCastle msg;
 				msg.map_object_uuid = map_object_uuid.str();
 				msg.coord_x         = new_coord.x();
@@ -871,6 +882,8 @@ namespace {
 
 		if(map_object->is_virtually_removed()){
 			try {
+				request_async_invalidation();
+
 				Msg::ST_MapRemoveMapObject msg;
 				msg.map_object_uuid = map_object_uuid.str();
 				controller->send(msg);
