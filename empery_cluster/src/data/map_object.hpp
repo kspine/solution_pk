@@ -27,6 +27,7 @@ namespace Data {
 		unsigned            attack_type;
 		unsigned            defence_type;
 		std::uint32_t       hp;
+		std::uint32_t       ai_id;
 	};
 
 	class MapObjectRelative {
@@ -35,9 +36,9 @@ namespace Data {
 			ATTACK_NORMAL = 1,
 			ATTACK_STAB   = 2,
 			ATTACK_CITY   = 3,
-			ATTACK_FLAME  = 4,	
+			ATTACK_FLAME  = 4,
 		};
-		
+
 		enum DefenceType: unsigned {
 			DEFENCE_LIGHT         = 1,
 			DEFENCE_MIDDLE        = 2,
@@ -67,6 +68,15 @@ namespace Data {
 		std::uint32_t      level;
 		MapObjectTypeId    arm_type_id;
 		std::pair<MapObjectTypeId,std::uint32_t> type_level;
+	};
+
+	class MapObjectAi{
+	public:
+		static boost::shared_ptr<const MapObjectAi> get(std::uint64_t unique_id);
+	public:
+		std::uint64_t unique_id;
+		unsigned      ai_type;
+		std::string   params;
 	};
 }
 
