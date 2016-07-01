@@ -8,7 +8,6 @@
 #include <poseidon/module_raii.hpp>
 #include <poseidon/http/exception.hpp>
 #include <poseidon/http/status_codes.hpp>
-#include <poseidon/job_base.hpp>
 #include <poseidon/stream_buffer.hpp>
 #include <poseidon/optional_map.hpp>
 #include <poseidon/json.hpp>

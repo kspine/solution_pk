@@ -59,9 +59,9 @@
 namespace EmperyCenter {
 
 CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
-	const auto center_rectangle = WorldMap::get_cluster_scope(Coord(0, 0));
-	const auto map_width  = static_cast<std::uint32_t>(center_rectangle.width());
-	const auto map_height = static_cast<std::uint32_t>(center_rectangle.height());
+	const auto origin_scope = WorldMap::get_cluster_scope(Coord(0, 0));
+	const auto map_width  = static_cast<std::uint32_t>(origin_scope.width());
+	const auto map_height = static_cast<std::uint32_t>(origin_scope.height());
 
 	const auto num_coord = Coord(req.numerical_x, req.numerical_y);
 	const auto inf_x = INT32_MAX / static_cast<std::int32_t>(map_width);

@@ -3,7 +3,7 @@
 #include "../mmain.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
-#include <poseidon/job_base.hpp>
+#include <poseidon/async_job.hpp>
 #include <poseidon/job_promise.hpp>
 #include <poseidon/atomic.hpp>
 #include <poseidon/sock_addr.hpp>
@@ -11,6 +11,9 @@
 #include <poseidon/singletons/dns_daemon.hpp>
 #include "../msg/g_packed.hpp"
 #include "../msg/kill.hpp"
+#include "../singletons/world_map.hpp"
+#include "../cluster_session.hpp"
+#include "../msg/st_map.hpp"
 
 namespace EmperyCenter {
 
@@ -24,8 +27,42 @@ namespace {
 		boost::shared_ptr<const Poseidon::JobPromise> promise;
 		boost::shared_ptr<Poseidon::SockAddr> sock_addr;
 
-		boost::weak_ptr<ControllerClient> client;
+		boost::weak_ptr<ControllerClient> controller;
 	} g_singleton;
+
+	void reallocate_cluster_server_aux(const boost::weak_ptr<ControllerClient> &weak_controller,
+		Coord cluster_coord, const boost::weak_ptr<ClusterSession> &weak_cluster)
+	{
+		PROFILE_ME;
+
+		const auto controller = weak_controller.lock();
+		if(!controller){
+			return;
+		}
+		const auto cluster = weak_cluster.lock();
+		if(!cluster){
+			return;
+		}
+
+		try {
+			const auto scope = WorldMap::get_cluster_scope(cluster_coord);
+
+			Msg::ST_MapRegisterMapServer treq;
+			treq.numerical_x = scope.left() / static_cast<std::int64_t>(scope.width());
+			treq.numerical_y = scope.bottom() / static_cast<std::int64_t>(scope.height());
+			LOG_EMPERY_CENTER_DEBUG("%> Reallocating map server from controller server: cluster_coord = ", cluster_coord);
+			auto tresult = controller->send_and_wait(treq);
+			LOG_EMPERY_CENTER_DEBUG("%> Result: cluster_coord = ", cluster_coord,
+				", code = ", tresult.first, ", msg = ", tresult.second);
+			if(tresult.first != Msg::ST_OK){
+				LOG_EMPERY_CENTER_WARNING("Failed to allocate map server from controller server: code = ", tresult.first, ", msg = ", tresult.second);
+				cluster->shutdown(Msg::KILL_CLUSTER_SERVER_CONFLICT_GLOBAL, tresult.second.c_str());
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			cluster->shutdown(e.what());
+		}
+	}
 }
 
 boost::shared_ptr<const ServletCallback> ControllerClient::create_servlet(std::uint16_t message_id, ServletCallback callback){
@@ -58,14 +95,14 @@ boost::shared_ptr<const ServletCallback> ControllerClient::get_servlet(std::uint
 boost::shared_ptr<ControllerClient> ControllerClient::get(){
 	PROFILE_ME;
 
-	auto client = g_singleton.client.lock();
-	return client;
+	auto controller = g_singleton.controller.lock();
+	return controller;
 }
 boost::shared_ptr<ControllerClient> ControllerClient::require(){
 	PROFILE_ME;
 
-	boost::shared_ptr<ControllerClient> client;
-	while(!(client = g_singleton.client.lock())){
+	boost::shared_ptr<ControllerClient> controller;
+	while(!(controller = g_singleton.controller.lock())){
 		const auto host       = get_config<std::string>   ("controller_cbpp_client_host",         "127.0.0.1");
 		const auto port       = get_config<unsigned>      ("controller_cbpp_client_port",         13223);
 		const auto use_ssl    = get_config<bool>          ("controller_cbpp_client_use_ssl",      false);
@@ -85,15 +122,28 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 		} while(promise_tack != g_singleton.promise);
 
 		if(g_singleton.sock_addr){
-			client.reset(new ControllerClient(*g_singleton.sock_addr, use_ssl, keep_alive));
-			client->go_resident();
+			controller.reset(new ControllerClient(*g_singleton.sock_addr, use_ssl, keep_alive));
+			controller->go_resident();
+			try {
+				boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+				WorldMap::get_all_clusters(clusters);
+				for(auto it = clusters.begin(); it != clusters.end(); ++it){
+					Poseidon::enqueue_async_job(
+						std::bind(&reallocate_cluster_server_aux,
+							boost::weak_ptr<ControllerClient>(controller), it->first, boost::weak_ptr<ClusterSession>(it->second)));
+				}
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				controller->force_shutdown();
+				throw;
+			}
 
 			g_singleton.promise.reset();
 			g_singleton.sock_addr.reset();
-			g_singleton.client = client;
+			g_singleton.controller = controller;
 		}
 	}
-	return client;
+	return controller;
 }
 
 ControllerClient::ControllerClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)
