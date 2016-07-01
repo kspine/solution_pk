@@ -330,7 +330,7 @@ void AccountMap::require_controller_token(AccountUuid account_uuid){
 	auto tresult = controller->send_and_wait(treq);
 	LOG_EMPERY_CENTER_DEBUG("Controller response: code = ", tresult.first, ", msg = ", tresult.second);
 	if(tresult.first == Msg::ERR_INVALIDATION_IN_PROGRESS){
-		const auto wait_delay = get_config<std::uint64_t>("account_invalidation_wait_delay", 1500);
+		const auto wait_delay = get_config<std::uint64_t>("account_invalidation_wait_delay", 15000);
 
 		const auto promise = boost::make_shared<Poseidon::JobPromise>();
 		const auto timer = Poseidon::TimerDaemon::register_timer(wait_delay, 0, std::bind([=]{ promise->set_success(); }));
