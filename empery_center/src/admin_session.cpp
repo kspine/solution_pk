@@ -7,7 +7,6 @@
 #include <poseidon/http/utilities.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
 #include <poseidon/cbpp/exception.hpp>
-#include <poseidon/job_base.hpp>
 #include <poseidon/json.hpp>
 
 namespace EmperyCenter {

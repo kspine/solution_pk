@@ -5,7 +5,6 @@
 #include <poseidon/http/status_codes.hpp>
 #include <poseidon/http/exception.hpp>
 #include <poseidon/http/utilities.hpp>
-#include <poseidon/job_base.hpp>
 #include <poseidon/json.hpp>
 #include <poseidon/hash.hpp>
 #include <poseidon/string.hpp>
