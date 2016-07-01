@@ -1103,6 +1103,21 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 
 	if(!enemy_map_object)
 		return;
+	const auto result = is_under_protection(virtual_shared_from_this<MapObject>(),enemy_map_object);
+	if(result.first != Msg::ST_OK){
+		return;
+	}
+	if(is_castle() && enemy_map_object->is_castle()){
+		return;
+	}
+	std::pair<long, std::string> reason;
+	if(!enemy_map_object->attacked_able(reason)){
+		return;
+	}
+
+	if(is_monster()&&enemy_map_object->is_building()){
+		return;
+	}
 	if(is_in_attack_scope(enemy_map_object)){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
