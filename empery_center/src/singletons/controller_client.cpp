@@ -102,7 +102,11 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 	PROFILE_ME;
 
 	boost::shared_ptr<ControllerClient> controller;
-	while(!(controller = g_singleton.controller.lock())){
+	for(;;){
+		controller = g_singleton.controller.lock();
+		if(controller && !controller->has_been_shutdown_write()){
+			break;
+		}
 		const auto host       = get_config<std::string>   ("controller_cbpp_client_host",         "127.0.0.1");
 		const auto port       = get_config<unsigned>      ("controller_cbpp_client_port",         13223);
 		const auto use_ssl    = get_config<bool>          ("controller_cbpp_client_use_ssl",      false);
