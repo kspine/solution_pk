@@ -11,7 +11,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_DATETIME          (timestamp)	\
 	FIELD_UUID              (account_uuid)	\
-	FIELD_INTEGER_UNSIGNED  (dungeon_id)	\
+	FIELD_INTEGER_UNSIGNED  (dungeon_type_id)	\
 	FIELD_INTEGER_UNSIGNED  (old_score)
 #include <poseidon/mysql/object_generator.hpp>
 

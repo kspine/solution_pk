@@ -21,8 +21,8 @@ namespace {
 		while(csv.fetch_row()){
 			Data::Dungeon elem = { };
 
-			csv.get(elem.dungeon_type_id,              "dungeon_type_id");
-			csv.get(elem.reentrant,               "dungeon_class");
+			csv.get(elem.dungeon_type_id,              "dungeon_id");
+			csv.get(elem.reentrant,                    "dungeon_class");
 			csv.get(elem.prerequisite_dungeon_type_id, "dungeon_need");
 
 			Poseidon::JsonObject object;
@@ -69,7 +69,7 @@ namespace {
 		}
 		g_dungeon_container = dungeon_container;
 		handles.push(dungeon_container);
-		auto servlet = DataSession::create_servlet(DUNGEON_FILE, Data::encode_csv_as_json(csv, "dungeon_type_id"));
+		auto servlet = DataSession::create_servlet(DUNGEON_FILE, Data::encode_csv_as_json(csv, "dungeon_id"));
 		handles.push(std::move(servlet));
 	}
 }

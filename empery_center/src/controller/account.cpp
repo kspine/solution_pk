@@ -65,9 +65,7 @@ CONTROLLER_SERVLET(Msg::TS_AccountInvalidate, controller, req){
 	TaskBoxMap::unload(account_uuid);
 	AuctionCenterMap::unload(account_uuid);
 	MailBoxMap::unload(account_uuid);
-
-	const auto promise = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
-	Poseidon::JobDispatcher::yield(promise, false);
+	Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
 
 	return Response();
 }
