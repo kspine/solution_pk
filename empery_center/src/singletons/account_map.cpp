@@ -436,6 +436,17 @@ boost::shared_ptr<Account> AccountMap::get_or_reload_by_login_name(PlatformId pl
 	}
 	LOG_EMPERY_CENTER_DEBUG("Login name not found. Reloading: platform_id = ", platform_id, ", login_name = ", login_name);
 
+	return forced_reload_by_login_name(platform_id, login_name);
+}
+boost::shared_ptr<Account> AccountMap::forced_reload_by_login_name(PlatformId platform_id, const std::string &login_name){
+	PROFILE_ME;
+
+	const auto &account_map = g_account_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Account map not loaded.");
+		return { };
+	}
+
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Account>>>();
 	{
 		std::ostringstream oss;

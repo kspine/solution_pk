@@ -94,7 +94,7 @@ namespace {
 				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
 					", cur_level = ", cur_level, ", cur_nick = ", cur_nick, ", is_auction_center_enabled = ", is_auction_center_enabled);
 
-				auto account = AccountMap::get_or_reload_by_login_name(g_platform_id, cur_login_name);
+				auto account = AccountMap::forced_reload_by_login_name(g_platform_id, cur_login_name);
 				if(!account){
 					const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 					const auto utc_now = Poseidon::get_utc_time();
