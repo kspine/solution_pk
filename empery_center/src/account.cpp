@@ -50,6 +50,7 @@ void Account::set_promotion_level(unsigned promotion_level){
 	PROFILE_ME;
 
 	m_obj->set_promotion_level(promotion_level);
+	m_obj->async_save(true, true);
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
@@ -61,6 +62,7 @@ void Account::set_nick(std::string nick){
 	PROFILE_ME;
 
 	m_obj->set_nick(std::move(nick));
+	m_obj->async_save(true, true);
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
@@ -76,6 +78,7 @@ void Account::set_activated(bool activated){
 	PROFILE_ME;
 
 	m_obj->set_activated(activated);
+	m_obj->async_save(true, true);
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
@@ -85,6 +88,7 @@ std::uint64_t Account::get_banned_until() const {
 }
 void Account::set_banned_until(std::uint64_t banned_until){
 	m_obj->set_banned_until(banned_until);
+	m_obj->async_save(true, true);
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
@@ -94,6 +98,7 @@ std::uint64_t Account::get_quieted_until() const {
 }
 void Account::set_quieted_until(std::uint64_t quieted_until){
 	m_obj->set_quieted_until(quieted_until);
+	m_obj->async_save(true, true);
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }

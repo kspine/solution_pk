@@ -22,6 +22,7 @@ struct AccountMap {
 	static boost::shared_ptr<Account> get_or_reload(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> forced_reload(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> get_or_reload_by_login_name(PlatformId platform_id, const std::string &login_name);
+	static boost::shared_ptr<Account> forced_reload_by_login_name(PlatformId platform_id, const std::string &login_name);
 
 	static std::uint64_t get_count();
 	static void get_all(std::vector<boost::shared_ptr<Account>> &ret, std::uint64_t begin, std::uint64_t count);
