@@ -41,7 +41,7 @@ namespace {
 		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account->get_account_uuid();
 	}
 
-	auto account = AccountMap::get_or_reload_by_login_name(platform_id, login_name);
+	const auto account = AccountMap::forced_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -60,9 +60,6 @@ namespace {
 	}
 
 	AccountMap::require_controller_token(account_uuid);
-
-	AccountMap::forced_reload(account_uuid);
-	account = AccountMap::require(account_uuid);
 
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);
