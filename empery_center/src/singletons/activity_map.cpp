@@ -49,8 +49,12 @@ namespace {
 			case ActivityIds::ID_MAP_ACTIVITY.get():
 				activity = boost::make_shared<MapActivity>(unique_id, available_since,available_until);
 				break;
+			case ActivityIds::ID_WORLD_ACTIVITY.get():
+				activity = boost::make_shared<MapActivity>(unique_id, available_since,available_until);
+				break;
 			default:
 				LOG_EMPERY_CENTER_DEBUG("unknow activity: ", unique_id);
+				DEBUG_THROW(Exception, sslit("unknow activity:"));
 				break;
 		}
 		return activity;

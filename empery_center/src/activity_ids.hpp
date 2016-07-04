@@ -8,7 +8,8 @@ namespace EmperyCenter {
 namespace ActivityIds {
 
 constexpr ActivityId
-	ID_MAP_ACTIVITY                    ( 3500001 );
+	ID_MAP_ACTIVITY                    ( 3500001 ),
+	ID_WORLD_ACTIVITY                  ( 3500002 );
 
 constexpr MapActivityId
     ID_MAP_ACTIVITY_HARVEST			   (3501001),
