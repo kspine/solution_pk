@@ -2291,9 +2291,8 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 		return { };
 	}
 
-	const auto get_cluster_hint = [&]{
-		PROFILE_ME;
-
+	auto it = clusters.end();
+	{
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
 
 		const auto count_castles_in_clusters = [&](Coord coord_hint){
@@ -2317,27 +2316,22 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 			const auto cluster_y = GlobalStatus::cast<std::int64_t>(GlobalStatus::SLOT_INIT_SERVER_Y);
 			const auto coord_hint = Coord(cluster_x, cluster_y);
 			LOG_EMPERY_CENTER_DEBUG("Testing cluster: coord_hint = ", coord_hint);
-			const auto hint_it = clusters.find(coord_hint);
-			if(hint_it == clusters.end()){
-				LOG_EMPERY_CENTER_WARNING("Cluster is gone! coord_hint = ", coord_hint);
-				goto _reselect;
+			it = clusters.find(coord_hint);
+			if(it != clusters.end()){
+				const auto castle_count = count_castles_in_clusters(coord_hint);
+				LOG_EMPERY_CENTER_DEBUG("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
+				if(castle_count < old_limit){
+					LOG_EMPERY_CENTER_DEBUG("Max number of castles exceeded: castle_count = ", castle_count, ", old_limit = ", old_limit);
+					goto _use_hint;
+				}
 			}
-			const auto castle_count = count_castles_in_clusters(coord_hint);
-			LOG_EMPERY_CENTER_DEBUG("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
-			if(castle_count >= old_limit){
-				LOG_EMPERY_CENTER_DEBUG("Max number of castles exceeded: castle_count = ", castle_count, ", old_limit = ", old_limit);
-				goto _reselect;
-			}
-			return hint_it;
 		}
-	_reselect:
-		;
 		LOG_EMPERY_CENTER_INFO("Reselecting init cluster server...");
 
 		boost::container::flat_multimap<std::size_t, Coord> clusters_by_castle_count;
 		clusters_by_castle_count.reserve(clusters.size());
-		for(auto it = clusters.begin(); it != clusters.end(); ++it){
-			const auto cluster_coord = it->first;
+		for(auto cit = clusters.begin(); cit != clusters.end(); ++cit){
+			const auto cluster_coord = cit->first;
 			const auto castle_count = count_castles_in_clusters(cluster_coord);
 			LOG_EMPERY_CENTER_INFO("Number of castles on cluster: cluster_coord = ", cluster_coord, ", castle_count = ", castle_count);
 			clusters_by_castle_count.emplace(castle_count, cluster_coord);
@@ -2347,7 +2341,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 
 		if(clusters_by_castle_count.empty()){
 			LOG_EMPERY_CENTER_WARNING("No clusters available");
-			return clusters.end();
+			return { };
 		}
 		const auto front_it = clusters_by_castle_count.begin();
 
@@ -2368,15 +2362,13 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 
 		const auto cluster_coord = front_it->second;
 		LOG_EMPERY_CENTER_DEBUG("Selected cluster server: cluster_coord = ", cluster_coord);
-		const auto hint_it = clusters.find(cluster_coord);
-		return hint_it;
-	};
-
-	auto it = get_cluster_hint();
-	if(it != clusters.end()){
-		goto _use_hint;
+		it = clusters.find(cluster_coord);
+		if(it != clusters.end()){
+			goto _use_hint;
+		}
 	}
 	LOG_EMPERY_CENTER_DEBUG("Number of cluster servers: ", clusters.size());
+
 	while(!clusters.empty()){
 		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, clusters.size()));
 _use_hint:
