@@ -1,7 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../msg/cs_mail.hpp"
-#include "../msg/sc_mail.hpp"
 #include "../msg/err_mail.hpp"
 #include "../msg/err_chat.hpp"
 #include "../singletons/mail_box_map.hpp"

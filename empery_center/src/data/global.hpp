@@ -74,7 +74,9 @@ namespace Data {
 			SLOT_NOVICIATE_PROTECTION_CASTLE_LEVEL_THRESHOLD        = 100081,
 			SLOT_GOBLIN_DROP_AWARD_HP_PERCENT                       = 100090,
 			SLOT_GOBLIN_DROP_AWARD                                  = 100091,
-
+			SLOT_MAX_NUMBER_OF_FRIENDS                              = 100095,
+			SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTING                   = 100096,
+			SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTED                    = 100097,
 		};
 
 	public:
