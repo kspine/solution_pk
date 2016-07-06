@@ -81,6 +81,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/payment.cpp	\
 	src/admin/auction.cpp	\
 	src/admin/dungeon.cpp	\
+	src/admin/friend.cpp	\
 	src/auction/query.cpp	\
 	src/auction/transfer.cpp	\
 	src/auction/create_bill.cpp	\
@@ -91,6 +92,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/cluster/map.cpp	\
 	src/controller/account.cpp	\
 	src/controller/map.cpp	\
+	src/controller/friend.cpp	\
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
 	src/account_utilities.cpp	\

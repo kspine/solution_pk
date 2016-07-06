@@ -12,6 +12,9 @@
 #include "../log.hpp"
 #include "../cbpp_response.hpp"
 #include "../msg/kill.hpp"
+#include "../msg/err_account.hpp"
+#include "../singletons/account_map.hpp"
+#include "../account.hpp"
 
 /*
 CONTROLLER_SERVLET(消息类型, 会话形参名, 消息形参名){

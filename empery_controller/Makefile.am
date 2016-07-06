@@ -22,6 +22,7 @@ lib_libposeidon_empery_controller_la_SOURCES = \
 	src/singletons/world_map.cpp	\
 	src/controller/account.cpp	\
 	src/controller/map.cpp	\
+	src/controller/friend.cpp	\
 	src/world/query_castles.cpp	\
 	src/controller_session.cpp	\
 	src/world_session.cpp	\
