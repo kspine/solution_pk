@@ -3,8 +3,6 @@
 #include "../../../empery_center/src/msg/st_account.hpp"
 #include "../../../empery_center/src/msg/ts_account.hpp"
 #include "../../../empery_center/src/msg/err_account.hpp"
-#include "../account.hpp"
-#include "../singletons/account_map.hpp"
 #include "../mmain.hpp"
 #include "../reason_ids.hpp"
 #include <poseidon/json.hpp>
@@ -50,12 +48,7 @@ CONTROLLER_SERVLET(Msg::ST_AccountAccumulatePromotionBonus, controller, req){
 				[=]{
 			 		PROFILE_ME;
 
-					auto using_controller = referrer->get_controller();
-					if(!using_controller){
-						referrer->set_controller(controller);
-						using_controller = controller;
-					}
-
+					const auto using_controller = referrer->try_set_controller(controller);
 					const auto referrer_uuid = referrer->get_account_uuid();
 					const auto taxer_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(referrer_uuid.get()[0]));
 
