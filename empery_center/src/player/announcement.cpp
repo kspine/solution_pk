@@ -1,7 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../msg/cs_announcement.hpp"
-#include "../msg/sc_announcement.hpp"
 #include "../msg/err_announcement.hpp"
 #include "../singletons/announcement_map.hpp"
 #include "../announcement.hpp"

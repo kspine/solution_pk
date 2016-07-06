@@ -15,24 +15,6 @@ namespace Msg {
 	FIELD_STRING        (metadata)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SC_FriendRequested
-#define MESSAGE_ID      798
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (friend_uuid)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    SC_FriendAccepted
-#define MESSAGE_ID      797
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (friend_uuid)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    SC_FriendDeclined
-#define MESSAGE_ID      796
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (friend_uuid)
-#include <poseidon/cbpp/message_generator.hpp>
-
 }
 
 }

@@ -2,7 +2,6 @@
 #include "common.hpp"
 #include "../mmain.hpp"
 #include "../msg/cs_dungeon.hpp"
-#include "../msg/sc_dungeon.hpp"
 #include "../msg/err_dungeon.hpp"
 #include "../msg/err_item.hpp"
 #include "../msg/err_map.hpp"

@@ -62,6 +62,11 @@ namespace {
 				friend_box_map->erase<1>(it);
 			}
 		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_Friend",
+			"DELETE QUICK `f`.*"
+			"  FROM `Center_Friend` AS `f` "
+			"  WHERE `f`.`category` = 0");
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){

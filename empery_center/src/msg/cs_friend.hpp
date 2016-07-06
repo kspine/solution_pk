@@ -38,6 +38,12 @@ namespace Msg {
 	FIELD_STRING        (friend_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_FriendCancelRequest
+#define MESSAGE_ID      705
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (friend_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

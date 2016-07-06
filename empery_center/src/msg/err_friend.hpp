@@ -19,6 +19,9 @@ namespace Msg {
 		ERR_ALREADY_A_FRIEND                    = 71708,
 		ERR_FRIEND_LIST_FULL_INTERNAL           = 71709,
 		ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL    = 71710,
+		ERR_FRIEND_REQUESTED                    = 71711,
+		ERR_FRIEND_NOT_REQUESTED                = 71712,
+		ERR_FRIEND_BLACKLISTED                  = 71713,
 	};
 }
 
