@@ -129,7 +129,7 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 			controller.reset(new ControllerClient(*g_singleton.sock_addr, use_ssl, keep_alive));
 			controller->go_resident();
 			try {
-				boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+				std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
 				WorldMap::get_all_clusters(clusters);
 				for(auto it = clusters.begin(); it != clusters.end(); ++it){
 					Poseidon::enqueue_async_job(

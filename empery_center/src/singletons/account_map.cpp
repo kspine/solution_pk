@@ -223,7 +223,7 @@ namespace {
 				public_end = attributes.upper_bound(AccountAttributeIds::ID_PUBLIC_END);
 			}
 		};
-		const auto copy_attributes  = [&](decltype(attributes.begin()) begin, decltype(attributes.begin()) end){
+		const auto copy_attributes  = [&](decltype(attributes.cbegin()) begin, decltype(attributes.cbegin()) end){
 			for(auto it = begin; it != end; ++it){
 				auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 				attribute.account_attribute_id = it->first.get();
@@ -584,6 +584,16 @@ void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::st
 	}
 
 	*withdrawn = false;
+
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+		try {
+			synchronize_account_with_player(account, session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists){
 	PROFILE_ME;

@@ -1,6 +1,7 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../msg/cs_friend.hpp"
+#include "../msg/sc_friend.hpp"
 #include "../msg/st_friend.hpp"
 #include "../msg/err_friend.hpp"
 #include "../singletons/friend_box_map.hpp"
@@ -221,6 +222,34 @@ PLAYER_SERVLET(Msg::CS_FriendCancelRequest, account, session, req){
 	}
 
 	friend_box->remove(friend_uuid);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_FriendRandom, account, session, req){
+	static constexpr unsigned MAX_RANDOM_FRIEND_COUNT = 32;
+	const auto max_count = std::min<std::size_t>(req.max_count, MAX_RANDOM_FRIEND_COUNT);
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto friend_box = FriendBoxMap::require(account_uuid);
+	friend_box->pump_status();
+
+	std::vector<boost::shared_ptr<Account>> random_list;
+	FriendBoxMap::random(random_list, max_count, friend_box);
+
+	Msg::SC_FriendRandomList msg;
+	msg.friends.reserve(random_list.size());
+	for(auto it = random_list.begin(); it != random_list.end(); ++it){
+		auto &elem = *msg.friends.emplace(msg.friends.end());
+
+		const auto &friend_account = *it;
+		const auto friend_uuid = friend_account->get_account_uuid();
+
+		AccountMap::cached_synchronize_account_with_player_all(friend_uuid, session);
+
+		elem.friend_uuid = friend_uuid.str();
+	}
+	session->send(msg);
 
 	return Response();
 }
