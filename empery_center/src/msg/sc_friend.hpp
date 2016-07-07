@@ -15,6 +15,14 @@ namespace Msg {
 	FIELD_STRING        (metadata)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_FriendRandomList
+#define MESSAGE_ID      798
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (friends,	\
+		FIELD_STRING        (friend_uuid)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
