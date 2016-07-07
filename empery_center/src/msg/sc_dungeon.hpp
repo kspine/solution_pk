@@ -14,6 +14,19 @@ namespace Msg {
 	FIELD_VUINT         (score)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_DungeonEntered
+#define MESSAGE_ID      1598
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (dungeon_type_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonLeft
+#define MESSAGE_ID      1597
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

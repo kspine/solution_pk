@@ -66,7 +66,11 @@ boost::shared_ptr<DungeonClient> DungeonClient::require(){
 	PROFILE_ME;
 
 	boost::shared_ptr<DungeonClient> client;
-	while(!(client = g_singleton.client.lock())){
+	for(;;){
+		client = g_singleton.client.lock();
+		if(client && !client->has_been_shutdown_write()){
+			break;
+		}
 		const auto host       = get_config<std::string>   ("dungeon_cbpp_client_host",         "127.0.0.1");
 		const auto port       = get_config<unsigned>      ("dungeon_cbpp_client_port",         13225);
 		const auto use_ssl    = get_config<bool>          ("dungeon_cbpp_client_use_ssl",      false);
