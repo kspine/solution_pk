@@ -9,6 +9,7 @@
 #include "../friend_box.hpp"
 #include "../mysql/friend.hpp"
 #include "account_map.hpp"
+#include "../account.hpp"
 
 namespace EmperyCenter {
 
@@ -69,10 +70,16 @@ namespace {
 			"  WHERE `f`.`category` = 0");
 	}
 
+	boost::weak_ptr<std::vector<boost::shared_ptr<Account>>> g_random_pool;
+
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto friend_box_map = boost::make_shared<FriendBoxContainer>();
 		g_friend_box_map = friend_box_map;
 		handles.push(friend_box_map);
+
+		const auto random_pool = boost::make_shared<std::vector<boost::shared_ptr<Account>>>();
+		g_random_pool = random_pool;
+		handles.push(random_pool);
 
 		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
@@ -186,6 +193,50 @@ void FriendBoxMap::unload(AccountUuid account_uuid){
 	it->promise.reset();
 	const auto now = Poseidon::get_fast_mono_clock();
 	gc_timer_proc(now);
+}
+
+void FriendBoxMap::random(std::vector<boost::shared_ptr<Account>> &ret, std::size_t max_count, const boost::shared_ptr<FriendBox> &excluding_box){
+	PROFILE_ME;
+
+	const auto random_pool = g_random_pool.lock();
+	if(!random_pool){
+		LOG_EMPERY_CENTER_WARNING("Random friend pool is gone?");
+		return;
+	}
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto filter_friends = [&]{
+		std::size_t count_filtered = 0;
+		auto it = random_pool->end();
+		while((count_filtered < max_count) && ((it != random_pool->begin()) && (--it, true))){
+			const auto &account = *it;
+			if(utc_now < account->get_banned_until()){
+				it = random_pool->erase(it);
+				continue;
+			}
+			auto info = excluding_box->get(account->get_account_uuid());
+			if(info.category != FriendBox::CAT_DELETED){
+				it = random_pool->erase(it);
+				continue;
+			}
+			++count_filtered;
+		}
+	};
+
+	filter_friends();
+	if(random_pool->size() < max_count){
+		random_pool->clear();
+		AccountMap::get_all(*random_pool, 0, SIZE_MAX);
+		std::random_shuffle(random_pool->begin(), random_pool->end(), [](std::uint32_t offset){ return Poseidon::rand32() % offset; });
+		filter_friends();
+	}
+
+	ret.reserve(ret.size() + max_count);
+	for(std::size_t i = 0; (i < max_count) && !random_pool->empty(); ++i){
+		ret.emplace_back(std::move(random_pool->back()));
+		random_pool->pop_back();
+	}
 }
 
 }

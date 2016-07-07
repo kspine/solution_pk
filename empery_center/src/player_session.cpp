@@ -14,7 +14,6 @@
 #include <poseidon/websocket/exception.hpp>
 #include <poseidon/websocket/handshake.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
-#include "singletons/player_session_map.hpp"
 #include "msg/kill.hpp"
 #include "msg/sc_packed.hpp"
 #include "singletons/world_map.hpp"
@@ -219,15 +218,6 @@ PlayerSession::PlayerSession(Poseidon::UniqueFile socket, std::string path)
 {
 }
 PlayerSession::~PlayerSession(){
-}
-
-void PlayerSession::on_close(int err_code) noexcept {
-	PROFILE_ME;
-	LOG_EMPERY_CENTER_DEBUG("Socket close: err_code = ", err_code, ", description = ", Poseidon::get_error_desc(err_code));
-
-	PlayerSessionMap::async_begin_gc();
-
-	Poseidon::Http::LowLevelSession::on_close(err_code);
 }
 
 void PlayerSession::on_low_level_request_headers(Poseidon::Http::RequestHeaders request_headers,

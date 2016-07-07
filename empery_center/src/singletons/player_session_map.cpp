@@ -64,8 +64,6 @@ namespace {
 		return next;
 	}
 
-	boost::weak_ptr<Poseidon::TimerItem> g_gc_timer;
-
 	void gc_timer_proc(std::uint64_t now){
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Session gc timer: now = ", now);
@@ -95,10 +93,9 @@ namespace {
 		g_session_map = session_map;
 		handles.push(session_map);
 
-		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
+		const auto gc_interval = get_config<std::uint64_t>("player_session_gc_delay", 1000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
-		g_gc_timer = timer;
 		handles.push(timer);
 
 		const auto statistic_interval = get_config<std::uint64_t>("account_online_statistic_interval", 60000);
@@ -207,22 +204,6 @@ void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weak_session
 	const auto now     = Poseidon::get_fast_mono_clock();
 	const auto utc_now = Poseidon::get_utc_time();
 	really_erase_session(it, now, utc_now);
-}
-void PlayerSessionMap::async_begin_gc() noexcept {
-	PROFILE_ME;
-
-	const auto timer = g_gc_timer.lock();
-	if(!timer){
-		LOG_EMPERY_CENTER_DEBUG("GC timer has been destroyed.");
-		return;
-	}
-
-	try {
-		const auto gc_delay = get_config<std::uint64_t>("player_session_gc_delay", 1000);
-		Poseidon::TimerDaemon::set_time(timer, gc_delay);
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-	}
 }
 
 void PlayerSessionMap::get_all(std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> &ret){
