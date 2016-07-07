@@ -1910,7 +1910,7 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 	}
 	return std::move(cluster);
 }
-void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret){
+void WorldMap::get_all_clusters(std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> &ret){
 	PROFILE_ME;
 
 	const auto cluster_map = g_cluster_map.lock();
@@ -1925,7 +1925,7 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 		if(!cluster){
 			continue;
 		}
-		ret.insert(std::make_pair(it->cluster_coord, std::move(cluster)));
+		ret.emplace_back(it->cluster_coord, std::move(cluster));
 	}
 }
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
@@ -2284,7 +2284,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 {
 	PROFILE_ME;
 
-	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
 	get_all_clusters(clusters);
 	if(clusters.empty()){
 		LOG_EMPERY_CENTER_WARNING("No clusters available");
@@ -2316,7 +2316,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 			const auto cluster_y = GlobalStatus::cast<std::int64_t>(GlobalStatus::SLOT_INIT_SERVER_Y);
 			const auto coord_hint = Coord(cluster_x, cluster_y);
 			LOG_EMPERY_CENTER_DEBUG("Testing cluster: coord_hint = ", coord_hint);
-			it = clusters.find(coord_hint);
+			it = std::find_if(clusters.begin(), clusters.end(), [&](decltype(clusters.front()) &pair){ return pair.first == coord_hint; });
 			if(it != clusters.end()){
 				const auto castle_count = count_castles_in_clusters(coord_hint);
 				LOG_EMPERY_CENTER_DEBUG("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
@@ -2362,7 +2362,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 
 		const auto cluster_coord = front_it->second;
 		LOG_EMPERY_CENTER_DEBUG("Selected cluster server: cluster_coord = ", cluster_coord);
-		it = clusters.find(cluster_coord);
+		it = std::find_if(clusters.begin(), clusters.end(), [&](decltype(clusters.front()) &pair){ return pair.first == cluster_coord; });
 		if(it != clusters.end()){
 			goto _use_hint;
 		}
