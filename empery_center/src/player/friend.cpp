@@ -34,10 +34,10 @@ namespace {
 		const auto transaction_uuid = transaction_box->create_async_request(promise, result);
 
 		try {
-			Msg::ST_FriendCompareExchange treq;
-			treq.account_uuid      = friend_uuid.str();
+			Msg::ST_FriendPeerCompareExchange treq;
+			treq.account_uuid      = account_uuid.str();
 			treq.transaction_uuid  = transaction_uuid.to_string();
-			treq.friend_uuid       = account_uuid.str();
+			treq.friend_uuid       = friend_uuid.str();
 			treq.categories_expected.reserve(catagories_expected.size());
 			for(auto it = catagories_expected.begin(); it != catagories_expected.end(); ++it){
 				auto &elem = *treq.categories_expected.emplace(treq.categories_expected.end());

@@ -7,7 +7,7 @@
 
 namespace EmperyController {
 
-CONTROLLER_SERVLET(Msg::ST_FriendCompareExchange, controller, req){
+CONTROLLER_SERVLET(Msg::ST_FriendPeerCompareExchange, controller, req){
 	const auto account_uuid = AccountUuid(req.account_uuid);
 	const auto account = AccountMap::get(account_uuid);
 	if(!account){
@@ -26,7 +26,7 @@ CONTROLLER_SERVLET(Msg::ST_FriendCompareExchange, controller, req){
 		[=]{
 			PROFILE_ME;
 			try {
-				Msg::TS_FriendCompareExchange sreq;
+				Msg::TS_FriendPeerCompareExchange sreq;
 				sreq.account_uuid      = account_uuid.str();
 				sreq.friend_uuid       = friend_uuid.str();
 				sreq.categories_expected.reserve(req.categories_expected.size());
@@ -39,7 +39,7 @@ CONTROLLER_SERVLET(Msg::ST_FriendCompareExchange, controller, req){
 				sreq.metadata          = std::move(req.metadata);
 				auto result = using_controller->send_and_wait(sreq);
 
-				Msg::TS_FriendCompareExchangeResult sres;
+				Msg::TS_FriendPeerCompareExchangeResult sres;
 				sres.account_uuid      = account_uuid.str();
 				sres.transaction_uuid  = transaction_uuid.to_string();
 				sres.err_code          = result.first;
