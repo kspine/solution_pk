@@ -19,7 +19,7 @@ CONTROLLER_SERVLET(Msg::ST_FriendPeerCompareExchange, controller, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<friend_uuid;
 	}
 
-	const auto using_controller = account->try_set_controller(controller);
+	const auto using_controller = friend_account->try_set_controller(controller);
 	const auto transaction_uuid = Poseidon::Uuid(req.transaction_uuid);
 
 	Poseidon::enqueue_async_job(
