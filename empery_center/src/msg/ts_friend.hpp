@@ -20,6 +20,15 @@ namespace Msg {
 	FIELD_STRING        (metadata)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    TS_FriendCompareExchangeResult
+#define MESSAGE_ID      20498
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (transaction_uuid)	\
+	FIELD_VINT          (err_code)	\
+	FIELD_STRING        (err_msg)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

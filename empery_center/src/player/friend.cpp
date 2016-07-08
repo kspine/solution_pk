@@ -8,6 +8,8 @@
 #include "../friend_box.hpp"
 #include "../singletons/controller_client.hpp"
 #include "../data/global.hpp"
+#include <poseidon/job_promise.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 
 namespace EmperyCenter {
 
@@ -18,6 +20,44 @@ PLAYER_SERVLET(Msg::CS_FriendGetAll, account, session, /* req */){
 	friend_box->synchronize_with_player(session);
 
 	return Response();
+}
+
+namespace {
+	std::pair<long, std::string> sync_compare_exchange_interserver(const boost::shared_ptr<ControllerClient> &controller,
+		const boost::shared_ptr<FriendBox> &transaction_box, AccountUuid account_uuid, AccountUuid friend_uuid,
+		std::initializer_list<FriendBox::Category> catagories_expected, FriendBox::Category category, std::uint64_t max_count)
+	{
+		PROFILE_ME;
+
+		const auto promise = boost::make_shared<Poseidon::JobPromise>();
+		const auto result = boost::make_shared<std::pair<long, std::string>>(12345678, std::string());
+		const auto transaction_uuid = transaction_box->create_async_request(promise, result);
+
+		try {
+			Msg::ST_FriendCompareExchange treq;
+			treq.account_uuid      = friend_uuid.str();
+			treq.transaction_uuid  = transaction_uuid.to_string();
+			treq.friend_uuid       = account_uuid.str();
+			treq.categories_expected.reserve(catagories_expected.size());
+			for(auto it = catagories_expected.begin(); it != catagories_expected.end(); ++it){
+				auto &elem = *treq.categories_expected.emplace(treq.categories_expected.end());
+				elem.category_expected = static_cast<unsigned>(*it);
+			}
+			treq.category          = static_cast<unsigned>(category);
+			treq.max_count         = max_count;
+			if(!controller->send(treq)){
+				LOG_EMPERY_CENTER_WARNING("Lost connection to center server.");
+				DEBUG_THROW(Exception, sslit("Lost connection to center server"));
+			}
+			Poseidon::JobDispatcher::yield(promise, false);
+
+			return std::move(*result);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			transaction_box->remove_async_request(transaction_uuid);
+			throw;
+		}
+	}
 }
 
 PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
@@ -49,17 +89,10 @@ PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
 		return Response(Msg::ERR_FRIEND_REQUESTING_LIST_FULL) <<max_number_of_friends_requesting;
 	}
 
-	Msg::ST_FriendCompareExchangeSync treq;
-	treq.account_uuid      = friend_uuid.str();
-	treq.friend_uuid       = account_uuid.str();
-	treq.categories_expected.resize(2);
-	treq.categories_expected.at(0).category_expected = static_cast<unsigned>(FriendBox::CAT_DELETED);
-	treq.categories_expected.at(1).category_expected = static_cast<unsigned>(FriendBox::CAT_REQUESTING);
-	treq.category          = static_cast<unsigned>(FriendBox::CAT_REQUESTED);
-	treq.max_count         = max_number_of_friends_requested;
-	auto tresult = controller->send_and_wait(treq);
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+		{ FriendBox::CAT_DELETED, FriendBox::CAT_REQUESTING }, FriendBox::CAT_REQUESTED, max_number_of_friends_requested);
 	if(tresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Controller server response: treq = ", treq, ", code = ", tresult.first, ", msg = ", tresult.second);
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
 		if(tresult.first == Msg::ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL){
 			return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
 		}
@@ -100,16 +133,10 @@ PLAYER_SERVLET(Msg::CS_FriendAccept, account, session, req){
 		return Response(Msg::ERR_FRIEND_LIST_FULL) <<max_number_of_friends;
 	}
 
-	Msg::ST_FriendCompareExchangeSync treq;
-	treq.account_uuid      = friend_uuid.str();
-	treq.friend_uuid       = account_uuid.str();
-	treq.categories_expected.resize(1);
-	treq.categories_expected.at(0).category_expected = static_cast<unsigned>(FriendBox::CAT_REQUESTED);
-	treq.category          = static_cast<unsigned>(FriendBox::CAT_FRIEND);
-	treq.max_count         = max_number_of_friends;
-	auto tresult = controller->send_and_wait(treq);
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+		{ FriendBox::CAT_REQUESTED }, FriendBox::CAT_FRIEND, max_number_of_friends);
 	if(tresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Controller server response: treq = ", treq, ", code = ", tresult.first, ", msg = ", tresult.second);
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
 		if(tresult.first == Msg::ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL){
 			return Response(Msg::ERR_FRIEND_NOT_REQUESTED) <<friend_uuid;
 		}
@@ -142,15 +169,10 @@ PLAYER_SERVLET(Msg::CS_FriendDecline, account, session, req){
 		return Response(Msg::ERR_FRIEND_NOT_REQUESTED) <<friend_uuid;
 	}
 
-	Msg::ST_FriendCompareExchangeSync treq;
-	treq.account_uuid      = friend_uuid.str();
-	treq.friend_uuid       = account_uuid.str();
-	treq.categories_expected.resize(1);
-	treq.categories_expected.at(0).category_expected = static_cast<unsigned>(FriendBox::CAT_REQUESTING);
-	treq.category          = static_cast<unsigned>(FriendBox::CAT_DELETED);
-	auto tresult = controller->send_and_wait(treq);
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+		{ FriendBox::CAT_REQUESTING }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Controller server response: treq = ", treq, ", code = ", tresult.first, ", msg = ", tresult.second);
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
 		if(tresult.first == Msg::ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL){
 			return Response(Msg::ERR_FRIEND_NOT_REQUESTED) <<friend_uuid;
 		}
@@ -176,15 +198,10 @@ PLAYER_SERVLET(Msg::CS_FriendDelete, account, session, req){
 		return Response(Msg::ERR_NO_SUCH_FRIEND) <<friend_uuid;
 	}
 
-	Msg::ST_FriendCompareExchangeSync treq;
-	treq.account_uuid      = friend_uuid.str();
-	treq.friend_uuid       = account_uuid.str();
-	treq.categories_expected.resize(1);
-	treq.categories_expected.at(0).category_expected = static_cast<unsigned>(FriendBox::CAT_FRIEND);
-	treq.category          = static_cast<unsigned>(FriendBox::CAT_DELETED);
-	auto tresult = controller->send_and_wait(treq);
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+		{ FriendBox::CAT_FRIEND }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Controller server response: treq = ", treq, ", code = ", tresult.first, ", msg = ", tresult.second);
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
 	}
 
 	friend_box->remove(friend_uuid);
@@ -206,15 +223,10 @@ PLAYER_SERVLET(Msg::CS_FriendCancelRequest, account, session, req){
 		return Response(Msg::ERR_FRIEND_NOT_REQUESTING) <<friend_uuid;
 	}
 
-	Msg::ST_FriendCompareExchangeSync treq;
-	treq.account_uuid      = friend_uuid.str();
-	treq.friend_uuid       = account_uuid.str();
-	treq.categories_expected.resize(1);
-	treq.categories_expected.at(0).category_expected = static_cast<unsigned>(FriendBox::CAT_REQUESTED);
-	treq.category          = static_cast<unsigned>(FriendBox::CAT_DELETED);
-	auto tresult = controller->send_and_wait(treq);
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+		{ FriendBox::CAT_REQUESTED }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Controller server response: treq = ", treq, ", code = ", tresult.first, ", msg = ", tresult.second);
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
 		if(tresult.first == Msg::ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL){
 			return Response(Msg::ERR_FRIEND_NOT_REQUESTING) <<friend_uuid;
 		}

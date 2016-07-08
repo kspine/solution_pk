@@ -5,6 +5,7 @@
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
 #include "singletons/account_map.hpp"
+#include <poseidon/job_promise.hpp>
 
 namespace EmperyCenter {
 
@@ -177,6 +178,54 @@ void FriendBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 			session->send(msg);
 		}
 	}
+}
+
+Poseidon::Uuid FriendBox::create_async_request(
+	boost::shared_ptr<Poseidon::JobPromise> promise, boost::shared_ptr<std::pair<long, std::string>> result)
+{
+	PROFILE_ME;
+
+	auto transaction_uuid = Poseidon::Uuid::random();
+	AsyncRequestResultControl control = { std::move(promise), std::move(result) };
+	m_async_requests.emplace(transaction_uuid, std::move(control));
+	LOG_EMPERY_CENTER_DEBUG("Friend box: Created async request: account_uuid = ", get_account_uuid(),
+		", transaction_uuid = ", transaction_uuid);
+	return transaction_uuid;
+}
+bool FriendBox::set_async_request_result(Poseidon::Uuid transaction_uuid, std::pair<long, std::string> &&result){
+	PROFILE_ME;
+
+	const auto it = m_async_requests.find(transaction_uuid);
+	if(it == m_async_requests.end()){
+		LOG_EMPERY_CENTER_DEBUG("Friend box: Async request not found: account_uuid = ", get_account_uuid(),
+			", transaction_uuid = ", transaction_uuid);
+		return false;
+	}
+	if(it->second.promise->is_satisfied()){
+		LOG_EMPERY_CENTER_DEBUG("Friend box: Async request result already set: account_uuid = ", get_account_uuid(),
+			", transaction_uuid = ", transaction_uuid);
+		return false;
+	}
+	LOG_EMPERY_CENTER_DEBUG("Friend box: Set async request: account_uuid = ", get_account_uuid(),
+		", transaction_uuid = ", transaction_uuid, ", err_code = ", result.first, ", err_msg = ", result.second);
+	it->second.promise->set_success();
+	*it->second.result = std::move(result);
+	m_async_requests.erase(it);
+	return true;
+}
+bool FriendBox::remove_async_request(Poseidon::Uuid transaction_uuid) noexcept {
+	PROFILE_ME;
+
+	const auto it = m_async_requests.find(transaction_uuid);
+	if(it == m_async_requests.end()){
+		LOG_EMPERY_CENTER_DEBUG("Friend box: Async request not found: account_uuid = ", get_account_uuid(),
+			", transaction_uuid = ", transaction_uuid);
+		return false;
+	}
+	LOG_EMPERY_CENTER_DEBUG("Friend box: Deleted async request: account_uuid = ", get_account_uuid(),
+		", transaction_uuid = ", transaction_uuid);
+	m_async_requests.erase(it);
+	return true;
 }
 
 }

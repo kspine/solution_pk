@@ -196,7 +196,7 @@ CONTROLLER_SERVLET(Msg::ST_AccountQueryToken, controller, req){
 
 	const auto old_controller = account->get_controller();
 	if(old_controller != controller){
-		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED);
+		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED) <<account_uuid;
 	}
 
 	return Response();
