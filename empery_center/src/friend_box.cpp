@@ -95,29 +95,40 @@ void FriendBox::get_by_category(std::vector<FriendInfo> &ret, FriendBox::Categor
 void FriendBox::set(FriendBox::FriendInfo info){
 	PROFILE_ME;
 
-	auto &map = m_friends[info.category];
-	map.reserve(map.size() + 1);
-
 	const auto friend_uuid = info.friend_uuid;
+	const auto category = info.category;
 
-	boost::shared_ptr<MySql::Center_Friend> obj;
-	for(auto cit = m_friends.begin(); cit != m_friends.end(); ++cit){
-		const auto it = cit->second.find(friend_uuid);
-		if(it == cit->second.end()){
-			continue;
+	auto &map = m_friends[category];
+
+	auto it = map.find(friend_uuid);
+	if(it == map.end()){
+		map.reserve(map.size() + 1);
+
+		boost::shared_ptr<MySql::Center_Friend> obj;
+		for(auto cit = m_friends.begin(); cit != m_friends.end(); ++cit){
+			if(cit->first == category){
+				continue;
+			}
+			it = cit->second.find(friend_uuid);
+			if(it == cit->second.end()){
+				continue;
+			}
+			obj = std::move(it->second);
+			cit->second.erase(it);
+			break;
 		}
-		obj = std::move(it->second);
-		cit->second.erase(it);
-		break;
+		if(!obj){
+			obj = boost::make_shared<MySql::Center_Friend>(get_account_uuid().get(), friend_uuid.get(),
+				0, std::string(), 0);
+			obj->async_save(true);
+		}
+		it = map.emplace(friend_uuid, obj).first;
 	}
-	if(!obj){
-		obj = boost::make_shared<MySql::Center_Friend>(get_account_uuid().get(), friend_uuid.get(),
-			static_cast<unsigned>(info.category), std::move(info.metadata), 0);
-		obj->async_save(true);
-	}
-	obj->set_updated_time(info.updated_time);
+	const auto &obj = it->second;
 
-	map.emplace(friend_uuid, obj);
+	obj->set_category(static_cast<unsigned>(category));
+	obj->set_metadata(std::move(info.metadata));
+	obj->set_updated_time(info.updated_time);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
