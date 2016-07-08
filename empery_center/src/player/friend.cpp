@@ -24,7 +24,7 @@ PLAYER_SERVLET(Msg::CS_FriendGetAll, account, session, /* req */){
 
 namespace {
 	std::pair<long, std::string> sync_compare_exchange_interserver(const boost::shared_ptr<ControllerClient> &controller,
-		const boost::shared_ptr<FriendBox> &transaction_box, AccountUuid account_uuid, AccountUuid friend_uuid,
+		const boost::shared_ptr<FriendBox> &transaction_box, AccountUuid friend_uuid,
 		std::initializer_list<FriendBox::Category> catagories_expected, FriendBox::Category category, std::uint64_t max_count)
 	{
 		PROFILE_ME;
@@ -35,7 +35,7 @@ namespace {
 
 		try {
 			Msg::ST_FriendPeerCompareExchange treq;
-			treq.account_uuid      = account_uuid.str();
+			treq.account_uuid      = transaction_box->get_account_uuid().str();
 			treq.transaction_uuid  = transaction_uuid.to_string();
 			treq.friend_uuid       = friend_uuid.str();
 			treq.categories_expected.reserve(catagories_expected.size());
@@ -89,7 +89,7 @@ PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
 		return Response(Msg::ERR_FRIEND_REQUESTING_LIST_FULL) <<max_number_of_friends_requesting;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_DELETED, FriendBox::CAT_REQUESTING }, FriendBox::CAT_REQUESTED, max_number_of_friends_requested);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -133,8 +133,8 @@ PLAYER_SERVLET(Msg::CS_FriendAccept, account, session, req){
 		return Response(Msg::ERR_FRIEND_LIST_FULL) <<max_number_of_friends;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
-		{ FriendBox::CAT_REQUESTED }, FriendBox::CAT_FRIEND, max_number_of_friends);
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
+		{ FriendBox::CAT_REQUESTING }, FriendBox::CAT_FRIEND, max_number_of_friends);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
 		if(tresult.first == Msg::ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL){
@@ -169,7 +169,7 @@ PLAYER_SERVLET(Msg::CS_FriendDecline, account, session, req){
 		return Response(Msg::ERR_FRIEND_NOT_REQUESTED) <<friend_uuid;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_REQUESTING }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -198,7 +198,7 @@ PLAYER_SERVLET(Msg::CS_FriendDelete, account, session, req){
 		return Response(Msg::ERR_NO_SUCH_FRIEND) <<friend_uuid;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_FRIEND }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -223,7 +223,7 @@ PLAYER_SERVLET(Msg::CS_FriendCancelRequest, account, session, req){
 		return Response(Msg::ERR_FRIEND_NOT_REQUESTING) <<friend_uuid;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, account_uuid, friend_uuid,
+	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_REQUESTED }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
