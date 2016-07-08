@@ -14,7 +14,10 @@ CONTROLLER_SERVLET(Msg::TS_FriendCompareExchange, controller, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 
-	const auto friend_box = FriendBoxMap::require(account_uuid);
+	const auto friend_box = FriendBoxMap::get(account_uuid);
+	if(!friend_box){
+		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED) <<account_uuid;
+	}
 
 	const auto friend_uuid = AccountUuid(req.friend_uuid);
 	auto info = friend_box->get(friend_uuid);
@@ -48,6 +51,25 @@ CONTROLLER_SERVLET(Msg::TS_FriendCompareExchange, controller, req){
 			}
 		}
 	}
+
+	return Response();
+}
+
+CONTROLLER_SERVLET(Msg::TS_FriendCompareExchangeResult, controller, req){
+	const auto account_uuid = AccountUuid(req.account_uuid);
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+
+	const auto friend_box = FriendBoxMap::get(account_uuid);
+	if(!friend_box){
+		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED) <<account_uuid;
+	}
+
+	const auto transaction_uuid = Poseidon::Uuid(req.transaction_uuid);
+
+	friend_box->set_async_request_result(transaction_uuid, std::make_pair(req.err_code, std::move(req.err_msg)));
 
 	return Response();
 }
