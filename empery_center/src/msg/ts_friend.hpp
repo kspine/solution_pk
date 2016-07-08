@@ -7,7 +7,7 @@ namespace EmperyCenter {
 
 namespace Msg {
 
-#define MESSAGE_NAME    TS_FriendCompareExchange
+#define MESSAGE_NAME    TS_FriendPeerCompareExchange
 #define MESSAGE_ID      20499
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
@@ -20,7 +20,7 @@ namespace Msg {
 	FIELD_STRING        (metadata)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    TS_FriendCompareExchangeResult
+#define MESSAGE_NAME    TS_FriendPeerCompareExchangeResult
 #define MESSAGE_ID      20498
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\

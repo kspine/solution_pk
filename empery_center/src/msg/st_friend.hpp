@@ -7,7 +7,7 @@ namespace EmperyCenter {
 
 namespace Msg {
 
-#define MESSAGE_NAME    ST_FriendCompareExchange
+#define MESSAGE_NAME    ST_FriendPeerCompareExchange
 #define MESSAGE_ID      20400
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
