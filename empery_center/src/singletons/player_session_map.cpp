@@ -93,7 +93,7 @@ namespace {
 		g_session_map = session_map;
 		handles.push(session_map);
 
-		const auto gc_interval = get_config<std::uint64_t>("player_session_gc_delay", 1000);
+		const auto gc_interval = get_config<std::uint64_t>("player_session_gc_delay", 5000);
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);

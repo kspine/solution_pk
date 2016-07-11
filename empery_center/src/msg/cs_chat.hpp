@@ -28,6 +28,23 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ChatGetHornMessages
+#define MESSAGE_ID      802
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (language_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ChatHornMessage
+#define MESSAGE_ID      803
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (item_id)	\
+	FIELD_VUINT         (language_id)	\
+	FIELD_ARRAY         (segments,	\
+		FIELD_VUINT         (slot)	\
+		FIELD_STRING        (value)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

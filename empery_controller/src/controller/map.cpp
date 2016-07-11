@@ -102,14 +102,18 @@ CONTROLLER_SERVLET(Msg::ST_MapInvalidateCastle, controller, req){
 CONTROLLER_SERVLET(Msg::ST_MapRemoveMapObject, controller, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 
-	boost::container::flat_map<Coord, boost::shared_ptr<ControllerSession>> controllers;
+	Msg::TS_MapRemoveMapObject msg;
+	msg.map_object_uuid = map_object_uuid.str();
+
+	std::vector<std::pair<Coord, boost::shared_ptr<ControllerSession>>> controllers;
 	WorldMap::get_all_controllers(controllers);
 	for(auto it = controllers.begin(); it != controllers.end(); ++it){
-		const auto &controller = it->second;
+		const auto &other_controller = it->second;
+		if(other_controller == controller){
+			continue;
+		}
 		try {
-			Msg::TS_MapRemoveMapObject msg;
-			msg.map_object_uuid = map_object_uuid.str();
-			controller->send(msg);
+			other_controller->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CONTROLLER_WARNING("std::exception thrown: what = ", e.what());
 			controller->shutdown(e.what());

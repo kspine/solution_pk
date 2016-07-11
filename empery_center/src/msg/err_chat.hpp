@@ -14,6 +14,7 @@ namespace Msg {
 		ERR_INVALID_CHAT_MESSAGE_SLOT           = 71803,
 		ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL       = 71804,
 		ERR_NO_SUCH_CHAT_MESSAGE                = 71805,
+		ERR_NO_SUCH_HORN_MESSAGE                = 71806,
 	};
 }
 

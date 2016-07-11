@@ -39,6 +39,7 @@ namespace Data {
 			CAT_RELOCATION_CARD       = 16, // 迁城卡
 			CAT_CASTLE_BUFF           = 17, // 城堡增益
 			CAT_ITEM_BOX              = 18, // 道具木箱
+			CAT_HORN                  = 19, // 小喇叭
 		};
 
 	public:
