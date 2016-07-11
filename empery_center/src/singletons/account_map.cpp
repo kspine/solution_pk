@@ -194,7 +194,7 @@ namespace {
 
 	void synchronize_account_and_update_cache(std::uint64_t now, std::uint64_t cache_timeout,
 		const boost::shared_ptr<Account> &account, const boost::shared_ptr<ItemBox> &item_box,
-		const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags) noexcept
+		const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags)
 	try {
 		PROFILE_ME;
 
@@ -637,7 +637,7 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 }
 
 void AccountMap::synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept
+	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
 {
 	PROFILE_ME;
 
@@ -663,7 +663,7 @@ void AccountMap::synchronize_account_with_player_all(AccountUuid account_uuid, c
 }
 
 void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept
+	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
 {
 	PROFILE_ME;
 
@@ -699,7 +699,7 @@ void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_
 		(wants_private_attributes && is_miss(CT_PRIV_ATTRS) ? CT_PRIV_ATTRS : CT_NONE) |
 		(item_box                 && is_miss(CT_ITEMS     ) ? CT_ITEMS      : CT_NONE));
 }
-void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept {
+void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	return cached_synchronize_account_with_player_all(account_uuid, session, true, true, false, { });
 }
 

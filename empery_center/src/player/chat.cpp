@@ -15,6 +15,13 @@
 #include "../account_attribute_ids.hpp"
 #include "../data/global.hpp"
 #include "../singletons/world_map.hpp"
+#include "../horn_message.hpp"
+#include "../msg/err_item.hpp"
+#include "../data/item.hpp"
+#include "../singletons/item_box_map.hpp"
+#include "../item_box.hpp"
+#include "../transaction_element.hpp"
+#include "../reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -126,6 +133,56 @@ PLAYER_SERVLET(Msg::CS_ChatGetMessages, account, session, req){
 			continue;
 		}
 		synchronize_chat_message_with_player(message, session);
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_ChatGetHornMessages, account, session, req){
+	const auto language_id = LanguageId(req.language_id);
+
+	std::vector<boost::shared_ptr<HornMessage>> horn_messages;
+	ChatBoxMap::get_horn_messages_by_language_id(horn_messages, language_id);
+	for(auto it = horn_messages.begin(); it != horn_messages.end(); ++it){
+		const auto &horn_message = *it;
+		horn_message->synchronize_with_player(session);
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_ChatHornMessage, account, session, req){
+	const auto item_id = ItemId(req.item_id);
+	const auto item_data = Data::Item::get(item_id);
+	if(item_data->type.first != Data::Item::CAT_HORN){
+		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_HORN;
+	}
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto item_box = ItemBoxMap::require(account_uuid);
+
+	const auto horn_message_uuid = HornMessageUuid(Poseidon::Uuid::random());
+	const auto language_id = LanguageId(req.language_id);
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto expiry_time = saturated_add(utc_now, item_data->value);
+
+	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+	segments.reserve(req.segments.size());
+	for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
+		segments.emplace_back(ChatMessageSlotId(it->slot), std::move(it->value));
+	}
+
+	std::vector<ItemTransactionElement> transaction;
+	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, 1,
+		ReasonIds::ID_HORN_MESSAGE, 0, 0, 0);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{
+			const auto horn_message = boost::make_shared<HornMessage>(horn_message_uuid,
+				language_id, utc_now, expiry_time, account_uuid, std::move(segments));
+			ChatBoxMap::insert_horn_message(horn_message);
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
 
 	return Response();

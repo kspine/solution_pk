@@ -233,7 +233,7 @@ boost::shared_ptr<ControllerSession> WorldMap::get_controller(Coord coord){
 	}
 	return std::move(controller);
 }
-void WorldMap::get_all_controllers(boost::container::flat_map<Coord, boost::shared_ptr<ControllerSession>> &ret){
+void WorldMap::get_all_controllers(std::vector<std::pair<Coord, boost::shared_ptr<ControllerSession>>> &ret){
 	PROFILE_ME;
 
 	const auto controller_map = g_controller_map.lock();
@@ -248,7 +248,7 @@ void WorldMap::get_all_controllers(boost::container::flat_map<Coord, boost::shar
 		if(!controller){
 			continue;
 		}
-		ret.insert(std::make_pair(it->cluster_coord, std::move(controller)));
+		ret.emplace_back(it->cluster_coord, std::move(controller));
 	}
 }
 void WorldMap::set_controller(const boost::shared_ptr<ControllerSession> &controller, Coord coord){

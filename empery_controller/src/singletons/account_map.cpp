@@ -222,23 +222,4 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 	account_map->replace<0>(it, AccountElement(account));
 }
 
-void AccountMap::get_all_controllers(std::vector<boost::shared_ptr<ControllerSession>> &ret){
-	PROFILE_ME;
-
-	const auto &account_map = g_account_map;
-	if(!account_map){
-		LOG_EMPERY_CONTROLLER_WARNING("Account map not loaded.");
-		return;
-	}
-
-	ret.reserve(64);
-	for(auto it = account_map->begin<1>(); it != account_map->end<1>(); it = account_map->upper_bound<1>(it->weak_controller)){
-		auto controller = it->weak_controller.lock();
-		if(!controller){
-			continue;
-		}
-		ret.emplace_back(std::move(controller));
-	}
-}
-
 }

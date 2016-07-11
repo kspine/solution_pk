@@ -854,21 +854,12 @@ namespace {
 			return;
 		}
 
-		bool async_invalidation_requested = false;
-		const auto request_async_invalidation = [&]{
-			if(async_invalidation_requested){
-				return;
-			}
-			Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
-			async_invalidation_requested = true;
-		};
-
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
 		const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 		if(castle){
 			try {
-				request_async_invalidation();
+				Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
 
 				Msg::ST_MapInvalidateCastle msg;
 				msg.map_object_uuid = map_object_uuid.str();
@@ -882,7 +873,7 @@ namespace {
 
 		if(map_object->is_virtually_removed()){
 			try {
-				request_async_invalidation();
+				Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
 
 				Msg::ST_MapRemoveMapObject msg;
 				msg.map_object_uuid = map_object_uuid.str();
@@ -1151,7 +1142,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 
 	const auto map_object_uuid = map_object->get_map_object_uuid();
 
-	if(map_object->has_been_deleted()){
+	if(map_object->is_virtually_removed()){
 		LOG_EMPERY_CENTER_WARNING("Map object has been marked as deleted: map_object_uuid = ", map_object_uuid);
 		DEBUG_THROW(Exception, sslit("Map object has been marked as deleted"));
 	}

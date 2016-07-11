@@ -93,6 +93,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/controller/account.cpp	\
 	src/controller/map.cpp	\
 	src/controller/friend.cpp	\
+	src/controller/chat.cpp	\
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
 	src/account_utilities.cpp	\
@@ -116,6 +117,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/mail_data.cpp	\
 	src/chat_box.cpp	\
 	src/chat_message.cpp	\
+	src/horn_message.cpp	\
 	src/announcement.cpp	\
 	src/auction_center.cpp	\
 	src/payment_transaction.cpp	\

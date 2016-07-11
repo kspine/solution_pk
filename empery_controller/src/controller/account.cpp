@@ -7,6 +7,7 @@
 #include "../reason_ids.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
+#include "../singletons/world_map.hpp"
 
 namespace EmperyController {
 
@@ -209,10 +210,10 @@ CONTROLLER_SERVLET(Msg::ST_AccountInvalidate, controller, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 
-	std::vector<boost::shared_ptr<ControllerSession>> controllers;
-	AccountMap::get_all_controllers(controllers);
+	std::vector<std::pair<Coord, boost::shared_ptr<ControllerSession>>> controllers;
+	WorldMap::get_all_controllers(controllers);
 	for(auto it = controllers.begin(); it != controllers.end(); ++it){
-		const auto &other_controller = *it;
+		const auto &other_controller = it->second;
 		if(other_controller == controller){
 			continue;
 		}
