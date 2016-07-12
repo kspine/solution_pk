@@ -10,6 +10,7 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME   Center_HornMessage
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (horn_message_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (item_id)	\
 	FIELD_INTEGER_UNSIGNED  (language_id)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\

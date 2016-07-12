@@ -52,14 +52,13 @@ namespace {
 	}
 }
 
-HornMessage::HornMessage(HornMessageUuid horn_message_uuid,
+HornMessage::HornMessage(HornMessageUuid horn_message_uuid, ItemId item_id,
 	LanguageId language_id, std::uint64_t created_time, std::uint64_t expiry_time,
 	AccountUuid from_account_uuid, std::vector<std::pair<ChatMessageSlotId, std::string>> segments)
 	: m_obj(
 		[&]{
-			auto obj = boost::make_shared<MySql::Center_HornMessage>(
-				horn_message_uuid.get(), language_id.get(), created_time, expiry_time,
-				from_account_uuid.get(), encode_segments(segments));
+			auto obj = boost::make_shared<MySql::Center_HornMessage>(horn_message_uuid.get(), item_id.get(),
+				language_id.get(), created_time, expiry_time, from_account_uuid.get(), encode_segments(segments));
 			obj->async_save(true, true);
 			return obj;
 		}())
@@ -76,6 +75,9 @@ HornMessage::~HornMessage(){
 
 HornMessageUuid HornMessage::get_horn_message_uuid() const {
 	return HornMessageUuid(m_obj->unlocked_get_horn_message_uuid());
+}
+ItemId HornMessage::get_item_id() const {
+	return ItemId(m_obj->get_item_id());
 }
 LanguageId HornMessage::get_language_id() const {
 	return LanguageId(m_obj->get_language_id());
@@ -111,6 +113,7 @@ void HornMessage::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 
 	Msg::SC_ChatHornMessage msg;
 	msg.horn_message_uuid = get_horn_message_uuid().str();
+	msg.item_id                     = get_item_id().get();
 	msg.language_id                 = get_language_id().get();
 	msg.created_time                = get_created_time();
 	msg.expiry_time                 = get_expiry_time();

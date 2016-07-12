@@ -24,7 +24,7 @@ private:
 	std::vector<std::pair<ChatMessageSlotId, std::string>> m_segments;
 
 public:
-	HornMessage(HornMessageUuid horn_message_uuid,
+	HornMessage(HornMessageUuid horn_message_uuid, ItemId item_id,
 		LanguageId language_id, std::uint64_t created_time, std::uint64_t expiry_time,
 		AccountUuid from_account_uuid, std::vector<std::pair<ChatMessageSlotId, std::string>> segments);
 	explicit HornMessage(boost::shared_ptr<MySql::Center_HornMessage> obj);
@@ -32,6 +32,7 @@ public:
 
 public:
 	HornMessageUuid get_horn_message_uuid() const;
+	ItemId get_item_id() const;
 	LanguageId get_language_id() const;
 	std::uint64_t get_created_time() const;
 	std::uint64_t get_expiry_time() const;
