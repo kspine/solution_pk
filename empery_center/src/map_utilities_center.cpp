@@ -361,7 +361,7 @@ void async_hang_up_castle(const boost::shared_ptr<Castle> &castle) noexcept
 try {
 	PROFILE_ME;
 
-	const auto really_hang_up = [=]{
+	const auto really_hang_up = [=]() mutable {
 		PROFILE_ME;
 
 		const auto castle_uuid = castle->get_map_object_uuid();

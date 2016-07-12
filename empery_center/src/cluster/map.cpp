@@ -91,7 +91,7 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 	cluster->set_name(std::move(req.name));
 
 	Poseidon::enqueue_async_job(
-		[=]{
+		[=]() mutable {
 			PROFILE_ME;
 			try {
 				WorldMap::forced_reload_cluster(cluster_coord);
@@ -592,7 +592,7 @@ _wounded_done:
 	// 战报。
 	if(attacking_account_uuid){
 		try {
-			Poseidon::enqueue_async_job([=]{
+			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
 
 				const auto battle_record_box = BattleRecordBoxMap::get(attacking_account_uuid);
@@ -611,7 +611,7 @@ _wounded_done:
 	}
 	if(attacked_account_uuid){
 		try {
-			Poseidon::enqueue_async_job([=]{
+			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
 
 				const auto battle_record_box = BattleRecordBoxMap::get(attacked_account_uuid);
@@ -632,7 +632,7 @@ _wounded_done:
 	// 怪物掉落。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try {
-			Poseidon::enqueue_async_job([=]{
+			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
 
 				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
@@ -855,7 +855,7 @@ _wounded_done:
 	// 任务。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try {
-			Poseidon::enqueue_async_job([=]{
+			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
 
 				const auto task_box = TaskBoxMap::get(attacking_account_uuid);
@@ -886,7 +886,7 @@ _wounded_done:
 	// 资源宝箱。
 	if(soldiers_remaining == 0){
 		try {
-			Poseidon::enqueue_async_job([=]{
+			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
 
 				const auto &radius_limits = Data::Global::as_array(Data::Global::SLOT_RESOURCE_CRATE_RADIUS_LIMITS);
@@ -1254,7 +1254,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	// 战报。
 	if(attacking_account_uuid){
 		try {
-			Poseidon::enqueue_async_job([=]{
+			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
 
 				const auto crate_record_box = BattleRecordBoxMap::get_crate(attacking_account_uuid);

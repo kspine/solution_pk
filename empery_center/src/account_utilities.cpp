@@ -26,7 +26,7 @@ namespace EmperyCenter {
 void async_accumulate_promotion_bonus(AccountUuid account_uuid, std::uint64_t taxing_amount) noexcept
 try {
 	Poseidon::enqueue_async_job(
-		[=]{
+		[=]() mutable {
 			PROFILE_ME;
 
 			const auto controller = ControllerClient::require();
@@ -45,7 +45,7 @@ try {
 void async_recheck_building_level_tasks(AccountUuid account_uuid) noexcept
 try {
 	Poseidon::enqueue_async_job(
-		[=]{
+		[=]() mutable {
 			PROFILE_ME;
 
 			AccountMap::require_controller_token(account_uuid);
@@ -127,7 +127,7 @@ try {
 	}
 
 	Poseidon::enqueue_async_job(
-		[=]{
+		[=]() mutable {
 			PROFILE_ME;
 
 			AccountMap::require_controller_token(account_uuid);

@@ -113,7 +113,7 @@ namespace {
 			return;
 		}
 		Poseidon::enqueue_async_job(
-			[=]{
+			[=]() mutable {
 				PROFILE_ME;
 
 				const auto account_uuid = auction_center->get_account_uuid();

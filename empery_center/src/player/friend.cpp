@@ -23,15 +23,15 @@ PLAYER_SERVLET(Msg::CS_FriendGetAll, account, session, /* req */){
 }
 
 namespace {
-	std::pair<long, std::string> sync_compare_exchange_interserver(const boost::shared_ptr<ControllerClient> &controller,
+	std::pair<long, std::string> interserver_compare_exchange_and_wait(const boost::shared_ptr<ControllerClient> &controller,
 		const boost::shared_ptr<FriendBox> &transaction_box, AccountUuid friend_uuid,
 		std::initializer_list<FriendBox::Category> catagories_expected, FriendBox::Category category, std::uint64_t max_count)
 	{
 		PROFILE_ME;
 
 		const auto promise = boost::make_shared<Poseidon::JobPromise>();
-		const auto result = boost::make_shared<std::pair<long, std::string>>(12345678, std::string());
-		const auto transaction_uuid = transaction_box->create_async_request(promise, result);
+		const auto tresult = boost::make_shared<std::pair<long, std::string>>(12345678, std::string());
+		const auto transaction_uuid = transaction_box->create_async_request(promise, tresult);
 
 		try {
 			Msg::ST_FriendPeerCompareExchange treq;
@@ -51,7 +51,7 @@ namespace {
 			}
 			Poseidon::JobDispatcher::yield(promise, false);
 
-			return std::move(*result);
+			return std::move(*tresult);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			transaction_box->remove_async_request(transaction_uuid);
@@ -89,7 +89,7 @@ PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
 		return Response(Msg::ERR_FRIEND_REQUESTING_LIST_FULL) <<max_number_of_friends_requesting;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
+	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_DELETED, FriendBox::CAT_REQUESTING }, FriendBox::CAT_REQUESTED, max_number_of_friends_requested);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -133,7 +133,7 @@ PLAYER_SERVLET(Msg::CS_FriendAccept, account, session, req){
 		return Response(Msg::ERR_FRIEND_LIST_FULL) <<max_number_of_friends;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
+	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_REQUESTING }, FriendBox::CAT_FRIEND, max_number_of_friends);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -169,7 +169,7 @@ PLAYER_SERVLET(Msg::CS_FriendDecline, account, session, req){
 		return Response(Msg::ERR_FRIEND_NOT_REQUESTED) <<friend_uuid;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
+	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_REQUESTING }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -198,7 +198,7 @@ PLAYER_SERVLET(Msg::CS_FriendDelete, account, session, req){
 		return Response(Msg::ERR_NO_SUCH_FRIEND) <<friend_uuid;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
+	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_FRIEND }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -223,7 +223,7 @@ PLAYER_SERVLET(Msg::CS_FriendCancelRequest, account, session, req){
 		return Response(Msg::ERR_FRIEND_NOT_REQUESTING) <<friend_uuid;
 	}
 
-	auto tresult = sync_compare_exchange_interserver(controller, friend_box, friend_uuid,
+	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
 		{ FriendBox::CAT_REQUESTED }, FriendBox::CAT_DELETED, 0);
 	if(tresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
@@ -262,6 +262,54 @@ PLAYER_SERVLET(Msg::CS_FriendRandom, account, session, req){
 		elem.friend_uuid = friend_uuid.str();
 	}
 	session->send(msg);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_FriendPrivateMessage, account, session, req){
+	const auto friend_uuid = AccountUuid(req.friend_uuid);
+
+	const auto controller = ControllerClient::require();
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto friend_box = FriendBoxMap::require(account_uuid);
+	friend_box->pump_status();
+
+	const auto info = friend_box->get(friend_uuid);
+	if(info.category != FriendBox::CAT_FRIEND){
+		return Response(Msg::ERR_NO_SUCH_FRIEND) <<friend_uuid;
+	}
+
+	const auto promise = boost::make_shared<Poseidon::JobPromise>();
+	const auto tresult = boost::make_shared<std::pair<long, std::string>>(12345678, std::string());
+	const auto transaction_uuid = friend_box->create_async_request(promise, tresult);
+
+	try {
+		Msg::ST_FriendPrivateMessage treq;
+		treq.account_uuid      = account_uuid.str();
+		treq.transaction_uuid  = transaction_uuid.to_string();
+		treq.friend_uuid       = friend_uuid.str();
+		treq.language_id       = req.language_id;
+		treq.segments.reserve(req.segments.size());
+		for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
+			auto &elem = *treq.segments.emplace(treq.segments.end());
+			elem.slot  = it->slot;
+			elem.value = std::move(it->value);
+		}
+		if(!controller->send(treq)){
+			LOG_EMPERY_CENTER_WARNING("Lost connection to center server.");
+			DEBUG_THROW(Exception, sslit("Lost connection to center server"));
+		}
+		Poseidon::JobDispatcher::yield(promise, false);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		friend_box->remove_async_request(transaction_uuid);
+		throw;
+	}
+	if(tresult->first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult->first, ", msg = ", tresult->second);
+		return std::move(*tresult);
+	}
 
 	return Response();
 }

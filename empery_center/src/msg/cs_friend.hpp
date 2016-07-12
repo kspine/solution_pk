@@ -50,6 +50,17 @@ namespace Msg {
 	FIELD_VUINT         (max_count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_FriendPrivateMessage
+#define MESSAGE_ID      707
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (friend_uuid)	\
+	FIELD_VUINT         (language_id)	\
+	FIELD_ARRAY         (segments,	\
+		FIELD_VUINT         (slot)	\
+		FIELD_STRING        (value)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
