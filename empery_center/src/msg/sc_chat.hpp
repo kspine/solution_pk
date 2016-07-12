@@ -45,6 +45,7 @@ namespace Msg {
 #define MESSAGE_ID      896
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (horn_message_uuid)	\
+	FIELD_VUINT         (item_id)	\
 	FIELD_VUINT         (language_id)	\
 	FIELD_VUINT         (created_time)	\
 	FIELD_VUINT         (expiry_time)	\

@@ -177,7 +177,7 @@ PLAYER_SERVLET(Msg::CS_ChatHornMessage, account, session, req){
 		ReasonIds::ID_HORN_MESSAGE, 0, 0, 0);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
-			const auto horn_message = boost::make_shared<HornMessage>(horn_message_uuid,
+			const auto horn_message = boost::make_shared<HornMessage>(horn_message_uuid, item_id,
 				language_id, utc_now, expiry_time, account_uuid, std::move(segments));
 			ChatBoxMap::insert_horn_message(horn_message);
 		});
