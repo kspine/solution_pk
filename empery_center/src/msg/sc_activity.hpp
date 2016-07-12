@@ -31,6 +31,40 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+
+#define MESSAGE_NAME    SC_WorldActivityInfo
+#define MESSAGE_ID      1497
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (curr_activity_id)	\
+	FIELD_VUINT         (since)	\
+	FIELD_VUINT         (until)	\
+	FIELD_ARRAY         (activitys,	\
+		FIELD_VUINT         (unique_id)	\
+		FIELD_VUINT         (sub_since)	\
+		FIELD_VUINT         (sub_until)	\
+		FIELD_VUINT         (objective)	\
+		FIELD_VUINT         (schedule)	\
+		FIELD_VUINT         (contribute)\
+		FIELD_VUINT         (finish)\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_WorldActivityRank
+#define MESSAGE_ID      1496
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (since)	\
+	FIELD_VUINT         (rank)  \
+	FIELD_VUINT         (accumulate_value)  \
+	FIELD_ARRAY         (rank_list,	\
+		FIELD_STRING        (account_uuid)      \
+		FIELD_STRING        (nick)	            \
+		FIELD_STRING        (castle_name)	    \
+		FIELD_STRING        (leagues)	        \
+		FIELD_VUINT         (rank)	            \
+		FIELD_VUINT         (accumulate_value)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

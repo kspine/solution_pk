@@ -74,7 +74,7 @@ namespace Data {
 			SLOT_NOVICIATE_PROTECTION_CASTLE_LEVEL_THRESHOLD        = 100081,
 			SLOT_GOBLIN_DROP_AWARD_HP_PERCENT                       = 100090,
 			SLOT_GOBLIN_DROP_AWARD                                  = 100091,
-
+			SLOT_WORLD_ACTIVITY_RANK_THRESHOLD                    = 100100,
 		};
 
 	public:

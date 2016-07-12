@@ -11,6 +11,7 @@ namespace Msg {
 	enum {
 		ERR_NO_MAP_ACTIVITY                     = 72301,
 		ERR_NO_ACTIVITY_FINISH                  = 72302,
+		ERR_NO_WORLD_ACTIVITY                   = 72303,
 	};
 }
 

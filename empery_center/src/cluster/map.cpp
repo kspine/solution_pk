@@ -267,6 +267,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto harvest_speed_add = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
 	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
 
+	//地图活动翻倍
 	auto  activity_add_rate = 1;
 	const auto map_activity = ActivityMap::get_map_activity();
 	if(map_activity){
@@ -281,6 +282,38 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		", forced_attack = ", forced_attack,", activity_add_rate = ", activity_add_rate);
 
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, req.interval);
+	
+	
+	try {
+		Poseidon::enqueue_async_job([=]{
+			{
+				PROFILE_ME;
+				//世界活动累积贡献值
+				const auto world_activity = ActivityMap::get_world_activity();
+				if(!world_activity){
+					goto world_activity_resource_acculate_done;
+				}
+				auto attacking_primary_castle_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
+				auto attacking_cluster_coord = WorldMap::get_cluster_scope(map_object->get_coord()).bottom_left();
+				if(attacking_primary_castle_coord !=  attacking_cluster_coord){
+					goto world_activity_resource_acculate_done;
+				}
+				const auto activity_contribute = Data::ActivityContribute::get(resource_id.get());
+				if(!activity_contribute || 0 == activity_contribute->factor){
+					goto world_activity_resource_acculate_done;
+				}
+				auto contribute = activity_contribute->contribute*amount_harvested/activity_contribute->factor;
+				if(contribute <= 0){
+					goto world_activity_resource_acculate_done;
+				}
+				world_activity->update_world_activity_schedule(attacking_primary_castle_coord,ActivityIds::ID_WORLD_ACTIVITY_RESOURCE,map_object->get_owner_uuid(),contribute);
+			}
+			world_activity_resource_acculate_done:
+			;
+		});
+	} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
 
 	return Response();
 }
@@ -1015,91 +1048,90 @@ _wounded_done:
 	}
 	const auto map_activity_acculate_rewards = [=](MapActivityId activity_id,std::uint64_t delta,ReasonId reason_id){
 		{
-			{
-				const auto map_activity = ActivityMap::get_map_activity();
-				if(map_activity){
-					if(map_activity->get_current_activity() != activity_id){
-						goto _activity_acculate_done;
-					}
-				}
-				MapActivity::MapActivityDetailInfo map_activity_info = map_activity->get_activity_info(activity_id);
-				if(map_activity_info.unique_id != activity_id.get()){
+			const auto map_activity = ActivityMap::get_map_activity();
+			if(map_activity){
+				if(map_activity->get_current_activity() != activity_id){
 					goto _activity_acculate_done;
-				}
-				std::uint64_t old_accumulate,new_accumulate;
-				boost::container::flat_map<ItemId, std::uint64_t> items_basic;
-				std::vector<std::uint64_t> acculate_condition;
-				MapActivityAccumulateMap::AccumulateInfo info = MapActivityAccumulateMap::get(attacking_account_uuid,activity_id);
-				if(info.activity_id != MapActivityId(0) && (info.account_uuid == attacking_account_uuid) && (info.activity_id == activity_id)){
-					old_accumulate = info.accumulate_value;
-					info.accumulate_value += delta;
-					MapActivityAccumulateMap::update(info,false);
-					new_accumulate = info.accumulate_value;
-				}else{
-					info.account_uuid = attacking_account_uuid;
-					info.activity_id = activity_id;
-					info.avaliable_since = map_activity_info.available_since;
-					info.avaliable_util = map_activity_info.available_until;
-					old_accumulate = 0;
-					info.accumulate_value += delta;
-					MapActivityAccumulateMap::insert(info);
-					new_accumulate = info.accumulate_value;
-				}
-				boost::shared_ptr<const Data::MapActivity> map_activity_data  = Data::MapActivity::get(activity_id.get());
-				if(!map_activity_data){
-					goto _activity_acculate_done;
-				}
-				if(old_accumulate == new_accumulate){
-					goto _activity_acculate_done;
-				}
-				const auto item_box = ItemBoxMap::require(attacking_account_uuid);
-				std::vector<ItemTransactionElement> transaction;
-				const auto &rewards = map_activity_data->rewards;
-				for(auto it = rewards.begin(); it != rewards.end(); ++it){
-					if((it->first > old_accumulate) && (it->first <= new_accumulate)){
-						const auto &items_vec = it->second;
-						for(auto iit = items_vec.begin(); iit != items_vec.end(); ++iit){
-							const auto item_id = ItemId(iit->first);
-							const auto count = iit->second;
-							transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-											reason_id,it->first,
-											old_accumulate,new_accumulate);
-							items_basic[item_id] += count;
-						}
-						acculate_condition.push_back(it->first);
-					}
-				}
-				if(acculate_condition.empty()){
-					goto _activity_acculate_done;
-				}
-				item_box->commit_transaction(transaction, false);
-				const auto session = PlayerSessionMap::get(attacking_account_uuid);
-				if(session){
-					try {
-						Msg::SC_MapActivityAcculateReward msg;
-						msg.x                  = attacked_coord.x();
-						msg.y                  = attacked_coord.y();
-						msg.activity_id        = activity_id.get();
-						msg.items_basic.reserve(items_basic.size());
-						for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
-							auto &elem = *msg.items_basic.emplace(msg.items_basic.end());
-							elem.item_id = it->first.get();
-							elem.count   = it->second;
-						}
-						for(auto it = acculate_condition.begin(); it != acculate_condition.end(); ++it){
-							auto &elem = *msg.reward_acculate.emplace(msg.reward_acculate.end());
-							elem.acculate = *it;
-						}
-						session->send(msg);
-					} catch(std::exception &e){
-						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-						session->shutdown(e.what());
-					}
 				}
 			}
+			MapActivity::MapActivityDetailInfo map_activity_info = map_activity->get_activity_info(activity_id);
+			if(map_activity_info.unique_id != activity_id.get()){
+				goto _activity_acculate_done;
+			}
+			std::uint64_t old_accumulate,new_accumulate;
+			boost::container::flat_map<ItemId, std::uint64_t> items_basic;
+			std::vector<std::uint64_t> acculate_condition;
+			MapActivityAccumulateMap::AccumulateInfo info = MapActivityAccumulateMap::get(attacking_account_uuid,activity_id);
+			if(info.activity_id != MapActivityId(0) && (info.account_uuid == attacking_account_uuid) && (info.activity_id == activity_id)){
+				old_accumulate = info.accumulate_value;
+				info.accumulate_value += delta;
+				MapActivityAccumulateMap::update(info,false);
+				new_accumulate = info.accumulate_value;
+			}else{
+				info.account_uuid = attacking_account_uuid;
+				info.activity_id = activity_id;
+				info.avaliable_since = map_activity_info.available_since;
+				info.avaliable_util = map_activity_info.available_until;
+				old_accumulate = 0;
+				info.accumulate_value += delta;
+				MapActivityAccumulateMap::insert(info);
+				new_accumulate = info.accumulate_value;
+			}
+			boost::shared_ptr<const Data::MapActivity> map_activity_data  = Data::MapActivity::get(activity_id.get());
+			if(!map_activity_data){
+				goto _activity_acculate_done;
+			}
+			if(old_accumulate == new_accumulate){
+				goto _activity_acculate_done;
+			}
+			const auto item_box = ItemBoxMap::require(attacking_account_uuid);
+			std::vector<ItemTransactionElement> transaction;
+			const auto &rewards = map_activity_data->rewards;
+			for(auto it = rewards.begin(); it != rewards.end(); ++it){
+				if((it->first > old_accumulate) && (it->first <= new_accumulate)){
+					const auto &items_vec = it->second;
+					for(auto iit = items_vec.begin(); iit != items_vec.end(); ++iit){
+						const auto item_id = ItemId(iit->first);
+						const auto count = iit->second;
+						transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+										reason_id,it->first,
+										old_accumulate,new_accumulate);
+						items_basic[item_id] += count;
+					}
+					acculate_condition.push_back(it->first);
+				}
+			}
+			if(acculate_condition.empty()){
+				goto _activity_acculate_done;
+			}
+			item_box->commit_transaction(transaction, false);
+			const auto session = PlayerSessionMap::get(attacking_account_uuid);
+			if(session){
+				try {
+					Msg::SC_MapActivityAcculateReward msg;
+					msg.x                  = attacked_coord.x();
+					msg.y                  = attacked_coord.y();
+					msg.activity_id        = activity_id.get();
+					msg.items_basic.reserve(items_basic.size());
+					for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
+						auto &elem = *msg.items_basic.emplace(msg.items_basic.end());
+						elem.item_id = it->first.get();
+						elem.count   = it->second;
+					}
+					for(auto it = acculate_condition.begin(); it != acculate_condition.end(); ++it){
+						auto &elem = *msg.reward_acculate.emplace(msg.reward_acculate.end());
+						elem.acculate = *it;
+					}
+					session->send(msg);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
+			}
+			
 	}
 			_activity_acculate_done:
-				;
+			;
 	};
 	//杀兵活动
 	if(attacking_account_uuid && attacked_account_uuid && soldiers_remaining == 0){
@@ -1132,6 +1164,92 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
+	
+	//世界活动刷怪
+	if(attacking_account_uuid && (soldiers_remaining == 0)){
+		Poseidon::enqueue_async_job([=]{
+			try {
+				PROFILE_ME;
+	
+				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
+				if(!monster_type_data){
+					return;
+				}
+				{
+					const auto world_activity = ActivityMap::get_world_activity();
+					if(!world_activity){
+						goto world_activity_monster_acculate_done;
+					}
+					auto primary_castle =  WorldMap::get_primary_castle(attacking_account_uuid);
+					if(!primary_castle){
+						goto world_activity_monster_acculate_done;
+					}
+					auto attacking_primary_castle_coord = WorldMap::get_cluster_scope(primary_castle->get_coord()).bottom_left();
+					auto attacking_cluster_coord = WorldMap::get_cluster_scope(attacking_coord).bottom_left();
+					if(attacking_primary_castle_coord !=  attacking_cluster_coord){
+						goto world_activity_monster_acculate_done;
+					}
+					const auto activity_contribute = Data::ActivityContribute::get(attacked_object_type_id.get());
+					if(!activity_contribute || 0 == activity_contribute->factor){
+						goto world_activity_monster_acculate_done;
+					}
+					auto contribute = activity_contribute->contribute;
+					if(contribute <= 0){
+						goto world_activity_monster_acculate_done;
+					}
+					world_activity->update_world_activity_schedule(attacking_primary_castle_coord,ActivityIds::ID_WORLD_ACTIVITY_MONSTER,attacking_account_uuid,contribute);
+				}
+				world_activity_monster_acculate_done:
+				;
+			}catch (std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		});
+	}
+	
+	//世界活动打boss
+	if(attacked_object_type_id == MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS){
+		Poseidon::enqueue_async_job([=]{
+			try {
+				PROFILE_ME;
+	
+				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
+				if(!monster_type_data){
+					return;
+				}
+				{
+					const auto world_activity = ActivityMap::get_world_activity();
+					if(!world_activity){
+						goto world_activity_boss_done;
+					}
+					auto primary_castle =  WorldMap::get_primary_castle(attacking_account_uuid);
+					if(!primary_castle){
+						goto world_activity_boss_done;
+					}
+					auto attacking_primary_castle_coord = WorldMap::get_cluster_scope(primary_castle->get_coord()).bottom_left();
+					auto attacking_cluster_coord = WorldMap::get_cluster_scope(attacking_coord).bottom_left();
+					if(attacking_primary_castle_coord !=  attacking_cluster_coord){
+						goto world_activity_boss_done;
+					}
+					const auto activity_contribute = Data::ActivityContribute::get(attacked_object_type_id.get());
+					if(!activity_contribute || 0 == activity_contribute->factor){
+						goto world_activity_boss_done;
+					}
+					auto contribute = activity_contribute->contribute*hp_damaged/activity_contribute->factor;
+					if(contribute <= 0){
+						goto world_activity_boss_done;
+					}
+					world_activity->update_world_activity_schedule(attacking_primary_castle_coord,ActivityIds::ID_WORLD_ACTIVITY_BOSS,attacking_account_uuid,contribute,(soldiers_remaining == 0));
+				}
+				world_activity_boss_done:
+				;
+			}catch (std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+			}
+		});
+	}
+	
+	
 	return Response();
 }
 

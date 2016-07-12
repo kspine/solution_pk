@@ -39,6 +39,8 @@
 #include "../resource_ids.hpp"
 #include "../events/castle.hpp"
 #include "../account_utilities.hpp"
+#include "../singletons/activity_map.hpp"
+#include "../activity.hpp"
 
 namespace EmperyCenter {
 
@@ -1479,6 +1481,15 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	const auto new_cluster = WorldMap::get_cluster(new_castle_coord);
 	if(!new_cluster){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
+	}
+	
+	const auto world_activity = ActivityMap::get_world_activity();
+	if(world_activity && world_activity->is_on()){
+		auto old_cluster_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
+		auto new_cluster_coord = WorldMap::get_cluster_scope(new_castle_coord).bottom_left();
+		if(old_cluster_coord != new_cluster_coord){
+			return Response(Msg::ERR_CANNOT_DEPLOY_IN_WORLD_ACTIVITY) << map_object_uuid;
+		}
 	}
 	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid);
 	if(result.first != Msg::ST_OK){

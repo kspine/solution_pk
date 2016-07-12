@@ -13,6 +13,7 @@ namespace EmperyCenter {
 class Activity : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis{
 public:
 	Activity(std::uint64_t unique_id,std::uint64_t available_since,std::uint64_t available_until);
+	virtual ~Activity();
 public:
 	std::uint64_t m_unique_id;
 	std::uint64_t m_available_since;
@@ -34,6 +35,7 @@ public:
 	boost::container::flat_map<MapActivityId,MapActivityDetailInfo> m_activitys;
 public:
 	MapActivity(std::uint64_t unique_id,std::uint64_t available_since,std::uint64_t available_until);
+	~MapActivity();
 public:
 	void pump_status() override;
 	void on_activity_change(MapActivityId old_ativity,MapActivityId new_activity);
@@ -43,6 +45,24 @@ public:
 	void set_current_activity(MapActivityId);
 	MapActivityId get_current_activity();
 	MapActivityDetailInfo get_activity_info(MapActivityId);
+};
+
+class WorldActivity : public Activity {
+public:
+	bool m_expired_remove;
+public:
+	WorldActivity(std::uint64_t unique_id,std::uint64_t available_since,std::uint64_t available_until);
+	~WorldActivity();
+public:
+	void pump_status() override;
+	void on_activity_change(WorldActivityId old_activity, WorldActivityId new_activity,Coord cluster_coord);
+	void on_activity_expired();
+	bool is_on();
+	bool is_world_activity_on(Coord cluster_coord,WorldActivityId world_activity_id);
+	void update_world_activity_schedule(Coord cluster_coord,WorldActivityId world_activity_id,AccountUuid account_uuid,std::uint64_t delta,bool boss_die = false);
+	void synchronize_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const;
+	bool settle_world_activity(Coord cluster_coord,std::uint64_t utc_now);
+	void synchronize_world_rank_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session);
 };
 
 }

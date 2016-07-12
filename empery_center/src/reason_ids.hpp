@@ -77,7 +77,9 @@ constexpr ReasonId
 	                                             //                     8 二星  9 三星
 	ID_SOLDIER_KILL_ACCUMULATE       ( 674015 ), // 满足累计战力        原来累计战力        新累计战力
 	ID_CASTLE_DMAGE_ACCUMULATE       ( 674016 ), // 满足伤害            原来累计伤害         新累计伤害
-	ID_SOLDIER_KILL_RANK             ( 674017 ); // 活动id              排名                活动结束时间
+	ID_SOLDIER_KILL_RANK             ( 674017 ), // 活动id              排名                活动开始时间
+	ID_WORLD_ACTIVITY              ( 674018 ), // 活动id              国家坐标x           国家坐标y
+	ID_WORLD_ACTIVITY_RANK         ( 674019 ); // 活动id              排名                活动开始时间
 
 }
 

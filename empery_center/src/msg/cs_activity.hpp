@@ -18,6 +18,19 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
         //
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_WorldActivityInfo
+#define MESSAGE_ID      1402
+#define MESSAGE_FIELDS  \
+        //
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_WorldActivityRank
+#define MESSAGE_ID      1403
+#define MESSAGE_FIELDS  \
+        //
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

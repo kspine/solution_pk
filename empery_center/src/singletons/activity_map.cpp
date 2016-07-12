@@ -43,23 +43,6 @@ namespace {
 		}
 	}
 
-	boost::shared_ptr<Activity> create_activity(std::uint64_t unique_id, std::uint64_t available_since,std::uint64_t available_until){
-		boost::shared_ptr<Activity> activity;
-		switch(unique_id){
-			case ActivityIds::ID_MAP_ACTIVITY.get():
-				activity = boost::make_shared<MapActivity>(unique_id, available_since,available_until);
-				break;
-			case ActivityIds::ID_WORLD_ACTIVITY.get():
-				activity = boost::make_shared<MapActivity>(unique_id, available_since,available_until);
-				break;
-			default:
-				LOG_EMPERY_CENTER_DEBUG("unknow activity: ", unique_id);
-				DEBUG_THROW(Exception, sslit("unknow activity:"));
-				break;
-		}
-		return activity;
-	}
-
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto activity_map = boost::make_shared<ActivityContainer>();
 		std::vector<boost::shared_ptr<const Data::Activity>> ret;
@@ -68,7 +51,19 @@ namespace {
 			auto unique_id = (*it)->unique_id;
 			auto available_since = (*it)->available_since;
 			auto available_until = (*it)->available_until;
-			auto activity = create_activity(unique_id,available_since,available_until);
+			boost::shared_ptr<Activity> activity;
+			switch(unique_id){
+				case ActivityIds::ID_MAP_ACTIVITY.get():
+					activity = boost::make_shared<MapActivity>(unique_id, available_since,available_until);
+					break;
+				case ActivityIds::ID_WORLD_ACTIVITY.get():
+					activity = boost::make_shared<WorldActivity>(unique_id, available_since,available_until);
+					break;
+				default:
+					LOG_EMPERY_CENTER_DEBUG("unknow activity: ", unique_id);
+					continue;
+					break;
+			}
 			activity_map->insert(ActivityElement(std::move(activity)));
 		}
 		g_activity_map = activity_map;
@@ -108,8 +103,16 @@ boost::shared_ptr<Activity> ActivityMap::require(std::uint64_t unique_id){
 
 boost::shared_ptr<MapActivity> ActivityMap::get_map_activity(){
 	PROFILE_ME;
+	
 	auto activity = require(ActivityIds::ID_MAP_ACTIVITY.get());
 	return boost::dynamic_pointer_cast<MapActivity>(activity);
+}
+
+boost::shared_ptr<WorldActivity> ActivityMap::get_world_activity(){
+	PROFILE_ME;
+
+	auto activity = require(ActivityIds::ID_WORLD_ACTIVITY.get());
+	return boost::dynamic_pointer_cast<WorldActivity>(activity);
 }
 
 }

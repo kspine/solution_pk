@@ -225,7 +225,7 @@ namespace Data {
 			return;
 		}
 
-		const auto range = map_event_generation_container->equal_range<1>(map_event_circle_id);
+		const auto range = map_event_generation_container->equal_range<2>(std::make_pair(map_event_type,map_event_circle_id));
 		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
 		for(auto it = range.first; it != range.second; ++it){
 			ret.emplace_back(map_event_generation_container, &*it);

@@ -37,6 +37,7 @@
 #include "controller_client.hpp"
 #include "../msg/st_map.hpp"
 #include "global_status.hpp"
+#include "map_activity_accumulate_map.hpp"
 
 namespace EmperyCenter {
 
@@ -1587,6 +1588,24 @@ boost::shared_ptr<MapEventBlock> WorldMap::get_map_event_block(Coord coord){
 	}
 	return it->map_event_block;
 }
+
+void WorldMap::get_cluster_map_event_blocks(Coord cluster_coord, std::vector<boost::shared_ptr<MapEventBlock>> &ret){
+	PROFILE_ME;
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		LOG_EMPERY_CENTER_WARNING("Map event block map not loaded.");
+		return;
+	}
+	ret.reserve(ret.size() + map_event_block_map->size());
+	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+		auto temp_cluster_coord = WorldMap::get_cluster_scope(it->map_event_block->get_block_coord()).bottom_left();
+		if(temp_cluster_coord != cluster_coord){
+			continue;
+		}
+		ret.emplace_back(it->map_event_block);
+	}
+}
 boost::shared_ptr<MapEventBlock> WorldMap::require_map_event_block(Coord coord){
 	PROFILE_ME;
 
@@ -1669,6 +1688,107 @@ void WorldMap::remove_activity_event(unsigned map_event_type){
 	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
 		const auto &map_event_block = it->map_event_block;
 		map_event_block->remove_expired_events(utc_now,map_event_type,true);
+	}
+}
+
+void WorldMap::refresh_world_activity_event(Coord cluster_coord,unsigned map_event_type){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("refresh activity event ");
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		return;
+	}
+
+	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+		const auto &map_event_block = it->map_event_block;
+		const auto &temp_cluster_coord = WorldMap::get_cluster_scope(map_event_block->get_block_coord()).bottom_left();
+		if(cluster_coord != temp_cluster_coord){
+			continue;
+		}
+		map_event_block->refresh_events(false,map_event_type);
+	}
+}
+void WorldMap::remove_world_activity_event(Coord cluster_coord, unsigned map_event_type){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_TRACE("Map event block remove activity" );
+
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
+		const auto &map_event_block = it->map_event_block;
+		const auto &temp_cluster_coord = WorldMap::get_cluster_scope(map_event_block->get_block_coord()).bottom_left();
+		if(cluster_coord != temp_cluster_coord){
+			continue;
+		}
+		map_event_block->remove_expired_events(utc_now,map_event_type,true);
+	}
+}
+
+void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t since){
+	PROFILE_ME;
+	
+	//先查一下有没有存在的boss，有则直接返回
+	WorldActivityBossMap::WorldActivityBossInfo boss_info = WorldActivityBossMap::get(cluster_coord,since);
+	if(boss_info.since == since){
+		return;
+	}
+	
+	//不存在则直接开刷
+	const auto map_event_block_map = g_map_event_block_map.lock();
+	if(!map_event_block_map){
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	bool create_boss_result  = false;
+	std::vector<boost::shared_ptr<MapEventBlock>> ret;
+	WorldMap::get_cluster_map_event_blocks(cluster_coord,ret);
+	std::sort(ret.begin(), ret.end(),
+					[](const boost::shared_ptr<MapEventBlock> &lhs, const boost::shared_ptr<MapEventBlock> &rhs){
+						
+						return lhs->get_map_event_cicle_id() < rhs->get_map_event_cicle_id();
+					});
+	MapObjectUuid boss_uuid = MapObjectUuid(Poseidon::Uuid::random());
+	for(auto it = ret.begin(); it != ret.end(); ++it){
+		const auto &map_event_block = *it;
+		const auto &temp_cluster_coord = WorldMap::get_cluster_scope(map_event_block->get_block_coord()).bottom_left();
+		if(cluster_coord != temp_cluster_coord){
+			continue;
+		}
+		create_boss_result = map_event_block->refresh_boss(boss_uuid,utc_now);
+		if(create_boss_result){
+			boss_info.cluster_coord = cluster_coord;
+			boss_info.since         = since;
+			boss_info.boss_uuid     = boss_uuid;
+			boss_info.create_date   = utc_now;
+			boss_info.delete_date   = 0;
+			WorldActivityBossMap::update(boss_info);
+			break;
+		}
+	}
+	if(!create_boss_result){
+		LOG_EMPERY_CENTER_FATAL("refresh world activity boss Failed,has no enough coord ????");
+	}
+}
+
+void WorldMap::remove_world_activity_boss(Coord cluster_coord,std::uint64_t since){
+	PROFILE_ME;
+	
+	WorldActivityBossMap::WorldActivityBossInfo boss_info = WorldActivityBossMap::get(cluster_coord,since);
+	if(boss_info.since != since){
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	boost::shared_ptr<MapObject> monster_boss = WorldMap::get_map_object(boss_info.boss_uuid);
+	if(monster_boss){
+		boss_info.delete_date = utc_now;
+		WorldActivityBossMap::update(boss_info);
+		monster_boss->delete_from_game();
+		boss_info.delete_date = utc_now;
+		WorldActivityBossMap::update(boss_info);
 	}
 }
 

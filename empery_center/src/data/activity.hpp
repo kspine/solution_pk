@@ -34,12 +34,34 @@ namespace Data {
 	class ActivityAward{
 	public:
 		static bool get_activity_rank_award(std::uint64_t activity_id,const std::uint64_t rank,std::vector<std::pair<std::uint64_t,std::uint64_t>> &rewards);
+		static std::uint64_t get_max_activity_award_rank(std::uint64_t activity_id);
 	public:
 		std::uint64_t unique_id;
 		std::uint64_t activity_id;
 		std::uint64_t rank_begin;
 		std::uint64_t rank_end;
 		std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
+	};
+	
+	class WorldActivity{
+	public:
+		static boost::shared_ptr<const WorldActivity> get(std::uint64_t unique_id);
+		static boost::shared_ptr<const WorldActivity> require(std::uint64_t unique_id);
+		static void get_all(std::vector<boost::shared_ptr<const WorldActivity>> &ret);
+	public:
+		std::uint64_t unique_id;
+		std::uint64_t pre_unique_id;
+		boost::container::flat_map<std::uint64_t, std::uint64_t> objective;
+		boost::container::flat_map<std::string, std::uint64_t> rewards;
+	};
+	
+	class ActivityContribute{
+	public:
+		static boost::shared_ptr<const ActivityContribute> get(std::uint64_t unique_id);
+	public:
+		std::uint64_t unique_id;
+		std::uint64_t factor;
+		std::uint64_t contribute;
 	};
 }
 
