@@ -22,6 +22,7 @@
 #include "../item_box.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
+#include "../singletons/player_session_map.hpp"
 
 namespace EmperyCenter {
 
@@ -171,6 +172,9 @@ PLAYER_SERVLET(Msg::CS_ChatHornMessage, account, session, req){
 	for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
 		segments.emplace_back(ChatMessageSlotId(it->slot), std::move(it->value));
 	}
+
+	std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> other_sessions;
+	PlayerSessionMap::get_all(other_sessions);
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, 1,

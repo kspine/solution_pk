@@ -109,7 +109,7 @@ namespace {
 		}
 
 		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_HornMessage",
-			"DELETE QUICK `r`.* "
+			"DELETE QUICK `m`.* "
 			"  FROM `Center_HornMessage` AS `m` "
 			"  WHERE `m`.`expiry_time` = '0000-00-00 00:00:00'");
 	}
@@ -165,7 +165,7 @@ namespace {
 		try {
 			Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
 
-			Msg::ST_ChatInvalidateHornMessage msg;
+			Msg::ST_ChatBroadcastHornMessage msg;
 			msg.horn_message_uuid = horn_message_uuid.str();
 			controller->send(msg);
 		} catch(std::exception &e){

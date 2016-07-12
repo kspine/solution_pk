@@ -9,7 +9,7 @@
 
 namespace EmperyCenter {
 
-CONTROLLER_SERVLET(Msg::TS_ChatInvalidateHornMessage, controller, req){
+CONTROLLER_SERVLET(Msg::TS_ChatBroadcastHornMessage, controller, req){
 	const auto horn_message_uuid = HornMessageUuid(req.horn_message_uuid);
 	const auto horn_message = ChatBoxMap::forced_reload_horn_message(horn_message_uuid);
 	if(!horn_message){
