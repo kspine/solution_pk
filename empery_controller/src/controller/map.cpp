@@ -93,7 +93,8 @@ CONTROLLER_SERVLET(Msg::ST_MapInvalidateCastle, controller, req){
 
 	const auto old_castle = WorldMap::get_castle(map_object_uuid);
 	if(!old_castle || (old_castle->get_coord() != coord_expected)){
-		Poseidon::enqueue_async_job(std::bind(&invalidate_castle_aux, controller.get(), map_object_uuid, coord_expected));
+		Poseidon::enqueue_async_job(std::bind(&invalidate_castle_aux,
+			controller.get(), map_object_uuid, coord_expected));
 	}
 
 	return Response();

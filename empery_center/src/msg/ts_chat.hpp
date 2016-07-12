@@ -7,7 +7,7 @@ namespace EmperyCenter {
 
 namespace Msg {
 
-#define MESSAGE_NAME    TS_ChatInvalidateHornMessage
+#define MESSAGE_NAME    TS_ChatBroadcastHornMessage
 #define MESSAGE_ID      20599
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (horn_message_uuid)
