@@ -23,6 +23,18 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_FriendPrivateMessage
+#define MESSAGE_ID      797
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (friend_uuid)	\
+	FIELD_VUINT         (language_id)	\
+	FIELD_VUINT         (created_time)	\
+	FIELD_ARRAY         (segments,	\
+		FIELD_VUINT         (slot)	\
+		FIELD_STRING        (value)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

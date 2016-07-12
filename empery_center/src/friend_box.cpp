@@ -191,8 +191,8 @@ void FriendBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 	}
 }
 
-Poseidon::Uuid FriendBox::create_async_request(
-	boost::shared_ptr<Poseidon::JobPromise> promise, boost::shared_ptr<std::pair<long, std::string>> result)
+Poseidon::Uuid FriendBox::create_async_request(boost::shared_ptr<Poseidon::JobPromise> promise,
+	boost::shared_ptr<std::pair<long, std::string>> result)
 {
 	PROFILE_ME;
 

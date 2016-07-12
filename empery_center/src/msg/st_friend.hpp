@@ -21,6 +21,19 @@ namespace Msg {
 	FIELD_STRING        (metadata)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    ST_FriendPrivateMessage
+#define MESSAGE_ID      20401
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (transaction_uuid)	\
+	FIELD_STRING        (friend_uuid)	\
+	FIELD_VUINT         (language_id)	\
+	FIELD_ARRAY         (segments,	\
+		FIELD_VUINT         (slot)	\
+		FIELD_STRING        (value)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -46,7 +46,7 @@ CONTROLLER_SERVLET(Msg::ST_AccountAccumulatePromotionBonus, controller, req){
 	const auto send_tax_nothrow = [&](const boost::shared_ptr<Account> referrer, ReasonId reason_id, std::uint64_t amount) noexcept {
 		try {
 			Poseidon::enqueue_async_job(
-				[=]{
+				[=]() mutable {
 			 		PROFILE_ME;
 
 					const auto using_controller = referrer->try_set_controller(controller);

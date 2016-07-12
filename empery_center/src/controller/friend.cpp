@@ -2,8 +2,11 @@
 #include "common.hpp"
 #include "../msg/err_friend.hpp"
 #include "../msg/ts_friend.hpp"
+#include "../msg/sc_friend.hpp"
 #include "../singletons/friend_box_map.hpp"
 #include "../friend_box.hpp"
+#include "../singletons/player_session_map.hpp"
+#include "../player_session.hpp"
 
 namespace EmperyCenter {
 
@@ -60,7 +63,7 @@ CONTROLLER_SERVLET(Msg::TS_FriendPeerCompareExchange, controller, req){
 	return Response();
 }
 
-CONTROLLER_SERVLET(Msg::TS_FriendPeerCompareExchangeResult, controller, req){
+CONTROLLER_SERVLET(Msg::TS_FriendTransactionResult, controller, req){
 	const auto account_uuid = AccountUuid(req.account_uuid);
 	const auto account = AccountMap::get(account_uuid);
 	if(!account){
@@ -75,6 +78,45 @@ CONTROLLER_SERVLET(Msg::TS_FriendPeerCompareExchangeResult, controller, req){
 	const auto transaction_uuid = Poseidon::Uuid(req.transaction_uuid);
 
 	transaction_box->set_async_request_result(transaction_uuid, std::make_pair(req.err_code, std::move(req.err_msg)));
+
+	return Response();
+}
+
+CONTROLLER_SERVLET(Msg::TS_FriendPrivateMessage, controller, req){
+	const auto account_uuid = AccountUuid(req.account_uuid);
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+	const auto friend_uuid = AccountUuid(req.friend_uuid);
+	const auto friend_account = AccountMap::get(friend_uuid);
+	if(!friend_account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<friend_uuid;
+	}
+
+	const auto friend_session = PlayerSessionMap::get(friend_uuid);
+	if(!friend_session){
+		return Response(Msg::ERR_FRIEND_OFFLINE) <<friend_uuid;
+	}
+
+	try {
+		const auto utc_now = Poseidon::get_utc_time();
+
+		Msg::SC_FriendPrivateMessage msg;
+		msg.friend_uuid  = account_uuid.str();
+		msg.language_id  = req.language_id;
+		msg.created_time = utc_now;
+		msg.segments.reserve(req.segments.size());
+		for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
+			auto &elem = *msg.segments.emplace(msg.segments.end());
+			elem.slot  = it->slot;
+			elem.value = std::move(it->value);
+		}
+		friend_session->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		friend_session->shutdown(e.what());
+	}
 
 	return Response();
 }

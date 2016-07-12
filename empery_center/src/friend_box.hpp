@@ -67,8 +67,8 @@ public:
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 
-	Poseidon::Uuid create_async_request(
-		boost::shared_ptr<Poseidon::JobPromise> promise, boost::shared_ptr<std::pair<long, std::string>> result);
+	Poseidon::Uuid create_async_request(boost::shared_ptr<Poseidon::JobPromise> promise,
+		boost::shared_ptr<std::pair<long, std::string>> result);
 	bool set_async_request_result(Poseidon::Uuid transaction_uuid, std::pair<long, std::string> &&result);
 	bool remove_async_request(Poseidon::Uuid transaction_uuid) noexcept;
 };

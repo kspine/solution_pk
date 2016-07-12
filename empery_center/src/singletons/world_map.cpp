@@ -1964,7 +1964,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 #define CONCURRENT_LOAD_BEGIN	\
 	{	\
 		Poseidon::enqueue_async_job(	\
-			[=]{	\
+			[=]() mutable {	\
 				PROFILE_ME;	\
 				try
 #define CONCURRENT_LOAD_END	\
