@@ -855,21 +855,12 @@ namespace {
 			return;
 		}
 
-		bool async_invalidation_requested = false;
-		const auto request_async_invalidation = [&]{
-			if(async_invalidation_requested){
-				return;
-			}
-			Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
-			async_invalidation_requested = true;
-		};
-
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
 		const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 		if(castle){
 			try {
-				request_async_invalidation();
+				Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
 
 				Msg::ST_MapInvalidateCastle msg;
 				msg.map_object_uuid = map_object_uuid.str();
@@ -883,7 +874,7 @@ namespace {
 
 		if(map_object->is_virtually_removed()){
 			try {
-				request_async_invalidation();
+				Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();
 
 				Msg::ST_MapRemoveMapObject msg;
 				msg.map_object_uuid = map_object_uuid.str();
@@ -1152,7 +1143,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 
 	const auto map_object_uuid = map_object->get_map_object_uuid();
 
-	if(map_object->has_been_deleted()){
+	if(map_object->is_virtually_removed()){
 		LOG_EMPERY_CENTER_WARNING("Map object has been marked as deleted: map_object_uuid = ", map_object_uuid);
 		DEBUG_THROW(Exception, sslit("Map object has been marked as deleted"));
 	}
@@ -2060,7 +2051,7 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 	}
 	return std::move(cluster);
 }
-void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> &ret){
+void WorldMap::get_all_clusters(std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> &ret){
 	PROFILE_ME;
 
 	const auto cluster_map = g_cluster_map.lock();
@@ -2075,7 +2066,7 @@ void WorldMap::get_all_clusters(boost::container::flat_map<Coord, boost::shared_
 		if(!cluster){
 			continue;
 		}
-		ret.insert(std::make_pair(it->cluster_coord, std::move(cluster)));
+		ret.emplace_back(it->cluster_coord, std::move(cluster));
 	}
 }
 void WorldMap::set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord){
@@ -2123,7 +2114,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 #define CONCURRENT_LOAD_BEGIN	\
 	{	\
 		Poseidon::enqueue_async_job(	\
-			[=]{	\
+			[=]() mutable {	\
 				PROFILE_ME;	\
 				try
 #define CONCURRENT_LOAD_END	\
@@ -2434,16 +2425,15 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 {
 	PROFILE_ME;
 
-	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
 	get_all_clusters(clusters);
 	if(clusters.empty()){
 		LOG_EMPERY_CENTER_WARNING("No clusters available");
 		return { };
 	}
 
-	const auto get_cluster_hint = [&]{
-		PROFILE_ME;
-
+	auto it = clusters.end();
+	{
 		std::vector<boost::shared_ptr<MapObject>> map_objects;
 
 		const auto count_castles_in_clusters = [&](Coord coord_hint){
@@ -2467,27 +2457,22 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 			const auto cluster_y = GlobalStatus::cast<std::int64_t>(GlobalStatus::SLOT_INIT_SERVER_Y);
 			const auto coord_hint = Coord(cluster_x, cluster_y);
 			LOG_EMPERY_CENTER_DEBUG("Testing cluster: coord_hint = ", coord_hint);
-			const auto hint_it = clusters.find(coord_hint);
-			if(hint_it == clusters.end()){
-				LOG_EMPERY_CENTER_WARNING("Cluster is gone! coord_hint = ", coord_hint);
-				goto _reselect;
+			it = std::find_if(clusters.begin(), clusters.end(), [&](decltype(clusters.front()) &pair){ return pair.first == coord_hint; });
+			if(it != clusters.end()){
+				const auto castle_count = count_castles_in_clusters(coord_hint);
+				LOG_EMPERY_CENTER_DEBUG("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
+				if(castle_count < old_limit){
+					LOG_EMPERY_CENTER_DEBUG("Max number of castles exceeded: castle_count = ", castle_count, ", old_limit = ", old_limit);
+					goto _use_hint;
+				}
 			}
-			const auto castle_count = count_castles_in_clusters(coord_hint);
-			LOG_EMPERY_CENTER_DEBUG("Number of castles on cluster: coord_hint = ", coord_hint, ", castle_count = ", castle_count);
-			if(castle_count >= old_limit){
-				LOG_EMPERY_CENTER_DEBUG("Max number of castles exceeded: castle_count = ", castle_count, ", old_limit = ", old_limit);
-				goto _reselect;
-			}
-			return hint_it;
 		}
-	_reselect:
-		;
 		LOG_EMPERY_CENTER_INFO("Reselecting init cluster server...");
 
 		boost::container::flat_multimap<std::size_t, Coord> clusters_by_castle_count;
 		clusters_by_castle_count.reserve(clusters.size());
-		for(auto it = clusters.begin(); it != clusters.end(); ++it){
-			const auto cluster_coord = it->first;
+		for(auto cit = clusters.begin(); cit != clusters.end(); ++cit){
+			const auto cluster_coord = cit->first;
 			const auto castle_count = count_castles_in_clusters(cluster_coord);
 			LOG_EMPERY_CENTER_INFO("Number of castles on cluster: cluster_coord = ", cluster_coord, ", castle_count = ", castle_count);
 			clusters_by_castle_count.emplace(castle_count, cluster_coord);
@@ -2497,7 +2482,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 
 		if(clusters_by_castle_count.empty()){
 			LOG_EMPERY_CENTER_WARNING("No clusters available");
-			return clusters.end();
+			return { };
 		}
 		const auto front_it = clusters_by_castle_count.begin();
 
@@ -2518,15 +2503,13 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 
 		const auto cluster_coord = front_it->second;
 		LOG_EMPERY_CENTER_DEBUG("Selected cluster server: cluster_coord = ", cluster_coord);
-		const auto hint_it = clusters.find(cluster_coord);
-		return hint_it;
-	};
-
-	auto it = get_cluster_hint();
-	if(it != clusters.end()){
-		goto _use_hint;
+		it = std::find_if(clusters.begin(), clusters.end(), [&](decltype(clusters.front()) &pair){ return pair.first == cluster_coord; });
+		if(it != clusters.end()){
+			goto _use_hint;
+		}
 	}
 	LOG_EMPERY_CENTER_DEBUG("Number of cluster servers: ", clusters.size());
+
 	while(!clusters.empty()){
 		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, clusters.size()));
 _use_hint:

@@ -19,8 +19,6 @@ struct AccountMap {
 
 	static void update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists = true);
 
-	static void get_all_controllers(std::vector<boost::shared_ptr<ControllerSession>> &ret);
-
 private:
 	AccountMap() = delete;
 };

@@ -232,6 +232,7 @@ namespace IdTypes {
 	using AnnouncementUuid          = GenericUuid<210005>;
 	using ResourceCrateUuid         = GenericUuid<210006>;
 	using DungeonUuid               = GenericUuid<210007>;
+	using HornMessageUuid  = GenericUuid<210008>;
 }
 
 using namespace IdTypes;

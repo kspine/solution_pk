@@ -3,12 +3,11 @@
 #include "../../../empery_center/src/msg/st_account.hpp"
 #include "../../../empery_center/src/msg/ts_account.hpp"
 #include "../../../empery_center/src/msg/err_account.hpp"
-#include "../account.hpp"
-#include "../singletons/account_map.hpp"
 #include "../mmain.hpp"
 #include "../reason_ids.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
+#include "../singletons/world_map.hpp"
 
 namespace EmperyController {
 
@@ -47,15 +46,10 @@ CONTROLLER_SERVLET(Msg::ST_AccountAccumulatePromotionBonus, controller, req){
 	const auto send_tax_nothrow = [&](const boost::shared_ptr<Account> referrer, ReasonId reason_id, std::uint64_t amount) noexcept {
 		try {
 			Poseidon::enqueue_async_job(
-				[=]{
+				[=]() mutable {
 			 		PROFILE_ME;
 
-					auto using_controller = referrer->get_controller();
-					if(!using_controller){
-						referrer->set_controller(controller);
-						using_controller = controller;
-					}
-
+					const auto using_controller = referrer->try_set_controller(controller);
 					const auto referrer_uuid = referrer->get_account_uuid();
 					const auto taxer_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(referrer_uuid.get()[0]));
 
@@ -203,7 +197,7 @@ CONTROLLER_SERVLET(Msg::ST_AccountQueryToken, controller, req){
 
 	const auto old_controller = account->get_controller();
 	if(old_controller != controller){
-		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED);
+		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED) <<account_uuid;
 	}
 
 	return Response();
@@ -216,10 +210,10 @@ CONTROLLER_SERVLET(Msg::ST_AccountInvalidate, controller, req){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 
-	std::vector<boost::shared_ptr<ControllerSession>> controllers;
-	AccountMap::get_all_controllers(controllers);
+	std::vector<std::pair<Coord, boost::shared_ptr<ControllerSession>>> controllers;
+	WorldMap::get_all_controllers(controllers);
 	for(auto it = controllers.begin(); it != controllers.end(); ++it){
-		const auto &other_controller = *it;
+		const auto &other_controller = it->second;
 		if(other_controller == controller){
 			continue;
 		}

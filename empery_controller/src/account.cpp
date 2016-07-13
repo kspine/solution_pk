@@ -51,5 +51,15 @@ void Account::set_controller(const boost::shared_ptr<ControllerSession> &control
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
+boost::shared_ptr<ControllerSession> Account::try_set_controller(const boost::shared_ptr<ControllerSession> &controller){
+	PROFILE_ME;
+
+	auto new_controller = m_controller.lock();
+	if(!new_controller){
+		set_controller(controller);
+		new_controller = controller;
+	}
+	return new_controller;
+}
 
 }

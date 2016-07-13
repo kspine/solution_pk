@@ -194,7 +194,7 @@ namespace {
 
 	void synchronize_account_and_update_cache(std::uint64_t now, std::uint64_t cache_timeout,
 		const boost::shared_ptr<Account> &account, const boost::shared_ptr<ItemBox> &item_box,
-		const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags) noexcept
+		const boost::shared_ptr<PlayerSession> &session, std::uint64_t flags)
 	try {
 		PROFILE_ME;
 
@@ -223,7 +223,7 @@ namespace {
 				public_end = attributes.upper_bound(AccountAttributeIds::ID_PUBLIC_END);
 			}
 		};
-		const auto copy_attributes  = [&](decltype(attributes.begin()) begin, decltype(attributes.begin()) end){
+		const auto copy_attributes  = [&](decltype(attributes.cbegin()) begin, decltype(attributes.cbegin()) end){
 			for(auto it = begin; it != end; ++it){
 				auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 				attribute.account_attribute_id = it->first.get();
@@ -333,7 +333,7 @@ void AccountMap::require_controller_token(AccountUuid account_uuid){
 		const auto wait_delay = get_config<std::uint64_t>("account_invalidation_wait_delay", 15000);
 
 		const auto promise = boost::make_shared<Poseidon::JobPromise>();
-		const auto timer = Poseidon::TimerDaemon::register_timer(wait_delay, 0, std::bind([=]{ promise->set_success(); }));
+		const auto timer = Poseidon::TimerDaemon::register_timer(wait_delay, 0, std::bind([=]() mutable { promise->set_success(); }));
 		LOG_EMPERY_CENTER_DEBUG("Waiting for account invalidation...");
 		Poseidon::JobDispatcher::yield(promise, true);
 
@@ -584,6 +584,16 @@ void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::st
 	}
 
 	*withdrawn = false;
+
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+		try {
+			synchronize_account_with_player(account, session);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 }
 void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -627,7 +637,7 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 }
 
 void AccountMap::synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept
+	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
 {
 	PROFILE_ME;
 
@@ -653,7 +663,7 @@ void AccountMap::synchronize_account_with_player_all(AccountUuid account_uuid, c
 }
 
 void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept
+	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
 {
 	PROFILE_ME;
 
@@ -689,7 +699,7 @@ void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_
 		(wants_private_attributes && is_miss(CT_PRIV_ATTRS) ? CT_PRIV_ATTRS : CT_NONE) |
 		(item_box                 && is_miss(CT_ITEMS     ) ? CT_ITEMS      : CT_NONE));
 }
-void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept {
+void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	return cached_synchronize_account_with_player_all(account_uuid, session, true, true, false, { });
 }
 

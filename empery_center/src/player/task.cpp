@@ -2,7 +2,6 @@
 #include "common.hpp"
 #include "../mmain.hpp"
 #include "../msg/cs_task.hpp"
-#include "../msg/sc_task.hpp"
 #include "../msg/err_task.hpp"
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"

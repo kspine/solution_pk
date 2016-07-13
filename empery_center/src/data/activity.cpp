@@ -38,14 +38,13 @@ namespace {
 	)
 	boost::weak_ptr<const ActivityAwardMap> g_activity_award_map;
 	const char ACTIVITY_AWARD_FILE[] = "rank_reward";
-	
+
 	MULTI_INDEX_MAP(WorldActivityMap, Data::WorldActivity,
 		UNIQUE_MEMBER_INDEX(unique_id)
 	)
 	boost::weak_ptr<const WorldActivityMap> g_world_activity_map;
 	const char WORLD_ACTIVITY_FILE[] = "activity_task";
-	
-	
+
 	MULTI_INDEX_MAP(ActivityContributeMap, Data::ActivityContribute,
 	UNIQUE_MEMBER_INDEX(unique_id)
 	)
@@ -173,7 +172,7 @@ namespace {
 		handles.push(world_activity_map);
 		servlet = DataSession::create_servlet(WORLD_ACTIVITY_FILE, Data::encode_csv_as_json(csv, "activity_ID"));
 		handles.push(std::move(servlet));
-		
+
 		csv = Data::sync_load_data(ACTIVITY_CONTRIBUTE_FILE);
 		const auto activity_contribute_map = boost::make_shared<ActivityContributeMap>();
 		while(csv.fetch_row()){
@@ -293,7 +292,7 @@ namespace Data {
 		}
 		return false;
 	}
-	
+
 	std::uint64_t ActivityAward::get_max_activity_award_rank(std::uint64_t activity_id){
 		PROFILE_ME;
 
@@ -302,7 +301,7 @@ namespace Data {
 			LOG_EMPERY_CENTER_WARNING("activity award map has not been loaded.");
 			return 0;
 		}
-		
+
 		std::uint64_t max_rank = 0;
 		const auto range = activity_award_map->equal_range<1>(activity_id);
 		for(auto it = range.first; it != range.second; ++it){
@@ -315,7 +314,7 @@ namespace Data {
 
 	boost::shared_ptr<const WorldActivity> WorldActivity::get(std::uint64_t unique_id){
 		PROFILE_ME;
-		
+
 		const auto world_activity_map = g_world_activity_map.lock();
 		if(!world_activity_map){
 			LOG_EMPERY_CENTER_WARNING("WorldActivityMap has not been loaded.");
@@ -354,10 +353,10 @@ namespace Data {
 			ret.emplace_back(world_activity_map, &*it);
 		}
 	}
-	
+
 	boost::shared_ptr<const ActivityContribute> ActivityContribute::get(std::uint64_t unique_id){
 		PROFILE_ME;
-		
+
 		const auto activity_contribute_map = g_activity_contribute_map.lock();
 		if(!activity_contribute_map){
 			LOG_EMPERY_CENTER_WARNING("activity contribute has not been loaded.");

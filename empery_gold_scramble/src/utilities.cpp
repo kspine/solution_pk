@@ -66,7 +66,7 @@ namespace {
 	using SessionMap = boost::container::flat_map<std::string, boost::shared_ptr<PlayerSession>>;
 
 	template<typename MsgT>
-	void broadcast_message(const SessionMap &sessions, const MsgT &msg){
+	void horn_message(const SessionMap &sessions, const MsgT &msg){
 		PROFILE_ME;
 		LOG_EMPERY_GOLD_SCRAMBLE_DEBUG("Broadcast message: ", msg);
 
@@ -289,7 +289,7 @@ namespace {
 				player.nick = it->nick;
 			}
 
-			broadcast_message(sessions, msg);
+			horn_message(sessions, msg);
 			g_last_log_msg = std::move(msg);
 		}
 	}
@@ -328,7 +328,7 @@ void invalidate_auction_status(){
 		SessionMap sessions;
 		PlayerSessionMap::get_all(sessions);
 		if(!sessions.empty()){
-			broadcast_message(sessions, make_auction_status_message());
+			horn_message(sessions, make_auction_status_message());
 		}
 
 		GlobalStatus::exchange(GlobalStatus::SLOT_STATUS_INVALIDATED, false);

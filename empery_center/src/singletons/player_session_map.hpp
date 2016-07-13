@@ -21,7 +21,6 @@ struct PlayerSessionMap {
 
 	static void add(const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session);
 	static void remove(const boost::weak_ptr<PlayerSession> &weak_session) noexcept;
-	static void async_begin_gc() noexcept;
 
 	static void get_all(std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> &ret);
 	static void clear(const char *reason) noexcept;

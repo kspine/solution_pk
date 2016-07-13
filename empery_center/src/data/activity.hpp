@@ -42,7 +42,7 @@ namespace Data {
 		std::uint64_t rank_end;
 		std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
 	};
-	
+
 	class WorldActivity{
 	public:
 		static boost::shared_ptr<const WorldActivity> get(std::uint64_t unique_id);
@@ -54,7 +54,7 @@ namespace Data {
 		boost::container::flat_map<std::uint64_t, std::uint64_t> objective;
 		boost::container::flat_map<std::string, std::uint64_t> rewards;
 	};
-	
+
 	class ActivityContribute{
 	public:
 		static boost::shared_ptr<const ActivityContribute> get(std::uint64_t unique_id);

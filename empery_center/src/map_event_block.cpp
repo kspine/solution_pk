@@ -128,7 +128,6 @@ namespace {
 		WorldMap::insert_map_object(monster);
 		return true;
 	}
-	
 }
 
 MapEventBlock::MapEventBlock(Coord block_coord)
@@ -484,7 +483,7 @@ bool MapEventBlock::refresh_boss(MapObjectUuid boss_uuid,boost::uint64_t utc_now
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
 	std::vector<Coord> castle_foundation;
-	
+
 	// 删除不能刷事件的点。
 	coords_avail.reserve(BLOCK_WIDTH * BLOCK_HEIGHT);
 	for(unsigned y = 0; y < BLOCK_HEIGHT; ++y){
@@ -554,7 +553,7 @@ bool MapEventBlock::refresh_boss(MapObjectUuid boss_uuid,boost::uint64_t utc_now
 		coords_avail.erase(coord);
 	}
 	LOG_EMPERY_CENTER_TRACE("About to refresh boss, coords_avail = ", coords_avail.size());
-	
+
 	if(coords_avail.empty()){
 		LOG_EMPERY_CENTER_TRACE("About to refresh boss, coords_avail = 0 ", ", block_coord = ",block_coord);
 		return false;

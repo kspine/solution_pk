@@ -35,7 +35,7 @@ CONTROLLER_SERVLET(Msg::ST_MapRegisterMapServer, controller, req){
 }
 
 namespace {
-	void invalidate_castle_aux(void *old_controller, MapObjectUuid map_object_uuid, Coord coord_expected){
+	void invalidate_castle_aux(void *old_controller, MapObjectUuid map_object_uuid, Coord new_coord){
 		PROFILE_ME;
 
 		const auto delay = get_config<std::uint64_t>("mysql_synchronization_delay", 5000);
@@ -48,14 +48,6 @@ namespace {
 				const auto castle = WorldMap::forced_reload_castle(map_object_uuid);
 				if(!castle){
 					LOG_EMPERY_CONTROLLER_DEBUG("Failed to load castle: map_object_uuid = ", map_object_uuid);
-					goto _retry;
-				}
-				const auto new_coord = castle->get_coord();
-				LOG_EMPERY_CONTROLLER_DEBUG("Loaded castle: map_object_uuid = ", map_object_uuid,
-					", new_coord = ", new_coord, ", coord_expected = ", coord_expected);
-				if(new_coord != coord_expected){
-					LOG_EMPERY_CONTROLLER_DEBUG("Coord mismatch: map_object_uuid = ", map_object_uuid,
-						", new_coord = ", new_coord, ", coord_expected = ", coord_expected);
 					goto _retry;
 				}
 				const auto new_controller = WorldMap::get_controller(new_coord);
@@ -80,7 +72,6 @@ namespace {
 			}
 		_retry:
 			;
-
 			if(count >= retry_count){
 				LOG_EMPERY_CONTROLLER_ERROR("Failed to load castle: map_object_uuid = ", map_object_uuid);
 				break;
@@ -102,7 +93,8 @@ CONTROLLER_SERVLET(Msg::ST_MapInvalidateCastle, controller, req){
 
 	const auto old_castle = WorldMap::get_castle(map_object_uuid);
 	if(!old_castle || (old_castle->get_coord() != coord_expected)){
-		Poseidon::enqueue_async_job(std::bind(&invalidate_castle_aux, controller.get(), map_object_uuid, coord_expected));
+		Poseidon::enqueue_async_job(std::bind(&invalidate_castle_aux,
+			controller.get(), map_object_uuid, coord_expected));
 	}
 
 	return Response();
@@ -111,14 +103,18 @@ CONTROLLER_SERVLET(Msg::ST_MapInvalidateCastle, controller, req){
 CONTROLLER_SERVLET(Msg::ST_MapRemoveMapObject, controller, req){
 	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
 
-	boost::container::flat_map<Coord, boost::shared_ptr<ControllerSession>> controllers;
+	Msg::TS_MapRemoveMapObject msg;
+	msg.map_object_uuid = map_object_uuid.str();
+
+	std::vector<std::pair<Coord, boost::shared_ptr<ControllerSession>>> controllers;
 	WorldMap::get_all_controllers(controllers);
 	for(auto it = controllers.begin(); it != controllers.end(); ++it){
-		const auto &controller = it->second;
+		const auto &other_controller = it->second;
+		if(other_controller == controller){
+			continue;
+		}
 		try {
-			Msg::TS_MapRemoveMapObject msg;
-			msg.map_object_uuid = map_object_uuid.str();
-			controller->send(msg);
+			other_controller->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CONTROLLER_WARNING("std::exception thrown: what = ", e.what());
 			controller->shutdown(e.what());

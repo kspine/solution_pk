@@ -2,7 +2,6 @@
 #define EMPERY_CENTER_SINGLETONS_ANNOUNCEMENT_MAP_HPP_
 
 #include <boost/shared_ptr.hpp>
-#include <boost/container/flat_map.hpp>
 #include <vector>
 #include "../id_types.hpp"
 

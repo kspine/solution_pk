@@ -1879,7 +1879,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 			}
 		}
 
-		boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+		std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
 		WorldMap::get_all_clusters(clusters);
 
 		boost::container::flat_multimap<std::uint64_t, Coord> cluster_coords_by_time;

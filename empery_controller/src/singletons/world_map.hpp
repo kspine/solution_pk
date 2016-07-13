@@ -24,7 +24,7 @@ struct WorldMap {
 	static Rectangle get_cluster_scope(Coord coord);
 
 	static boost::shared_ptr<ControllerSession> get_controller(Coord coord);
-	static void get_all_controllers(boost::container::flat_map<Coord, boost::shared_ptr<ControllerSession>> &ret);
+	static void get_all_controllers(std::vector<std::pair<Coord, boost::shared_ptr<ControllerSession>>> &ret);
 	static void set_controller(const boost::shared_ptr<ControllerSession> &controller, Coord coord);
 
 private:

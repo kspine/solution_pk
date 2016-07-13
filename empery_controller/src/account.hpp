@@ -48,6 +48,7 @@ public:
 		return m_controller.lock();
 	}
 	void set_controller(const boost::shared_ptr<ControllerSession> &controller);
+	boost::shared_ptr<ControllerSession> try_set_controller(const boost::shared_ptr<ControllerSession> &controller);
 
 	std::uint64_t get_locked_until() const {
 		return m_locked_until;

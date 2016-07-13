@@ -2,7 +2,6 @@
 #include "common.hpp"
 #include "../mmain.hpp"
 #include "../msg/cs_item.hpp"
-#include "../msg/sc_item.hpp"
 #include "../msg/err_item.hpp"
 #include "../singletons/item_box_map.hpp"
 #include "../item_box.hpp"

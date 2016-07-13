@@ -35,11 +35,11 @@ struct AccountMap {
 	static void update(const boost::shared_ptr<Account> &account, bool throws_if_not_exists = true);
 
 	static void synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept;
+		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box);
 
 	static void cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box) noexcept;
-	static void cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session) noexcept;
+		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box);
+	static void cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 
 private:
 	AccountMap() = delete;

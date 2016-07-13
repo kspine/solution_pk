@@ -45,8 +45,6 @@ public:
 	~PlayerSession();
 
 protected:
-	void on_close(int err_code) noexcept override;
-
 	void on_low_level_request_headers(Poseidon::Http::RequestHeaders request_headers,
 		std::string transfer_encoding, std::uint64_t content_length) override;
 	void on_low_level_request_entity(std::uint64_t entity_offset, bool is_chunked, Poseidon::StreamBuffer entity) override;

@@ -1,7 +1,6 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
 #include "../msg/cs_auction.hpp"
-#include "../msg/sc_auction.hpp"
 #include "../singletons/auction_center_map.hpp"
 #include "../auction_center.hpp"
 

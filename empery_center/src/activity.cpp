@@ -20,6 +20,7 @@
 #include "account.hpp"
 #include "map_object_type_ids.hpp"
 #include "attribute_ids.hpp"
+#include "cluster_session.hpp"
 
 
 namespace EmperyCenter {
@@ -47,7 +48,7 @@ MapActivity::MapActivity(std::uint64_t unique_id_,std::uint64_t available_since_
 	for(auto it = map_activity_data.begin(); it != map_activity_data.end(); it++){
 		new_until_time = saturated_add(last_util_time, static_cast<std::uint64_t>((*it)->continued_time * 60000));
 		if(new_until_time > m_available_until){
-			 LOG_EMPERY_CENTER_DEBUG("activity time over end time ");                               
+			 LOG_EMPERY_CENTER_DEBUG("activity time over end time ");
 			 DEBUG_THROW(Exception, sslit("activity time over end time "));
 		}
 		MapActivityDetailInfo info;
@@ -230,7 +231,7 @@ void WorldActivity::pump_status(){
 	if(utc_now < m_available_since || utc_now > m_available_until){
 		return;
 	}
-	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
 	WorldMap::get_all_clusters(clusters);
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
 		WorldActivityMap::WorldActivityInfo info = WorldActivityMap::get(it->first,ActivityIds::ID_WORLD_ACTIVITY_MONSTER,m_available_since);
@@ -268,7 +269,7 @@ void WorldActivity::on_activity_change(WorldActivityId old_activity, WorldActivi
 
 bool WorldActivity::is_on(){
 	PROFILE_ME;
-	
+
 	const auto utc_now = Poseidon::get_utc_time();
 	if(utc_now < m_available_since || utc_now > m_available_until){
 		return false;
@@ -278,7 +279,7 @@ bool WorldActivity::is_on(){
 
 bool WorldActivity::is_world_activity_on(Coord cluster_coord,WorldActivityId world_activity_id){
 	PROFILE_ME;
-	
+
 	const auto utc_now = Poseidon::get_utc_time();
 	if(utc_now < m_available_since || utc_now > m_available_until){
 		return false;
@@ -295,7 +296,7 @@ bool WorldActivity::is_world_activity_on(Coord cluster_coord,WorldActivityId wor
 
 void WorldActivity::update_world_activity_schedule(Coord cluster_coord,WorldActivityId world_activity_id,AccountUuid account_uuid,std::uint64_t delta,bool boss_die){
 	PROFILE_ME;
-	
+
 	if(!is_world_activity_on(cluster_coord,world_activity_id)){
 		return;
 	}
@@ -340,7 +341,7 @@ void WorldActivity::update_world_activity_schedule(Coord cluster_coord,WorldActi
 			}
 		}
 	}
-	
+
 	//更新活动进度
 	WorldActivityMap::update(info,false);
 
@@ -392,7 +393,7 @@ void WorldActivity::update_world_activity_schedule(Coord cluster_coord,WorldActi
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
 		}
-		
+
 		//如果有下一阶段，则进行下一阶段
 		std::vector<boost::shared_ptr<const Data::WorldActivity>> world_activity_vec;
 		Data::WorldActivity::get_all(world_activity_vec);
@@ -416,7 +417,7 @@ void WorldActivity::update_world_activity_schedule(Coord cluster_coord,WorldActi
 
 void WorldActivity::synchronize_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const{
 	PROFILE_ME;
-	
+
 	std::vector<WorldActivityMap::WorldActivityInfo> ret;
 	WorldActivityMap::get_recent_world_activity(cluster_coord,m_available_since,ret);
 	try{
@@ -430,7 +431,7 @@ void WorldActivity::synchronize_with_player(const Coord cluster_coord,AccountUui
 			activity.sub_since = (*it).sub_since;
 			activity.sub_until   = (*it).sub_until;
 			activity.finish       = (*it).finish;
-			
+
 			if((*it).activity_id == ActivityIds::ID_WORLD_ACTIVITY_BOSS){
 				const auto monster_data = Data::MapObjectTypeMonster::require(MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS);
 				const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
@@ -466,7 +467,7 @@ void WorldActivity::synchronize_with_player(const Coord cluster_coord,AccountUui
 				activity.objective = objective;
 				activity.schedule  = (*it).accumulate_value;
 			}
-			
+
 			//个人贡献
 			WorldActivityAccumulateMap::WorldActivityAccumulateInfo account_accumulate_info =  WorldActivityAccumulateMap::get(account_uuid,cluster_coord,(*it).activity_id,m_available_since);
 			if(account_accumulate_info.activity_id != (*it).activity_id){
@@ -474,11 +475,9 @@ void WorldActivity::synchronize_with_player(const Coord cluster_coord,AccountUui
 			}else{
 				activity.contribute   =  account_accumulate_info.accumulate_value;
 			}
-			
 			if(!((*it).finish)){
 				curr_activity_id = (*it).activity_id.get();
 			}
-			
 		}
 		msg.curr_activity_id = curr_activity_id;
 		session->send(msg);
@@ -496,7 +495,7 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 	if(!ret.empty()){
 		return false;
 	}
-	
+
 	std::uint64_t max_rank = Data::ActivityAward::get_max_activity_award_rank(ActivityIds::ID_WORLD_ACTIVITY.get());
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCountryStatics>>>();
 	{
@@ -605,11 +604,10 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 		}
 		session->send(msgRankList);
 	}
-	
 }
 
 void WorldActivity::on_activity_expired(){
-	boost::container::flat_map<Coord, boost::shared_ptr<ClusterSession>> clusters;
+	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
 	WorldMap::get_all_clusters(clusters);
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
 		auto cluster_coord = it->first;
