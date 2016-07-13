@@ -569,6 +569,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<MapObject>(),damage);
+		require_ai_control()->troops_attack(target_object);
 	}
 	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
 	return attack_delay;
