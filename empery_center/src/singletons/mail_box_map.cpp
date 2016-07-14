@@ -138,7 +138,7 @@ namespace {
 		handles.push(timer);
 	}
 
-	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("10000000-F660-0008-CEF2-0DDD8AD2585C");
+//	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("10000000-F660-0008-CEF2-0DDD8AD2585C");
 }
 
 boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
@@ -149,7 +149,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 		LOG_EMPERY_CENTER_WARNING("MailBoxMap is not loaded.");
 		return { };
 	}
-
+/*
 	if(account_uuid == GLOBAL_MAIL_ACCCOUNT_UUID){
 		auto account = AccountMap::get(account_uuid);
 		if(!account){
@@ -159,7 +159,7 @@ boost::shared_ptr<MailBox> MailBoxMap::get(AccountUuid account_uuid){
 			AccountMap::insert(account, std::string());
 		}
 	}
-
+*/
 	auto it = mail_box_map->find<0>(account_uuid);
 	if(it == mail_box_map->end<0>()){
 		it = mail_box_map->insert<0>(it, MailBoxElement(account_uuid, 0));
@@ -259,7 +259,7 @@ void MailBoxMap::unload(AccountUuid account_uuid){
 	const auto now = Poseidon::get_fast_mono_clock();
 	gc_timer_proc(now);
 }
-
+/*
 boost::shared_ptr<MailBox> MailBoxMap::get_global(){
 	PROFILE_ME;
 
@@ -270,7 +270,7 @@ boost::shared_ptr<MailBox> MailBoxMap::require_global(){
 
 	return require(GLOBAL_MAIL_ACCCOUNT_UUID);
 }
-
+*/
 boost::shared_ptr<MailData> MailBoxMap::get_mail_data(MailUuid mail_uuid, LanguageId language_id){
 	PROFILE_ME;
 

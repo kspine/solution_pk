@@ -10,7 +10,7 @@
 #include "../singletons/world_map.hpp"
 #include "../castle.hpp"
 #include "../map_object_type_ids.hpp"
-#include <boost/container/flat_map.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 
 namespace EmperyCenter {
 
@@ -125,7 +125,10 @@ ADMIN_SERVLET("account/insert", root, session, params){
 
 	const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
-	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name);
+	auto pair = Account::async_create(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name);
+	Poseidon::JobDispatcher::yield(pair.first, true);
+
+	account = std::move(pair.second);
 	AccountMap::insert(account, session->get_remote_info().ip.get());
 
 	if(!login_token.empty()){

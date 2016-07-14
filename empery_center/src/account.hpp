@@ -2,6 +2,7 @@
 #define EMPERY_CENTER_ACCOUNT_HPP_
 
 #include <poseidon/cxx_util.hpp>
+#include <poseidon/fwd.hpp>
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/lexical_cast.hpp>
@@ -17,6 +18,11 @@ namespace MySql {
 class PlayerSession;
 
 class Account : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+public:
+	static std::pair<boost::shared_ptr<const Poseidon::JobPromise>, boost::shared_ptr<Account>> async_create(
+		AccountUuid account_uuid, PlatformId platformId, std::string login_name,
+		AccountUuid referrer_uuid, unsigned promotion_level, std::uint64_t created_time, std::string nick);
+
 private:
 	const boost::shared_ptr<MySql::Center_Account> m_obj;
 
@@ -24,8 +30,6 @@ private:
 		boost::shared_ptr<MySql::Center_AccountAttribute>> m_attributes;
 
 public:
-	Account(AccountUuid account_uuid, PlatformId platformId, std::string login_name,
-		AccountUuid referrer_uuid, unsigned promotion_level, std::uint64_t created_time, std::string nick);
 	Account(boost::shared_ptr<MySql::Center_Account> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_AccountAttribute>> &attributes);
 	~Account();
