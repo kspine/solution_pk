@@ -1060,7 +1060,7 @@ _wounded_done:
 			std::uint64_t old_accumulate,new_accumulate;
 			boost::container::flat_map<ItemId, std::uint64_t> items_basic;
 			std::vector<std::uint64_t> acculate_condition;
-			MapActivityAccumulateMap::AccumulateInfo info = MapActivityAccumulateMap::get(attacking_account_uuid,activity_id);
+			MapActivityAccumulateMap::AccumulateInfo info = MapActivityAccumulateMap::get(attacking_account_uuid,activity_id,map_activity_info.available_since);
 			if(info.activity_id != MapActivityId(0) && (info.account_uuid == attacking_account_uuid) && (info.activity_id == activity_id)){
 				old_accumulate = info.accumulate_value;
 				info.accumulate_value += delta;

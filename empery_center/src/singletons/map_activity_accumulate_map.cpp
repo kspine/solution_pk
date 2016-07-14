@@ -12,18 +12,16 @@ namespace EmperyCenter {
 namespace {
 	struct MapActivityAccumulateElement {
 		boost::shared_ptr<MySql::Center_MapActivityAccumulate> obj;
-		std::pair<AccountUuid, MapActivityId> account_activity_pair;
-		std::uint64_t                         avaliable_util;
+		std::pair<AccountUuid, std::pair<MapActivityId, std::uint64_t>> account_activity_recent;
 
 		MapActivityAccumulateElement(boost::shared_ptr<MySql::Center_MapActivityAccumulate> obj_)
-			:obj(std::move(obj_)),account_activity_pair(AccountUuid(obj->get_account_uuid()), MapActivityId(obj->get_map_activity_id())), avaliable_util(obj->get_avaliable_util())
+			:obj(std::move(obj_)),account_activity_recent(std::make_pair(AccountUuid(obj->get_account_uuid()),std::make_pair(MapActivityId(obj->get_map_activity_id()),obj->get_avaliable_since())))
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(MapActivityAccumulateContainer, MapActivityAccumulateElement,
-		UNIQUE_MEMBER_INDEX(account_activity_pair)
-		MULTI_MEMBER_INDEX(avaliable_util)
+		UNIQUE_MEMBER_INDEX(account_activity_recent)
 	)
 
 	struct MapActivityRankElement {
@@ -176,29 +174,6 @@ namespace {
 		info.delete_date     = elem.obj->get_delete_date();
 	}
 
-	void gc_timer_proc(std::uint64_t now){
-		PROFILE_ME;
-		LOG_EMPERY_CENTER_TRACE("map activity accumulate gc timer: now = ", now);
-
-		const auto map_activity_accumulate_map = g_map_activity_accumulate_map.lock();
-		if(!map_activity_accumulate_map){
-			return;
-		}
-
-		for(;;){
-			const auto it = map_activity_accumulate_map->begin<1>();
-			if(it == map_activity_accumulate_map->end<1>()){
-				break;
-			}
-			if(now > it->avaliable_util){
-				map_activity_accumulate_map->erase<1>(it);
-			}
-		}
-		std::stringstream ss;
-		ss << "DELETE FROM `Center_MapActivityAccumulate` WHERE avaliable_util < " << now;
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapActivityAccumulate",ss.str());
-	}
-
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto map_activity_accumulate_map = boost::make_shared<MapActivityAccumulateContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading map activity accmulate ...");
@@ -212,12 +187,7 @@ namespace {
 		}
 		g_map_activity_accumulate_map = map_activity_accumulate_map;
 		handles.push(map_activity_accumulate_map);
-		/*
-		const auto gc_interval = get_config<std::uint64_t>("war_status_refresh_interval", 60000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
-			std::bind(&gc_timer_proc, std::placeholders::_2));
-		handles.push(timer);
-		*/
+
 		const auto map_activity_rank_map = boost::make_shared<MapActivityRankContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading map activity rank ...");
 		conn->execute_sql("SELECT * FROM `Center_MapActivityRank` ");
@@ -284,7 +254,7 @@ namespace {
 	}
 }
 
-MapActivityAccumulateMap::AccumulateInfo MapActivityAccumulateMap::get(AccountUuid account_uuid, MapActivityId activity_id){
+MapActivityAccumulateMap::AccumulateInfo MapActivityAccumulateMap::get(AccountUuid account_uuid, MapActivityId activity_id,std::uint64_t since){
 	PROFILE_ME;
 
 	AccumulateInfo info = {};
@@ -293,7 +263,7 @@ MapActivityAccumulateMap::AccumulateInfo MapActivityAccumulateMap::get(AccountUu
 		LOG_EMPERY_CENTER_WARNING("map activity accumulate map is not loaded.");
 		return info;
 	}
-	const auto it = map_activity_accumulate_map->find<0>(std::make_pair(account_uuid, activity_id));
+	const auto it = map_activity_accumulate_map->find<0>(std::make_pair(account_uuid, std::make_pair(activity_id,since)));
 	if(it == map_activity_accumulate_map->end<0>()){
 		LOG_EMPERY_CENTER_TRACE("map activity accumulate not found: account_uuid = ", account_uuid, ", activity_id = ", activity_id.get());
 		return info;
@@ -310,7 +280,7 @@ void MapActivityAccumulateMap::insert(AccumulateInfo info){
 		LOG_EMPERY_CENTER_WARNING("map activity accumulate map is not loaded.");
 		return;
 	}
-	const auto it = map_activity_accumulate_map->find<0>(std::make_pair(info.account_uuid, info.activity_id));
+	const auto it = map_activity_accumulate_map->find<0>(std::make_pair(info.account_uuid, std::make_pair(info.activity_id,info.avaliable_since)));
 	if(it != map_activity_accumulate_map->end<0>()){
 		LOG_EMPERY_CENTER_TRACE("map activity accumulate has exist: account_uuid = ", info.account_uuid, ", activity_id = ", info.activity_id.get());
 		return;
@@ -329,7 +299,7 @@ void MapActivityAccumulateMap::update(AccumulateInfo info,bool throws_if_not_exi
 		LOG_EMPERY_CENTER_WARNING("map activity accumulate map is not loaded.");
 		return;
 	}
-	const auto it = map_activity_accumulate_map->find<0>(std::make_pair(info.account_uuid, info.activity_id));
+	const auto it = map_activity_accumulate_map->find<0>(std::make_pair(info.account_uuid, std::make_pair(info.activity_id,info.avaliable_since)));
 	if(it == map_activity_accumulate_map->end<0>()){
 		LOG_EMPERY_CENTER_TRACE("map activity accumulate not found: account_uuid = ", info.account_uuid, ", activity_id = ", info.activity_id.get());
 		if(throws_if_not_exists){

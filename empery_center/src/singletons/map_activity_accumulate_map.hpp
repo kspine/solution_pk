@@ -19,7 +19,7 @@ struct MapActivityAccumulateMap {
 		std::uint64_t    accumulate_value;
 	};
 
-	static AccumulateInfo get(AccountUuid account_uuid, MapActivityId activity_id);
+	static AccumulateInfo get(AccountUuid account_uuid, MapActivityId activity_id,std::uint64_t since);
 	static void insert(AccumulateInfo info);
 	static void update(AccumulateInfo info,bool throws_if_not_exists);
 private:
