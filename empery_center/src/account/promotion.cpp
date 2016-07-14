@@ -4,8 +4,8 @@
 #include <poseidon/json.hpp>
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/http/utilities.hpp>
-#include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/event_dispatcher.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include <iconv.h>
 #include "../msg/err_account.hpp"
 #include "../../../empery_promotion/src/msg/err_account.hpp"
@@ -100,8 +100,10 @@ namespace {
 					const auto utc_now = Poseidon::get_utc_time();
 					LOG_EMPERY_CENTER_INFO("Creating new account: account_uuid = ", account_uuid,
 						", cur_login_name = ", cur_login_name, ", is_auction_center_enabled = ", is_auction_center_enabled);
-					account = boost::make_shared<Account>(account_uuid, g_platform_id, cur_login_name,
-						referrer_uuid, cur_level, utc_now, cur_nick);
+					auto pair = Account::async_create(account_uuid, g_platform_id, cur_login_name, referrer_uuid, cur_level, utc_now, cur_nick);
+					Poseidon::JobDispatcher::yield(pair.first, true);
+
+					account = std::move(pair.second);
 					AccountMap::insert(account, std::string());
 				} else {
 					account->set_promotion_level(cur_level);

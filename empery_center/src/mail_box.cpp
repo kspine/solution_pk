@@ -61,7 +61,7 @@ void MailBox::pump_status(){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
-
+/*
 	const auto global_mail_box = MailBoxMap::get_global();
 	if(global_mail_box && (global_mail_box.get() != this)){
 		LOG_EMPERY_CENTER_TRACE("Checking for system mails: account_uuid = ", get_account_uuid());
@@ -82,7 +82,7 @@ void MailBox::pump_status(){
 			m_mails.emplace(it->first, std::move(obj));
 		}
 	}
-
+*/
 	LOG_EMPERY_CENTER_TRACE("Checking for expired mails: account_uuid = ", get_account_uuid());
 	{
 		auto it = m_mails.begin();
