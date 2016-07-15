@@ -70,14 +70,14 @@ namespace {
 			"  WHERE `f`.`category` = 0");
 	}
 
-	boost::weak_ptr<std::vector<boost::shared_ptr<Account>>> g_random_pool;
+	boost::weak_ptr<std::vector<AccountUuid>> g_random_pool;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto friend_box_map = boost::make_shared<FriendBoxContainer>();
 		g_friend_box_map = friend_box_map;
 		handles.push(friend_box_map);
 
-		const auto random_pool = boost::make_shared<std::vector<boost::shared_ptr<Account>>>();
+		const auto random_pool = boost::make_shared<std::vector<AccountUuid>>();
 		g_random_pool = random_pool;
 		handles.push(random_pool);
 
@@ -195,7 +195,7 @@ void FriendBoxMap::unload(AccountUuid account_uuid){
 	gc_timer_proc(now);
 }
 
-void FriendBoxMap::random(std::vector<boost::shared_ptr<Account>> &ret, std::size_t max_count, const boost::shared_ptr<FriendBox> &excluding_box){
+void FriendBoxMap::random(std::vector<AccountUuid> &ret, std::size_t max_count, const boost::shared_ptr<FriendBox> &excluding_box){
 	PROFILE_ME;
 
 	const auto random_pool = g_random_pool.lock();
@@ -210,7 +210,13 @@ void FriendBoxMap::random(std::vector<boost::shared_ptr<Account>> &ret, std::siz
 		std::size_t count_filtered = 0;
 		auto it = random_pool->end();
 		while((count_filtered < max_count) && ((it != random_pool->begin()) && (--it, true))){
-			const auto &account = *it;
+			const auto account_uuid = *it;
+			const auto account = AccountMap::get(account_uuid);
+			if(!account){
+				LOG_EMPERY_CENTER_WARNING("Account not found: account_uuid = ", account_uuid);
+				it = random_pool->erase(it);
+				continue;
+			}
 			if(utc_now < account->get_banned_until()){
 				it = random_pool->erase(it);
 				continue;
@@ -226,15 +232,21 @@ void FriendBoxMap::random(std::vector<boost::shared_ptr<Account>> &ret, std::siz
 
 	filter_friends();
 	if(random_pool->size() < max_count){
+		std::vector<boost::shared_ptr<Account>> accounts;
+		AccountMap::get_all(accounts, 0, SIZE_MAX);
+		std::random_shuffle(accounts.begin(), accounts.end(),
+			[](std::uint32_t offset){ return Poseidon::rand32() % offset; });
+
 		random_pool->clear();
-		AccountMap::get_all(*random_pool, 0, SIZE_MAX);
-		std::random_shuffle(random_pool->begin(), random_pool->end(), [](std::uint32_t offset){ return Poseidon::rand32() % offset; });
+		random_pool->reserve(accounts.size());
+		std::transform(accounts.begin(), accounts.end(), std::back_inserter(*random_pool),
+			[](const boost::shared_ptr<Account> &account){ return account->get_account_uuid(); });
 		filter_friends();
 	}
 
 	ret.reserve(ret.size() + max_count);
 	for(std::size_t i = 0; (i < max_count) && !random_pool->empty(); ++i){
-		ret.emplace_back(std::move(random_pool->back()));
+		ret.emplace_back(random_pool->back());
 		random_pool->pop_back();
 	}
 }

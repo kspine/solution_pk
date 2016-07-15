@@ -16,7 +16,7 @@ CONTROLLER_SERVLET(Msg::TS_ChatBroadcastHornMessage, controller, req){
 		return Response(Msg::ERR_NO_SUCH_HORN_MESSAGE) <<horn_message_uuid;
 	}
 
-	std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> sessions;
+	std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> sessions;
 	PlayerSessionMap::get_all(sessions);
 	for(auto it = sessions.begin(); it != sessions.end(); ++it){
 		const auto &session = it->second;
