@@ -624,6 +624,7 @@ void Castle::check_init_buildings(){
 			auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
 				get_map_object_uuid().get(), building_base_id.get(), 0, 0, MIS_NONE, 0, 0, 0);
 			obj->async_save(true);
+			bit = m_buildings.emplace(building_base_id, std::move(obj)).first;
 		}
 		const auto &obj = bit->second;
 		const auto building_id = obj->get_building_id();
