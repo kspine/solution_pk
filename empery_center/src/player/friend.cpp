@@ -246,7 +246,7 @@ PLAYER_SERVLET(Msg::CS_FriendRandom, account, session, req){
 	const auto friend_box = FriendBoxMap::require(account_uuid);
 	friend_box->pump_status();
 
-	std::vector<boost::shared_ptr<Account>> random_list;
+	std::vector<AccountUuid> random_list;
 	FriendBoxMap::random(random_list, max_count, friend_box);
 
 	Msg::SC_FriendRandomList msg;
@@ -254,8 +254,8 @@ PLAYER_SERVLET(Msg::CS_FriendRandom, account, session, req){
 	for(auto it = random_list.begin(); it != random_list.end(); ++it){
 		auto &elem = *msg.friends.emplace(msg.friends.end());
 
-		const auto &friend_account = *it;
-		const auto friend_uuid = friend_account->get_account_uuid();
+		const auto friend_uuid = *it;
+		const auto friend_account = AccountMap::require(friend_uuid);
 
 		AccountMap::cached_synchronize_account_with_player_all(friend_uuid, session);
 

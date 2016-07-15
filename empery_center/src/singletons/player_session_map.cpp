@@ -5,6 +5,7 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/ip_port.hpp>
+#include "account_map.hpp"
 #include "../account.hpp"
 #include "../account_attribute_ids.hpp"
 #include "../msg/kill.hpp"
@@ -15,15 +16,14 @@ namespace EmperyCenter {
 
 namespace {
 	struct SessionElement {
-		boost::shared_ptr<Account> account;
 		std::uint64_t online_since;
 
 		AccountUuid account_uuid;
 		boost::weak_ptr<PlayerSession> weak_session;
 
-		SessionElement(boost::shared_ptr<Account> account_, boost::weak_ptr<PlayerSession> weak_session_)
-			: account(std::move(account_)), online_since(Poseidon::get_fast_mono_clock())
-			, account_uuid(account->get_account_uuid()), weak_session(std::move(weak_session_))
+		SessionElement(AccountUuid account_uuid_, boost::weak_ptr<PlayerSession> weak_session_)
+			: online_since(Poseidon::get_fast_mono_clock())
+			, account_uuid(account_uuid_), weak_session(std::move(weak_session_))
 		{
 		}
 	};
@@ -40,8 +40,7 @@ namespace {
 	SessionIterator really_erase_session(SessionIterator it, std::uint64_t now, std::uint64_t utc_now){
 		PROFILE_ME;
 
-		const auto account         = it->account;
-		const auto account_uuid    = account->get_account_uuid();
+		const auto account_uuid    = it->account_uuid;
 		const auto online_duration = now - it->online_since;
 
 		const auto next = g_session_map->erase<1>(it);
@@ -54,6 +53,8 @@ namespace {
 		}
 
 		try {
+			const auto account = AccountMap::require(account_uuid);
+
 			boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 			modifiers[AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME] = boost::lexical_cast<std::string>(utc_now);
 			account->set_attributes(std::move(modifiers));
@@ -122,26 +123,17 @@ boost::shared_ptr<PlayerSession> PlayerSessionMap::get(AccountUuid account_uuid)
 	return session;
 }
 
-boost::shared_ptr<Account> PlayerSessionMap::get_account(const boost::weak_ptr<PlayerSession> &weak_session){
+AccountUuid PlayerSessionMap::get_account_uuid(const boost::weak_ptr<PlayerSession> &weak_session){
 	PROFILE_ME;
 
 	const auto it = g_session_map->find<1>(weak_session);
 	if(it == g_session_map->end<1>()){
 		return { };
 	}
-	return it->account;
-}
-boost::shared_ptr<Account> PlayerSessionMap::require_account(const boost::weak_ptr<PlayerSession> &weak_session){
-	PROFILE_ME;
-
-	auto ret = get_account(weak_session);
-	if(!ret){
-		DEBUG_THROW(Exception, sslit("Session not found"));
-	}
-	return ret;
+	return it->account_uuid;
 }
 
-void PlayerSessionMap::add(const boost::shared_ptr<Account> &account, const boost::shared_ptr<PlayerSession> &session){
+void PlayerSessionMap::add(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
 	const auto it = g_session_map->find<1>(session);
@@ -150,12 +142,11 @@ void PlayerSessionMap::add(const boost::shared_ptr<Account> &account, const boos
 		DEBUG_THROW(Exception, sslit("Duplicate session"));
 	}
 
+	const auto account = AccountMap::require(account_uuid);
 	const auto utc_now = Poseidon::get_utc_time();
 
-	const auto account_uuid = account->get_account_uuid();
-
 	for(;;){
-		const auto result = g_session_map->insert(SessionElement(account, session));
+		const auto result = g_session_map->insert(SessionElement(account_uuid, session));
 		if(result.second){
 			// 新会话。
 			try {
@@ -206,7 +197,7 @@ void PlayerSessionMap::remove(const boost::weak_ptr<PlayerSession> &weak_session
 	really_erase_session(it, now, utc_now);
 }
 
-void PlayerSessionMap::get_all(std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> &ret){
+void PlayerSessionMap::get_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret){
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + g_session_map->size());
@@ -215,7 +206,7 @@ void PlayerSessionMap::get_all(std::vector<std::pair<boost::shared_ptr<Account>,
 		if(!session){
 			continue;
 		}
-		ret.emplace_back(it->account, std::move(session));
+		ret.emplace_back(it->account_uuid, std::move(session));
 	}
 }
 void PlayerSessionMap::clear(const char *reason) noexcept {
