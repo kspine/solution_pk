@@ -311,11 +311,11 @@ ADMIN_SERVLET("account/get_level_distribution_online", root, session, /* params 
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 
-	std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> online_players;
+	std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> online_players;
 	PlayerSessionMap::get_all(online_players);
 	for(auto it = online_players.begin(); it != online_players.end(); ++it){
-		const auto &account = it->first;
-		const auto account_uuid = account->get_account_uuid();
+		const auto account_uuid = it->first;
+		// const auto &session = it->second;
 
 		map_objects.clear();
 		WorldMap::get_map_objects_by_owner(map_objects, account_uuid);

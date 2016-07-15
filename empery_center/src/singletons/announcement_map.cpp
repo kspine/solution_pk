@@ -56,7 +56,7 @@ namespace {
 	try {
 		PROFILE_ME;
 
-		std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> online_players;
+		std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> online_players;
 		PlayerSessionMap::get_all(online_players);
 		for(auto it = online_players.begin(); it != online_players.end(); ++it){
 			const auto &session = it->second;

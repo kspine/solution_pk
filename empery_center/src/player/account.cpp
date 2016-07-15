@@ -36,9 +36,9 @@ namespace {
 
 	LOG_EMPERY_CENTER_DEBUG("Account login: platform_id = ", platform_id, ", login_name = ", login_name, ", login_token = ", login_token);
 
-	const auto old_account = PlayerSessionMap::get_account(session);
-	if(old_account){
-		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account->get_account_uuid();
+	const auto old_account_uuid = PlayerSessionMap::get_account_uuid(session);
+	if(old_account_uuid){
+		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account_uuid;
 	}
 
 	const auto account = AccountMap::forced_reload_by_login_name(platform_id, login_name);
@@ -81,7 +81,7 @@ namespace {
 
 	WorldMap::forced_reload_map_objects_by_owner(account_uuid);
 
-	PlayerSessionMap::add(account, session);
+	PlayerSessionMap::add(account_uuid, session);
 
 	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
 
