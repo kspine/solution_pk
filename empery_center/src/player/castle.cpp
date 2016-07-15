@@ -1946,6 +1946,7 @@ PLAYER_SERVLET(Msg::CS_CastleSetName, account, session, req){
 		const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_NAME_MODIFICATION_TRADE_ID));
 		const auto trade_data = Data::ItemTrade::require(trade_id);
 		Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	} else {
 		modifiers[AccountAttributeIds::ID_FIRST_CASTLE_NAME_SET] = "1";
 	}
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
