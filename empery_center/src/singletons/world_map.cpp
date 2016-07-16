@@ -1962,7 +1962,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 	std::size_t concurrency_counter = 0;
 
 #define CONCURRENT_LOAD_BEGIN	\
-	{	\
+	do {	\
 		Poseidon::enqueue_async_job(	\
 			[=]() mutable {	\
 				PROFILE_ME;	\
@@ -1978,7 +1978,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 			Poseidon::JobDispatcher::yield(promise_, true);	\
 			concurrency_counter = 0;	\
 		}	\
-	}
+	} while(false)
 
 	const auto map_cell_map = g_map_cell_map.lock();
 	if(map_cell_map){
