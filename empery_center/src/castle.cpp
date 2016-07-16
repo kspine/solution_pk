@@ -653,9 +653,9 @@ void Castle::check_init_buildings(){
 						LOG_EMPERY_CENTER_DEBUG("> Build limit exceeded: building_id = ", it->first,
 							", current_count = ", it->second, ", build_limit = ", random_building_data->build_limit);
 						it = random_buildings.erase(it);
-					} else {
-						++it;
+						continue;
 					}
+					++it;
 				}
 			}
 			if(!random_buildings.empty()){
@@ -667,10 +667,10 @@ void Castle::check_init_buildings(){
 			continue;
 		}
 
-		LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(),
-			", building_base_id = ", building_base_id, ", init_building_id = ", init_building_id);
-		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(
-			get_map_object_uuid().get(), building_base_id.get(), init_building_id.get(), init_level, Castle::MIS_NONE, 0, 0, 0);
+		LOG_EMPERY_CENTER_DEBUG("> Creating init building: map_object_uuid = ", get_map_object_uuid(), ", building_base_id = ", building_base_id,
+			", init_building_id = ", init_building_id, ", init_level = ", init_level);
+		auto obj = boost::make_shared<MySql::Center_CastleBuildingBase>(get_map_object_uuid().get(), building_base_id.get(),
+			init_building_id.get(), init_level, MIS_NONE, 0, 0, 0);
 		obj->async_save(true);
 		m_buildings.emplace(building_base_id, std::move(obj));
 		++dirty;

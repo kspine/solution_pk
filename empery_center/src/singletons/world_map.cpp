@@ -640,10 +640,15 @@ namespace {
 		}
 #undef RELOAD_PART_
 
+		boost::shared_ptr<Castle> castle;
+
 		switch(obj->get_map_object_type_id()){
 		case MapObjectTypeIds::ID_CASTLE.get():
-			return boost::make_shared<Castle>(std::move(obj), *attributes, *buffs, *defense_objs,
+			castle = boost::make_shared<Castle>(std::move(obj), *attributes, *buffs, *defense_objs,
 				*buildings, *techs, *resources, *soldiers, *soldier_production, *wounded_soldiers, *treatment);
+			castle->check_init_buildings();
+			castle->check_init_resources();
+			return std::move(castle);
 		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
 		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
 			return boost::make_shared<DefenseBuilding>(std::move(obj), *attributes, *buffs, *defense_objs);
@@ -1116,11 +1121,6 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 	}
 
 	auto map_object = reload_map_object_aux(std::move(sink->front()));
-	const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
-	if(castle){
-		castle->check_init_buildings();
-		castle->check_init_resources();
-	}
 	map_object->pump_status();
 	// map_object->recalculate_attributes(true);
 
@@ -2112,7 +2112,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 	std::size_t concurrency_counter = 0;
 
 #define CONCURRENT_LOAD_BEGIN	\
-	{	\
+	do {	\
 		Poseidon::enqueue_async_job(	\
 			[=]() mutable {	\
 				PROFILE_ME;	\
@@ -2128,7 +2128,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 			Poseidon::JobDispatcher::yield(promise_, true);	\
 			concurrency_counter = 0;	\
 		}	\
-	}
+	} while(false)
 
 	const auto map_cell_map = g_map_cell_map.lock();
 	if(map_cell_map){
@@ -2386,6 +2386,8 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random_restricted(
 					DEBUG_THROW(Exception, sslit("No castle allocated"));
 				}
 				castle->pump_status();
+				castle->check_init_buildings();
+				castle->check_init_resources();
 				castle->recalculate_attributes(false);
 
 				LOG_EMPERY_CENTER_DEBUG("Creating castle: coord = ", coord);
@@ -2519,8 +2521,6 @@ _use_hint:
 		if(castle){
 			LOG_EMPERY_CENTER_INFO("Castle placed successfully: map_object_uuid = ", castle->get_map_object_uuid(),
 				", owner_uuid = ", castle->get_owner_uuid(), ", coord = ", castle->get_coord());
-			castle->check_init_buildings();
-			castle->check_init_resources();
 			return std::move(castle);
 		}
 		clusters.erase(it);

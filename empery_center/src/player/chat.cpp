@@ -95,13 +95,15 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 				const auto &other_session = *it;
 				try {
 					Poseidon::enqueue_async_job(
-						std::bind(
-							[](const boost::shared_ptr<PlayerSession> &other_session, const boost::shared_ptr<ChatMessage> &message){
-								const auto other_account = PlayerSessionMap::require_account(other_session);
-								const auto other_chat_box = ChatBoxMap::require(other_account->get_account_uuid());
-								other_chat_box->insert(message);
-							},
-							other_session, message));
+						[=]() mutable {
+							PROFILE_ME;
+							const auto other_account_uuid = PlayerSessionMap::get_account_uuid(other_session);
+							if(!other_account_uuid){
+								return;
+							}
+							const auto other_chat_box = ChatBoxMap::require(other_account_uuid);
+							other_chat_box->insert(message);
+						});
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 					other_session->shutdown(e.what());
@@ -173,7 +175,7 @@ PLAYER_SERVLET(Msg::CS_ChatHornMessage, account, session, req){
 		segments.emplace_back(ChatMessageSlotId(it->slot), std::move(it->value));
 	}
 
-	std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> other_sessions;
+	std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> other_sessions;
 	PlayerSessionMap::get_all(other_sessions);
 
 	std::vector<ItemTransactionElement> transaction;

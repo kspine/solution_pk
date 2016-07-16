@@ -33,13 +33,14 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 				const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 			{	\
 				PROFILE_ME;	\
-				const auto account_ = ::EmperyCenter::PlayerSessionMap::get_account(session_);	\
-				if(!account_){	\
+				const auto account_uuid_ = ::EmperyCenter::PlayerSessionMap::get_account_uuid(session_);	\
+				if(!account_uuid_){	\
 					return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::ERR_NOT_LOGGED_IN);	\
 				}	\
+				const auto account_ = ::EmperyCenter::AccountMap::require(account_uuid_);	\
 				MsgType_ msg_(payload_);	\
-				LOG_EMPERY_CENTER_TRACE("Received request from account ", account_, " on ",	\
-					session_->get_remote_info(), ": ", msg_);	\
+				LOG_EMPERY_CENTER_TRACE("Received request: account_uuid = ", account_uuid_,	\
+					", remote_info = ", session_->get_remote_info(), ", msg = ", msg_);	\
 				return TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (account_, session_, ::std::move(msg_));	\
 			}	\
 		}	\

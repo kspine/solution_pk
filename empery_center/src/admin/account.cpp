@@ -10,7 +10,7 @@
 #include "../singletons/world_map.hpp"
 #include "../castle.hpp"
 #include "../map_object_type_ids.hpp"
-#include <boost/container/flat_map.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 
 namespace EmperyCenter {
 
@@ -125,7 +125,10 @@ ADMIN_SERVLET("account/insert", root, session, params){
 
 	const auto account_uuid = AccountUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
-	account = boost::make_shared<Account>(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name);
+	auto pair = Account::async_create(account_uuid, platform_id, login_name, referrer_uuid, promotion_level, utc_now, login_name);
+	Poseidon::JobDispatcher::yield(pair.first, true);
+
+	account = std::move(pair.second);
 	AccountMap::insert(account, session->get_remote_info().ip.get());
 
 	if(!login_token.empty()){
@@ -308,11 +311,11 @@ ADMIN_SERVLET("account/get_level_distribution_online", root, session, /* params 
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
 
-	std::vector<std::pair<boost::shared_ptr<Account>, boost::shared_ptr<PlayerSession>>> online_players;
+	std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> online_players;
 	PlayerSessionMap::get_all(online_players);
 	for(auto it = online_players.begin(); it != online_players.end(); ++it){
-		const auto &account = it->first;
-		const auto account_uuid = account->get_account_uuid();
+		const auto account_uuid = it->first;
+		// const auto &session = it->second;
 
 		map_objects.clear();
 		WorldMap::get_map_objects_by_owner(map_objects, account_uuid);

@@ -146,7 +146,7 @@ namespace {
 		handles.push(timer);
 	}
 
-	void synchronize_horn_message(const boost::shared_ptr<HornMessage> &horn_message) noexcept {
+	void synchronize_horn_message_with_cluster(const boost::shared_ptr<HornMessage> &horn_message) noexcept {
 		PROFILE_ME;
 
 		boost::shared_ptr<ControllerClient> controller;
@@ -348,7 +348,7 @@ void ChatBoxMap::insert_horn_message(const boost::shared_ptr<HornMessage> &horn_
 		DEBUG_THROW(Exception, sslit("Horn message already exists"));
 	}
 
-	synchronize_horn_message(horn_message);
+	synchronize_horn_message_with_cluster(horn_message);
 }
 void ChatBoxMap::update_horn_message(const boost::shared_ptr<HornMessage> &horn_message, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -380,7 +380,7 @@ void ChatBoxMap::update_horn_message(const boost::shared_ptr<HornMessage> &horn_
 		horn_map->replace<0>(it, HornElement(horn_message));
 	}
 
-	synchronize_horn_message(horn_message);
+	synchronize_horn_message_with_cluster(horn_message);
 }
 
 }
