@@ -52,8 +52,10 @@ namespace {
 			}
 
 			LOG_EMPERY_CENTER_DEBUG("Reclaiming dungeon: dungeon_uuid = ", it->dungeon_uuid);
-			it->dungeon->clear();
+			const auto dungeon = it->dungeon;
 			dungeon_map->erase<2>(it);
+
+			dungeon->clear();
 		}
 	}
 

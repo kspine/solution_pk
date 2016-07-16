@@ -121,4 +121,10 @@ void Dungeon::clear() noexcept {
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
 }
 
+void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+	PROFILE_ME;
+
+	
+}
+
 }
