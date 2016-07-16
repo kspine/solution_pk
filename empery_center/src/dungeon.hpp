@@ -23,8 +23,8 @@ private:
 	boost::container::flat_set<AccountUuid> m_accounts;
 
 public:
-	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, std::uint64_t expiry_time, const boost::shared_ptr<DungeonSession> &server,
-		AccountUuid founder_uuid);
+	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, std::uint64_t expiry_time,
+		const boost::shared_ptr<DungeonSession> &server, AccountUuid founder_uuid);
 	~Dungeon();
 
 public:

@@ -94,6 +94,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/controller/map.cpp	\
 	src/controller/friend.cpp	\
 	src/controller/chat.cpp	\
+	src/dungeon/dungeon.cpp	\
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
 	src/account_utilities.cpp	\

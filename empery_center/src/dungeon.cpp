@@ -8,9 +8,10 @@
 
 namespace EmperyCenter {
 
-Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, std::uint64_t expiry_time, const boost::shared_ptr<DungeonSession> &server,
-	AccountUuid founder_uuid)
-	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_expiry_time(expiry_time), m_server(server)
+Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, std::uint64_t expiry_time,
+	const boost::shared_ptr<DungeonSession> &server, AccountUuid founder_uuid)
+	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_expiry_time(expiry_time)
+	, m_server(server)
 	, m_founder_uuid(founder_uuid)
 {
 }

@@ -41,10 +41,8 @@ private:
 	mutable Poseidon::Mutex m_request_mutex;
 	boost::container::flat_multimap<std::uint64_t, RequestElement> m_requests;
 
-private:
-	ControllerClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval);
-
 public:
+	ControllerClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval);
 	~ControllerClient();
 
 protected:
