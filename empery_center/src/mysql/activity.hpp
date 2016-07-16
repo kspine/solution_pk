@@ -72,7 +72,9 @@ namespace MySql {
 	FIELD_DATETIME          (since) \
 	FIELD_UUID              (boss_uuid) \
 	FIELD_DATETIME          (create_date) \
-	FIELD_DATETIME          (delete_date)
+	FIELD_DATETIME          (delete_date) \
+	FIELD_BIGINT_UNSIGNED   (hp_total) \
+	FIELD_BIGINT_UNSIGNED   (hp_die) 
 #include <poseidon/mysql/object_generator.hpp>
 
 

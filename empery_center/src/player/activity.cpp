@@ -82,7 +82,6 @@ PLAYER_SERVLET(Msg::CS_WorldActivityInfo, account, session, /* req */){
 }
 
 PLAYER_SERVLET(Msg::CS_WorldActivityRank, account, session, /* req */){
-	//活动未开启，则发送前一次，否则发送本次数据
 	const auto world_activity = ActivityMap::get_world_activity();
 	if(!world_activity){
 		return Response(Msg::ERR_NO_WORLD_ACTIVITY);
@@ -98,5 +97,24 @@ PLAYER_SERVLET(Msg::CS_WorldActivityRank, account, session, /* req */){
 
 	return Response();
 }
+
+
+PLAYER_SERVLET(Msg::CS_WorldBossPos, account, session, /* req */){
+	const auto world_activity = ActivityMap::get_world_activity();
+	if(!world_activity){
+		return Response(Msg::ERR_NO_WORLD_ACTIVITY);
+	}
+	try {
+		const auto account_uuid = account->get_account_uuid();
+		const auto &castle = WorldMap::require_primary_castle(account_uuid);
+		const auto cluster_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
+		world_activity->synchronize_world_boss_with_player(cluster_coord,session);
+	} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
+	return Response();
+}
+
 
 }

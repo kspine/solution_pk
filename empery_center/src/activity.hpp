@@ -63,6 +63,7 @@ public:
 	void synchronize_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const;
 	bool settle_world_activity(Coord cluster_coord,std::uint64_t utc_now);
 	void synchronize_world_rank_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session);
+	void synchronize_world_boss_with_player(const Coord cluster_coord,const boost::shared_ptr<PlayerSession> &session);
 };
 
 }

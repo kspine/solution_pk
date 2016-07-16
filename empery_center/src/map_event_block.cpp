@@ -473,6 +473,11 @@ void MapEventBlock::remove_expired_events(boost::uint64_t utc_now,unsigned event
 bool MapEventBlock::refresh_boss(MapObjectUuid boss_uuid,boost::uint64_t utc_now){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Refresh boss events: block_coord = ", get_block_coord());
+	
+	auto map_event_circle_id = get_map_event_cicle_id();
+	if(map_event_circle_id == MapEventCircleId(0)){
+		return false;
+	}
 
 	const auto block_coord = get_block_coord();
 	const auto block_scope = Rectangle(block_coord, BLOCK_WIDTH, BLOCK_HEIGHT);

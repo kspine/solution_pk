@@ -436,19 +436,15 @@ void WorldActivity::synchronize_with_player(const Coord cluster_coord,AccountUui
 				const auto monster_data = Data::MapObjectTypeMonster::require(MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS);
 				const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
 				activity.objective = hp_total;
+				WorldActivityBossMap::WorldActivityBossInfo info = WorldActivityBossMap::get(cluster_coord,m_available_since);
 				if((*it).finish){
-					activity.schedule = 0;
+					activity.schedule = info.hp_die;
 				}else{
-					WorldActivityBossMap::WorldActivityBossInfo info = WorldActivityBossMap::get(cluster_coord,m_available_since);
-					if(info.cluster_coord != cluster_coord){
-						activity.schedule = 0;
+					const auto monster_object = WorldMap::get_map_object(info.boss_uuid);
+					if(monster_object){
+						activity.schedule = static_cast<std::uint64_t>(monster_object->get_attribute(AttributeIds::ID_HP_TOTAL));
 					}else{
-						const auto monster_object = WorldMap::get_map_object(info.boss_uuid);
-						if(monster_object){
-							activity.schedule = static_cast<std::uint64_t>(monster_object->get_attribute(AttributeIds::ID_HP_TOTAL));
-						}else{
-							activity.schedule = 0;
-						}
+						activity.schedule = info.hp_die;
 					}
 				}
 			}
@@ -603,6 +599,22 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 			}
 		}
 		session->send(msgRankList);
+	}
+}
+
+void WorldActivity::synchronize_world_boss_with_player(const Coord cluster_coord,const boost::shared_ptr<PlayerSession> &session){
+	WorldActivityBossMap::WorldActivityBossInfo info = WorldActivityBossMap::get(cluster_coord,m_available_since);
+	const auto monster_object = WorldMap::get_map_object(info.boss_uuid);
+	Msg::SC_WorldBossPos msg;
+	if(monster_object){
+		msg.x = monster_object->get_coord().x();
+		msg.y = monster_object->get_coord().y();
+	}else{
+		msg.x = 0;
+		msg.y = 0;
+	}
+	if(session){
+		session->send(msg);
 	}
 }
 

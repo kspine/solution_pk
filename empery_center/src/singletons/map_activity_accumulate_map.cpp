@@ -171,7 +171,9 @@ namespace {
 		info.since            = elem.obj->get_since();
 		info.boss_uuid        = MapObjectUuid(elem.obj->get_boss_uuid());
 		info.create_date      = elem.obj->get_create_date();
-		info.delete_date     = elem.obj->get_delete_date();
+		info.delete_date      = elem.obj->get_delete_date();
+		info.hp_total         = elem.obj->get_hp_total();
+		info.hp_die           = elem.obj->get_hp_die();
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
@@ -580,13 +582,15 @@ void WorldActivityBossMap::update(WorldActivityBossInfo info){
 	}
 	const auto it = world_activity_boss_map->find<0>(std::make_pair(info.cluster_coord,info.since));
 	if(it == world_activity_boss_map->end<0>()){
-		const auto obj = boost::make_shared<MySql::Center_MapWorldActivityBoss>(info.cluster_coord.x(),info.cluster_coord.y(),info.since,info.boss_uuid.get(),info.create_date,info.delete_date);
+		const auto obj = boost::make_shared<MySql::Center_MapWorldActivityBoss>(info.cluster_coord.x(),info.cluster_coord.y(),info.since,info.boss_uuid.get(),info.create_date,info.delete_date,info.hp_total,info.hp_die);
 		obj->async_save(true);
 		world_activity_boss_map->insert(WorldActivityBossElement(std::move(obj)));
 		return;
 	}
 	auto &obj = (*it).obj;
 	obj->set_delete_date(info.delete_date);
+	obj->set_hp_total(info.hp_total);
+	obj->set_hp_die(info.hp_die);
 }
 
 }

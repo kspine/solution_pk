@@ -292,7 +292,11 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 				if(!world_activity){
 					goto world_activity_resource_acculate_done;
 				}
-				auto attacking_primary_castle_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
+				auto primary_castle =  WorldMap::get_primary_castle(map_object->get_owner_uuid());
+				if(!primary_castle){
+					goto world_activity_resource_acculate_done;
+				}
+				auto attacking_primary_castle_coord = WorldMap::get_cluster_scope(primary_castle->get_coord()).bottom_left();
 				auto attacking_cluster_coord = WorldMap::get_cluster_scope(map_object->get_coord()).bottom_left();
 				if(attacking_primary_castle_coord !=  attacking_cluster_coord){
 					goto world_activity_resource_acculate_done;

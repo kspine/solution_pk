@@ -38,6 +38,7 @@
 #include "../msg/st_map.hpp"
 #include "global_status.hpp"
 #include "map_activity_accumulate_map.hpp"
+#include "../attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -1776,10 +1777,9 @@ void WorldMap::remove_world_activity_boss(Coord cluster_coord,std::uint64_t sinc
 	boost::shared_ptr<MapObject> monster_boss = WorldMap::get_map_object(boss_info.boss_uuid);
 	if(monster_boss){
 		boss_info.delete_date = utc_now;
+		boss_info.hp_die = static_cast<std::uint64_t>(monster_boss->get_attribute(AttributeIds::ID_HP_TOTAL));
 		WorldActivityBossMap::update(boss_info);
 		monster_boss->delete_from_game();
-		boss_info.delete_date = utc_now;
-		WorldActivityBossMap::update(boss_info);
 	}
 }
 

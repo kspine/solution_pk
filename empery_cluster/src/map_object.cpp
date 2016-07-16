@@ -63,9 +63,11 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
+	/*
 	if(abs(map_object_type_data->attack) < 0.000001){
 		return UINT64_MAX;
 	}
+	*/
 
 	if(garrisoned){
 	 	result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
@@ -103,7 +105,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 		// TODO 战斗。
-		require_ai_control()->troops_attack(target_object);
 		return require_ai_control()->attack(result,now);
 	}
 /*	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){

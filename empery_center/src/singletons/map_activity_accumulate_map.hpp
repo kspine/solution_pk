@@ -98,6 +98,8 @@ struct WorldActivityBossMap {
 		MapObjectUuid        boss_uuid;
 		std::uint64_t        create_date;
 		std::uint64_t        delete_date;
+		std::uint64_t        hp_total;
+		std::uint64_t        hp_die;
 	};
 	static WorldActivityBossInfo get(Coord cluster_coord, std::uint64_t since);
 	static void update(WorldActivityBossInfo info);
