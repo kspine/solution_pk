@@ -24,80 +24,6 @@
 namespace EmperyCenter {
 
 namespace {
-	std::pair<long, std::string> AccountLoginServlet(const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer payload){
-		PROFILE_ME;
-		Msg::CS_AccountLogin req(payload);
-		LOG_EMPERY_CENTER_TRACE("Received request from ", session->get_remote_info(), ": ", req);
-// ============================================================================
-{
-	const auto platform_id  = PlatformId(req.platform_id);
-	const auto &login_name  = req.login_name;
-	const auto &login_token = req.login_token;
-
-	LOG_EMPERY_CENTER_DEBUG("Account login: platform_id = ", platform_id, ", login_name = ", login_name, ", login_token = ", login_token);
-
-	const auto old_account_uuid = PlayerSessionMap::get_account_uuid(session);
-	if(old_account_uuid){
-		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account_uuid;
-	}
-
-	const auto account = AccountMap::forced_reload_by_login_name(platform_id, login_name);
-	if(!account){
-		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
-	}
-	if(!account->has_been_activated()){
-		return Response(Msg::ERR_ACTIVATE_YOUR_ACCOUNT) <<login_name;
-	}
-	const auto account_uuid = account->get_account_uuid();
-
-	const auto third_error_code = boost::make_shared<long>(Msg::ST_OK);
-	Poseidon::sync_raise_event(
-		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(third_error_code,
-			account->get_platform_id(), account->get_login_name(), account->get_attribute(AccountAttributeIds::ID_SAVED_THIRD_TOKEN)));
-	if(*third_error_code != Msg::ST_OK){
-		LOG_EMPERY_CENTER_DEBUG("Third server returned an error: third_error_code = ", *third_error_code);
-		return Response(Msg::ERR_TOKEN_INVALIDATED) <<login_name;
-	}
-
-	AccountMap::require_controller_token(account_uuid);
-
-	const auto utc_now = Poseidon::get_utc_time();
-	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);
-	if(utc_now >= expected_token_expiry_time){
-		return Response(Msg::ERR_TOKEN_EXPIRED) <<login_name;
-	}
-	if(login_token.empty()){
-		LOG_EMPERY_CENTER_DEBUG("Empty token");
-		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
-	}
-	const auto &expected_token = account->get_attribute(AccountAttributeIds::ID_LOGIN_TOKEN);
-	if(login_token != expected_token){
-		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", expected_token, ", got ", login_token);
-		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
-	}
-	if(utc_now < account->get_banned_until()){
-		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
-	}
-
-	WorldMap::forced_reload_map_objects_by_owner(account_uuid);
-
-	PlayerSessionMap::add(account_uuid, session);
-
-	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
-
-	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
-	AccountMap::synchronize_account_with_player_all(account_uuid, session, true, true, true, { });
-
-	return Response();
-}
-// ============================================================================
-	}
-	MODULE_RAII(handles){
-		handles.push(PlayerSession::create_servlet(Msg::CS_AccountLogin::ID, &AccountLoginServlet));
-	}
-}
-
-namespace {
 	struct SequentialSignInInfo {
 		std::uint64_t last_signed_in_time;
 		std::uint64_t last_signed_in_day;
@@ -142,6 +68,82 @@ namespace {
 		info.today               = today;
 		info.sequential_days     = sequential_days;
 		return info;
+	}
+}
+
+namespace {
+	std::pair<long, std::string> AccountLoginServlet(const boost::shared_ptr<PlayerSession> &session, Poseidon::StreamBuffer payload){
+		PROFILE_ME;
+		Msg::CS_AccountLogin req(payload);
+		LOG_EMPERY_CENTER_TRACE("Received request from ", session->get_remote_info(), ": ", req);
+// ============================================================================
+{
+	const auto platform_id  = PlatformId(req.platform_id);
+	const auto &login_name  = req.login_name;
+	const auto &login_token = req.login_token;
+
+	LOG_EMPERY_CENTER_DEBUG("Account login: platform_id = ", platform_id, ", login_name = ", login_name, ", login_token = ", login_token);
+
+	const auto old_account_uuid = PlayerSessionMap::get_account_uuid(session);
+	if(old_account_uuid){
+		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account_uuid;
+	}
+
+	const auto account = AccountMap::forced_reload_by_login_name(platform_id, login_name);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
+	}
+	if(!account->has_been_activated()){
+		return Response(Msg::ERR_ACTIVATE_YOUR_ACCOUNT) <<login_name;
+	}
+	const auto account_uuid = account->get_account_uuid();
+
+	const auto third_error_code = boost::make_shared<long>(Msg::ST_OK);
+	Poseidon::sync_raise_event(
+		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(third_error_code,
+			account->get_platform_id(), account->get_login_name(), account->get_attribute(AccountAttributeIds::ID_SAVED_THIRD_TOKEN)));
+	if(*third_error_code != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Third server returned an error: third_error_code = ", *third_error_code);
+		return Response(Msg::ERR_TOKEN_INVALIDATED) <<login_name;
+	}
+
+	AccountMap::require_controller_token(account_uuid);
+
+	auto utc_now = Poseidon::get_utc_time();
+	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);
+	if(utc_now >= expected_token_expiry_time){
+		return Response(Msg::ERR_TOKEN_EXPIRED) <<login_name;
+	}
+	if(login_token.empty()){
+		LOG_EMPERY_CENTER_DEBUG("Empty token");
+		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
+	}
+	const auto &expected_token = account->get_attribute(AccountAttributeIds::ID_LOGIN_TOKEN);
+	if(login_token != expected_token){
+		LOG_EMPERY_CENTER_DEBUG("Invalid token: expecting ", expected_token, ", got ", login_token);
+		return Response(Msg::ERR_INVALID_TOKEN) <<login_name;
+	}
+	if(utc_now < account->get_banned_until()){
+		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
+	}
+
+	WorldMap::forced_reload_map_objects_by_owner(account_uuid);
+
+	utc_now = Poseidon::get_utc_time();
+	get_signed_in(account);
+
+	PlayerSessionMap::add(account_uuid, session);
+
+	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
+	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
+	AccountMap::synchronize_account_with_player_all(account_uuid, session, true, true, true, { });
+
+	return Response();
+}
+// ============================================================================
+	}
+	MODULE_RAII(handles){
+		handles.push(PlayerSession::create_servlet(Msg::CS_AccountLogin::ID, &AccountLoginServlet));
 	}
 }
 
