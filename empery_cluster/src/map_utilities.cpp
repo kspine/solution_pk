@@ -29,7 +29,7 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 		if(occupied){
 			cell_owner_uuid = map_cell->get_occupier_owner_uuid();
 		}
-		if(cell_owner_uuid && (account_uuid != cell_owner_uuid)){
+		if(cell_owner_uuid && (account_uuid != cell_owner_uuid) && !map_cell->is_in_castle_protect()){
 			LOG_EMPERY_CLUSTER_TRACE("Blocked by a cell owned by another player's territory: cell_owner_uuid = ", cell_owner_uuid);
 			return CbppResponse(Msg::ERR_BLOCKED_BY_OTHER_TERRITORY) <<cell_owner_uuid;
 		}
