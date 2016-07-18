@@ -1,4 +1,4 @@
 activity_ID,activity_open,activity_open_time,activity_type,activity_target,drop
-3510001,0,3500002,1,"{""0"":10000}","{""liangbag1"":1,""mubag1"":1,""shibag1"":1}"
-3511001,3510001,3500002,2,"{""0"":10000}","{""liangbag1"":1,""mubag1"":1,""shibag1"":1}"
+3510001,0,3500002,1,"{""0"":100}","{""liangbag1"":1,""mubag1"":1,""shibag1"":1}"
+3511001,3510001,3500002,2,"{""0"":100}","{""liangbag1"":1,""mubag1"":1,""shibag1"":1}"
 3512001,3511001,3500002,3,"{""2605102"":1}","{""liangbag1"":1,""mubag1"":1,""shibag1"":1}"
