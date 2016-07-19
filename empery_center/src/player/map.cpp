@@ -1007,6 +1007,10 @@ PLAYER_SERVLET(Msg::CS_MapDestroyDefenseBuilding, account, session, req){
 	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
 	}
+	const auto garrisoning_object_uuid = defense_building->get_garrisoning_object_uuid();
+	if(garrisoning_object_uuid){
+		return Response(Msg::ERR_CANNOT_DESTORY_GARRISONED) <<map_object_uuid;
+	}
 
 	defense_building->pump_status();
 
