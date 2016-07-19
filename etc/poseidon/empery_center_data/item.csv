@@ -112,3 +112,4 @@ itemid,quality,class,type,value,canuse,cansee,init_count,autoinc_type,autoinc_ti
 2006002,2,17,2700002,480,0,1,0,none,0,0,0,0
 2006003,3,17,2700002,1440,0,1,0,none,0,0,0,0
 2211001,1,18,1103004,10000,0,1,0,none,0,0,0,0
+2100041,1,19,1,1440,0,1,0,none,0,0,0,0
