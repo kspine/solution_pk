@@ -670,9 +670,17 @@ _wounded_done:
 		try {
 			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
+				
+				if(attacked_object_type_id == MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS){
+					return;
+				}
 
 				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
 				if(!monster_type_data){
+					return;
+				}
+				static constexpr auto GOBLIN_WEAPON_ID = MapObjectWeaponId(2605001);
+				if(monster_type_data->map_object_weapon_id == GOBLIN_WEAPON_ID){
 					return;
 				}
 

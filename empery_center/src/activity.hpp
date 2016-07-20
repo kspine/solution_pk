@@ -8,6 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include "id_types.hpp"
 #include "player_session.hpp"
+#include "singletons/map_activity_accumulate_map.hpp"
 
 namespace EmperyCenter {
 class Activity : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis{
@@ -62,6 +63,7 @@ public:
 	void update_world_activity_schedule(Coord cluster_coord,WorldActivityId world_activity_id,AccountUuid account_uuid,std::uint64_t delta,bool boss_die = false);
 	void synchronize_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const;
 	bool settle_world_activity(Coord cluster_coord,std::uint64_t utc_now);
+	bool settle_world_activity_in_activity(Coord cluster_coord,std::uint64_t utc_now,std::vector<WorldActivityRankMap::WorldActivityRankInfo> &ret);
 	void synchronize_world_rank_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session);
 	void synchronize_world_boss_with_player(const Coord cluster_coord,const boost::shared_ptr<PlayerSession> &session);
 };

@@ -193,6 +193,8 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	std::uint64_t delay;
 	const auto speed = map_object_type_data->speed * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0;
 	if(speed <= 0){
+		LOG_EMPERY_CLUSTER_FATAL("speed <= 0,",speed, " map_object_type_data->speed:",map_object_type_data->speed," get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0,
+		" get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD):",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0);
 		delay = UINT64_MAX;
 	} else {
 		delay = static_cast<std::uint64_t>(std::round(1000 / speed));

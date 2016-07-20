@@ -548,6 +548,38 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 	}
 	return true;
 }
+bool WorldActivity::settle_world_activity_in_activity(Coord cluster_coord,std::uint64_t now,std::vector<WorldActivityRankMap::WorldActivityRankInfo> &ret){
+	std::uint64_t max_rank = Data::ActivityAward::get_max_activity_award_rank(ActivityIds::ID_WORLD_ACTIVITY.get());
+	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCountryStatics>>>();
+	{
+		std::ostringstream oss;
+		char str[256];
+		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(m_available_since), false);
+		oss <<"SELECT account_uuid,sum(accumulate_value) as accumulate_value FROM `Center_MapWorldActivityAccumulate` WHERE `since` = " << Poseidon::MySql::StringEscaper(str) << " and `cluster_x` = " << cluster_coord.x()  << " and `cluster_y` = " << cluster_coord.y() << " GROUP BY account_uuid order by accumulate_value desc limit " << max_rank;
+		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+				auto obj = boost::make_shared<MySql::Center_MapCountryStatics>();
+				obj->fetch(conn);
+				sink->emplace_back(std::move(obj));
+			}, "Center_MapWorldActivityRank", oss.str());
+		Poseidon::JobDispatcher::yield(promise, true);
+	}
+	if(sink->empty()){
+		return false;
+	}
+	std::uint64_t rank = 1;
+	for(auto it = sink->begin(); it != sink->end(); ++it,++rank){
+		WorldActivityRankMap::WorldActivityRankInfo info = {};
+		info.account_uuid     = AccountUuid((*it)->get_account_uuid());
+		info.cluster_coord    = cluster_coord;
+		info.since            = m_available_since;
+		info.rank             = rank;
+		info.accumulate_value = (*it)->get_accumulate_value();
+		info.process_date     = now;
+		ret.push_back(std::move(info));
+	}
+	return true;
+}
 
 void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session){
 	const auto utc_now = Poseidon::get_utc_time();
@@ -576,10 +608,15 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 		}
 		self_info = WorldActivityRankMap::get_account_rank(account_uuid,cluster_coord,m_available_since);
 	}
-	//活动期间排行榜为空
+	//活动期间排行榜为实时数据，不写入数据库
 	else
 	{
+		settle_world_activity_in_activity(cluster_coord,utc_now,ret);
 	}
+	std::sort(ret.begin(),ret.end(),
+	[](const WorldActivityRankMap::WorldActivityRankInfo &lhs, const WorldActivityRankMap::WorldActivityRankInfo &rhs){
+				return lhs.rank < rhs.rank;
+			});
 	msgRankList.rank = self_info.rank;
 	msgRankList.accumulate_value = self_info.accumulate_value;
 	if(session){
@@ -594,6 +631,11 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 				rank_item.leagues           = "";
 				rank_item.rank              = it->rank;
 				rank_item.accumulate_value  = it->accumulate_value;
+				//实时结算时，需要自己更新数据
+				if(account_uuid == it->account_uuid){
+					msgRankList.rank = it->rank;
+					msgRankList.accumulate_value = it->accumulate_value;
+				}
 			} catch (std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
