@@ -6,6 +6,7 @@
 #include "../castle.hpp"
 #include "../../../empery_center/src/msg/err_account.hpp"
 #include "../../../empery_center/src/msg/err_castle.hpp"
+#include "../controller_session.hpp"
 
 namespace EmperyController {
 
@@ -37,6 +38,13 @@ WORLD_SERVLET("query_castles", root, session, params){
 		castles_obj[SharedNts(castle->get_map_object_uuid().str())] = std::move(meta);
 	}
 	root[sslit("castles")] = std::move(castles_obj);
+
+	std::string last_logged_in_server_ip;
+	const auto controller = account->get_controller();
+	if(controller){
+		last_logged_in_server_ip = controller->get_remote_info().ip.get();
+	}
+	root[sslit("lastLoggedInServerIp")] = last_logged_in_server_ip;
 
 	return Response();
 }
