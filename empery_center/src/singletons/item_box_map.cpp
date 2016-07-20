@@ -6,6 +6,8 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/event_dispatcher.hpp>
+#include "../events/account.hpp"
 #include "../item_box.hpp"
 #include "../mysql/item.hpp"
 #include "account_map.hpp"
@@ -73,6 +75,10 @@ namespace {
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountInvalidate>(
+			[](const boost::shared_ptr<Events::AccountInvalidate> &event){ ItemBoxMap::unload(event->account_uuid); });
+		handles.push(listener);
 	}
 }
 
@@ -162,6 +168,26 @@ boost::shared_ptr<ItemBox> ItemBoxMap::require(AccountUuid account_uuid){
 		DEBUG_THROW(Exception, sslit("Item box not found"));
 	}
 	return ret;
+}
+void ItemBoxMap::unload(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto item_box_map = g_item_box_map.lock();
+	if(!item_box_map){
+		LOG_EMPERY_CENTER_WARNING("ItemBoxMap is not loaded.");
+		return;
+	}
+
+	const auto it = item_box_map->find<0>(account_uuid);
+	if(it == item_box_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Item box not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	item_box_map->set_key<0, 1>(it, 0);
+	it->promise.reset();
+	const auto now = Poseidon::get_fast_mono_clock();
+	gc_timer_proc(now);
 }
 
 }

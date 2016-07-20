@@ -6,6 +6,8 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/event_dispatcher.hpp>
+#include "../events/account.hpp"
 #include "../tax_record_box.hpp"
 #include "../mysql/tax_record.hpp"
 #include "account_map.hpp"
@@ -77,6 +79,10 @@ namespace {
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountInvalidate>(
+			[](const boost::shared_ptr<Events::AccountInvalidate> &event){ TaxRecordBoxMap::unload(event->account_uuid); });
+		handles.push(listener);
 	}
 }
 
@@ -153,6 +159,26 @@ boost::shared_ptr<TaxRecordBox> TaxRecordBoxMap::require(AccountUuid account_uui
 		DEBUG_THROW(Exception, sslit("Tax box not found"));
 	}
 	return ret;
+}
+void TaxRecordBoxMap::unload(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto tax_record_box_map = g_tax_record_box_map.lock();
+	if(!tax_record_box_map){
+		LOG_EMPERY_CENTER_WARNING("TaxRecordBoxMap is not loaded.");
+		return;
+	}
+
+	const auto it = tax_record_box_map->find<0>(account_uuid);
+	if(it == tax_record_box_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("TaxRecord box not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	tax_record_box_map->set_key<0, 1>(it, 0);
+	it->promise.reset();
+	const auto now = Poseidon::get_fast_mono_clock();
+	gc_timer_proc(now);
 }
 
 }

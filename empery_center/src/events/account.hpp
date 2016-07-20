@@ -60,6 +60,15 @@ namespace Events {
 		{
 		}
 	};
+
+	struct AccountInvalidate : public Poseidon::EventBase<340106> {
+		AccountUuid account_uuid;
+
+		explicit AccountInvalidate(AccountUuid account_uuid_)
+			: account_uuid(account_uuid_)
+		{
+		}
+	};
 }
 
 }
