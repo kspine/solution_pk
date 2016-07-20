@@ -6,6 +6,8 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/event_dispatcher.hpp>
+#include "../events/account.hpp"
 #include "../friend_box.hpp"
 #include "../mysql/friend.hpp"
 #include "account_map.hpp"
@@ -85,6 +87,10 @@ namespace {
 		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountInvalidate>(
+			[](const boost::shared_ptr<Events::AccountInvalidate> &event){ FriendBoxMap::unload(event->account_uuid); });
+		handles.push(listener);
 	}
 }
 

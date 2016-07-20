@@ -7,6 +7,8 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/event_dispatcher.hpp>
+#include "../events/account.hpp"
 #include "../mail_box.hpp"
 #include "../mail_data.hpp"
 #include "../mysql/mail.hpp"
@@ -136,6 +138,10 @@ namespace {
 		timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&data_gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountInvalidate>(
+			[](const boost::shared_ptr<Events::AccountInvalidate> &event){ MailBoxMap::unload(event->account_uuid); });
+		handles.push(listener);
 	}
 
 //	const auto GLOBAL_MAIL_ACCCOUNT_UUID = AccountUuid("10000000-F660-0008-CEF2-0DDD8AD2585C");
