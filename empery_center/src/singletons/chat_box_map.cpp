@@ -5,6 +5,8 @@
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/event_dispatcher.hpp>
+#include "../events/account.hpp"
 #include "../chat_box.hpp"
 #include "account_map.hpp"
 #include "../horn_message.hpp"
@@ -144,6 +146,10 @@ namespace {
 		timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&horn_gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountInvalidate>(
+			[](const boost::shared_ptr<Events::AccountInvalidate> &event){ ChatBoxMap::unload(event->account_uuid); });
+		handles.push(listener);
 	}
 
 	void synchronize_horn_message_with_cluster(const boost::shared_ptr<HornMessage> &horn_message) noexcept {
@@ -217,6 +223,25 @@ boost::shared_ptr<ChatBox> ChatBoxMap::require(AccountUuid account_uuid){
 		DEBUG_THROW(Exception, sslit("Chat box not found"));
 	}
 	return ret;
+}
+void ChatBoxMap::unload(AccountUuid account_uuid){
+	PROFILE_ME;
+
+	const auto chat_box_map = g_chat_box_map.lock();
+	if(!chat_box_map){
+		LOG_EMPERY_CENTER_WARNING("ChatBoxMap is not loaded.");
+		return;
+	}
+
+	const auto it = chat_box_map->find<0>(account_uuid);
+	if(it == chat_box_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Chat box not loaded: account_uuid = ", account_uuid);
+		return;
+	}
+
+	chat_box_map->set_key<0, 1>(it, 0);
+	const auto now = Poseidon::get_fast_mono_clock();
+	gc_timer_proc(now);
 }
 
 boost::shared_ptr<HornMessage> ChatBoxMap::get_horn_message(HornMessageUuid horn_message_uuid){

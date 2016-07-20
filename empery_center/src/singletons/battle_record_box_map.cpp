@@ -6,6 +6,8 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/event_dispatcher.hpp>
+#include "../events/account.hpp"
 #include "../battle_record_box.hpp"
 #include "../crate_record_box.hpp"
 #include "../mysql/battle_record.hpp"
@@ -142,6 +144,10 @@ namespace {
 		timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
 			std::bind(&crate_box_gc_timer_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		auto listener = Poseidon::EventDispatcher::register_listener<Events::AccountInvalidate>(
+			[](const boost::shared_ptr<Events::AccountInvalidate> &event){ BattleRecordBoxMap::unload(event->account_uuid); });
+		handles.push(listener);
 	}
 }
 
