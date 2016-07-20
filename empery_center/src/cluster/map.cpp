@@ -445,7 +445,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 
 		std::uint64_t capacity_used = 0;
 		std::vector<Castle::WoundedSoldierInfo> wounded_soldier_all;
-		parent_castle->get_all_wounded_soldiers(wounded_soldier_all);
+		parent_castle->get_wounded_soldiers_all(wounded_soldier_all);
 		for(auto it = wounded_soldier_all.begin(); it != wounded_soldier_all.end(); ++it){
 			capacity_used = checked_add(capacity_used, it->count);
 		}
@@ -781,7 +781,7 @@ _wounded_done:
 					const auto castle = boost::dynamic_pointer_cast<Castle>(attacked_object);
 					if(castle){
 						std::vector<Castle::ResourceInfo> resources;
-						castle->get_all_resources(resources);
+						castle->get_resources_all(resources);
 						std::vector<ResourceTransactionElement> transaction;
 						transaction.reserve(resources.size());
 						for(auto it = resources.begin(); it != resources.end(); ++it){

@@ -176,7 +176,7 @@ AuctionCenter::ItemInfo AuctionCenter::get_item(ItemId item_id) const {
 	fill_item_info(info, it->second);
 	return info;
 }
-void AuctionCenter::get_all_items(std::vector<AuctionCenter::ItemInfo> &ret) const {
+void AuctionCenter::get_items_all(std::vector<AuctionCenter::ItemInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_items.size());
@@ -333,7 +333,7 @@ void AuctionCenter::get_transfer(std::vector<AuctionCenter::TransferInfo> &ret, 
 		ret.emplace_back(std::move(info));
 	}
 }
-void AuctionCenter::get_all_transfers(std::vector<AuctionCenter::TransferInfo> &ret) const {
+void AuctionCenter::get_transfers_all(std::vector<AuctionCenter::TransferInfo> &ret) const {
 	PROFILE_ME;
 
 	for(auto tit = m_transfers.begin(); tit != m_transfers.end(); ++tit){

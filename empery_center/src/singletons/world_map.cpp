@@ -987,7 +987,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	synchronize_with_all_clusters(map_cell, coord, coord);
 }
 
-/*void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
+/*void WorldMap::get_map_cells_all(std::vector<boost::shared_ptr<MapCell>> &ret){
 	PROFILE_ME;
 
 	const auto map_cell_map = g_map_cell_map.lock();
@@ -1216,7 +1216,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	synchronize_with_controller(map_object, old_coord, new_coord);
 }
 
-void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret){
+void WorldMap::get_map_objects_all(std::vector<boost::shared_ptr<MapObject>> &ret){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -1901,7 +1901,7 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 	}
 	return std::move(cluster);
 }
-void WorldMap::get_all_clusters(std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> &ret){
+void WorldMap::get_clusters_all(std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> &ret){
 	PROFILE_ME;
 
 	const auto cluster_map = g_cluster_map.lock();
@@ -2278,7 +2278,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 	PROFILE_ME;
 
 	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-	get_all_clusters(clusters);
+	get_clusters_all(clusters);
 	if(clusters.empty()){
 		LOG_EMPERY_CENTER_WARNING("No clusters available");
 		return { };

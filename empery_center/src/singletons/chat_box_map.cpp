@@ -320,7 +320,7 @@ boost::shared_ptr<HornMessage> ChatBoxMap::forced_reload_horn_message(HornMessag
 	return std::move(horn_message);
 }
 
-void ChatBoxMap::get_all_horn_messages(std::vector<boost::shared_ptr<HornMessage>> &ret){
+void ChatBoxMap::get_horn_messages_all(std::vector<boost::shared_ptr<HornMessage>> &ret){
 	PROFILE_ME;
 
 	const auto horn_map = g_horn_map.lock();

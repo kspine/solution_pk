@@ -130,7 +130,7 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 			controller->go_resident();
 			try {
 				std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-				WorldMap::get_all_clusters(clusters);
+				WorldMap::get_clusters_all(clusters);
 				for(auto it = clusters.begin(); it != clusters.end(); ++it){
 					Poseidon::enqueue_async_job(
 						std::bind(&reallocate_cluster_server_aux,

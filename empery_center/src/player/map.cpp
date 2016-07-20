@@ -39,7 +39,7 @@ namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account, session, /* req */){
 	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-	WorldMap::get_all_clusters(clusters);
+	WorldMap::get_clusters_all(clusters);
 	const auto center_rectangle = WorldMap::get_cluster_scope(Coord(0, 0));
 
 	Msg::SC_MapWorldMapList msg;

@@ -91,7 +91,7 @@ boost::shared_ptr<PlayerSession> Dungeon::get_observer(AccountUuid account_uuid)
 	}
 	return std::move(session);
 }
-void Dungeon::get_all_observers(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const {
+void Dungeon::get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_observers.size());
@@ -187,7 +187,7 @@ boost::shared_ptr<DungeonObject> Dungeon::get_object(DungeonObjectUuid dungeon_o
 	}
 	return it->second;
 }
-void Dungeon::get_all_objects(std::vector<boost::shared_ptr<DungeonObject>> &ret) const {
+void Dungeon::get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_objects.size());
@@ -221,7 +221,7 @@ bool Dungeon::is_account_in(AccountUuid account_uuid) const {
 	}
 	return true;
 }
-void Dungeon::get_all_accounts(std::vector<AccountUuid> &ret) const {
+void Dungeon::get_accounts_all(std::vector<AccountUuid> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_accounts.size());

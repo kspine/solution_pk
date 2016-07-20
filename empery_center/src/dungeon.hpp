@@ -61,13 +61,13 @@ public:
 	void set_founder_uuid(AccountUuid founder_uuid);
 
 	boost::shared_ptr<PlayerSession> get_observer(AccountUuid account_uuid) const;
-	void get_all_observers(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;
+	void get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;
 	void insert_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 	bool remove_observer(AccountUuid account_uuid, QuitReason reason, const char *param) noexcept;
 	void clear_observers(QuitReason reason, const char *param) noexcept;
 
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
-	void get_all_objects(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
+	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
 

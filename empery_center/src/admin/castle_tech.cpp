@@ -17,7 +17,7 @@ ADMIN_SERVLET("castle_tech/get_all", root, session, params){
 	castle->pump_status();
 
 	std::vector<Castle::TechInfo> techs;
-	castle->get_all_techs(techs);
+	castle->get_techs_all(techs);
 
 	Poseidon::JsonObject elem_object;
 	for(auto it = techs.begin(); it != techs.end(); ++it){
