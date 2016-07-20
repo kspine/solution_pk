@@ -104,6 +104,8 @@ void DefenseBuilding::pump_status(){
 
 	MapObject::pump_status();
 
+	self_heal();
+
 	const auto utc_now = Poseidon::get_utc_time();
 
 	if(check_defense_building_mission(m_defense_obj, utc_now)){
@@ -156,8 +158,6 @@ _bunker_done:
 	;
 
 	set_attributes(std::move(modifiers));
-
-	self_heal();
 
 	MapObject::recalculate_attributes(recursive);
 }
