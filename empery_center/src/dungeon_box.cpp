@@ -17,7 +17,7 @@ namespace {
 		info.finish_count = obj->get_finish_count();
 	}
 
-	void fill_dungeon_message(Msg::SC_DungeonChanged &msg, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
+	void fill_dungeon_message(Msg::SC_DungeonScoreChanged &msg, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
 		msg.dungeon_type_id = obj->get_dungeon_type_id();
@@ -87,7 +87,7 @@ void DungeonBox::set(DungeonBox::DungeonInfo info){
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
-			Msg::SC_DungeonChanged msg;
+			Msg::SC_DungeonScoreChanged msg;
 			fill_dungeon_message(msg, obj);
 			session->send(msg);
 		} catch(std::exception &e){
@@ -111,7 +111,7 @@ bool DungeonBox::remove(DungeonTypeId dungeon_type_id) noexcept {
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
-			Msg::SC_DungeonChanged msg;
+			Msg::SC_DungeonScoreChanged msg;
 			fill_dungeon_message(msg, obj);
 			session->send(msg);
 		} catch(std::exception &e){
@@ -127,7 +127,7 @@ void DungeonBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> 
 	PROFILE_ME;
 
 	for(auto it = m_dungeons.begin(); it != m_dungeons.end(); ++it){
-		Msg::SC_DungeonChanged msg;
+		Msg::SC_DungeonScoreChanged msg;
 		fill_dungeon_message(msg, it->second);
 		session->send(msg);
 	}

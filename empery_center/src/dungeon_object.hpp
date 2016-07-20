@@ -9,8 +9,8 @@
 
 namespace EmperyCenter {
 
-class Dungeon;
 class PlayerSession;
+class DungeonSession;
 
 class DungeonObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -22,8 +22,7 @@ public:
 	};
 
 private:
-	const boost::weak_ptr<Dungeon> m_dungeon;
-
+	const DungeonUuid m_dungeon_uuid;
 	const DungeonObjectUuid m_dungeon_object_uuid;
 	const MapObjectTypeId m_map_object_type_id;
 	const AccountUuid m_owner_uuid;
@@ -38,17 +37,17 @@ private:
 	std::string m_action_param;
 
 public:
-	DungeonObject(const boost::shared_ptr<Dungeon> &dungeon,
-		DungeonObjectUuid dungeon_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, Coord coord);
+	DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
+		MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, Coord coord);
 	~DungeonObject();
 
 public:
 	virtual void pump_status();
+	virtual void recalculate_attributes(bool recursive);
 
-	boost::shared_ptr<Dungeon> get_dungeon() const {
-		return m_dungeon.lock();
+	DungeonUuid get_dungeon_uuid() const {
+		return m_dungeon_uuid;
 	}
-
 	DungeonObjectUuid get_dungeon_object_uuid() const {
 		return m_dungeon_object_uuid;
 	}
@@ -89,7 +88,9 @@ public:
 	}
 	void set_action(unsigned action, std::string action_param);
 
+	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_with_dungeon_server(const boost::shared_ptr<DungeonSession> &server) const;
 };
 
 inline void synchronize_dungeon_object_with_player(const boost::shared_ptr<const DungeonObject> &dungeon_object,
@@ -101,6 +102,16 @@ inline void synchronize_dungeon_object_with_player(const boost::shared_ptr<Dunge
 	const boost::shared_ptr<PlayerSession> &session)
 {
 	dungeon_object->synchronize_with_player(session);
+}
+inline void synchronize_dungeon_object_with_dungeon_server(const boost::shared_ptr<const DungeonObject> &dungeon_object,
+	const boost::shared_ptr<DungeonSession> &server)
+{
+	dungeon_object->synchronize_with_dungeon_server(server);
+}
+inline void synchronize_dungeon_object_with_dungeon_server(const boost::shared_ptr<DungeonObject> &dungeon_object,
+	const boost::shared_ptr<DungeonSession> &server)
+{
+	dungeon_object->synchronize_with_dungeon_server(server);
 }
 
 }

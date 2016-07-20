@@ -428,6 +428,7 @@ void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t
 		it = m_buffs.emplace(buff_id, std::move(obj)).first;
 	}
 	const auto &obj = it->second;
+
 	obj->set_duration(duration);
 	obj->set_time_begin(time_begin);
 	obj->set_time_end(saturated_add(time_begin, duration));
@@ -455,6 +456,7 @@ void MapObject::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 	}
 	const auto &obj = it->second;
 	const auto utc_now = Poseidon::get_utc_time();
+
 	const auto old_time_begin = obj->get_time_begin(), old_time_end = obj->get_time_end();
 	std::uint64_t new_time_begin, new_time_end;
 	if(utc_now < old_time_end){

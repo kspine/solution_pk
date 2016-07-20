@@ -306,5 +306,9 @@ void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 
 	
 }
+void Dungeon::synchronize_with_dungeon_server(const boost::shared_ptr<DungeonSession> &server) const {
+	PROFILE_ME;
+
+}
 */
 }

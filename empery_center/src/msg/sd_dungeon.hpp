@@ -20,11 +20,12 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SD_DungeonInsertObject
+#define MESSAGE_NAME    SD_DungeonObjectInfo
 #define MESSAGE_ID      50097
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_STRING        (dungeon_object_uuid)	\
+	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_STRING        (owner_uuid)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
@@ -39,7 +40,7 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SD_DungeonRemoveObject
+#define MESSAGE_NAME    SD_DungeonObjectRemoved
 #define MESSAGE_ID      50096
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
