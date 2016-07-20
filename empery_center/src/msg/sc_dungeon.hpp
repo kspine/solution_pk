@@ -24,7 +24,9 @@ namespace Msg {
 #define MESSAGE_NAME    SC_DungeonLeft
 #define MESSAGE_ID      1597
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (dungeon_uuid)
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (reason)	\
+	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

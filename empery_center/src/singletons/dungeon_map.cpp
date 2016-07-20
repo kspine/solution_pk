@@ -43,20 +43,18 @@ namespace {
 			return;
 		}
 
-		for(;;){
-			const auto it = dungeon_map->begin<2>();
-			if(it == dungeon_map->end<2>()){
-				break;
-			}
-			if(now < it->expiry_time){
-				break;
-			}
+		const auto utc_now = Poseidon::get_utc_time();
+		const auto range = std::make_pair(dungeon_map->begin<2>(), dungeon_map->upper_bound<2>(utc_now));
 
-			LOG_EMPERY_CENTER_DEBUG("Reclaiming dungeon: dungeon_uuid = ", it->dungeon_uuid);
-			const auto dungeon = it->dungeon;
-			dungeon_map->erase<2>(it);
-
-			dungeon->clear();
+		std::vector<boost::shared_ptr<Dungeon>> dungeons_to_delete;
+		dungeons_to_delete.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			dungeons_to_delete.emplace_back(it->dungeon);
+		}
+		for(auto it = dungeons_to_delete.begin(); it != dungeons_to_delete.end(); ++it){
+			const auto &dungeon = *it;
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming dungeon: dungeon_uuid = ", dungeon->get_dungeon_uuid());
+			// cleanup
 		}
 	}
 

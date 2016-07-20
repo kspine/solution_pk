@@ -132,5 +132,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/resource_crate.cpp	\
 	src/dungeon_box.cpp	\
 	src/dungeon.cpp	\
+	src/dungeon_object.cpp	\
 	src/friend_box.cpp	\
 	src/mmain.cpp

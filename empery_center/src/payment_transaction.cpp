@@ -190,6 +190,7 @@ void PaymentTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, cons
 			mail_info.system      = true;
             mail_box->insert(std::move(mail_info));
 
+			m_obj->set_expiry_time(0);
 			m_obj->set_last_updated_time(utc_now);
 			m_obj->set_committed(true);
 			m_obj->set_operation_remarks(std::move(operation_remarks));
@@ -213,6 +214,7 @@ void PaymentTransaction::cancel(std::string operation_remarks){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
+	m_obj->set_expiry_time(0);
 	m_obj->set_last_updated_time(utc_now);
 	m_obj->set_cancelled(true);
 	m_obj->set_operation_remarks(std::move(operation_remarks));
