@@ -4,6 +4,7 @@
 #include "../auction_transaction.hpp"
 #include "../singletons/auction_transaction_map.hpp"
 #include "../singletons/account_map.hpp"
+#include "../singletons/item_box_map.hpp"
 #include "../singletons/mail_box_map.hpp"
 #include "../singletons/auction_center_map.hpp"
 
@@ -21,6 +22,7 @@ AUCTION_SERVLET("commit_bill", root, session, params){
 
 	AccountMap::require_controller_token(account_uuid);
 
+	const auto item_box = ItemBoxMap::require(account_uuid);
 	const auto mail_box = MailBoxMap::require(account_uuid);
 	const auto auction_center = AuctionCenterMap::require(account_uuid);
 
@@ -36,7 +38,7 @@ AUCTION_SERVLET("commit_bill", root, session, params){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_COMMITTED);
 	}
 
-	auction_transaction->commit(mail_box, auction_center, remarks);
+	auction_transaction->commit(item_box, mail_box, auction_center, remarks);
 
 	return Response();
 }
