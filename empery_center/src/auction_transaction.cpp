@@ -5,6 +5,7 @@
 #include "auction_center.hpp"
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
+#include "item_box.hpp"
 #include "mail_box.hpp"
 #include "mail_data.hpp"
 #include "chat_message_type_ids.hpp"
@@ -91,8 +92,8 @@ bool AuctionTransaction::has_been_cancelled() const {
 const std::string &AuctionTransaction::get_operation_remarks() const {
 	return m_obj->unlocked_get_operation_remarks();
 }
-void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, const boost::shared_ptr<AuctionCenter> &auction_center,
-	std::string operation_remarks)
+void AuctionTransaction::commit(const boost::shared_ptr<ItemBox> &item_box, const boost::shared_ptr<MailBox> &mail_box,
+	const boost::shared_ptr<AuctionCenter> &auction_center, std::string operation_remarks)
 {
 	PROFILE_ME;
 
@@ -126,11 +127,9 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_BOX_ID,    boost::lexical_cast<std::string>(item_id));
 			segments.emplace_back(ChatMessageSlotIds::ID_AUCTION_ITEM_BOX_COUNT, boost::lexical_cast<std::string>(item_box_count));
 
-			boost::container::flat_map<ItemId, std::uint64_t> attachments;
-			attachments.emplace(item_id, item_box_count);
-
 			const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-				ChatMessageTypeIds::ID_AUCTION_RESULT, AccountUuid(), std::string(), std::move(segments), std::move(attachments));
+				ChatMessageTypeIds::ID_AUCTION_RESULT, AccountUuid(), std::string(), std::move(segments),
+				boost::container::flat_map<ItemId, std::uint64_t>());
 			MailBoxMap::insert_mail_data(mail_data);
 
 			MailBox::MailInfo mail_info = { };
@@ -139,16 +138,26 @@ void AuctionTransaction::commit(const boost::shared_ptr<MailBox> &mail_box, cons
 			mail_info.system      = true;
 			mail_box->insert(std::move(mail_info));
 
-			m_obj->set_last_updated_time(utc_now);
-			m_obj->set_committed(true);
-			m_obj->set_operation_remarks(std::move(operation_remarks));
+			std::vector<ItemTransactionElement> transaction;
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, item_box_count,
+				ReasonIds::ID_AUCTION_CENTER_BUY, 0, 0, 0);
+			item_box->commit_transaction(transaction, false,
+				[&]{
+					m_obj->set_last_updated_time(utc_now);
+					m_obj->set_committed(true);
+					m_obj->set_operation_remarks(std::move(operation_remarks));
+				});
 		}
 		break;
 
 	case OP_TRANSFER_OUT:
 		{
+			const auto item_id = get_item_id();
+			const auto item_data = Data::Item::require(item_id);
+			const auto item_box_count = get_item_count();
+
 			std::vector<AuctionTransactionElement> transaction;
-			transaction.emplace_back(AuctionTransactionElement::OP_REMOVE, get_item_id(), get_item_count(),
+			transaction.emplace_back(AuctionTransactionElement::OP_REMOVE, item_id, item_box_count,
 				ReasonIds::ID_AUCTION_CENTER_WITHDRAW, 0, 0, 0);
 			auction_center->commit_item_transaction(transaction,
 				[&]{
