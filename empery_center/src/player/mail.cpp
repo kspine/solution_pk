@@ -52,7 +52,7 @@ PLAYER_SERVLET(Msg::CS_MailGetMailData, account, session, req){
 				mail_box->update(std::move(info));
 			}
 		}
-		synchronize_mail_data_with_player(mail_data, session);
+		mail_data->synchronize_with_player(session);
 	}
 
 	return Response();

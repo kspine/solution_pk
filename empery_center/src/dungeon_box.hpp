@@ -60,17 +60,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_dungeon_box_with_player(const boost::shared_ptr<const DungeonBox> &dungeon_box,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	dungeon_box->synchronize_with_player(session);
-}
-inline void synchronize_dungeon_box_with_player(const boost::shared_ptr<DungeonBox> &dungeon_box,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	dungeon_box->synchronize_with_player(session);
-}
-
 }
 
 #endif

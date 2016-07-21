@@ -73,17 +73,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_account_with_player(const boost::shared_ptr<const Account> &account,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	account->synchronize_with_player(session);
-}
-inline void synchronize_account_with_player(const boost::shared_ptr<Account> &account,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	account->synchronize_with_player(session);
-}
-
 }
 
 #endif

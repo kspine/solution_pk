@@ -588,7 +588,7 @@ void AccountMap::insert(const boost::shared_ptr<Account> &account, const std::st
 	const auto session = PlayerSessionMap::get(account_uuid);
 	if(session){
 		try {
-			synchronize_account_with_player(account, session);
+			account->synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -628,7 +628,7 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 	const auto session = PlayerSessionMap::get(account_uuid);
 	if(session){
 		try {
-			synchronize_account_with_player(account, session);
+			account->synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());

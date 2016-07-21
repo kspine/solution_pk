@@ -135,7 +135,7 @@ PLAYER_SERVLET(Msg::CS_ChatGetMessages, account, session, req){
 		if(!message){
 			continue;
 		}
-		synchronize_chat_message_with_player(message, session);
+		message->synchronize_with_player(session);
 	}
 
 	return Response();

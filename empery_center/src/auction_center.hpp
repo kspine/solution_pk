@@ -86,17 +86,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_auction_center_with_player(const boost::shared_ptr<const AuctionCenter> &auction_center,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	auction_center->synchronize_with_player(session);
-}
-inline void synchronize_auction_center_with_player(const boost::shared_ptr<AuctionCenter> &auction_center,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	auction_center->synchronize_with_player(session);
-}
-
 }
 
 #endif
