@@ -59,17 +59,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_chat_message_with_player(const boost::shared_ptr<const ChatMessage> &chat_message,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	chat_message->synchronize_with_player(session);
-}
-inline void synchronize_chat_message_with_player(const boost::shared_ptr<ChatMessage> &chat_message,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	chat_message->synchronize_with_player(session);
-}
-
 extern void presend_chat_message_segments(const std::vector<std::pair<ChatMessageSlotId, std::string>> &segments,
 	const boost::shared_ptr<PlayerSession> &session);
 

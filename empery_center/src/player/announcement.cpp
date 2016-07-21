@@ -15,7 +15,7 @@ PLAYER_SERVLET(Msg::CS_AnnouncementGetAnnouncements, account, session, req){
 	AnnouncementMap::get_by_language_id(announcements, LanguageId());
 	for(auto it = announcements.begin(); it != announcements.end(); ++it){
 		const auto &announcement = *it;
-		synchronize_announcement_with_player(announcement, session);
+		announcement->synchronize_with_player(session);
 	}
 
 	return Response();

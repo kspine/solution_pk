@@ -497,7 +497,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMyCastleList, account, session, /* req */){
 		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
 			continue;
 		}
-		synchronize_map_object_with_player(map_object, session);
+		map_object->synchronize_with_player(session);
 	}
 
 	return Response();

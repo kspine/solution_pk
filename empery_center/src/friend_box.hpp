@@ -73,17 +73,6 @@ public:
 	bool remove_async_request(Poseidon::Uuid transaction_uuid) noexcept;
 };
 
-inline void synchronize_friend_box_with_player(const boost::shared_ptr<const FriendBox> &friend_box,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	friend_box->synchronize_with_player(session);
-}
-inline void synchronize_friend_box_with_player(const boost::shared_ptr<FriendBox> &friend_box,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	friend_box->synchronize_with_player(session);
-}
-
 }
 
 #endif

@@ -61,7 +61,7 @@ namespace {
 		for(auto it = online_players.begin(); it != online_players.end(); ++it){
 			const auto &session = it->second;
 			try {
-				synchronize_announcement_with_player(announcement, session);
+				announcement->synchronize_with_player(session);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 				session->shutdown(e.what());

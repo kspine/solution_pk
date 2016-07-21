@@ -54,17 +54,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_mail_data_with_player(const boost::shared_ptr<const MailData> &mail_data,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	mail_data->synchronize_with_player(session);
-}
-inline void synchronize_mail_data_with_player(const boost::shared_ptr<MailData> &mail_data,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	mail_data->synchronize_with_player(session);
-}
-
 }
 
 #endif

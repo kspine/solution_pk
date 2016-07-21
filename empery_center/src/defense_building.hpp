@@ -64,17 +64,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_defense_building_with_player(const boost::shared_ptr<const DefenseBuilding> &defense_building,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	defense_building->synchronize_with_player(session);
-}
-inline void synchronize_defense_building_with_player(const boost::shared_ptr<DefenseBuilding> &defense_building,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	defense_building->synchronize_with_player(session);
-}
-
 }
 
 #endif
