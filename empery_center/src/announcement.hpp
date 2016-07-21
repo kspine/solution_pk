@@ -47,17 +47,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_announcement_with_player(const boost::shared_ptr<const Announcement> &announcement,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	announcement->synchronize_with_player(session);
-}
-inline void synchronize_announcement_with_player(const boost::shared_ptr<Announcement> &announcement,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	announcement->synchronize_with_player(session);
-}
-
 }
 
 #endif

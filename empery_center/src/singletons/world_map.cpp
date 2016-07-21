@@ -938,7 +938,7 @@ void WorldMap::insert_map_cell(const boost::shared_ptr<MapCell> &map_cell){
 	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
-			synchronize_map_cell_with_player(map_cell, session);
+			map_cell->synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -977,7 +977,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
-			synchronize_map_cell_with_player(map_cell, session);
+			map_cell->synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -1159,7 +1159,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
-			synchronize_map_object_with_player(map_object, session);
+			map_object->synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -1205,7 +1205,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	const auto session = PlayerSessionMap::get(owner_uuid);
 	if(session){
 		try {
-			synchronize_map_object_with_player(map_object, session);
+			map_object->synchronize_with_player(session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -1832,7 +1832,7 @@ try {
 		if(map_cell->is_virtually_removed()){
 			continue;
 		}
-		synchronize_map_cell_with_player(map_cell, session);
+		map_cell->synchronize_with_player(session);
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
@@ -1845,7 +1845,7 @@ try {
 		if(map_object->is_garrisoned()){
 			continue;
 		}
-		synchronize_map_object_with_player(map_object, session);
+		map_object->synchronize_with_player(session);
 	}
 
 	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
@@ -1855,7 +1855,7 @@ try {
 		if(strategic_resource->is_virtually_removed()){
 			continue;
 		}
-		synchronize_strategic_resource_with_player(strategic_resource, session);
+		strategic_resource->synchronize_with_player(session);
 	}
 
 	std::vector<boost::shared_ptr<ResourceCrate>> resource_crates;
@@ -1865,7 +1865,7 @@ try {
 		if(resource_crate->is_virtually_removed()){
 			continue;
 		}
-		synchronize_resource_crate_with_player(resource_crate, session);
+		resource_crate->synchronize_with_player(session);
 	}
 } catch(std::exception &e){
 	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -2166,7 +2166,7 @@ try {
 		if(map_cell->is_virtually_removed()){
 			continue;
 		}
-		synchronize_map_cell_with_cluster(map_cell, cluster);
+		map_cell->synchronize_with_cluster(cluster);
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
@@ -2176,7 +2176,7 @@ try {
 		if(map_object->is_virtually_removed()){
 			continue;
 		}
-		synchronize_map_object_with_cluster(map_object, cluster);
+		map_object->synchronize_with_cluster(cluster);
 	}
 
 	std::vector<boost::shared_ptr<ResourceCrate>> resource_crates;
@@ -2186,7 +2186,7 @@ try {
 		if(resource_crate->is_virtually_removed()){
 			continue;
 		}
-		synchronize_resource_crate_with_cluster(resource_crate, cluster);
+		resource_crate->synchronize_with_cluster(cluster);
 	}
 } catch(std::exception &e){
 	LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

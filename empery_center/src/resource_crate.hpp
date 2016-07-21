@@ -53,28 +53,6 @@ public:
 	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
 };
 
-inline void synchronize_resource_crate_with_player(const boost::shared_ptr<const ResourceCrate> &resource_crate,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	resource_crate->synchronize_with_player(session);
-}
-inline void synchronize_resource_crate_with_player(const boost::shared_ptr<ResourceCrate> &resource_crate,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	resource_crate->synchronize_with_player(session);
-}
-
-inline void synchronize_resource_crate_with_cluster(const boost::shared_ptr<const ResourceCrate> &resource_crate,
-	const boost::shared_ptr<ClusterSession> &cluster)
-{
-	resource_crate->synchronize_with_cluster(cluster);
-}
-inline void synchronize_resource_crate_with_cluster(const boost::shared_ptr<ResourceCrate> &resource_crate,
-	const boost::shared_ptr<ClusterSession> &cluster)
-{
-	resource_crate->synchronize_with_cluster(cluster);
-}
-
 }
 
 #endif

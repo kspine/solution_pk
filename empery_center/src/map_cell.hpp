@@ -113,27 +113,6 @@ public:
 	void synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &cluster) const;
 };
 
-inline void synchronize_map_cell_with_player(const boost::shared_ptr<const MapCell> &map_cell,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	map_cell->synchronize_with_player(session);
-}
-inline void synchronize_map_cell_with_player(const boost::shared_ptr<MapCell> &map_cell,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	map_cell->synchronize_with_player(session);
-}
-inline void synchronize_map_cell_with_cluster(const boost::shared_ptr<const MapCell> &map_cell,
-	const boost::shared_ptr<ClusterSession> &cluster)
-{
-	map_cell->synchronize_with_cluster(cluster);
-}
-inline void synchronize_map_cell_with_cluster(const boost::shared_ptr<MapCell> &map_cell,
-	const boost::shared_ptr<ClusterSession> &cluster)
-{
-	map_cell->synchronize_with_cluster(cluster);
-}
-
 }
 
 #endif

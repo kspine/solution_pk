@@ -233,17 +233,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_castle_with_player(const boost::shared_ptr<const Castle> &castle,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	castle->synchronize_with_player(session);
-}
-inline void synchronize_castle_with_player(const boost::shared_ptr<Castle> &castle,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	castle->synchronize_with_player(session);
-}
-
 }
 
 #endif

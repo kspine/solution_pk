@@ -93,27 +93,6 @@ public:
 	void synchronize_with_dungeon_server(const boost::shared_ptr<DungeonSession> &server) const;
 };
 
-inline void synchronize_dungeon_object_with_player(const boost::shared_ptr<const DungeonObject> &dungeon_object,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	dungeon_object->synchronize_with_player(session);
-}
-inline void synchronize_dungeon_object_with_player(const boost::shared_ptr<DungeonObject> &dungeon_object,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	dungeon_object->synchronize_with_player(session);
-}
-inline void synchronize_dungeon_object_with_dungeon_server(const boost::shared_ptr<const DungeonObject> &dungeon_object,
-	const boost::shared_ptr<DungeonSession> &server)
-{
-	dungeon_object->synchronize_with_dungeon_server(server);
-}
-inline void synchronize_dungeon_object_with_dungeon_server(const boost::shared_ptr<DungeonObject> &dungeon_object,
-	const boost::shared_ptr<DungeonSession> &server)
-{
-	dungeon_object->synchronize_with_dungeon_server(server);
-}
-
 }
 
 #endif

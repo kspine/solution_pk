@@ -50,17 +50,6 @@ public:
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 
-inline void synchronize_strategic_resource_with_player(const boost::shared_ptr<const StrategicResource> &strategic_resource,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	strategic_resource->synchronize_with_player(session);
-}
-inline void synchronize_strategic_resource_with_player(const boost::shared_ptr<StrategicResource> &strategic_resource,
-	const boost::shared_ptr<PlayerSession> &session)
-{
-	strategic_resource->synchronize_with_player(session);
-}
-
 }
 
 #endif
