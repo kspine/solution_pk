@@ -42,6 +42,9 @@ private:
 	template<class MessageT>
 	void broadcast_to_observers(const MessageT &msg);
 
+	void synchronize_with_all_observers(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept;
+	void synchronize_with_dungeon_server(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept;
+
 public:
 	virtual void pump_status();
 

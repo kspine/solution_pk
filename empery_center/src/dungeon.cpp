@@ -62,6 +62,35 @@ void Dungeon::broadcast_to_observers(const MessageT &msg){
 	broadcast_to_observers(MessageT::ID, Poseidon::StreamBuffer(msg));
 }
 
+void Dungeon::synchronize_with_all_observers(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept {
+	PROFILE_ME;
+
+	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
+		const auto session = it->second.lock();
+		if(session){
+			try {
+				dungeon_object->synchronize_with_player(session);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+	}
+}
+void Dungeon::synchronize_with_dungeon_server(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept {
+	PROFILE_ME;
+
+	const auto server = m_server.lock();
+	if(server){
+		try {
+			dungeon_object->synchronize_with_dungeon_server(server);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			server->shutdown(e.what());
+		}
+	}
+}
+
 void Dungeon::pump_status(){
 	PROFILE_ME;
 
@@ -194,111 +223,65 @@ void Dungeon::get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret
 	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
 		ret.emplace_back(it->second);
 	}
-}/*
+}
 void Dungeon::insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object){
 	PROFILE_ME;
 
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_object->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_CENTER_WARNING("This dungeon object does not belong to this dungeon!");
+		DEBUG_THROW(Exception, sslit("This dungeon object does not belong to this dungeon"));
+	}
+
+	const auto dungeon_object_uuid = dungeon_object->get_dungeon_object_uuid();
+
+	if(dungeon_object->is_virtually_removed()){
+		LOG_EMPERY_CENTER_WARNING("Dungeon object has been marked as deleted: dungeon_object_uuid = ", dungeon_object_uuid);
+		DEBUG_THROW(Exception, sslit("Dongeon object has been marked as deleted"));
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Inserting dungeon object: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", dungeon_uuid);
+	const auto result = m_objects.emplace(dungeon_object_uuid, dungeon_object);
+	if(!result.second){
+		LOG_EMPERY_CENTER_WARNING("Dungeon object already exists: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", dungeon_uuid);
+		DEBUG_THROW(Exception, sslit("Dungeon object already exists"));
+	}
+
+	synchronize_with_all_observers(dungeon_object);
+	synchronize_with_dungeon_server(dungeon_object);
 }
 void Dungeon::update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists){
 	PROFILE_ME;
 
-
-}
-*/
-void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
-	PROFILE_ME;
-
-	
-}
-
-/*
-bool Dungeon::is_account_in(AccountUuid account_uuid) const {
-	PROFILE_ME;
-
-	const auto it = m_accounts.find(account_uuid);
-	if(it == m_accounts.end()){
-		return false;
-	}
-	return true;
-}
-void Dungeon::get_accounts_all(std::vector<AccountUuid> &ret) const {
-	PROFILE_ME;
-
-	ret.reserve(ret.size() + m_accounts.size());
-	for(auto it = m_accounts.begin(); it != m_accounts.end(); ++it){
-		ret.emplace_back(*it);
-	}
-}
-void Dungeon::insert_account(AccountUuid account_uuid){
-	PROFILE_ME;
-
-	const auto result = m_accounts.insert(account_uuid);
-	if(!result.second){
-		LOG_EMPERY_CENTER_WARNING("Account conflict: dungeon_uuid = ", get_dungeon_uuid(), ", account_uuid = ", account_uuid);
-		DEBUG_THROW(Exception, sslit("Account conflict"));
-	}
-
-	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
-
-	const auto session = PlayerSessionMap::get(account_uuid);
-	if(session){
-		try {
-			Msg::SC_DungeonEntered msg;
-			msg.dungeon_uuid    = get_dungeon_uuid().str();
-			msg.dungeon_type_id = get_dungeon_type_id().get();
-			session->send(msg);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_object->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_CENTER_WARNING("This dungeon object does not belong to this dungeon!");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("This dungeon object does not belong to this dungeon"));
 		}
+		return;
 	}
-}
-bool Dungeon::remove_account(AccountUuid account_uuid) noexcept {
-	PROFILE_ME;
 
-	const auto it = m_accounts.find(account_uuid);
-	if(it == m_observers.end()){
-		return false;
-	}
-	m_observers.erase(it);
+	const auto dungeon_object_uuid = dungeon_object->get_dungeon_object_uuid();
 
-	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
-
-	const auto session = PlayerSessionMap::get(account_uuid);
-	if(session){
-		try {
-			Msg::SC_DungeonLeft msg;
-			msg.dungeon_uuid    = get_dungeon_uuid().str();
-			session->send(msg);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
+	const auto it = m_objects.find(dungeon_object_uuid);
+	if(it == m_objects.end()){
+		LOG_EMPERY_CENTER_TRACE("Dungeon object not found: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", dungeon_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Dungeon object not found"));
 		}
+		return;
 	}
 
-	return true;
-}
-void Dungeon::clear() noexcept {
-	PROFILE_ME;
-
-	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
-		const auto account_uuid = *it;
-
-		const auto session = PlayerSessionMap::get(account_uuid);
-		if(session){
-			try {
-				Msg::SC_DungeonLeft msg;
-				msg.dungeon_uuid    = get_dungeon_uuid().str();
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
+	LOG_EMPERY_CENTER_TRACE("Updating dungeon object: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", dungeon_uuid);
+	if(dungeon_object->is_virtually_removed()){
+		m_objects.erase(it);
+	} else {
+		//
 	}
-	m_observers.clear();
 
-	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
+	synchronize_with_all_observers(dungeon_object);
+	synchronize_with_dungeon_server(dungeon_object);
 }
 
 void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
@@ -306,9 +289,5 @@ void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 
 	
 }
-void Dungeon::synchronize_with_dungeon_server(const boost::shared_ptr<DungeonSession> &server) const {
-	PROFILE_ME;
 
-}
-*/
 }
