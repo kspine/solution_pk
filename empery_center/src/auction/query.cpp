@@ -13,6 +13,10 @@
 #include "../data/item.hpp"
 #include "../data/castle.hpp"
 #include "../map_object_type_ids.hpp"
+#include "../singletons/world_map.hpp"
+#include "../data/map.hpp"
+#include "../resource_ids.hpp"
+#include "../map_cell.hpp"
 
 namespace EmperyCenter {
 
@@ -148,6 +152,41 @@ AUCTION_SERVLET("query/account", root, session, params){
 			elem_castle[sslit("name")] = castle->get_name();
 			elem_castle[sslit("level")] = castle->get_level();
 
+			boost::container::flat_map<ResourceId, std::uint64_t> protection_cost_total;
+			protection_cost_total.reserve(4);
+			{
+				const auto castle_level = castle->get_level();
+				const auto upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
+				const auto &protection_cost = upgrade_data->protection_cost;
+				for(auto it = protection_cost.begin(); it != protection_cost.end(); ++it){
+					auto &amount_total = protection_cost_total[it->first];
+					amount_total = checked_add(amount_total, it->second);
+				}
+
+				std::vector<boost::shared_ptr<MapCell>> map_cells;
+				WorldMap::get_map_cells_by_parent_object(map_cells, castle->get_map_object_uuid());
+				for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+					const auto &map_cell = *it;
+					if(!map_cell->is_protectable()){
+						continue;
+					}
+					const auto coord = map_cell->get_coord();
+					const auto cluster_scope = WorldMap::get_cluster_scope(coord);
+					const auto basic_data = Data::MapCellBasic::require(static_cast<unsigned>(coord.x() - cluster_scope.left()),
+				                                                    	static_cast<unsigned>(coord.y() - cluster_scope.bottom()));
+					const auto terrain_data = Data::MapTerrain::require(basic_data->terrain_id);
+					auto &amount_total = protection_cost_total[ResourceIds::ID_SPRING_WATER];
+					amount_total = checked_add(amount_total, terrain_data->protection_cost);
+				}
+			}
+			Poseidon::JsonObject elem_protection_cost_total;
+			for(auto it = protection_cost_total.begin(); it != protection_cost_total.end(); ++it){
+				char str[64];
+				unsigned len = (unsigned)std::sprintf(str, "%llu", (unsigned long long)it->first.get());
+				elem_protection_cost_total[SharedNts(str, len)] = it->second;
+			}
+			elem_castle[sslit("protection_cost_total")] = std::move(elem_protection_cost_total);
+
 			elem_castles[boost::lexical_cast<SharedNts>(castle->get_map_object_uuid())] = std::move(elem_castle);
 		}
 
@@ -169,7 +208,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 				LOG_EMPERY_CENTER_DEBUG("Item data not found: account_uuid = ", item_box->get_account_uuid(), ", item_id = ", item_id);
 				continue;
 			}
-			if(item_data->type.first != Data::Item::CAT_CURRENCY){
+			if((item_data->type.first != Data::Item::CAT_CURRENCY) && (item_data->type.first != Data::Item::CAT_RESOURCE_BOX)){
 				continue;
 			}
 			char str[64];

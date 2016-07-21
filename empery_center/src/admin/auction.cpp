@@ -5,6 +5,7 @@
 #include "../auction_transaction.hpp"
 #include "../singletons/account_map.hpp"
 #include "../account.hpp"
+#include "../singletons/item_box_map.hpp"
 #include "../singletons/mail_box_map.hpp"
 #include "../singletons/auction_center_map.hpp"
 #include "../account_utilities.hpp"
@@ -62,6 +63,7 @@ ADMIN_SERVLET("auction/commit_transaction", root, session, params){
 	const auto account_uuid = auction_transaction->get_account_uuid();
 	AccountMap::require_controller_token(account_uuid);
 
+	const auto item_box = ItemBoxMap::require(account_uuid);
 	const auto mail_box = MailBoxMap::require(account_uuid);
 	const auto auction_center = AuctionCenterMap::require(account_uuid);
 
@@ -76,7 +78,7 @@ ADMIN_SERVLET("auction/commit_transaction", root, session, params){
 		return Response(Msg::ERR_AUCTION_TRANSACTION_EXPIRED) <<serial;
 	}
 
-	auction_transaction->commit(mail_box, auction_center, remarks);
+	auction_transaction->commit(item_box, mail_box, auction_center, remarks);
 
 	return Response();
 }
