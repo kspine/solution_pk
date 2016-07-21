@@ -1972,7 +1972,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e_.what());	\
 				}	\
 			});	\
-		if(++concurrency_counter >= 100){	\
+		if(++concurrency_counter >= 1000){	\
 			LOG_EMPERY_CENTER_DEBUG("Too many async requests have been enqueued. Yielding...");	\
 			const auto promise_ = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();	\
 			Poseidon::JobDispatcher::yield(promise_, true);	\
