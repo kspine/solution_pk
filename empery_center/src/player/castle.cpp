@@ -1482,7 +1482,6 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	if(!new_cluster){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
 	}
-	
 	const auto world_activity = ActivityMap::get_world_activity();
 	if(world_activity && world_activity->is_on()){
 		auto old_cluster_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
