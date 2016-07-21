@@ -1482,7 +1482,6 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	if(!new_cluster){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
 	}
-	
 	const auto world_activity = ActivityMap::get_world_activity();
 	if(world_activity && world_activity->is_on()){
 		auto old_cluster_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
@@ -1501,6 +1500,9 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	}
 	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
 		return Response(Msg::ERR_PROTECTION_IN_PROGRESS) <<map_object_uuid;
+	}
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+		return Response(Msg::ERR_PROTECTION_PREPARATION_IN_PROGRESS) <<map_object_uuid;
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
@@ -1957,7 +1959,6 @@ PLAYER_SERVLET(Msg::CS_CastleSetName, account, session, req){
 		const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_NAME_MODIFICATION_TRADE_ID));
 		const auto trade_data = Data::ItemTrade::require(trade_id);
 		Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
-	} else {
 		modifiers[AccountAttributeIds::ID_FIRST_CASTLE_NAME_SET] = "1";
 	}
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,

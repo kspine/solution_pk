@@ -549,13 +549,13 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 	return true;
 }
 bool WorldActivity::settle_world_activity_in_activity(Coord cluster_coord,std::uint64_t now,std::vector<WorldActivityRankMap::WorldActivityRankInfo> &ret){
-	std::uint64_t max_rank = Data::ActivityAward::get_max_activity_award_rank(ActivityIds::ID_WORLD_ACTIVITY.get());
+	const auto rank_threshold = Data::Global::as_unsigned(Data::Global::SLOT_WORLD_ACTIVITY_RANK_THRESHOLD);
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCountryStatics>>>();
 	{
 		std::ostringstream oss;
 		char str[256];
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(m_available_since), false);
-		oss <<"SELECT account_uuid,sum(accumulate_value) as accumulate_value FROM `Center_MapWorldActivityAccumulate` WHERE `since` = " << Poseidon::MySql::StringEscaper(str) << " and `cluster_x` = " << cluster_coord.x()  << " and `cluster_y` = " << cluster_coord.y() << " GROUP BY account_uuid order by accumulate_value desc limit " << max_rank;
+		oss <<"SELECT account_uuid,sum(accumulate_value) as accumulate_value FROM `Center_MapWorldActivityAccumulate` WHERE `since` = " << Poseidon::MySql::StringEscaper(str) << " and `cluster_x` = " << cluster_coord.x()  << " and `cluster_y` = " << cluster_coord.y() << " GROUP BY account_uuid order by accumulate_value desc limit " << rank_threshold;
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<MySql::Center_MapCountryStatics>();
