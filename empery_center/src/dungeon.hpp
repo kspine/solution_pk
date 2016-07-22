@@ -24,17 +24,16 @@ public:
 private:
 	const DungeonUuid m_dungeon_uuid;
 	const DungeonTypeId m_dungeon_type_id;
-	const std::uint64_t m_expiry_time;
-
 	const boost::weak_ptr<DungeonSession> m_server;
 
 	AccountUuid m_founder_uuid;
+	std::uint64_t m_expiry_time;
 	boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 
 public:
-	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, std::uint64_t expiry_time,
-		const boost::shared_ptr<DungeonSession> &server, AccountUuid founder_uuid);
+	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
+		AccountUuid founder_uuid, std::uint64_t expiry_time);
 	~Dungeon();
 
 private:
@@ -54,14 +53,19 @@ public:
 	DungeonTypeId get_dungeon_type_id() const {
 		return m_dungeon_type_id;
 	}
-	std::uint64_t get_expiry_time() const {
-		return m_expiry_time;
+	boost::shared_ptr<DungeonSession> get_server() const {
+		return m_server.lock();
 	}
 
 	AccountUuid get_founder_uuid() const {
 		return m_founder_uuid;
 	}
 	void set_founder_uuid(AccountUuid founder_uuid);
+
+	std::uint64_t get_expiry_time() const {
+		return m_expiry_time;
+	}
+	void set_expiry_time(std::uint64_t expiry_time);
 
 	boost::shared_ptr<PlayerSession> get_observer(AccountUuid account_uuid) const;
 	void get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;
@@ -74,6 +78,7 @@ public:
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
 
+	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };
 

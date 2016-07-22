@@ -45,6 +45,14 @@ namespace Msg {
 	FIELD_STRING        (payload)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    G_PackedDungeonNotification
+#define MESSAGE_ID      95
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (message_id)	\
+	FIELD_STRING        (payload)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

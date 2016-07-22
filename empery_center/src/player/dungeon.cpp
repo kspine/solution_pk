@@ -17,6 +17,9 @@
 #include "../data/map_object_type.hpp"
 #include "../defense_building.hpp"
 #include "../attribute_ids.hpp"
+#include "../singletons/dungeon_map.hpp"
+#include "../dungeon.hpp"
+#include "../dungeon_object.hpp"
 
 namespace EmperyCenter {
 
@@ -56,6 +59,12 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 			return Response(Msg::ERR_DUNGEON_DISPOSED) <<dungeon_type_id;
 		}
 	}
+
+	const auto server = DungeonMap::pick_server();
+	if(!server){
+		return Response(Msg::ERR_NO_DUNGEON_SERVER_AVAILABLE);
+	}
+
 	if(req.battalions.empty()){
 		return Response(Msg::ERR_DUNGEON_NO_BATTALIONS);
 	}
@@ -147,18 +156,53 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
 			ReasonIds::ID_CREATE_DUNGEON, dungeon_type_id.get(), 0, 0);
 	}
+
+	const auto dungeon_uuid = DungeonUuid(Poseidon::Uuid::random());
+	const auto utc_now = Poseidon::get_utc_time();
+
+	const auto expiry_duration = get_config<std::uint64_t>("dungeon_expiry_duration", 900000);
+	const auto expiry_time = saturated_add(utc_now, expiry_duration);
+
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
-			// TODO
-			auto info = dungeon_box->get(dungeon_type_id);
-			info.score = DungeonBox::S_TWO_STARS;
-			info.entry_count += 1;
-			info.finish_count += 1;
-			dungeon_box->set(std::move(info));
+			const auto dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id, server, account_uuid, expiry_time);
+			dungeon->insert_observer(account_uuid, session);
+			for(auto it = battalions.begin(); it != battalions.end(); ++it){
+				const auto &map_object = *it;
+				const auto map_object_uuid = map_object->get_map_object_uuid();
+				const auto map_object_type_id = map_object->get_map_object_type_id();
+
+				const auto start_point = Coord(0, 1); // TODO
+
+				auto dungeon_object = boost::make_shared<DungeonObject>(
+					dungeon_uuid, DungeonObjectUuid(map_object_uuid.get()), map_object_type_id, account_uuid, start_point);
+				dungeon_object->pump_status();
+				dungeon_object->recalculate_attributes(false);
+				dungeon->insert_object(std::move(dungeon_object));
+			}
+			DungeonMap::insert(std::move(dungeon));
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_DungeonQuit, account, session, req){
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+	}
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto observer_session = dungeon->get_observer(account_uuid);
+	if(observer_session != session){
+		return Response(Msg::ERR_NOT_IN_DUNGEON) <<dungeon_uuid;
+	}
+
+	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_REQUEST, { });
 
 	return Response();
 }

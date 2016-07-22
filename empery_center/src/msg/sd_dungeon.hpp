@@ -47,6 +47,21 @@ namespace Msg {
 	FIELD_STRING        (dungeon_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SD_DungeonSetAction
+#define MESSAGE_ID      50095
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (dungeon_object_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_ARRAY         (waypoints,	\
+		FIELD_VINT          (dx)	\
+		FIELD_VINT          (dy)	\
+	)	\
+	FIELD_VUINT         (action)	\
+	FIELD_STRING        (param)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

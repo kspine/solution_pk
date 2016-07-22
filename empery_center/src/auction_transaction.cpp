@@ -199,12 +199,7 @@ void AuctionTransaction::cancel(std::string operation_remarks){
 }
 
 bool AuctionTransaction::is_virtually_removed() const {
-	PROFILE_ME;
-
-	if(has_been_cancelled()){
-		return true;
-	}
-	return false;
+	return has_been_cancelled();
 }
 
 }

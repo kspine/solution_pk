@@ -10,11 +10,10 @@
 
 namespace EmperyCenter {
 
-Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, std::uint64_t expiry_time,
-	const boost::shared_ptr<DungeonSession> &server, AccountUuid founder_uuid)
-	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_expiry_time(expiry_time)
-	, m_server(server)
-	, m_founder_uuid(founder_uuid)
+Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
+	AccountUuid founder_uuid, std::uint64_t expiry_time)
+	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_server(server)
+	, m_founder_uuid(founder_uuid), m_expiry_time(expiry_time)
 {
 	try {
 		Msg::SD_DungeonCreate msg;
@@ -101,6 +100,14 @@ void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
 	PROFILE_ME;
 
 	m_founder_uuid = founder_uuid;
+
+	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
+}
+
+void Dungeon::set_expiry_time(std::uint64_t expiry_time){
+	PROFILE_ME;
+
+	m_expiry_time = expiry_time;
 
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
 }
@@ -284,10 +291,16 @@ void Dungeon::update_object(const boost::shared_ptr<DungeonObject> &dungeon_obje
 	synchronize_with_dungeon_server(dungeon_object);
 }
 
+bool Dungeon::is_virtually_removed() const {
+	return get_expiry_time() == 0;
+}
 void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	
+	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+		const auto &dungeon_object = it->second;
+		dungeon_object->synchronize_with_player(session);
+	}
 }
 
 }

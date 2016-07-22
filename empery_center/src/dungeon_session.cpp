@@ -7,6 +7,10 @@
 #include <poseidon/atomic.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
+#include "singletons/player_session_map.hpp"
+#include "player_session.hpp"
+#include "singletons/dungeon_map.hpp"
+#include "dungeon.hpp"
 
 namespace EmperyCenter {
 
@@ -164,6 +168,43 @@ void DungeonSession::on_sync_data_message(std::uint16_t message_id, Poseidon::St
 			if(result.first < 0){
 				shutdown_read();
 				shutdown_write();
+			}
+		} else if(message_id == Msg::G_PackedAccountNotification::ID){
+			Msg::G_PackedAccountNotification packed(std::move(payload));
+
+			const auto account_uuid = AccountUuid(packed.account_uuid);
+			LOG_EMPERY_CENTER_TRACE("Forwarding message: account_uuid = ", account_uuid,
+				", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
+			const auto session = PlayerSessionMap::get(account_uuid);
+			if(!session){
+				LOG_EMPERY_CENTER_TRACE("Player is not online: account_uuid = ", account_uuid);
+			} else {
+				try {
+					session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
+			}
+		} else if(message_id == Msg::G_PackedDungeonNotification::ID){
+			Msg::G_PackedDungeonNotification packed(std::move(payload));
+
+			const auto dungeon_uuid = DungeonUuid(packed.dungeon_uuid);
+			LOG_EMPERY_CENTER_TRACE("Forwarding message: dungeon_uuid = ", dungeon_uuid,
+				", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
+			std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> observers;
+			const auto dungeon = DungeonMap::get(dungeon_uuid);
+			if(dungeon){
+				dungeon->get_observers_all(observers);
+			}
+			for(auto it = observers.begin(); it != observers.end(); ++it){
+				const auto &session = it->second;
+				try {
+					session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					session->shutdown(e.what());
+				}
 			}
 		} else {
 			LOG_EMPERY_CENTER_WARNING("Unknown message from dungeon client: remote = ", get_remote_info(), ", message_id = ", message_id);

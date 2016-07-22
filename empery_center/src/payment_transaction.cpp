@@ -223,12 +223,7 @@ void PaymentTransaction::cancel(std::string operation_remarks){
 }
 
 bool PaymentTransaction::is_virtually_removed() const {
-	PROFILE_ME;
-
-	if(has_been_cancelled()){
-		return true;
-	}
-	return false;
+	return has_been_cancelled();
 }
 
 }
