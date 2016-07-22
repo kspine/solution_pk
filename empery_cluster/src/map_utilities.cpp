@@ -213,6 +213,8 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 		}
 
 		if(coords_open.empty()){
+		LOG_EMPERY_CLUSTER_DEBUG("Pathfinding failed: from_coord = ", from_coord, ", to_coord = ", to_coord,
+		", distance_limit = ", distance_limit, ", distance_close_enough = ", distance_close_enough);
 			return false;
 		}
 	}

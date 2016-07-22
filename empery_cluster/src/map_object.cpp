@@ -75,11 +75,13 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	}
 
 	if(is_lost_attacked_target()){
+		LOG_EMPERY_CLUSTER_DEBUG("lost attacked target,and prepare search attack,current action:",m_action);
 		return search_attack();
 	}
 
 	//修正action
 	if(!fix_attack_action(result)){
+		LOG_EMPERY_CLUSTER_DEBUG("fix attack action failed,action cancel,current action:",m_action);
 		return UINT64_MAX;
 	}
 
@@ -142,8 +144,10 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			result = std::move(sresult);
 			break;
 		}
+		LOG_EMPERY_CLUSTER_DEBUG("enter castle finish,cancle action",m_action);
 	}
 	ON_ACTION(ACT_MONTER_REGRESS){
+		LOG_EMPERY_CLUSTER_DEBUG("monster regress finish,cancel action",m_action);
 		return UINT64_MAX;
 	}
 	ON_ACTION(ACT_STAND_BY){
