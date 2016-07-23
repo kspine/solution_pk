@@ -2,6 +2,8 @@
 #include "common.hpp"
 #include "../mmain.hpp"
 #include "../msg/cs_dungeon.hpp"
+#include "../msg/sc_dungeon.hpp"
+#include "../msg/sd_dungeon.hpp"
 #include "../msg/err_dungeon.hpp"
 #include "../msg/err_item.hpp"
 #include "../msg/err_map.hpp"
@@ -20,6 +22,9 @@
 #include "../singletons/dungeon_map.hpp"
 #include "../dungeon.hpp"
 #include "../dungeon_object.hpp"
+#include "../msg/kill.hpp"
+#include "../dungeon_session.hpp"
+#include "../map_utilities.hpp"
 
 namespace EmperyCenter {
 
@@ -203,6 +208,129 @@ PLAYER_SERVLET(Msg::CS_DungeonQuit, account, session, req){
 	}
 
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_REQUEST, { });
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_DungeonSetWaypoints, account, session, req){
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+	}
+
+	const auto server = dungeon->get_server();
+	if(!server){
+		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
+	}
+
+	const auto dungeon_object_uuid = DungeonObjectUuid(req.dungeon_object_uuid);
+	const auto dungeon_object = dungeon->get_object(dungeon_object_uuid);
+	if(!dungeon_object){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<dungeon_object_uuid;
+	}
+	if(dungeon_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_DUNGEON_OBJECT) <<dungeon_object->get_owner_uuid();
+	}
+
+	auto old_coord = dungeon_object->get_coord();
+
+	Msg::SD_DungeonSetAction dreq;
+	dreq.dungeon_uuid        = dungeon_uuid.str();
+	dreq.dungeon_object_uuid = dungeon_object_uuid.str();
+	dreq.x                   = old_coord.x();
+	dreq.y                   = old_coord.y();
+	// 撤销当前的路径。
+	auto dresult = server->send_and_wait(dreq);
+	if(dresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_WARNING("Dungeon server returned an error: code = ", dresult.first, ", msg = ", dresult.second);
+		// return std::move(dresult);
+		server->shutdown(Msg::KILL_DUNGEON_SERVER_RESYNCHRONIZE, "Lost dungeon synchronization");
+		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
+	}
+
+	dungeon_object->recalculate_attributes(false);
+
+	// 重新计算坐标。
+	old_coord = dungeon_object->get_coord();
+	dreq.x    = old_coord.x();
+	dreq.y    = old_coord.y();
+	dreq.waypoints.reserve(std::min<std::size_t>(req.waypoints.size(), 256));
+	auto last_coord = old_coord;
+	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
+		const auto &step = req.waypoints.at(i);
+		if((step.dx < -1) || (step.dx > 1) || (step.dy < -1) || (step.dy > 1)){
+			LOG_EMPERY_CENTER_DEBUG("Invalid relative coord: i = ", i, ", dx = ", step.dx, ", dy = ", step.dy);
+			return Response(Msg::ERR_BROKEN_PATH) <<i;
+		}
+		const auto next_coord = Coord(last_coord.x() + step.dx, last_coord.y() + step.dy);
+		if(get_distance_of_coords(last_coord, next_coord) > 1){
+			LOG_EMPERY_CENTER_DEBUG("Broken path: last_coord = ", last_coord, ", next_coord = ", next_coord);
+			return Response(Msg::ERR_BROKEN_PATH) <<i;
+		}
+		last_coord = next_coord;
+
+		auto &waypoint = *dreq.waypoints.emplace(dreq.waypoints.end());
+		waypoint.dx    = step.dx;
+		waypoint.dy    = step.dy;
+	}
+	dreq.action = req.action;
+	dreq.param  = std::move(req.param);
+	dresult = server->send_and_wait(dreq);
+	if(dresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", dresult.first, ", msg = ", dresult.second);
+		return std::move(dresult);
+	}
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_DungeonStopTroops, account, session, req){
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+	}
+
+	const auto server = dungeon->get_server();
+	if(!server){
+		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
+	}
+
+	Msg::SC_DungeonStopTroopsRet msg;
+	msg.dungeon_uuid = dungeon_uuid.str();
+	msg.dungeon_objects.reserve(std::min<std::size_t>(req.dungeon_objects.size(), 16));
+	for(auto it = req.dungeon_objects.begin(); it != req.dungeon_objects.end(); ++it){
+		const auto dungeon_object_uuid = DungeonObjectUuid(it->dungeon_object_uuid);
+		const auto dungeon_object = dungeon->get_object(dungeon_object_uuid);
+		if(!dungeon_object){
+			LOG_EMPERY_CENTER_DEBUG("No such dungeon object: dungeon_uuid = ", dungeon_uuid, ", dungeon_object_uuid = ", dungeon_object_uuid);
+			continue;
+		}
+		if(dungeon_object->get_owner_uuid() != account->get_account_uuid()){
+			LOG_EMPERY_CENTER_DEBUG("Not your object: dungeon_object_uuid = ", dungeon_object_uuid);
+			continue;
+		}
+
+		auto old_coord = dungeon_object->get_coord();
+
+		Msg::SD_DungeonSetAction dreq;
+		dreq.dungeon_uuid        = dungeon_uuid.str();
+		dreq.dungeon_object_uuid = dungeon_object_uuid.str();
+		dreq.x                   = old_coord.x();
+		dreq.y                   = old_coord.y();
+		// 撤销当前的路径。
+		const auto dresult = server->send_and_wait(dreq);
+		if(dresult.first != Msg::ST_OK){
+			LOG_EMPERY_CENTER_WARNING("Dungeon server returned an error: code = ", dresult.first, ", msg = ", dresult.second);
+			server->shutdown(Msg::KILL_DUNGEON_SERVER_RESYNCHRONIZE, "Lost dungeon synchronization");
+			continue;
+		}
+
+		auto &elem = *msg.dungeon_objects.emplace(msg.dungeon_objects.end());
+		elem.dungeon_object_uuid = dungeon_object_uuid.str();
+	}
+	session->send(msg);
 
 	return Response();
 }

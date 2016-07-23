@@ -97,29 +97,27 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 
-	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
-
 	auto old_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(old_coord);
 	if(!cluster){
 		LOG_EMPERY_CENTER_DEBUG("No cluster server available: old_coord = ", old_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
 	Msg::SK_MapSetAction kreq;
-	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
+	kreq.map_object_uuid = map_object_uuid.str();
+	kreq.x               = old_coord.x();
+	kreq.y               = old_coord.y();
 	// 撤销当前的路径。
 	auto kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		// return std::move(kresult);
 		cluster->shutdown(Msg::KILL_CLUSTER_SERVER_RESYNCHRONIZE, "Lost map synchronization");
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
+	const auto map_object_type_id = map_object->get_map_object_type_id();
 	if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
 		const auto parent_object_uuid = map_object->get_parent_object_uuid();
 		if(parent_object_uuid){
@@ -133,9 +131,9 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
-	kreq.waypoints.reserve(req.waypoints.size());
+	kreq.x    = old_coord.x();
+	kreq.y    = old_coord.y();
+	kreq.waypoints.reserve(std::min<std::size_t>(req.waypoints.size(), 256));
 	auto last_coord = old_coord;
 	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
 		const auto &step = req.waypoints.at(i);
@@ -383,7 +381,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 	Msg::SC_MapStopTroopsRet msg;
-	msg.map_objects.reserve(req.map_objects.size());
+	msg.map_objects.reserve(std::min<std::size_t>(req.map_objects.size(), 16));
 	for(auto it = req.map_objects.begin(); it != req.map_objects.end(); ++it){
 		const auto map_object_uuid = MapObjectUuid(it->map_object_uuid);
 		const auto map_object = WorldMap::get_map_object(map_object_uuid);
@@ -404,9 +402,9 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 		}
 
 		Msg::SK_MapSetAction kreq;
-		kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-		kreq.x = old_coord.x();
-		kreq.y = old_coord.y();
+		kreq.map_object_uuid = map_object_uuid.str();
+		kreq.x               = old_coord.x();
+		kreq.y               = old_coord.y();
 		// 撤销当前的路径。
 		const auto kresult = cluster->send_and_wait(kreq);
 		if(kresult.first != Msg::ST_OK){
@@ -478,19 +476,19 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	const auto old_cluster = WorldMap::get_cluster(old_coord);
 	if(!old_cluster){
 		LOG_EMPERY_CENTER_DEBUG("No cluster server available: old_coord = ", old_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
 	Msg::SK_MapSetAction kreq;
-	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
+	kreq.map_object_uuid = map_object_uuid.str();
+	kreq.x               = old_coord.x();
+	kreq.y               = old_coord.y();
 	// 撤销当前的路径。
 	auto kresult = old_cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		old_cluster->shutdown(Msg::KILL_CLUSTER_SERVER_RESYNCHRONIZE, "Lost map synchronization");
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
@@ -562,7 +560,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	const auto new_cluster = WorldMap::get_cluster(new_cluster_coord);
 	if(!new_cluster){
 		LOG_EMPERY_CENTER_DEBUG("No cluster server available: new_cluster_coord = ", new_cluster_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_cluster_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
 	const auto try_once = [&](Coord new_coord) -> std::pair<long, std::string> {
@@ -911,7 +909,7 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 	}
 	const auto cluster = WorldMap::get_cluster(coord);
 	if(!cluster){
-        return CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
+        return CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 	const auto castle_cluster = WorldMap::get_cluster(castle->get_coord());
 	if(castle_cluster != cluster){
