@@ -954,6 +954,9 @@ _wounded_done:
 								LOG_EMPERY_CENTER_DEBUG("Unknown resource: resource_id = ", resource_id);
 								continue;
 							}
+							if(!resource_data->carried_attribute_id){
+								continue;
+							}
 							std::uint64_t amount_normal = it->amount, amount_locked = 0;
 							const auto locked_resource_id = resource_data->locked_resource_id;
 							if(locked_resource_id){
