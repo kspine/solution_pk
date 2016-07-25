@@ -336,7 +336,9 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 	const auto old_ticket_data = Data::MapCellTicket::require(old_ticket_item_id);
 	const auto new_ticket_data = Data::MapCellTicket::require(new_ticket_item_id);
-	if(new_ticket_data->protectable && !req.force){
+	if(new_ticket_data->protectable && !req.force
+	&&!map_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)
+	&& map_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
 		return Response(Msg::ERR_COMMON_UPGRADE_NOT_TO_PROTECT) <<coord;
 	}
 	if((protection_info.duration != 0) && !old_ticket_data->protectable && new_ticket_data->protectable){
