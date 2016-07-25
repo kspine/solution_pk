@@ -11,7 +11,7 @@ namespace Msg {
 #define MESSAGE_NAME    G_PackedRequest
 #define MESSAGE_ID      99
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (serial)	\
+	FIELD_STRING        (uuid)	\
 	FIELD_VUINT         (message_id)	\
 	FIELD_STRING        (payload)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -20,7 +20,7 @@ namespace Msg {
 #define MESSAGE_NAME    G_PackedResponse
 #define MESSAGE_ID      98
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (serial)	\
+	FIELD_STRING        (uuid)	\
 	FIELD_VINT          (code)	\
 	FIELD_STRING        (message)
 #include <poseidon/cbpp/message_generator.hpp>

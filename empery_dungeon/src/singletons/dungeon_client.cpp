@@ -5,7 +5,6 @@
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_base.hpp>
 #include <poseidon/job_promise.hpp>
-#include <poseidon/atomic.hpp>
 #include <poseidon/sock_addr.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
@@ -99,7 +98,6 @@ boost::shared_ptr<DungeonClient> DungeonClient::require(){
 
 DungeonClient::DungeonClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)
 	: Poseidon::Cbpp::Client(sock_addr, use_ssl, keep_alive_interval)
-	, m_serial(0)
 {
 	LOG_EMPERY_DUNGEON_INFO("Dungeon client constructor: this = ", (void *)this);
 }
@@ -146,9 +144,10 @@ bool DungeonClient::on_low_level_data_message_end(std::uint64_t payload_size){
 	const auto message_id = get_low_level_message_id();
 	if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(get_low_level_payload());
+		const auto uuid = Poseidon::Uuid(packed.uuid);
 
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		const auto it = m_requests.find(packed.serial);
+		const auto it = m_requests.find(uuid);
 		if(it != m_requests.end()){
 			const auto elem = std::move(it->second);
 			m_requests.erase(it);
@@ -198,7 +197,7 @@ void DungeonClient::on_sync_data_message(std::uint16_t message_id, Poseidon::Str
 		}
 
 		Msg::G_PackedResponse res;
-		res.serial  = packed.serial;
+		res.uuid    = std::move(packed.uuid);
 		res.code    = result.first;
 		res.message = std::move(result.second);
 		Poseidon::Cbpp::Client::send(res.ID, Poseidon::StreamBuffer(res));
@@ -206,23 +205,6 @@ void DungeonClient::on_sync_data_message(std::uint16_t message_id, Poseidon::Str
 		if(result.first < 0){
 			shutdown_read();
 			shutdown_write();
-		}
-	} else if(message_id == Msg::G_PackedResponse::ID){
-		Msg::G_PackedResponse packed(std::move(payload));
-
-		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		const auto it = m_requests.find(packed.serial);
-		if(it != m_requests.end()){
-			const auto elem = std::move(it->second);
-			m_requests.erase(it);
-
-			if(elem.result){
-				elem.result->first  = packed.code;
-				elem.result->second = std::move(packed.message);
-			}
-			if(elem.promise){
-				elem.promise->set_success();
-			}
 		}
 	} else {
 		LOG_EMPERY_DUNGEON_WARNING("Unknown message from center server: remote = ", get_remote_info(), ", message_id = ", message_id);
@@ -239,9 +221,7 @@ void DungeonClient::on_sync_error_message(std::uint16_t message_id, Poseidon::Cb
 bool DungeonClient::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
-	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
 	Msg::G_PackedRequest msg;
-	msg.serial     = serial;
 	msg.message_id = message_id;
 	msg.payload    = payload.dump();
 	return Poseidon::Cbpp::Client::send(msg.ID, Poseidon::StreamBuffer(msg));
@@ -271,17 +251,16 @@ void DungeonClient::shutdown(int code, const char *message) noexcept {
 Result DungeonClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
-	Result ret;
-
-	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
+	const auto ret = boost::make_shared<Result>();
+	const auto uuid = Poseidon::Uuid::random();
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.emplace(serial, RequestElement(&ret, promise));
+		m_requests.emplace(uuid, RequestElement(ret, promise));
 	}
 	try {
 		Msg::G_PackedRequest msg;
-		msg.serial     = serial;
+		msg.uuid       = uuid.to_string();
 		msg.message_id = message_id;
 		msg.payload    = payload.dump();
 		if(!Poseidon::Cbpp::Client::send(msg.ID, Poseidon::StreamBuffer(msg))){
@@ -290,15 +269,14 @@ Result DungeonClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBu
 		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(serial);
+		m_requests.erase(uuid);
 		throw;
 	}
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(serial);
+		m_requests.erase(uuid);
 	}
-
-	return ret;
+	return std::move(*ret);
 }
 
 }
