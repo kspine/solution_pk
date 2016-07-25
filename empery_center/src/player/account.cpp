@@ -127,12 +127,11 @@ namespace {
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
 
+	PlayerSessionMap::add(account_uuid, session);
 	WorldMap::forced_reload_map_objects_by_owner(account_uuid);
 
 	utc_now = Poseidon::get_utc_time();
 	get_signed_in(account);
-
-	PlayerSessionMap::add(account_uuid, session);
 
 	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
