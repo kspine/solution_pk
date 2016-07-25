@@ -24,19 +24,18 @@ public:
 
 private:
 	struct RequestElement {
-		Result *result;
+		boost::shared_ptr<Result> result;
 		boost::shared_ptr<Poseidon::JobPromise> promise;
 
-		RequestElement(Result *result_, boost::shared_ptr<Poseidon::JobPromise> promise_)
-			: result(result_), promise(std::move(promise_))
+		RequestElement(boost::shared_ptr<Result> result_, boost::shared_ptr<Poseidon::JobPromise> promise_)
+			: result(std::move(result_)), promise(std::move(promise_))
 		{
 		}
 	};
 
 private:
-	volatile std::uint64_t m_serial;
 	mutable Poseidon::Mutex m_request_mutex;
-	boost::container::flat_multimap<std::uint64_t, RequestElement> m_requests;
+	boost::container::flat_multimap<Poseidon::Uuid, RequestElement> m_requests;
 
 public:
 	DungeonClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval);
