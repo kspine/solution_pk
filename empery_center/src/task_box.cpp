@@ -410,7 +410,7 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 		obj->set_progress(std::move(progress_str));
 	}
 	obj->set_rewarded(info.rewarded);
-
+	async_recheck_building_level_tasks(get_account_uuid());
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
