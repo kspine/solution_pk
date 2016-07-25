@@ -165,10 +165,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 
 namespace {
 	template<typename D, typename S>
-	void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
+	void copy_buff(const boost::shared_ptr<D> &dst, std::uint64_t utc_now, const boost::shared_ptr<S> &src, BuffId buff_id){
 		PROFILE_ME;
-
-		const auto utc_now = Poseidon::get_utc_time();
 
 		const auto info = src->get_buff(buff_id);
 		if(utc_now < info.time_end){
@@ -284,9 +282,11 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}
 
-	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION);
-	copy_buff(map_cell, castle, BuffIds::ID_NOVICIATE_PROTECTION);
+	const auto utc_now = Poseidon::get_utc_time();
+
+	copy_buff(map_cell, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_cell, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_cell, utc_now, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 
 	map_cell->pump_status();
 
@@ -710,9 +710,11 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 	map_object->set_coord(coord);
 	map_object->set_garrisoned(false);
 
-	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION);
-	copy_buff(map_object, castle, BuffIds::ID_NOVICIATE_PROTECTION);
+	const auto utc_now = Poseidon::get_utc_time();
+
+	copy_buff(map_object, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_object, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_object, utc_now, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 
 	map_object->pump_status();
 
@@ -931,9 +933,9 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
 				account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now);
 			defense_building->pump_status();
-			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION);
-			copy_buff(defense_building, castle, BuffIds::ID_NOVICIATE_PROTECTION);
+			copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+			copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
+			copy_buff(defense_building, utc_now, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
 			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
