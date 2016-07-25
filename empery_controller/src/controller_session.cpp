@@ -104,19 +104,21 @@ bool ControllerSession::on_low_level_data_message_end(std::uint64_t payload_size
 	const auto message_id = get_low_level_message_id();
 	if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(get_low_level_payload());
-		const auto uuid = Poseidon::Uuid(packed.uuid);
+		if(!packed.uuid.empty()){
+			const auto uuid = Poseidon::Uuid(packed.uuid);
 
-		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		const auto it = m_requests.find(uuid);
-		if(it != m_requests.end()){
-			const auto elem = std::move(it->second);
-			m_requests.erase(it);
+			const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+			const auto it = m_requests.find(uuid);
+			if(it != m_requests.end()){
+				const auto elem = std::move(it->second);
+				m_requests.erase(it);
 
-			if(elem.result){
-				*elem.result = std::make_pair(packed.code, std::move(packed.message));
-			}
-			if(elem.promise){
-				elem.promise->set_success();
+				if(elem.result){
+					*elem.result = std::make_pair(packed.code, std::move(packed.message));
+				}
+				if(elem.promise){
+					elem.promise->set_success();
+				}
 			}
 		}
 	}
