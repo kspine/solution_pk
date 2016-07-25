@@ -317,7 +317,6 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 		return Response(Msg::ERR_MAX_MAP_CELL_LEVEL_EXCEEDED);
 	}
 	const auto new_ticket_item_id = new_ticket_item_data->item_id;
-
 	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!map_object){
@@ -337,6 +336,9 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 	const auto old_ticket_data = Data::MapCellTicket::require(old_ticket_item_id);
 	const auto new_ticket_data = Data::MapCellTicket::require(new_ticket_item_id);
+	if(new_ticket_data->protectable && !req.force){
+		return Response(Msg::ERR_COMMON_UPGRADE_NOT_TO_PROTECT) <<coord;
+	}
 	if((protection_info.duration != 0) && !old_ticket_data->protectable && new_ticket_data->protectable){
 		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
