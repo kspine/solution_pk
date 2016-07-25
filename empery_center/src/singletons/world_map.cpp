@@ -1285,7 +1285,11 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 	std::deque<boost::shared_ptr<Castle>> castles_to_pump;
 	const auto range = map_object_map->equal_range<2>(owner_uuid);
 	for(auto it = range.first; it != range.second; ++it){
-		auto castle = boost::dynamic_pointer_cast<Castle>(it->map_object);
+		const auto &map_object = it->map_object;
+		if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+			continue;
+		}
+		auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
 		if(!castle){
 			continue;
 		}
