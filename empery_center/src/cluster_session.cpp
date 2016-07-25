@@ -4,7 +4,6 @@
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
-#include <poseidon/atomic.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
 #include "singletons/player_session_map.hpp"
@@ -50,7 +49,6 @@ boost::shared_ptr<const ServletCallback> ClusterSession::get_servlet(std::uint16
 ClusterSession::ClusterSession(Poseidon::UniqueFile socket)
 	: Poseidon::Cbpp::Session(std::move(socket),
 		get_config<std::uint64_t>("cluster_session_max_packet_size", 0x1000000))
-	, m_serial(0)
 {
 	LOG_EMPERY_CENTER_INFO("Cluster session constructor: this = ", (void *)this);
 }
@@ -106,9 +104,10 @@ bool ClusterSession::on_low_level_data_message_end(std::uint64_t payload_size){
 	const auto message_id = get_low_level_message_id();
 	if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(get_low_level_payload());
+		const auto uuid = Poseidon::Uuid(packed.uuid);
 
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		const auto it = m_requests.find(packed.serial);
+		const auto it = m_requests.find(uuid);
 		if(it != m_requests.end()){
 			const auto elem = std::move(it->second);
 			m_requests.erase(it);
@@ -159,7 +158,7 @@ void ClusterSession::on_sync_data_message(std::uint16_t message_id, Poseidon::St
 			}
 
 			Msg::G_PackedResponse res;
-			res.serial  = packed.serial;
+			res.uuid    = std::move(packed.uuid);
 			res.code    = result.first;
 			res.message = std::move(result.second);
 			Poseidon::Cbpp::Session::send(res.ID, Poseidon::StreamBuffer(res));
@@ -219,9 +218,7 @@ void ClusterSession::on_sync_control_message(Poseidon::Cbpp::ControlCode control
 bool ClusterSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
-	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
 	Msg::G_PackedRequest msg;
-	msg.serial     = serial;
 	msg.message_id = message_id;
 	msg.payload    = payload.dump();
 	return Poseidon::Cbpp::Session::send(msg.ID, Poseidon::StreamBuffer(msg));
@@ -250,34 +247,32 @@ void ClusterSession::shutdown(int code, const char *message) noexcept {
 Result ClusterSession::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
-	Result ret;
-
-	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
+	const auto ret = boost::make_shared<Result>();
+	const auto uuid = Poseidon::Uuid::random();
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.emplace(serial, RequestElement(&ret, promise));
+		m_requests.emplace(uuid, RequestElement(ret, promise));
 	}
 	try {
 		Msg::G_PackedRequest msg;
-		msg.serial     = serial;
+		msg.uuid       = uuid.to_string();
 		msg.message_id = message_id;
 		msg.payload    = payload.dump();
 		if(!Poseidon::Cbpp::Session::send(msg.ID, Poseidon::StreamBuffer(msg))){
-			DEBUG_THROW(Exception, sslit("Could not send data to cluster client"));
+			DEBUG_THROW(Exception, sslit("Could not send data to cluster server"));
 		}
 		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(serial);
+		m_requests.erase(uuid);
 		throw;
 	}
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(serial);
+		m_requests.erase(uuid);
 	}
-
-	return ret;
+	return std::move(*ret);
 }
 
 }
