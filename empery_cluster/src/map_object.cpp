@@ -216,7 +216,9 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	result = get_move_result(new_coord, owner_uuid, wait_for_moving_objects);
 	if(result.first == Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY){
 		const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
-		++m_blocked_retry_count;
+		if(m_action != ACT_ENTER_CASTLE){
+			++m_blocked_retry_count;
+		}
 		return retry_delay;
 	}
 	m_blocked_retry_count = 0;
