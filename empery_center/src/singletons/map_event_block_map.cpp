@@ -200,5 +200,4 @@ Coord MapEventBlockMap::get_block_coord_from_world_coord(Coord coord){
 
 	return Coord(block_x, block_y);
 }
-
 }

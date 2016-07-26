@@ -101,6 +101,33 @@ namespace {
 
 		LOG_EMPERY_CENTER_ERROR("Unknown map event type id: ", map_event_id);
 	}
+	
+	bool really_create_map_boss_at_coord(Coord coord,std::uint64_t created_time,MapObjectUuid meta_uuid)
+	{
+		PROFILE_ME;
+		LOG_EMPERY_CENTER_TRACE("&& Creating map boss: coord = ", coord);
+		const auto monster_data = Data::MapObjectTypeMonster::require(MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS);
+		const auto monster_uuid = meta_uuid;
+
+		const auto soldier_count = monster_data->max_soldier_count;
+		const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
+
+		boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+		modifiers.reserve(8);
+		modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(soldier_count);
+		modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(soldier_count);
+		modifiers[AttributeIds::ID_MONSTER_START_POINT_X] = coord.x();
+		modifiers[AttributeIds::ID_MONSTER_START_POINT_Y] = coord.y();
+		modifiers[AttributeIds::ID_HP_TOTAL]              = static_cast<std::int64_t>(hp_total);
+
+		const auto monster = boost::make_shared<MapObject>(monster_uuid,MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS,
+			AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
+		monster->set_attributes(std::move(modifiers));
+		monster->pump_status();
+
+		WorldMap::insert_map_object(monster);
+		return true;
+	}
 }
 
 MapEventBlock::MapEventBlock(Coord block_coord)
@@ -161,7 +188,7 @@ void MapEventBlock::pump_status(){
 	m_obj->set_next_refresh_time(new_next_refresh_time);
 }
 
-void MapEventBlock::refresh_events(bool first_time){
+void MapEventBlock::refresh_events(bool first_time,unsigned event_type){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Refresh map events: block_coord = ", get_block_coord(), ", first_time = ", first_time);
 
@@ -173,37 +200,7 @@ void MapEventBlock::refresh_events(bool first_time){
 	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
 	std::vector<Coord> castle_foundation;
 
-	// 移除过期的地图事件。
-	std::deque<Coord> events_to_remove;
-	for(auto it = m_events.begin(); it != m_events.end(); ++it){
-		const auto &obj = it->second;
-		const auto expiry_time = obj->get_expiry_time();
-		if(utc_now < expiry_time){
-			continue;
-		}
-		const auto coord = it->first;
-		const auto map_event_id = MapEventId(obj->get_map_event_id());
-		// 判定是否应当移除事件。
-		const auto resource_event_data = Data::MapEventResource::get(map_event_id);
-		if(resource_event_data){
-			map_objects.clear();
-			WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord, 1, 1));
-			if(!map_objects.empty()){
-				const auto &map_object = map_objects.front();
-				const auto owner_uuid = map_object->get_owner_uuid();
-				if(owner_uuid){
-					// 假设有部队正在采集。
-					continue;
-				}
-			}
-		}
-		events_to_remove.emplace_back(it->first);
-	}
-	for(auto it = events_to_remove.begin(); it != events_to_remove.end(); ++it){
-		const auto coord = *it;
-		LOG_EMPERY_CENTER_TRACE("Removing expired map event: coord = ", coord);
-		remove(coord);
-	}
+	remove_expired_events(utc_now,event_type);
 
 	// 刷新新的地图事件。
 	const auto block_coord = get_block_coord();
@@ -296,7 +293,7 @@ void MapEventBlock::refresh_events(bool first_time){
 
 	using GenerationDataPtr = boost::shared_ptr<const Data::MapEventGeneration>;
 	std::vector<GenerationDataPtr> generation_data_all;
-	Data::MapEventGeneration::get_by_map_event_circle_id(generation_data_all, map_event_circle_id);
+	Data::MapEventGeneration::get_by_map_event_circle_id_and_type(generation_data_all, map_event_circle_id,event_type);
 	std::sort(generation_data_all.begin(), generation_data_all.end(),
 		[](const GenerationDataPtr &lhs, const GenerationDataPtr &rhs){ return lhs->priority < rhs->priority; });
 	for(auto gdit = generation_data_all.begin(); gdit != generation_data_all.end(); ++gdit){
@@ -433,11 +430,173 @@ void MapEventBlock::refresh_events(bool first_time){
 	}
 }
 
+void MapEventBlock::remove_expired_events(boost::uint64_t utc_now,unsigned event_type,bool force){
+	// 移除过期的地图事件。
+	std::deque<Coord> events_to_remove;
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	for(auto it = m_events.begin(); it != m_events.end(); ++it){
+		const auto &obj = it->second;
+		const auto expiry_time = obj->get_expiry_time();
+		if((utc_now < expiry_time) && !force){
+			continue;
+		}
+		const auto coord = it->first;
+		const auto map_event_id = MapEventId(obj->get_map_event_id());
+
+		const auto type = Data::MapEventGeneration::get_event_type(map_event_id);
+		if((type != event_type)){
+			continue;
+		}
+		// 判定是否应当移除事件。
+		const auto resource_event_data = Data::MapEventResource::get(map_event_id);
+		if(resource_event_data){
+			map_objects.clear();
+			WorldMap::get_map_objects_by_rectangle(map_objects, Rectangle(coord, 1, 1));
+			if(!map_objects.empty()){
+				const auto &map_object = map_objects.front();
+				const auto owner_uuid = map_object->get_owner_uuid();
+				if(owner_uuid){
+					// 假设有部队正在采集。
+					continue;
+				}
+			}
+		}
+		events_to_remove.emplace_back(it->first);
+	}
+	for(auto it = events_to_remove.begin(); it != events_to_remove.end(); ++it){
+		const auto coord = *it;
+		LOG_EMPERY_CENTER_TRACE("Removing expired map event: coord = ", coord);
+		remove(coord);
+	}
+}
+
+bool MapEventBlock::refresh_boss(MapObjectUuid boss_uuid,boost::uint64_t utc_now){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_DEBUG("Refresh boss events: block_coord = ", get_block_coord());
+	
+	auto map_event_circle_id = get_map_event_cicle_id();
+	if(map_event_circle_id == MapEventCircleId(0)){
+		return false;
+	}
+
+	const auto block_coord = get_block_coord();
+	const auto block_scope = Rectangle(block_coord, BLOCK_WIDTH, BLOCK_HEIGHT);
+	const auto cluster_scope = WorldMap::get_cluster_scope(block_coord);
+	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
+	boost::container::flat_set<Coord> coords_avail;
+	std::vector<boost::shared_ptr<MapCell>> map_cells;
+	std::vector<boost::shared_ptr<MapObject>> map_objects;
+	std::vector<boost::shared_ptr<StrategicResource>> strategic_resources;
+	std::vector<Coord> castle_foundation;
+
+	// 删除不能刷事件的点。
+	coords_avail.reserve(BLOCK_WIDTH * BLOCK_HEIGHT);
+	for(unsigned y = 0; y < BLOCK_HEIGHT; ++y){
+		for(unsigned x = 0; x < BLOCK_WIDTH; ++x){
+			const auto coord = Coord(block_coord.x() + x, block_coord.y() + y);
+			const auto map_x = static_cast<unsigned>(coord.x() - cluster_scope.left());
+			const auto map_y = static_cast<unsigned>(coord.y() - cluster_scope.bottom());
+			if((map_x < border_thickness) || (map_x >= cluster_scope.width() - border_thickness) ||
+				(map_y < border_thickness) || (map_y >= cluster_scope.height() - border_thickness))
+			{
+				// 事件不能刷在地图边界以外。
+				continue;
+			}
+			/*
+			const auto basic_data = Data::MapCellBasic::require(map_x, map_y);
+			const auto &restricted_terrains = event_data->restricted_terrains;
+			if(restricted_terrains.find(basic_data->terrain_id) == restricted_terrains.end()){
+				// 事件不能刷在非指定类型的土地上。
+				coords_avail.erase(coord);
+				continue;
+			}
+			*/
+			coords_avail.emplace_hint(coords_avail.end(), coord);
+		}
+	}
+	LOG_EMPERY_CENTER_TRACE("Number of coords statically available boss", ", coords_avail = ", coords_avail.size());
+	for(auto it = m_events.begin(); it != m_events.end(); ++it){
+		const auto coord = it->first;
+		// 事件不能刷在现有事件上。
+		coords_avail.erase(coord);
+	}
+	map_cells.clear();
+	WorldMap::get_map_cells_by_rectangle(map_cells, block_scope);
+	for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
+		const auto &map_cell = *it;
+		const auto coord = map_cell->get_coord();
+		if(map_cell->get_parent_object_uuid()){
+			// 事件不能刷在领地上。
+			coords_avail.erase(coord);
+			continue;
+		}
+	}
+	map_objects.clear();
+	WorldMap::get_map_objects_by_rectangle(map_objects, block_scope);
+	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+		const auto &map_object = *it;
+		const auto coord = map_object->get_coord();
+		// 事件不能刷在部队上。
+		coords_avail.erase(coord);
+
+		const auto map_object_type_id = map_object->get_map_object_type_id();
+		if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
+			// 但是对于城堡，考虑其整个范围。
+			castle_foundation.clear();
+			get_castle_foundation(castle_foundation, coord, true);
+			for(auto fit = castle_foundation.begin(); fit != castle_foundation.end(); ++fit){
+				coords_avail.erase(*fit);
+			}
+		}
+	}
+	strategic_resources.clear();
+	WorldMap::get_strategic_resources_by_rectangle(strategic_resources, block_scope);
+	for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
+		const auto &strategic_resource = *it;
+		const auto coord = strategic_resource->get_coord();
+		// 事件不能刷在战略资源上。
+		coords_avail.erase(coord);
+	}
+	LOG_EMPERY_CENTER_TRACE("About to refresh boss, coords_avail = ", coords_avail.size());
+
+	if(coords_avail.empty()){
+		LOG_EMPERY_CENTER_TRACE("About to refresh boss, coords_avail = 0 ", ", block_coord = ",block_coord);
+		return false;
+	}
+	for(auto it = coords_avail.begin(); it != coords_avail.end(); ++it){
+		try{
+			bool result = really_create_map_boss_at_coord(*it,utc_now,boss_uuid);
+			if(result){
+				return true;
+			}
+		} catch( std::exception e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+	return false;
+}
+
 Coord MapEventBlock::get_block_coord() const {
 	return Coord(m_obj->get_block_x(), m_obj->get_block_y());
 }
 std::uint64_t MapEventBlock::get_next_refresh_time() const {
 	return m_obj->get_next_refresh_time();
+}
+
+MapEventCircleId MapEventBlock::get_map_event_cicle_id() const{
+	const auto block_coord = get_block_coord();
+	const auto cluster_scope = WorldMap::get_cluster_scope(block_coord);
+	const auto block_num_x = static_cast<unsigned>(block_coord.x() - cluster_scope.left())   / BLOCK_WIDTH;
+	const auto block_num_y = static_cast<unsigned>(block_coord.y() - cluster_scope.bottom()) / BLOCK_HEIGHT;
+	const auto event_block_data = Data::MapEventBlock::require(block_num_x, block_num_y);
+
+	const auto map_event_circle_id = event_block_data->map_event_circle_id;
+	if(!map_event_circle_id){
+		LOG_EMPERY_CENTER_DEBUG("Null map event circle id: block_coord = ", block_coord,
+			", block_num_x = ", block_num_x, ", block_num_y = ", block_num_y);
+		return MapEventCircleId(0);
+	}
+	return map_event_circle_id;
 }
 
 MapEventBlock::EventInfo MapEventBlock::get(Coord coord) const {

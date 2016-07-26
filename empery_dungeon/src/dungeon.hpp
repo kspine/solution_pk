@@ -52,6 +52,8 @@ public:
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
+	void replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object);
+	void reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_object_uuid);
 };
 
 }

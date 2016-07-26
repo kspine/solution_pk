@@ -22,7 +22,7 @@ namespace {
 
 	const char MAP_OBJECT_TYPE_MONSTER_FILE[] = "monster";
 	MULTI_INDEX_MAP(MapObjectTypeMonsterMap, Data::MapObjectTypeMonster,
-	UNIQUE_MEMBER_INDEX(map_object_type_id)
+		UNIQUE_MEMBER_INDEX(map_object_type_id)
 	)
 	boost::weak_ptr<const MapObjectTypeMonsterMap> g_map_object_type_monster_map;
 
@@ -31,10 +31,17 @@ namespace {
 	const char MAP_OBJECT_TYPE_BUILDING_CASTLE_FILE[] = "Building_castel";
 	const char MAP_OBJECT_TYPE_BUILDING_BUNKER_FILE[] = "Building_bunker";
 	MULTI_INDEX_MAP(MapObjectTypeBuildingMap, Data::MapObjectTypeBuilding,
-	UNIQUE_MEMBER_INDEX(type_level)
-	MULTI_MEMBER_INDEX(map_object_type_id)
+		UNIQUE_MEMBER_INDEX(type_level)
+		MULTI_MEMBER_INDEX(map_object_type_id)
 	)
 	boost::weak_ptr<const MapObjectTypeBuildingMap> g_map_object_type_building_map;
+
+	const char MAP_OBJECT_AI_DATA_FILE[] = "AI";
+	MULTI_INDEX_MAP(MapObjectAiDataMap, Data::MapObjectAi,
+		UNIQUE_MEMBER_INDEX(unique_id)
+	)
+	boost::weak_ptr<const MapObjectAiDataMap> g_map_object_ai_data_map;
+
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(MAP_OBJECT_TYPE_FILE);
 		const auto map_object_map         =  boost::make_shared<MapObjectTypeMap>();
@@ -56,6 +63,7 @@ namespace {
 			csv.get(elem.attack_type,         				"arm_attack_type");
 			csv.get(elem.defence_type,                      "arm_def_type");
 			csv.get(elem.hp,                                "hp");
+			csv.get(elem.ai_id,                             "ai_id");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -73,13 +81,14 @@ namespace {
 			csvMonster.get(elem.speed,                             "speed");
 			csvMonster.get(elem.shoot_range,                       "shoot_range");
 			csvMonster.get(elem.attack_speed,                      "attack_speed");
-			csvMonster.get(elem.attack_plus,                      "attack_plus");
+			csvMonster.get(elem.attack_plus,                       "attack_plus");
 			csvMonster.get(elem.doge_rate,                         "arm_dodge");
 			csvMonster.get(elem.critical_rate,                     "arm_crit");
 			csvMonster.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
-			csvMonster.get(elem.attack_type,         					"arm_attack_type");
-			csvMonster.get(elem.defence_type,                      		"arm_def_type");
-			csvMonster.get(elem.hp,                      		  "hp");
+			csvMonster.get(elem.attack_type,         			   "arm_attack_type");
+			csvMonster.get(elem.defence_type,                      "arm_def_type");
+			csvMonster.get(elem.hp,                      		   "hp");
+			csvMonster.get(elem.ai_id,                             "ai_id");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -101,16 +110,17 @@ namespace {
 			csvBuilding.get(elem.category_id,                       "arm_type");
 			csvBuilding.get(elem.attack,                            "attack");
 			csvBuilding.get(elem.defence,                           "defence");
-			//csvBuilding.get(elem.speed,                            "speed");
+			//csvBuilding.get(elem.speed,                           "speed");
 			csvBuilding.get(elem.shoot_range,                       "shoot_range");
 			csvBuilding.get(elem.attack_speed,                      "attack_speed");
-			csvBuilding.get(elem.attack_plus,                      "attack_plus");
+			csvBuilding.get(elem.attack_plus,                       "attack_plus");
 			csvBuilding.get(elem.doge_rate,                         "arm_dodge");
 			csvBuilding.get(elem.critical_rate,                     "arm_crit");
 			csvBuilding.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
-			csvBuilding.get(elem.attack_type,         					"arm_attack_type");
-			csvBuilding.get(elem.defence_type,                      		"arm_def_type");
-			csvBuilding.get(elem.hp,                      		   "hp");
+			csvBuilding.get(elem.attack_type,         			    "arm_attack_type");
+			csvBuilding.get(elem.defence_type,                      "arm_def_type");
+			csvBuilding.get(elem.hp,                      		    "hp");
+			csvBuilding.get(elem.ai_id,                             "ai_id");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -193,6 +203,22 @@ namespace {
 		}
 		g_map_object_type_building_map = map_object_building_map;
 		handles.push(map_object_building_map);
+
+		const auto map_object_ai_map = boost::make_shared<MapObjectAiDataMap>();
+		auto csvAi = Data::sync_load_data(MAP_OBJECT_AI_DATA_FILE);
+		while(csvAi.fetch_row()){
+			Data::MapObjectAi elem = { };
+			csvAi.get(elem.unique_id,         "ai_id");
+			csvAi.get(elem.ai_type,           "ai_type");
+			csvAi.get(elem.params,            "ai_numerical");
+
+			if(!map_object_ai_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate ai data: ai_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate ai data"));
+			}
+		}
+		g_map_object_ai_data_map = map_object_ai_map;
+		handles.push(map_object_ai_map);
 	}
 }
 
@@ -272,6 +298,21 @@ namespace Data {
 			return { };
 		}
 		return boost::shared_ptr<const MapObjectTypeBuilding>(map_object_building_map, &*it);
+	}
+
+	boost::shared_ptr<const MapObjectAi> MapObjectAi::get(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		const auto map_object_ai_map = g_map_object_ai_data_map.lock();
+		if(!map_object_ai_map){
+			LOG_EMPERY_CLUSTER_WARNING("map_object_ai_map has not been loaded.");
+			return { };
+		}
+		const auto it = map_object_ai_map->find<0>(unique_id);
+		if(it == map_object_ai_map->end<0>()){
+			return { };
+		}
+		return boost::shared_ptr<const MapObjectAi>(map_object_ai_map, &*it);
 	}
 }
 

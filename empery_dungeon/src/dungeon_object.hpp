@@ -41,7 +41,6 @@ public:
 
 public:
 	virtual void pump_status();
-	virtual void recalculate_attributes(bool recursive);
 
 	DungeonUuid get_dungeon_uuid() const {
 		return m_dungeon_uuid;
@@ -69,7 +68,6 @@ public:
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
-
 	BuffInfo get_buff(BuffId buff_id) const;
 	bool is_buff_in_effect(BuffId buff_id) const;
 	void get_buffs(std::vector<BuffInfo> &ret) const;

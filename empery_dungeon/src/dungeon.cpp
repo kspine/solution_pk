@@ -69,6 +69,7 @@ void Dungeon::insert_object(const boost::shared_ptr<DungeonObject> &dungeon_obje
 		DEBUG_THROW(Exception, sslit("Dungeon object already exists"));
 	}
 }
+
 void Dungeon::update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists){
 	PROFILE_ME;
 
@@ -91,14 +92,33 @@ void Dungeon::update_object(const boost::shared_ptr<DungeonObject> &dungeon_obje
 		}
 		return;
 	}
+	m_objects.at(it->first) = dungeon_object;
+}
 
-	LOG_EMPERY_DUNGEON_TRACE("Updating dungeon object: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", dungeon_uuid);
-	if(dungeon_object->is_virtually_removed()){
-		m_objects.erase(it);
-	} else {
-		//
+void Dungeon::replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object){
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_object->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_DUNGEON_WARNING("This dungeon object does not belong to this dungeon!");
+		return;
+	}
+	const auto dungeon_object_uuid = dungeon_object->get_dungeon_object_uuid();
+	const auto it = m_objects.find(dungeon_object_uuid);
+	if(it == m_objects.end()){
+		m_objects.emplace(dungeon_object_uuid, dungeon_object);
+		return;
+	}else{
+		m_objects.at(it->first) = dungeon_object;
 	}
 }
 
+void Dungeon::reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_object_uuid){
+	const auto it = m_objects.find(dungeon_object_uuid);
+	if(it == m_objects.end()){
+		LOG_EMPERY_DUNGEON_TRACE("Dungeon object not found: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", get_dungeon_uuid());
+		return;
+	}else{
+		m_objects.erase(it);
+	}
+}
 
 }

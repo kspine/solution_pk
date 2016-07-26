@@ -41,58 +41,6 @@ namespace {
 	}
 }
 
-AiControl::AiControl(boost::weak_ptr<MapObject> parent)
-:m_parent_object(parent)
-{
-
-}
-
-std::uint64_t AiControl::attack(std::pair<long, std::string> &result, std::uint64_t now){
-	PROFILE_ME;
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return UINT64_MAX;
-	}
-	return parent_object->attack(result,now);
-}
-
-void          AiControl::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
-	PROFILE_ME;
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return;
-	}
-	parent_object->troops_attack(target,passive);
-	return ;
-}
-
-std::uint64_t AiControl::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage){
-	PROFILE_ME;
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return UINT64_MAX;
-	}
-	return parent_object->on_attack(attacker,demage);
-}
-
-std::uint64_t AiControl::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool force_attack){
-	PROFILE_ME;
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return UINT64_MAX;
-	}
-	return parent_object->harvest_resource_crate(result,now,force_attack);
-}
-
-std::uint64_t AiControl::attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
-	PROFILE_ME;
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return UINT64_MAX;
-	}
-	return parent_object->attack_territory(result,now,forced_attack);
-}
-
 MapObject::MapObject(MapObjectUuid map_object_uuid, std::uint64_t stamp, MapObjectTypeId map_object_type_id,
 	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,boost::container::flat_map<BuffId, BuffInfo> buffs)
@@ -115,9 +63,11 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
 	}
+	/*
 	if(abs(map_object_type_data->attack) < 0.000001){
 		return UINT64_MAX;
 	}
+	*/
 
 	if(garrisoned){
 	 	result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
@@ -125,17 +75,19 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	}
 
 	if(is_lost_attacked_target()){
+		LOG_EMPERY_CLUSTER_DEBUG("lost attacked target,and prepare search attack,current action:",m_action);
 		return search_attack();
 	}
 
 	//修正action
 	if(!fix_attack_action(result)){
+		LOG_EMPERY_CLUSTER_DEBUG("fix attack action failed,action cancel,current action:",m_action);
 		return UINT64_MAX;
 	}
 
 	// 移动。
 	if(!m_waypoints.empty()){
-		return move(result);
+		return require_ai_control()->move(result);
 	}
 
 	switch(m_action){
@@ -155,7 +107,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			break;
 		}
 		// TODO 战斗。
-		require_ai_control()->troops_attack(target_object);
 		return require_ai_control()->attack(result,now);
 	}
 /*	ON_ACTION(ACT_DEPLOY_INTO_CASTLE){
@@ -193,8 +144,10 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 			result = std::move(sresult);
 			break;
 		}
+		LOG_EMPERY_CLUSTER_DEBUG("enter castle finish,cancle action",m_action);
 	}
 	ON_ACTION(ACT_MONTER_REGRESS){
+		LOG_EMPERY_CLUSTER_DEBUG("monster regress finish,cancel action",m_action);
 		return UINT64_MAX;
 	}
 	ON_ACTION(ACT_STAND_BY){
@@ -244,19 +197,11 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	std::uint64_t delay;
 	const auto speed = map_object_type_data->speed * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0;
 	if(speed <= 0){
+		LOG_EMPERY_CLUSTER_FATAL("speed <= 0,",speed, " map_object_type_data->speed:",map_object_type_data->speed," get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0,
+		" get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD):",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0);
 		delay = UINT64_MAX;
 	} else {
 		delay = static_cast<std::uint64_t>(std::round(1000 / speed));
-	}
-
-	if(is_monster()){
-		const unsigned monster_active_scope = Data::Global::as_unsigned(Data::Global::SLOT_MAP_MONSTER_ACTIVE_SCOPE);
-		auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
-		auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
-		const auto distance = get_distance_of_coords(new_coord, Coord(birth_x,birth_y));
-		if(distance >= monster_active_scope){
-			return search_attack();
-		}
 	}
 
 	const auto new_cluster = WorldMap::get_cluster(new_coord);
@@ -271,7 +216,9 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	result = get_move_result(new_coord, owner_uuid, wait_for_moving_objects);
 	if(result.first == Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY){
 		const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
-		++m_blocked_retry_count;
+		if(m_action != ACT_ENTER_CASTLE){
+			++m_blocked_retry_count;
+		}
 		return retry_delay;
 	}
 	m_blocked_retry_count = 0;
@@ -496,7 +443,27 @@ boost::shared_ptr<AiControl>  MapObject::require_ai_control(){
 	PROFILE_ME;
 
 	if(!m_ai_control){
-		m_ai_control = boost::make_shared<AiControl>(virtual_weak_from_this<MapObject>());
+		const auto map_object_type_data = get_map_object_type_data();
+		switch(map_object_type_data->ai_id){
+			case AI_SOLIDER:
+				m_ai_control = boost::make_shared<AiControl>(AI_SOLIDER,virtual_weak_from_this<MapObject>());
+				break;
+			case AI_MONSTER:
+				m_ai_control = boost::make_shared<AiControlMonsterCommon>(AI_MONSTER,virtual_weak_from_this<MapObject>());
+				break;
+			case AI_BUILDING:
+				m_ai_control = boost::make_shared<AiControlDefenseBuilding>(AI_BUILDING,virtual_weak_from_this<MapObject>());
+				break;
+			case AI_BUILDING_NO_ATTACK:
+			    m_ai_control = boost::make_shared<AiControlDefenseBuildingNoAttack>(AI_BUILDING_NO_ATTACK,virtual_weak_from_this<MapObject>());
+			    break;
+			case AI_GOBLIN:
+				m_ai_control = boost::make_shared<AiControlMonsterGoblin>(AI_GOBLIN,virtual_weak_from_this<MapObject>());
+				break;
+			default:
+				LOG_EMPERY_CLUSTER_FATAL("invalid ai type:",map_object_type_data->ai_id);
+				break;
+		}
 	}
 	return m_ai_control;
 }
@@ -611,12 +578,13 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<MapObject>(),damage);
+		require_ai_control()->troops_attack(target_object);
 	}
 	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
 	return attack_delay;
 }
 
-std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
+std::uint64_t MapObject::on_attack_common(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
 	PROFILE_ME;
 
 	if(!attacker){
@@ -626,8 +594,56 @@ std::uint64_t MapObject::on_attack(boost::shared_ptr<MapObject> attacker,std::ui
 	if(m_action != ACT_ATTACK && m_waypoints.empty() && m_action != ACT_ENTER_CASTLE){
 		attack_new_target(attacker);
 	}
-	troops_attack(attacker,true);
+	require_ai_control()->troops_attack(attacker,true);
 	return UINT64_MAX;
+}
+
+std::uint64_t MapObject::on_attack_goblin(boost::shared_ptr<MapObject> attacker,std::uint64_t damage){
+	PROFILE_ME;
+
+	if(!attacker){
+		return UINT64_MAX;
+	}
+	const auto ai_id = require_ai_control()->get_ai_id();
+	if(ai_id != AI_GOBLIN){
+		return UINT64_MAX;
+	}
+
+	//移动逃跑
+	if(m_waypoints.empty()){
+		try{
+			const auto ai_data = Data::MapObjectAi::get(ai_id);
+			std::istringstream iss(ai_data->params);
+			auto temp_array = Poseidon::JsonParser::parse_array(iss);
+			auto random_left = temp_array.at(0).get<double>();
+			auto random_right = temp_array.at(1).get<double>();
+			const auto rand_x = Poseidon::rand32(random_left, random_right);
+			const auto rand_y = Poseidon::rand32(random_left, random_right);
+			auto direct_x = Poseidon::rand32(0, 2) ? 1 : -1;
+			auto direct_y = Poseidon::rand32(0, 2) ? 1 : -1;
+			std::int64_t  target_x = get_coord().x() + static_cast<std::int64_t>(rand_x)*direct_x;
+			std::int64_t  target_y = get_coord().y() + static_cast<std::int64_t>(rand_y)*direct_y;
+			const auto cluster_scope = WorldMap::get_cluster_scope(get_coord());
+			auto left = cluster_scope.left();
+			auto right = cluster_scope.left() + static_cast<std::int64_t>(cluster_scope.width());
+			auto bottom = cluster_scope.bottom();
+			auto top = cluster_scope.bottom() + static_cast<std::int64_t>(cluster_scope.height());
+			target_x = ( left > target_x ? left  : target_x );
+			target_x = ( right < target_x ? right : target_x );
+			target_y = ( bottom > target_y ? bottom : target_y );
+			target_y = ( target_y > top ? top : target_y);
+
+		    std::deque<std::pair<signed char, signed char>> waypoints;
+			if(find_way_points(waypoints,get_coord(),Coord(target_x,target_y),true)){
+				set_action(get_coord(), waypoints, static_cast<MapObject::Action>(ACT_GUARD),"");
+			}else{
+				LOG_EMPERY_CLUSTER_DEBUG("goblin find way fail");
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+	return 0;
 }
 
 std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool force_attack){
@@ -1097,6 +1113,21 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 
 	if(!enemy_map_object)
 		return;
+	const auto result = is_under_protection(virtual_shared_from_this<MapObject>(),enemy_map_object);
+	if(result.first != Msg::ST_OK){
+		return;
+	}
+	if(is_castle() && enemy_map_object->is_castle()){
+		return;
+	}
+	std::pair<long, std::string> reason;
+	if(!enemy_map_object->attacked_able(reason)){
+		return;
+	}
+
+	if(is_monster()&&enemy_map_object->is_building()){
+		return;
+	}
 	if(is_in_attack_scope(enemy_map_object)){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
@@ -1109,17 +1140,16 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 	}
 }
 
-std::uint64_t   MapObject::lost_target(){
+std::uint64_t   MapObject::lost_target_common(){
 	PROFILE_ME;
 
-	if(is_monster()){
-		monster_regress();
-	}else{
-		m_waypoints.clear();
-		m_action = ACT_GUARD;
-		m_action_param.clear();
-		notify_way_points(m_waypoints,m_action,m_action_param);
-	}
+	set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_GUARD),"");
+	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+	return stand_by_interval;
+}
+
+std::uint64_t MapObject::lost_target_monster(){
+	monster_regress();
 	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 	return stand_by_interval;
 }
@@ -1243,7 +1273,7 @@ std::uint64_t MapObject::search_attack(){
 	if(is_get_new_enemy){
 		attack_new_target(near_enemy_object);
 	}else{
-		lost_target();
+		require_ai_control()->on_lose_target();
 	}
 	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 	return stand_by_interval;
@@ -1446,5 +1476,21 @@ std::uint64_t MapObject::on_action_attack_territory(std::pair<long, std::string>
 		return UINT64_MAX;
 	}
 	return require_ai_control()->attack_territory(result,now,forced_attack);
+}
+
+bool       MapObject::is_in_monster_active_scope(){
+	if(is_monster()){
+		const auto coord           = get_coord();
+		const auto waypoint  = m_waypoints.front();
+		const auto new_coord = Coord(coord.x() + waypoint.first, coord.y() + waypoint.second);
+		const unsigned monster_active_scope = Data::Global::as_unsigned(Data::Global::SLOT_MAP_MONSTER_ACTIVE_SCOPE);
+		auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
+		auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+		const auto distance = get_distance_of_coords(new_coord, Coord(birth_x,birth_y));
+		if(distance >= monster_active_scope){
+			return false;
+		}
+	}
+	return true;
 }
 }
