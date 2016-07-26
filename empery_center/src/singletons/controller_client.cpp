@@ -5,7 +5,6 @@
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/async_job.hpp>
 #include <poseidon/job_promise.hpp>
-#include <poseidon/atomic.hpp>
 #include <poseidon/sock_addr.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
@@ -152,7 +151,6 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 
 ControllerClient::ControllerClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)
 	: Poseidon::Cbpp::Client(sock_addr, use_ssl, keep_alive_interval)
-	, m_serial(0)
 {
 	LOG_EMPERY_CENTER_INFO("Controller client constructor: this = ", (void *)this);
 }
@@ -199,18 +197,21 @@ bool ControllerClient::on_low_level_data_message_end(std::uint64_t payload_size)
 	const auto message_id = get_low_level_message_id();
 	if(message_id == Msg::G_PackedResponse::ID){
 		Msg::G_PackedResponse packed(get_low_level_payload());
+		if(!packed.uuid.empty()){
+			const auto uuid = Poseidon::Uuid(packed.uuid);
 
-		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		const auto it = m_requests.find(packed.serial);
-		if(it != m_requests.end()){
-			const auto elem = std::move(it->second);
-			m_requests.erase(it);
+			const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+			const auto it = m_requests.find(uuid);
+			if(it != m_requests.end()){
+				const auto elem = std::move(it->second);
+				m_requests.erase(it);
 
-			if(elem.result){
-				*elem.result = std::make_pair(packed.code, std::move(packed.message));
-			}
-			if(elem.promise){
-				elem.promise->set_success();
+				if(elem.result){
+					*elem.result = std::make_pair(packed.code, std::move(packed.message));
+				}
+				if(elem.promise){
+					elem.promise->set_success();
+				}
 			}
 		}
 	}
@@ -223,63 +224,48 @@ void ControllerClient::on_sync_data_message(std::uint16_t message_id, Poseidon::
 	LOG_EMPERY_CENTER_TRACE("Received data message from controller server: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", payload_size = ", payload.size());
 
-	if(message_id == Msg::G_PackedRequest::ID){
-		Msg::G_PackedRequest packed(std::move(payload));
+	if(message_id != Msg::G_PackedResponse::ID){
+		if(message_id == Msg::G_PackedRequest::ID){
+			Msg::G_PackedRequest packed(std::move(payload));
 
-		Result result;
-		try {
-			const auto servlet = get_servlet(packed.message_id);
-			if(!servlet){
-				LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", packed.message_id);
-				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
+			Result result;
+			try {
+				const auto servlet = get_servlet(packed.message_id);
+				if(!servlet){
+					LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", packed.message_id);
+					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
+				}
+				result = (*servlet)(virtual_shared_from_this<ControllerClient>(), Poseidon::StreamBuffer(packed.payload));
+			} catch(Poseidon::Cbpp::Exception &e){
+				LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+					"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+				result.first = e.status_code();
+				result.second = e.what();
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+					"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+				result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
+				result.second = e.what();
 			}
-			result = (*servlet)(virtual_shared_from_this<ControllerClient>(), Poseidon::StreamBuffer(packed.payload));
-		} catch(Poseidon::Cbpp::Exception &e){
-			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-			result.first = e.status_code();
-			result.second = e.what();
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
-			result.second = e.what();
-		}
-		if(result.first != 0){
-			LOG_EMPERY_CENTER_DEBUG("Sending response to controller server: message_id = ", packed.message_id,
-				", code = ", result.first, ", message = ", result.second);
-		}
-
-		Msg::G_PackedResponse res;
-		res.serial  = packed.serial;
-		res.code    = result.first;
-		res.message = std::move(result.second);
-		Poseidon::Cbpp::Client::send(res.ID, Poseidon::StreamBuffer(res));
-
-		if(result.first < 0){
-			shutdown_read();
-			shutdown_write();
-		}
-	} else if(message_id == Msg::G_PackedResponse::ID){
-		Msg::G_PackedResponse packed(std::move(payload));
-
-		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		const auto it = m_requests.find(packed.serial);
-		if(it != m_requests.end()){
-			const auto elem = std::move(it->second);
-			m_requests.erase(it);
-
-			if(elem.result){
-				elem.result->first  = packed.code;
-				elem.result->second = std::move(packed.message);
+			if(result.first != 0){
+				LOG_EMPERY_CENTER_DEBUG("Sending response to controller server: message_id = ", packed.message_id,
+					", code = ", result.first, ", message = ", result.second);
 			}
-			if(elem.promise){
-				elem.promise->set_success();
+
+			Msg::G_PackedResponse res;
+			res.uuid    = std::move(packed.uuid);
+			res.code    = result.first;
+			res.message = std::move(result.second);
+			Poseidon::Cbpp::Client::send(res.ID, Poseidon::StreamBuffer(res));
+
+			if(result.first < 0){
+				shutdown_read();
+				shutdown_write();
 			}
+		} else {
+			LOG_EMPERY_CENTER_WARNING("Unknown message from controller server: remote = ", get_remote_info(), ", message_id = ", message_id);
+			DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 		}
-	} else {
-		LOG_EMPERY_CENTER_WARNING("Unknown message from controller server: remote = ", get_remote_info(), ", message_id = ", message_id);
-		DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
 	}
 }
 
@@ -292,9 +278,7 @@ void ControllerClient::on_sync_error_message(std::uint16_t message_id, Poseidon:
 bool ControllerClient::send(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
-	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
 	Msg::G_PackedRequest msg;
-	msg.serial     = serial;
 	msg.message_id = message_id;
 	msg.payload    = payload.dump();
 	return Poseidon::Cbpp::Client::send(msg.ID, Poseidon::StreamBuffer(msg));
@@ -324,17 +308,16 @@ void ControllerClient::shutdown(int code, const char *message) noexcept {
 Result ControllerClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBuffer payload){
 	PROFILE_ME;
 
-	Result ret;
-
-	const auto serial = Poseidon::atomic_add(m_serial, 1, Poseidon::ATOMIC_RELAXED);
+	const auto ret = boost::make_shared<Result>();
+	const auto uuid = Poseidon::Uuid::random();
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.emplace(serial, RequestElement(&ret, promise));
+		m_requests.emplace(uuid, RequestElement(ret, promise));
 	}
 	try {
 		Msg::G_PackedRequest msg;
-		msg.serial     = serial;
+		msg.uuid       = uuid.to_string();
 		msg.message_id = message_id;
 		msg.payload    = payload.dump();
 		if(!Poseidon::Cbpp::Client::send(msg.ID, Poseidon::StreamBuffer(msg))){
@@ -343,15 +326,14 @@ Result ControllerClient::send_and_wait(std::uint16_t message_id, Poseidon::Strea
 		Poseidon::JobDispatcher::yield(promise, true);
 	} catch(...){
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(serial);
+		m_requests.erase(uuid);
 		throw;
 	}
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(serial);
+		m_requests.erase(uuid);
 	}
-
-	return ret;
+	return std::move(*ret);
 }
 
 }

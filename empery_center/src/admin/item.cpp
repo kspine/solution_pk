@@ -14,7 +14,7 @@ ADMIN_SERVLET("item/get_all", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 
 	const auto account = AccountMap::get(account_uuid);
-	if(!account_uuid){
+	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 	AccountMap::require_controller_token(account_uuid);
@@ -46,7 +46,7 @@ ADMIN_SERVLET("item/add", root, session, params){
 	const auto param3          = boost::lexical_cast<std::uint64_t>(params.at("param3"));
 
 	const auto account = AccountMap::get(account_uuid);
-	if(!account_uuid){
+	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 	AccountMap::require_controller_token(account_uuid);
@@ -72,7 +72,7 @@ ADMIN_SERVLET("item/remove", root, session, params){
 	const auto param3          = boost::lexical_cast<std::uint64_t>(params.at("param3"));
 
 	const auto account = AccountMap::get(account_uuid);
-	if(!account_uuid){
+	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 	AccountMap::require_controller_token(account_uuid);

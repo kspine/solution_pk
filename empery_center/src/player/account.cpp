@@ -8,6 +8,7 @@
 #include "../msg/err_item.hpp"
 #include "../account.hpp"
 #include "../account_attribute_ids.hpp"
+#include "../account_utilities.hpp"
 #include "../data/signing_in.hpp"
 #include "../item_ids.hpp"
 #include "../data/item.hpp"
@@ -127,12 +128,13 @@ namespace {
 		return Response(Msg::ERR_ACCOUNT_BANNED) <<login_name;
 	}
 
+	PlayerSessionMap::add(account_uuid, session);
 	WorldMap::forced_reload_map_objects_by_owner(account_uuid);
 
 	utc_now = Poseidon::get_utc_time();
-	get_signed_in(account);
 
-	PlayerSessionMap::add(account_uuid, session);
+	get_signed_in(account);
+	async_recheck_building_level_tasks(account_uuid);
 
 	session->send(Msg::SC_AccountSynchronizeSystemClock({ }, utc_now));
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
