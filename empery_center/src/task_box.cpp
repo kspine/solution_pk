@@ -394,6 +394,7 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 	const auto &pair = it->second;
 	const auto &obj = pair.first;
 
+	const auto task_data = Data::TaskAbstract::require(task_id);
 	const auto utc_now = Poseidon::get_utc_time();
 
 	std::string progress_str;
@@ -410,6 +411,12 @@ void TaskBox::update(TaskBox::TaskInfo info, bool throws_if_not_exists){
 		obj->set_progress(std::move(progress_str));
 	}
 	obj->set_rewarded(info.rewarded);
+
+	if(task_data->accumulative){
+		if(task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL){
+			async_recheck_building_level_tasks(get_account_uuid());
+		}
+	}
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
