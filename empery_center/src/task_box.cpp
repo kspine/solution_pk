@@ -497,7 +497,7 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		}
 
 		if(type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL){
-			if(param1 != static_cast<std::int64_t>(oit->second.at(1))){
+			if(param1 < static_cast<std::int64_t>(oit->second.at(1))){
 				continue;
 			}
 		}
