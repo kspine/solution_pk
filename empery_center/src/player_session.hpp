@@ -35,6 +35,10 @@ private:
 
 	Poseidon::Http::RequestHeaders m_request_headers;
 
+	std::uint64_t m_error_counter = 0;
+	std::uint64_t m_error_counter_reset_time = 0;
+
+	// XXX: workaround for cocos bug. remove this in the future.
 	mutable Poseidon::Mutex m_send_queue_mutex;
 	std::deque<std::tuple<unsigned, Poseidon::StreamBuffer, bool>> m_send_queue;
 

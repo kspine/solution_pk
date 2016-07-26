@@ -17,6 +17,7 @@
 #include "msg/kill.hpp"
 #include "msg/sc_packed.hpp"
 #include "singletons/world_map.hpp"
+#include "mmain.hpp"
 
 namespace EmperyCenter {
 
@@ -93,6 +94,27 @@ protected:
 			parent->shutdown(result.first, result.second.c_str());
 		} else {
 			parent->send_control(message_id, result.first, std::move(result.second));
+
+			if(result.first != 0){
+				const auto max_error_count        = get_config<std::uint64_t>("player_session_max_error_count", 10);
+				const auto counter_reset_duration = get_config<std::uint64_t>("player_session_error_counter_reset_duration", 60000);
+
+				const auto now = Poseidon::get_fast_mono_clock();
+				if(parent->m_error_counter_reset_time < now){
+					parent->m_error_counter = 0;
+					parent->m_error_counter_reset_time = saturated_add(now, counter_reset_duration);
+				}
+				if(++(parent->m_error_counter) > max_error_count){
+					auto remote_ip = Poseidon::sslit("<unavailable>");
+					try {
+						remote_ip = parent->get_remote_info().ip;
+					} catch(...){
+					}
+					LOG_EMPERY_CENTER_ERROR("Potential malicious client detected: remote_ip = ", remote_ip);
+					parent->shutdown_read();
+					parent->shutdown_write();
+				}
+			}
 		}
 	}
 };
