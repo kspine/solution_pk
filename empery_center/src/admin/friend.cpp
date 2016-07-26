@@ -12,7 +12,7 @@ ADMIN_SERVLET("friend/get_all", root, session, params){
 	const auto account_uuid = AccountUuid(params.at("account_uuid"));
 
 	const auto account = AccountMap::get(account_uuid);
-	if(!account_uuid){
+	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 	AccountMap::require_controller_token(account_uuid);
@@ -43,7 +43,7 @@ ADMIN_SERVLET("friend/set", root, session, params){
 	const auto &metadata    = params.get("metadata");
 
 	const auto account = AccountMap::get(account_uuid);
-	if(!account_uuid){
+	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 	AccountMap::require_controller_token(account_uuid);
@@ -67,7 +67,7 @@ ADMIN_SERVLET("friend/remove", root, session, params){
 	const auto friend_uuid  = AccountUuid(params.at("friend_uuid"));
 
 	const auto account = AccountMap::get(account_uuid);
-	if(!account_uuid){
+	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
 	AccountMap::require_controller_token(account_uuid);
