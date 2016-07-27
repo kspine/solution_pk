@@ -670,7 +670,7 @@ _wounded_done:
 		try {
 			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
-				
+
 				if(attacked_object_type_id == MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS){
 					return;
 				}
@@ -679,9 +679,11 @@ _wounded_done:
 				if(!monster_type_data){
 					return;
 				}
+
+				bool goblin_award = false;
 				static constexpr auto GOBLIN_WEAPON_ID = MapObjectWeaponId(2605001);
 				if(monster_type_data->map_object_weapon_id == GOBLIN_WEAPON_ID){
-					return;
+					goblin_award = true;
 				}
 
 				const auto item_box = ItemBoxMap::get(attacking_account_uuid);
@@ -711,10 +713,12 @@ _wounded_done:
 					}
 				}
 				const auto reward_counter = parent_castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
-				if(reward_counter > 0){
+				if(reward_counter > 0 || goblin_award){
 					std::vector<ResourceTransactionElement> resource_transaction;
-					resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
-						ReasonIds::ID_MONSTER_REWARD_COUNT, attacked_object_type_id.get(), 0, 0);
+					if(!goblin_award){
+						resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
+							ReasonIds::ID_MONSTER_REWARD_COUNT, attacked_object_type_id.get(), 0, 0);
+					}
 
 					std::vector<ItemTransactionElement> transaction;
 
@@ -829,7 +833,12 @@ _wounded_done:
 					const auto hp_damaged_now = checked_sub(hp_total,hp_remaining);
 					const auto hp_damaged_last = checked_sub(hp_damaged_now,hp_damaged);
 					const auto interval  = hp_total*Data::Global::as_double(Data::Global::SLOT_GOBLIN_DROP_AWARD_HP_PERCENT);
-					const auto reward_count = hp_damaged_now/interval - hp_damaged_last/interval;
+					auto reward_count = static_cast<int>(hp_damaged_now/interval - hp_damaged_last/interval);
+					bool real_award = false;
+					if(hp_damaged_now == hp_total){
+						//最后死亡走普通怪物掉落
+						reward_count -= 1;
+					}
 					const auto goblin_award_object = Data::Global::as_object(Data::Global::SLOT_GOBLIN_DROP_AWARD);
 					boost::container::flat_map<std::string, std::uint64_t> goblin_rewards;
 					goblin_rewards.reserve(goblin_award_object.size());
@@ -866,7 +875,11 @@ _wounded_done:
 						}
 					};
 					for(int index = 0; index < reward_count; ++index){
+						real_award = true;
 						push_monster_rewards(goblin_rewards);
+					}
+					if(!real_award){
+						return;
 					}
 					item_box->commit_transaction(transaction, false);
 					const auto session = PlayerSessionMap::get(attacking_account_uuid);
@@ -952,9 +965,6 @@ _wounded_done:
 							const auto resource_data = Data::CastleResource::get(resource_id);
 							if(!resource_data){
 								LOG_EMPERY_CENTER_DEBUG("Unknown resource: resource_id = ", resource_id);
-								continue;
-							}
-							if(!resource_data->carried_attribute_id){
 								continue;
 							}
 							std::uint64_t amount_normal = it->amount, amount_locked = 0;
@@ -1178,13 +1188,13 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
-	
+
 	//世界活动刷怪
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		Poseidon::enqueue_async_job([=]{
 			try {
 				PROFILE_ME;
-	
+
 				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
 				if(!monster_type_data){
 					return;
