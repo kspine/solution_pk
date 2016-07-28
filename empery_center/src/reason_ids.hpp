@@ -76,7 +76,8 @@ constexpr ReasonId
 	ID_DUNGEON_TASK_REWARD           ( 674014 ), // 副本 ID             星级                0
 	                                             //                     1 无星  7 一星
 	                                             //                     8 二星  9 三星
-	ID_HORN_MESSAGE                  ( 674015 ); // 0                   0                   0
+	ID_HORN_MESSAGE                  ( 674015 ), // 0                   0                   0
+	ID_DUNGEON_RESUSCITATION         ( 674016 ); // 部队 UUID 高位      部队受到伤害        复活率 * 1000
 
 }
 

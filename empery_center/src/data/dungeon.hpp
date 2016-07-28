@@ -25,7 +25,7 @@ namespace Data {
 		boost::container::flat_multimap<ApplicabilityKeyType, std::uint64_t> battalions_required;
 		boost::container::flat_multimap<ApplicabilityKeyType, std::uint64_t> battalions_forbidden;
 
-		//
+		double resuscitation_ratio;
 	};
 }
 
