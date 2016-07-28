@@ -60,6 +60,15 @@ namespace Data {
 		boost::container::flat_map<std::string, std::uint64_t> monster_rewards;
 	};
 
+	class MapObjectTypeDungeonMonster : public MapObjectTypeAbstract {
+	public:
+		static boost::shared_ptr<const MapObjectTypeDungeonMonster> get(MapObjectTypeId map_object_type_id);
+		static boost::shared_ptr<const MapObjectTypeDungeonMonster> require(MapObjectTypeId map_object_type_id);
+
+	public:
+		boost::container::flat_map<std::string, std::uint64_t> monster_rewards;
+	};
+
 	class MapObjectTypeMonsterReward {
 	public:
 		static boost::shared_ptr<const MapObjectTypeMonsterReward> get(std::uint64_t unique_id);

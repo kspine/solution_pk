@@ -17,6 +17,10 @@ namespace {
 	boost::weak_ptr<const MonsterContainer> g_monster_container;
 	const char MONSTER_FILE[] = "monster";
 
+	using DungeonMonsterContainer = boost::container::flat_map<MapObjectTypeId, Data::MapObjectTypeDungeonMonster>;
+	boost::weak_ptr<const DungeonMonsterContainer> g_dungeon_monster_container;
+	const char DUNGEON_MONSTER_FILE[] = "dungeon_monster";
+
 	MULTI_INDEX_MAP(MonsterRewardContainer, Data::MapObjectTypeMonsterReward,
 		UNIQUE_MEMBER_INDEX(unique_id)
 		MULTI_MEMBER_INDEX(collection_name)
@@ -167,6 +171,35 @@ namespace {
 		servlet = DataSession::create_servlet(MONSTER_FILE, Data::encode_csv_as_json(csv, "arm_id"));
 		handles.push(std::move(servlet));
 
+		csv = Data::sync_load_data(DUNGEON_MONSTER_FILE);
+		const auto dungeon_monster_container = boost::make_shared<DungeonMonsterContainer>();
+		while(csv.fetch_row()){
+			Data::MapObjectTypeDungeonMonster elem = { };
+
+			read_map_object_type_abstract(elem, csv);
+
+			Poseidon::JsonObject object;
+			csv.get(object, "drop");
+			elem.monster_rewards.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto collection_name = std::string(it->first.get());
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.monster_rewards.emplace(std::move(collection_name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: collection_name = ", collection_name);
+					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
+				}
+			}
+
+			if(!dungeon_monster_container->emplace(elem.map_object_type_id, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate MapObjectTypeDungeonMonster: map_object_type_id = ", elem.map_object_type_id);
+				DEBUG_THROW(Exception, sslit("Duplicate MapObjectTypeDungeonMonster"));
+			}
+		}
+		g_dungeon_monster_container = dungeon_monster_container;
+		handles.push(dungeon_monster_container);
+		servlet = DataSession::create_servlet(DUNGEON_MONSTER_FILE, Data::encode_csv_as_json(csv, "arm_id"));
+		handles.push(std::move(servlet));
+
 		csv = Data::sync_load_data(MONSTER_REWARD_FILE);
 		const auto monster_reward_container = boost::make_shared<MonsterRewardContainer>();
 		while(csv.fetch_row()){
@@ -281,6 +314,9 @@ namespace Data {
 		if(!!(ret = MapObjectTypeMonster::get(map_object_type_id))){
 			return ret;
 		}
+		if(!!(ret = MapObjectTypeDungeonMonster::get(map_object_type_id))){
+			return ret;
+		}
 		return ret;
 	}
 	boost::shared_ptr<const MapObjectTypeAbstract> MapObjectTypeAbstract::require(MapObjectTypeId map_object_type_id){
@@ -344,6 +380,33 @@ namespace Data {
 		if(!ret){
 			LOG_EMPERY_CENTER_WARNING("MapObjectTypeMonster not found: map_object_type_id = ", map_object_type_id);
 			DEBUG_THROW(Exception, sslit("MapObjectTypeMonster not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const MapObjectTypeDungeonMonster> MapObjectTypeDungeonMonster::get(MapObjectTypeId map_object_type_id){
+		PROFILE_ME;
+
+		const auto dungeon_monster_container = g_dungeon_monster_container.lock();
+		if(!dungeon_monster_container){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeDungeonMonsterContainer has not been loaded.");
+			return { };
+		}
+
+		const auto it = dungeon_monster_container->find(map_object_type_id);
+		if(it == dungeon_monster_container->end()){
+			LOG_EMPERY_CENTER_TRACE("MapObjectTypeDungeonMonster not found: map_object_type_id = ", map_object_type_id);
+			return { };
+		}
+		return boost::shared_ptr<const MapObjectTypeDungeonMonster>(dungeon_monster_container, &(it->second));
+	}
+	boost::shared_ptr<const MapObjectTypeDungeonMonster> MapObjectTypeDungeonMonster::require(MapObjectTypeId map_object_type_id){
+		PROFILE_ME;
+
+		auto ret = get(map_object_type_id);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("MapObjectTypeDungeonMonster not found: map_object_type_id = ", map_object_type_id);
+			DEBUG_THROW(Exception, sslit("MapObjectTypeDungeonMonster not found"));
 		}
 		return ret;
 	}
