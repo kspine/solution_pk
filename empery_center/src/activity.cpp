@@ -232,7 +232,7 @@ void WorldActivity::pump_status(){
 		return;
 	}
 	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-	WorldMap::get_all_clusters(clusters);
+	WorldMap::get_clusters_all(clusters);
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
 		WorldActivityMap::WorldActivityInfo info = WorldActivityMap::get(it->first,ActivityIds::ID_WORLD_ACTIVITY_MONSTER,m_available_since);
 		if(info.activity_id != ActivityIds::ID_WORLD_ACTIVITY_MONSTER){
@@ -662,7 +662,7 @@ void WorldActivity::synchronize_world_boss_with_player(const Coord cluster_coord
 
 void WorldActivity::on_activity_expired(){
 	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-	WorldMap::get_all_clusters(clusters);
+	WorldMap::get_clusters_all(clusters);
 	for(auto it = clusters.begin(); it != clusters.end(); ++it){
 		auto cluster_coord = it->first;
 		WorldMap::remove_world_activity_event(cluster_coord,MapEventBlock::MAP_EVENT_WORLD_ACTIVITY_MONSTER);
