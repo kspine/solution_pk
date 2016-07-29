@@ -16,6 +16,7 @@ namespace MySql {
 	class Center_MapEvent;
 }
 
+class MapObject;
 class PlayerSession;
 
 class MapEventBlock : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
@@ -57,7 +58,7 @@ public:
 
 	void refresh_events(bool first_time,unsigned event_type = MAP_EVENT_COMMON);
 	void remove_expired_events(boost::uint64_t utc_now,unsigned event_type = MAP_EVENT_COMMON,bool force = false);
-	bool refresh_boss(MapObjectUuid boss_uuid,boost::uint64_t utc_now);
+	boost::shared_ptr<MapObject> refresh_boss(boost::uint64_t utc_now);
 
 	Coord get_block_coord() const;
 	Rectangle get_block_scope() const {

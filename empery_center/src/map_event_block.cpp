@@ -74,12 +74,12 @@ namespace {
 		DEBUG_THROW(Exception, sslit("Unknown map event type id"));
 	}
 
-	bool really_create_map_boss_at_coord(Coord coord,std::uint64_t created_time,MapObjectUuid meta_uuid)
+	boost::shared_ptr<MapObject> really_create_map_boss_at_coord(Coord coord,std::uint64_t created_time,std::uint64_t expiry_time)
 	{
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("&& Creating map boss: coord = ", coord);
 		const auto monster_data = Data::MapObjectTypeMonster::require(MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS);
-		const auto monster_uuid = meta_uuid;
+		const auto monster_uuid = MapObjectUuid(Poseidon::Uuid::random());
 
 		const auto soldier_count = monster_data->max_soldier_count;
 		const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
@@ -92,13 +92,13 @@ namespace {
 		modifiers[AttributeIds::ID_MONSTER_START_POINT_Y] = coord.y();
 		modifiers[AttributeIds::ID_HP_TOTAL]              = static_cast<std::int64_t>(hp_total);
 
-		const auto monster = boost::make_shared<MapObject>(monster_uuid,MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS,
-			AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
+		auto monster = boost::make_shared<MapObject>(monster_uuid,MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS,
+			AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, expiry_time, false);
 		monster->set_attributes(std::move(modifiers));
 		monster->pump_status();
 
 		WorldMap::insert_map_object(monster);
-		return true;
+		return monster;
 	}
 }
 
@@ -441,13 +441,13 @@ void MapEventBlock::remove_expired_events(boost::uint64_t utc_now,unsigned event
 	}
 }
 
-bool MapEventBlock::refresh_boss(MapObjectUuid boss_uuid,boost::uint64_t utc_now){
+boost::shared_ptr<MapObject> MapEventBlock::refresh_boss(boost::uint64_t utc_now){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Refresh boss events: block_coord = ", get_block_coord());
 	
 	auto map_event_circle_id = get_map_event_cicle_id();
 	if(map_event_circle_id == MapEventCircleId(0)){
-		return false;
+		return { };
 	}
 
 	const auto block_coord = get_block_coord();
@@ -532,19 +532,19 @@ bool MapEventBlock::refresh_boss(MapObjectUuid boss_uuid,boost::uint64_t utc_now
 
 	if(coords_avail.empty()){
 		LOG_EMPERY_CENTER_TRACE("About to refresh boss, coords_avail = 0 ", ", block_coord = ",block_coord);
-		return false;
+		return { };
 	}
 	for(auto it = coords_avail.begin(); it != coords_avail.end(); ++it){
 		try{
-			bool result = really_create_map_boss_at_coord(*it,utc_now,boss_uuid);
-			if(result){
-				return true;
+			auto boss = really_create_map_boss_at_coord(*it,utc_now, UINT64_MAX);
+			if(boss){
+				return std::move(boss);
 			}
 		} catch( std::exception e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
-	return false;
+	return { };
 }
 
 Coord MapEventBlock::get_block_coord() const {

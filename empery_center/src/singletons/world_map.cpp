@@ -1759,7 +1759,7 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 		return;
 	}
 	const auto utc_now = Poseidon::get_utc_time();
-	bool create_boss_result  = false;
+	boost::shared_ptr<MapObject> boss;
 	std::vector<boost::shared_ptr<MapEventBlock>> ret;
 	WorldMap::get_cluster_map_event_blocks(cluster_coord,ret);
 	std::sort(ret.begin(), ret.end(),
@@ -1767,25 +1767,24 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 						
 						return lhs->get_map_event_cicle_id() < rhs->get_map_event_cicle_id();
 					});
-	MapObjectUuid boss_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	for(auto it = ret.begin(); it != ret.end(); ++it){
 		const auto &map_event_block = *it;
 		const auto &temp_cluster_coord = WorldMap::get_cluster_scope(map_event_block->get_block_coord()).bottom_left();
 		if(cluster_coord != temp_cluster_coord){
 			continue;
 		}
-		create_boss_result = map_event_block->refresh_boss(boss_uuid,utc_now);
-		if(create_boss_result){
+		boss = map_event_block->refresh_boss(utc_now);
+		if(boss){
 			boss_info.cluster_coord = cluster_coord;
 			boss_info.since         = since;
-			boss_info.boss_uuid     = boss_uuid;
+			boss_info.boss_uuid     = boss->get_map_object_uuid();
 			boss_info.create_date   = utc_now;
 			boss_info.delete_date   = 0;
 			WorldActivityBossMap::update(boss_info);
 			break;
 		}
 	}
-	if(!create_boss_result){
+	if(!boss){
 		LOG_EMPERY_CENTER_FATAL("refresh world activity boss Failed,has no enough coord ????");
 	}
 }
