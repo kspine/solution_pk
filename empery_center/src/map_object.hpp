@@ -48,7 +48,7 @@ private:
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,
-		std::string name, Coord coord, std::uint64_t created_time, bool garrisoned);
+		std::string name, Coord coord, std::uint64_t created_time, std::uint64_t expiry_time, bool garrisoned);
 	MapObject(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs);
@@ -78,6 +78,7 @@ public:
 	void set_coord_no_synchronize(Coord coord) noexcept;
 
 	std::uint64_t get_created_time() const;
+	std::uint64_t get_expiry_time() const;
 
 	bool has_been_deleted() const;
 	void delete_from_game() noexcept;

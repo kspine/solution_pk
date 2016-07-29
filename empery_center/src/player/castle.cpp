@@ -670,7 +670,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateImmigrants, account, session, req){
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
 			const auto immigrants = boost::make_shared<MapObject>(immigrants_uuid, MapObjectTypeIds::ID_IMMIGRANTS,
-				account->get_account_uuid(), map_object_uuid, std::string(), coord, utc_now, false);
+				account->get_account_uuid(), map_object_uuid, std::string(), coord, utc_now, UINT64_MAX, false);
 			immigrants->pump_status();
 			WorldMap::insert_map_object(immigrants);
 			LOG_EMPERY_CENTER_INFO("Created immigrant group: immigrants_uuid = ", immigrants_uuid,
@@ -1065,7 +1065,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateBattalion, account, session, req){
 	const auto insuff_soldier_id = castle->commit_soldier_transaction_nothrow(transaction,
 		[&]{
 			const auto battalion = boost::make_shared<MapObject>(battalion_uuid, map_object_type_id,
-				account->get_account_uuid(), map_object_uuid, std::string(), castle->get_coord(), utc_now, true);
+				account->get_account_uuid(), map_object_uuid, std::string(), castle->get_coord(), utc_now, UINT64_MAX, true);
 			battalion->set_attributes(std::move(modifiers));
 			battalion->pump_status();
 

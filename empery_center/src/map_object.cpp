@@ -53,11 +53,11 @@ const std::initializer_list<AttributeId> MapObject::COMBAT_ATTRIBUTES = {
 };
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
-	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time, bool garrisoned)
+	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time, std::uint64_t expiry_time, bool garrisoned)
 	: m_obj(
 		[&]{
 			auto obj = boost::make_shared<MySql::Center_MapObject>(map_object_uuid.get(), map_object_type_id.get(), owner_uuid.get(),
-				parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, false, garrisoned);
+				parent_object_uuid.get(), std::move(name), coord.x(), coord.y(), created_time, expiry_time, garrisoned);
 			obj->async_save(true, true);
 			return obj;
 		}())
@@ -268,6 +268,9 @@ void MapObject::set_coord_no_synchronize(Coord coord) noexcept {
 std::uint64_t MapObject::get_created_time() const {
 	return m_obj->get_created_time();
 }
+std::uint64_t MapObject::get_expiry_time() const {
+	return m_obj->get_expiry_time();
+}
 
 const std::string &MapObject::get_name() const {
 	return m_obj->unlocked_get_name();
@@ -281,7 +284,7 @@ void MapObject::set_name(std::string name){
 }
 
 bool MapObject::has_been_deleted() const {
-	return m_obj->get_deleted();
+	return m_obj->get_expiry_time() == 0;
 }
 void MapObject::delete_from_game() noexcept {
 	PROFILE_ME;
@@ -289,7 +292,7 @@ void MapObject::delete_from_game() noexcept {
 	if(has_been_deleted()){
 		return;
 	}
-	m_obj->set_deleted(true);
+	m_obj->set_expiry_time(0);
 
 	++m_stamp;
 
