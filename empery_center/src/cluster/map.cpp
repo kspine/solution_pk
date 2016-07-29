@@ -670,7 +670,7 @@ _wounded_done:
 		try {
 			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
-				
+
 				if(attacked_object_type_id == MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS){
 					return;
 				}
@@ -679,14 +679,13 @@ _wounded_done:
 				if(!monster_type_data){
 					return;
 				}
-				
+
 				bool goblin_award = false;
 				static constexpr auto GOBLIN_WEAPON_ID = MapObjectWeaponId(2605001);
 				if(monster_type_data->map_object_weapon_id == GOBLIN_WEAPON_ID){
 					goblin_award = true;
 				}
-				
-				
+
 				const auto item_box = ItemBoxMap::get(attacking_account_uuid);
 				if(!item_box){
 					LOG_EMPERY_CENTER_DEBUG("Failed to load item box: attacking_account_uuid = ", attacking_account_uuid);
