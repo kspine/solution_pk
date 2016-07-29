@@ -29,11 +29,10 @@ namespace {
 		info.created_time = obj->get_created_time();
 		info.expiry_time  = obj->get_expiry_time();
 		info.map_event_id = MapEventId(obj->get_map_event_id());
-		info.meta_uuid    = obj->get_meta_uuid();
 	}
 
 	void really_create_map_event_at_coord(MapEventId map_event_id, Coord coord,
-		std::uint64_t created_time, std::uint64_t expiry_time, Poseidon::Uuid meta_uuid)
+		std::uint64_t created_time, std::uint64_t expiry_time)
 	{
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("&& Creating map event: map_event_id = ", map_event_id, ", coord = ", coord);
@@ -49,7 +48,7 @@ namespace {
 		const auto event_monster_data = Data::MapEventMonster::get(map_event_id);
 		if(event_monster_data){
 			const auto monster_data = Data::MapObjectTypeMonster::require(event_monster_data->monster_type_id);
-			const auto monster_uuid = MapObjectUuid(meta_uuid);
+			const auto monster_uuid = MapObjectUuid(Poseidon::Uuid::random());
 
 			const auto soldier_count = monster_data->max_soldier_count;
 			const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
@@ -63,7 +62,7 @@ namespace {
 			modifiers[AttributeIds::ID_HP_TOTAL]              = static_cast<std::int64_t>(hp_total);
 
 			const auto monster = boost::make_shared<MapObject>(monster_uuid, event_monster_data->monster_type_id,
-				AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, false);
+				AccountUuid(), MapObjectUuid(), std::string(), coord, created_time, expiry_time, false);
 			monster->set_attributes(std::move(modifiers));
 			monster->pump_status();
 
@@ -73,33 +72,6 @@ namespace {
 
 		LOG_EMPERY_CENTER_ERROR("Unknown map event type id: ", map_event_id);
 		DEBUG_THROW(Exception, sslit("Unknown map event type id"));
-	}
-	void really_destroy_map_event_at_coord(MapEventId map_event_id, Coord coord,
-		Poseidon::Uuid meta_uuid)
-	{
-		PROFILE_ME;
-		LOG_EMPERY_CENTER_TRACE("&& Creating map event: map_event_id = ", map_event_id, ", coord = ", coord);
-
-		const auto event_resource_data = Data::MapEventResource::get(map_event_id);
-		if(event_resource_data){
-			const auto strategic_resource = WorldMap::get_strategic_resource(coord);
-			if(strategic_resource){
-				strategic_resource->delete_from_game();
-			}
-			return;
-		}
-
-		const auto event_monster_data = Data::MapEventMonster::get(map_event_id);
-		if(event_monster_data){
-			const auto monster_uuid = MapObjectUuid(meta_uuid);
-			const auto monster = WorldMap::get_map_object(monster_uuid);
-			if(monster){
-				monster->delete_from_game();
-			}
-			return;
-		}
-
-		LOG_EMPERY_CENTER_ERROR("Unknown map event type id: ", map_event_id);
 	}
 }
 
@@ -408,7 +380,6 @@ void MapEventBlock::refresh_events(bool first_time){
 					info.created_time = utc_now;
 					info.expiry_time  = saturated_add(utc_now, saturated_mul<std::uint64_t>(generation_data->expiry_duration, 60000));
 					info.map_event_id = map_event_id;
-					info.meta_uuid    = Poseidon::Uuid::random();
 					insert(std::move(info));
 
 					coords_avail.erase(coord_it);
@@ -475,12 +446,12 @@ void MapEventBlock::insert(MapEventBlock::EventInfo info){
 	}
 
 	const auto obj = boost::make_shared<MySql::Center_MapEvent>(coord.x(), coord.y(),
-		info.created_time, info.expiry_time, info.map_event_id.get(), info.meta_uuid);
+		info.created_time, info.expiry_time, info.map_event_id.get());
 	obj->async_save(true);
 	it = m_events.emplace(coord, obj).first;
 
 	try {
-		really_create_map_event_at_coord(info.map_event_id, coord, info.created_time, info.expiry_time, info.meta_uuid);
+		really_create_map_event_at_coord(info.map_event_id, coord, info.created_time, info.expiry_time);
 	} catch(...){
 		m_events.erase(it);
 		throw;
@@ -502,7 +473,6 @@ void MapEventBlock::update(EventInfo info, bool throws_if_not_exists){
 
 	obj->set_expiry_time(info.expiry_time);
 	obj->set_map_event_id(info.map_event_id.get());
-	obj->set_meta_uuid(info.meta_uuid);
 }
 bool MapEventBlock::remove(Coord coord) noexcept {
 	PROFILE_ME;
@@ -515,11 +485,6 @@ bool MapEventBlock::remove(Coord coord) noexcept {
 	m_events.erase(it);
 
 	obj->set_expiry_time(0);
-
-	const auto map_event_id = MapEventId(obj->get_map_event_id());
-	const auto meta_uuid = obj->unlocked_get_meta_uuid();
-
-	really_destroy_map_event_at_coord(map_event_id, coord, meta_uuid);
 
 	return true;
 }

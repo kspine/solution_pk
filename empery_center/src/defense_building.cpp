@@ -75,7 +75,7 @@ namespace {
 
 DefenseBuilding::DefenseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 	MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time)
-	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord, created_time, false)
+	: MapObject(map_object_uuid, map_object_type_id, owner_uuid, parent_object_uuid, std::move(name), coord, created_time, UINT64_MAX, false)
 	, m_defense_obj(create_default_defense_obj(map_object_uuid))
 {
 }

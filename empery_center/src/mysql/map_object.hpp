@@ -17,7 +17,7 @@ namespace MySql {
 	FIELD_BIGINT			(x)	\
 	FIELD_BIGINT			(y)	\
 	FIELD_DATETIME          (created_time)	\
-	FIELD_BOOLEAN           (deleted)	\
+	FIELD_DATETIME          (expiry_time)	\
 	FIELD_BOOLEAN           (garrisoned)
 #include <poseidon/mysql/object_generator.hpp>
 
