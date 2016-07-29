@@ -246,7 +246,7 @@ namespace {
 			"      ON `m`.`map_object_uuid` = `d`.`map_object_uuid` "
 			"    LEFT JOIN `Center_MapObjectBuff` AS `b` "
 			"      ON `m`.`map_object_uuid` = `b`.`map_object_uuid` "
-			"  WHERE `m`.`deleted` > 0");
+			"  WHERE `m`.`expiry_time` = '0000-00-00 00:00:00'");
 	}
 
 	void castle_activity_check_proc(std::uint64_t now){
