@@ -35,7 +35,7 @@ std::uint64_t Castle::get_created_time() const {
 	return m_obj->get_created_time();
 }
 bool Castle::has_been_deleted() const {
-	return m_obj->get_deleted();
+	return m_obj->get_expiry_time() == 0;
 }
 bool Castle::is_garrisoned() const {
 	return m_obj->get_garrisoned();
