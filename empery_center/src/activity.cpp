@@ -67,6 +67,17 @@ void MapActivity::pump_status(){
 	PROFILE_ME;
 
 	const auto utc_now = Poseidon::get_utc_time();
+	for(auto it = m_activitys.begin(); it != m_activitys.end(); ++it){
+		auto map_activity_id = MapActivityId((it->second).unique_id);
+		auto until = (it->second).available_until;
+		if(utc_now > until){
+			if(map_activity_id == ActivityIds::ID_MAP_ACTIVITY_RESOURCE){
+				WorldMap::remove_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_RESOUCE);
+			}else if(map_activity_id == ActivityIds::ID_MAP_ACTIVITY_GOBLIN){
+				WorldMap::remove_activity_event(MapEventBlock::MAP_EVENT_ACTIVITY_GOBLIN);
+			}
+		}
+	}
 	if(utc_now < m_available_since || utc_now > m_available_until || utc_now < m_next_activity_time)
 		return;
 
