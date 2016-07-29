@@ -38,7 +38,6 @@ public:
 		std::uint64_t created_time;
 		std::uint64_t expiry_time;
 		MapEventId map_event_id;
-		Poseidon::Uuid meta_uuid;
 	};
 
 private:
