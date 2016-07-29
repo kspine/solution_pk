@@ -1120,7 +1120,7 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' "
 		    <<"  AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
@@ -1277,7 +1277,7 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' "
 		    <<"  AND `owner_uuid` = " <<Poseidon::MySql::UuidFormatter(owner_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
@@ -1358,7 +1358,7 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' "
 		    <<"  AND `map_object_type_id` != " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `parent_object_uuid` = " <<Poseidon::MySql::UuidFormatter(parent_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
@@ -2041,7 +2041,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 		{
 			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND "
+			oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' AND "
 				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
