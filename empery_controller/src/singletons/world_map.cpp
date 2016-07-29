@@ -77,7 +77,7 @@ namespace {
 		const auto castle_map = boost::make_shared<CastleContainer>();
 		LOG_EMPERY_CONTROLLER_INFO("Loading castles...");
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE;
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE;
 		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
