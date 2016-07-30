@@ -126,6 +126,7 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObjectAction, cluster, req){
 
 	const auto stamp = req.stamp;
 	if(stamp != map_object->get_stamp()){
+		map_object->synchronize_with_cluster(cluster);
 		return Response(Msg::ERR_MAP_OBJECT_INVALIDATED);
 	}
 
