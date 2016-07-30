@@ -14,7 +14,7 @@ namespace Data {
 
 		Poseidon::CsvParser csv;
 		const auto path = data_directory + "/" + file + ".csv";
-		LOG_EMPERY_CLUSTER_INFO("Loading csv file: path = ", path);
+		LOG_EMPERY_DUNGEON_INFO("Loading csv file: path = ", path);
 		csv.load(path.c_str());
 		return csv;
 	}

@@ -6,6 +6,7 @@
 #include "data/dungeon.hpp"
 #include "cbpp_response.hpp"
 #include "singletons/dungeon_map.hpp"
+#include "../../empery_center/src/map_utilities.cpp"
 #include "../../empery_center/src/msg/err_map.hpp"
 #include "../../empery_center/src/msg/err_dungeon.hpp"
 
@@ -16,8 +17,7 @@ namespace Msg = ::EmperyCenter::Msg;
 
 std::pair<long, std::string> get_move_result(DungeonUuid dungeon_uuid,Coord coord, AccountUuid account_uuid, bool wait_for_moving_objects){
 	PROFILE_ME;
-
-	auto dungeon = DungeonMap::require(dungeon_uuid);
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
 	const auto dungeon_data = Data::Dungeon::require(dungeon->get_dungeon_type_id());
 	const auto map_x = coord.x();
 	const auto map_y = coord.y();

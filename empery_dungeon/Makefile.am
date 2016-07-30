@@ -18,6 +18,7 @@ lib_LTLIBRARIES = \
 lib_libposeidon_empery_dungeon_la_SOURCES = \
 	src/singletons/dungeon_map.cpp \
 	src/dungeon/dungeon.cpp \
+	src/data/common.cpp \
 	src/data/dungeon_object.cpp \
 	src/data/dungeon.cpp \
 	src/data/dungeon_map.cpp \

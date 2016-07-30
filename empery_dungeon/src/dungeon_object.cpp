@@ -513,7 +513,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	const auto dungeon = DungeonMap::require(get_dungeon_uuid());
 	const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
 	const auto wait_for_moving_objects = (m_blocked_retry_count < retry_max_count);
-	result = get_move_result(dungeon->get_dungeon_type_id(),new_coord, owner_uuid, wait_for_moving_objects);
+	result = get_move_result(dungeon->get_dungeon_uuid(),new_coord, owner_uuid, wait_for_moving_objects);
 	if(result.first == Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY){
 		const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
 		if(m_action != ACT_ENTER_CASTLE){
