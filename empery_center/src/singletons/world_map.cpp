@@ -1149,6 +1149,8 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+	const auto coord = map_object->get_coord();
+	synchronize_with_all_clusters(map_object, coord, coord);
 	return std::move(map_object);
 }
 void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object){
@@ -1299,6 +1301,8 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 		}
 
 		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+		const auto coord = map_object->get_coord();
+		synchronize_with_all_clusters(map_object, coord, coord);
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
@@ -1381,6 +1385,8 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 		}
 
 		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+		const auto coord = map_object->get_coord();
+		synchronize_with_all_clusters(map_object, coord, coord);
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
