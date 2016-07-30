@@ -29,7 +29,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
 	}
 	auto dungeon_object_uuid = DungeonObjectUuid(req.dungeon_object_uuid);
-	auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	auto dungeon_object_type_id = DungeonObjectTypeId(req.map_object_type_id);
 	auto owner_uuid = AccountUuid(req.owner_uuid);
 	auto coord = Coord(req.x, req.y);
 	auto dungeon_object = expect_dungeon->get_object(dungeon_object_uuid);
@@ -53,7 +53,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 	}
 
 	if(!dungeon_object){
-		dungeon_object = boost::make_shared<DungeonObject>(dungeon_uuid,dungeon_object_uuid,map_object_type_id,owner_uuid,coord);
+		dungeon_object = boost::make_shared<DungeonObject>(dungeon_uuid,dungeon_object_uuid,dungeon_object_type_id,owner_uuid,coord);
 	}
 	dungeon_object->set_attributes(std::move(attributes));
 	for(auto it = buffs.begin(); it != buffs.end(); ++it){
@@ -74,7 +74,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectRemoved, dungeon, req){
 	return Response();
 }
 
-/*
+
 DUNGEON_SERVLET(Msg::SD_DungeonSetAction, dengeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	auto dungeon_object_uuid = DungeonObjectUuid(req.dungeon_object_uuid);
@@ -95,7 +95,6 @@ DUNGEON_SERVLET(Msg::SD_DungeonSetAction, dengeon, req){
 
 	return Response();
 }
-*/
 
 
 

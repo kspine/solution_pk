@@ -223,7 +223,9 @@ namespace IdTypes {
 	using DungeonTypeId             = GenericId<std::uint32_t, 120025>;
 	using ActivityId                = GenericId<std::uint32_t, 120026>;
 	using MapActivityId             = GenericId<std::uint32_t, 120027>;
-	using WorldActivityId         = GenericId<std::uint32_t, 120028>;
+	using WorldActivityId           = GenericId<std::uint32_t, 120028>;
+	using DungeonObjectTypeId       = GenericId<std::uint32_t, 120029>;
+	using DungeonObjectWeaponId     = GenericId<std::uint32_t, 120030>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;

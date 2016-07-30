@@ -7,6 +7,7 @@
 #include <boost/container/flat_map.hpp>
 #include "id_types.hpp"
 #include "coord.hpp"
+#include "rectangle.hpp"
 
 namespace EmperyDungeon {
 
@@ -48,8 +49,14 @@ public:
 	}
 	void set_founder_uuid(AccountUuid founder_uuid);
 
+	boost::shared_ptr<DungeonClient> get_dungeon_client() const {
+		return m_dungeon_client.lock();
+	}
+
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
+	void get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const;
+	void get_dungeon_objects_by_account(std::vector<boost::shared_ptr<DungeonObject>> &ret,AccountUuid account_uuid);
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
 	void replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object);

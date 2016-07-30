@@ -46,6 +46,30 @@ void Dungeon::get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret
 		ret.emplace_back(it->second);
 	}
 }
+
+void Dungeon::get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const{
+	PROFILE_ME;
+
+	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+		auto &dungeon_object = it->second;
+		auto object_coord = dungeon_object->get_coord();
+		if(rectangle.hit_test(object_coord)){
+			ret.emplace_back(it->second);
+		}
+	}
+}
+
+void Dungeon::get_dungeon_objects_by_account(std::vector<boost::shared_ptr<DungeonObject>> &ret,AccountUuid account_uuid){
+	PROFILE_ME;
+
+	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+		auto &dungeon_object = it->second;
+		if(dungeon_object->get_owner_uuid() == account_uuid){
+			ret.emplace_back(it->second);
+		}
+	}
+}
+
 void Dungeon::insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object){
 	PROFILE_ME;
 
