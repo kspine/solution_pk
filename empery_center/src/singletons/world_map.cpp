@@ -145,11 +145,6 @@ namespace {
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
 		}
-
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapEvent",
-			"DELETE QUICK `e`.*"
-			"  FROM `Center_MapEvent` AS `e` "
-			"  WHERE `e`.`expiry_time` = '0000-00-00 00:00:00'");
 	}
 
 	inline MapObjectUuid get_garrisoning_object_uuid(const boost::shared_ptr<MapObject> map_object){
@@ -175,13 +170,14 @@ namespace {
 		MapObjectUuid parent_object_uuid;
 		MapObjectUuid garrisoning_object_uuid;
 		bool auto_update;
+		std::uint64_t expiry_time;
 
 		explicit MapObjectElement(boost::shared_ptr<MapObject> map_object_)
 			: map_object(std::move(map_object_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord())
 			, owner_uuid(map_object->get_owner_uuid()), parent_object_uuid(map_object->get_parent_object_uuid())
 			, garrisoning_object_uuid(get_garrisoning_object_uuid(map_object))
-			, auto_update(map_object->should_auto_update())
+			, auto_update(map_object->should_auto_update()), expiry_time(map_object->get_expiry_time())
 		{
 		}
 	};
@@ -193,6 +189,7 @@ namespace {
 		MULTI_MEMBER_INDEX(parent_object_uuid)
 		MULTI_MEMBER_INDEX(garrisoning_object_uuid)
 		MULTI_MEMBER_INDEX(auto_update)
+		MULTI_MEMBER_INDEX(expiry_time)
 	)
 
 	boost::weak_ptr<MapObjectContainer> g_map_object_map;
@@ -206,19 +203,37 @@ namespace {
 			return;
 		}
 
-		std::vector<boost::shared_ptr<MapObject>> map_objects_to_pump;
-		const auto range = std::make_pair(map_object_map->upper_bound<5>(false), map_object_map->end<5>());
-		map_objects_to_pump.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
-		for(auto it = range.first; it != range.second; ++it){
-			const auto &map_object = it->map_object;
-			map_objects_to_pump.emplace_back(map_object);
+		{
+			std::vector<boost::shared_ptr<MapObject>> map_objects_to_pump;
+			const auto range = std::make_pair(map_object_map->upper_bound<5>(false), map_object_map->end<5>());
+			map_objects_to_pump.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+			for(auto it = range.first; it != range.second; ++it){
+				const auto &map_object = it->map_object;
+				map_objects_to_pump.emplace_back(map_object);
+			}
+			for(auto it = map_objects_to_pump.begin(); it != map_objects_to_pump.end(); ++it){
+				const auto &map_object = *it;
+				try {
+					map_object->pump_status();
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+				}
+			}
 		}
-		for(auto it = map_objects_to_pump.begin(); it != map_objects_to_pump.end(); ++it){
-			const auto &map_object = *it;
-			try {
-				map_object->pump_status();
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+
+		{
+			const auto utc_now = Poseidon::get_utc_time();
+			const auto range = std::make_pair(map_object_map->begin<6>(), map_object_map->upper_bound<6>(utc_now));
+
+			std::vector<boost::shared_ptr<MapObject>> map_objects_to_delete;
+			map_objects_to_delete.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+			for(auto it = range.first; it != range.second; ++it){
+				map_objects_to_delete.emplace_back(it->map_object);
+			}
+			for(auto it = map_objects_to_delete.begin(); it != map_objects_to_delete.end(); ++it){
+				const auto &map_object = *it;
+				LOG_EMPERY_CENTER_DEBUG("Reclaiming map object: map_object_uuid = ", map_object->get_map_object_uuid());
+				map_object->delete_from_game();
 			}
 		}
 
@@ -231,7 +246,7 @@ namespace {
 			"      ON `m`.`map_object_uuid` = `d`.`map_object_uuid` "
 			"    LEFT JOIN `Center_MapObjectBuff` AS `b` "
 			"      ON `m`.`map_object_uuid` = `b`.`map_object_uuid` "
-			"  WHERE `m`.`deleted` > 0");
+			"  WHERE `m`.`expiry_time` = '0000-00-00 00:00:00'");
 	}
 
 	void castle_activity_check_proc(std::uint64_t now){
@@ -380,6 +395,11 @@ namespace {
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
 		}
+
+		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapEvent",
+			"DELETE QUICK `e`.*"
+			"  FROM `Center_MapEvent` AS `e` "
+			"  WHERE `e`.`expiry_time` = '0000-00-00 00:00:00'");
 	}
 
 	struct ResourceCrateElement {
@@ -1102,7 +1122,7 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' "
 		    <<"  AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
@@ -1259,7 +1279,7 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' "
 		    <<"  AND `owner_uuid` = " <<Poseidon::MySql::UuidFormatter(owner_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
@@ -1340,7 +1360,7 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 "
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' "
 		    <<"  AND `map_object_type_id` != " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `parent_object_uuid` = " <<Poseidon::MySql::UuidFormatter(parent_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
@@ -1739,7 +1759,7 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 		return;
 	}
 	const auto utc_now = Poseidon::get_utc_time();
-	bool create_boss_result  = false;
+	boost::shared_ptr<MapObject> boss;
 	std::vector<boost::shared_ptr<MapEventBlock>> ret;
 	WorldMap::get_cluster_map_event_blocks(cluster_coord,ret);
 	std::sort(ret.begin(), ret.end(),
@@ -1747,25 +1767,24 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 						
 						return lhs->get_map_event_cicle_id() < rhs->get_map_event_cicle_id();
 					});
-	MapObjectUuid boss_uuid = MapObjectUuid(Poseidon::Uuid::random());
 	for(auto it = ret.begin(); it != ret.end(); ++it){
 		const auto &map_event_block = *it;
 		const auto &temp_cluster_coord = WorldMap::get_cluster_scope(map_event_block->get_block_coord()).bottom_left();
 		if(cluster_coord != temp_cluster_coord){
 			continue;
 		}
-		create_boss_result = map_event_block->refresh_boss(boss_uuid,utc_now);
-		if(create_boss_result){
+		boss = map_event_block->refresh_boss(utc_now);
+		if(boss){
 			boss_info.cluster_coord = cluster_coord;
 			boss_info.since         = since;
-			boss_info.boss_uuid     = boss_uuid;
+			boss_info.boss_uuid     = boss->get_map_object_uuid();
 			boss_info.create_date   = utc_now;
 			boss_info.delete_date   = 0;
 			WorldActivityBossMap::update(boss_info);
 			break;
 		}
 	}
-	if(!create_boss_result){
+	if(!boss){
 		LOG_EMPERY_CENTER_FATAL("refresh world activity boss Failed,has no enough coord ????");
 	}
 }
@@ -2171,7 +2190,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObject>>>();
 		{
 			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND "
+			oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' AND "
 				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
 			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){

@@ -77,7 +77,8 @@ namespace {
 		const auto castle_map = boost::make_shared<CastleContainer>();
 		LOG_EMPERY_CONTROLLER_INFO("Loading castles...");
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE;
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' AND "
+		    <<"  `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE;
 		conn->execute_sql(oss.str());
 		while(conn->fetch_row()){
 			auto obj = boost::make_shared<EmperyCenter::MySql::Center_MapObject>();
@@ -144,7 +145,8 @@ boost::shared_ptr<Castle> WorldMap::forced_reload_castle(MapObjectUuid map_objec
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<EmperyCenter::MySql::Center_MapObject>>>();
 	{
 		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_MapObject` WHERE `deleted` = 0 AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
+		oss <<"SELECT * FROM `Center_MapObject` WHERE `expiry_time` != '0000-00-00 00:00:00' "
+		    <<"  AND `map_object_type_id` = " <<EmperyCenter::MapObjectTypeIds::ID_CASTLE
 		    <<"  AND `map_object_uuid` = " <<Poseidon::MySql::UuidFormatter(map_object_uuid.get());
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){

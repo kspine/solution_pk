@@ -20,8 +20,7 @@ namespace MySql {
 	FIELD_BIGINT            (y)	\
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
-	FIELD_INTEGER_UNSIGNED  (map_event_id)	\
-	FIELD_UUID              (meta_uuid)
+	FIELD_INTEGER_UNSIGNED  (map_event_id)
 #include <poseidon/mysql/object_generator.hpp>
 
 }
