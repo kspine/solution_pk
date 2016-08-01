@@ -38,7 +38,7 @@ Dungeon::~Dungeon(){
 		}
 	}
 
-	clear_observers(Q_DESTRUCTOR, { });
+	clear_observers(Q_DUNGEON_EXPIRED, "");
 }
 
 void Dungeon::broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload){

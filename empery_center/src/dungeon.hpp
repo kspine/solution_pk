@@ -17,8 +17,9 @@ class DungeonSession;
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum QuitReason {
-		Q_DESTRUCTOR     = 0,
-		Q_PLAYER_REQUEST = 1,
+		Q_DUNGEON_EXPIRED  = 0,
+		Q_INTERNAL_ERROR   = 1,
+		Q_PLAYER_REQUEST   = 2,
 	};
 
 private:

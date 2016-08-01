@@ -34,31 +34,46 @@ namespace {
 
 	boost::weak_ptr<DungeonContainer> g_dungeon_map;
 
-	void gc_timer_proc(std::uint64_t now){
+	void frame_timer_proc(std::uint64_t now){
 		PROFILE_ME;
-		LOG_EMPERY_CENTER_TRACE("Dungeon gc timer: now = ", now);
+		LOG_EMPERY_CENTER_TRACE("Dungeon frame timer: now = ", now);
 
 		const auto dungeon_map = g_dungeon_map.lock();
 		if(!dungeon_map){
 			return;
 		}
 
+		std::vector<boost::shared_ptr<Dungeon>> dungeons;
+		dungeons.reserve(dungeon_map->size());
+		for(auto it = dungeon_map->begin<0>(); it != dungeon_map->end<0>(); ++it){
+			dungeons.emplace_back(it->dungeon);
+		}
+		for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
+			const auto &dungeon = *it;
+			try {
+				dungeon->pump_status();
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				dungeon->clear_observers(Dungeon::Q_INTERNAL_ERROR, e.what());
+				dungeon->set_expiry_time(0);
+			}
+		}
+
 		const auto utc_now = Poseidon::get_utc_time();
 		const auto range = std::make_pair(dungeon_map->begin<2>(), dungeon_map->upper_bound<2>(utc_now));
 
-		std::vector<boost::shared_ptr<Dungeon>> dungeons_to_delete;
-		dungeons_to_delete.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		dungeons.clear();
 		for(auto it = range.first; it != range.second; ++it){
-			dungeons_to_delete.emplace_back(it->dungeon);
+			dungeons.emplace_back(it->dungeon);
 		}
-		for(auto it = dungeons_to_delete.begin(); it != dungeons_to_delete.end(); ++it){
+		for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
 			const auto &dungeon = *it;
 			LOG_EMPERY_CENTER_DEBUG("Reclaiming dungeon: dungeon_uuid = ", dungeon->get_dungeon_uuid());
-			// cleanup
+			dungeon->clear_observers(Dungeon::Q_DUNGEON_EXPIRED, "");
 		}
 	}
 
-	using ServerSet        = boost::container::flat_set<boost::weak_ptr<DungeonSession>>;
+	using ServerSet = boost::container::flat_set<boost::weak_ptr<DungeonSession>>;
 	boost::weak_ptr<ServerSet> g_servers;
 
 	// RR scheduling
@@ -78,9 +93,9 @@ namespace {
 		g_server_rr_vector = server_rr_vector;
 		handles.push(server_rr_vector);
 
-		const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
-			std::bind(&gc_timer_proc, std::placeholders::_2));
+		const auto frame_interval = get_config<std::uint64_t>("dungeon_frame_interval", 1000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, frame_interval,
+			std::bind(&frame_timer_proc, std::placeholders::_2));
 		handles.push(timer);
 	}
 }
