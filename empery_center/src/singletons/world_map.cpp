@@ -1285,10 +1285,10 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	for(const auto &obj : *sink){
-		auto map_object = reload_map_object_aux(obj);
+		const auto map_object = reload_map_object_aux(obj);
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
-		const auto elem = MapObjectElement(std::move(map_object));
+		const auto elem = MapObjectElement(map_object);
 		const auto result = map_object_map->insert(elem);
 		if(!result.second){
 			map_object_map->replace(result.first, elem);
