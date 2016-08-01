@@ -2201,8 +2201,8 @@ void WorldMap::forced_reload_cluster(Coord coord){
 		}
 		for(const auto &obj : *sink){
 			CONCURRENT_LOAD_BEGIN {
-				auto map_object = reload_map_object_aux(obj);
-				const auto elem = MapObjectElement(std::move(map_object));
+				const auto map_object = reload_map_object_aux(obj);
+				const auto elem = MapObjectElement(map_object);
 				const auto result = map_object_map->insert(elem);
 				if(!result.second){
 					map_object_map->replace(result.first, elem);
