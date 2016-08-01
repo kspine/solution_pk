@@ -121,13 +121,22 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, server, req){
 		", hp_previous = ", hp_previous, ", hp_damaged = ", hp_damaged, ", hp_remaining = ", hp_remaining,
 		", soldiers_previous = ", soldiers_previous, ", soldiers_damaged = ", soldiers_damaged, ", soldiers_remaining = ", soldiers_remaining);
 
+	const auto shadow_attacked_map_object_uuid = MapObjectUuid(attacked_object_uuid.get());
+	const auto shadow_attacked_map_object = WorldMap::get_map_object(shadow_attacked_map_object_uuid);
+
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers[AttributeIds::ID_SOLDIER_COUNT] = static_cast<std::int64_t>(soldiers_remaining);
 	modifiers[AttributeIds::ID_HP_TOTAL]      = static_cast<std::int64_t>(hp_remaining);
+	if(shadow_attacked_map_object){
+		shadow_attacked_map_object->set_attributes(modifiers);
+	}
 	attacked_object->set_attributes(std::move(modifiers));
 
 	if(soldiers_remaining <= 0){
 		LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_object_uuid = ", attacked_object_uuid);
+		if(shadow_attacked_map_object){
+			shadow_attacked_map_object->delete_from_game();
+		}
 		attacked_object->delete_from_game();
 	}
 
@@ -145,12 +154,10 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, server, req){
 			goto _wounded_done;
 		}
 
-		const auto shadow_map_object_attacked_uuid = MapObjectUuid(attacked_object_uuid.get());
-		const auto shadow_map_object_attacked = WorldMap::get_map_object(shadow_map_object_attacked_uuid);
-		if(!shadow_map_object_attacked){
+		if(!shadow_attacked_map_object){
 			goto _wounded_done;
 		}
-		const auto parent_object_uuid = shadow_map_object_attacked->get_parent_object_uuid();
+		const auto parent_object_uuid = shadow_attacked_map_object->get_parent_object_uuid();
 		if(!parent_object_uuid){
 			goto _wounded_done;
 		}
@@ -279,12 +286,12 @@ _wounded_done:
 					return;
 				}
 
-				const auto shadow_map_object_attacking_uuid = MapObjectUuid(attacking_object_uuid.get());
-				const auto shadow_map_object_attacking = WorldMap::get_map_object(shadow_map_object_attacking_uuid);
-				if(!shadow_map_object_attacking){
+				const auto shadow_attacking_map_object_uuid = MapObjectUuid(attacking_object_uuid.get());
+				const auto shadow_attacking_map_object = WorldMap::get_map_object(shadow_attacking_map_object_uuid);
+				if(!shadow_attacking_map_object){
 					return;
 				}
-				const auto parent_object_uuid = shadow_map_object_attacking->get_parent_object_uuid();
+				const auto parent_object_uuid = shadow_attacking_map_object->get_parent_object_uuid();
 				if(!parent_object_uuid){
 					return;
 				}
@@ -372,10 +379,10 @@ _wounded_done:
 				}
 				auto castle_category = TaskBox::TCC_PRIMARY;
 				MapObjectUuid parent_object_uuid;
-				const auto shadow_map_object_attacking_uuid = MapObjectUuid(attacking_object_uuid.get());
-				const auto shadow_map_object_attacking = WorldMap::get_map_object(shadow_map_object_attacking_uuid);
-				if(shadow_map_object_attacking){
-					parent_object_uuid = shadow_map_object_attacking->get_parent_object_uuid();
+				const auto shadow_attacking_map_object_uuid = MapObjectUuid(attacking_object_uuid.get());
+				const auto shadow_attacking_map_object = WorldMap::get_map_object(shadow_attacking_map_object_uuid);
+				if(shadow_attacking_map_object){
+					parent_object_uuid = shadow_attacking_map_object->get_parent_object_uuid();
 				}
 				if(parent_object_uuid != primary_castle_uuid){
 					castle_category = TaskBox::TCC_NON_PRIMARY;
