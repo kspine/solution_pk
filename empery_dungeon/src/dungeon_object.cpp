@@ -39,7 +39,6 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 		return UINT64_MAX;
 	}
 
-	/*
 	if(is_lost_attacked_target()){
 		LOG_EMPERY_DUNGEON_DEBUG("lost attacked target,and prepare search attack,current action:",m_action);
 		return search_attack();
@@ -50,7 +49,6 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 		LOG_EMPERY_DUNGEON_DEBUG("fix attack action failed,action cancel,current action:",m_action);
 		return UINT64_MAX;
 	}
-	*/
 
 	// 移动。
 	if(!m_waypoints.empty()){
@@ -66,10 +64,24 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 //=============================================================================
 	ON_ACTION(ACT_GUARD){
 		// 无事可做。
+		return require_ai_control()->on_action_guard(result,now);
 	}
 	ON_ACTION(ACT_ATTACK){
 		// TODO 战斗。
-		return require_ai_control()->attack(result,now);
+		return require_ai_control()->on_action_attack(result,now);
+	}
+	ON_ACTION(ACT_MONTER_REGRESS){
+		//野怪回归
+		LOG_EMPERY_DUNGEON_DEBUG("monster regress finish,cancel action",m_action);
+		return require_ai_control()->on_action_monster_regress(result,now);
+	}
+	ON_ACTION(ACT_MONSTER_SEARCH_TARGET){
+		// 无事可做。
+		return require_ai_control()->on_action_monster_search_target(result,now);
+	}
+	ON_ACTION(ACT_MONSTER_PATROL){
+		// 无事可做。
+		return require_ai_control()->on_action_patrol(result,now);
 	}
 //=============================================================================
 #undef ON_ACTION
@@ -427,6 +439,46 @@ bool DungeonObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<Dunge
 	}
 	return false;
 }
+
+bool DungeonObject::get_monster_new_enemy(boost::shared_ptr<DungeonObject> &new_enemy_dungeon_object){
+	const auto dungeon = DungeonMap::get(get_dungeon_uuid());
+	if(!dungeon){
+		return false;
+	}
+	std::vector<boost::shared_ptr<DungeonObject>> dungeon_objects;
+	dungeon->get_objects_all(dungeon_objects);
+	auto view_range = get_view_range();
+	auto min_distance = UINT64_MAX;
+	boost::shared_ptr<DungeonObject> select_object;
+	for(auto it = dungeon_objects.begin(); it != dungeon_objects.end(); ++it){
+		const auto &dungeon_object = *it;
+		std::pair<long, std::string> reason;
+		if(!dungeon_object->attacked_able(reason)){
+			continue;
+		}
+		if(dungeon_object->is_monster()){
+			continue;
+		}
+		auto distance = get_distance_of_coords(get_coord(),dungeon_object->get_coord());
+		if(distance> view_range){
+			continue;
+		}
+		if(distance < min_distance){
+			min_distance = distance;
+			select_object = dungeon_object;
+		}else if(distance == min_distance){
+			if(select_object->get_attacked_prority() > dungeon_object->get_attacked_prority()){
+				select_object = dungeon_object;
+			}
+		}
+	}
+	if(min_distance != UINT64_MAX){
+		new_enemy_dungeon_object = select_object;
+		return true;
+	}
+	return false;
+}
+
 void DungeonObject::attack_new_target(boost::shared_ptr<DungeonObject> enemy_dungeon_object){
 	PROFILE_ME;
 
@@ -450,6 +502,12 @@ void DungeonObject::attack_new_target(boost::shared_ptr<DungeonObject> enemy_dun
 	}
 }
 bool DungeonObject::attacked_able(std::pair<long, std::string> &reason){
+	PROFILE_ME;
+
+	if(is_monster() && (m_action == ACT_MONTER_REGRESS)){
+		reason = CbppResponse(Msg::ERR_TEMPORARILY_INVULNERABLE);
+		return false;
+	}
 	return true;
 }
 bool DungeonObject::attacking_able(std::pair<long, std::string> &reason){
@@ -480,8 +538,11 @@ boost::shared_ptr<AiControl>  DungeonObject::require_ai_control(){
 			case AI_SOLIDER:
 				m_ai_control = boost::make_shared<AiControl>(AI_SOLIDER,virtual_weak_from_this<DungeonObject>());
 				break;
-			case AI_MONSTER:
-				m_ai_control = boost::make_shared<AiControlMonsterCommon>(AI_MONSTER,virtual_weak_from_this<DungeonObject>());
+			case AI_MONSTER_AUTO_SEARCH_TARGET:
+				m_ai_control = boost::make_shared<AiControlMonsterAutoSearch>(AI_MONSTER_AUTO_SEARCH_TARGET,virtual_weak_from_this<DungeonObject>());
+				break;
+			case AI_MONSTER_PATROL:
+				m_ai_control = boost::make_shared<AiControlMonsterPatrol>(AI_MONSTER_PATROL,virtual_weak_from_this<DungeonObject>());
 				break;
 			default:
 				LOG_EMPERY_DUNGEON_FATAL("invalid ai type:",dungeon_object_type_data->ai_id);
@@ -516,9 +577,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	result = get_move_result(dungeon->get_dungeon_uuid(),new_coord, owner_uuid, wait_for_moving_objects);
 	if(result.first == Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY){
 		const auto retry_delay = get_config<std::uint64_t>("blocked_path_retry_delay", 500);
-		if(m_action != ACT_ENTER_CASTLE){
-			++m_blocked_retry_count;
-		}
+		++m_blocked_retry_count;
 		return retry_delay;
 	}
 	m_blocked_retry_count = 0;
@@ -723,14 +782,101 @@ std::uint64_t DungeonObject::lost_target_monster(){
 }
 
 bool DungeonObject::fix_attack_action(std::pair<long, std::string> &result){
+	PROFILE_ME;
+
+	if( m_action != ACT_ATTACK){
+		return true;
+	}
+	if(!attacking_able(result)){
+		return false;
+	}
+	Coord target_coord;
+	bool in_attack_scope = false;
+	const auto dungeon = DungeonMap::get(get_dungeon_uuid());
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_DEBUG("no find the parent dungeon, dengeon_uuid = ", get_dungeon_uuid());
+		return false;
+	}
+	const auto target_object = dungeon->get_object(DungeonObjectUuid(m_action_param));
+	if(!target_object){
+		result = CbppResponse(Msg::ERR_ATTACK_TARGET_LOST);
+		return false;
+	}
+	target_coord = target_object->get_coord();
+	in_attack_scope = is_in_attack_scope(target_object);
+	if(in_attack_scope&&!m_waypoints.empty()){
+		m_waypoints.clear();
+		notify_way_points(m_waypoints,m_action,m_action_param);
+	}
+	if(!in_attack_scope&&m_waypoints.empty()){
+		if(find_way_points(m_waypoints,get_coord(),target_coord)){
+			notify_way_points(m_waypoints,m_action,m_action_param);
+		}else{
+			result = CbppResponse(Msg::ERR_BROKEN_PATH);
+			return false;
+		}
+	}
 	return true;
 }
 bool DungeonObject::find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise){
-	return true;
+	PROFILE_ME;
+
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		return false;
+	}
+	if(!move_able()){
+		return false;
+	}
+
+	std::vector<std::pair<signed char, signed char>> path;
+	std::uint64_t distance_close_enough = 0;
+	if(!precise){
+		distance_close_enough = get_shoot_range();
+	}
+	if(find_path(path,from_coord, target_coord,get_dungeon_uuid(),get_owner_uuid(), 20, distance_close_enough)){
+		for(auto it = path.begin(); it != path.end(); ++it){
+			waypoints.emplace_back(it->first, it->second);
+		}
+		LOG_EMPERY_DUNGEON_DEBUG("find way points sucess, from coord = ", from_coord, " target_coord = ",target_coord);
+		return true;
+	}
+	LOG_EMPERY_DUNGEON_DEBUG("find way points fail , from coord = ", from_coord, " target_coord = ",target_coord);
+	return false;
 }
 
 void DungeonObject::monster_regress(){
+	PROFILE_ME;
+
+	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
+	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+	std::deque<std::pair<signed char, signed char>> waypoints;
+	if(find_way_points(waypoints,get_coord(),Coord(birth_x,birth_y),true)){
+		set_action(get_coord(), waypoints, static_cast<DungeonObject::Action>(ACT_MONTER_REGRESS),"");
+	}else{
+		set_action(get_coord(), waypoints, static_cast<DungeonObject::Action>(ACT_GUARD),"");
+	}
+	const auto dungeon = DungeonMap::get(get_dungeon_uuid());
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_DEBUG("server can't find the dungeon, dungeon_uuid = ", get_dungeon_uuid());
+		DEBUG_THROW(Exception, sslit("server can't find the dungeon"));
+	}
+
+	const auto dungeon_client = dungeon->get_dungeon_client();
+	if(dungeon_client){
+		try {
+			/*
+			Msg::KS_MapHealMonster msg;
+			msg.map_object_uuid = get_map_object_uuid().str();
+			dungeon_client->send(msg);
+			*/
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+	}
 }
+
 bool DungeonObject::is_monster(){
 	PROFILE_ME;
 
@@ -874,7 +1020,47 @@ void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, 
 	}
 }
 
+std::uint64_t DungeonObject::on_monster_regress(){
+	//to ACT_MONSTER_SEARCH_TARGET
+	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
+	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_AUTO_SEARCH_TARGET);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+}
+std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::string> &result,AI ai){
+	boost::shared_ptr<DungeonObject> new_enemy_dungeon_object;
+	bool is_get_new_enemy = get_monster_new_enemy(new_enemy_dungeon_object);
+	if(is_get_new_enemy && new_enemy_dungeon_object){
+		attack_new_target(new_enemy_dungeon_object);
+	}else{
+		result = CbppResponse(Msg::ERR_FAIL_SEARCH_TARGE) << get_dungeon_object_uuid();
+	}
+	const auto ai_data = Data::DungeonObjectAi::require(ai);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+}
+std::uint64_t DungeonObject::on_monster_guard(){
+	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
+	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_AUTO_SEARCH_TARGET);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+}
 
+std::uint64_t DungeonObject::on_monster_patrol_guard(){
+	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
+	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+	Coord coord_birth(birth_x,birth_y);
+	if(m_waypoints.empty() && (coord_birth == get_coord())){
+		//TODO goto the dest
+		if(find_way_points(m_waypoints,get_coord(),Coord(birth_x+ 3,birth_y+3),true)){
+			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_PATROL),"");
+		}else{
+			LOG_EMPERY_DUNGEON_WARNING("find the way point to patrol dest fail，dungeon_uuid = ",get_dungeon_uuid());
+			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
+		}
+	}else{
+		set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
+	}
+	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_PATROL);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+}
 
 
 }

@@ -35,19 +35,11 @@ void DungeonObject::recalculate_attributes(bool recursive){
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(64);
-	for(auto it = MapObject::COMBAT_ATTRIBUTES.begin(); it != MapObject::COMBAT_ATTRIBUTES.end(); ++it){
-		const auto attribute_id = *it;
-		modifiers.emplace_hint(modifiers.end(), attribute_id, 0);
-	}
-
-	const auto shadow_object_uuid = MapObjectUuid(get_dungeon_uuid().get());
+	const auto shadow_object_uuid = MapObjectUuid(get_dungeon_object_uuid().get());
 	const auto shadow_object = WorldMap::get_map_object(shadow_object_uuid);
 	if(shadow_object){
 		shadow_object->recalculate_attributes(recursive);
-		for(auto it = MapObject::COMBAT_ATTRIBUTES.begin(); it != MapObject::COMBAT_ATTRIBUTES.end(); ++it){
-			const auto attribute_id = *it;
-			modifiers[attribute_id] = shadow_object->get_attribute(attribute_id);
-		}
+		shadow_object->get_attributes(modifiers);
 	}
 
 	for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
@@ -335,6 +327,7 @@ void DungeonObject::synchronize_with_player(const boost::shared_ptr<PlayerSessio
 			buff.time_remaining = saturated_sub(it->second.time_end, utc_now);
 		}
 		session->send(msg);
+		LOG_EMPERY_CENTER_FATAL("SC_DungeonObjectInfo:",msg);
 	}
 }
 void DungeonObject::synchronize_with_dungeon_server(const boost::shared_ptr<DungeonSession> &server) const {

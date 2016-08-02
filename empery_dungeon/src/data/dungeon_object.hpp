@@ -63,6 +63,7 @@ namespace Data {
 	class DungeonObjectAi{
 	public:
 		static boost::shared_ptr<const DungeonObjectAi> get(std::uint64_t unique_id);
+		static boost::shared_ptr<const DungeonObjectAi> require(std::uint64_t unique_id);
 	public:
 		std::uint64_t unique_id;
 		unsigned      ai_type;

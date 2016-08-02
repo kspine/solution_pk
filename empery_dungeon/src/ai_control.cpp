@@ -1,6 +1,7 @@
 #include "precompiled.hpp"
 #include "ai_control.hpp"
 #include "dungeon_object.hpp"
+#include <poseidon/cbpp/status_codes.hpp>
 
 namespace EmperyDungeon {
 
@@ -29,16 +30,7 @@ std::uint64_t AiControl::move(std::pair<long, std::string> &result){
 	return parent_object->move(result);
 }
 
-std::uint64_t AiControl::attack(std::pair<long, std::string> &result, std::uint64_t now){
-	PROFILE_ME;
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return UINT64_MAX;
-	}
-	return parent_object->attack(result,now);
-}
-
-void          AiControl::troops_attack(boost::shared_ptr<DungeonObject> target,bool passive){
+void AiControl::troops_attack(boost::shared_ptr<DungeonObject> target,bool passive){
 	PROFILE_ME;
 	const auto parent_object = m_parent_object.lock();
 	if(!parent_object){
@@ -57,10 +49,29 @@ std::uint64_t AiControl::on_attack(boost::shared_ptr<DungeonObject> attacker,std
 	return parent_object->on_attack_common(attacker,demage);
 }
 
-
-std::uint64_t AiControl::patrol(){
-	return 0;
+std::uint64_t AiControl::on_action_attack(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->attack(result,now);
 }
+
+std::uint64_t AiControl::on_action_monster_regress(std::pair<long, std::string> &result, std::uint64_t now){
+	return UINT64_MAX;
+}
+std::uint64_t AiControl::on_action_monster_search_target(std::pair<long, std::string> &result, std::uint64_t now){
+	return UINT64_MAX;
+}
+std::uint64_t AiControl::on_action_guard(std::pair<long, std::string> &result, std::uint64_t now){
+	return UINT64_MAX;
+}
+
+std::uint64_t AiControl::on_action_patrol(std::pair<long, std::string> &result, std::uint64_t now){
+	return UINT64_MAX;
+}
+
 std::uint64_t AiControl::on_lose_target(){
 	PROFILE_ME;
 
@@ -71,25 +82,12 @@ std::uint64_t AiControl::on_lose_target(){
 	return parent_object->lost_target_common();
 }
 
-AiControlMonsterCommon::AiControlMonsterCommon(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
+AiControlMonsterAutoSearch::AiControlMonsterAutoSearch(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
 }
 
-AiControlMonsterCommon::~AiControlMonsterCommon(){}
+AiControlMonsterAutoSearch::~AiControlMonsterAutoSearch(){}
 
-std::uint64_t AiControlMonsterCommon::move(std::pair<long, std::string> &result){
-	PROFILE_ME;
-
-	const auto parent_object = m_parent_object.lock();
-	if(!parent_object){
-		return UINT64_MAX;
-	}
-	if(!parent_object->is_in_monster_active_scope()){
-		return parent_object->search_attack();
-	}
-	return AiControl::move(result);
-}
-
-std::uint64_t AiControlMonsterCommon::on_lose_target(){
+std::uint64_t AiControlMonsterAutoSearch::on_lose_target(){
 	PROFILE_ME;
 
 	const auto parent_object = m_parent_object.lock();
@@ -98,5 +96,101 @@ std::uint64_t AiControlMonsterCommon::on_lose_target(){
 	}
 	return parent_object->lost_target_monster();
 }
+
+std::uint64_t AiControlMonsterAutoSearch::on_action_monster_regress(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->on_monster_regress();
+}
+std::uint64_t AiControlMonsterAutoSearch::on_action_monster_search_target(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->monster_search_attack_target(result,static_cast<DungeonObject::AI>(get_ai_id()));
+}
+
+std::uint64_t AiControlMonsterAutoSearch::on_action_guard(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->on_monster_guard();
+}
+
+AiControlMonsterPatrol::AiControlMonsterPatrol(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
+}
+
+AiControlMonsterPatrol::~AiControlMonsterPatrol(){}
+
+std::uint64_t AiControlMonsterPatrol::move(std::pair<long, std::string> &result){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	if(DungeonObject::ACT_MONSTER_PATROL == parent_object->get_action()){
+		std::pair<long, std::string> search_result;
+		std::uint64_t search_delay = parent_object->monster_search_attack_target(search_result,static_cast<DungeonObject::AI>(get_ai_id()));
+		if(search_result.first == Poseidon::Cbpp::ST_OK){
+			LOG_EMPERY_DUNGEON_DEBUG("patrol search target sucess");
+			return search_delay;
+		}
+	}
+	return AiControl::move(result);
+}
+
+std::uint64_t AiControlMonsterPatrol::on_lose_target(){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	//巡逻怪丢失目标进入action_guard,然后从action_guard进入action_search_target
+	return parent_object->lost_target_common();
+}
+
+std::uint64_t AiControlMonsterPatrol::on_action_monster_search_target(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->monster_search_attack_target(result,static_cast<DungeonObject::AI>(get_ai_id()));
+}
+
+std::uint64_t AiControlMonsterPatrol::on_action_guard(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	//如果当前在出生点，则进入action_patrol,寻路至目标点
+	return parent_object->on_monster_patrol_guard();
+}
+
+std::uint64_t AiControlMonsterPatrol::on_action_patrol(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->monster_search_attack_target(result,static_cast<DungeonObject::AI>(get_ai_id()));
+}
+
+
 
 }

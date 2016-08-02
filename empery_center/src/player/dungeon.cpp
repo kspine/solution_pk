@@ -58,12 +58,14 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 			return Response(Msg::ERR_DUNGEON_PREREQUISITE_NOT_MET) <<prerequisite_dungeon_type_id;
 		}
 	}
+	/*
 	if(!dungeon_data->reentrant){
 		const auto info = dungeon_box->get(dungeon_type_id);
 		if(info.score != DungeonBox::S_NONE){
 			return Response(Msg::ERR_DUNGEON_DISPOSED) <<dungeon_type_id;
 		}
 	}
+	*/
 
 	const auto server = DungeonMap::pick_server();
 	if(!server){
@@ -177,7 +179,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 				const auto map_object_uuid = map_object->get_map_object_uuid();
 				const auto map_object_type_id = map_object->get_map_object_type_id();
 
-				const auto start_point = Coord(0, 1); // TODO
+				const auto start_point = Coord(0, 7); // TODO
 
 				auto dungeon_object = boost::make_shared<DungeonObject>(
 					dungeon_uuid, DungeonObjectUuid(map_object_uuid.get()), map_object_type_id, account_uuid, start_point);

@@ -19,18 +19,9 @@ public:
 	enum Action {
 		ACT_GUARD                             = 0,
 		ACT_ATTACK                            = 1,
-		ACT_DEPLOY_INTO_CASTLE                = 2,
-//		ACT_HARVEST_OVERLAY                   = 3,
-		ACT_ENTER_CASTLE                      = 4,
-		ACT_HARVEST_STRATEGIC_RESOURCE        = 5,
-		ACT_ATTACK_TERRITORY_FORCE            = 6,
-		ACT_MONTER_REGRESS             		  = 7,
-		ACT_HARVEST_RESOURCE_CRATE            = 8,
-		ACT_ATTACK_TERRITORY           		  = 9,
-//		ACT_HARVEST_OVERLAY_FORCE             = 10,
-		ACT_HARVEST_STRATEGIC_RESOURCE_FORCE  = 11,
-		ACT_HARVEST_RESOURCE_CRATE_FORCE      = 12,
-		ACT_STAND_BY                          = 13,
+		ACT_MONTER_REGRESS                    = 2,
+		ACT_MONSTER_SEARCH_TARGET             = 3,
+		ACT_MONSTER_PATROL                    = 4,
 	};
 
 	enum AttackImpact {
@@ -41,10 +32,8 @@ public:
 
 	enum AI {
 		AI_SOLIDER                           = 5000101,
-		AI_MONSTER                           = 5000201,
-		AI_BUILDING                          = 5000301,
-		AI_BUILDING_NO_ATTACK                = 5000302,
-		AI_GOBLIN                            = 5000601,
+		AI_MONSTER_AUTO_SEARCH_TARGET        = 5000401,
+		AI_MONSTER_PATROL                    = 5000501,
 	};
 public:
 	struct BuffInfo {
@@ -72,7 +61,7 @@ private:
 	std::deque<std::pair<signed char, signed char>> m_waypoints;
 	unsigned m_blocked_retry_count = 0;
 
-	unsigned m_action = ACT_GUARD;
+	Action m_action = ACT_GUARD;
 	std::string m_action_param;
 	AccountUuid m_target_own_uuid;
 	boost::shared_ptr<AiControl> m_ai_control;
@@ -127,7 +116,7 @@ public:
 			return ((m_action == ACT_GUARD)&&(m_waypoints.empty()));
 	}
 
-	unsigned get_action() const {
+	Action get_action() const {
 		return m_action;
 	}
 	const std::string &get_action_param() const {
@@ -145,6 +134,7 @@ public:
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
 	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<DungeonObject> &new_enemy_dungeon_object);
+	bool          get_monster_new_enemy(boost::shared_ptr<DungeonObject> &new_enemy_dungeon_object);
 	void          attack_new_target(boost::shared_ptr<DungeonObject> enemy_dungeon_object);
 	bool          attacked_able(std::pair<long, std::string> &reason);
 	bool          attacking_able(std::pair<long, std::string> &reason);
@@ -158,6 +148,10 @@ public:
 	std::uint64_t on_attack_common(boost::shared_ptr<DungeonObject> attacker,std::uint64_t demage);
 	std::uint64_t lost_target_common();
 	std::uint64_t lost_target_monster();
+	std::uint64_t on_monster_regress();
+	std::uint64_t monster_search_attack_target(std::pair<long, std::string> &result,AI ai = AI_MONSTER_AUTO_SEARCH_TARGET);
+	std::uint64_t on_monster_guard();
+	std::uint64_t on_monster_patrol_guard();
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const DungeonObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);

@@ -75,9 +75,9 @@ namespace {
 			csvMonster.get(elem.doge_rate,                         "arm_dodge");
 			csvMonster.get(elem.critical_rate,                     "arm_crit");
 			csvMonster.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
-			csvMonster.get(elem.attack_type,         			   "arm_attack_type");
+			csvMonster.get(elem.attack_type,                       "arm_attack_type");
 			csvMonster.get(elem.defence_type,                      "arm_def_type");
-			csvMonster.get(elem.hp,                      		   "hp");
+			csvMonster.get(elem.hp,                                "hp");
 			csvMonster.get(elem.ai_id,                             "ai_id");
 
 			if(!dungeon_object_map->insert(std::move(elem)).second){
@@ -219,6 +219,16 @@ namespace Data {
 			return { };
 		}
 		return boost::shared_ptr<const DungeonObjectAi>(dungeon_object_ai_map, &*it);
+	}
+	boost::shared_ptr<const DungeonObjectAi> DungeonObjectAi::require(std::uint64_t unique_id){
+		PROFILE_ME;
+
+		auto ret = get(unique_id);
+		if(!ret){
+			LOG_EMPERY_DUNGEON_WARNING("DungeonObject ai not found, ai_id = ", unique_id);
+			DEBUG_THROW(Exception, sslit("DungeonObject ai not found"));
+		}
+		return ret;
 	}
 }
 

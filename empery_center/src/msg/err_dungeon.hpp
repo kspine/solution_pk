@@ -26,6 +26,7 @@ namespace Msg {
 		ERR_DUNGEON_SERVER_CONNECTION_LOST      = 72515,
 		ERR_NOT_YOUR_DUNGEON_OBJECT             = 72516,
 		ERR_NO_SUCH_DUNGEON_OBJECT_TYPE         = 71518,
+		ERR_FAIL_SEARCH_TARGE                   = 72520,
 	};
 }
 
