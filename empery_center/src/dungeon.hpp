@@ -7,6 +7,7 @@
 #include <boost/container/flat_map.hpp>
 #include "id_types.hpp"
 #include "coord.hpp"
+#include "rectangle.hpp"
 
 namespace EmperyCenter {
 
@@ -22,6 +23,14 @@ public:
 		Q_PLAYER_REQUEST   = 2,
 	};
 
+	struct Suspension {
+		std::string context;
+		unsigned type;
+		std::int64_t param1;
+		std::int64_t param2;
+		std::string param3;
+	};
+
 private:
 	const DungeonUuid m_dungeon_uuid;
 	const DungeonTypeId m_dungeon_type_id;
@@ -29,8 +38,12 @@ private:
 
 	AccountUuid m_founder_uuid;
 	std::uint64_t m_expiry_time;
+
 	boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
+
+	Rectangle m_scope;
+	Suspension m_suspension = { };
 
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
@@ -63,6 +76,16 @@ public:
 		return m_expiry_time;
 	}
 	void set_expiry_time(std::uint64_t expiry_time) noexcept;
+
+	Rectangle get_scope() const {
+		return m_scope;
+	}
+	void set_scope(Rectangle scope);
+
+	const Suspension &get_suspension() const {
+		return m_suspension;
+	}
+	void set_suspension(Suspension suspension);
 
 	boost::shared_ptr<PlayerSession> get_observer(AccountUuid account_uuid) const;
 	void get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;

@@ -62,6 +62,13 @@ namespace Msg {
 	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SD_DungeonPlayerConfirmation
+#define MESSAGE_ID      50094
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (context)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

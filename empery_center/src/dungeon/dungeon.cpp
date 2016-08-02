@@ -4,8 +4,6 @@
 #include "../msg/ds_dungeon.hpp"
 #include "../msg/sc_dungeon.hpp"
 #include "../msg/err_dungeon.hpp"
-#include "../singletons/dungeon_map.hpp"
-#include "../dungeon.hpp"
 #include "../dungeon_object.hpp"
 #include "../msg/err_map.hpp"
 #include <poseidon/async_job.hpp>
@@ -30,23 +28,27 @@
 
 namespace EmperyCenter {
 
-DUNGEON_SERVLET(Msg::DS_DungeonRegisterServer, server, /* req */){
+namespace {
+	std::pair<long, std::string> DungeonRegisterServerServlet(const boost::shared_ptr<DungeonSession> &server, Poseidon::StreamBuffer payload){
+		PROFILE_ME;
+		Msg::DS_DungeonRegisterServer req(payload);
+		LOG_EMPERY_CENTER_TRACE("Received request from ", server->get_remote_info(), ": ", req);
+// ============================================================================
+{
+	(void)req;
+
 	DungeonMap::add_server(server);
 
 	return Response();
 }
-
-DUNGEON_SERVLET(Msg::DS_DungeonUpdateObjectAction, server, req){
-	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
-	const auto dungeon = DungeonMap::get(dungeon_uuid);
-	if(!dungeon){
-		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+// ============================================================================
 	}
-	const auto test_server = dungeon->get_server();
-	if(server != test_server){
-		return Response(Msg::ERR_DUNGEON_SERVER_CONFLICT);
+	MODULE_RAII(handles){
+		handles.push(DungeonSession::create_servlet(Msg::DS_DungeonRegisterServer::ID, &DungeonRegisterServerServlet));
 	}
+}
 
+DUNGEON_SERVLET(Msg::DS_DungeonUpdateObjectAction, dungeon, server, req){
 	const auto dungeon_object_uuid = DungeonObjectUuid(req.dungeon_object_uuid);
 	const auto dungeon_object = dungeon->get_object(dungeon_object_uuid);
 	if(!dungeon_object){
@@ -61,17 +63,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonUpdateObjectAction, server, req){
 	return Response();
 }
 
-DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, server, req){
-	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
-	const auto dungeon = DungeonMap::get(dungeon_uuid);
-	if(!dungeon){
-		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
-	}
-	const auto test_server = dungeon->get_server();
-	if(server != test_server){
-		return Response(Msg::ERR_DUNGEON_SERVER_CONFLICT);
-	}
-
+DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 	const auto attacking_object_uuid = DungeonObjectUuid(req.attacking_object_uuid);
 	const auto attacked_object_uuid = DungeonObjectUuid(req.attacked_object_uuid);
 
@@ -228,7 +220,7 @@ _wounded_done:
 		PROFILE_ME;
 
 		Msg::SC_DungeonObjectAttackResult msg;
-		msg.dungeon_uuid           = dungeon_uuid.str();
+		msg.dungeon_uuid           = dungeon->get_dungeon_uuid().str();
 		msg.attacking_object_uuid  = attacking_object_uuid.str();
 		msg.attacking_coord_x      = attacking_coord.x();
 		msg.attacking_coord_y      = attacking_coord.y();
@@ -335,7 +327,7 @@ _wounded_done:
 				if(session){
 					try {
 						Msg::SC_DungeonMonsterRewardGot msg;
-						msg.dungeon_uuid       = dungeon_uuid.str();
+						msg.dungeon_uuid       = dungeon->get_dungeon_uuid().str();
 						msg.x                  = attacked_coord.x();
 						msg.y                  = attacked_coord.y();
 						msg.map_object_type_id = attacked_object_type_id.get();
@@ -394,6 +386,50 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonSetScope, dungeon, server, req){
+	const auto scope = Rectangle(req.x, req.y, req.width, req.height);
+
+	dungeon->set_scope(scope);
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonCreateMonster, dungeon, server, req){
+	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeDungeonMonster::get(map_object_type_id);
+	if(!map_object_type_data){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT_TYPE) <<map_object_type_data;
+	}
+
+	const auto dungeon_object_uuid = DungeonObjectUuid(Poseidon::Uuid::random());
+	const auto coord = Coord(req.x, req.y);
+
+	auto dungeon_object = boost::make_shared<DungeonObject>(
+		dungeon->get_dungeon_uuid(), dungeon_object_uuid, map_object_type_id, AccountUuid(), coord);
+	dungeon_object->pump_status();
+	dungeon_object->recalculate_attributes(false);
+	dungeon->insert_object(std::move(dungeon_object));
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonWaitForPlayerConfirmation, dungeon, server, req){
+	const auto &suspension = dungeon->get_suspension();
+	if(suspension.type != 0){
+		return Response(Msg::ERR_DUNGEON_SUSPENDED);
+	}
+
+	Msg::SC_DungeonWaitForPlayerConfirmation msg;
+	msg.context = std::move(req.context);
+	msg.type    = req.type;
+	msg.param1  = req.param1;
+	msg.param2  = req.param2;
+	msg.param3  = std::move(req.param3);
+	dungeon->broadcast_to_observers(msg);
 
 	return Response();
 }

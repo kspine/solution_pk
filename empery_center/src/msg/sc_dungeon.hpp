@@ -126,6 +126,25 @@ namespace Msg {
 	FIELD_STRING        (castle_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_DungeonSetScope
+#define MESSAGE_ID      1589
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (width)	\
+	FIELD_VUINT         (height)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonWaitForPlayerConfirmation
+#define MESSAGE_ID      1588
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (context)	\
+	FIELD_VUINT         (type)	\
+	FIELD_VINT          (param1)	\
+	FIELD_VINT          (param2)	\
+	FIELD_STRING        (param3)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

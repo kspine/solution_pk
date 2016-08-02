@@ -44,6 +44,36 @@ namespace Msg {
 	FIELD_VUINT         (soldiers_damaged)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonSetScope
+#define MESSAGE_ID      50003
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (width)	\
+	FIELD_VUINT         (height)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonCreateMonster
+#define MESSAGE_ID      50004
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonWaitForPlayerConfirmation
+#define MESSAGE_ID      50005
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (context)	\
+	FIELD_VUINT         (type)	\
+	FIELD_VINT          (param1)	\
+	FIELD_VINT          (param2)	\
+	FIELD_STRING        (param3)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

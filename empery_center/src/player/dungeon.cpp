@@ -335,4 +335,28 @@ PLAYER_SERVLET(Msg::CS_DungeonStopTroops, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_DungeonPlayerConfirmation, account, session, req){
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+	}
+
+	const auto server = dungeon->get_server();
+	if(!server){
+		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
+	}
+
+	Msg::SD_DungeonPlayerConfirmation dreq;
+	dreq.dungeon_uuid = dungeon_uuid.str();
+	dreq.context      = std::move(req.context);
+	auto dresult = server->send_and_wait(dreq);
+	if(dresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Dungeon server returned an error: code = ", dresult.first, ", msg = ", dresult.second);
+		return std::move(dresult);
+	}
+
+	return Response();
+}
+
 }
