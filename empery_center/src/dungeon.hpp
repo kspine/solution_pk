@@ -32,6 +32,8 @@ private:
 	boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 
+	// boost::container::flat_map<> m_triggers;
+
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
 		AccountUuid founder_uuid, std::uint64_t expiry_time);
@@ -57,12 +59,12 @@ public:
 	AccountUuid get_founder_uuid() const {
 		return m_founder_uuid;
 	}
-	void set_founder_uuid(AccountUuid founder_uuid);
+	void set_founder_uuid(AccountUuid founder_uuid) noexcept;
 
 	std::uint64_t get_expiry_time() const {
 		return m_expiry_time;
 	}
-	void set_expiry_time(std::uint64_t expiry_time);
+	void set_expiry_time(std::uint64_t expiry_time) noexcept;
 
 	boost::shared_ptr<PlayerSession> get_observer(AccountUuid account_uuid) const;
 	void get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;

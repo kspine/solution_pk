@@ -76,7 +76,7 @@ void Dungeon::pump_status(){
 	//
 }
 
-void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
+void Dungeon::set_founder_uuid(AccountUuid founder_uuid) noexcept {
 	PROFILE_ME;
 
 	m_founder_uuid = founder_uuid;
@@ -84,7 +84,7 @@ void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
 }
 
-void Dungeon::set_expiry_time(std::uint64_t expiry_time){
+void Dungeon::set_expiry_time(std::uint64_t expiry_time) noexcept {
 	PROFILE_ME;
 
 	m_expiry_time = expiry_time;
