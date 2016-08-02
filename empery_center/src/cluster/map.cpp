@@ -194,6 +194,45 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 	return Response();
 }
 
+CLUSTER_SERVLET(Msg::KS_MapWaypointsSet, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto owner_uuid = map_object->get_owner_uuid();
+	if(owner_uuid){
+		const auto session = PlayerSessionMap::get(owner_uuid);
+		if(session){
+			try {
+				Msg::SC_MapWaypointsSet msg;
+				msg.map_object_uuid = map_object_uuid.str();
+				msg.x               = req.x;
+				msg.y               = req.y;
+				msg.waypoints.reserve(req.waypoints.size());
+				for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
+					auto &elem = *msg.waypoints.emplace(msg.waypoints.end());
+					elem.dx = it->dx;
+					elem.dy = it->dy;
+				}
+				msg.action          = req.action;
+				msg.param           = std::move(req.param);
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+	}
+
+	return Response();
+}
+
 namespace {
 	template<typename T, typename PredT>
 	void update_attributes_single(const boost::shared_ptr<T> &ptr, const PredT &pred){
@@ -317,6 +356,39 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		});
 	} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapObjectStopped, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto owner_uuid = map_object->get_owner_uuid();
+	if(owner_uuid){
+		const auto session = PlayerSessionMap::get(owner_uuid);
+		if(session){
+			try {
+				Msg::SC_MapObjectStopped msg;
+				msg.map_object_uuid = map_object_uuid.str();
+				msg.action          = req.action;
+				msg.param           = std::move(req.param);
+				msg.error_code      = req.error_code;
+				msg.error_message   = std::move(req.error_message);
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
 	}
 
 	return Response();

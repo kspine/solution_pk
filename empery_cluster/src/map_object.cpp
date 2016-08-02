@@ -16,7 +16,6 @@
 #include "data/global.hpp"
 #include "data/resource_crate.hpp"
 #include "cbpp_response.hpp"
-#include "../../empery_center/src/msg/sc_map.hpp"
 #include "../../empery_center/src/msg/ks_map.hpp"
 #include "../../empery_center/src/msg/err_map.hpp"
 #include "../../empery_center/src/msg/err_castle.hpp"
@@ -393,13 +392,13 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 				const auto cluster = get_cluster();
 				if(cluster){
 					try {
-						Msg::SC_MapObjectStopped msg;
+						Msg::KS_MapObjectStopped msg;
 						msg.map_object_uuid = map_object_uuid.str();
 						msg.action          = old_action;
 						msg.param           = std::move(old_param);
 						msg.error_code      = result.first;
 						msg.error_message   = std::move(result.second);
-						cluster->send_notification_by_account(get_owner_uuid(), msg);
+						cluster->send(msg);
 					} catch(std::exception &e){
 						LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
 						cluster->shutdown(e.what());
@@ -959,7 +958,7 @@ void   MapObject::notify_way_points(const std::deque<std::pair<signed char, sign
 	const auto cluster = get_cluster();
 	if(cluster){
 		try {
-			Msg::SC_MapWaypointsSet msg;
+			Msg::KS_MapWaypointsSet msg;
 			msg.map_object_uuid = get_map_object_uuid().str();
 			msg.x               = get_coord().x();
 			msg.y               = get_coord().y();
@@ -971,7 +970,7 @@ void   MapObject::notify_way_points(const std::deque<std::pair<signed char, sign
 			}
 			msg.action          = static_cast<unsigned>(action);
 			msg.param           = action_param;
-			cluster->send_notification_by_account(get_owner_uuid(), msg);
+			cluster->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
 			cluster->shutdown(e.what());
