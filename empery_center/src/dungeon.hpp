@@ -32,8 +32,6 @@ private:
 	boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 
-	// boost::container::flat_map<> m_triggers;
-
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
 		AccountUuid founder_uuid, std::uint64_t expiry_time);

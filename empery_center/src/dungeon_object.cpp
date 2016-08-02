@@ -44,10 +44,7 @@ void DungeonObject::recalculate_attributes(bool recursive){
 	const auto shadow_object = WorldMap::get_map_object(shadow_object_uuid);
 	if(shadow_object){
 		shadow_object->recalculate_attributes(recursive);
-		for(auto it = MapObject::COMBAT_ATTRIBUTES.begin(); it != MapObject::COMBAT_ATTRIBUTES.end(); ++it){
-			const auto attribute_id = *it;
-			modifiers[attribute_id] = shadow_object->get_attribute(attribute_id);
-		}
+		shadow_object->get_attributes(modifiers);
 	}
 
 	for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
