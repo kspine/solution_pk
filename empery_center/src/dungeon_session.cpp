@@ -6,8 +6,6 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
-#include "singletons/player_session_map.hpp"
-#include "player_session.hpp"
 #include "singletons/dungeon_map.hpp"
 #include "dungeon.hpp"
 
@@ -132,84 +130,42 @@ void DungeonSession::on_sync_data_message(std::uint16_t message_id, Poseidon::St
 	LOG_EMPERY_CENTER_TRACE("Received data message from dungeon client: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", size = ", payload.size());
 
-	if(message_id != Msg::G_PackedResponse::ID){
-		if(message_id == Msg::G_PackedRequest::ID){
-			Msg::G_PackedRequest packed(std::move(payload));
+	if(message_id == Msg::G_PackedRequest::ID){
+		Msg::G_PackedRequest packed(std::move(payload));
 
-			Result result;
-			try {
-				const auto servlet = get_servlet(packed.message_id);
-				if(!servlet){
-					LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", packed.message_id);
-					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
-				}
-				result = (*servlet)(virtual_shared_from_this<DungeonSession>(), Poseidon::StreamBuffer(packed.payload));
-			} catch(Poseidon::Cbpp::Exception &e){
-				LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-					"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-				result.first = e.status_code();
-				result.second = e.what();
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-					"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-				result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
-				result.second = e.what();
+		Result result;
+		try {
+			const auto servlet = get_servlet(packed.message_id);
+			if(!servlet){
+				LOG_EMPERY_CENTER_WARNING("No servlet found: message_id = ", packed.message_id);
+				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
 			}
-			if(result.first != 0){
-				LOG_EMPERY_CENTER_DEBUG("Sending response to dungeon server: message_id = ", packed.message_id,
-					", code = ", result.first, ", message = ", result.second);
-			}
+			result = (*servlet)(virtual_shared_from_this<DungeonSession>(), Poseidon::StreamBuffer(packed.payload));
+		} catch(Poseidon::Cbpp::Exception &e){
+			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+				"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+			result.first = e.status_code();
+			result.second = e.what();
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+				"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
+			result.second = e.what();
+		}
+		if(result.first != 0){
+			LOG_EMPERY_CENTER_DEBUG("Sending response to dungeon server: message_id = ", packed.message_id,
+				", code = ", result.first, ", message = ", result.second);
+		}
 
-			Msg::G_PackedResponse res;
-			res.uuid    = std::move(packed.uuid);
-			res.code    = result.first;
-			res.message = std::move(result.second);
-			Poseidon::Cbpp::Session::send(res.ID, Poseidon::StreamBuffer(res));
+		Msg::G_PackedResponse res;
+		res.uuid    = std::move(packed.uuid);
+		res.code    = result.first;
+		res.message = std::move(result.second);
+		Poseidon::Cbpp::Session::send(res.ID, Poseidon::StreamBuffer(res));
 
-			if(result.first < 0){
-				shutdown_read();
-				shutdown_write();
-			}
-		} else if(message_id == Msg::G_PackedAccountNotification::ID){
-			Msg::G_PackedAccountNotification packed(std::move(payload));
-
-			const auto account_uuid = AccountUuid(packed.account_uuid);
-			LOG_EMPERY_CENTER_TRACE("Forwarding message: account_uuid = ", account_uuid,
-				", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
-			const auto session = PlayerSessionMap::get(account_uuid);
-			if(!session){
-				LOG_EMPERY_CENTER_TRACE("Player is not online: account_uuid = ", account_uuid);
-			} else {
-				try {
-					session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					session->shutdown(e.what());
-				}
-			}
-		} else if(message_id == Msg::G_PackedDungeonNotification::ID){
-			Msg::G_PackedDungeonNotification packed(std::move(payload));
-
-			const auto dungeon_uuid = DungeonUuid(packed.dungeon_uuid);
-			LOG_EMPERY_CENTER_TRACE("Forwarding message: dungeon_uuid = ", dungeon_uuid,
-				", message_id = ", packed.message_id, ", payload_size = ", packed.payload.size());
-			std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> observers;
-			const auto dungeon = DungeonMap::get(dungeon_uuid);
-			if(dungeon){
-				dungeon->get_observers_all(observers);
-			}
-			for(auto it = observers.begin(); it != observers.end(); ++it){
-				const auto &session = it->second;
-				try {
-					session->send(packed.message_id, Poseidon::StreamBuffer(packed.payload));
-				} catch(std::exception &e){
-					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-					session->shutdown(e.what());
-				}
-			}
-		} else {
-			LOG_EMPERY_CENTER_WARNING("Unknown message from dungeon client: remote = ", get_remote_info(), ", message_id = ", message_id);
-			DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
+		if(result.first < 0){
+			shutdown_read();
+			shutdown_write();
 		}
 	}
 }

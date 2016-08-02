@@ -55,7 +55,19 @@ namespace Msg {
 	FIELD_STRING        (castle_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
-// 32306
+#define MESSAGE_NAME    KS_MapWaypointsSet
+#define MESSAGE_ID      32306
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_ARRAY         (waypoints,	\
+		FIELD_VINT          (dx)	\
+		FIELD_VINT          (dy)	\
+	)	\
+	FIELD_VUINT         (action)	\
+	FIELD_STRING        (param)
+#include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KS_MapHarvestStrategicResource
 #define MESSAGE_ID      32307
@@ -65,7 +77,15 @@ namespace Msg {
 	FIELD_VUINT         (forced_attack)
 #include <poseidon/cbpp/message_generator.hpp>
 
-// 32308
+#define MESSAGE_NAME    KS_MapObjectStopped
+#define MESSAGE_ID      32308
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (action)	\
+	FIELD_STRING        (param)	\
+	FIELD_VINT          (error_code)	\
+	FIELD_STRING        (error_message)
+#include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KS_MapObjectAttackAction
 #define MESSAGE_ID      32309
