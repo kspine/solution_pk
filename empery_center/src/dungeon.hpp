@@ -38,10 +38,6 @@ public:
 	~Dungeon();
 
 private:
-	void broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload);
-	template<class MessageT>
-	void broadcast_to_observers(const MessageT &msg);
-
 	void synchronize_with_all_observers(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept;
 	void synchronize_with_dungeon_server(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept;
 
@@ -73,6 +69,12 @@ public:
 	void insert_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 	bool remove_observer(AccountUuid account_uuid, QuitReason reason, const char *param) noexcept;
 	void clear_observers(QuitReason reason, const char *param) noexcept;
+
+	void broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload);
+	template<class MessageT>
+	void broadcast_to_observers(const MessageT &msg){
+		broadcast_to_observers(MessageT::ID, Poseidon::StreamBuffer(msg));
+	}
 
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;

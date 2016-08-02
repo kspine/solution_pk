@@ -41,26 +41,6 @@ Dungeon::~Dungeon(){
 	clear_observers(Q_DUNGEON_EXPIRED, "");
 }
 
-void Dungeon::broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload){
-	PROFILE_ME;
-
-	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
-		const auto session = it->second.lock();
-		if(session){
-			try {
-				session->send(message_id, payload);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
-	}
-}
-template<class MessageT>
-void Dungeon::broadcast_to_observers(const MessageT &msg){
-	broadcast_to_observers(MessageT::ID, Poseidon::StreamBuffer(msg));
-}
-
 void Dungeon::synchronize_with_all_observers(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept {
 	PROFILE_ME;
 
@@ -211,6 +191,22 @@ void Dungeon::clear_observers(Dungeon::QuitReason reason, const char *param) noe
 		}
 	}
 	m_observers.clear();
+}
+
+void Dungeon::broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload){
+	PROFILE_ME;
+
+	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
+		const auto session = it->second.lock();
+		if(session){
+			try {
+				session->send(message_id, payload);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+	}
 }
 
 boost::shared_ptr<DungeonObject> Dungeon::get_object(DungeonObjectUuid dungeon_object_uuid) const {
