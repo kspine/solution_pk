@@ -149,8 +149,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		last_coord = next_coord;
 
 		auto &waypoint = *kreq.waypoints.emplace(kreq.waypoints.end());
-		waypoint.dx    = step.dx;
-		waypoint.dy    = step.dy;
+		waypoint.dx = step.dx;
+		waypoint.dy = step.dy;
 	}
 	kreq.action = req.action;
 	kreq.param  = std::move(req.param);

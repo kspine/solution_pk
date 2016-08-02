@@ -271,8 +271,8 @@ PLAYER_SERVLET(Msg::CS_DungeonSetWaypoints, account, session, req){
 		last_coord = next_coord;
 
 		auto &waypoint = *dreq.waypoints.emplace(dreq.waypoints.end());
-		waypoint.dx    = step.dx;
-		waypoint.dy    = step.dy;
+		waypoint.dx = step.dx;
+		waypoint.dy = step.dy;
 	}
 	dreq.action = req.action;
 	dreq.param  = std::move(req.param);
