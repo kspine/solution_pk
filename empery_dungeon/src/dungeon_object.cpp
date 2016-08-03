@@ -282,7 +282,6 @@ void DungeonObject::set_action(Coord from_coord, std::deque<std::pair<signed cha
 				LOG_EMPERY_DUNGEON_DEBUG("Releasing action timer: dungeon_object_uuid = ", dungeon_object_uuid);
 				m_action_timer.reset();
 
-				
 				const auto dungeon_client = dungeon->get_dungeon_client();
 				if(dungeon_client){
 					try {
@@ -1000,7 +999,7 @@ void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, 
 	const auto dungeon_client = dungeon->get_dungeon_client();
 	if(dungeon_client){
 		try {
-			Msg::DS_MapWaypointsSet msg;
+			Msg::DS_DungeonWaypointsSet msg;
 			msg.dungeon_uuid        = get_dungeon_uuid().str();
 			msg.dungeon_object_uuid = get_dungeon_object_uuid().str();
 			msg.x                   = get_coord().x();
