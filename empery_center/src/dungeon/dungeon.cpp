@@ -434,4 +434,66 @@ DUNGEON_SERVLET(Msg::DS_DungeonWaitForPlayerConfirmation, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonObjectStopped, dungeon, server, req){
+	const auto dungeon_object_uuid = DungeonObjectUuid(req.dungeon_object_uuid);
+	const auto dungeon_object = dungeon->get_object(dungeon_object_uuid);
+	if(!dungeon_object){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<dungeon_object_uuid;
+	}
+
+	const auto owner_uuid = dungeon_object->get_owner_uuid();
+	const auto session = dungeon->get_observer(owner_uuid);
+	if(session){
+		try {
+			Msg::SC_DungeonObjectStopped msg;
+			msg.dungeon_uuid        = dungeon->get_dungeon_uuid().str();
+			msg.dungeon_object_uuid = dungeon_object_uuid.str();
+			msg.action              = req.action;
+			msg.param               = req.param;
+			msg.error_code          = req.error_code;
+			msg.error_message       = std::move(req.error_message);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonWaypointsSet, dungeon, server, req){
+	const auto dungeon_object_uuid = DungeonObjectUuid(req.dungeon_object_uuid);
+	const auto dungeon_object = dungeon->get_object(dungeon_object_uuid);
+	if(!dungeon_object){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<dungeon_object_uuid;
+	}
+
+	const auto owner_uuid = dungeon_object->get_owner_uuid();
+	const auto session = dungeon->get_observer(owner_uuid);
+	if(session){
+		try {
+			Msg::SC_DungeonWaypointsSet msg;
+			msg.dungeon_uuid        = dungeon->get_dungeon_uuid().str();
+			msg.dungeon_object_uuid = dungeon_object_uuid.str();
+			msg.x               = req.x;
+			msg.y               = req.y;
+			msg.waypoints.reserve(req.waypoints.size());
+			for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
+				auto &elem = *msg.waypoints.emplace(msg.waypoints.end());
+				elem.dx = it->dx;
+				elem.dy = it->dy;
+			}
+			msg.action          = req.action;
+			msg.param           = std::move(req.param);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+
+	return Response();
+}
+
 }

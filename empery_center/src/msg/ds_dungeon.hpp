@@ -74,6 +74,32 @@ namespace Msg {
 	FIELD_STRING        (param3)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonObjectStopped
+#define MESSAGE_ID      50006
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (dungeon_object_uuid)   \
+	FIELD_VUINT         (action)    \
+	FIELD_STRING        (param) \
+	FIELD_VINT          (error_code)    \
+	FIELD_STRING        (error_message)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonWaypointsSet
+#define MESSAGE_ID      50007
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (dungeon_object_uuid)   \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_ARRAY         (waypoints,	\
+		FIELD_VINT          (dx)	\
+		FIELD_VINT          (dy)	\
+	)	\
+	FIELD_VUINT         (action)	\
+	FIELD_STRING        (param)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
