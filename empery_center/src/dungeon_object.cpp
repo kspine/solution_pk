@@ -327,7 +327,6 @@ void DungeonObject::synchronize_with_player(const boost::shared_ptr<PlayerSessio
 			buff.time_remaining = saturated_sub(it->second.time_end, utc_now);
 		}
 		session->send(msg);
-		LOG_EMPERY_CENTER_FATAL("SC_DungeonObjectInfo:",msg);
 	}
 }
 void DungeonObject::synchronize_with_dungeon_server(const boost::shared_ptr<DungeonSession> &server) const {

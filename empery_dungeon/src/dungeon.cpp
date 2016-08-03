@@ -2,8 +2,27 @@
 #include "dungeon.hpp"
 #include "singletons/dungeon_map.hpp"
 #include "src/dungeon_object.hpp"
+#include "src/dungeon_client.hpp"
+#include "../../empery_center/src/msg/ds_dungeon.hpp"
 
 namespace EmperyDungeon {
+namespace Msg = ::EmperyCenter::Msg;
+
+namespace {
+	void notify_dungeon_object_updated(const boost::shared_ptr<DungeonObject> &dungeon_object, const boost::shared_ptr<DungeonClient> &dungeon_client){
+		PROFILE_ME;
+
+		Msg::DS_DungeonUpdateObjectAction msg;
+		msg.dungeon_uuid        = dungeon_object->get_dungeon_uuid().str();
+		msg.dungeon_object_uuid = dungeon_object->get_dungeon_object_uuid().str();
+		msg.x                   = dungeon_object->get_coord().x();
+		msg.y                   = dungeon_object->get_coord().y();
+		msg.action              = dungeon_object->get_action();
+		msg.param               = dungeon_object->get_action_param();
+		dungeon_client->send(msg);
+	}
+}
+
 
 Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const boost::shared_ptr<DungeonClient> &dungeon,AccountUuid founder_uuid)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id)
@@ -117,6 +136,10 @@ void Dungeon::update_object(const boost::shared_ptr<DungeonObject> &dungeon_obje
 		return;
 	}
 	m_objects.at(it->first) = dungeon_object;
+	auto dungeon_client = get_dungeon_client();
+	if(dungeon_client){
+		notify_dungeon_object_updated(dungeon_object,dungeon_client);
+	}
 }
 
 void Dungeon::replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object){

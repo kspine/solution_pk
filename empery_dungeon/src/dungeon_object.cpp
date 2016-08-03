@@ -600,9 +600,8 @@ void DungeonObject::set_coord(Coord coord){
 		return;
 	}
 	m_coord = coord;
-	/*
-	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
-	*/
+	const auto dungeon = DungeonMap::require(get_dungeon_uuid());
+	dungeon->update_object(virtual_shared_from_this<DungeonObject>(),false);
 }
 
 std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::uint64_t now){
