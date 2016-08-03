@@ -282,17 +282,18 @@ void DungeonObject::set_action(Coord from_coord, std::deque<std::pair<signed cha
 				LOG_EMPERY_DUNGEON_DEBUG("Releasing action timer: dungeon_object_uuid = ", dungeon_object_uuid);
 				m_action_timer.reset();
 
+				
 				const auto dungeon_client = dungeon->get_dungeon_client();
 				if(dungeon_client){
 					try {
-						Msg::SC_DungeonObjectStopped msg;
+						Msg::DS_DungeonObjectStopped msg;
 						msg.dungeon_uuid        = dungeon_uuid.str();
 						msg.dungeon_object_uuid = dungeon_object_uuid.str();
 						msg.action              = old_action;
 						msg.param               = std::move(old_param);
 						msg.error_code          = result.first;
 						msg.error_message       = std::move(result.second);
-						dungeon_client->send_notification_by_account(get_owner_uuid(), msg);
+						dungeon_client->send(msg);
 					} catch(std::exception &e){
 						LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 						dungeon_client->shutdown(e.what());
@@ -999,7 +1000,7 @@ void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, 
 	const auto dungeon_client = dungeon->get_dungeon_client();
 	if(dungeon_client){
 		try {
-			Msg::SC_DungeonWaypointsSet msg;
+			Msg::DS_MapWaypointsSet msg;
 			msg.dungeon_uuid        = get_dungeon_uuid().str();
 			msg.dungeon_object_uuid = get_dungeon_object_uuid().str();
 			msg.x                   = get_coord().x();
@@ -1012,7 +1013,7 @@ void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, 
 			}
 			msg.action          = static_cast<unsigned>(action);
 			msg.param           = action_param;
-			dungeon_client->send_notification_by_account(get_owner_uuid(), msg);
+			dungeon_client->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 			dungeon_client->shutdown(e.what());

@@ -62,6 +62,8 @@ namespace {
 				elem.battalions_forbidden.emplace(type, param);
 			}
 
+			csv.get(elem.resuscitation_ratio, "resurrection");
+
 			if(!dungeon_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate Dungeon: dungeon_type_id = ", elem.dungeon_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate Dungeon"));

@@ -10,6 +10,26 @@
 
 namespace EmperyCenter {
 
+namespace {
+	void fill_scope_msg(Msg::SC_DungeonSetScope &msg, Rectangle scope){
+		PROFILE_ME;
+
+		msg.x      = scope.left();
+		msg.y      = scope.bottom();
+		msg.width  = scope.width();
+		msg.height = scope.height();
+	}
+	void fill_suspension_msg(Msg::SC_DungeonWaitForPlayerConfirmation &msg, const Dungeon::Suspension &susp){
+		PROFILE_ME;
+
+		msg.context = susp.context;
+		msg.type    = susp.type;
+		msg.param1  = susp.param1;
+		msg.param2  = susp.param2;
+		msg.param3  = susp.param3;
+	}
+}
+
 Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
 	AccountUuid founder_uuid, std::uint64_t expiry_time)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_server(server)
@@ -38,27 +58,7 @@ Dungeon::~Dungeon(){
 		}
 	}
 
-	clear_observers(Q_DESTRUCTOR, { });
-}
-
-void Dungeon::broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload){
-	PROFILE_ME;
-
-	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
-		const auto session = it->second.lock();
-		if(session){
-			try {
-				session->send(message_id, payload);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				session->shutdown(e.what());
-			}
-		}
-	}
-}
-template<class MessageT>
-void Dungeon::broadcast_to_observers(const MessageT &msg){
-	broadcast_to_observers(MessageT::ID, Poseidon::StreamBuffer(msg));
+	clear_observers(Q_DUNGEON_EXPIRED, "");
 }
 
 void Dungeon::synchronize_with_all_observers(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept {
@@ -96,7 +96,7 @@ void Dungeon::pump_status(){
 	//
 }
 
-void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
+void Dungeon::set_founder_uuid(AccountUuid founder_uuid) noexcept {
 	PROFILE_ME;
 
 	m_founder_uuid = founder_uuid;
@@ -104,12 +104,42 @@ void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
 }
 
-void Dungeon::set_expiry_time(std::uint64_t expiry_time){
+void Dungeon::set_expiry_time(std::uint64_t expiry_time) noexcept {
 	PROFILE_ME;
 
 	m_expiry_time = expiry_time;
 
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
+}
+
+void Dungeon::set_scope(Rectangle scope){
+	PROFILE_ME;
+
+	m_scope = scope;
+
+	try {
+		Msg::SC_DungeonSetScope msg;
+		fill_scope_msg(msg, m_scope);
+		broadcast_to_observers(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		clear_observers(Q_INTERNAL_ERROR, e.what());
+	}
+}
+
+void Dungeon::set_suspension(Suspension suspension){
+	PROFILE_ME;
+
+	m_suspension = std::move(suspension);
+
+	try {
+		Msg::SC_DungeonWaitForPlayerConfirmation msg;
+		fill_suspension_msg(msg, m_suspension);
+		broadcast_to_observers(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		clear_observers(Q_INTERNAL_ERROR, e.what());
+	}
 }
 
 boost::shared_ptr<PlayerSession> Dungeon::get_observer(AccountUuid account_uuid) const {
@@ -149,10 +179,22 @@ void Dungeon::insert_observer(AccountUuid account_uuid, const boost::shared_ptr<
 	}
 
 	try {
-		Msg::SC_DungeonEntered msg;
-		msg.dungeon_uuid    = get_dungeon_uuid().str();
-		msg.dungeon_type_id = get_dungeon_type_id().get();
-		session->send(msg);
+		Msg::SC_DungeonEntered msg_entered;
+		msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
+		msg_entered.dungeon_type_id = get_dungeon_type_id().get();
+		session->send(msg_entered);
+
+		const auto &scope = get_scope();
+		Msg::SC_DungeonSetScope msg_scope;
+		fill_scope_msg(msg_scope, scope);
+		session->send(msg_scope);
+
+		const auto &suspension = get_suspension();
+		if(suspension.type != 0){
+			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
+			fill_suspension_msg(msg_susp, suspension);
+			session->send(msg_susp);
+		}
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		session->shutdown(e.what());
@@ -175,11 +217,11 @@ bool Dungeon::remove_observer(AccountUuid account_uuid, Dungeon::QuitReason reas
 
 	if(session){
 		try {
-			Msg::SC_DungeonLeft msg;
-			msg.dungeon_uuid    = get_dungeon_uuid().str();
-			msg.reason          = static_cast<int>(reason);
-			msg.param           = param;
-			session->send(msg);
+			Msg::SC_DungeonLeft msg_left;
+			msg_left.dungeon_uuid = get_dungeon_uuid().str();
+			msg_left.reason       = static_cast<int>(reason);
+			msg_left.param        = param;
+			session->send(msg_left);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -211,6 +253,22 @@ void Dungeon::clear_observers(Dungeon::QuitReason reason, const char *param) noe
 		}
 	}
 	m_observers.clear();
+}
+
+void Dungeon::broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload){
+	PROFILE_ME;
+
+	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
+		const auto session = it->second.lock();
+		if(session){
+			try {
+				session->send(message_id, payload);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+	}
 }
 
 boost::shared_ptr<DungeonObject> Dungeon::get_object(DungeonObjectUuid dungeon_object_uuid) const {

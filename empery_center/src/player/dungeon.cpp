@@ -273,8 +273,8 @@ PLAYER_SERVLET(Msg::CS_DungeonSetWaypoints, account, session, req){
 		last_coord = next_coord;
 
 		auto &waypoint = *dreq.waypoints.emplace(dreq.waypoints.end());
-		waypoint.dx    = step.dx;
-		waypoint.dy    = step.dy;
+		waypoint.dx = step.dx;
+		waypoint.dy = step.dy;
 	}
 	dreq.action = req.action;
 	dreq.param  = std::move(req.param);
@@ -333,6 +333,30 @@ PLAYER_SERVLET(Msg::CS_DungeonStopTroops, account, session, req){
 		elem.dungeon_object_uuid = dungeon_object_uuid.str();
 	}
 	session->send(msg);
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_DungeonPlayerConfirmation, account, session, req){
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+	}
+
+	const auto server = dungeon->get_server();
+	if(!server){
+		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
+	}
+
+	Msg::SD_DungeonPlayerConfirmation dreq;
+	dreq.dungeon_uuid = dungeon_uuid.str();
+	dreq.context      = std::move(req.context);
+	auto dresult = server->send_and_wait(dreq);
+	if(dresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Dungeon server returned an error: code = ", dresult.first, ", msg = ", dresult.second);
+		return std::move(dresult);
+	}
 
 	return Response();
 }

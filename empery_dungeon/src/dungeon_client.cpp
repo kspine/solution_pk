@@ -300,14 +300,4 @@ Result DungeonClient::send_and_wait(std::uint16_t message_id, Poseidon::StreamBu
 	return std::move(*ret);
 }
 
-bool DungeonClient::send_notification_by_account(AccountUuid account_uuid, std::uint16_t message_id, Poseidon::StreamBuffer payload){
-	PROFILE_ME;
-
-	Msg::G_PackedAccountNotification msg;
-	msg.account_uuid = account_uuid.str();
-	msg.message_id   = message_id;
-	msg.payload      = payload.dump();
-	return Poseidon::Cbpp::Client::send(msg.ID, Poseidon::StreamBuffer(msg));
-}
-
 }

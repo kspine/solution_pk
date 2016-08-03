@@ -865,10 +865,9 @@ namespace {
 			synchronize_in_cluster(new_cluster_coord);
 		}
 	}
-	void synchronize_with_controller(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
-		PROFILE_ME;
 
-		(void)old_coord;
+	void synchronize_map_object_with_controller(const boost::shared_ptr<MapObject> &map_object, Coord new_coord) noexcept {
+		PROFILE_ME;
 
 		boost::shared_ptr<ControllerClient> controller;
 		try {
@@ -909,6 +908,23 @@ namespace {
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
 		}
+	}
+	void synchronize_map_object_all(const boost::shared_ptr<MapObject> &map_object, Coord old_coord, Coord new_coord) noexcept {
+		PROFILE_ME;
+
+		const auto owner_uuid = map_object->get_owner_uuid();
+		const auto session = PlayerSessionMap::get(owner_uuid);
+		if(session){
+			try {
+				map_object->synchronize_with_player(session);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+		synchronize_with_all_players(map_object, old_coord, new_coord, session);
+		synchronize_with_all_clusters(map_object, old_coord, new_coord);
+		synchronize_map_object_with_controller(map_object, new_coord);
 	}
 }
 
@@ -1150,7 +1166,9 @@ boost::shared_ptr<MapObject> WorldMap::forced_reload_map_object(MapObjectUuid ma
 		map_object_map->replace(result.first, elem);
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+	const auto coord = map_object->get_coord();
+	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid, ", coord = ", coord);
+	synchronize_map_object_all(map_object, coord, coord);
 	return std::move(map_object);
 }
 void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object){
@@ -1177,19 +1195,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 		DEBUG_THROW(Exception, sslit("Map object already exists"));
 	}
 
-	const auto owner_uuid = map_object->get_owner_uuid();
-	const auto session = PlayerSessionMap::get(owner_uuid);
-	if(session){
-		try {
-			map_object->synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
-	synchronize_with_all_players(map_object, new_coord, new_coord, session);
-	synchronize_with_all_clusters(map_object, new_coord, new_coord);
-	synchronize_with_controller(map_object, new_coord, new_coord);
+	synchronize_map_object_all(map_object, new_coord, new_coord);
 }
 void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object, bool throws_if_not_exists){
 	PROFILE_ME;
@@ -1223,19 +1229,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 		map_object_map->replace<0>(it, MapObjectElement(map_object));
 	}
 
-	const auto owner_uuid = map_object->get_owner_uuid();
-	const auto session = PlayerSessionMap::get(owner_uuid);
-	if(session){
-		try {
-			map_object->synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
-	synchronize_with_all_players(map_object, old_coord, new_coord, session);
-	synchronize_with_all_clusters(map_object, old_coord, new_coord);
-	synchronize_with_controller(map_object, old_coord, new_coord);
+	synchronize_map_object_all(map_object, old_coord, new_coord);
 }
 
 void WorldMap::get_map_objects_all(std::vector<boost::shared_ptr<MapObject>> &ret){
@@ -1291,16 +1285,18 @@ void WorldMap::forced_reload_map_objects_by_owner(AccountUuid owner_uuid){
 		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	for(const auto &obj : *sink){
-		auto map_object = reload_map_object_aux(obj);
+		const auto map_object = reload_map_object_aux(obj);
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
-		const auto elem = MapObjectElement(std::move(map_object));
+		const auto elem = MapObjectElement(map_object);
 		const auto result = map_object_map->insert(elem);
 		if(!result.second){
 			map_object_map->replace(result.first, elem);
 		}
 
-		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+		const auto coord = map_object->get_coord();
+		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid, ", coord = ", coord);
+		synchronize_map_object_all(map_object, coord, coord);
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
@@ -1373,16 +1369,18 @@ void WorldMap::forced_reload_map_objects_by_parent_object(MapObjectUuid parent_o
 		Poseidon::JobDispatcher::yield(promise, true);
 	}
 	for(const auto &obj : *sink){
-		auto map_object = reload_map_object_aux(obj);
+		const auto map_object = reload_map_object_aux(obj);
 		const auto map_object_uuid = map_object->get_map_object_uuid();
 
-		const auto elem = MapObjectElement(std::move(map_object));
+		const auto elem = MapObjectElement(map_object);
 		const auto result = map_object_map->insert(elem);
 		if(!result.second){
 			map_object_map->replace(result.first, elem);
 		}
 
-		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid);
+		const auto coord = map_object->get_coord();
+		LOG_EMPERY_CENTER_DEBUG("Successfully reloaded map object: map_object_uuid = ", map_object_uuid, ", coord = ", coord);
+		synchronize_map_object_all(map_object, coord, coord);
 	}
 
 	LOG_EMPERY_CENTER_DEBUG("Recalculating castle attributes...");
@@ -2203,12 +2201,14 @@ void WorldMap::forced_reload_cluster(Coord coord){
 		}
 		for(const auto &obj : *sink){
 			CONCURRENT_LOAD_BEGIN {
-				auto map_object = reload_map_object_aux(obj);
-				const auto elem = MapObjectElement(std::move(map_object));
+				const auto map_object = reload_map_object_aux(obj);
+				const auto elem = MapObjectElement(map_object);
 				const auto result = map_object_map->insert(elem);
 				if(!result.second){
 					map_object_map->replace(result.first, elem);
 				}
+				const auto coord = map_object->get_coord();
+				synchronize_map_object_all(map_object, coord, coord);
 			} CONCURRENT_LOAD_END;
 		}
 	}

@@ -12,7 +12,6 @@
 #include "../msg/st_map.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
-#include <poseidon/singletons/job_dispatcher.hpp>
 #include "../singletons/world_map.hpp"
 #include "../map_object.hpp"
 #include "../map_object_type_ids.hpp"
@@ -54,7 +53,6 @@
 #include "../activity_ids.hpp"
 #include "../data/activity.hpp"
 #include "../singletons/controller_client.hpp"
-#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -126,6 +124,7 @@ CLUSTER_SERVLET(Msg::KS_MapUpdateMapObjectAction, cluster, req){
 
 	const auto stamp = req.stamp;
 	if(stamp != map_object->get_stamp()){
+		map_object->synchronize_with_cluster(cluster);
 		return Response(Msg::ERR_MAP_OBJECT_INVALIDATED);
 	}
 
@@ -189,6 +188,45 @@ CLUSTER_SERVLET(Msg::KS_MapEnterCastle, cluster, req){
 
 	map_object->set_coord(castle->get_coord());
 	map_object->set_garrisoned(true);
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapWaypointsSet, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto owner_uuid = map_object->get_owner_uuid();
+	if(owner_uuid){
+		const auto session = PlayerSessionMap::get(owner_uuid);
+		if(session){
+			try {
+				Msg::SC_MapWaypointsSet msg;
+				msg.map_object_uuid = map_object_uuid.str();
+				msg.x               = req.x;
+				msg.y               = req.y;
+				msg.waypoints.reserve(req.waypoints.size());
+				for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
+					auto &elem = *msg.waypoints.emplace(msg.waypoints.end());
+					elem.dx = it->dx;
+					elem.dy = it->dy;
+				}
+				msg.action          = req.action;
+				msg.param           = std::move(req.param);
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+	}
 
 	return Response();
 }
@@ -316,6 +354,39 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		});
 	} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
+	return Response();
+}
+
+CLUSTER_SERVLET(Msg::KS_MapObjectStopped, cluster, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto owner_uuid = map_object->get_owner_uuid();
+	if(owner_uuid){
+		const auto session = PlayerSessionMap::get(owner_uuid);
+		if(session){
+			try {
+				Msg::SC_MapObjectStopped msg;
+				msg.map_object_uuid = map_object_uuid.str();
+				msg.action          = req.action;
+				msg.param           = std::move(req.param);
+				msg.error_code      = req.error_code;
+				msg.error_message   = std::move(req.error_message);
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
 	}
 
 	return Response();
@@ -473,6 +544,8 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			goto _wounded_done;
 		}
 
+		const auto attacked_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(attacked_object_uuid.get()[0]));
+
 		const auto capacity_total = parent_castle->get_medical_tent_capacity();
 		if(capacity_total == 0){
 			LOG_EMPERY_CENTER_DEBUG("No medical tent: parent_object_uuid = ", parent_object_uuid);
@@ -505,11 +578,9 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		}
 		soldiers_wounded_added = std::min(soldiers_wounded, capacity_avail);
 
-		const auto attacked_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(attacked_object_uuid.get()[0]));
-
 		std::vector<WoundedSoldierTransactionElement> wounded_soldier_transaction;
 		wounded_soldier_transaction.emplace_back(WoundedSoldierTransactionElement::OP_ADD, attacked_object_type_id, soldiers_wounded_added,
-			ReasonIds::ID_SOLDIER_WOUNDED, attacked_object_uuid_head, soldiers_damaged, wounded_ratio_bonus);
+			ReasonIds::ID_SOLDIER_WOUNDED, attacked_object_uuid_head, soldiers_damaged, std::round(wounded_ratio_bonus * 1000));
 		parent_castle->commit_wounded_soldier_transaction(wounded_soldier_transaction);
 	}
 _wounded_done:
@@ -521,8 +592,6 @@ _wounded_done:
 
 	const auto should_send_battle_notifications = !attacked_object->is_buff_in_effect(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT);
 	attacked_object->set_buff(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT, utc_now, battle_status_timeout);
-
-	const auto category = boost::make_shared<int>();
 
 	// 通知客户端。
 	try {
@@ -702,8 +771,6 @@ _wounded_done:
 					return;
 				}
 
-				const auto utc_now = Poseidon::get_utc_time();
-
 				boost::container::flat_map<ItemId, std::uint64_t> items_basic, items_extra;
 				std::uint64_t  activity_add_rate = 1;
 				const auto map_activity = ActivityMap::get_map_activity();
@@ -758,6 +825,7 @@ _wounded_done:
 
 					push_monster_rewards(monster_type_data->monster_rewards, false);
 
+					const auto utc_now = Poseidon::get_utc_time();
 					std::vector<boost::shared_ptr<const Data::MapObjectTypeMonsterRewardExtra>> extra_rewards;
 					Data::MapObjectTypeMonsterRewardExtra::get_available(extra_rewards, utc_now, attacked_object_type_id);
 					for(auto it = extra_rewards.begin(); it != extra_rewards.end(); ++it){
@@ -935,7 +1003,8 @@ _wounded_done:
 					task_type_id = TaskTypeIds::ID_WIPE_OUT_ENEMY_BATTALIONS;
 				}
 				auto castle_category = TaskBox::TCC_PRIMARY;
-				if((attacking_object_uuid != primary_castle_uuid) && (attacking_object->get_parent_object_uuid() != primary_castle_uuid)){
+				const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
+				if((attacking_object_uuid != primary_castle_uuid) && (parent_object_uuid != primary_castle_uuid)){
 					castle_category = TaskBox::TCC_NON_PRIMARY;
 				}
 				task_box->check(task_type_id, attacked_object_type_id.get(), 1,
