@@ -54,13 +54,14 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	const auto prerequisite_dungeon_type_id = dungeon_data->prerequisite_dungeon_type_id;
 	if(prerequisite_dungeon_type_id){
 		const auto prerequisite_info = dungeon_box->get(prerequisite_dungeon_type_id);
-		if(!prerequisite_info.finished){
+		if(prerequisite_info.finish_count != 0){
 			return Response(Msg::ERR_DUNGEON_PREREQUISITE_NOT_MET) <<prerequisite_dungeon_type_id;
 		}
 	}
+
+	auto info = dungeon_box->get(dungeon_type_id);
 	if(!dungeon_data->reentrant){
-		const auto info = dungeon_box->get(dungeon_type_id);
-		if(info.finished){
+		if(info.finish_count != 0){
 			return Response(Msg::ERR_DUNGEON_DISPOSED) <<dungeon_type_id;
 		}
 	}
@@ -186,6 +187,9 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 				dungeon->insert_object(std::move(dungeon_object));
 			}
 			DungeonMap::insert(std::move(dungeon));
+
+			info.entry_count += 1;
+			dungeon_box->set(std::move(info));
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;

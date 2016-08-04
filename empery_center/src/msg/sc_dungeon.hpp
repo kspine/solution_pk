@@ -11,7 +11,8 @@ namespace Msg {
 #define MESSAGE_ID      1599
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (dungeon_type_id)	\
-	FIELD_VUINT         (finished)	\
+	FIELD_VUINT         (entry_count)	\
+	FIELD_VUINT         (finish_count)	\
 	FIELD_ARRAY         (tasks_finished,	\
 		FIELD_VUINT         (dungeon_task_id)	\
 	)
@@ -155,9 +156,13 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VUINT         (dungeon_type_id)	\
+	FIELD_ARRAY         (rewards,	\
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)	\
+	)	\
 	FIELD_ARRAY         (tasks_finished_new,	\
 		FIELD_VUINT         (dungeon_task_id)	\
-		FIELD_ARRAY         (reward,	\
+		FIELD_ARRAY         (rewards,	\
 			FIELD_VUINT         (item_id)	\
 			FIELD_VUINT         (count)	\
 		)	\

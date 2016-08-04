@@ -77,7 +77,9 @@ constexpr ReasonId
 	                                             //                     1 无星  7 一星
 	                                             //                     8 二星  9 三星
 	ID_HORN_MESSAGE                  ( 674015 ), // 0                   0                   0
-	ID_DUNGEON_RESUSCITATION         ( 674016 ); // 部队 UUID 高位      部队受到伤害        复活率 * 1000
+	ID_DUNGEON_RESUSCITATION         ( 674016 ), // 部队 UUID 高位      部队受到伤害        复活率 * 1000
+	ID_FINISH_DUNGEON                ( 674017 ), // 副本类型 ID         掉落表内的 ID       0
+	ID_FINISH_DUNGEON_TASK           ( 674018 ); // 副本类型 ID         副本任务 ID         0
 
 }
 

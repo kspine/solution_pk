@@ -42,11 +42,11 @@ namespace {
 
 		object.clear();
 		csv.get(object, "task_reward");
-		elem.reward.reserve(object.size());
+		elem.rewards.reserve(object.size());
 		for(auto it = object.begin(); it != object.end(); ++it){
 			const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
 			const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-			if(!elem.reward.emplace(resource_id, count).second){
+			if(!elem.rewards.emplace(resource_id, count).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate task reward: resource_id = ", resource_id);
 				DEBUG_THROW(Exception, sslit("Duplicate task reward"));
 			}

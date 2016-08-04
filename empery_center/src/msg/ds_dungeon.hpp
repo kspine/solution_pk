@@ -100,6 +100,23 @@ namespace Msg {
 	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonPlayerWins
+#define MESSAGE_ID      50008
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (account_uuid)	\
+	FIELD_ARRAY         (tasks_finished,	\
+		FIELD_VUINT         (dungeon_task_id)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonPlayerLoses
+#define MESSAGE_ID      50009
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (account_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

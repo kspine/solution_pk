@@ -4,6 +4,7 @@
 #include "../msg/ds_dungeon.hpp"
 #include "../msg/sc_dungeon.hpp"
 #include "../msg/err_dungeon.hpp"
+#include "../msg/err_account.hpp"
 #include "../dungeon_object.hpp"
 #include "../msg/err_map.hpp"
 #include <poseidon/async_job.hpp>
@@ -25,6 +26,12 @@
 #include "../singletons/task_box_map.hpp"
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
+#include "../singletons/dungeon_box_map.hpp"
+#include "../dungeon_box.hpp"
+#include "../singletons/item_box_map.hpp"
+#include "../item_box.hpp"
+#include "../reason_ids.hpp"
+#include "../transaction_element.hpp"
 
 namespace EmperyCenter {
 
@@ -493,6 +500,115 @@ DUNGEON_SERVLET(Msg::DS_DungeonWaypointsSet, dungeon, server, req){
 			session->shutdown(e.what());
 		}
 	}
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
+	const auto account_uuid = AccountUuid(req.account_uuid);
+	const auto dungeon_box = DungeonBoxMap::get(account_uuid);
+	if(!dungeon_box){
+		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED);
+	}
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+
+	boost::container::flat_map<ItemId, std::uint64_t> rewards;
+	boost::container::flat_map<DungeonTaskId, boost::container::flat_map<ItemId, std::uint64_t>> tasks_new;
+
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(32);
+
+	const auto dungeon_type_id = dungeon->get_dungeon_type_id();
+
+	auto info = dungeon_box->get(dungeon_type_id);
+	info.finish_count += 1;
+
+	const auto dungeon_data = Data::Dungeon::require(dungeon_type_id);
+	for(auto rit = dungeon_data->rewards.begin(); rit != dungeon_data->rewards.end(); ++rit){
+		const auto &collection_name = rit->first;
+		const auto repeat_count = rit->second;
+		for(std::size_t i = 0; i < repeat_count; ++i){
+			const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
+			if(!reward_data){
+				LOG_EMPERY_CENTER_WARNING("Error getting random reward: dungeon_type_id = ", dungeon_type_id,
+					", collection_name = ", collection_name);
+				continue;
+			}
+			for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
+				const auto item_id = it->first;
+				const auto count = it->second;
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+					ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), static_cast<std::int64_t>(reward_data->unique_id), 0);
+				rewards[item_id] += count;
+			}
+		}
+	}
+
+	for(auto tit = req.tasks_finished.begin(); tit != req.tasks_finished.end(); ++tit){
+		const auto dungeon_task_id = DungeonTaskId(tit->dungeon_task_id);
+		if(dungeon_data->tasks.find(dungeon_task_id) == dungeon_data->tasks.end()){
+			LOG_EMPERY_CENTER_WARNING("Dungeon task ignored: dungeon_task_id = ", dungeon_task_id, ", dungeon_type_id = ", dungeon_type_id);
+			continue;
+		}
+		if(info.tasks_finished.insert(dungeon_task_id).second){
+			const auto task_data = Data::DungeonTask::require(dungeon_task_id);
+			for(auto it = task_data->rewards.begin(); it != task_data->rewards.end(); ++it){
+				const auto item_id = it->first;
+				const auto count = it->second;
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+					ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), dungeon_task_id.get(), 0);
+				tasks_new[dungeon_task_id][item_id] += count;
+			}
+		}
+	}
+
+	item_box->commit_transaction(transaction, false,
+		[&]{ dungeon_box->set(std::move(info)); });
+
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+		try {
+			Msg::SC_DungeonFinished msg;
+			msg.dungeon_uuid    = dungeon->get_dungeon_uuid().str();
+			msg.dungeon_type_id = dungeon->get_dungeon_type_id().get();
+			msg.rewards.reserve(rewards.size());
+			for(auto it = rewards.begin(); it != rewards.end(); ++it){
+				auto &elem = *msg.rewards.emplace(msg.rewards.end());
+				elem.item_id = it->first.get();
+				elem.count   = it->second;
+			}
+			msg.tasks_finished_new.reserve(tasks_new.size());
+			for(auto it = tasks_new.begin(); it != tasks_new.end(); ++it){
+				auto &task_elem = *msg.tasks_finished_new.emplace(msg.tasks_finished_new.end());
+				task_elem.dungeon_task_id = it->first.get();
+				task_elem.rewards.reserve(it->second.size());
+				for(auto tit = it->second.begin(); tit != it->second.end(); ++tit){
+					auto &reward_elem = *task_elem.rewards.emplace(task_elem.rewards.end());
+					reward_elem.item_id = tit->first.get();
+					reward_elem.count   = tit->second;
+				}
+			}
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+
+	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_WINS, "");
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonPlayerLoses, dungeon, server, req){
+	const auto account_uuid = AccountUuid(req.account_uuid);
+	const auto dungeon_box = DungeonBoxMap::get(account_uuid);
+	if(!dungeon_box){
+		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED);
+	}
+
+	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_LOSES, "");
 
 	return Response();
 }

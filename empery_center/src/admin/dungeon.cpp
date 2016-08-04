@@ -27,7 +27,8 @@ ADMIN_SERVLET("dungeon/get_all", root, session, params){
 	for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
 		Poseidon::JsonObject dungeon_object;
 		dungeon_object[sslit("dungeon_type_id")] = it->dungeon_type_id.get();
-		dungeon_object[sslit("finished")]        = it->finished;
+		dungeon_object[sslit("entry_count")]     = it->entry_count;
+		dungeon_object[sslit("finish_count")]    = it->finish_count;
 		Poseidon::JsonArray tasks_finished;
 		for(auto tit = it->tasks_finished.begin(); tit != it->tasks_finished.end(); ++tit){
 			tasks_finished.emplace_back(tit->get());
@@ -45,7 +46,6 @@ ADMIN_SERVLET("dungeon/get_all", root, session, params){
 ADMIN_SERVLET("dungeon/set", root, session, params){
 	const auto account_uuid        = AccountUuid(params.at("account_uuid"));
 	const auto dungeon_type_id     = boost::lexical_cast<DungeonTypeId>(params.at("dungeon_type_id"));
-	const auto &finished_str       = params.get("finished");
 	const auto &entry_count_str    = params.get("entry_count");
 	const auto &finish_count_str   = params.get("finish_count");
 	const auto &tasks_finished_str = params.get("tasks_finished");
@@ -60,9 +60,6 @@ ADMIN_SERVLET("dungeon/set", root, session, params){
 	dungeon_box->pump_status();
 
 	auto info = dungeon_box->get(dungeon_type_id);
-	if(!finished_str.empty()){
-		info.finished = (finished_str != "0") && (finished_str != "false"); // boost::lexical_cast<bool>(finished_str);
-	}
 	if(!entry_count_str.empty()){
 		info.entry_count = boost::lexical_cast<std::uint64_t>(entry_count_str);
 	}

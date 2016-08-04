@@ -45,8 +45,8 @@ PLAYER_SERVLET(Msg::CS_ItemFetchTaskReward, account, session, req){
 	}
 
 	std::vector<ResourceTransactionElement> transaction;
-	transaction.reserve(task_data->reward.size());
-	for(auto it = task_data->reward.begin(); it != task_data->reward.end(); ++it){
+	transaction.reserve(task_data->rewards.size());
+	for(auto it = task_data->rewards.begin(); it != task_data->rewards.end(); ++it){
 		transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, it->second,
 			ReasonIds::ID_TASK_REWARD, task_id.get(), 0, 0);
 	}

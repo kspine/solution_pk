@@ -22,7 +22,6 @@ class DungeonBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	struct DungeonInfo {
 		DungeonTypeId dungeon_type_id;
-		bool finished;
 		std::uint64_t entry_count;
 		std::uint64_t finish_count;
 		boost::container::flat_set<DungeonTaskId> tasks_finished;

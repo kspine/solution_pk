@@ -25,8 +25,19 @@ namespace Data {
 		boost::container::flat_multimap<ApplicabilityKeyType, std::uint64_t> battalions_required;
 		boost::container::flat_multimap<ApplicabilityKeyType, std::uint64_t> battalions_forbidden;
 
+		boost::container::flat_set<DungeonTaskId> tasks;
 		boost::container::flat_map<std::string, std::uint64_t> rewards;
 		double resuscitation_ratio;
+	};
+
+	class DungeonTask {
+	public:
+		static boost::shared_ptr<const DungeonTask> get(DungeonTaskId dungeon_task_id);
+		static boost::shared_ptr<const DungeonTask> require(DungeonTaskId dungeon_task_id);
+
+	public:
+		DungeonTaskId dungeon_task_id;
+		boost::container::flat_map<ItemId, std::uint64_t> rewards;
 	};
 }
 

@@ -45,7 +45,6 @@ namespace {
 		PROFILE_ME;
 
 		info.dungeon_type_id = DungeonTypeId(obj->get_dungeon_type_id());
-		info.finished        = obj->get_finished();
 		info.entry_count     = obj->get_entry_count();
 		info.finish_count    = obj->get_finish_count();
 		info.tasks_finished  = decode_tasks(obj->get_tasks_finished());
@@ -55,7 +54,8 @@ namespace {
 		PROFILE_ME;
 
 		msg.dungeon_type_id = obj->get_dungeon_type_id();
-		msg.finished        = obj->get_finished();
+		msg.entry_count     = obj->get_entry_count();
+		msg.finish_count    = obj->get_finish_count();
 		const auto tasks_finished = decode_tasks(obj->get_tasks_finished());
 		msg.tasks_finished.reserve(tasks_finished.size());
 		for(auto it = tasks_finished.begin(); it != tasks_finished.end(); ++it){
@@ -114,13 +114,12 @@ void DungeonBox::set(DungeonBox::DungeonInfo info){
 	auto it = m_dungeons.find(dungeon_type_id);
 	if(it == m_dungeons.end()){
 		const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_type_id.get(),
-			false, 0, 0, std::string());
+			0, 0, std::string());
 		obj->async_save(true);
 		it = m_dungeons.emplace(dungeon_type_id, obj).first;
 	}
 	const auto &obj = it->second;
 
-	obj->set_finished(info.finished);
 	obj->set_entry_count(info.entry_count);
 	obj->set_finish_count(info.finish_count);
 	obj->set_tasks_finished(encode_tasks(info.tasks_finished));
@@ -147,7 +146,6 @@ bool DungeonBox::remove(DungeonTypeId dungeon_type_id) noexcept {
 	const auto obj = std::move(it->second);
 	// m_dungeons.erase(it);
 
-	obj->set_finished(false);
 	obj->set_entry_count(0);
 	obj->set_finish_count(0);
 	obj->set_tasks_finished({ });
