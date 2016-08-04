@@ -11,7 +11,10 @@ namespace Msg {
 #define MESSAGE_ID      1599
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (dungeon_type_id)	\
-	FIELD_VUINT         (score)
+	FIELD_VUINT         (finished)	\
+	FIELD_ARRAY         (tasks_finished,	\
+		FIELD_VUINT         (dungeon_task_id)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_DungeonEntered
@@ -129,6 +132,7 @@ namespace Msg {
 #define MESSAGE_NAME    SC_DungeonSetScope
 #define MESSAGE_ID      1589
 #define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_VUINT         (width)	\
@@ -138,11 +142,26 @@ namespace Msg {
 #define MESSAGE_NAME    SC_DungeonWaitForPlayerConfirmation
 #define MESSAGE_ID      1588
 #define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_STRING        (context)	\
 	FIELD_VUINT         (type)	\
 	FIELD_VINT          (param1)	\
 	FIELD_VINT          (param2)	\
 	FIELD_STRING        (param3)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonFinished
+#define MESSAGE_ID      1587
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (dungeon_type_id)	\
+	FIELD_ARRAY         (tasks_finished_new,	\
+		FIELD_VUINT         (dungeon_task_id)	\
+		FIELD_ARRAY         (reward,	\
+			FIELD_VUINT         (item_id)	\
+			FIELD_VUINT         (count)	\
+		)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

@@ -424,11 +424,12 @@ DUNGEON_SERVLET(Msg::DS_DungeonWaitForPlayerConfirmation, dungeon, server, req){
 	}
 
 	Msg::SC_DungeonWaitForPlayerConfirmation msg;
-	msg.context = std::move(req.context);
-	msg.type    = req.type;
-	msg.param1  = req.param1;
-	msg.param2  = req.param2;
-	msg.param3  = std::move(req.param3);
+	msg.dungeon_uuid = dungeon->get_dungeon_uuid().str();
+	msg.context      = std::move(req.context);
+	msg.type         = req.type;
+	msg.param1       = req.param1;
+	msg.param2       = req.param2;
+	msg.param3       = std::move(req.param3);
 	dungeon->broadcast_to_observers(msg);
 
 	return Response();
@@ -476,16 +477,16 @@ DUNGEON_SERVLET(Msg::DS_DungeonWaypointsSet, dungeon, server, req){
 			Msg::SC_DungeonWaypointsSet msg;
 			msg.dungeon_uuid        = dungeon->get_dungeon_uuid().str();
 			msg.dungeon_object_uuid = dungeon_object_uuid.str();
-			msg.x               = req.x;
-			msg.y               = req.y;
+			msg.x                   = req.x;
+			msg.y                   = req.y;
 			msg.waypoints.reserve(req.waypoints.size());
 			for(auto it = req.waypoints.begin(); it != req.waypoints.end(); ++it){
 				auto &elem = *msg.waypoints.emplace(msg.waypoints.end());
 				elem.dx = it->dx;
 				elem.dy = it->dy;
 			}
-			msg.action          = req.action;
-			msg.param           = std::move(req.param);
+			msg.action              = req.action;
+			msg.param               = std::move(req.param);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

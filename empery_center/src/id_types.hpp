@@ -221,6 +221,7 @@ namespace IdTypes {
 	using BuffId                    = GenericId<std::uint32_t, 120023>;
 	using BattalionLevelId          = GenericId<std::uint32_t, 120024>;
 	using DungeonTypeId             = GenericId<std::uint32_t, 120025>;
+	using DungeonTaskId             = GenericId<std::uint32_t, 120026>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;

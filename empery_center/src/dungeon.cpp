@@ -11,22 +11,24 @@
 namespace EmperyCenter {
 
 namespace {
-	void fill_scope_msg(Msg::SC_DungeonSetScope &msg, Rectangle scope){
+	void fill_scope_msg(Msg::SC_DungeonSetScope &msg, DungeonUuid dungeon_uuid, Rectangle scope){
 		PROFILE_ME;
 
-		msg.x      = scope.left();
-		msg.y      = scope.bottom();
-		msg.width  = scope.width();
-		msg.height = scope.height();
+		msg.dungeon_uuid = dungeon_uuid.str();
+		msg.x            = scope.left();
+		msg.y            = scope.bottom();
+		msg.width        = scope.width();
+		msg.height       = scope.height();
 	}
-	void fill_suspension_msg(Msg::SC_DungeonWaitForPlayerConfirmation &msg, const Dungeon::Suspension &susp){
+	void fill_suspension_msg(Msg::SC_DungeonWaitForPlayerConfirmation &msg, DungeonUuid dungeon_uuid, const Dungeon::Suspension &susp){
 		PROFILE_ME;
 
-		msg.context = susp.context;
-		msg.type    = susp.type;
-		msg.param1  = susp.param1;
-		msg.param2  = susp.param2;
-		msg.param3  = susp.param3;
+		msg.dungeon_uuid = dungeon_uuid.str();
+		msg.context      = susp.context;
+		msg.type         = susp.type;
+		msg.param1       = susp.param1;
+		msg.param2       = susp.param2;
+		msg.param3       = susp.param3;
 	}
 }
 
@@ -119,7 +121,7 @@ void Dungeon::set_scope(Rectangle scope){
 
 	try {
 		Msg::SC_DungeonSetScope msg;
-		fill_scope_msg(msg, m_scope);
+		fill_scope_msg(msg, get_dungeon_uuid(), m_scope);
 		broadcast_to_observers(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -134,7 +136,7 @@ void Dungeon::set_suspension(Suspension suspension){
 
 	try {
 		Msg::SC_DungeonWaitForPlayerConfirmation msg;
-		fill_suspension_msg(msg, m_suspension);
+		fill_suspension_msg(msg, get_dungeon_uuid(), m_suspension);
 		broadcast_to_observers(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -186,13 +188,13 @@ void Dungeon::insert_observer(AccountUuid account_uuid, const boost::shared_ptr<
 
 		const auto &scope = get_scope();
 		Msg::SC_DungeonSetScope msg_scope;
-		fill_scope_msg(msg_scope, scope);
+		fill_scope_msg(msg_scope, get_dungeon_uuid(), scope);
 		session->send(msg_scope);
 
 		const auto &suspension = get_suspension();
 		if(suspension.type != 0){
 			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
-			fill_suspension_msg(msg_susp, suspension);
+			fill_suspension_msg(msg_susp, get_dungeon_uuid(), suspension);
 			session->send(msg_susp);
 		}
 	} catch(std::exception &e){

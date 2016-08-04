@@ -62,6 +62,17 @@ namespace {
 				elem.battalions_forbidden.emplace(type, param);
 			}
 
+			object.clear();
+			csv.get(object, "dungeon_reward");
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto collection_name = std::string(it->first.get());
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.rewards.emplace(std::move(collection_name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: collection_name = ", collection_name);
+					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
+				}
+			}
+
 			csv.get(elem.resuscitation_ratio, "resurrection");
 
 			if(!dungeon_container->insert(std::move(elem)).second){

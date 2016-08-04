@@ -54,13 +54,13 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	const auto prerequisite_dungeon_type_id = dungeon_data->prerequisite_dungeon_type_id;
 	if(prerequisite_dungeon_type_id){
 		const auto prerequisite_info = dungeon_box->get(prerequisite_dungeon_type_id);
-		if(prerequisite_info.score == DungeonBox::S_NONE){
+		if(!prerequisite_info.finished){
 			return Response(Msg::ERR_DUNGEON_PREREQUISITE_NOT_MET) <<prerequisite_dungeon_type_id;
 		}
 	}
 	if(!dungeon_data->reentrant){
 		const auto info = dungeon_box->get(dungeon_type_id);
-		if(info.score != DungeonBox::S_NONE){
+		if(info.finished){
 			return Response(Msg::ERR_DUNGEON_DISPOSED) <<dungeon_type_id;
 		}
 	}
