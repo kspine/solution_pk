@@ -21,6 +21,8 @@ public:
 		Q_DUNGEON_EXPIRED  = 0,
 		Q_INTERNAL_ERROR   = 1,
 		Q_PLAYER_REQUEST   = 2,
+		Q_PLAYER_WINS      = 3,
+		Q_PLAYER_LOSES     = 4,
 	};
 
 	struct Suspension {
