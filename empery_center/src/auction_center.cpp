@@ -395,19 +395,19 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 	item_transaction.reserve(16);
 
 	for(auto it = items.begin(); it != items.end(); ++it){
-		const auto item_id = it->first;
-		const auto item_count = it->second;
+		const auto item_box_id = it->first;
+		const auto item_box_count = it->second;
 
-		auto &info = temp_result.at(transfers.at(item_id));
-		info.item_count = checked_add(info.item_count, item_count);
+		auto &info = temp_result.at(transfers.at(item_box_id));
+		info.item_count = checked_add(info.item_count, item_box_count);
 
-		const auto item_data = Data::Item::require(item_id);
+		const auto item_data = Data::Item::require(item_box_id);
 		if(item_data->type.first == Data::Item::CAT_RESOURCE_BOX){
 			const auto resource_id = ResourceId(item_data->type.second);
 			const auto resource_data = Data::CastleResource::require(resource_id);
 			const auto locked_resource_id = resource_data->locked_resource_id;
 
-			const auto resource_amount_locked = checked_mul(item_count, item_data->value);
+			const auto resource_amount_locked = checked_mul(item_box_count, item_data->value);
 			const auto resource_amount_fee = static_cast<std::uint64_t>(std::ceil(resource_amount_locked * transfer_fee_ratio - 0.001));
 
 			resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, resource_id, resource_amount_locked,
@@ -421,11 +421,13 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 			info.resource_amount_locked = checked_add(info.resource_amount_locked, resource_amount_locked);
 			info.resource_amount_fee    = checked_add(info.resource_amount_fee,    resource_amount_fee);
 
-			LOG_EMPERY_CENTER_DEBUG("%% Lock resource: map_object_uuid = ", map_object_uuid, ", item_id = ", item_id, ", item_count = ", item_count,
+			LOG_EMPERY_CENTER_DEBUG("%% Lock resource: map_object_uuid = ", map_object_uuid,
+				", item_box_id = ", item_box_id, ", item_box_count = ", item_box_count,
 				", resource_id = ", resource_id, ", resource_amount_locked = ", resource_amount_locked,
 				", resource_amount_fee = ", resource_amount_fee);
 		} else if(item_data->type.first == Data::Item::CAT_ITEM_BOX){
-			const auto item_count_locked = checked_mul(item_count, item_data->value);
+			const auto item_id = ItemId(item_data->type.second);
+			const auto item_count_locked = checked_mul(item_box_count, item_data->value);
 			const auto item_count_fee = static_cast<std::uint64_t>(std::ceil(item_count_locked * transfer_fee_ratio - 0.001));
 
 			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, item_count_locked,
@@ -437,10 +439,11 @@ std::pair<ResourceId, ItemId> AuctionCenter::begin_transfer(const boost::shared_
 			info.item_count_fee         = checked_add(info.item_count_fee,    item_count_fee);
 			info.resource_id            = ResourceId();
 
-			LOG_EMPERY_CENTER_DEBUG("%% Lock item: account_uuid = ", account_uuid, ", item_id = ", item_id, ", item_count = ", item_count,
+			LOG_EMPERY_CENTER_DEBUG("%% Lock item: account_uuid = ", account_uuid,
+				", item_box_id = ", item_box_id, ", item_box_count = ", item_box_count,
 				", item_count_locked = ", item_count_locked, ", item_count_fee = ", item_count_fee);
 		} else {
-			LOG_EMPERY_CENTER_ERROR("Not something for auction: item_id = ", item_id, ", type = ", (int)item_data->type.first);
+			LOG_EMPERY_CENTER_ERROR("Not something for auction: item_box_id = ", item_box_id, ", type = ", (int)item_data->type.first);
 			DEBUG_THROW(Exception, sslit("Not something for auction"));
 		}
 	}
