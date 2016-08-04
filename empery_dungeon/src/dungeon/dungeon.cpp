@@ -54,6 +54,20 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 
 	if(!dungeon_object){
 		dungeon_object = boost::make_shared<DungeonObject>(dungeon_uuid,dungeon_object_uuid,dungeon_object_type_id,owner_uuid,coord);
+		//副本中的怪物创建的时候设置下action,
+		if(dungeon_object->is_monster()){
+			DungeonObject::Action act = DungeonObject::ACT_GUARD;
+			switch(dungeon_object->require_ai_control()->get_ai_id()){
+				case DungeonObject::AI_MONSTER_AUTO_SEARCH_TARGET:
+					act = DungeonObject::ACT_MONSTER_SEARCH_TARGET;
+					break;
+				case DungeonObject::AI_MONSTER_PATROL:
+					act = DungeonObject::ACT_MONSTER_PATROL;
+					break;
+			}
+			std::deque<std::pair<signed char, signed char>> waypoints;
+			dungeon_object->set_action(coord, waypoints, act,"");
+		}
 	}
 	dungeon_object->set_attributes(std::move(attributes));
 	for(auto it = buffs.begin(); it != buffs.end(); ++it){

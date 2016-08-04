@@ -179,7 +179,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 				const auto map_object_uuid = map_object->get_map_object_uuid();
 				const auto map_object_type_id = map_object->get_map_object_type_id();
 
-				const auto start_point = Coord(0, 7); // TODO
+				const auto start_point = Coord(2, 7); // TODO
 
 				auto dungeon_object = boost::make_shared<DungeonObject>(
 					dungeon_uuid, DungeonObjectUuid(map_object_uuid.get()), map_object_type_id, account_uuid, start_point);
@@ -187,6 +187,9 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 				dungeon_object->recalculate_attributes(false);
 				dungeon->insert_object(std::move(dungeon_object));
 			}
+			//TODO CREATE DUNGEON MONSTER
+			//dungeon->create_dungeon_monster(MapObjectTypeId(2603101),Coord(7,8));
+			dungeon->create_dungeon_monster(MapObjectTypeId(2603102),Coord(9,10));
 			DungeonMap::insert(std::move(dungeon));
 		});
 	if(insuff_item_id){

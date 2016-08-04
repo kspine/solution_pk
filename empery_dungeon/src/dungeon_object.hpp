@@ -50,7 +50,6 @@ private:
 	const AccountUuid m_owner_uuid;
 
 	Coord m_coord;
-	bool m_deleted = false;
 
 	boost::container::flat_map<AttributeId, std::int64_t> m_attributes;
 	boost::container::flat_map<BuffId, BuffInfo>   m_buffs;
@@ -94,11 +93,6 @@ public:
 	}
 	void set_coord(Coord coord);
 
-	bool has_been_deleted() const {
-		return m_deleted;
-	}
-	void delete_from_game() noexcept;
-
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
@@ -124,13 +118,12 @@ public:
 	}
 	void set_action(Coord from_coord, std::deque<std::pair<signed char, signed char>> waypoints,DungeonObject::Action action, std::string action_param);
 
-	bool is_virtually_removed() const;
 
 public:
 	bool is_die();
 	bool is_in_attack_scope(boost::shared_ptr<DungeonObject> target_object);
 	bool is_in_group_view_scope(boost::shared_ptr<DungeonObject>& target_object);
-	bool is_in_monster_active_scope();
+	bool          is_monster();
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
 	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<DungeonObject> &new_enemy_dungeon_object);
@@ -150,14 +143,13 @@ public:
 	std::uint64_t lost_target_monster();
 	std::uint64_t on_monster_regress();
 	std::uint64_t monster_search_attack_target(std::pair<long, std::string> &result,AI ai = AI_MONSTER_AUTO_SEARCH_TARGET);
-	std::uint64_t on_monster_guard();
-	std::uint64_t on_monster_patrol_guard();
+	std::uint64_t on_monster_guard(AI ai = AI_MONSTER_AUTO_SEARCH_TARGET);
+	std::uint64_t on_monster_patrol();
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const DungeonObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
 	void          monster_regress();
-	bool          is_monster();
 	bool          is_lost_attacked_target();
 	void          reset_attack_target_own_uuid();
     AccountUuid   get_attack_target_own_uuid();

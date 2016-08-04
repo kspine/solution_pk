@@ -100,11 +100,6 @@ void Dungeon::insert_object(const boost::shared_ptr<DungeonObject> &dungeon_obje
 
 	const auto dungeon_object_uuid = dungeon_object->get_dungeon_object_uuid();
 
-	if(dungeon_object->is_virtually_removed()){
-		LOG_EMPERY_DUNGEON_WARNING("Dungeon object has been marked as deleted: dungeon_object_uuid = ", dungeon_object_uuid);
-		DEBUG_THROW(Exception, sslit("Dongeon object has been marked as deleted"));
-	}
-
 	LOG_EMPERY_DUNGEON_DEBUG("Inserting dungeon object: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", dungeon_uuid);
 	const auto result = m_objects.emplace(dungeon_object_uuid, dungeon_object);
 	if(!result.second){

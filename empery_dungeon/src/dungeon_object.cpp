@@ -95,19 +95,6 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 	return UINT64_MAX;
 }
 
-
-void DungeonObject::delete_from_game() noexcept {
-	PROFILE_ME;
-
-	m_deleted = true;
-
-	const auto dungeon_uuid = get_dungeon_uuid();
-	const auto dungeon = DungeonMap::get(dungeon_uuid);
-	if(dungeon){
-		dungeon->update_object(virtual_shared_from_this<DungeonObject>(), false);
-	}
-}
-
 std::int64_t DungeonObject::get_attribute(AttributeId attribute_id) const {
 	PROFILE_ME;
 
@@ -332,10 +319,6 @@ void DungeonObject::set_action(Coord from_coord, std::deque<std::pair<signed cha
 	reset_attack_target_own_uuid();
 }
 
-bool DungeonObject::is_virtually_removed() const {
-	return has_been_deleted();
-}
-
 bool DungeonObject::is_die(){
 	PROFILE_ME;
 
@@ -378,9 +361,6 @@ bool DungeonObject::is_in_group_view_scope(boost::shared_ptr<DungeonObject>& tar
 	}
 
 	return false;
-}
-bool DungeonObject::is_in_monster_active_scope(){
-	return true;
 }
 std::uint64_t DungeonObject::get_view_range(){
 	PROFILE_ME;
@@ -1036,19 +1016,19 @@ std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::s
 	const auto ai_data = Data::DungeonObjectAi::require(ai);
 	return boost::lexical_cast<std::uint64_t>(ai_data->params);
 }
-std::uint64_t DungeonObject::on_monster_guard(){
+std::uint64_t DungeonObject::on_monster_guard(AI ai){
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
-	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_AUTO_SEARCH_TARGET);
+	const auto ai_data = Data::DungeonObjectAi::require(ai);
 	return boost::lexical_cast<std::uint64_t>(ai_data->params);
 }
 
-std::uint64_t DungeonObject::on_monster_patrol_guard(){
+std::uint64_t DungeonObject::on_monster_patrol(){
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
 	Coord coord_birth(birth_x,birth_y);
 	if(m_waypoints.empty() && (coord_birth == get_coord())){
 		//TODO goto the dest
-		if(find_way_points(m_waypoints,get_coord(),Coord(birth_x+ 3,birth_y+3),true)){
+		if(find_way_points(m_waypoints,get_coord(),Coord(birth_x - 9,birth_y - 3),true)){
 			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_PATROL),"");
 		}else{
 			LOG_EMPERY_DUNGEON_WARNING("find the way point to patrol dest fail，dungeon_uuid = ",get_dungeon_uuid());

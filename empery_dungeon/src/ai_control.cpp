@@ -123,7 +123,7 @@ std::uint64_t AiControlMonsterAutoSearch::on_action_guard(std::pair<long, std::s
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->on_monster_guard();
+	return parent_object->on_monster_guard(static_cast<DungeonObject::AI>(get_ai_id()));
 }
 
 AiControlMonsterPatrol::AiControlMonsterPatrol(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
@@ -156,8 +156,7 @@ std::uint64_t AiControlMonsterPatrol::on_lose_target(){
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	//巡逻怪丢失目标进入action_guard,然后从action_guard进入action_search_target
-	return parent_object->lost_target_common();
+	return parent_object->on_monster_guard(static_cast<DungeonObject::AI>(get_ai_id()));
 }
 
 std::uint64_t AiControlMonsterPatrol::on_action_monster_search_target(std::pair<long, std::string> &result, std::uint64_t now){
@@ -177,8 +176,7 @@ std::uint64_t AiControlMonsterPatrol::on_action_guard(std::pair<long, std::strin
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	//如果当前在出生点，则进入action_patrol,寻路至目标点
-	return parent_object->on_monster_patrol_guard();
+	return parent_object->on_monster_guard(static_cast<DungeonObject::AI>(get_ai_id()));
 }
 
 std::uint64_t AiControlMonsterPatrol::on_action_patrol(std::pair<long, std::string> &result, std::uint64_t now){
@@ -188,7 +186,7 @@ std::uint64_t AiControlMonsterPatrol::on_action_patrol(std::pair<long, std::stri
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->monster_search_attack_target(result,static_cast<DungeonObject::AI>(get_ai_id()));
+	return parent_object->on_monster_patrol();
 }
 
 
