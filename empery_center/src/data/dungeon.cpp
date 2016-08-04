@@ -129,7 +129,7 @@ namespace {
 		}
 		g_task_container = task_container;
 		handles.push(task_container);
-		servlet = DataSession::create_servlet(TASK_FILE, Data::encode_csv_as_json(csv, "dungeon_id"));
+		servlet = DataSession::create_servlet(TASK_FILE, Data::encode_csv_as_json(csv, "dungeon_task_id"));
 		handles.push(std::move(servlet));
 	}
 }
