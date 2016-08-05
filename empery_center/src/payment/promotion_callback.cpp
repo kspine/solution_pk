@@ -14,6 +14,12 @@
 #include "../account.hpp"
 #include "../string_utilities.hpp"
 #include "../events/account.hpp"
+#include "../singletons/world_map.hpp"
+#include "../castle.hpp"
+#include "../data/map.hpp"
+#include "../data/global.hpp"
+#include "../buff_ids.hpp"
+#include "../msg/err_castle.hpp"
 
 namespace EmperyCenter {
 
@@ -63,6 +69,28 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 	}
 
 	payment_transaction->commit(item_box, mail_box, remarks);
+
+	auto primary_castle = WorldMap::get_primary_castle(account_uuid);
+	if(!primary_castle){
+		LOG_EMPERY_CENTER_INFO("Creating initial castle: account_uuid = ", account_uuid);
+		primary_castle = WorldMap::place_castle_random(
+			[&](Coord coord){
+				const auto castle_uuid = MapObjectUuid(Poseidon::Uuid::random());
+				const auto utc_now = Poseidon::get_utc_time();
+
+				const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_NOVICIATE_PROTECTION_DURATION);
+				const auto protection_duration = saturated_mul<std::uint64_t>(protection_minutes, 60000);
+
+				auto castle = boost::make_shared<Castle>(castle_uuid, account_uuid, MapObjectUuid(), account->get_nick(), coord, utc_now);
+				castle->set_buff(BuffIds::ID_NOVICIATE_PROTECTION, utc_now, protection_duration);
+				return castle;
+			});
+		if(!primary_castle){
+			return Response(Msg::ERR_NO_START_POINTS_AVAILABLE);
+		}
+	}
+
+	account->set_activated(true);
 
 	Poseidon::async_raise_event(
 		boost::make_shared<Events::AccountSynchronizeWithThirdServer>(
