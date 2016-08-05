@@ -693,7 +693,7 @@ Castle::BuildingBaseInfo Castle::get_building_base(BuildingBaseId building_base_
 	fill_building_base_info(info, it->second);
 	return info;
 }
-void Castle::get_all_building_bases(std::vector<Castle::BuildingBaseInfo> &ret) const {
+void Castle::get_building_bases_all(std::vector<Castle::BuildingBaseInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_buildings.size());
@@ -1175,7 +1175,7 @@ Castle::TechInfo Castle::get_tech(TechId tech_id) const {
 	fill_tech_info(info, it->second);
 	return info;
 }
-void Castle::get_all_techs(std::vector<Castle::TechInfo> &ret) const {
+void Castle::get_techs_all(std::vector<Castle::TechInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_techs.size());
@@ -1506,7 +1506,7 @@ Castle::ResourceInfo Castle::get_resource(ResourceId resource_id) const {
 	fill_resource_info(info, it->second);
 	return info;
 }
-void Castle::get_all_resources(std::vector<Castle::ResourceInfo> &ret) const {
+void Castle::get_resources_all(std::vector<Castle::ResourceInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_resources.size());
@@ -1677,7 +1677,7 @@ Castle::SoldierInfo Castle::get_soldier(MapObjectTypeId map_object_type_id) cons
 	fill_soldier_info(info, it->second);
 	return info;
 }
-void Castle::get_all_soldiers(std::vector<Castle::SoldierInfo> &ret) const {
+void Castle::get_soldiers_all(std::vector<Castle::SoldierInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_soldiers.size());
@@ -1879,7 +1879,7 @@ Castle::SoldierProductionInfo Castle::get_soldier_production(BuildingBaseId buil
 	fill_soldier_production_info(info, it->second);
 	return info;
 }
-void Castle::get_all_soldier_production(std::vector<Castle::SoldierProductionInfo> &ret) const {
+void Castle::get_soldier_production_all(std::vector<Castle::SoldierProductionInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_soldier_production.size());
@@ -2094,7 +2094,7 @@ Castle::WoundedSoldierInfo Castle::get_wounded_soldier(MapObjectTypeId map_objec
 	fill_wounded_soldier_info(info, it->second);
 	return info;
 }
-void Castle::get_all_wounded_soldiers(std::vector<Castle::WoundedSoldierInfo> &ret) const {
+void Castle::get_wounded_soldiers_all(std::vector<Castle::WoundedSoldierInfo> &ret) const {
 	PROFILE_ME;
 
 	ret.reserve(ret.size() + m_wounded_soldiers.size());

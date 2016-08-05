@@ -125,11 +125,11 @@ boost::shared_ptr<ControllerClient> ControllerClient::require(){
 		} while(promise_tack != g_singleton.promise);
 
 		if(g_singleton.sock_addr){
-			controller.reset(new ControllerClient(*g_singleton.sock_addr, use_ssl, keep_alive));
+			controller = boost::make_shared<ControllerClient>(*g_singleton.sock_addr, use_ssl, keep_alive);
 			controller->go_resident();
 			try {
 				std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-				WorldMap::get_all_clusters(clusters);
+				WorldMap::get_clusters_all(clusters);
 				for(auto it = clusters.begin(); it != clusters.end(); ++it){
 					Poseidon::enqueue_async_job(
 						std::bind(&reallocate_cluster_server_aux,

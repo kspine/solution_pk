@@ -65,7 +65,7 @@ public:
 	}
 
 	ItemInfo get_item(ItemId item_id) const;
-	void get_all_items(std::vector<ItemInfo> &ret) const;
+	void get_items_all(std::vector<ItemInfo> &ret) const;
 
 	__attribute__((__warn_unused_result__))
 	ItemId commit_item_transaction_nothrow(const std::vector<AuctionTransactionElement> &transaction,
@@ -74,7 +74,7 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 
 	void get_transfer(std::vector<TransferInfo> &ret, MapObjectUuid map_object_uuid) const;
-	void get_all_transfers(std::vector<TransferInfo> &ret) const;
+	void get_transfers_all(std::vector<TransferInfo> &ret) const;
 	std::pair<ResourceId, ItemId> begin_transfer(const boost::shared_ptr<Castle> &castle, const boost::shared_ptr<ItemBox> &item_box,
 		const boost::container::flat_map<ItemId, std::uint64_t> &items);
 	ResourceId commit_transfer(const boost::shared_ptr<Castle> &castle);

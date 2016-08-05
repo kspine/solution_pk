@@ -17,7 +17,7 @@ ADMIN_SERVLET("castle_soldier/get_all", root, session, params){
 	}
 
 	std::vector<Castle::SoldierInfo> soldiers;
-	castle->get_all_soldiers(soldiers);
+	castle->get_soldiers_all(soldiers);
 
 	Poseidon::JsonObject elem_object;
 	for(auto it = soldiers.begin(); it != soldiers.end(); ++it){

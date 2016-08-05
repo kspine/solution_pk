@@ -22,6 +22,41 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_DungeonQuit
+#define MESSAGE_ID      1502
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_DungeonSetWaypoints
+#define MESSAGE_ID      1503
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (dungeon_object_uuid)	\
+	FIELD_ARRAY         (waypoints,	\
+		FIELD_VINT          (dx)	\
+		FIELD_VINT          (dy)	\
+	)	\
+	FIELD_VUINT         (action)	\
+	FIELD_STRING		(param)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_DungeonStopTroops
+#define MESSAGE_ID      1504
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_ARRAY         (dungeon_objects,	\
+		FIELD_STRING        (dungeon_object_uuid)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_DungeonPlayerConfirmation
+#define MESSAGE_ID      1505
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (context)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

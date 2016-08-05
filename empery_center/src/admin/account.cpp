@@ -268,7 +268,7 @@ ADMIN_SERVLET("account/get_level_distribution_all", root, session, /* params */)
 	level_map.reserve(AccountMap::get_count());
 
 	std::vector<boost::shared_ptr<MapObject>> map_objects;
-	WorldMap::get_all_map_objects(map_objects);
+	WorldMap::get_map_objects_all(map_objects);
 	for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 		const auto &map_object = *it;
 

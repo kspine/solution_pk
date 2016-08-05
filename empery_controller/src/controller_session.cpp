@@ -71,7 +71,6 @@ void ControllerSession::on_close(int err_code) noexcept {
 
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-
 		const auto requests = std::move(m_requests);
 		m_requests.clear();
 		for(auto it = requests.begin(); it != requests.end(); ++it){

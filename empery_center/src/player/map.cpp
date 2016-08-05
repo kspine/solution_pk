@@ -39,7 +39,7 @@ namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account, session, /* req */){
 	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-	WorldMap::get_all_clusters(clusters);
+	WorldMap::get_clusters_all(clusters);
 	const auto center_rectangle = WorldMap::get_cluster_scope(Coord(0, 0));
 
 	Msg::SC_MapWorldMapList msg;
@@ -97,29 +97,27 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
 
-	const auto map_object_type_id = map_object->get_map_object_type_id();
-	const auto map_object_type_data = Data::MapObjectTypeAbstract::require(map_object_type_id);
-
 	auto old_coord = map_object->get_coord();
 	const auto cluster = WorldMap::get_cluster(old_coord);
 	if(!cluster){
 		LOG_EMPERY_CENTER_DEBUG("No cluster server available: old_coord = ", old_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
 	Msg::SK_MapSetAction kreq;
-	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
+	kreq.map_object_uuid = map_object_uuid.str();
+	kreq.x               = old_coord.x();
+	kreq.y               = old_coord.y();
 	// 撤销当前的路径。
 	auto kresult = cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		// return std::move(kresult);
 		cluster->shutdown(Msg::KILL_CLUSTER_SERVER_RESYNCHRONIZE, "Lost map synchronization");
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
+	const auto map_object_type_id = map_object->get_map_object_type_id();
 	if(map_object_type_id != MapObjectTypeIds::ID_CASTLE){
 		const auto parent_object_uuid = map_object->get_parent_object_uuid();
 		if(parent_object_uuid){
@@ -133,9 +131,9 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
-	kreq.waypoints.reserve(req.waypoints.size());
+	kreq.x    = old_coord.x();
+	kreq.y    = old_coord.y();
+	kreq.waypoints.reserve(std::min<std::size_t>(req.waypoints.size(), 256));
 	auto last_coord = old_coord;
 	for(std::size_t i = 0; i < req.waypoints.size(); ++i){
 		const auto &step = req.waypoints.at(i);
@@ -151,8 +149,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 		last_coord = next_coord;
 
 		auto &waypoint = *kreq.waypoints.emplace(kreq.waypoints.end());
-		waypoint.dx    = step.dx;
-		waypoint.dy    = step.dy;
+		waypoint.dx = step.dx;
+		waypoint.dy = step.dy;
 	}
 	kreq.action = req.action;
 	kreq.param  = std::move(req.param);
@@ -167,10 +165,8 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 
 namespace {
 	template<typename D, typename S>
-	void copy_buff(const boost::shared_ptr<D> &dst, const boost::shared_ptr<S> &src, BuffId buff_id){
+	void copy_buff(const boost::shared_ptr<D> &dst, std::uint64_t utc_now, const boost::shared_ptr<S> &src, BuffId buff_id){
 		PROFILE_ME;
-
-		const auto utc_now = Poseidon::get_utc_time();
 
 		const auto info = src->get_buff(buff_id);
 		if(utc_now < info.time_end){
@@ -286,9 +282,11 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		return Response(Msg::ERR_NO_LAND_PURCHASE_TICKET) <<insuff_item_id;
 	}
 
-	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-	copy_buff(map_cell, castle, BuffIds::ID_CASTLE_PROTECTION);
-	copy_buff(map_cell, castle, BuffIds::ID_NOVICIATE_PROTECTION);
+	const auto utc_now = Poseidon::get_utc_time();
+
+	copy_buff(map_cell, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_cell, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_cell, utc_now, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 
 	map_cell->pump_status();
 
@@ -387,7 +385,7 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 	Msg::SC_MapStopTroopsRet msg;
-	msg.map_objects.reserve(req.map_objects.size());
+	msg.map_objects.reserve(std::min<std::size_t>(req.map_objects.size(), 16));
 	for(auto it = req.map_objects.begin(); it != req.map_objects.end(); ++it){
 		const auto map_object_uuid = MapObjectUuid(it->map_object_uuid);
 		const auto map_object = WorldMap::get_map_object(map_object_uuid);
@@ -408,9 +406,9 @@ PLAYER_SERVLET(Msg::CS_MapStopTroops, account, session, req){
 		}
 
 		Msg::SK_MapSetAction kreq;
-		kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-		kreq.x = old_coord.x();
-		kreq.y = old_coord.y();
+		kreq.map_object_uuid = map_object_uuid.str();
+		kreq.x               = old_coord.x();
+		kreq.y               = old_coord.y();
 		// 撤销当前的路径。
 		const auto kresult = cluster->send_and_wait(kreq);
 		if(kresult.first != Msg::ST_OK){
@@ -482,19 +480,19 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	const auto old_cluster = WorldMap::get_cluster(old_coord);
 	if(!old_cluster){
 		LOG_EMPERY_CENTER_DEBUG("No cluster server available: old_coord = ", old_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
 	Msg::SK_MapSetAction kreq;
-	kreq.map_object_uuid = map_object->get_map_object_uuid().str();
-	kreq.x = old_coord.x();
-	kreq.y = old_coord.y();
+	kreq.map_object_uuid = map_object_uuid.str();
+	kreq.x               = old_coord.x();
+	kreq.y               = old_coord.y();
 	// 撤销当前的路径。
 	auto kresult = old_cluster->send_and_wait(kreq);
 	if(kresult.first != Msg::ST_OK){
 		LOG_EMPERY_CENTER_WARNING("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
 		old_cluster->shutdown(Msg::KILL_CLUSTER_SERVER_RESYNCHRONIZE, "Lost map synchronization");
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<old_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 	// 重新计算坐标。
 	old_coord = map_object->get_coord();
@@ -566,7 +564,7 @@ PLAYER_SERVLET(Msg::CS_MapJumpToAnotherCluster, account, session, req){
 	const auto new_cluster = WorldMap::get_cluster(new_cluster_coord);
 	if(!new_cluster){
 		LOG_EMPERY_CENTER_DEBUG("No cluster server available: new_cluster_coord = ", new_cluster_coord);
-		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_cluster_coord;
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 
 	const auto try_once = [&](Coord new_coord) -> std::pair<long, std::string> {
@@ -716,9 +714,11 @@ PLAYER_SERVLET(Msg::CS_MapEvictBattalionFromCastle, account, session, req){
 	map_object->set_coord(coord);
 	map_object->set_garrisoned(false);
 
-	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-	copy_buff(map_object, castle, BuffIds::ID_CASTLE_PROTECTION);
-	copy_buff(map_object, castle, BuffIds::ID_NOVICIATE_PROTECTION);
+	const auto utc_now = Poseidon::get_utc_time();
+
+	copy_buff(map_object, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+	copy_buff(map_object, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
+	copy_buff(map_object, utc_now, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 
 	map_object->pump_status();
 
@@ -915,7 +915,7 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 	}
 	const auto cluster = WorldMap::get_cluster(coord);
 	if(!cluster){
-        return CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
+        return CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST);
 	}
 	const auto castle_cluster = WorldMap::get_cluster(castle->get_coord());
 	if(castle_cluster != cluster){
@@ -937,9 +937,9 @@ PLAYER_SERVLET(Msg::CS_MapCreateDefenseBuilding, account, session, req){
 			const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
 				account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now);
 			defense_building->pump_status();
-			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-			copy_buff(defense_building, castle, BuffIds::ID_CASTLE_PROTECTION);
-			copy_buff(defense_building, castle, BuffIds::ID_NOVICIATE_PROTECTION);
+			copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
+			copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
+			copy_buff(defense_building, utc_now, castle, BuffIds::ID_NOVICIATE_PROTECTION);
 			defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
 			WorldMap::insert_map_object(defense_building);
 			LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,

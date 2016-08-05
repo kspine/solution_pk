@@ -1882,7 +1882,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 		}
 
 		std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-		WorldMap::get_all_clusters(clusters);
+		WorldMap::get_clusters_all(clusters);
 
 		boost::container::flat_multimap<std::uint64_t, Coord> cluster_coords_by_time;
 		cluster_coords_by_time.reserve(clusters.size());

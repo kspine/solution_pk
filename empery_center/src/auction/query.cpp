@@ -54,7 +54,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 
 		{
 			std::vector<AuctionCenter::TransferInfo> transfers;
-			auction_center->get_all_transfers(transfers);
+			auction_center->get_transfers_all(transfers);
 
 			boost::container::flat_map<MapObjectUuid, Poseidon::JsonObject> castle_map;
 			castle_map.reserve(transfers.size());
@@ -92,7 +92,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 
 		{
 			std::vector<AuctionCenter::ItemInfo> items;
-			auction_center->get_all_items(items);
+			auction_center->get_items_all(items);
 
 			Poseidon::JsonObject elem_items;
 			for(auto it = items.begin(); it != items.end(); ++it){
@@ -128,7 +128,7 @@ AUCTION_SERVLET("query/account", root, session, params){
 				Poseidon::JsonObject elem_resources;
 
 				std::vector<Castle::ResourceInfo> resource_info_all;
-				castle->get_all_resources(resource_info_all);
+				castle->get_resources_all(resource_info_all);
 				for(auto it = resource_info_all.begin(); it != resource_info_all.end(); ++it){
 					const auto resource_id = it->resource_id;
 					const auto amount      = it->amount;

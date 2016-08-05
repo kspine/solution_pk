@@ -5,6 +5,7 @@
 #include <poseidon/virtual_shared_from_this.hpp>
 #include <cstddef>
 #include <vector>
+#include <boost/container/flat_set.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/shared_ptr.hpp>
 #include "id_types.hpp"
@@ -19,19 +20,11 @@ class PlayerSession;
 
 class DungeonBox : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
-	enum Score {
-		S_NONE        = 0,
-		S_PASSED      = 1,
-		S_ONE_STAR    = 7,
-		S_TWO_STARS   = 8,
-		S_THREE_START = 9,
-	};
-
 	struct DungeonInfo {
 		DungeonTypeId dungeon_type_id;
-		Score score;
 		std::uint64_t entry_count;
 		std::uint64_t finish_count;
+		boost::container::flat_set<DungeonTaskId> tasks_finished;
 	};
 
 private:

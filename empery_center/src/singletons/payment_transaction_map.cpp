@@ -45,27 +45,16 @@ namespace {
 		}
 
 		const auto utc_now = Poseidon::get_utc_time();
+		const auto range = std::make_pair(payment_transaction_map->begin<2>(), payment_transaction_map->upper_bound<2>(utc_now));
 
-		std::vector<boost::shared_ptr<PaymentTransaction>> erased;
-		erased.reserve(payment_transaction_map->size());
-
-		for(;;){
-			const auto it = payment_transaction_map->begin<2>();
-			if(it == payment_transaction_map->end<2>()){
-				break;
-			}
-			if(utc_now < it->expiry_time){
-				break;
-			}
-			const auto &payment_transaction = it->payment_transaction;
-
-			LOG_EMPERY_CENTER_DEBUG("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
-			erased.emplace_back(payment_transaction);
-			payment_transaction_map->erase<2>(it);
+		std::vector<boost::shared_ptr<PaymentTransaction>> payment_transactions_to_delete;
+		payment_transactions_to_delete.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			payment_transactions_to_delete.emplace_back(it->payment_transaction);
 		}
-
-		for(auto it = erased.begin(); it != erased.end(); ++it){
+		for(auto it = payment_transactions_to_delete.begin(); it != payment_transactions_to_delete.end(); ++it){
 			const auto &payment_transaction = *it;
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming payment transaction: serial = ", payment_transaction->get_serial());
 			try {
 				if(!payment_transaction->has_been_committed() && !payment_transaction->has_been_cancelled()){
 					payment_transaction->cancel("Payment transaction expired");

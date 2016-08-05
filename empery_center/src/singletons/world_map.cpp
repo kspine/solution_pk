@@ -1025,7 +1025,7 @@ void WorldMap::update_map_cell(const boost::shared_ptr<MapCell> &map_cell, bool 
 	synchronize_with_all_clusters(map_cell, coord, coord);
 }
 
-/*void WorldMap::get_all_map_cells(std::vector<boost::shared_ptr<MapCell>> &ret){
+/*void WorldMap::get_map_cells_all(std::vector<boost::shared_ptr<MapCell>> &ret){
 	PROFILE_ME;
 
 	const auto map_cell_map = g_map_cell_map.lock();
@@ -1232,7 +1232,7 @@ void WorldMap::update_map_object(const boost::shared_ptr<MapObject> &map_object,
 	synchronize_map_object_all(map_object, old_coord, new_coord);
 }
 
-void WorldMap::get_all_map_objects(std::vector<boost::shared_ptr<MapObject>> &ret){
+void WorldMap::get_map_objects_all(std::vector<boost::shared_ptr<MapObject>> &ret){
 	PROFILE_ME;
 
 	const auto map_object_map = g_map_object_map.lock();
@@ -2072,7 +2072,7 @@ boost::shared_ptr<ClusterSession> WorldMap::get_cluster(Coord coord){
 	}
 	return std::move(cluster);
 }
-void WorldMap::get_all_clusters(std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> &ret){
+void WorldMap::get_clusters_all(std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> &ret){
 	PROFILE_ME;
 
 	const auto cluster_map = g_cluster_map.lock();
@@ -2143,7 +2143,7 @@ void WorldMap::forced_reload_cluster(Coord coord){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e_.what());	\
 				}	\
 			});	\
-		if(++concurrency_counter >= 100){	\
+		if(++concurrency_counter >= 1000){	\
 			LOG_EMPERY_CENTER_DEBUG("Too many async requests have been enqueued. Yielding...");	\
 			const auto promise_ = Poseidon::MySqlDaemon::enqueue_for_waiting_for_all_async_operations();	\
 			Poseidon::JobDispatcher::yield(promise_, true);	\
@@ -2451,7 +2451,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 	PROFILE_ME;
 
 	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
-	get_all_clusters(clusters);
+	get_clusters_all(clusters);
 	if(clusters.empty()){
 		LOG_EMPERY_CENTER_WARNING("No clusters available");
 		return { };

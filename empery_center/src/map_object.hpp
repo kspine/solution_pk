@@ -21,15 +21,15 @@ class ClusterSession;
 
 class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
-	static const std::initializer_list<AttributeId> COMBAT_ATTRIBUTES;
-
-public:
 	struct BuffInfo {
 		BuffId buff_id;
 		std::uint64_t duration;
 		std::uint64_t time_begin;
 		std::uint64_t time_end;
 	};
+
+public:
+	static const std::initializer_list<AttributeId> COMBAT_ATTRIBUTES;
 
 private:
 	const boost::shared_ptr<MySql::Center_MapObject> m_obj;
