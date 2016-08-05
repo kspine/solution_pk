@@ -3,6 +3,7 @@
 #include "singletons/dungeon_map.hpp"
 #include "src/dungeon_object.hpp"
 #include "src/dungeon_client.hpp"
+#include <poseidon/singletons/timer_daemon.hpp>
 #include "../../empery_center/src/msg/ds_dungeon.hpp"
 
 namespace EmperyDungeon {
@@ -46,6 +47,40 @@ void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
 
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
 }
+
+void Dungeon::set_dungeon_duration(std::uint64_t duration){
+	PROFILE_ME;
+
+	const auto timer_proc = [this](const boost::weak_ptr<Dungeon> &weak, std::uint64_t now){
+		PROFILE_ME;
+
+		const auto shared = weak.lock();
+		if(!shared){
+			return;
+		}
+		m_dungeon_timer.reset();
+		const auto dungeon_client = shared->get_dungeon_client();
+		if(dungeon_client){
+			try {
+				Msg::DS_DungeonPlayerWins msg;
+				msg.dungeon_uuid        = shared->get_dungeon_uuid().str();
+				msg.account_uuid        = shared->get_founder_uuid().str();
+				dungeon_client->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+				dungeon_client->shutdown(e.what());
+			}
+		}
+	};
+	if(!m_dungeon_timer){
+		const auto now = Poseidon::get_fast_mono_clock();
+		auto timer = Poseidon::TimerDaemon::register_absolute_timer(now + duration, 0,
+			std::bind(timer_proc, virtual_weak_from_this<Dungeon>(), std::placeholders::_2));
+		LOG_EMPERY_DUNGEON_DEBUG("Created dungeon expired timer: dungeon_uuid = ", get_dungeon_uuid());
+		m_dungeon_timer = std::move(timer);
+	}
+}
+
 
 boost::shared_ptr<DungeonObject> Dungeon::get_object(DungeonObjectUuid dungeon_object_uuid) const {
 	PROFILE_ME;

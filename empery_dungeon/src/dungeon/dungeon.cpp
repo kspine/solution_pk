@@ -11,7 +11,9 @@ namespace EmperyDungeon {
 DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	auto dungeon_type_id = DungeonTypeId(req.dungeon_type_id);
-	boost::shared_ptr<Dungeon> new_dunge = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,AccountUuid());
+	auto founder_uuid = AccountUuid(req.founder_uuid);
+	boost::shared_ptr<Dungeon> new_dunge = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid);
+	new_dunge->set_dungeon_duration(1000*60*3);
 	DungeonMap::replace_dungeon_no_synchronize(new_dunge);
 	return Response();
 }

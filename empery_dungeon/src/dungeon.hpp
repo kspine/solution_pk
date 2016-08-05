@@ -30,6 +30,7 @@ private:
 	AccountUuid m_founder_uuid;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 
+	boost::shared_ptr<Poseidon::TimerItem> m_dungeon_timer;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid);
@@ -52,6 +53,7 @@ public:
 	boost::shared_ptr<DungeonClient> get_dungeon_client() const {
 		return m_dungeon_client.lock();
 	}
+	void set_dungeon_duration(std::uint64_t duration);
 
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
