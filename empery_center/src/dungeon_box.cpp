@@ -4,24 +4,64 @@
 #include "mysql/dungeon.hpp"
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
+#include <poseidon/json.hpp>
 
 namespace EmperyCenter {
 
 namespace {
+	std::string encode_tasks(const boost::container::flat_set<DungeonTaskId> tasks){
+		PROFILE_ME;
+
+		if(tasks.empty()){
+			return { };
+		}
+		Poseidon::JsonArray root;
+		for(auto it = tasks.begin(); it != tasks.end(); ++it){
+			const auto dungeon_task_id = *it;
+			root.emplace_back(dungeon_task_id.get());
+		}
+		std::ostringstream oss;
+		root.dump(oss);
+		return oss.str();
+	}
+	boost::container::flat_set<DungeonTaskId> decode_tasks(const std::string &str){
+		PROFILE_ME;
+
+		boost::container::flat_set<DungeonTaskId> tasks;
+		if(str.empty()){
+			return tasks;
+		}
+		std::istringstream iss(str);
+		auto root = Poseidon::JsonParser::parse_array(iss);
+		tasks.reserve(root.size());
+		for(auto it = root.begin(); it != root.end(); ++it){
+			auto dungeon_task_id = DungeonTaskId(it->get<double>());
+			tasks.insert(dungeon_task_id);
+		}
+		return tasks;
+	}
+
 	void fill_dungeon_info(DungeonBox::DungeonInfo &info, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
-		info.dungeon_type_id   = DungeonTypeId(obj->get_dungeon_type_id());
-		info.score        = DungeonBox::Score(obj->get_score());
-		info.entry_count  = obj->get_entry_count();
-		info.finish_count = obj->get_finish_count();
+		info.dungeon_type_id = DungeonTypeId(obj->get_dungeon_type_id());
+		info.entry_count     = obj->get_entry_count();
+		info.finish_count    = obj->get_finish_count();
+		info.tasks_finished  = decode_tasks(obj->get_tasks_finished());
 	}
 
-	void fill_dungeon_message(Msg::SC_DungeonChanged &msg, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
+	void fill_dungeon_message(Msg::SC_DungeonScoreChanged &msg, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
 		msg.dungeon_type_id = obj->get_dungeon_type_id();
-		msg.score      = obj->get_score();
+		msg.entry_count     = obj->get_entry_count();
+		msg.finish_count    = obj->get_finish_count();
+		const auto tasks_finished = decode_tasks(obj->get_tasks_finished());
+		msg.tasks_finished.reserve(tasks_finished.size());
+		for(auto it = tasks_finished.begin(); it != tasks_finished.end(); ++it){
+			auto &elem = *msg.tasks_finished.emplace(msg.tasks_finished.end());
+			elem.dungeon_task_id = it->get();
+		}
 	}
 }
 
@@ -74,20 +114,20 @@ void DungeonBox::set(DungeonBox::DungeonInfo info){
 	auto it = m_dungeons.find(dungeon_type_id);
 	if(it == m_dungeons.end()){
 		const auto obj = boost::make_shared<MySql::Center_Dungeon>(get_account_uuid().get(), dungeon_type_id.get(),
-			S_NONE, 0, 0);
+			0, 0, std::string());
 		obj->async_save(true);
 		it = m_dungeons.emplace(dungeon_type_id, obj).first;
 	}
 	const auto &obj = it->second;
 
-	obj->set_score(static_cast<unsigned>(info.score));
 	obj->set_entry_count(info.entry_count);
 	obj->set_finish_count(info.finish_count);
+	obj->set_tasks_finished(encode_tasks(info.tasks_finished));
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
-			Msg::SC_DungeonChanged msg;
+			Msg::SC_DungeonScoreChanged msg;
 			fill_dungeon_message(msg, obj);
 			session->send(msg);
 		} catch(std::exception &e){
@@ -106,12 +146,14 @@ bool DungeonBox::remove(DungeonTypeId dungeon_type_id) noexcept {
 	const auto obj = std::move(it->second);
 	// m_dungeons.erase(it);
 
-	obj->set_score(S_NONE);
+	obj->set_entry_count(0);
+	obj->set_finish_count(0);
+	obj->set_tasks_finished({ });
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
-			Msg::SC_DungeonChanged msg;
+			Msg::SC_DungeonScoreChanged msg;
 			fill_dungeon_message(msg, obj);
 			session->send(msg);
 		} catch(std::exception &e){
@@ -127,7 +169,7 @@ void DungeonBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> 
 	PROFILE_ME;
 
 	for(auto it = m_dungeons.begin(); it != m_dungeons.end(); ++it){
-		Msg::SC_DungeonChanged msg;
+		Msg::SC_DungeonScoreChanged msg;
 		fill_dungeon_message(msg, it->second);
 		session->send(msg);
 	}

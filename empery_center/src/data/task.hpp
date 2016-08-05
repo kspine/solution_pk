@@ -26,7 +26,7 @@ namespace Data {
 		TaskTypeId type;
 		bool accumulative;
 		boost::container::flat_map<std::uint64_t, std::vector<double>> objective;
-		boost::container::flat_map<ResourceId, std::uint64_t> reward;
+		boost::container::flat_map<ResourceId, std::uint64_t> rewards;
 	};
 
 	class TaskPrimary : public TaskAbstract {

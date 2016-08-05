@@ -17,7 +17,7 @@ ADMIN_SERVLET("castle_building_base/get_all", root, session, params){
 	castle->pump_status();
 
 	std::vector<Castle::BuildingBaseInfo> building_bases;
-	castle->get_all_building_bases(building_bases);
+	castle->get_building_bases_all(building_bases);
 
 	Poseidon::JsonObject elem_object;
 	for(auto it = building_bases.begin(); it != building_bases.end(); ++it){

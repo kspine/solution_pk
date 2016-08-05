@@ -19,7 +19,7 @@ struct ChatBoxMap {
 	static boost::shared_ptr<HornMessage> get_or_reload_horn_message(HornMessageUuid horn_message_uuid);
 	static boost::shared_ptr<HornMessage> forced_reload_horn_message(HornMessageUuid horn_message_uuid);
 
-	static void get_all_horn_messages(std::vector<boost::shared_ptr<HornMessage>> &ret);
+	static void get_horn_messages_all(std::vector<boost::shared_ptr<HornMessage>> &ret);
 	static void get_horn_messages_by_language_id(std::vector<boost::shared_ptr<HornMessage>> &ret, LanguageId language_id);
 
 	static void insert_horn_message(const boost::shared_ptr<HornMessage> &horn_message);

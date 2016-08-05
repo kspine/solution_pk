@@ -137,7 +137,7 @@ public:
 	void check_init_buildings();
 
 	BuildingBaseInfo get_building_base(BuildingBaseId building_base_id) const;
-	void get_all_building_bases(std::vector<BuildingBaseInfo> &ret) const;
+	void get_building_bases_all(std::vector<BuildingBaseInfo> &ret) const;
 	void get_buildings_by_id(std::vector<BuildingBaseInfo> &ret, BuildingId building_id) const;
 	void get_buildings_by_type_id(std::vector<BuildingBaseInfo> &ret, BuildingTypeId type) const;
 	// 如果指定地基上有任务会抛出异常。
@@ -166,7 +166,7 @@ public:
 	bool is_treatment_in_progress() const; // 医疗帐篷
 
 	TechInfo get_tech(TechId tech_id) const;
-	void get_all_techs(std::vector<TechInfo> &ret) const;
+	void get_techs_all(std::vector<TechInfo> &ret) const;
 	// 同上。
 	void create_tech_mission(TechId tech_id, Mission mission, std::uint64_t duration);
 	void cancel_tech_mission(TechId tech_id);
@@ -181,7 +181,7 @@ public:
 	void check_auto_inc_resources();
 
 	ResourceInfo get_resource(ResourceId resource_id) const;
-	void get_all_resources(std::vector<ResourceInfo> &ret) const;
+	void get_resources_all(std::vector<ResourceInfo> &ret) const;
 
 	__attribute__((__warn_unused_result__))
 	ResourceId commit_resource_transaction_nothrow(const std::vector<ResourceTransactionElement> &transaction,
@@ -190,7 +190,7 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 
 	SoldierInfo get_soldier(MapObjectTypeId map_object_type_id) const;
-	void get_all_soldiers(std::vector<SoldierInfo> &ret) const;
+	void get_soldiers_all(std::vector<SoldierInfo> &ret) const;
 	void enable_soldier(MapObjectTypeId map_object_type_id);
 
 	__attribute__((__warn_unused_result__))
@@ -200,7 +200,7 @@ public:
 		const boost::function<void ()> &callback = boost::function<void ()>());
 
 	SoldierProductionInfo get_soldier_production(BuildingBaseId building_base_id) const;
-	void get_all_soldier_production(std::vector<SoldierProductionInfo> &ret) const;
+	void get_soldier_production_all(std::vector<SoldierProductionInfo> &ret) const;
 
 	void begin_soldier_production(BuildingBaseId building_base_id,
 		MapObjectTypeId map_object_type_id, std::uint64_t count, std::uint64_t duration);
@@ -212,7 +212,7 @@ public:
 
 	bool has_wounded_soldiers() const;
 	WoundedSoldierInfo get_wounded_soldier(MapObjectTypeId map_object_type_id) const;
-	void get_all_wounded_soldiers(std::vector<WoundedSoldierInfo> &ret) const;
+	void get_wounded_soldiers_all(std::vector<WoundedSoldierInfo> &ret) const;
 
 	__attribute__((__warn_unused_result__))
 	MapObjectTypeId commit_wounded_soldier_transaction_nothrow(const std::vector<WoundedSoldierTransactionElement> &transaction,

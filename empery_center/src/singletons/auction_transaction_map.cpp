@@ -41,31 +41,20 @@ namespace {
 
 		const auto auction_transaction_map = g_auction_transaction_map.lock();
 		if(!auction_transaction_map){
-		    return;
+			return;
 		}
 
 		const auto utc_now = Poseidon::get_utc_time();
+		const auto range = std::make_pair(auction_transaction_map->begin<2>(), auction_transaction_map->upper_bound<2>(utc_now));
 
-		std::vector<boost::shared_ptr<AuctionTransaction>> erased;
-		erased.reserve(auction_transaction_map->size());
-
-		for(;;){
-			const auto it = auction_transaction_map->begin<2>();
-			if(it == auction_transaction_map->end<2>()){
-				break;
-			}
-			if(utc_now < it->expiry_time){
-				break;
-			}
-			const auto &auction_transaction = it->auction_transaction;
-
-			LOG_EMPERY_CENTER_DEBUG("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
-			erased.emplace_back(auction_transaction);
-			auction_transaction_map->erase<2>(it);
+		std::vector<boost::shared_ptr<AuctionTransaction>> auction_transactions_to_delete;
+		auction_transactions_to_delete.reserve(static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			auction_transactions_to_delete.emplace_back(it->auction_transaction);
 		}
-
-		for(auto it = erased.begin(); it != erased.end(); ++it){
+		for(auto it = auction_transactions_to_delete.begin(); it != auction_transactions_to_delete.end(); ++it){
 			const auto &auction_transaction = *it;
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming auction transaction: serial = ", auction_transaction->get_serial());
 			try {
 				if(!auction_transaction->has_been_committed() && !auction_transaction->has_been_cancelled()){
 					auction_transaction->cancel("Auction transaction expired");

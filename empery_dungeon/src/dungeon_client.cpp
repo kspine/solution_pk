@@ -1,6 +1,6 @@
-#include "../precompiled.hpp"
+#include "precompiled.hpp"
 #include "dungeon_client.hpp"
-#include "../mmain.hpp"
+#include "mmain.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_base.hpp>
@@ -8,7 +8,9 @@
 #include <poseidon/sock_addr.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
-#include "../../../empery_center/src/msg/g_packed.hpp"
+#include <poseidon/singletons/timer_daemon.hpp>
+#include "../../empery_center/src/msg/g_packed.hpp"
+#include "../../empery_center/src/msg/ds_dungeon.hpp"
 
 namespace EmperyDungeon {
 
@@ -26,6 +28,62 @@ namespace {
 
 		boost::weak_ptr<DungeonClient> client;
 	} g_singleton;
+
+	void dungeon_server_reconnect_timer_proc(std::uint64_t /* now */){
+		PROFILE_ME;
+
+		boost::shared_ptr<DungeonClient> client;
+		for(;;){
+			client = g_singleton.client.lock();
+			if(client && !client->has_been_shutdown_write()){
+				break;
+			}
+			const auto host       = get_config<std::string>   ("dungeon_cbpp_client_host",         "127.0.0.1");
+			const auto port       = get_config<unsigned>      ("dungeon_cbpp_client_port",         13225);
+			const auto use_ssl    = get_config<bool>          ("dungeon_cbpp_client_use_ssl",      false);
+			const auto keep_alive = get_config<std::uint64_t> ("dungeon_cbpp_keep_alive_interval", 15000);
+			LOG_EMPERY_DUNGEON_INFO("Creating dungeon client: host = ", host, ", port = ", port, ", use_ssl = ", use_ssl);
+
+			boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
+			do {
+				if(!g_singleton.promise){
+					auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
+					auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
+					g_singleton.promise   = std::move(promise);
+					g_singleton.sock_addr = std::move(sock_addr);
+				}
+				promise_tack = g_singleton.promise;
+				Poseidon::JobDispatcher::yield(promise_tack, true);
+			} while(promise_tack != g_singleton.promise);
+
+			if(g_singleton.sock_addr){
+				client = boost::make_shared<DungeonClient>(*g_singleton.sock_addr, use_ssl, keep_alive);
+				client->go_resident();
+				try {
+					Msg::DS_DungeonRegisterServer msg;
+					if(!client->send(msg)){
+						LOG_EMPERY_DUNGEON_ERROR("Failed to send data to dungeon server!");
+						DEBUG_THROW(Exception, sslit("Failed to send data to dungeon server"));
+					}
+				} catch(std::exception &e){
+					LOG_EMPERY_DUNGEON_ERROR("std::exception thrown: what = ", e.what());
+					client->force_shutdown();
+					throw;
+				}
+
+				g_singleton.promise.reset();
+				g_singleton.sock_addr.reset();
+				g_singleton.client = client;
+			}
+		}
+	}
+
+	MODULE_RAII_PRIORITY(handles, 5300){
+		const auto client_timer_interval = get_config<std::uint64_t>("dungeon_client_reconnect_delay", 5000);
+		auto timer = Poseidon::TimerDaemon::register_timer(0, client_timer_interval,
+			std::bind(&dungeon_server_reconnect_timer_proc, std::placeholders::_2));
+		handles.push(std::move(timer));
+	}
 }
 
 boost::shared_ptr<const ServletCallback> DungeonClient::create_servlet(std::uint16_t message_id, ServletCallback callback){
@@ -53,47 +111,6 @@ boost::shared_ptr<const ServletCallback> DungeonClient::get_servlet(std::uint16_
 		return { };
 	}
 	return servlet;
-}
-
-boost::shared_ptr<DungeonClient> DungeonClient::get(){
-	PROFILE_ME;
-
-	auto client = g_singleton.client.lock();
-	return client;
-}
-boost::shared_ptr<DungeonClient> DungeonClient::require(){
-	PROFILE_ME;
-
-	boost::shared_ptr<DungeonClient> client;
-	while(!(client = g_singleton.client.lock())){
-		const auto host       = get_config<std::string>   ("dungeon_cbpp_client_host",         "127.0.0.1");
-		const auto port       = get_config<unsigned>      ("dungeon_cbpp_client_port",         13225);
-		const auto use_ssl    = get_config<bool>          ("dungeon_cbpp_client_use_ssl",      false);
-		const auto keep_alive = get_config<std::uint64_t> ("dungeon_cbpp_keep_alive_interval", 15000);
-		LOG_EMPERY_DUNGEON_INFO("Creating dungeon client: host = ", host, ", port = ", port, ", use_ssl = ", use_ssl);
-
-		boost::shared_ptr<const Poseidon::JobPromise> promise_tack;
-		do {
-			if(!g_singleton.promise){
-				auto sock_addr = boost::make_shared<Poseidon::SockAddr>();
-				auto promise = Poseidon::DnsDaemon::enqueue_for_looking_up(sock_addr, host, port);
-				g_singleton.promise   = std::move(promise);
-				g_singleton.sock_addr = std::move(sock_addr);
-			}
-			promise_tack = g_singleton.promise;
-			Poseidon::JobDispatcher::yield(promise_tack, true);
-		} while(promise_tack != g_singleton.promise);
-
-		if(g_singleton.sock_addr){
-			client.reset(new DungeonClient(*g_singleton.sock_addr, use_ssl, keep_alive));
-			client->go_resident();
-
-			g_singleton.promise.reset();
-			g_singleton.sock_addr.reset();
-			g_singleton.client = client;
-		}
-	}
-	return client;
 }
 
 DungeonClient::DungeonClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval)

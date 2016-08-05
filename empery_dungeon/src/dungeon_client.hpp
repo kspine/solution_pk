@@ -8,6 +8,7 @@
 #include <boost/function.hpp>
 #include <boost/container/flat_map.hpp>
 #include <utility>
+#include "id_types.hpp"
 
 namespace EmperyDungeon {
 
@@ -21,9 +22,6 @@ public:
 public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(std::uint16_t message_id, ServletCallback callback);
 	static boost::shared_ptr<const ServletCallback> get_servlet(std::uint16_t message_id);
-
-	static boost::shared_ptr<DungeonClient> get();
-	static boost::shared_ptr<DungeonClient> require();
 
 private:
 	struct RequestElement {
@@ -40,10 +38,8 @@ private:
 	mutable Poseidon::Mutex m_request_mutex;
 	boost::container::flat_multimap<Poseidon::Uuid, RequestElement> m_requests;
 
-private:
-	DungeonClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval);
-
 public:
+	DungeonClient(const Poseidon::SockAddr &sock_addr, bool use_ssl, std::uint64_t keep_alive_interval);
 	~DungeonClient();
 
 protected:

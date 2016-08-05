@@ -8,6 +8,8 @@
 #include <poseidon/module_raii.hpp>
 #include <poseidon/cbpp/exception.hpp>
 #include <poseidon/cbpp/control_message.hpp>
+#include "../singletons/dungeon_map.hpp"
+#include "../dungeon.hpp"
 #include "../dungeon_session.hpp"
 #include "../log.hpp"
 #include "../cbpp_response.hpp"
@@ -18,18 +20,28 @@ DUNGEON_SERVLET(消息类型, 会话形参名, 消息形参名){
 }
 */
 
-#define DUNGEON_SERVLET(MsgType_, session_arg_, req_arg_)	\
+#define DUNGEON_SERVLET(MsgType_, dungeon_arg_, session_arg_, req_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(DungeonServlet, __LINE__, Proc_) (	\
+				const ::boost::shared_ptr< ::EmperyCenter::Dungeon> &,	\
 				const ::boost::shared_ptr< ::EmperyCenter::DungeonSession> &, MsgType_);	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(DungeonServlet, __LINE__, Entry_) (	\
 				const ::boost::shared_ptr< ::EmperyCenter::DungeonSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 			{	\
 				PROFILE_ME;	\
 				MsgType_ msg_(::std::move(payload_));	\
+				const auto dungeon_uuid_ = ::EmperyCenter::DungeonUuid(msg_.dungeon_uuid);	\
+				const auto dungeon_ = ::EmperyCenter::DungeonMap::get(dungeon_uuid_);	\
+				if(!dungeon_){	\
+					return ::EmperyCenter::CbppResponse(::EmperyCenter::Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid_;	\
+				}	\
+				const auto test_server_ = dungeon_->get_server();	\
+				if(session_ != test_server_){	\
+					return Response(Msg::ERR_DUNGEON_SERVER_CONFLICT);	\
+				}	\
 				LOG_EMPERY_CENTER_TRACE("Received request from ", session_->get_remote_info(), ": ", msg_);	\
-				return TOKEN_CAT3(DungeonServlet, __LINE__, Proc_) (session_, ::std::move(msg_));	\
+				return TOKEN_CAT3(DungeonServlet, __LINE__, Proc_) (dungeon_, session_, ::std::move(msg_));	\
 			}	\
 		}	\
 	}	\
@@ -37,6 +49,7 @@ DUNGEON_SERVLET(消息类型, 会话形参名, 消息形参名){
 		handles_.push(DungeonSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(DungeonServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(DungeonServlet, __LINE__, Proc_) (	\
+		const ::boost::shared_ptr< ::EmperyCenter::Dungeon> & dungeon_arg_,	\
 		const ::boost::shared_ptr< ::EmperyCenter::DungeonSession> & session_arg_ __attribute__((__unused__)),	\
 		MsgType_ req_arg_	\
 		)	\

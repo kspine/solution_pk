@@ -6,6 +6,8 @@
 #include <poseidon/job_promise.hpp>
 #include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
+#include "singletons/dungeon_map.hpp"
+#include "dungeon.hpp"
 
 namespace EmperyCenter {
 

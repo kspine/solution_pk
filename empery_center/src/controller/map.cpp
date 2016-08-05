@@ -24,7 +24,7 @@ CONTROLLER_SERVLET(Msg::TS_MapInvalidateCastle, controller, req){
 	}
 	const auto new_coord = castle->get_coord();
 	if(new_coord != coord){
-		return Response(Msg::ERR_MAP_COORD_MISMATCH) <<new_coord;
+		return Response(Msg::ERR_BROKEN_PATH) <<new_coord;
 	}
 
 	WorldMap::forced_reload_map_objects_by_parent_object(map_object_uuid);

@@ -17,7 +17,7 @@ ADMIN_SERVLET("castle_resource/get_all", root, session, params){
 	}
 
 	std::vector<Castle::ResourceInfo> resources;
-	castle->get_all_resources(resources);
+	castle->get_resources_all(resources);
 
 	Poseidon::JsonObject elem_object;
 	for(auto it = resources.begin(); it != resources.end(); ++it){
