@@ -332,10 +332,13 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	const auto castle_level = castle->get_level();
 
 	std::vector<ResourceTransactionElement> resource_transaction;
-	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 	const auto old_ticket_data = Data::MapCellTicket::require(old_ticket_item_id);
 	const auto new_ticket_data = Data::MapCellTicket::require(new_ticket_item_id);
-	if((protection_info.duration != 0) && !old_ticket_data->protectable && new_ticket_data->protectable){
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !old_ticket_data->protectable && new_ticket_data->protectable){
+		if(!req.protection_cost_notified){
+			return Response(Msg::ERR_WOULD_HAVE_PROTECTION_COST) <<coord;
+		}
+		const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
 		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
 		const auto days = checked_add<std::uint64_t>(protection_duration, 86400000 - 1) / 86400000;
