@@ -27,9 +27,15 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_NOT_FOUND) <<serial;
 	}
 
-	const auto account = AccountMap::require(payment_transaction->get_account_uuid());
-	const auto item_box = ItemBoxMap::require(payment_transaction->get_account_uuid());
-	const auto mail_box = MailBoxMap::require(payment_transaction->get_account_uuid());
+	const auto account_uuid = payment_transaction->get_account_uuid();
+	const auto account = AccountMap::get_or_reload(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+	AccountMap::require_controller_token(account_uuid);
+
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto mail_box = MailBoxMap::require(account_uuid);
 
 	if(payment_transaction->has_been_cancelled()){
 		return Response(Msg::ERR_PAYMENT_TRANSACTION_CANCELLED) <<serial;
