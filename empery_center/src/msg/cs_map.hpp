@@ -58,7 +58,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
-	FIELD_VUINT         (force)
+	FIELD_VUINT         (protection_cost_notified)
 #include <poseidon/cbpp/message_generator.hpp>
 /*
 #define MESSAGE_NAME    CS_MapDeployImmigrants
