@@ -190,6 +190,13 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
+	const auto coord = Coord(req.x, req.y);
+	const auto cluster = WorldMap::get_cluster(coord);
+	if(!cluster){
+		LOG_EMPERY_CENTER_DEBUG("No cluster server available: coord = ", coord);
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
+	}
+
 	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!map_object){
@@ -208,7 +215,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: castle_level = ", castle_level,
 		", max_map_cell_count = ", updrade_data->max_map_cell_count, ", max_map_cell_distance = ", updrade_data->max_map_cell_distance);
 
-	const auto coord = Coord(req.x, req.y);
 	const auto cell_cluster_scope   = WorldMap::get_cluster_scope(coord);
 	const auto castle_cluster_scope = WorldMap::get_cluster_scope(castle->get_coord());
 	if(cell_cluster_scope.bottom_left() != castle_cluster_scope.bottom_left()){
