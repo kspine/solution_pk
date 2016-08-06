@@ -613,4 +613,15 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerLoses, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonMoveCamera, dungeon, server, req){
+	Msg::DS_DungeonMoveCamera msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	msg.x                 = req.x;
+	msg.y                 = req.y;
+	msg.movement_duration = req.movement_duration;
+	dungeon->broadcast_to_observers(msg);
+
+	return Response();
+}
+
 }
