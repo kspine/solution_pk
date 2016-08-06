@@ -85,20 +85,12 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 
 	cluster->set_name(std::move(req.name));
 
-	Poseidon::enqueue_async_job(
-		[=]() mutable {
-			PROFILE_ME;
-			try {
-				WorldMap::forced_reload_cluster(cluster_coord);
-				LOG_EMPERY_CENTER_INFO("Finished reloading cluster: cluster_scope = ", cluster_scope);
-				WorldMap::synchronize_cluster(cluster, cluster_scope);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				cluster->shutdown(e.what());
-			}
-		});
-
 	WorldMap::set_cluster(cluster, cluster_coord);
+
+	LOG_EMPERY_CENTER_INFO("Reloading cluster: cluster_scope = ", cluster_scope);
+	WorldMap::forced_reload_cluster(cluster_coord);
+	WorldMap::synchronize_cluster(cluster, cluster_scope);
+	LOG_EMPERY_CENTER_INFO("Finished reloading cluster: cluster_scope = ", cluster_scope);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();
