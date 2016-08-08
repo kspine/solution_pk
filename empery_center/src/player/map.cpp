@@ -247,11 +247,15 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	}
 
 	std::vector<ResourceTransactionElement> resource_transaction;
-	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 	const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
-	if((protection_info.duration != 0) && ticket_data->protectable){
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && ticket_data->protectable){
+//		if(!req.protection_cost_notified){
+//			return Response(Msg::ERR_WOULD_HAVE_PROTECTION_COST) <<coord;
+//		}
+		const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+		const auto utc_now = Poseidon::get_utc_time();
+		const auto protection_duration = saturated_sub(protection_info.time_end, std::max(preparation_info.time_end, utc_now));
 		const auto days = checked_add<std::uint64_t>(protection_duration, 86400000 - 1) / 86400000;
 
 		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(parent_object_uuid.get()[0]));
