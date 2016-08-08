@@ -19,7 +19,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(dungeon_task_id)
 	)
 	boost::weak_ptr<const TaskContainer> g_task_container;
-	// const char TASK_FILE[] = ????;
+	const char TASK_FILE[] = "dungeon_task";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(DUNGEON_FILE);
@@ -68,8 +68,20 @@ namespace {
 				elem.battalions_forbidden.emplace(type, param);
 			}
 
+			array.clear();
+			csv.get(array, "dungeon_task_id");
+			elem.tasks.reserve(array.size());
+			for(auto it = array.begin(); it != array.end(); ++it){
+				const auto task_id = DungeonTaskId(it->get<double>());
+				if(!elem.tasks.insert(task_id).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate dungeon task: task_id = ", task_id);
+					DEBUG_THROW(Exception, sslit("Duplicate dungeon task"));
+				}
+			}
+
 			object.clear();
 			csv.get(object, "dungeon_reward");
+			elem.rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto collection_name = std::string(it->first.get());
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
@@ -91,21 +103,33 @@ namespace {
 		auto servlet = DataSession::create_servlet(DUNGEON_FILE, Data::encode_csv_as_json(csv, "dungeon_id"));
 		handles.push(std::move(servlet));
 
-//		csv = Data::sync_load_data(TASK_FILE);
+		csv = Data::sync_load_data(TASK_FILE);
 		const auto task_container = boost::make_shared<TaskContainer>();
-//		while(csv.fetch_row()){
-//			Data::DungeonTask elem = { };
-//
-//			csv.get(elem.dungeon_task_id,    "");
-//
-//			if(!task_container->insert(std::move(elem)).second){
-//				LOG_EMPERY_CENTER_ERROR("Duplicate DungeonTask: dungeon_task_id = ", elem.dungeon_task_id);
-//				DEBUG_THROW(Exception, sslit("Duplicate DungeonTask"));
-//			}
-//		}
+		while(csv.fetch_row()){
+			Data::DungeonTask elem = { };
+
+			csv.get(elem.dungeon_task_id, "dungeon_task_id");
+
+			Poseidon::JsonObject object;
+			csv.get(object, "dungeon_task_reward");
+			elem.rewards.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.rewards.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward: item_id = ", item_id);
+					DEBUG_THROW(Exception, sslit("Duplicate reward"));
+				}
+			}
+
+			if(!task_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate DungeonTask: dungeon_task_id = ", elem.dungeon_task_id);
+				DEBUG_THROW(Exception, sslit("Duplicate DungeonTask"));
+			}
+		}
 		g_task_container = task_container;
 		handles.push(task_container);
-//		servlet = DataSession::create_servlet(TASK_FILE, Data::encode_csv_as_json(csv, "dungeon_id"));
+		servlet = DataSession::create_servlet(TASK_FILE, Data::encode_csv_as_json(csv, "dungeon_task_id"));
 		handles.push(std::move(servlet));
 	}
 }
