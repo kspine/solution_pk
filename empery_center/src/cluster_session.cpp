@@ -228,10 +228,8 @@ Result ClusterSession::send_and_wait(std::uint16_t message_id, Poseidon::StreamB
 		m_requests.erase(uuid);
 		throw;
 	}
-	{
-		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(uuid);
-	}
+	const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+	m_requests.erase(uuid);
 	return std::move(*ret);
 }
 
