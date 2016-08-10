@@ -22,9 +22,11 @@ lib_libposeidon_empery_dungeon_la_SOURCES = \
 	src/data/dungeon_object.cpp \
 	src/data/dungeon.cpp \
 	src/data/dungeon_map.cpp \
+	src/data/trigger.cpp \
 	src/dungeon_client.cpp \
 	src/dungeon.cpp \
 	src/dungeon_object.cpp \
 	src/dungeon_utilities.cpp \
 	src/ai_control.cpp \
+	src/trigger.cpp \
 	src/mmain.cpp

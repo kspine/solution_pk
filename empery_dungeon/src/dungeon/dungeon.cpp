@@ -5,6 +5,7 @@
 #include "../singletons/dungeon_map.hpp"
 #include "../dungeon.hpp"
 #include "../dungeon_object.hpp"
+#include "../trigger.hpp"
 
 namespace EmperyDungeon {
 
@@ -12,9 +13,14 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	auto dungeon_type_id = DungeonTypeId(req.dungeon_type_id);
 	auto founder_uuid = AccountUuid(req.founder_uuid);
-	boost::shared_ptr<Dungeon> new_dunge = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid);
-	new_dunge->set_dungeon_duration(1000*60*3);
-	DungeonMap::replace_dungeon_no_synchronize(new_dunge);
+	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid);
+	//new_dungeon->set_dungeon_duration(1000*60*3);
+	new_dungeon->init_triggers();
+	TriggerCondition trigger_conditon;
+	trigger_conditon.type = TriggerCondition::C_ENTER_DUNGEON;
+	new_dungeon->check_triggers(trigger_conditon);
+	new_dungeon->pump_triggers();
+	DungeonMap::replace_dungeon_no_synchronize(new_dungeon);
 	return Response();
 }
 

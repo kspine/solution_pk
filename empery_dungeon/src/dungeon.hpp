@@ -13,6 +13,9 @@ namespace EmperyDungeon {
 
 class DungeonObject;
 class DungeonClient;
+class Trigger;
+class TriggerCondition;
+class TriggerAction;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -29,8 +32,8 @@ private:
 
 	AccountUuid m_founder_uuid;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
-
-	boost::shared_ptr<Poseidon::TimerItem> m_dungeon_timer;
+	boost::container::flat_map<std::string, boost::shared_ptr<Trigger>>             m_triggers;
+	//boost::shared_ptr<Poseidon::TimerItem> m_dungeon_timer;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid);
@@ -38,6 +41,7 @@ public:
 
 public:
 	virtual void pump_status();
+	virtual void pump_triggers();
 
 	DungeonUuid get_dungeon_uuid() const {
 		return m_dungeon_uuid;
@@ -63,6 +67,13 @@ public:
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
 	void replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_object_uuid);
+
+	void init_triggers();
+	void check_triggers(const TriggerCondition &condition);
+	void check_triggers_enter_dungeon(const TriggerCondition &condition);
+	void parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param);
+	void on_triggers_action(const TriggerAction &action);
+	void on_triggers_create_dungeon_object(const TriggerAction &action);
 };
 
 }
