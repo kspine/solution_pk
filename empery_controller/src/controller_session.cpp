@@ -131,47 +131,42 @@ void ControllerSession::on_sync_data_message(std::uint16_t message_id, Poseidon:
 	LOG_EMPERY_CONTROLLER_TRACE("Received data message from controller client: remote = ", get_remote_info(),
 		", message_id = ", message_id, ", size = ", payload.size());
 
-	if(message_id != Msg::G_PackedResponse::ID){
-		if(message_id == Msg::G_PackedRequest::ID){
-			Msg::G_PackedRequest packed(std::move(payload));
+	if(message_id == Msg::G_PackedRequest::ID){
+		Msg::G_PackedRequest packed(std::move(payload));
 
-			Result result;
-			try {
-				const auto servlet = get_servlet(packed.message_id);
-				if(!servlet){
-					LOG_EMPERY_CONTROLLER_WARNING("No servlet found: message_id = ", packed.message_id);
-					DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
-				}
-				result = (*servlet)(virtual_shared_from_this<ControllerSession>(), Poseidon::StreamBuffer(packed.payload));
-			} catch(Poseidon::Cbpp::Exception &e){
-				LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-					"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-				result.first = e.status_code();
-				result.second = e.what();
-			} catch(std::exception &e){
-				LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-					"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-				result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
-				result.second = e.what();
+		Result result;
+		try {
+			const auto servlet = get_servlet(packed.message_id);
+			if(!servlet){
+				LOG_EMPERY_CONTROLLER_WARNING("No servlet found: message_id = ", packed.message_id);
+				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
 			}
-			if(result.first != 0){
-				LOG_EMPERY_CONTROLLER_DEBUG("Sending response to controller client: message_id = ", packed.message_id,
-					", code = ", result.first, ", message = ", result.second);
-			}
+			result = (*servlet)(virtual_shared_from_this<ControllerSession>(), Poseidon::StreamBuffer(packed.payload));
+		} catch(Poseidon::Cbpp::Exception &e){
+			LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+				"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+			result.first = e.status_code();
+			result.second = e.what();
+		} catch(std::exception &e){
+			LOG_EMPERY_CONTROLLER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+				"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
+			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
+			result.second = e.what();
+		}
+		if(result.first != 0){
+			LOG_EMPERY_CONTROLLER_DEBUG("Sending response to controller client: message_id = ", packed.message_id,
+				", code = ", result.first, ", message = ", result.second);
+		}
 
-			Msg::G_PackedResponse res;
-			res.uuid    = std::move(packed.uuid);
-			res.code    = result.first;
-			res.message = std::move(result.second);
-			Poseidon::Cbpp::Session::send(res.ID, Poseidon::StreamBuffer(res));
+		Msg::G_PackedResponse res;
+		res.uuid    = std::move(packed.uuid);
+		res.code    = result.first;
+		res.message = std::move(result.second);
+		Poseidon::Cbpp::Session::send(res.ID, Poseidon::StreamBuffer(res));
 
-			if(result.first < 0){
-				shutdown_read();
-				shutdown_write();
-			}
-		} else {
-			LOG_EMPERY_CONTROLLER_WARNING("Unknown message from controller client: remote = ", get_remote_info(), ", message_id = ", message_id);
-			DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown message"));
+		if(result.first < 0){
+			shutdown_read();
+			shutdown_write();
 		}
 	}
 }

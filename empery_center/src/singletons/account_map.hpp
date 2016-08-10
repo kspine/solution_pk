@@ -15,7 +15,7 @@ class ItemBox;
 
 struct AccountMap {
 	static bool is_holding_controller_token(AccountUuid account_uuid);
-	static void require_controller_token(AccountUuid account_uuid);
+	static void require_controller_token(AccountUuid account_uuid, const std::string &remote_ip);
 
 	static boost::shared_ptr<Account> get(AccountUuid account_uuid);
 	static boost::shared_ptr<Account> require(AccountUuid account_uuid);

@@ -61,7 +61,7 @@ ADMIN_SERVLET("auction/commit_transaction", root, session, params){
 	}
 
 	const auto account_uuid = auction_transaction->get_account_uuid();
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
 	const auto mail_box = MailBoxMap::require(account_uuid);
@@ -103,7 +103,7 @@ ADMIN_SERVLET("auction/cancel_transaction", root, session, params){
 	}
 
 	const auto account_uuid = auction_transaction->get_account_uuid();
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	auction_transaction->cancel(remarks);
 

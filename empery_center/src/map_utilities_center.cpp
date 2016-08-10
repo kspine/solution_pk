@@ -369,7 +369,7 @@ try {
 		const auto castle_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
 		const auto account_uuid = castle->get_owner_uuid();
 
-		AccountMap::require_controller_token(account_uuid);
+		AccountMap::require_controller_token(account_uuid, { });
 
 		const auto item_box = ItemBoxMap::require(account_uuid);
 		const auto mail_box = MailBoxMap::require(account_uuid);

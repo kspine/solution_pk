@@ -59,7 +59,7 @@ ADMIN_SERVLET("payment/commit_transaction", root, session, params){
 	}
 
 	const auto account_uuid = payment_transaction->get_account_uuid();
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
 	const auto mail_box = MailBoxMap::require(account_uuid);
@@ -100,7 +100,7 @@ ADMIN_SERVLET("payment/cancel_transaction", root, session, params){
 	}
 
 	const auto account_uuid = payment_transaction->get_account_uuid();
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	payment_transaction->cancel(remarks);
 
