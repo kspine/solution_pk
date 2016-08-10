@@ -42,7 +42,7 @@ void VoiceSession::on_sync_request(Poseidon::Http::RequestHeaders request_header
 	const auto controller = ControllerClient::require();
 	const auto &params = request_headers.get_params;
 
-	if(request_headers.verb == Poseidon::Http::V_GET){
+	if(request_headers.verb == Poseidon::Http::V_PUT){
 		const auto account_uuid = AccountUuid(params.at("accountUuid"));
 		Msg::ST_AccountCheckIp treq;
 		treq.account_uuid = account_uuid.str();
@@ -68,7 +68,7 @@ void VoiceSession::on_sync_request(Poseidon::Http::RequestHeaders request_header
 		Poseidon::OptionalMap headers;
 		headers.set(sslit("Content-Type"), "application/json");
 		send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(response.dump()));
-	} else if(request_headers.verb == Poseidon::Http::V_PUT){
+	} else if(request_headers.verb == Poseidon::Http::V_GET){
 		const auto account_uuid = AccountUuid(params.at("accountUuid"));
 		Msg::ST_AccountCheckIp treq;
 		treq.account_uuid = account_uuid.str();
