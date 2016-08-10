@@ -1,5 +1,5 @@
-#ifndef EMPERY_CENTER_PAYMENT_HTTP_SESSION_HPP_
-#define EMPERY_CENTER_PAYMENT_HTTP_SESSION_HPP_
+#ifndef EMPERY_CENTER_PAYMENT_SESSION_HPP_
+#define EMPERY_CENTER_PAYMENT_SESSION_HPP_
 
 #include <boost/function.hpp>
 #include <poseidon/http/session.hpp>
@@ -8,10 +8,10 @@
 
 namespace EmperyCenter {
 
-class PaymentHttpSession : public Poseidon::Http::Session {
+class PaymentSession : public Poseidon::Http::Session {
 public:
 	using ServletCallback = boost::function<
-		 std::pair<long, std::string> (Poseidon::JsonObject &, const boost::shared_ptr<PaymentHttpSession> &, Poseidon::OptionalMap)>;
+		 std::pair<long, std::string> (Poseidon::JsonObject &, const boost::shared_ptr<PaymentSession> &, Poseidon::OptionalMap)>;
 
 public:
 	static boost::shared_ptr<const ServletCallback> create_servlet(const std::string &uri, ServletCallback callback);
@@ -22,9 +22,9 @@ private:
 	const std::string m_prefix;
 
 public:
-	PaymentHttpSession(Poseidon::UniqueFile socket,
+	PaymentSession(Poseidon::UniqueFile socket,
 		boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix);
-	~PaymentHttpSession();
+	~PaymentSession();
 
 protected:
 	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;

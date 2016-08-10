@@ -635,7 +635,7 @@ void MapCell::check_occupation(){
 		const auto coord = get_coord();
 		const auto owner_uuid = get_owner_uuid();
 
-		AccountMap::require_controller_token(owner_uuid);
+		AccountMap::require_controller_token(owner_uuid, { });
 		const auto item_box = ItemBoxMap::require(owner_uuid);
 
 		const auto ticket_item_id = get_ticket_item_id();

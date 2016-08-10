@@ -108,7 +108,7 @@ namespace {
 		return Response(Msg::ERR_TOKEN_INVALIDATED) <<login_name;
 	}
 
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, session->get_remote_info().ip.get());
 
 	auto utc_now = Poseidon::get_utc_time();
 	const auto expected_token_expiry_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LOGIN_TOKEN_EXPIRY_TIME);

@@ -15,7 +15,7 @@ ADMIN_SERVLET("friend/get_all", root, session, params){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto friend_box = FriendBoxMap::require(account_uuid);
 
@@ -46,7 +46,7 @@ ADMIN_SERVLET("friend/set", root, session, params){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto friend_box = FriendBoxMap::require(account_uuid);
 
@@ -70,7 +70,7 @@ ADMIN_SERVLET("friend/remove", root, session, params){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto friend_box = FriendBoxMap::require(account_uuid);
 

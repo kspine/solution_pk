@@ -48,7 +48,7 @@ try {
 		[=]() mutable {
 			PROFILE_ME;
 
-			AccountMap::require_controller_token(account_uuid);
+			AccountMap::require_controller_token(account_uuid, { });
 
 			const auto task_box = TaskBoxMap::require(account_uuid);
 
@@ -130,7 +130,7 @@ try {
 		[=]() mutable {
 			PROFILE_ME;
 
-			AccountMap::require_controller_token(account_uuid);
+			AccountMap::require_controller_token(account_uuid, { });
 
 			const auto mail_box = MailBoxMap::require(account_uuid);
 

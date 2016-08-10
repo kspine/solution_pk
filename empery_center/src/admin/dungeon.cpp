@@ -15,7 +15,7 @@ ADMIN_SERVLET("dungeon/get_all", root, session, params){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto dungeon_box = DungeonBoxMap::require(account_uuid);
 	dungeon_box->pump_status();
@@ -54,7 +54,7 @@ ADMIN_SERVLET("dungeon/set", root, session, params){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto dungeon_box = DungeonBoxMap::require(account_uuid);
 	dungeon_box->pump_status();

@@ -26,7 +26,7 @@ AUCTION_SERVLET("transfer/begin", root, session, params){
 	}
 	const auto account_uuid = account->get_account_uuid();
 
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto auction_center = AuctionCenterMap::require(account_uuid);
 	const auto item_box = ItemBoxMap::require(account_uuid);
