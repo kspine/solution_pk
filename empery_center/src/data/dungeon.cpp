@@ -43,9 +43,17 @@ namespace {
 				}
 			}
 
-			csv.get(elem.battalion_count_limit, "dungeon_limit_number");
-
 			Poseidon::JsonArray array;
+			csv.get(array, "dungeon_limit");
+			elem.start_points.reserve(array.size());
+			for(auto it = array.begin(); it != array.end(); ++it){
+				const auto &point_array = it->get<Poseidon::JsonArray>();
+				const auto x = static_cast<std::int32_t>(point_array.at(0).get<double>());
+				const auto y = static_cast<std::int32_t>(point_array.at(1).get<double>());
+				elem.start_points.emplace_back(x, y);
+			}
+
+			array.clear();
 			csv.get(array, "dungeon_limit_min_max");
 			elem.soldier_count_limits.first  = static_cast<std::uint64_t>(array.at(0).get<double>());
 			elem.soldier_count_limits.second = static_cast<std::uint64_t>(array.at(1).get<double>());

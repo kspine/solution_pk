@@ -60,7 +60,8 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_VINT          (x)	\
-	FIELD_VINT          (y)
+	FIELD_VINT          (y)	\
+	FIELD_STRING        (tag)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    DS_DungeonWaitForPlayerConfirmation

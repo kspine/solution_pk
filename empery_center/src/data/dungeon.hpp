@@ -20,7 +20,7 @@ namespace Data {
 		boost::container::flat_map<ItemId, std::uint64_t> entry_cost;
 		// std::string map_name;
 
-		unsigned battalion_count_limit;
+		std::vector<std::pair<std::int32_t, std::int32_t>> start_points;
 		std::pair<std::uint64_t, std::uint64_t> soldier_count_limits;
 		boost::container::flat_multimap<ApplicabilityKeyType, std::uint64_t> battalions_required;
 		boost::container::flat_multimap<ApplicabilityKeyType, std::uint64_t> battalions_forbidden;

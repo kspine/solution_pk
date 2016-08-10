@@ -413,10 +413,8 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateMonster, dungeon, server, req){
 	}
 
 	const auto dungeon_object_uuid = DungeonObjectUuid(Poseidon::Uuid::random());
-	const auto coord = Coord(req.x, req.y);
-
-	auto dungeon_object = boost::make_shared<DungeonObject>(
-		dungeon->get_dungeon_uuid(), dungeon_object_uuid, map_object_type_id, AccountUuid(), coord);
+	auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), dungeon_object_uuid,
+		map_object_type_id, AccountUuid(), std::move(req.tag), Coord(req.x, req.y));
 	dungeon_object->pump_status();
 	dungeon_object->recalculate_attributes(false);
 	dungeon->insert_object(std::move(dungeon_object));
