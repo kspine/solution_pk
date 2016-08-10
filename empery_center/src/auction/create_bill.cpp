@@ -44,7 +44,7 @@ AUCTION_SERVLET("create_bill", root, session, params){
 		return Response(Msg::ERR_ZERO_AUCTION_ITEM_COUNT);
 	}
 
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto expiry_duration        = get_config<std::uint64_t> ("auction_transaction_expiry_duration", 432000000);
 	const auto max_number_per_account = get_config<std::size_t>   ("auction_transaction_max_number_per_account", 30);

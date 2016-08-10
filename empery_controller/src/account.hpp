@@ -21,6 +21,7 @@ class Account : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 private:
 	const boost::shared_ptr<EmperyCenter::MySql::Center_Account> m_obj;
 
+	std::string m_client_ip;
 	boost::weak_ptr<ControllerSession> m_controller;
 	std::uint64_t m_locked_until = 0;
 
@@ -40,6 +41,13 @@ public:
 	bool has_been_activated() const;
 	std::uint64_t get_banned_until() const;
 	std::uint64_t get_quieted_until() const;
+
+	const std::string &get_client_ip() const {
+		return m_client_ip;
+	}
+	void set_client_ip(std::string client_ip){
+		m_client_ip = std::move(client_ip);
+	}
 
 	const boost::weak_ptr<ControllerSession> &get_weak_controller() const {
 		return m_controller;

@@ -11,22 +11,22 @@
 
 namespace EmperyCenter {
 
-using ServletCallback = AdminHttpSession::ServletCallback;
+using ServletCallback = AdminSession::ServletCallback;
 
 namespace {
 	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-AdminHttpSession::AdminHttpSession(Poseidon::UniqueFile socket,
+AdminSession::AdminSession(Poseidon::UniqueFile socket,
 	boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_auth_info(std::move(auth_info)), m_prefix(std::move(prefix))
 {
 }
-AdminHttpSession::~AdminHttpSession(){
+AdminSession::~AdminSession(){
 }
 
-boost::shared_ptr<const ServletCallback> AdminHttpSession::create_servlet(const std::string &uri, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> AdminSession::create_servlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[uri];
@@ -38,7 +38,7 @@ boost::shared_ptr<const ServletCallback> AdminHttpSession::create_servlet(const 
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> AdminHttpSession::get_servlet(const std::string &uri){
+boost::shared_ptr<const ServletCallback> AdminSession::get_servlet(const std::string &uri){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(uri);
@@ -53,7 +53,7 @@ boost::shared_ptr<const ServletCallback> AdminHttpSession::get_servlet(const std
 	return servlet;
 }
 
-void AdminHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
+void AdminSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_INFO("Accepted admin HTTP request from ", get_remote_info());
 
@@ -86,7 +86,7 @@ void AdminHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_he
 	std::pair<long, std::string> result;
 	Poseidon::JsonObject root;
 	try {
-		result = (*servlet)(root, virtual_shared_from_this<AdminHttpSession>(), std::move(request_headers.get_params));
+		result = (*servlet)(root, virtual_shared_from_this<AdminSession>(), std::move(request_headers.get_params));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(Poseidon::Cbpp::Exception &e){

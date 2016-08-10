@@ -26,9 +26,9 @@ ADMIN_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 	namespace {	\
 		namespace Impl_ {	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
-				::Poseidon::JsonObject &, const ::boost::shared_ptr< ::EmperyCenter::AdminHttpSession> &, ::Poseidon::OptionalMap);	\
+				::Poseidon::JsonObject &, const ::boost::shared_ptr< ::EmperyCenter::AdminSession> &, ::Poseidon::OptionalMap);	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(AdminServlet, __LINE__, Entry_) (	\
-				::Poseidon::JsonObject &root_, const ::boost::shared_ptr< ::EmperyCenter::AdminHttpSession> &session_,	\
+				::Poseidon::JsonObject &root_, const ::boost::shared_ptr< ::EmperyCenter::AdminSession> &session_,	\
 				::Poseidon::OptionalMap params_)	\
 			{	\
 				PROFILE_ME;	\
@@ -38,11 +38,11 @@ ADMIN_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(AdminHttpSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Entry_)));	\
+		handles_.push(AdminSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(AdminServlet, __LINE__, Proc_) (	\
 		::Poseidon::JsonObject & root_arg_ __attribute__((__unused__)),	\
-		const ::boost::shared_ptr< ::EmperyCenter::AdminHttpSession> & session_arg_ __attribute__((__unused__)),	\
+		const ::boost::shared_ptr< ::EmperyCenter::AdminSession> & session_arg_ __attribute__((__unused__)),	\
 		::Poseidon::OptionalMap params_arg_	\
 		)
 
