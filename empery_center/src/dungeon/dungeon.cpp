@@ -75,18 +75,18 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 	const auto attacked_object_uuid = DungeonObjectUuid(req.attacked_object_uuid);
 
 	// 结算战斗伤害。
-	const auto attacking_object = dungeon->get_object(attacking_object_uuid);
+	auto attacking_object = dungeon->get_object(attacking_object_uuid);
 	if(!attacking_object || attacking_object->is_virtually_removed()){
-		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<attacking_object_uuid;
+		// return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<attacking_object_uuid;
+		attacking_object.reset();
 	}
 	const auto attacked_object = dungeon->get_object(attacked_object_uuid);
 	if(!attacked_object || attacked_object->is_virtually_removed()){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<attacked_object_uuid;
 	}
 
-//	const auto attacking_object_type_id = attacking_object->get_map_object_type_id();
-	const auto attacking_account_uuid = attacking_object->get_owner_uuid();
-	const auto attacking_coord = attacking_object->get_coord();
+	const auto attacking_account_uuid = attacking_object ? attacking_object->get_owner_uuid() : AccountUuid();
+	const auto attacking_coord = attacking_object ? attacking_object->get_coord() : Coord(0, 0);
 
 	const auto attacked_object_type_id = attacked_object->get_map_object_type_id();
 	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
@@ -100,7 +100,9 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 	const auto dungeon_data = Data::Dungeon::require(dungeon_type_id);
 	const auto utc_now = Poseidon::get_utc_time();
 
-	attacking_object->recalculate_attributes(false);
+	if(attacking_object){
+		attacking_object->recalculate_attributes(false);
+	}
 	attacked_object->recalculate_attributes(false);
 
 	const auto result_type = req.result_type;
@@ -219,7 +221,9 @@ _wounded_done:
 	;
 
 	const auto battle_status_timeout = get_config<std::uint64_t>("battle_status_timeout", 10000);
-	attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+	if(attacking_object){
+		attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+	}
 	attacked_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 
 	// 通知客户端。
@@ -428,8 +432,9 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateMonster, dungeon, server, req){
 
 	auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), monster_uuid,
 		map_object_type_id, AccountUuid(), std::move(req.tag), coord);
+	dungeon_object->set_attributes(std::move(modifiers));
 	dungeon_object->pump_status();
-	dungeon_object->recalculate_attributes(false);
+
 	dungeon->insert_object(std::move(dungeon_object));
 
 	return Response();
