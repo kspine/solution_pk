@@ -177,15 +177,12 @@ CONTROLLER_SERVLET(Msg::ST_AccountAcquireToken, controller, req){
 			const auto invalidation_delay = get_config<std::uint64_t>("account_invalidation_delay", 10000);
 			account->set_locked_until(saturated_add(now, invalidation_delay));
 
-			account->set_client_ip({ });
 			account->set_controller({ });
-
 			return Response(Msg::ERR_INVALIDATION_IN_PROGRESS);
 		}
-
-		account->set_client_ip(std::move(req.client_ip));
 		account->set_controller(controller);
 	}
+	account->set_client_ip(std::move(req.client_ip));
 
 	return Response();
 }
