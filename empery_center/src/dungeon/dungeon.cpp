@@ -407,14 +407,27 @@ DUNGEON_SERVLET(Msg::DS_DungeonSetScope, dungeon, server, req){
 
 DUNGEON_SERVLET(Msg::DS_DungeonCreateMonster, dungeon, server, req){
 	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
-	const auto map_object_type_data = Data::MapObjectTypeDungeonMonster::get(map_object_type_id);
-	if(!map_object_type_data){
-		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT_TYPE) <<map_object_type_data;
+	const auto monster_data = Data::MapObjectTypeDungeonMonster::get(map_object_type_id);
+	if(!monster_data){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT_TYPE) <<map_object_type_id;
 	}
 
-	const auto dungeon_object_uuid = DungeonObjectUuid(Poseidon::Uuid::random());
-	auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), dungeon_object_uuid,
-		map_object_type_id, AccountUuid(), std::move(req.tag), Coord(req.x, req.y));
+	const auto monster_uuid = DungeonObjectUuid(Poseidon::Uuid::random());
+	const auto coord = Coord(req.x, req.y);
+
+	const auto soldier_count = monster_data->max_soldier_count;
+	const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
+
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers.reserve(8);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_MONSTER_START_POINT_X] = coord.x();
+	modifiers[AttributeIds::ID_MONSTER_START_POINT_Y] = coord.y();
+	modifiers[AttributeIds::ID_HP_TOTAL]              = static_cast<std::int64_t>(hp_total);
+
+	auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), monster_uuid,
+		map_object_type_id, AccountUuid(), std::move(req.tag), coord);
 	dungeon_object->pump_status();
 	dungeon_object->recalculate_attributes(false);
 	dungeon->insert_object(std::move(dungeon_object));
