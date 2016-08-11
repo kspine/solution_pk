@@ -189,9 +189,6 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 				dungeon_object->recalculate_attributes(false);
 				dungeon->insert_object(std::move(dungeon_object));
 			}
-			//TODO CREATE DUNGEON MONSTER
-			//dungeon->create_dungeon_monster(MapObjectTypeId(2603101),Coord(7,8));
-			dungeon->create_dungeon_monster(MapObjectTypeId(2603102),Coord(9,10));
 			DungeonMap::insert(std::move(dungeon));
 
 			info.entry_count += 1;
