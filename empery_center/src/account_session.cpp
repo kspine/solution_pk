@@ -11,22 +11,22 @@
 
 namespace EmperyCenter {
 
-using ServletCallback = AccountHttpSession::ServletCallback;
+using ServletCallback = AccountSession::ServletCallback;
 
 namespace {
 	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-AccountHttpSession::AccountHttpSession(Poseidon::UniqueFile socket,
+AccountSession::AccountSession(Poseidon::UniqueFile socket,
 	boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_auth_info(std::move(auth_info)), m_prefix(std::move(prefix))
 {
 }
-AccountHttpSession::~AccountHttpSession(){
+AccountSession::~AccountSession(){
 }
 
-boost::shared_ptr<const ServletCallback> AccountHttpSession::create_servlet(const std::string &uri, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> AccountSession::create_servlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[uri];
@@ -38,7 +38,7 @@ boost::shared_ptr<const ServletCallback> AccountHttpSession::create_servlet(cons
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> AccountHttpSession::get_servlet(const std::string &uri){
+boost::shared_ptr<const ServletCallback> AccountSession::get_servlet(const std::string &uri){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(uri);
@@ -53,7 +53,7 @@ boost::shared_ptr<const ServletCallback> AccountHttpSession::get_servlet(const s
 	return servlet;
 }
 
-void AccountHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
+void AccountSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Accepted account HTTP request from ", get_remote_info());
 
@@ -86,7 +86,7 @@ void AccountHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_
 	std::pair<long, std::string> result;
 	Poseidon::JsonObject root;
 	try {
-		result = (*servlet)(root, virtual_shared_from_this<AccountHttpSession>(), std::move(request_headers.get_params));
+		result = (*servlet)(root, virtual_shared_from_this<AccountSession>(), std::move(request_headers.get_params));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(Poseidon::Cbpp::Exception &e){

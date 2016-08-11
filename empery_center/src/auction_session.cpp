@@ -11,22 +11,22 @@
 
 namespace EmperyCenter {
 
-using ServletCallback = AuctionHttpSession::ServletCallback;
+using ServletCallback = AuctionSession::ServletCallback;
 
 namespace {
 	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-AuctionHttpSession::AuctionHttpSession(Poseidon::UniqueFile socket,
+AuctionSession::AuctionSession(Poseidon::UniqueFile socket,
 	boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_auth_info(std::move(auth_info)), m_prefix(std::move(prefix))
 {
 }
-AuctionHttpSession::~AuctionHttpSession(){
+AuctionSession::~AuctionSession(){
 }
 
-boost::shared_ptr<const ServletCallback> AuctionHttpSession::create_servlet(const std::string &uri, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> AuctionSession::create_servlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[uri];
@@ -38,7 +38,7 @@ boost::shared_ptr<const ServletCallback> AuctionHttpSession::create_servlet(cons
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> AuctionHttpSession::get_servlet(const std::string &uri){
+boost::shared_ptr<const ServletCallback> AuctionSession::get_servlet(const std::string &uri){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(uri);
@@ -53,7 +53,7 @@ boost::shared_ptr<const ServletCallback> AuctionHttpSession::get_servlet(const s
 	return servlet;
 }
 
-void AuctionHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
+void AuctionSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_DEBUG("Accepted auction HTTP request from ", get_remote_info());
 
@@ -86,7 +86,7 @@ void AuctionHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_
 	std::pair<long, std::string> result;
 	Poseidon::JsonObject root;
 	try {
-		result = (*servlet)(root, virtual_shared_from_this<AuctionHttpSession>(), std::move(request_headers.get_params));
+		result = (*servlet)(root, virtual_shared_from_this<AuctionSession>(), std::move(request_headers.get_params));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(Poseidon::Cbpp::Exception &e){

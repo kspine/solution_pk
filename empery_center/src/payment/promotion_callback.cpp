@@ -39,7 +39,7 @@ PAYMENT_SERVLET("promotion_callback", root, session, params){
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
 	}
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
 	const auto mail_box = MailBoxMap::require(account_uuid);

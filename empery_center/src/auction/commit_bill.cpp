@@ -20,7 +20,7 @@ AUCTION_SERVLET("commit_bill", root, session, params){
 	}
 	const auto account_uuid = auction_transaction->get_account_uuid();
 
-	AccountMap::require_controller_token(account_uuid);
+	AccountMap::require_controller_token(account_uuid, { });
 
 	const auto item_box = ItemBoxMap::require(account_uuid);
 	const auto mail_box = MailBoxMap::require(account_uuid);

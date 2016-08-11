@@ -177,11 +177,13 @@ CONTROLLER_SERVLET(Msg::ST_AccountAcquireToken, controller, req){
 			const auto invalidation_delay = get_config<std::uint64_t>("account_invalidation_delay", 10000);
 			account->set_locked_until(saturated_add(now, invalidation_delay));
 
+			account->set_client_ip({ });
 			account->set_controller({ });
 
 			return Response(Msg::ERR_INVALIDATION_IN_PROGRESS);
 		}
 
+		account->set_client_ip(std::move(req.client_ip));
 		account->set_controller(controller);
 	}
 
@@ -226,6 +228,26 @@ CONTROLLER_SERVLET(Msg::ST_AccountInvalidate, controller, req){
 			// old_controller->shutdown(e.what());
 			throw;
 		}
+	}
+
+	return Response();
+}
+
+CONTROLLER_SERVLET(Msg::ST_AccountCheckIp, controller, req){
+	const auto account_uuid = AccountUuid(req.account_uuid);
+	const auto account = AccountMap::get(account_uuid);
+	if(!account){
+		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<account_uuid;
+	}
+
+	const auto old_controller = account->get_controller();
+	if(!old_controller){
+		return Response(Msg::ERR_ACCOUNT_OFFLINE) <<account_uuid;
+	}
+
+	const auto &client_ip = account->get_client_ip();
+	if(client_ip != req.ip_expected){
+		return Response(Msg::ERR_IP_MISMATCH) <<client_ip;
 	}
 
 	return Response();

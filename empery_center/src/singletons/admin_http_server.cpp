@@ -23,7 +23,7 @@ namespace {
 
 	protected:
 		boost::shared_ptr<Poseidon::TcpSessionBase> on_client_connect(Poseidon::UniqueFile client) const override {
-			return boost::make_shared<AdminHttpSession>(std::move(client), m_auth_info, m_path + '/');
+			return boost::make_shared<AdminSession>(std::move(client), m_auth_info, m_path + '/');
 		}
 	};
 }

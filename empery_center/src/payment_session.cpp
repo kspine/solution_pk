@@ -11,22 +11,22 @@
 
 namespace EmperyCenter {
 
-using ServletCallback = PaymentHttpSession::ServletCallback;
+using ServletCallback = PaymentSession::ServletCallback;
 
 namespace {
 	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-PaymentHttpSession::PaymentHttpSession(Poseidon::UniqueFile socket,
+PaymentSession::PaymentSession(Poseidon::UniqueFile socket,
 	boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix)
 	: Poseidon::Http::Session(std::move(socket))
 	, m_auth_info(std::move(auth_info)), m_prefix(std::move(prefix))
 {
 }
-PaymentHttpSession::~PaymentHttpSession(){
+PaymentSession::~PaymentSession(){
 }
 
-boost::shared_ptr<const ServletCallback> PaymentHttpSession::create_servlet(const std::string &uri, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> PaymentSession::create_servlet(const std::string &uri, ServletCallback callback){
 	PROFILE_ME;
 
 	auto &weak = g_servlet_map[uri];
@@ -38,7 +38,7 @@ boost::shared_ptr<const ServletCallback> PaymentHttpSession::create_servlet(cons
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> PaymentHttpSession::get_servlet(const std::string &uri){
+boost::shared_ptr<const ServletCallback> PaymentSession::get_servlet(const std::string &uri){
 	PROFILE_ME;
 
 	const auto it = g_servlet_map.find(uri);
@@ -53,7 +53,7 @@ boost::shared_ptr<const ServletCallback> PaymentHttpSession::get_servlet(const s
 	return servlet;
 }
 
-void PaymentHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
+void PaymentSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 		"Accepted payment HTTP request from ", get_remote_info());
@@ -87,7 +87,7 @@ void PaymentHttpSession::on_sync_request(Poseidon::Http::RequestHeaders request_
 	std::pair<long, std::string> result;
 	Poseidon::JsonObject root;
 	try {
-		result = (*servlet)(root, virtual_shared_from_this<PaymentHttpSession>(), std::move(request_headers.get_params));
+		result = (*servlet)(root, virtual_shared_from_this<PaymentSession>(), std::move(request_headers.get_params));
 	} catch(Poseidon::Http::Exception &){
 		throw;
 	} catch(Poseidon::Cbpp::Exception &e){
