@@ -298,37 +298,6 @@ void Dungeon::init_triggers(){
 
 }
 
-void Dungeon::check_triggers(const TriggerCondition &condition){
-	PROFILE_ME;
-
-	switch(condition.type){
-		{
-#define ON_TRIGGER(trigger_type)	\
-		}	\
-		break;	\
-	case (trigger_type): {
-//=============================================================================
-	ON_TRIGGER(TriggerCondition::C_ENTER_DUNGEON){
-		//进入副本触发
-		check_triggers_enter_dungeon(condition);
-	}
-	ON_TRIGGER(TriggerCondition::C_DUNGEON_OBJECT_PASS){
-		//副本对象通过触发
-		
-	}
-	ON_TRIGGER(TriggerCondition::C_DUNGEON_OBJECT_HP){
-		//副本对象HP触发触发
-	}
-//=============================================================================
-#undef ON_TRIGGER
-		}
-		break;
-	default:
-		LOG_EMPERY_DUNGEON_WARNING("Unknown trigger type = ", static_cast<unsigned>(condition.type));
-		break;
-	}
-}
-
 void Dungeon::parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param){
 	PROFILE_ME;
 
@@ -349,7 +318,7 @@ void Dungeon::parse_triggers_action(std::deque<TriggerAction> &actions,std::stri
 	}
 }
 
-void Dungeon::check_triggers_enter_dungeon(const TriggerCondition &condition){
+void Dungeon::check_triggers_enter_dungeon(){
 	const auto utc_now = Poseidon::get_utc_time();
 	for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
 		const auto &trigger = it->second;
@@ -358,6 +327,67 @@ void Dungeon::check_triggers_enter_dungeon(const TriggerCondition &condition){
 			trigger->activated_time = utc_now;
 		}
 	}
+	pump_triggers();
+}
+
+void Dungeon::check_triggers_move_pass(Coord coord,bool isMonster){
+	const auto utc_now = Poseidon::get_utc_time();
+ 
+	for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
+		const auto &trigger = it->second;
+		if(!trigger->activated && trigger->condition.type == TriggerCondition::C_DUNGEON_OBJECT_PASS){
+			try{
+				std::istringstream iss_params(trigger->condition.params);
+				auto params_array = Poseidon::JsonParser::parse_array(iss_params);
+				bool parmas_monster = params_array.at(0).get<bool>();
+				if(isMonster != parmas_monster){
+					continue;
+				}
+				bool pass = false;
+				for(unsigned i = 1; i < params_array.size();++i ){
+					auto &elem = params_array.at(i).get<Poseidon::JsonArray>();
+					auto x = static_cast<int>(elem.at(0).get<double>());
+					auto y = static_cast<int>(elem.at(1).get<double>());
+					if((coord.x() == x) && (coord.y() == y)){
+						pass = true;
+						break;
+					}
+				}
+				if(!pass){
+					continue;
+				}
+			}catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			}
+			trigger->activated = true;
+			trigger->activated_time = utc_now;
+		}
+	}
+	pump_triggers();
+}
+
+void Dungeon::check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint64_t old_hp, std::uint64_t new_hp){
+		const auto utc_now = Poseidon::get_utc_time();
+ 
+	for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
+		const auto &trigger = it->second;
+		if(!trigger->activated && trigger->condition.type == TriggerCondition::C_DUNGEON_OBJECT_HP){
+			try{
+				std::istringstream iss_params(trigger->condition.params);
+				auto params_array = Poseidon::JsonParser::parse_array(iss_params);
+				auto dest_tag = boost::lexical_cast<std::string>(params_array.at(0).get<double>());
+				auto dest_hp  = static_cast<std::uint64_t>(total_hp*params_array.at(1).get<double>());
+				if((dest_tag != tag) || (dest_hp < old_hp) || (dest_hp > new_hp)){
+					continue;
+				}
+			}catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			}
+			trigger->activated = true;
+			trigger->activated_time = utc_now;
+		}
+	}
+	pump_triggers();
 }
 
 void Dungeon::on_triggers_action(const TriggerAction &action){

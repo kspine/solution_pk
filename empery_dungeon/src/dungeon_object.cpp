@@ -20,10 +20,10 @@ namespace EmperyDungeon {
 namespace Msg = ::EmperyCenter::Msg;
 
 DungeonObject::DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
-	DungeonObjectTypeId dungeon_object_type_id, AccountUuid owner_uuid,Coord coord)
+	DungeonObjectTypeId dungeon_object_type_id, AccountUuid owner_uuid,Coord coord,std::string tag)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_object_uuid(dungeon_object_uuid)
 	, m_dungeon_object_type_id(dungeon_object_type_id), m_owner_uuid(owner_uuid)
-	, m_coord(coord)
+	, m_coord(coord),m_tag(tag)
 {
 }
 DungeonObject::~DungeonObject(){
@@ -567,6 +567,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	}
 
 	set_coord(new_coord);
+	dungeon->check_triggers_move_pass(new_coord,is_monster());
 
 	m_waypoints.pop_front();
 	m_blocked_retry_count = 0;

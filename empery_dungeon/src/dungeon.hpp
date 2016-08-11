@@ -69,8 +69,9 @@ public:
 	void reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_object_uuid);
 
 	void init_triggers();
-	void check_triggers(const TriggerCondition &condition);
-	void check_triggers_enter_dungeon(const TriggerCondition &condition);
+	void check_triggers_enter_dungeon();
+	void check_triggers_move_pass(Coord coord,bool isMonster = false);
+	void check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint64_t old_hp, std::uint64_t new_hp);
 	void parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param);
 	void on_triggers_action(const TriggerAction &action);
 	void on_triggers_create_dungeon_object(const TriggerAction &action);

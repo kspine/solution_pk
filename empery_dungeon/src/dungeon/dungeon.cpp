@@ -6,6 +6,8 @@
 #include "../dungeon.hpp"
 #include "../dungeon_object.hpp"
 #include "../trigger.hpp"
+#include "../../../empery_center/src/attribute_ids.hpp"
+#include "../checked_arithmetic.hpp"
 
 namespace EmperyDungeon {
 
@@ -16,10 +18,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid);
 	//new_dungeon->set_dungeon_duration(1000*60*3);
 	new_dungeon->init_triggers();
-	TriggerCondition trigger_conditon;
-	trigger_conditon.type = TriggerCondition::C_ENTER_DUNGEON;
-	new_dungeon->check_triggers(trigger_conditon);
-	new_dungeon->pump_triggers();
+	new_dungeon->check_triggers_enter_dungeon();
 	DungeonMap::replace_dungeon_no_synchronize(new_dungeon);
 	return Response();
 }
@@ -40,6 +39,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 	auto dungeon_object_type_id = DungeonObjectTypeId(req.map_object_type_id);
 	auto owner_uuid = AccountUuid(req.owner_uuid);
 	auto coord = Coord(req.x, req.y);
+	auto tag = req.tag;
 	auto dungeon_object = expect_dungeon->get_object(dungeon_object_uuid);
 
 	//属性和buff
@@ -47,6 +47,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 	attributes.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
 		attributes.emplace(AttributeId(it->attribute_id), it->value);
+		LOG_EMPERY_DUNGEON_DEBUG("dungeon object info, dungoen_object_uuid =  ",dungeon_object_uuid," attid = ",it->attribute_id, " value = ",it->value);
 	}
 
 	boost::container::flat_map<BuffId, DungeonObject::BuffInfo> buffs;
@@ -61,7 +62,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 	}
 
 	if(!dungeon_object){
-		dungeon_object = boost::make_shared<DungeonObject>(dungeon_uuid,dungeon_object_uuid,dungeon_object_type_id,owner_uuid,coord);
+		dungeon_object = boost::make_shared<DungeonObject>(dungeon_uuid,dungeon_object_uuid,dungeon_object_type_id,owner_uuid,coord,tag);
 		//副本中的怪物创建的时候设置下action,
 		if(dungeon_object->is_monster()){
 			DungeonObject::Action act = DungeonObject::ACT_GUARD;
@@ -77,11 +78,18 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 			dungeon_object->set_action(coord, waypoints, act,"");
 		}
 	}
+	const auto old_hp = static_cast<std::uint64_t>(dungeon_object->get_attribute(EmperyCenter::AttributeIds::ID_HP_TOTAL));
 	dungeon_object->set_attributes(std::move(attributes));
+	const auto new_hp = static_cast<std::uint64_t>(dungeon_object->get_attribute(EmperyCenter::AttributeIds::ID_HP_TOTAL));
 	for(auto it = buffs.begin(); it != buffs.end(); ++it){
 		dungeon_object->set_buff(it->second.buff_id, it->second.time_begin, it->second.duration);
 	}
 	expect_dungeon->replace_dungeon_object_no_synchronize(dungeon_object);
+	if(old_hp < new_hp){
+		const auto dungeon_object_type_data = dungeon_object->get_dungeon_object_type_data();
+		const auto hp_total = checked_mul(dungeon_object_type_data->max_soldier_count, dungeon_object_type_data->hp);
+		expect_dungeon->check_triggers_hp(dungeon_object->get_tag(),hp_total,old_hp,new_hp);
+	}
 	return Response();
 }
 

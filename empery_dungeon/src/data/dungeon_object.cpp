@@ -50,8 +50,9 @@ namespace {
 			csv.get(elem.doge_rate,                         "arm_dodge");
 			csv.get(elem.critical_rate,                     "arm_crit");
 			csv.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
-			csv.get(elem.attack_type,         				"arm_attack_type");
+			csv.get(elem.attack_type,                       "arm_attack_type");
 			csv.get(elem.defence_type,                      "arm_def_type");
+			csv.get(elem.max_soldier_count,                 "force_mnax");
 			csv.get(elem.hp,                                "hp");
 			csv.get(elem.ai_id,                             "ai_id");
 
@@ -77,6 +78,7 @@ namespace {
 			csvMonster.get(elem.critical_damage_plus_rate,         "arm_crit_damege");
 			csvMonster.get(elem.attack_type,                       "arm_attack_type");
 			csvMonster.get(elem.defence_type,                      "arm_def_type");
+			csvMonster.get(elem.max_soldier_count,                  "force_mnax");
 			csvMonster.get(elem.hp,                                "hp");
 			csvMonster.get(elem.ai_id,                             "ai_id");
 
