@@ -1,6 +1,7 @@
 #ifndef EMPERY_DUNGEON_TRIGGER_HPP_
 #define EMPERY_DUNGEON_TRIGGER_HPP_
 #include "id_types.hpp"
+#include "coord.hpp"
 
 namespace EmperyDungeon {
 
@@ -10,6 +11,7 @@ public:
 		C_ENTER_DUNGEON               = 1, // 进入副本触发
 		C_DUNGEON_OBJECT_PASS         = 2, // 部队通过
 		C_DUNGEON_OBJECT_HP           = 3, // HP
+		C_DUNGEON_FINISH              = 4, // 通关触发(通关之后需要立即执行)
 	};
 
 	Type                     type;
@@ -35,6 +37,19 @@ public:
 	std::string              params;
 };
 
+struct TriggerDamage {
+public:
+	bool          is_target_monster;
+	std::uint64_t loop;
+	std::uint64_t damage;
+	std::uint64_t delay;
+	std::uint64_t next_damage_time;
+	std::vector<Coord> damage_range;
+public:
+	TriggerDamage(bool is_target_monster_,std::uint64_t loop_,std::uint64_t damage_,std::uint64_t delay_, std::uint64_t next_damage_time_, std::vector<Coord> damage_range_);
+	~TriggerDamage();
+};
+
 struct Trigger {
 public:
 	DungeonUuid                dungeon_uuid;
@@ -47,8 +62,6 @@ public:
 public:
 	Trigger(DungeonUuid dungeon_uuid_,std::string name_,std::uint64_t delay_,TriggerCondition condition,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_);
 	~Trigger();
-public:
-	void pump_action();
 };
 
 }

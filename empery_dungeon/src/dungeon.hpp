@@ -16,6 +16,7 @@ class DungeonClient;
 class Trigger;
 class TriggerCondition;
 class TriggerAction;
+class TriggerDamage;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -31,17 +32,22 @@ private:
 	const boost::weak_ptr<DungeonClient> m_dungeon_client;
 
 	AccountUuid m_founder_uuid;
+	std::uint64_t                                                                   m_create_dungeon_time;
+	std::uint64_t                                                                   m_damage_solider;
+	std::vector<std::uint64_t>                                                      m_finish_tasks;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 	boost::container::flat_map<std::string, boost::shared_ptr<Trigger>>             m_triggers;
+	std::vector<boost::shared_ptr<TriggerDamage>>                                   m_triggers_damages;                                                    
 	boost::shared_ptr<Poseidon::TimerItem>                                          m_trigger_timer;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
-		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid);
+		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
 	~Dungeon();
 
 public:
 	virtual void pump_status();
 	virtual void pump_triggers();
+	virtual void pump_triggers_damage();
 
 	DungeonUuid get_dungeon_uuid() const {
 		return m_dungeon_uuid;
@@ -53,6 +59,15 @@ public:
 		return m_founder_uuid;
 	}
 	void set_founder_uuid(AccountUuid founder_uuid);
+	void add_damage_solider(std::uint64_t damage_solider){
+		m_damage_solider += damage_solider;
+	}
+	std::uint64_t get_damage_solider(){
+		return m_damage_solider;
+	}
+	std::uint64_t get_create_dungeon_time(){
+		return m_create_dungeon_time;
+	}
 
 	boost::shared_ptr<DungeonClient> get_dungeon_client() const {
 		return m_dungeon_client.lock();
@@ -72,10 +87,20 @@ public:
 	void check_triggers_enter_dungeon();
 	void check_triggers_move_pass(Coord coord,bool isMonster = false);
 	void check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint64_t old_hp, std::uint64_t new_hp);
+	void check_triggers_dungeon_finish();
 	void parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param);
 	void on_triggers_action(const TriggerAction &action);
 	void on_triggers_create_dungeon_object(const TriggerAction &action);
+	void on_triggers_dungeon_object_damage(const TriggerAction &action);
+	void do_triggers_damage(const boost::shared_ptr<TriggerDamage>& damage);
+	void on_triggers_buff(const TriggerAction &action);
+	void on_triggers_set_trigger(const TriggerAction &action);
 	void on_triggers_dungeon_failed(const TriggerAction &action);
+	void on_triggers_dungeon_finished(const TriggerAction &action);
+	void on_triggers_dungeon_task_finished(const TriggerAction &action);
+	void on_triggers_dungeon_task_failed(const TriggerAction &action);
+	void on_triggers_dungeon_set_scope(const TriggerAction &action);
+	void on_triggers_dungeon_lock_view(const TriggerAction &action);
 };
 
 }

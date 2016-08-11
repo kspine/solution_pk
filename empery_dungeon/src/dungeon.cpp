@@ -10,6 +10,7 @@
 #include "trigger.hpp"
 #include <poseidon/json.hpp>
 #include "mmain.hpp"
+#include <poseidon/cbpp/status_codes.hpp>
 
 namespace EmperyDungeon {
 namespace Msg = ::EmperyCenter::Msg;
@@ -30,10 +31,11 @@ namespace {
 }
 
 
-Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const boost::shared_ptr<DungeonClient> &dungeon,AccountUuid founder_uuid)
+Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const boost::shared_ptr<DungeonClient> &dungeon,AccountUuid founder_uuid,std::uint64_t create_time)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id)
 	, m_dungeon_client(dungeon)
 	, m_founder_uuid(founder_uuid)
+	, m_create_dungeon_time(create_time)
 {
 }
 
@@ -74,6 +76,36 @@ void Dungeon::pump_triggers(){
 				auto &trigger_action = *it;
 				on_triggers_action(trigger_action);
 			}
+		} catch(std::exception &e){
+			// log
+		}
+	}
+}
+
+void Dungeon::pump_triggers_damage(){
+	std::vector<boost::shared_ptr<TriggerDamage>> triggers_damaged;
+	triggers_damaged.reserve(m_triggers_damages.size());
+	const auto utc_now = Poseidon::get_utc_time();
+	for(auto it = m_triggers_damages.begin(); it != m_triggers_damages.end();){
+		const auto &damage = *it;
+
+		if(damage->loop == 0){
+			it = m_triggers_damages.erase(it);
+		}else{
+			if((utc_now > damage->next_damage_time)){
+				continue;
+			}
+			damage->loop--;
+			damage->next_damage_time = utc_now + damage->delay * 1000;
+			triggers_damaged.emplace_back(damage);
+			++it;
+		}
+	}
+	for(auto it = triggers_damaged.begin(); it != triggers_damaged.end(); ++it){
+		const auto &damage = *it;
+		try {
+			// 根据行为选择操作
+			do_triggers_damage(damage);
 		} catch(std::exception &e){
 			// log
 		}
@@ -287,6 +319,7 @@ void Dungeon::init_triggers(){
 			return;
 		}
 		shared->pump_triggers();
+		shared->pump_triggers_damage();
 	};
 	if(!m_trigger_timer){
 		//const auto now = Poseidon::get_fast_mono_clock();
@@ -367,7 +400,7 @@ void Dungeon::check_triggers_move_pass(Coord coord,bool isMonster){
 }
 
 void Dungeon::check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint64_t old_hp, std::uint64_t new_hp){
-		const auto utc_now = Poseidon::get_utc_time();
+	const auto utc_now = Poseidon::get_utc_time();
  
 	for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
 		const auto &trigger = it->second;
@@ -379,6 +412,40 @@ void Dungeon::check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint
 				auto dest_hp  = static_cast<std::uint64_t>(total_hp*params_array.at(1).get<double>());
 				if((dest_tag != tag) || (dest_hp < old_hp) || (dest_hp > new_hp)){
 					continue;
+				}
+			}catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			}
+			trigger->activated = true;
+			trigger->activated_time = utc_now;
+		}
+	}
+	pump_triggers();
+}
+
+void Dungeon::check_triggers_dungeon_finish(){
+	const auto utc_now = Poseidon::get_utc_time();
+ 
+	for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
+		const auto &trigger = it->second;
+		if(!trigger->activated && trigger->condition.type == TriggerCondition::C_DUNGEON_FINISH){
+			try{
+				std::istringstream iss_params(trigger->condition.params);
+				auto params_array = Poseidon::JsonParser::parse_array(iss_params);
+				auto type = boost::lexical_cast<std::uint64_t>(params_array.at(0).get<double>());
+				if(type == 0){
+					//伤兵
+					auto threshold = boost::lexical_cast<std::uint64_t>(params_array.at(1).get<double>());
+					if(get_damage_solider() > threshold){
+						continue;
+					}
+				}else if(type == 1){
+					//副本限时完成
+					auto threshold = boost::lexical_cast<std::uint64_t>(params_array.at(1).get<double>())*1000;
+					auto interval = utc_now - get_create_dungeon_time();
+					if(interval > threshold){
+						continue;
+					}
 				}
 			}catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
@@ -404,18 +471,39 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 	}
 	ON_TRIGGER_ACTION(TriggerAction::A_DUNGEON_OBJECT_DAMAGE){
 		//TODO
-		
+		on_triggers_dungeon_object_damage(action);
 	}
 	ON_TRIGGER_ACTION(TriggerAction::A_BUFF){
 		//TODO
+		on_triggers_buff(action);
 	}
 	ON_TRIGGER_ACTION(TriggerAction::A_SET_TRIGGER){
 		//TODO
-		
+		on_triggers_set_trigger(action);
 	}
 	ON_TRIGGER_ACTION(TriggerAction::A_DUNGEON_FAILED){
 		//TODO
 		on_triggers_dungeon_failed(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_DUNGEON_FINISHED){
+		//TODO
+		on_triggers_dungeon_finished(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_SET_TASK_FINISHED){
+		//TODO
+		on_triggers_dungeon_task_finished(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_SET_TASK_FAIL){
+		//TODO
+		on_triggers_dungeon_task_failed(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_SET_SCOPE){
+		//TODO
+		on_triggers_dungeon_set_scope(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_LOCK_VIEW){
+		//TODO
+		on_triggers_dungeon_lock_view(action);
 	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
@@ -456,7 +544,97 @@ void Dungeon::on_triggers_create_dungeon_object(const TriggerAction &action){
 				dungeon_client->shutdown(e.what());
 			}
 		}
+	}
+}
 
+void Dungeon::on_triggers_dungeon_object_damage(const TriggerAction &action){
+	if(action.type != TriggerAction::A_DUNGEON_OBJECT_DAMAGE){
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	std::istringstream iss_effect_param(action.params);
+	auto effect_param_array = Poseidon::JsonParser::parse_array(iss_effect_param);
+	if(effect_param_array.size() < 5){
+		LOG_EMPERY_DUNGEON_WARNING("trigger dungeon object damage parmas is error");
+	}
+	auto is_target_monster = effect_param_array.at(0).get<bool>();
+	auto loop              = static_cast<std::uint64_t>(effect_param_array.at(1).get<double>());
+	auto damage            = static_cast<std::uint64_t>(effect_param_array.at(2).get<double>());
+	auto delay             = static_cast<std::uint64_t>(effect_param_array.at(3).get<double>());
+	std::vector<Coord> damage_range;
+	for(unsigned i = 5; i < effect_param_array.size(); ++i){
+		auto &elem = effect_param_array.at(i).get<Poseidon::JsonArray>();
+		auto x = static_cast<int>(elem.at(0).get<double>());
+		auto y = static_cast<int>(elem.at(1).get<double>());
+		damage_range.push_back(Coord(x,y));
+	}
+	auto trigger_damage = boost::make_shared<TriggerDamage>(is_target_monster,loop,damage,delay,utc_now,std::move(damage_range));
+	m_triggers_damages.push_back(std::move(trigger_damage));
+}
+
+void Dungeon::do_triggers_damage(const boost::shared_ptr<TriggerDamage>& trigger_damage){
+	const auto dungeon_client = get_dungeon_client();
+	if(!dungeon_client){
+		return;
+	}
+	auto & coords = trigger_damage->damage_range;
+	std::vector<boost::shared_ptr<DungeonObject>> ret;
+	get_objects_all(ret);
+	for(auto it = coords.begin(); it != coords.end(); ++it){
+		auto &coord = *it;
+		for(auto itt = ret.begin(); itt != ret.end(); ++itt){
+			if((trigger_damage->is_target_monster == (*itt)->is_monster()) && (coord == (*itt)->get_coord())){
+				try {
+					Msg::DS_DungeonObjectAttackAction msg;
+					msg.dungeon_uuid = get_dungeon_uuid().str();
+					/*
+					msg.attacking_account_uuid = get_owner_uuid().str();
+					msg.attacking_object_uuid = get_dungeon_object_uuid().str();
+					msg.attacking_object_type_id = get_dungeon_object_type_id().get();
+					msg.attacking_coord_x = coord.x();
+					msg.attacking_coord_y = coord.y();
+					*/
+					msg.attacked_account_uuid = (*itt)->get_owner_uuid().str();
+					msg.attacked_object_uuid  = (*itt)->get_dungeon_object_uuid().str();
+					msg.attacked_object_type_id = (*itt)->get_dungeon_object_type_id().get();
+					msg.attacked_coord_x = (*itt)->get_coord().x();
+					msg.attacked_coord_y = (*itt)->get_coord().y();
+					msg.result_type = 1;
+					msg.soldiers_damaged = trigger_damage->damage;
+					auto sresult = dungeon_client->send_and_wait(msg);
+					if(sresult.first != Poseidon::Cbpp::ST_OK){
+						LOG_EMPERY_DUNGEON_DEBUG("trigger damage fail", sresult.first, ", msg = ", sresult.second);
+						continue;
+					}
+					LOG_EMPERY_DUNGEON_DEBUG("trigger damage sucess");
+				} catch(std::exception &e){
+					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+					dungeon_client->shutdown(e.what());
+				}
+			}
+		}
+	}
+}
+
+void Dungeon::on_triggers_buff(const TriggerAction &action){
+	
+}
+void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
+	if(action.type != TriggerAction::A_SET_TRIGGER){
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	std::istringstream iss_param(action.params);
+	auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+	std::uint64_t open = static_cast<std::uint64_t>(param_array.at(0).get<double>());
+	std::string trigger_name = param_array.at(1).get<std::string>();
+	auto it = m_triggers.find(trigger_name);
+	if(it != m_triggers.end()){
+		const auto &trigger = it->second;
+		if(!trigger->activated&&open){
+			trigger->activated_time = utc_now;
+		}
+		trigger->activated = open;
 	}
 }
 
@@ -469,7 +647,7 @@ void Dungeon::on_triggers_dungeon_failed(const TriggerAction &action){
 		try {
 			Msg::DS_DungeonPlayerLoses msgDungeonLoss;
 			msgDungeonLoss.dungeon_uuid       = get_dungeon_uuid().str();
-			msgDungeonLoss.dungeon_uuid       = get_founder_uuid().str();
+			msgDungeonLoss.account_uuid       = get_founder_uuid().str();
 			dungeon_client->send(msgDungeonLoss);
 			LOG_EMPERY_DUNGEON_DEBUG("msg dungeon expired:",msgDungeonLoss);
 		} catch(std::exception &e){
@@ -477,6 +655,57 @@ void Dungeon::on_triggers_dungeon_failed(const TriggerAction &action){
 			dungeon_client->shutdown(e.what());
 		}
 	}
+}
+
+void Dungeon::on_triggers_dungeon_finished(const TriggerAction &action){
+	if(action.type != TriggerAction::A_DUNGEON_FINISHED){
+		return;
+	}
+	check_triggers_dungeon_finish();
+	const auto dungeon_client = get_dungeon_client();
+	if(dungeon_client){
+		try {
+			Msg::DS_DungeonPlayerWins msgDungeonWin;
+			msgDungeonWin.dungeon_uuid       = get_dungeon_uuid().str();
+			msgDungeonWin.account_uuid       = get_founder_uuid().str();
+			for(auto it = m_finish_tasks.begin(); it != m_finish_tasks.end(); ++it){
+				auto &task_finished = *msgDungeonWin.tasks_finished.emplace(msgDungeonWin.tasks_finished.end());
+				task_finished.dungeon_task_id = *it;
+			}
+			dungeon_client->send(msgDungeonWin);
+			LOG_EMPERY_DUNGEON_DEBUG("msg dungeon win:",msgDungeonWin);
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+	}
+}
+
+void Dungeon::on_triggers_dungeon_task_finished(const TriggerAction &action){
+	if(action.type != TriggerAction::A_SET_TASK_FINISHED){
+		return;
+	}
+	std::istringstream iss_param(action.params);
+	auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+	for(unsigned i = 0; i < param_array.size(); ++i){
+		auto task_id = static_cast<std::uint64_t>(param_array.at(i).get<double>());
+		auto it  = std::find(m_finish_tasks.begin(),m_finish_tasks.end(), task_id);
+		if(it == m_finish_tasks.end()){
+			m_finish_tasks.push_back(task_id);
+		}
+	}
+}
+
+void Dungeon::on_triggers_dungeon_task_failed(const TriggerAction &action){
+	
+}
+
+void Dungeon::on_triggers_dungeon_set_scope(const TriggerAction &action){
+	
+}
+
+void Dungeon::on_triggers_dungeon_lock_view(const TriggerAction &action){
+	
 }
 
 }

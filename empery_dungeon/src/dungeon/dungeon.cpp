@@ -15,7 +15,8 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	auto dungeon_type_id = DungeonTypeId(req.dungeon_type_id);
 	auto founder_uuid = AccountUuid(req.founder_uuid);
-	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid);
+	const auto utc_now = Poseidon::get_utc_time();
+	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid,utc_now);
 	//new_dungeon->set_dungeon_duration(1000*60*3);
 	new_dungeon->init_triggers();
 	new_dungeon->check_triggers_enter_dungeon();
@@ -79,8 +80,10 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 		}
 	}
 	const auto old_hp = static_cast<std::uint64_t>(dungeon_object->get_attribute(EmperyCenter::AttributeIds::ID_HP_TOTAL));
+	const auto old_solider_count = static_cast<std::uint64_t>(dungeon_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT));
 	dungeon_object->set_attributes(std::move(attributes));
 	const auto new_hp = static_cast<std::uint64_t>(dungeon_object->get_attribute(EmperyCenter::AttributeIds::ID_HP_TOTAL));
+	const auto new_solider_count = static_cast<std::uint64_t>(dungeon_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT));
 	for(auto it = buffs.begin(); it != buffs.end(); ++it){
 		dungeon_object->set_buff(it->second.buff_id, it->second.time_begin, it->second.duration);
 	}
@@ -89,6 +92,10 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 		const auto dungeon_object_type_data = dungeon_object->get_dungeon_object_type_data();
 		const auto hp_total = checked_mul(dungeon_object_type_data->max_soldier_count, dungeon_object_type_data->hp);
 		expect_dungeon->check_triggers_hp(dungeon_object->get_tag(),hp_total,old_hp,new_hp);
+	}
+	const auto damaged_solider_count = old_solider_count - new_solider_count;
+	if(!dungeon_object->is_monster()&&(damaged_solider_count > 0)){
+		expect_dungeon->add_damage_solider(damaged_solider_count);
 	}
 	return Response();
 }
