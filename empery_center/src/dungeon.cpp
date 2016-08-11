@@ -7,8 +7,6 @@
 #include "player_session.hpp"
 #include "msg/sc_dungeon.hpp"
 #include "src/dungeon_object.hpp"
-#include "data/map_object_type.hpp"
-#include "attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -43,7 +41,6 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const 
 		Msg::SD_DungeonCreate msg;
 		msg.dungeon_uuid    = get_dungeon_uuid().str();
 		msg.dungeon_type_id = get_dungeon_type_id().get();
-		msg.founder_uuid    = get_founder_uuid().str();
 		server->send(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -352,28 +349,6 @@ void Dungeon::update_object(const boost::shared_ptr<DungeonObject> &dungeon_obje
 
 	synchronize_with_all_observers(dungeon_object);
 	synchronize_with_dungeon_server(dungeon_object);
-}
-
-void Dungeon::create_dungeon_monster(MapObjectTypeId dungeon_object_type_id,Coord coord){
-	const auto monster_data = Data::MapObjectTypeDungeonMonster::require(dungeon_object_type_id);
-	const auto monster_uuid = DungeonObjectUuid(Poseidon::Uuid::random());
-
-	const auto soldier_count = monster_data->max_soldier_count;
-	const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
-
-	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
-	modifiers.reserve(8);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(soldier_count);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(soldier_count);
-	modifiers[AttributeIds::ID_MONSTER_START_POINT_X] = coord.x();
-	modifiers[AttributeIds::ID_MONSTER_START_POINT_Y] = coord.y();
-	modifiers[AttributeIds::ID_HP_TOTAL]              = static_cast<std::int64_t>(hp_total);
-
-	auto monster = boost::make_shared<DungeonObject>(
-			get_dungeon_uuid(), monster_uuid, dungeon_object_type_id, AccountUuid(), coord);
-	monster->set_attributes(std::move(modifiers));
-	monster->pump_status();
-	insert_object(std::move(monster));
 }
 
 bool Dungeon::is_virtually_removed() const {
