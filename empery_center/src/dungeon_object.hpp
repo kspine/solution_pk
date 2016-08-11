@@ -26,6 +26,7 @@ private:
 	const DungeonObjectUuid m_dungeon_object_uuid;
 	const MapObjectTypeId m_map_object_type_id;
 	const AccountUuid m_owner_uuid;
+	const std::string m_tag;
 
 	Coord m_coord;
 	bool m_deleted = false;
@@ -38,7 +39,7 @@ private:
 
 public:
 	DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
-		MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, Coord coord);
+		MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string tag, Coord coord);
 	~DungeonObject();
 
 public:
@@ -56,6 +57,9 @@ public:
 	}
 	AccountUuid get_owner_uuid() const {
 		return m_owner_uuid;
+	}
+	const std::string &get_tag() const {
+		return m_tag;
 	}
 
 	Coord get_coord() const {

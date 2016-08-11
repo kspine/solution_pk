@@ -38,7 +38,8 @@ namespace Msg {
 		FIELD_VUINT          (buff_id)	\
 		FIELD_VUINT          (time_begin)	\
 		FIELD_VUINT          (time_end)	\
-	)
+	)	\
+	FIELD_STRING        (tag)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SD_DungeonObjectRemoved
