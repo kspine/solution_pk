@@ -71,7 +71,6 @@ void ControllerSession::on_close(int err_code) noexcept {
 
 	{
 		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-
 		const auto requests = std::move(m_requests);
 		m_requests.clear();
 		for(auto it = requests.begin(); it != requests.end(); ++it){
@@ -231,10 +230,8 @@ Result ControllerSession::send_and_wait(std::uint16_t message_id, Poseidon::Stre
 		m_requests.erase(uuid);
 		throw;
 	}
-	{
-		const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
-		m_requests.erase(uuid);
-	}
+	const Poseidon::Mutex::UniqueLock lock(m_request_mutex);
+	m_requests.erase(uuid);
 	return std::move(*ret);
 }
 
