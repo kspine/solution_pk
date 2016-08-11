@@ -10,7 +10,6 @@ public:
 		C_ENTER_DUNGEON               = 1, // 进入副本触发
 		C_DUNGEON_OBJECT_PASS         = 2, // 部队通过
 		C_DUNGEON_OBJECT_HP           = 3, // HP
-		C_DELAY                       = 4, // 延迟触发
 	};
 
 	Type                     type;
@@ -33,7 +32,6 @@ public:
 	};
 
 	Type                     type;
-	std::uint64_t            delay;
 	std::string              params;
 };
 
@@ -41,12 +39,13 @@ struct Trigger {
 public:
 	DungeonUuid                dungeon_uuid;
 	std::string                name;
-	TriggerCondition::Type     type;
+	std::uint64_t              delay;
+	TriggerCondition           condition;
 	std::deque<TriggerAction>  actions;
 	bool                       activated = false;
 	std::uint64_t              activated_time;
 public:
-	Trigger(DungeonUuid dungeon_uuid_,std::string name_,TriggerCondition::Type type_,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time);
+	Trigger(DungeonUuid dungeon_uuid_,std::string name_,std::uint64_t delay_,TriggerCondition condition,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_);
 	~Trigger();
 public:
 	void pump_action();

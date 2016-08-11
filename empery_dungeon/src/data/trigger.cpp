@@ -19,7 +19,8 @@ namespace {
 			trigger_name = elem.trigger_name;
 			elem.dungeon_trigger_pair = std::make_pair(dungeon_trigger,elem.trigger_name);
 			csv.get(elem.type,             "trigger_type");
-			csv.get(elem.conditon,         "condition");
+			csv.get(elem.delay,            "delay");
+			csv.get(elem.condition,         "condition");
 			csv.get(elem.effect,           "effect_type");
 			csv.get(elem.effect_params,    "effect_params");
 			csv.get(elem.activated,        "open");

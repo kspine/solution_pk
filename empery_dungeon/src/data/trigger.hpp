@@ -13,7 +13,8 @@ namespace Data {
 		std::string                                       trigger_name;
 		std::pair<std::string,std::string>                dungeon_trigger_pair;
 		unsigned                                          type;
-		std::string                                       conditon;
+		std::uint64_t                                     delay;
+		std::string                                       condition;
 		std::string                                       effect;
 		std::string                                       effect_params;
 		bool                                              activated = false;

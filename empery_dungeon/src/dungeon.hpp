@@ -33,7 +33,7 @@ private:
 	AccountUuid m_founder_uuid;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 	boost::container::flat_map<std::string, boost::shared_ptr<Trigger>>             m_triggers;
-	//boost::shared_ptr<Poseidon::TimerItem> m_dungeon_timer;
+	boost::shared_ptr<Poseidon::TimerItem>                                          m_trigger_timer;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid);
@@ -74,6 +74,7 @@ public:
 	void parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param);
 	void on_triggers_action(const TriggerAction &action);
 	void on_triggers_create_dungeon_object(const TriggerAction &action);
+	void on_triggers_dungeon_failed(const TriggerAction &action);
 };
 
 }
