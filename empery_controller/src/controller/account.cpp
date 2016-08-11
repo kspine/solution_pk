@@ -178,11 +178,16 @@ CONTROLLER_SERVLET(Msg::ST_AccountAcquireToken, controller, req){
 			account->set_locked_until(saturated_add(now, invalidation_delay));
 
 			account->set_controller({ });
+			account->set_client_ip({ });
+
 			return Response(Msg::ERR_INVALIDATION_IN_PROGRESS);
 		}
 		account->set_controller(controller);
 	}
-	account->set_client_ip(std::move(req.client_ip));
+
+	if(!req.client_ip.empty()){
+		account->set_client_ip(std::move(req.client_ip));
+	}
 
 	return Response();
 }
