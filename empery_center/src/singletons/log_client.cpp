@@ -35,7 +35,7 @@ boost::shared_ptr<LogClient> LogClient::require(){
 			break;
 		}
 		const auto host       = get_config<std::string>   ("log_cbpp_client_host",         "127.0.0.1");
-		const auto port       = get_config<unsigned>      ("log_cbpp_client_port",         13227);
+		const auto port       = get_config<unsigned>      ("log_cbpp_client_port",         13224);
 		const auto use_ssl    = get_config<bool>          ("log_cbpp_client_use_ssl",      false);
 		const auto keep_alive = get_config<std::uint64_t> ("log_cbpp_keep_alive_interval", 15000);
 		LOG_EMPERY_CENTER_INFO("Creating log client: host = ", host, ", port = ", port, ", use_ssl = ", use_ssl);
