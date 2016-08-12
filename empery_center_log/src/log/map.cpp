@@ -10,7 +10,7 @@ LOG_SERVLET(Msg::SL_MapEventsOverflowed, log, req){
 		Poseidon::get_utc_time(),
 		req.block_x, req.block_y, req.width, req.height, req.active_castle_count, req.map_event_id,
 		req.events_to_refresh, req.events_retained, req.events_created);
-	obj->async_save(true);
+	obj->async_save(false, true);
 }
 
 }
