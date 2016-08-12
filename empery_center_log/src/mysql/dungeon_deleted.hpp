@@ -12,7 +12,7 @@ namespace MySql {
 	FIELD_DATETIME          (timestamp)	\
 	FIELD_UUID              (account_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (dungeon_type_id)	\
-	FIELD_INTEGER_UNSIGNED  (new_score)
+	FIELD_INTEGER_UNSIGNED  (finished)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

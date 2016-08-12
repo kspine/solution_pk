@@ -10,8 +10,8 @@ EVENT_LISTENER(Events::MapEventsOverflowed, event){
 	const auto log = LogClient::require();
 
 	Msg::SL_MapEventsOverflowed msg;
-	msg.x                   = event.block_scope.left();
-	msg.y                   = event.block_scope.bottom();
+	msg.block_x             = event.block_scope.left();
+	msg.block_y             = event.block_scope.bottom();
 	msg.width               = event.block_scope.width();
 	msg.height              = event.block_scope.height();
 	msg.active_castle_count = event.active_castle_count;
