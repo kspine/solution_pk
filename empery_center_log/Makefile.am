@@ -16,20 +16,12 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-center-log.la
 
 lib_libposeidon_empery_center_log_la_SOURCES = \
-	src/handlers/account_created.cpp	\
-	src/handlers/account_logged_in.cpp	\
-	src/handlers/account_logged_out.cpp	\
-	src/handlers/account_number_online.cpp	\
-	src/handlers/item_changed.cpp	\
-	src/handlers/resource_changed.cpp	\
-	src/handlers/auction_item_changed.cpp	\
-	src/handlers/map_event_overflowed.cpp	\
-	src/handlers/soldier_changed.cpp	\
-	src/handlers/wounded_soldier_changed.cpp	\
-	src/handlers/castle_protection.cpp	\
-	src/handlers/dungeon_created.cpp	\
-	src/handlers/dungeon_deleted.cpp	\
-	src/singletons/log_http_server.cpp	\
+	src/singletons/log_cbpp_server.cpp	\
 	src/log/account.cpp	\
+	src/log/item.cpp	\
+	src/log/castle.cpp	\
+	src/log/auction.cpp	\
+	src/log/map.cpp	\
+	src/log/dungeon.cpp	\
 	src/log_session.cpp	\
 	src/mmain.cpp
