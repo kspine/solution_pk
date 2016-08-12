@@ -1575,7 +1575,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 					", resource_id = ", resource_id,
 					", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				events.emplace_back(boost::make_shared<Events::ResourceChanged>(
+				events.emplace_back(boost::make_shared<Events::CastleResourceChanged>(
 					map_object_uuid, owner_uuid, resource_id, old_amount, new_amount, reason, param1, param2, param3));
 			}
 			break;
@@ -1613,7 +1613,7 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 					", resource_id = ", resource_id,
 					", old_amount = ", old_amount, ", delta_amount = ", delta_amount, ", new_amount = ", new_amount,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				events.emplace_back(boost::make_shared<Events::ResourceChanged>(
+				events.emplace_back(boost::make_shared<Events::CastleResourceChanged>(
 					map_object_uuid, owner_uuid, resource_id, old_amount, new_amount, reason, param1, param2, param3));
 			}
 			break;
@@ -1777,7 +1777,7 @@ MapObjectTypeId Castle::commit_soldier_transaction_nothrow(const std::vector<Sol
 					", map_object_type_id = ", map_object_type_id,
 					", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				events.emplace_back(boost::make_shared<Events::SoldierChanged>(
+				events.emplace_back(boost::make_shared<Events::CastleSoldierChanged>(
 					map_object_uuid, owner_uuid, map_object_type_id, old_count, new_count, reason, param1, param2, param3));
 			}
 			break;
@@ -1815,7 +1815,7 @@ MapObjectTypeId Castle::commit_soldier_transaction_nothrow(const std::vector<Sol
 					", map_object_type_id = ", map_object_type_id,
 					", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				events.emplace_back(boost::make_shared<Events::SoldierChanged>(
+				events.emplace_back(boost::make_shared<Events::CastleSoldierChanged>(
 					map_object_uuid, owner_uuid, map_object_type_id, old_count, new_count, reason, param1, param2, param3));
 			}
 			break;
@@ -2164,7 +2164,7 @@ MapObjectTypeId Castle::commit_wounded_soldier_transaction_nothrow(const std::ve
 					", map_object_type_id = ", map_object_type_id,
 					", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				events.emplace_back(boost::make_shared<Events::WoundedSoldierChanged>(
+				events.emplace_back(boost::make_shared<Events::CastleWoundedSoldierChanged>(
 					map_object_uuid, owner_uuid, map_object_type_id, old_count, new_count, reason, param1, param2, param3));
 			}
 			break;
@@ -2202,7 +2202,7 @@ MapObjectTypeId Castle::commit_wounded_soldier_transaction_nothrow(const std::ve
 					", map_object_type_id = ", map_object_type_id,
 					", old_count = ", old_count, ", delta_count = ", delta_count, ", new_count = ", new_count,
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
-				events.emplace_back(boost::make_shared<Events::WoundedSoldierChanged>(
+				events.emplace_back(boost::make_shared<Events::CastleWoundedSoldierChanged>(
 					map_object_uuid, owner_uuid, map_object_type_id, old_count, new_count, reason, param1, param2, param3));
 			}
 			break;

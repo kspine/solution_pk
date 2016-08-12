@@ -34,12 +34,12 @@ DUNGEON_SERVLET(消息类型, 会话形参名, 消息形参名){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(DungeonSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(DungeonServlet, __LINE__, Entry_)));	\
+		handles_.push(::EmperyCenter::DungeonSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(DungeonServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(DungeonServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr< ::EmperyCenter::DungeonSession> & session_arg_ __attribute__((__unused__)),	\
 		MsgType_ req_arg_	\
-		)	\
+		)
 
 #define DUNGEON_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
 #define DUNGEON_THROW(code_)             DUNGEON_THROW_MSG(code_, sslit(""))
