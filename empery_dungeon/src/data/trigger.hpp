@@ -10,8 +10,9 @@ namespace Data {
 	class Trigger {
 	public:
 		std::string                                       dungeon_trigger;
+		std::uint64_t                                     trigger_id;
 		std::string                                       trigger_name;
-		std::pair<std::string,std::string>                dungeon_trigger_pair;
+		std::pair<std::string,std::uint64_t>              dungeon_trigger_pair;
 		unsigned                                          type;
 		std::uint64_t                                     delay;
 		std::string                                       condition;
@@ -19,8 +20,8 @@ namespace Data {
 		std::string                                       effect_params;
 		bool                                              activated = false;
 	public:
-		static boost::shared_ptr<const Trigger> get(std::string dungeon_trigger,std::string trigger_name);
-		static boost::shared_ptr<const Trigger> require(std::string dungeon_trigger,std::string trigger_name);
+		static boost::shared_ptr<const Trigger> get(std::string dungeon_trigger,std::uint64_t trigger_id);
+		static boost::shared_ptr<const Trigger> require(std::string dungeon_trigger,std::uint64_t  trigger_id);
 		static void get_all(std::vector<boost::shared_ptr<const Trigger>> &ret,const std::string dungeon_trigger);
 };
 }

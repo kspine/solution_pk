@@ -14,17 +14,17 @@ namespace {
 		while(csv.fetch_row()){
 			Data::Trigger elem = { };
 			elem.dungeon_trigger = dungeon_trigger;
-			std::string trigger_name;
+			csv.get(elem.trigger_id,           "id");
 			csv.get(elem.trigger_name,         "name");
-			trigger_name = elem.trigger_name;
-			elem.dungeon_trigger_pair = std::make_pair(dungeon_trigger,elem.trigger_name);
+			elem.dungeon_trigger_pair = std::make_pair(dungeon_trigger,elem.trigger_id);
 			csv.get(elem.type,             "trigger_type");
 			csv.get(elem.delay,            "delay");
 			csv.get(elem.condition,         "condition");
 			csv.get(elem.effect,           "effect_type");
 			csv.get(elem.effect_params,    "effect_params");
+			std::uint64_t trigger_id = elem.trigger_id;
 			if(!container->insert(std::move(elem)).second){
-				LOG_EMPERY_DUNGEON_ERROR("Duplicate dungeon trigger  dungeon_trigger = ", dungeon_trigger," trigger_name = ",trigger_name);
+				LOG_EMPERY_DUNGEON_ERROR("Duplicate dungeon trigger  dungeon_trigger = ", dungeon_trigger," trigger_id = ",trigger_id);
 				DEBUG_THROW(Exception, sslit("Duplicate dungeon trigger"));
 			}
 		}
@@ -49,7 +49,7 @@ namespace {
 }
 
 namespace Data {
-	boost::shared_ptr<const Trigger> Trigger::get(std::string dungeon_trigger,std::string trigger_name){
+	boost::shared_ptr<const Trigger> Trigger::get(std::string dungeon_trigger,std::uint64_t trigger_id){
 		PROFILE_ME;
 
 		const auto dungeon_trigger_container = g_dungeon_trigger_container.lock();
@@ -58,20 +58,20 @@ namespace Data {
 			return { };
 		}
 
-		const auto it = dungeon_trigger_container->find<0>(std::make_pair(dungeon_trigger,trigger_name));
+		const auto it = dungeon_trigger_container->find<0>(std::make_pair(dungeon_trigger,trigger_id));
 		if(it == dungeon_trigger_container->end<0>()){
-			LOG_EMPERY_DUNGEON_TRACE("dugeon trigger not found: dungeon_trigger = ", dungeon_trigger," trigger_name = ",trigger_name);
+			LOG_EMPERY_DUNGEON_TRACE("dugeon trigger not found: dungeon_trigger = ", dungeon_trigger," trigger_id = ",trigger_id);
 			return { };
 		}
 		return boost::shared_ptr<const Trigger>(dungeon_trigger_container, &*it);
 	}
 
-	boost::shared_ptr<const Trigger> Trigger::require(std::string dungeon_trigger,std::string trigger_name){
+	boost::shared_ptr<const Trigger> Trigger::require(std::string dungeon_trigger,std::uint64_t trigger_id){
 		PROFILE_ME;
 
-		auto ret = get(dungeon_trigger,trigger_name);
+		auto ret = get(dungeon_trigger,trigger_id);
 		if(!ret){
-			LOG_EMPERY_DUNGEON_WARNING("dungeon trigger not found: dungeon_trigger = ", dungeon_trigger," trigger_name = ", trigger_name);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon trigger not found: dungeon_trigger = ", dungeon_trigger," trigger_id = ", trigger_id);
 			DEBUG_THROW(Exception, sslit("dungeon trigger not found"));
 		}
 		return ret;

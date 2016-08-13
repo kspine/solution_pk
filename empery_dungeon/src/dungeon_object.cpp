@@ -242,7 +242,6 @@ void DungeonObject::set_action(Coord from_coord, std::deque<std::pair<signed cha
 				}
 				break;
 			}
-
 			std::uint64_t delay = UINT64_MAX;
 			std::pair<long, std::string> result;
 			try {
@@ -1004,7 +1003,7 @@ std::uint64_t DungeonObject::on_monster_regress(){
 	//to ACT_MONSTER_SEARCH_TARGET
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_AUTO_SEARCH_TARGET);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::string> &result,AI ai){
 	boost::shared_ptr<DungeonObject> new_enemy_dungeon_object;
@@ -1015,12 +1014,12 @@ std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::s
 		result = CbppResponse(Msg::ERR_FAIL_SEARCH_TARGE) << get_dungeon_object_uuid();
 	}
 	const auto ai_data = Data::DungeonObjectAi::require(ai);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 std::uint64_t DungeonObject::on_monster_guard(AI ai){
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	const auto ai_data = Data::DungeonObjectAi::require(ai);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 
 std::uint64_t DungeonObject::on_monster_patrol(){
@@ -1039,7 +1038,7 @@ std::uint64_t DungeonObject::on_monster_patrol(){
 		set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	}
 	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_PATROL);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 
 

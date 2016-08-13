@@ -3,8 +3,8 @@
 #include <poseidon/cbpp/status_codes.hpp>
 
 namespace EmperyDungeon {
-	Trigger::Trigger(DungeonUuid dungeon_uuid_,std::string name_,std::uint64_t delay_,TriggerCondition condition_,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_)
-	:dungeon_uuid(dungeon_uuid_),name(name_),delay(delay_),condition(condition_),actions(std::move(actions_)),activated(activited_),activated_time(activated_time_){
+	Trigger::Trigger(DungeonUuid dungeon_uuid_,std::uint64_t trigger_id_,std::uint64_t delay_,TriggerCondition condition_,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_)
+	:dungeon_uuid(dungeon_uuid_),trigger_id(trigger_id_),delay(delay_),condition(condition_),actions(std::move(actions_)),activated(activited_),activated_time(activated_time_){
 	}
 	Trigger::~Trigger(){
 	}
@@ -14,5 +14,12 @@ namespace EmperyDungeon {
 	}
 
 	TriggerDamage::~TriggerDamage(){
+	}
+	
+	TriggerConfirmation::TriggerConfirmation(std::string context_,unsigned  type_,int param1_,int param2_,std::string param3_,std::uint64_t trigger_id_, bool confirm_)
+	:context(context_),type(type_),param1(param1_),param2(param2_),param3(param3_),trigger_id(trigger_id_),confirm(confirm_)
+	{
+	}
+	TriggerConfirmation::~TriggerConfirmation(){
 	}
 }

@@ -345,6 +345,7 @@ void DungeonObject::synchronize_with_dungeon_server(const boost::shared_ptr<Dung
 		msg.owner_uuid          = get_owner_uuid().str();
 		msg.x                   = get_coord().x();
 		msg.y                   = get_coord().y();
+		msg.tag                 = get_tag();
 		msg.attributes.reserve(m_attributes.size());
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 			auto &attribute = *msg.attributes.emplace(msg.attributes.end());

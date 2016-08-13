@@ -17,12 +17,19 @@ class Trigger;
 class TriggerCondition;
 class TriggerAction;
 class TriggerDamage;
+class TriggerConfirmation;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
 	enum QuitReason {
 		Q_DESTRUCTOR     = 0,
 		Q_PLAYER_REQUEST = 1,
+	};
+	
+	enum DungeonState {
+		S_INIT           = 0,
+		S_PASS           = 1,
+		S_FAIL           = 2,
 	};
 
 private:
@@ -36,9 +43,11 @@ private:
 	std::uint64_t                                                                   m_damage_solider;
 	std::vector<std::uint64_t>                                                      m_finish_tasks;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
-	boost::container::flat_map<std::string, boost::shared_ptr<Trigger>>             m_triggers;
-	std::vector<boost::shared_ptr<TriggerDamage>>                                   m_triggers_damages;                                                    
+	boost::container::flat_map<std::uint64_t, boost::shared_ptr<Trigger>>           m_triggers;
+	boost::container::flat_map<std::string, boost::shared_ptr<TriggerConfirmation>> m_triggers_confirmation;
+	std::vector<boost::shared_ptr<TriggerDamage>>                                   m_triggers_damages;
 	boost::shared_ptr<Poseidon::TimerItem>                                          m_trigger_timer;
+	DungeonState                                                                    m_dungeon_state;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
@@ -99,8 +108,10 @@ public:
 	void on_triggers_dungeon_finished(const TriggerAction &action);
 	void on_triggers_dungeon_task_finished(const TriggerAction &action);
 	void on_triggers_dungeon_task_failed(const TriggerAction &action);
+	void on_triggers_dungeon_move_camera(const TriggerAction &action);
 	void on_triggers_dungeon_set_scope(const TriggerAction &action);
-	void on_triggers_dungeon_lock_view(const TriggerAction &action);
+	void on_triggers_dungeon_wait_for_confirmation(const TriggerAction &action);
+	void on_triggers_dungeon_player_confirmation(std::string context);
 };
 
 }

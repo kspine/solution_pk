@@ -36,6 +36,7 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const b
 	, m_dungeon_client(dungeon)
 	, m_founder_uuid(founder_uuid)
 	, m_create_dungeon_time(create_time)
+	,m_dungeon_state(S_INIT)
 {
 }
 
@@ -59,7 +60,7 @@ void Dungeon::pump_triggers(){
 			continue;
 		}
 		std::uint64_t interval = utc_now - trigger->activated_time;
-		if(interval < trigger->delay * 1000){
+		if(interval < trigger->delay){
 			LOG_EMPERY_DUNGEON_DEBUG("activited trigger,but in delay");
 			continue;
 		}
@@ -96,7 +97,7 @@ void Dungeon::pump_triggers_damage(){
 				continue;
 			}
 			damage->loop--;
-			damage->next_damage_time = utc_now + damage->delay * 1000;
+			damage->next_damage_time = utc_now + damage->delay;
 			triggers_damaged.emplace_back(damage);
 			++it;
 		}
@@ -288,7 +289,7 @@ void Dungeon::init_triggers(){
 	}
 	const auto utc_now = Poseidon::get_utc_time();
 	for(auto it = ret.begin(); it != ret.end(); ++it){
-		auto trigger_name = (*it)->trigger_name;
+		auto trigger_id   = (*it)->trigger_id;
 		std::uint64_t delay = (*it)->delay;
 		TriggerCondition trigger_conditon;
 		trigger_conditon.type      = static_cast<TriggerCondition::Type>((*it)->type);
@@ -302,10 +303,10 @@ void Dungeon::init_triggers(){
 		if(activated){
 			activated_time = utc_now;
 		}
-		auto triggers = boost::make_shared<Trigger>(get_dungeon_uuid(),trigger_name,delay,std::move(trigger_conditon),std::move(actions),activated,activated_time);
-		const auto result = m_triggers.emplace(trigger_name, std::move(triggers));
+		auto triggers = boost::make_shared<Trigger>(get_dungeon_uuid(),trigger_id,delay,std::move(trigger_conditon),std::move(actions),activated,activated_time);
+		const auto result = m_triggers.emplace(trigger_id, std::move(triggers));
 		if(!result.second){
-			LOG_EMPERY_DUNGEON_WARNING("Dungeon trigger already exists: dungeon_type_id = ", get_dungeon_type_id(), ", trigger_name = ", trigger_name);
+			LOG_EMPERY_DUNGEON_WARNING("Dungeon trigger already exists: dungeon_type_id = ", get_dungeon_type_id(), ", trigger_id = ", trigger_id);
 			DEBUG_THROW(Exception, sslit("Dungeon trigger already exists"));
 		}
 	}
@@ -401,11 +402,15 @@ void Dungeon::check_triggers_move_pass(Coord coord,bool isMonster){
 
 void Dungeon::check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint64_t old_hp, std::uint64_t new_hp){
 	const auto utc_now = Poseidon::get_utc_time();
+	if(old_hp < new_hp){
+		return;
+	}
  
 	for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
 		const auto &trigger = it->second;
 		if(!trigger->activated && trigger->condition.type == TriggerCondition::C_DUNGEON_OBJECT_HP){
 			try{
+				LOG_EMPERY_DUNGEON_DEBUG("check_triggers_hp,conditon params = ", trigger->condition.params);
 				std::istringstream iss_params(trigger->condition.params);
 				auto params_array = Poseidon::JsonParser::parse_array(iss_params);
 				auto dest_tag = boost::lexical_cast<std::string>(params_array.at(0).get<double>());
@@ -441,7 +446,7 @@ void Dungeon::check_triggers_dungeon_finish(){
 					}
 				}else if(type == 1){
 					//副本限时完成
-					auto threshold = boost::lexical_cast<std::uint64_t>(params_array.at(1).get<double>())*1000;
+					auto threshold = boost::lexical_cast<std::uint64_t>(params_array.at(1).get<double>());
 					auto interval = utc_now - get_create_dungeon_time();
 					if(interval > threshold){
 						continue;
@@ -497,13 +502,17 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 		//TODO
 		on_triggers_dungeon_task_failed(action);
 	}
+	ON_TRIGGER_ACTION(TriggerAction::A_MOVE_CAREMA){
+		//TODO
+		on_triggers_dungeon_move_camera(action);
+	}
 	ON_TRIGGER_ACTION(TriggerAction::A_SET_SCOPE){
 		//TODO
 		on_triggers_dungeon_set_scope(action);
 	}
-	ON_TRIGGER_ACTION(TriggerAction::A_LOCK_VIEW){
+	ON_TRIGGER_ACTION(TriggerAction::A_WAIT_CONFIRMATION){
 		//TODO
-		on_triggers_dungeon_lock_view(action);
+		on_triggers_dungeon_wait_for_confirmation(action);
 	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
@@ -606,7 +615,7 @@ void Dungeon::do_triggers_damage(const boost::shared_ptr<TriggerDamage>& trigger
 						LOG_EMPERY_DUNGEON_DEBUG("trigger damage fail", sresult.first, ", msg = ", sresult.second);
 						continue;
 					}
-					LOG_EMPERY_DUNGEON_DEBUG("trigger damage sucess");
+					LOG_EMPERY_DUNGEON_DEBUG("trigger damage attack action:",msg);
 				} catch(std::exception &e){
 					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 					dungeon_client->shutdown(e.what());
@@ -626,9 +635,9 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 	const auto utc_now = Poseidon::get_utc_time();
 	std::istringstream iss_param(action.params);
 	auto param_array = Poseidon::JsonParser::parse_array(iss_param);
-	std::uint64_t open = static_cast<std::uint64_t>(param_array.at(0).get<double>());
-	std::string trigger_name = param_array.at(1).get<std::string>();
-	auto it = m_triggers.find(trigger_name);
+	std::uint64_t trigger_id = static_cast<std::uint64_t>(param_array.at(0).get<double>());
+	std::uint64_t open = static_cast<std::uint64_t>(param_array.at(1).get<double>());
+	auto it = m_triggers.find(trigger_id);
 	if(it != m_triggers.end()){
 		const auto &trigger = it->second;
 		if(!trigger->activated&&open){
@@ -640,6 +649,10 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 
 void Dungeon::on_triggers_dungeon_failed(const TriggerAction &action){
 	if(action.type != TriggerAction::A_DUNGEON_FAILED){
+		return;
+	}
+	if(m_dungeon_state != S_INIT){
+		LOG_EMPERY_DUNGEON_DEBUG("on trigger dungeon fail,but the dungeon have finished,currecnt state = ",m_dungeon_state);
 		return;
 	}
 	const auto dungeon_client = get_dungeon_client();
@@ -659,6 +672,10 @@ void Dungeon::on_triggers_dungeon_failed(const TriggerAction &action){
 
 void Dungeon::on_triggers_dungeon_finished(const TriggerAction &action){
 	if(action.type != TriggerAction::A_DUNGEON_FINISHED){
+		return;
+	}
+	if(m_dungeon_state != S_INIT){
+		LOG_EMPERY_DUNGEON_DEBUG("on trigger dungeon finished,but the dungeon have finished,currecnt state = ",m_dungeon_state);
 		return;
 	}
 	check_triggers_dungeon_finish();
@@ -700,12 +717,128 @@ void Dungeon::on_triggers_dungeon_task_failed(const TriggerAction &action){
 	
 }
 
-void Dungeon::on_triggers_dungeon_set_scope(const TriggerAction &action){
-	
+void Dungeon::on_triggers_dungeon_move_camera(const TriggerAction &action){
+	if(action.type != TriggerAction::A_MOVE_CAREMA){
+		return;
+	}
+	std::istringstream iss_param(action.params);
+	auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+	auto &dest = param_array.at(0).get<Poseidon::JsonArray>();
+	auto x = static_cast<int>(dest.at(0).get<double>());
+	auto y = static_cast<int>(dest.at(1).get<double>());
+	auto duration = static_cast<std::uint64_t>(param_array.at(1).get<double>());
+	const auto dungeon_client = get_dungeon_client();
+	if(dungeon_client){
+		try {
+			Msg::DS_DungeonMoveCamera msgDungeonMoveCamera;
+			msgDungeonMoveCamera.dungeon_uuid       = get_dungeon_uuid().str();
+			msgDungeonMoveCamera.x                  = x;
+			msgDungeonMoveCamera.y                  = y;
+			msgDungeonMoveCamera.movement_duration  = duration;
+			dungeon_client->send(msgDungeonMoveCamera);
+			LOG_EMPERY_DUNGEON_DEBUG("msg dungeon move camera:",msgDungeonMoveCamera);
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+	}
 }
 
-void Dungeon::on_triggers_dungeon_lock_view(const TriggerAction &action){
+void Dungeon::on_triggers_dungeon_set_scope(const TriggerAction &action){
+	if(action.type != TriggerAction::A_SET_SCOPE){
+		return;
+	}
+	std::istringstream iss_param(action.params);
+	auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+	auto &dest = param_array.at(0).get<Poseidon::JsonArray>();
+	auto x = static_cast<int>(dest.at(0).get<double>());
+	auto y = static_cast<int>(dest.at(1).get<double>());
+	auto width = static_cast<std::uint64_t>(param_array.at(1).get<double>());
+	auto height = static_cast<std::uint64_t>(param_array.at(2).get<double>());
+	const auto dungeon_client = get_dungeon_client();
+	if(dungeon_client){
+		try {
+			Msg::DS_DungeonSetScope msgDungeonSetScope;
+			msgDungeonSetScope.dungeon_uuid       = get_dungeon_uuid().str();
+			msgDungeonSetScope.x                  = x;
+			msgDungeonSetScope.y                  = y;
+			msgDungeonSetScope.width              = width;
+			msgDungeonSetScope.height             = height;
+			dungeon_client->send(msgDungeonSetScope);
+			LOG_EMPERY_DUNGEON_DEBUG("msg dungeon set scope:",msgDungeonSetScope);
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+	}
+}
+
+void Dungeon::on_triggers_dungeon_wait_for_confirmation(const TriggerAction &action){
+	if(action.type != TriggerAction::A_WAIT_CONFIRMATION){
+		return;
+	}
+	std::istringstream iss_param(action.params);
+	auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+	auto context =  boost::lexical_cast<std::string>(param_array.at(0).get<double>());
+	auto type    =  static_cast<unsigned>(param_array.at(1).get<double>());
+	auto param1  =  static_cast<int>(param_array.at(2).get<double>());
+	auto param2  =  static_cast<int>(param_array.at(3).get<double>());
+	auto param3  =  boost::lexical_cast<std::string>(param_array.at(4).get<double>());
+	auto trigger_id = static_cast<std::uint64_t>(param_array.at(5).get<double>());
 	
+	auto it = m_triggers_confirmation.find(context);
+	if(it != m_triggers_confirmation.end()){
+		LOG_EMPERY_DUNGEON_WARNING("trigger same confirmation at the same time, confirmation = ", context);
+		return;
+	}
+	auto trigger_confirmation = boost::make_shared<TriggerConfirmation>(context,type,param1,param2,param3,trigger_id,false);
+	const auto result = m_triggers_confirmation.emplace(context, std::move(trigger_confirmation));
+	if(!result.second){
+		LOG_EMPERY_DUNGEON_WARNING("Dungeon trigger confirmation already exists: context = ", context);
+		DEBUG_THROW(Exception, sslit("Dungeon trigger confirmation already exists"));
+	}
+
+	const auto dungeon_client = get_dungeon_client();
+	if(dungeon_client){
+		try {
+			Msg::DS_DungeonWaitForPlayerConfirmation msgDungeonWaitForPlayerConfirm;
+			msgDungeonWaitForPlayerConfirm.dungeon_uuid       = get_dungeon_uuid().str();
+			msgDungeonWaitForPlayerConfirm.context            = context;
+			msgDungeonWaitForPlayerConfirm.type               = type;
+			msgDungeonWaitForPlayerConfirm.param1             = param1;
+			msgDungeonWaitForPlayerConfirm.param2             = param2;
+			msgDungeonWaitForPlayerConfirm.param3             = param3;
+			dungeon_client->send(msgDungeonWaitForPlayerConfirm);
+			LOG_EMPERY_DUNGEON_DEBUG("msg dungeon wait for player confirmation:",msgDungeonWaitForPlayerConfirm);
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+	}
+}
+
+void Dungeon::on_triggers_dungeon_player_confirmation(std::string context){
+	auto it = m_triggers_confirmation.find(context);
+	if(it == m_triggers_confirmation.end()){
+		LOG_EMPERY_DUNGEON_WARNING("player confirmation can't find, context = ",context);
+		return;
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	auto &trigger_confirmation = it->second;
+	auto trigger_id = trigger_confirmation->trigger_id;
+	auto itt = m_triggers.find(trigger_id);
+	if(itt != m_triggers.end()){
+		const auto &trigger = itt->second;
+		if(trigger->activated){
+			LOG_EMPERY_DUNGEON_WARNING("trigger have be activated, trigger_id = ", trigger_id);
+		}else{
+			trigger->activated_time = utc_now;
+			trigger->activated = true;
+		}
+	}else{
+		LOG_EMPERY_DUNGEON_WARNING("can't find the trigger, trigger_id = ", trigger_id);
+	}
+	m_triggers_confirmation.erase(it);
 }
 
 }

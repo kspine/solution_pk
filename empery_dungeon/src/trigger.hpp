@@ -9,9 +9,10 @@ struct TriggerCondition {
 public:
 	enum Type {
 		C_ENTER_DUNGEON               = 1, // 进入副本触发
-		C_DUNGEON_OBJECT_PASS         = 2, // 部队通过
+		C_DUNGEON_OBJECT_PASS         = 2, // 部队或野怪通过
 		C_DUNGEON_OBJECT_HP           = 3, // HP
 		C_DUNGEON_FINISH              = 4, // 通关触发(通关之后需要立即执行)
+		C_WAIT_CONFIRMATION           = 5, // 验证触发
 	};
 
 	Type                     type;
@@ -29,8 +30,9 @@ public:
 		A_DUNGEON_FAILED         = 6,//通关失败
 		A_SET_TASK_FINISHED      = 7,//指定任务完成
 		A_SET_TASK_FAIL          = 8,//指定任务失败
-		A_SET_SCOPE              = 9,//镜头移动
-		A_LOCK_VIEW              = 10,//锁定视野
+		A_MOVE_CAREMA             = 9,//镜头移动
+		A_SET_SCOPE              = 10,//锁定视野
+		A_WAIT_CONFIRMATION      = 11,//等待验证
 	};
 
 	Type                     type;
@@ -50,17 +52,31 @@ public:
 	~TriggerDamage();
 };
 
+struct TriggerConfirmation {
+public:
+	std::string   context;
+	unsigned      type;
+	int           param1;
+	int           param2;
+	std::string   param3;
+	std::uint64_t trigger_id;
+	bool          confirm;
+public:
+	TriggerConfirmation(std::string context_,unsigned  type_,int param1_,int param2_,std::string param3_, std::uint64_t trigger_id_, bool confirm_);
+	~TriggerConfirmation();
+};
+
 struct Trigger {
 public:
 	DungeonUuid                dungeon_uuid;
-	std::string                name;
+	std::uint64_t              trigger_id;
 	std::uint64_t              delay;
 	TriggerCondition           condition;
 	std::deque<TriggerAction>  actions;
 	bool                       activated = false;
 	std::uint64_t              activated_time;
 public:
-	Trigger(DungeonUuid dungeon_uuid_,std::string name_,std::uint64_t delay_,TriggerCondition condition,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_);
+	Trigger(DungeonUuid dungeon_uuid_,std::uint64_t trigger_id_ ,std::uint64_t delay_,TriggerCondition condition,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_);
 	~Trigger();
 };
 

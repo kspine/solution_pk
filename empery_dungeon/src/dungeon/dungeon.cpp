@@ -107,6 +107,13 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectRemoved, dungeon, req){
 	if(!expect_dungeon){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
 	}
+	auto dungeon_object = expect_dungeon->get_object(dungeon_object_uuid);
+	if(!dungeon_object){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) << dungeon_object_uuid;
+	}
+	const auto dungeon_object_type_data = dungeon_object->get_dungeon_object_type_data();
+	const auto hp_total = checked_mul(dungeon_object_type_data->max_soldier_count, dungeon_object_type_data->hp);
+	expect_dungeon->check_triggers_hp(dungeon_object->get_tag(),hp_total,0,0);
 	expect_dungeon->reove_dungeon_object_no_synchronize(dungeon_object_uuid);
 	return Response();
 }
@@ -133,6 +140,14 @@ DUNGEON_SERVLET(Msg::SD_DungeonSetAction, dengeon, req){
 	return Response();
 }
 
-
-
+DUNGEON_SERVLET(Msg::SD_DungeonPlayerConfirmation, dengeon, req){
+	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	auto context      = req.context;
+	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
+	if(!expect_dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
+	}
+	expect_dungeon->on_triggers_dungeon_player_confirmation(context);
+	return Response();
+}
 }
