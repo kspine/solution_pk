@@ -37,7 +37,7 @@ AUCTION_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(AuctionSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AuctionServlet, __LINE__, Entry_)));	\
+		handles_.push(::EmperyCenter::AuctionSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AuctionServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(AuctionServlet, __LINE__, Proc_) (	\
 		::Poseidon::JsonObject & root_arg_ __attribute__((__unused__)),	\

@@ -46,13 +46,13 @@ PLAYER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(PlayerSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Entry_)));	\
+		handles_.push(::EmperyCenter::PlayerSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(PlayerServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr< ::EmperyCenter::Account> & account_arg_ __attribute__((__unused__)),	\
 		const ::boost::shared_ptr< ::EmperyCenter::PlayerSession> & session_arg_ __attribute__((__unused__)),	\
 		MsgType_ req_arg_	\
-		)	\
+		)
 
 #define PLAYER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
 #define PLAYER_THROW(code_)             PLAYER_THROW_MSG(code_, sslit(""))

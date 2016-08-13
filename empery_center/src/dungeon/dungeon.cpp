@@ -635,6 +635,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonMoveCamera, dungeon, server, req){
 	msg.x                 = req.x;
 	msg.y                 = req.y;
 	msg.movement_duration = req.movement_duration;
+	msg.position_type     = req.position_type;
 	dungeon->broadcast_to_observers(msg);
 
 	return Response();

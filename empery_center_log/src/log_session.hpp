@@ -1,33 +1,36 @@
 #ifndef EMPERY_CENTER_LOG_LOG_SESSION_HPP_
 #define EMPERY_CENTER_LOG_LOG_SESSION_HPP_
 
-#include <boost/function.hpp>
-#include <poseidon/http/session.hpp>
-#include <poseidon/http/authorization.hpp>
+#include <poseidon/cbpp/session.hpp>
 #include <poseidon/fwd.hpp>
+#include <cstdint>
+#include <boost/function.hpp>
+#include <utility>
 
 namespace EmperyCenterLog {
 
-class LogSession : public Poseidon::Http::Session {
+class LogSession : public Poseidon::Cbpp::Session {
 public:
 	using ServletCallback = boost::function<
-		 std::pair<long, std::string> (Poseidon::JsonObject &, const boost::shared_ptr<LogSession> &, Poseidon::OptionalMap)>;
+		void (const boost::shared_ptr<LogSession> &, Poseidon::StreamBuffer)>;
 
 public:
-	static boost::shared_ptr<const ServletCallback> create_servlet(const std::string &uri, ServletCallback callback);
-	static boost::shared_ptr<const ServletCallback> get_servlet(const std::string &uri);
-
-private:
-	const boost::shared_ptr<const Poseidon::Http::AuthInfo> m_auth_info;
-	const std::string m_prefix;
+	static boost::shared_ptr<const ServletCallback> create_servlet(std::uint16_t message_id, ServletCallback callback);
+	static boost::shared_ptr<const ServletCallback> get_servlet(std::uint16_t message_id);
 
 public:
-	LogSession(Poseidon::UniqueFile socket,
-		boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix);
+	explicit LogSession(Poseidon::UniqueFile socket);
 	~LogSession();
 
 protected:
-	void on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer entity) override;
+	void on_connect() override;
+
+	void on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload) override;
+	void on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param) override;
+
+public:
+	void shutdown(const char *message) noexcept;
+	void shutdown(int code, const char *message) noexcept;
 };
 
 }
