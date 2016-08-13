@@ -6,6 +6,6 @@ id,name,trigger_type,delay,condition,effect_type,effect_params
 200002,monster_move_pass,2,0,"[true,[1,1],[2,2],[1,2],[2,3]]",[2],"[[5,1000,3000,[1,2],[4,5],[8,7]]]"
 300001,monster_damage,3,0,"[50,0.1]",[7],[[3401003]]
 300002,monster_die,3,0,"[51,0]",[5],[[0]]
-400001,dungeon_finish_task_first,4,0,"[0,10]",[7],[[3401001]]
+400001,dungeon_finish_task_first,4,0,"[0,1000]",[7],[[3401001]]
 400002,dungeon_finish_task_second,4,0,"[1,120000]",[7],[[3401002]]
 500001,dungeon_plot_first,5,0,,[11],"[[3001,0,0,0,0,0]]"

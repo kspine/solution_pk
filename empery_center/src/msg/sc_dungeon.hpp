@@ -170,7 +170,7 @@ namespace Msg {
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_DungeonMoveCamera
-#define MESSAGE_ID      1587
+#define MESSAGE_ID      1586
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VINT          (x)	\
