@@ -630,7 +630,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerLoses, dungeon, server, req){
 }
 
 DUNGEON_SERVLET(Msg::DS_DungeonMoveCamera, dungeon, server, req){
-	Msg::DS_DungeonMoveCamera msg;
+	Msg::SC_DungeonMoveCamera msg;
 	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
 	msg.x                 = req.x;
 	msg.y                 = req.y;

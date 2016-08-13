@@ -545,7 +545,7 @@ void Dungeon::on_triggers_create_dungeon_object(const TriggerAction &action){
 				msgCreateMonster.map_object_type_id = static_cast<std::uint64_t>(elem.at(0).get<double>());
 				msgCreateMonster.x                  = static_cast<int>(elem.at(1).get<double>());
 				msgCreateMonster.y                  = static_cast<int>(elem.at(2).get<double>());
-				msgCreateMonster.tag               =  boost::lexical_cast<std::string>(elem.at(3).get<double>());
+				msgCreateMonster.tag                =  boost::lexical_cast<std::string>(elem.at(3).get<double>());
 				dungeon_client->send(msgCreateMonster);
 				LOG_EMPERY_DUNGEON_DEBUG("msg create monster:",msgCreateMonster);
 			} catch(std::exception &e){
@@ -727,6 +727,7 @@ void Dungeon::on_triggers_dungeon_move_camera(const TriggerAction &action){
 	auto x = static_cast<int>(dest.at(0).get<double>());
 	auto y = static_cast<int>(dest.at(1).get<double>());
 	auto duration = static_cast<std::uint64_t>(param_array.at(1).get<double>());
+	auto pos = static_cast<std::uint64_t>(param_array.at(2).get<double>());
 	const auto dungeon_client = get_dungeon_client();
 	if(dungeon_client){
 		try {
@@ -735,6 +736,7 @@ void Dungeon::on_triggers_dungeon_move_camera(const TriggerAction &action){
 			msgDungeonMoveCamera.x                  = x;
 			msgDungeonMoveCamera.y                  = y;
 			msgDungeonMoveCamera.movement_duration  = duration;
+			msgDungeonMoveCamera.position_type      = pos;
 			dungeon_client->send(msgDungeonMoveCamera);
 			LOG_EMPERY_DUNGEON_DEBUG("msg dungeon move camera:",msgDungeonMoveCamera);
 		} catch(std::exception &e){
