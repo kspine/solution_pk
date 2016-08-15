@@ -265,6 +265,7 @@ void Dungeon::broadcast_to_observers(std::uint16_t message_id, const Poseidon::S
 		if(session){
 			try {
 				session->send(message_id, payload);
+				LOG_EMPERY_CENTER_DEBUG("broadcast_to_observers message_id:",message_id," msg_data = ", payload.dump());
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 				session->shutdown(e.what());

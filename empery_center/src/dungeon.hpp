@@ -105,7 +105,6 @@ public:
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
-
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

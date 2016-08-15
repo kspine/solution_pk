@@ -20,10 +20,10 @@ namespace EmperyDungeon {
 namespace Msg = ::EmperyCenter::Msg;
 
 DungeonObject::DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
-	DungeonObjectTypeId dungeon_object_type_id, AccountUuid owner_uuid,Coord coord)
+	DungeonObjectTypeId dungeon_object_type_id, AccountUuid owner_uuid,Coord coord,std::string tag)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_object_uuid(dungeon_object_uuid)
 	, m_dungeon_object_type_id(dungeon_object_type_id), m_owner_uuid(owner_uuid)
-	, m_coord(coord)
+	, m_coord(coord),m_tag(tag)
 {
 }
 DungeonObject::~DungeonObject(){
@@ -237,12 +237,13 @@ void DungeonObject::set_action(Coord from_coord, std::deque<std::pair<signed cha
 
 		for(;;){
 			if(now < m_next_action_time){
+				/*
 				if(m_action_timer){
 					Poseidon::TimerDaemon::set_absolute_time(m_action_timer, m_next_action_time);
 				}
+				*/
 				break;
 			}
-
 			std::uint64_t delay = UINT64_MAX;
 			std::pair<long, std::string> result;
 			try {
@@ -567,6 +568,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	}
 
 	set_coord(new_coord);
+	dungeon->check_triggers_move_pass(new_coord,is_monster());
 
 	m_waypoints.pop_front();
 	m_blocked_retry_count = 0;
@@ -1003,7 +1005,7 @@ std::uint64_t DungeonObject::on_monster_regress(){
 	//to ACT_MONSTER_SEARCH_TARGET
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_AUTO_SEARCH_TARGET);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::string> &result,AI ai){
 	boost::shared_ptr<DungeonObject> new_enemy_dungeon_object;
@@ -1014,21 +1016,23 @@ std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::s
 		result = CbppResponse(Msg::ERR_FAIL_SEARCH_TARGE) << get_dungeon_object_uuid();
 	}
 	const auto ai_data = Data::DungeonObjectAi::require(ai);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 std::uint64_t DungeonObject::on_monster_guard(AI ai){
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	const auto ai_data = Data::DungeonObjectAi::require(ai);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 
 std::uint64_t DungeonObject::on_monster_patrol(){
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+	auto dest_x  = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_PATROL_DEST_POINT_X);
+	auto dest_y  = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_PATROL_DEST_POINT_Y);
 	Coord coord_birth(birth_x,birth_y);
 	if(m_waypoints.empty() && (coord_birth == get_coord())){
 		//TODO goto the dest
-		if(find_way_points(m_waypoints,get_coord(),Coord(birth_x - 9,birth_y - 3),true)){
+		if(find_way_points(m_waypoints,get_coord(),Coord(dest_x,dest_y),true)){
 			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_PATROL),"");
 		}else{
 			LOG_EMPERY_DUNGEON_WARNING("find the way point to patrol dest fail，dungeon_uuid = ",get_dungeon_uuid());
@@ -1038,7 +1042,7 @@ std::uint64_t DungeonObject::on_monster_patrol(){
 		set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	}
 	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_PATROL);
-	return boost::lexical_cast<std::uint64_t>(ai_data->params);
+	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 
 

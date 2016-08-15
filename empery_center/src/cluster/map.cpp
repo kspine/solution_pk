@@ -774,8 +774,9 @@ _wounded_done:
 						activity_add_rate = 2;
 					}
 				}
+
 				const auto reward_counter = castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
-				if(reward_counter > 0 || goblin_award){
+				if(reward_counter > 0){
 					std::vector<ResourceTransactionElement> resource_transaction;
 					if(!goblin_award){
 						resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,

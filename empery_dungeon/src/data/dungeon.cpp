@@ -22,6 +22,7 @@ namespace {
 
 			csv.get(elem.dungeon_type_id,              "dungeon_id");
 			csv.get(elem.dungeon_map,                  "dungeon_map");
+			csv.get(elem.dungeon_trigger,              "dungeon_trigger");
 			if(!dungeon_container->insert(std::move(elem)).second){
 				LOG_EMPERY_DUNGEON_ERROR("Duplicate Dungeon: dungeon_type_id = ", elem.dungeon_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate Dungeon"));

@@ -61,6 +61,8 @@ namespace Msg {
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
+	FIELD_VINT          (dest_x)	\
+	FIELD_VINT          (dest_y)	\
 	FIELD_STRING        (tag)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -124,7 +126,8 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)  \
 	FIELD_VINT          (x) \
 	FIELD_VINT          (y) \
-	FIELD_VUINT         (movement_duration)
+	FIELD_VUINT         (movement_duration)	\
+	FIELD_VUINT         (position_type)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

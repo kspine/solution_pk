@@ -26,7 +26,8 @@ namespace Data {
 		double              critical_damage_plus_rate;
 		unsigned            attack_type;
 		unsigned            defence_type;
-		std::uint32_t       hp;
+		std::uint64_t       max_soldier_count;
+		std::uint64_t       hp;
 		std::uint32_t       ai_id;
 	};
 

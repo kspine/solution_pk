@@ -1,6 +1,6 @@
 #!/bin/bash
 
-prefix="../svn/paike_Numerical"
+prefix="../../svn/paike_Numerical"
 destination="./etc/poseidon/empery_center_data"
 
 (cd "$prefix" && svn up)

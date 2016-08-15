@@ -50,6 +50,7 @@ private:
 	const AccountUuid m_owner_uuid;
 
 	Coord m_coord;
+	std::string m_tag;
 
 	boost::container::flat_map<AttributeId, std::int64_t> m_attributes;
 	boost::container::flat_map<BuffId, BuffInfo>   m_buffs;
@@ -67,7 +68,7 @@ private:
 
 public:
 	DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
-		DungeonObjectTypeId dungeon_object_type_id, AccountUuid owner_uuid,Coord coord);
+		DungeonObjectTypeId dungeon_object_type_id, AccountUuid owner_uuid,Coord coord,std::string tag);
 	~DungeonObject();
 
 private:
@@ -92,6 +93,10 @@ public:
 		return m_coord;
 	}
 	void set_coord(Coord coord);
+	
+	std::string get_tag() const {
+		return m_tag;
+	}
 
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
@@ -132,6 +137,7 @@ public:
 	bool          attacked_able(std::pair<long, std::string> &reason);
 	bool          attacking_able(std::pair<long, std::string> &reason);
 	std::uint64_t search_attack();
+	boost::shared_ptr<const Data::DungeonObjectType> get_dungeon_object_type_data();
 
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
@@ -157,7 +163,6 @@ private:
 	unsigned      get_arm_defence_type();
 	int           get_attacked_prority();
 	bool          move_able();
-	boost::shared_ptr<const Data::DungeonObjectType> get_dungeon_object_type_data();
 };
 
 }
