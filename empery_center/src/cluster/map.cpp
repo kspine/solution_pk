@@ -699,21 +699,24 @@ _wounded_done:
 					return;
 				}
 
-				const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
-				if(!parent_object_uuid){
-					return;
-				}
-				const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
-				if(!parent_castle){
-					LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
-					return;
+				auto castle = boost::dynamic_pointer_cast<Castle>(attacking_object);
+				if(!castle){
+					const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
+					if(!parent_object_uuid){
+						return;
+					}
+					castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+					if(!castle){
+						LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
+						return;
+					}
 				}
 
 				const auto utc_now = Poseidon::get_utc_time();
 
 				boost::container::flat_map<ItemId, std::uint64_t> items_basic, items_extra;
 
-				const auto reward_counter = parent_castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
+				const auto reward_counter = castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
 				if(reward_counter > 0){
 					std::vector<ResourceTransactionElement> resource_transaction;
 					resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
@@ -761,7 +764,7 @@ _wounded_done:
 						push_monster_rewards(extra_reward_data->monster_rewards, true);
 					}
 
-					parent_castle->commit_resource_transaction(resource_transaction,
+					castle->commit_resource_transaction(resource_transaction,
 						[&]{ item_box->commit_transaction(transaction, false); });
 				}
 
@@ -784,7 +787,7 @@ _wounded_done:
 							elem.item_id = it->first.get();
 							elem.count   = it->second;
 						}
-						msg.castle_uuid        = parent_castle->get_map_object_uuid().str();
+						msg.castle_uuid        = castle->get_map_object_uuid().str();
 						msg.reward_counter     = reward_counter;
 						session->send(msg);
 					} catch(std::exception &e){
