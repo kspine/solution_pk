@@ -62,7 +62,6 @@ void Dungeon::pump_triggers(){
 		}
 		std::uint64_t interval = utc_now - trigger->activated_time;
 		if(interval < trigger->delay){
-			LOG_EMPERY_DUNGEON_DEBUG("activited trigger,but in delay");
 			continue;
 		}
 		trigger->activated = false;
@@ -88,7 +87,6 @@ void Dungeon::pump_triggers_damage(){
 	std::vector<boost::shared_ptr<TriggerDamage>> triggers_damaged;
 	triggers_damaged.reserve(m_triggers_damages.size());
 	const auto utc_now = Poseidon::get_utc_time();
-	LOG_EMPERY_DUNGEON_DEBUG("pump trigger damage, damage size = ",m_triggers_damages.size());
 	for(auto it = m_triggers_damages.begin(); it != m_triggers_damages.end();){
 		const auto &damage = *it;
 

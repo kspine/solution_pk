@@ -25,7 +25,7 @@ public:
 		Q_DESTRUCTOR     = 0,
 		Q_PLAYER_REQUEST = 1,
 	};
-	
+
 	enum DungeonState {
 		S_INIT           = 0,
 		S_PASS           = 1,
