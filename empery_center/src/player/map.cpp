@@ -466,7 +466,7 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 			map_cell->pump_status();
 		});
 	if(insuff_item_id){
-		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
 
 	return Response();
