@@ -41,6 +41,7 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const 
 		Msg::SD_DungeonCreate msg;
 		msg.dungeon_uuid    = get_dungeon_uuid().str();
 		msg.dungeon_type_id = get_dungeon_type_id().get();
+		msg.founder_uuid    = get_founder_uuid().str();
 		server->send(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
