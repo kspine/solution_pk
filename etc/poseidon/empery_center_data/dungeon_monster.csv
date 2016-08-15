@@ -1,6 +1,6 @@
 arm_id,arm_type,arm_class,arm_relative,force_mnax,attack,defence,hp,speed,shoot_range,attack_speed,attack_plus,telent_id,telent_value,telent_range,return_range,drop,arm_image,arm_dodge,arm_crit,arm_crit_damege,arm_attack_type,arm_def_type,ai_id
 2603101,2603001,2603000,1203001,550,3,8,25,0.5,3,1,0.2,0,0,{},5,"{""guaibag1"":1,""liangbag1"":1,""mubag1"":1,""shibag1"":1}",1203001,0,0,1,2,1,5000401
-2603102,2603001,2603000,1203001,575,3,8,25,0.5,3,1,0.2,0,0,{},5,"{""guaibag2"":1,""liangbag2"":1,""mubag2"":1,""shibag2"":1}",1203001,0,0,1,2,1,5000401
+2603102,2603001,2603000,1203001,575,3,8,25,0.5,3,1,0.2,0,0,{},5,"{""guaibag2"":1,""liangbag2"":1,""mubag2"":1,""shibag2"":1}",1203001,0,0,1,2,1,5000501
 2603103,2603001,2603000,1203001,600,3,8,25,0.5,3,1,0.2,0,0,{},5,"{""guaibag3"":1,""liangbag3"":1,""mubag3"":1,""shibag3"":1}",1203001,0,0,1,2,1,5000401
 2603104,2603001,2603000,1203001,625,6,10,35,0.5,3,1,0.2,0,0,{},5,"{""guaibag4"":1,""liangbag4"":1,""mubag4"":1,""shibag4"":1}",1203001,0,0,1,2,1,5000401
 2603105,2603001,2603000,1203001,650,6,10,35,0.5,3,1,0.2,0,0,{},5,"{""guaibag5"":1,""liangbag5"":1,""mubag5"":1,""shibag5"":1}",1203001,0,0,1,2,1,5000401

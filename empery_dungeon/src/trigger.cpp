@@ -10,7 +10,7 @@ namespace EmperyDungeon {
 	}
 	
 	TriggerDamage::TriggerDamage(bool is_target_monster_,std::uint64_t loop_,std::uint64_t damage_,std::uint64_t delay_, std::uint64_t next_damage_time_,std::vector<Coord> damage_range_)
-	:is_target_monster(is_target_monster_),loop(loop_),damage(damage_),delay(delay_),next_damage_time(next_damage_time),damage_range(std::move(damage_range_)){
+	:is_target_monster(is_target_monster_),loop(loop_),damage(damage_),delay(delay_),next_damage_time(next_damage_time_),damage_range(std::move(damage_range_)){
 	}
 
 	TriggerDamage::~TriggerDamage(){

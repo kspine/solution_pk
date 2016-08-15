@@ -237,9 +237,11 @@ void DungeonObject::set_action(Coord from_coord, std::deque<std::pair<signed cha
 
 		for(;;){
 			if(now < m_next_action_time){
+				/*
 				if(m_action_timer){
 					Poseidon::TimerDaemon::set_absolute_time(m_action_timer, m_next_action_time);
 				}
+				*/
 				break;
 			}
 			std::uint64_t delay = UINT64_MAX;
@@ -1025,10 +1027,12 @@ std::uint64_t DungeonObject::on_monster_guard(AI ai){
 std::uint64_t DungeonObject::on_monster_patrol(){
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
+	auto dest_x  = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_PATROL_DEST_POINT_X);
+	auto dest_y  = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_PATROL_DEST_POINT_Y);
 	Coord coord_birth(birth_x,birth_y);
 	if(m_waypoints.empty() && (coord_birth == get_coord())){
 		//TODO goto the dest
-		if(find_way_points(m_waypoints,get_coord(),Coord(birth_x - 9,birth_y - 3),true)){
+		if(find_way_points(m_waypoints,get_coord(),Coord(dest_x,dest_y),true)){
 			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_PATROL),"");
 		}else{
 			LOG_EMPERY_DUNGEON_WARNING("find the way point to patrol dest fail，dungeon_uuid = ",get_dungeon_uuid());

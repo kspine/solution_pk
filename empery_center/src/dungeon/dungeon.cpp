@@ -92,7 +92,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 	const auto attacked_account_uuid = attacked_object->get_owner_uuid();
 	const auto attacked_coord = attacked_object->get_coord();
 
-	if(attacking_account_uuid == attacked_account_uuid){
+	if((attacking_account_uuid == attacked_account_uuid)&&(attacking_account_uuid != AccountUuid())){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
 
@@ -418,17 +418,20 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateMonster, dungeon, server, req){
 
 	const auto monster_uuid = DungeonObjectUuid(Poseidon::Uuid::random());
 	const auto coord = Coord(req.x, req.y);
+	const auto dest_coord = Coord(req.dest_x,req.dest_y);
 
 	const auto soldier_count = monster_data->max_soldier_count;
 	const auto hp_total = checked_mul(monster_data->max_soldier_count, monster_data->hp_per_soldier);
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(8);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT]         = static_cast<std::int64_t>(soldier_count);
-	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]     = static_cast<std::int64_t>(soldier_count);
-	modifiers[AttributeIds::ID_MONSTER_START_POINT_X] = coord.x();
-	modifiers[AttributeIds::ID_MONSTER_START_POINT_Y] = coord.y();
-	modifiers[AttributeIds::ID_HP_TOTAL]              = static_cast<std::int64_t>(hp_total);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]               = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX]           = static_cast<std::int64_t>(soldier_count);
+	modifiers[AttributeIds::ID_MONSTER_START_POINT_X]       = coord.x();
+	modifiers[AttributeIds::ID_MONSTER_START_POINT_Y]       = coord.y();
+	modifiers[AttributeIds::ID_MONSTER_PATROL_DEST_POINT_X] = dest_coord.x();
+	modifiers[AttributeIds::ID_MONSTER_START_POINT_Y]       = dest_coord.y();
+	modifiers[AttributeIds::ID_HP_TOTAL]                    = static_cast<std::int64_t>(hp_total);
 
 	auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), monster_uuid,
 		map_object_type_id, AccountUuid(), std::move(req.tag), coord);
