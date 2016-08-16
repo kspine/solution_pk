@@ -77,6 +77,23 @@ namespace Data {
 			SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTING                   = 100096,
 			SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTED                    = 100097,
 			SLOT_WORLD_ACTIVITY_RANK_THRESHOLD                      = 100100,
+
+			SLOT_LEGION_LEAVE_WAIT_MINUTE                           = 100105,
+			SLOT_LEGION_ENABLE_APPLY_NUMBER                         = 100106,
+			SLOT_LEGION_APPLY_COLD_MINUTE                           = 100107,
+			SLOT_LEGION_INVITE_COLD_MINUTE                          = 100108,
+			SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT                   = 100109,
+			SLOT_LEGION_MAINCITY_LOARD_LEVEL_LIMIT                  = 100110,
+			SLOT_LEGION_LANGUAGE_KIND                               = 100111,
+			SLOT_LEGION_DONATE_SCALE                                = 100112,
+			SLOT_LEGION_PACKAGE_TASK_UNIT_LIMIT                     = 100113,
+			SLOT_LEGION_PACKAGE_TASK_REFRESH_TIME                   = 100114,
+			SLOT_LEGION_PACKAGE_SHARE_EXPIRE_MINUTE                 = 100115,
+			SLOT_LEGION_STORE_UPDATE_MINUTE                  		= 100116,
+			SLOT_LEGION_MEMBER_DEFAULT_POWERID                      = 100117,
+			SLOT_LEGION_RESTORE_DEPOT_BLOOD                      	= 100118,
+			SLOT_LEGION_ATTORN_LEADER_WAITTIME                      = 100119
+
 		};
 
 	public:

@@ -92,8 +92,8 @@ try {
 			const auto check_all = [&](const BuildingLevelMap &levels, TaskBox::CastleCategory castle_category){
 				for(auto it = levels.begin(); it != levels.end(); ++it){
 					for(auto lvit = it->second.rbegin(); lvit != it->second.rend(); ++lvit){
-						LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", account_uuid, ", castle_category = ", (unsigned)castle_category,
-							", building_id = ", it->first, ", count = ", lvit->second, ", level = ", lvit->first);
+			//			LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", account_uuid, ", castle_category = ", (unsigned)castle_category,
+			//				", building_id = ", it->first, ", count = ", lvit->second, ", level = ", lvit->first);
 						task_box->check(TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL, it->first.get(), lvit->second,
 							castle_category, lvit->first, 0);
 					}

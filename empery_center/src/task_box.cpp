@@ -194,7 +194,7 @@ void TaskBox::check_primary_tasks(){
 }
 void TaskBox::check_daily_tasks(){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_TRACE("Checking for daily tasks: account_uuid = ", get_account_uuid());
+//	LOG_EMPERY_CENTER_TRACE("Checking for daily tasks: account_uuid = ", get_account_uuid());
 
 	const auto item_data = Data::Item::require(ItemIds::ID_TASK_DAILY_RESET);
 	if(item_data->auto_inc_type != Data::Item::AIT_DAILY){
@@ -202,7 +202,7 @@ void TaskBox::check_daily_tasks(){
 		DEBUG_THROW(Exception, sslit("Task daily reset item is not daily-reset"));
 	}
 	const auto auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
-	LOG_EMPERY_CENTER_DEBUG("Retrieved daily task offset: auto_inc_offset = ", auto_inc_offset);
+//	LOG_EMPERY_CENTER_DEBUG("Retrieved daily task offset: auto_inc_offset = ", auto_inc_offset);
 
 	const auto account_uuid = get_account_uuid();
 	const auto utc_now = Poseidon::get_utc_time();
@@ -218,7 +218,7 @@ void TaskBox::check_daily_tasks(){
 	const auto last_refreshed_time = m_stamps->get_created_time();
 	const auto last_refreshed_day = saturated_sub(last_refreshed_time, auto_inc_offset) / 86400000;
 	const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
-	LOG_EMPERY_CENTER_DEBUG("Checking for new daily task: last_refreshed_day = ", last_refreshed_day, ", today = ", today);
+//	LOG_EMPERY_CENTER_DEBUG("Checking for new daily task: last_refreshed_day = ", last_refreshed_day, ", today = ", today);
 	if(last_refreshed_day < today){
 		const auto daily_task_refresh_time = (today + 1) * 86400000 + auto_inc_offset;
 
@@ -240,7 +240,7 @@ void TaskBox::check_daily_tasks(){
 				account_level = current_level;
 			}
 		}
-		LOG_EMPERY_CENTER_DEBUG("Account level: account_uuid = ", account_uuid, ", account_level = ", account_level);
+//		LOG_EMPERY_CENTER_DEBUG("Account level: account_uuid = ", account_uuid, ", account_level = ", account_level);
 
 		const auto max_daily_task_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_DAILY_TASK_COUNT);
 		std::vector<TaskId> task_candidates;
@@ -489,7 +489,7 @@ void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		if(task_data->type != type){
 			continue;
 		}
-		LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+//		LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
 
 		const auto oit = task_data->objective.find(key);
 		if(oit == task_data->objective.end()){

@@ -350,7 +350,7 @@ namespace {
 		}
 		for(auto it = resources_to_delete.begin(); it != resources_to_delete.end(); ++it){
 			const auto &strategic_resource = *it;
-			LOG_EMPERY_CENTER_DEBUG("Reclaiming strategic resource: coord = ", strategic_resource->get_coord());
+	//		LOG_EMPERY_CENTER_DEBUG("Reclaiming strategic resource: coord = ", strategic_resource->get_coord());
 			strategic_resource->delete_from_game();
 		}
 
@@ -1188,7 +1188,7 @@ void WorldMap::insert_map_object(const boost::shared_ptr<MapObject> &map_object)
 	}
 	const auto new_coord = map_object->get_coord();
 
-	LOG_EMPERY_CENTER_DEBUG("Inserting map object: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
+//	LOG_EMPERY_CENTER_DEBUG("Inserting map object: map_object_uuid = ", map_object_uuid, ", new_coord = ", new_coord);
 	const auto result = map_object_map->insert(MapObjectElement(map_object));
 	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Map object already exists: map_object_uuid = ", map_object_uuid);

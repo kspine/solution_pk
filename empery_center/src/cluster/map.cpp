@@ -315,9 +315,9 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	}
 	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0 * activity_add_rate;
 	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
-	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
-		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
-		", forced_attack = ", forced_attack,", activity_add_rate = ", activity_add_rate);
+//	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
+//		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
+//		", forced_attack = ", forced_attack,", activity_add_rate = ", activity_add_rate);
 
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, req.interval);
 

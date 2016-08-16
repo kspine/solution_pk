@@ -415,7 +415,7 @@ boost::shared_ptr<Account> AccountMap::forced_reload(AccountUuid account_uuid){
 		account_map->replace(result.first, elem);
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
+//	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
 	return std::move(account);
 }
 boost::shared_ptr<Account> AccountMap::get_or_reload_by_login_name(PlatformId platform_id, const std::string &login_name){
@@ -622,7 +622,7 @@ void AccountMap::update(const boost::shared_ptr<Account> &account, bool throws_i
 		return;
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Updating account: account_uuid = ", account_uuid);
+//	LOG_EMPERY_CENTER_DEBUG("Updating account: account_uuid = ", account_uuid);
 	account_map->replace<0>(it, AccountElement(account));
 
 	const auto session = PlayerSessionMap::get(account_uuid);

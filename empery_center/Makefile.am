@@ -26,6 +26,10 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/account_http_server.cpp	\
 	src/singletons/payment_http_server.cpp	\
 	src/singletons/account_map.cpp	\
+	src/singletons/legion_map.cpp	\
+	src/singletons/legion_member_map.cpp	\
+	src/singletons/legion_applyjoin_map.cpp	\
+	src/singletons/legion_invitejoin_map.cpp	\
 	src/singletons/player_session_map.cpp	\
 	src/singletons/world_map.cpp	\
 	src/singletons/item_box_map.cpp	\
@@ -46,6 +50,9 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/activity_map.cpp \
 	src/singletons/map_activity_accumulate_map.cpp \
 	src/singletons/friend_box_map.cpp	\
+	src/singletons/legion_package_share_map.cpp \
+	src/singletons/legion_package_pick_map.cpp \
+	src/singletons/legion_building_map.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -60,7 +67,13 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/map_event.cpp	\
 	src/data/dungeon.cpp	\
 	src/data/activity.cpp  \
+	src/data/legion_corps_level.cpp  \
+	src/data/legion_corps_power.cpp  \
+	src/data/legion_package_corps_box.cpp  \
+	src/data/legion_store_config.cpp  \
+	src/data/legion_building_config.cpp  \
 	src/player/account.cpp	\
+	src/player/legion.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
 	src/player/item.cpp	\
@@ -70,10 +83,11 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/announcement.cpp	\
 	src/player/tax_record.cpp	\
 	src/player/task.cpp	\
-	src/player/battle_record.cpp	\
 	src/player/dungeon.cpp	\
 	src/player/activity.cpp \
 	src/player/friend.cpp	\
+	src/player/legion_package.cpp \
+	src/player/legion_building.cpp \
 	src/admin/account.cpp	\
 	src/admin/item.cpp	\
 	src/admin/castle.cpp	\
@@ -113,6 +127,8 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/account_session.cpp	\
 	src/payment_session.cpp	\
 	src/account.cpp	\
+	src/legion.cpp	\
+	src/legion_member.cpp	\
 	src/map_cell.cpp	\
 	src/map_object.cpp	\
 	src/castle.cpp	\

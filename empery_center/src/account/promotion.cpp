@@ -91,8 +91,8 @@ namespace {
 				}
 				const auto &cur_nick = elem.at(sslit("nick")).get<std::string>();
 				const auto is_auction_center_enabled = elem.at(sslit("isAuctionCenterEnabled")).get<bool>();
-				LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
-					", cur_level = ", cur_level, ", cur_nick = ", cur_nick, ", is_auction_center_enabled = ", is_auction_center_enabled);
+		//		LOG_EMPERY_CENTER_DEBUG("Create or update account: cur_login_name = ", cur_login_name,
+		//			", cur_level = ", cur_level, ", cur_nick = ", cur_nick, ", is_auction_center_enabled = ", is_auction_center_enabled);
 
 				auto account = AccountMap::forced_reload_by_login_name(g_platform_id, cur_login_name);
 				if(!account){

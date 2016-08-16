@@ -15,6 +15,8 @@ constexpr AccountAttributeId
 	ID_END                            ( 500 ),
 
 	ID_GENDER                         (   1 ),
+	ID_DONATE                         ( 102 ),
+	ID_WEEKDONATE					  ( 106 ),
 
 	ID_LAST_LOGGED_IN_TIME            ( 200 ),
 	ID_LAST_LOGGED_OUT_TIME           ( 201 ),
