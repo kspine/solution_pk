@@ -11,7 +11,8 @@ namespace Msg {
 #define MESSAGE_ID      50099
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
-	FIELD_VUINT         (dungeon_type_id)
+	FIELD_VUINT         (dungeon_type_id)	\
+	FIELD_STRING        (founder_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SD_DungeonDestroy
@@ -37,7 +38,8 @@ namespace Msg {
 		FIELD_VUINT          (buff_id)	\
 		FIELD_VUINT          (time_begin)	\
 		FIELD_VUINT          (time_end)	\
-	)
+	)	\
+	FIELD_STRING        (tag)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SD_DungeonObjectRemoved

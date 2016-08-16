@@ -88,20 +88,12 @@ CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
 
 	cluster->set_name(std::move(req.name));
 
-	Poseidon::enqueue_async_job(
-		[=]() mutable {
-			PROFILE_ME;
-			try {
-				WorldMap::forced_reload_cluster(cluster_coord);
-				LOG_EMPERY_CENTER_INFO("Finished reloading cluster: cluster_scope = ", cluster_scope);
-				WorldMap::synchronize_cluster(cluster, cluster_scope);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-				cluster->shutdown(e.what());
-			}
-		});
-
 	WorldMap::set_cluster(cluster, cluster_coord);
+
+	LOG_EMPERY_CENTER_INFO("Reloading cluster: cluster_scope = ", cluster_scope);
+	WorldMap::forced_reload_cluster(cluster_coord);
+	WorldMap::synchronize_cluster(cluster, cluster_scope);
+	LOG_EMPERY_CENTER_INFO("Finished reloading cluster: cluster_scope = ", cluster_scope);
 
 	Msg::SK_MapClusterRegistrationSucceeded msg;
 	msg.cluster_x = cluster_coord.x();
@@ -761,14 +753,17 @@ _wounded_done:
 					return;
 				}
 
-				const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
-				if(!parent_object_uuid){
-					return;
-				}
-				const auto parent_castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
-				if(!parent_castle){
-					LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
-					return;
+				auto castle = boost::dynamic_pointer_cast<Castle>(attacking_object);
+				if(!castle){
+					const auto parent_object_uuid = attacking_object->get_parent_object_uuid();
+					if(!parent_object_uuid){
+						return;
+					}
+					castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+					if(!castle){
+						LOG_EMPERY_CENTER_WARNING("No such castle: parent_object_uuid = ", parent_object_uuid);
+						return;
+					}
 				}
 
 				boost::container::flat_map<ItemId, std::uint64_t> items_basic, items_extra;
@@ -779,8 +774,9 @@ _wounded_done:
 						activity_add_rate = 2;
 					}
 				}
-				const auto reward_counter = parent_castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
-				if(reward_counter > 0 || goblin_award){
+
+				const auto reward_counter = castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
+				if(reward_counter > 0){
 					std::vector<ResourceTransactionElement> resource_transaction;
 					if(!goblin_award){
 						resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
@@ -833,7 +829,7 @@ _wounded_done:
 						push_monster_rewards(extra_reward_data->monster_rewards, true);
 					}
 
-					parent_castle->commit_resource_transaction(resource_transaction,
+					castle->commit_resource_transaction(resource_transaction,
 						[&]{ item_box->commit_transaction(transaction, false); });
 				}
 
@@ -856,7 +852,7 @@ _wounded_done:
 							elem.item_id = it->first.get();
 							elem.count   = it->second;
 						}
-						msg.castle_uuid        = parent_castle->get_map_object_uuid().str();
+						msg.castle_uuid        = castle->get_map_object_uuid().str();
 						msg.reward_counter     = reward_counter;
 						session->send(msg);
 					} catch(std::exception &e){

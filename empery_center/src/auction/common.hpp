@@ -25,9 +25,9 @@ AUCTION_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 	namespace {	\
 		namespace Impl_ {	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(AuctionServlet, __LINE__, Proc_) (	\
-				::Poseidon::JsonObject &, const ::boost::shared_ptr< ::EmperyCenter::AuctionHttpSession> &, ::Poseidon::OptionalMap);	\
+				::Poseidon::JsonObject &, const ::boost::shared_ptr< ::EmperyCenter::AuctionSession> &, ::Poseidon::OptionalMap);	\
 			::std::pair<long, ::std::string> TOKEN_CAT3(AuctionServlet, __LINE__, Entry_) (	\
-				::Poseidon::JsonObject &root_, const ::boost::shared_ptr< ::EmperyCenter::AuctionHttpSession> &session_,	\
+				::Poseidon::JsonObject &root_, const ::boost::shared_ptr< ::EmperyCenter::AuctionSession> &session_,	\
 				::Poseidon::OptionalMap params_)	\
 			{	\
 				PROFILE_ME;	\
@@ -37,11 +37,11 @@ AUCTION_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(AuctionHttpSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AuctionServlet, __LINE__, Entry_)));	\
+		handles_.push(::EmperyCenter::AuctionSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(AuctionServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(AuctionServlet, __LINE__, Proc_) (	\
 		::Poseidon::JsonObject & root_arg_ __attribute__((__unused__)),	\
-		const ::boost::shared_ptr< ::EmperyCenter::AuctionHttpSession> & session_arg_ __attribute__((__unused__)),	\
+		const ::boost::shared_ptr< ::EmperyCenter::AuctionSession> & session_arg_ __attribute__((__unused__)),	\
 		::Poseidon::OptionalMap params_arg_	\
 		)
 

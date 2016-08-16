@@ -15,6 +15,7 @@ namespace Data {
 	public:
 		DungeonTypeId dungeon_type_id;
 		std::string   dungeon_map;
+		std::string   dungeon_trigger;
 	};
 }
 

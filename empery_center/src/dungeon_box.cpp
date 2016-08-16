@@ -44,7 +44,7 @@ namespace {
 	void fill_dungeon_info(DungeonBox::DungeonInfo &info, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
-		info.dungeon_type_id = DungeonTypeId(obj->get_dungeon_type_id());
+		info.dungeon_type_id = DungeonTypeId(obj->get_dungeon_id());
 		info.entry_count     = obj->get_entry_count();
 		info.finish_count    = obj->get_finish_count();
 		info.tasks_finished  = decode_tasks(obj->get_tasks_finished());
@@ -53,7 +53,7 @@ namespace {
 	void fill_dungeon_message(Msg::SC_DungeonScoreChanged &msg, const boost::shared_ptr<MySql::Center_Dungeon> &obj){
 		PROFILE_ME;
 
-		msg.dungeon_type_id = obj->get_dungeon_type_id();
+		msg.dungeon_type_id = obj->get_dungeon_id();
 		msg.entry_count     = obj->get_entry_count();
 		msg.finish_count    = obj->get_finish_count();
 		const auto tasks_finished = decode_tasks(obj->get_tasks_finished());
@@ -71,7 +71,7 @@ DungeonBox::DungeonBox(AccountUuid account_uuid,
 {
 	for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
 		const auto &obj = *it;
-		m_dungeons.emplace(DungeonTypeId(obj->get_dungeon_type_id()), obj);
+		m_dungeons.emplace(DungeonTypeId(obj->get_dungeon_id()), obj);
 	}
 }
 DungeonBox::~DungeonBox(){

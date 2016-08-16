@@ -6,55 +6,48 @@
 #include <poseidon/exception.hpp>
 #include <poseidon/shared_nts.hpp>
 #include <poseidon/module_raii.hpp>
-#include <poseidon/http/exception.hpp>
-#include <poseidon/http/status_codes.hpp>
+#include <poseidon/cbpp/exception.hpp>
+#include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/job_base.hpp>
-#include <poseidon/stream_buffer.hpp>
-#include <poseidon/optional_map.hpp>
-#include <poseidon/json.hpp>
 #include "../log_session.hpp"
 #include "../log.hpp"
-#include "../../../empery_center/src/cbpp_response.hpp"
 #include "../../../empery_center/src/msg/kill.hpp"
 
 /*
-LOG_SERVLET(请求 URI, 返回 JSON 形参名, 会话形参名, GET 参数){
+LOG_SERVLET(消息类型, 会话形参名, 消息形参名){
 	// 处理逻辑
-	return Response(code) <<msg;
 }
 */
 
-#define LOG_SERVLET(uri_, root_arg_, session_arg_, params_arg_)	\
+#define LOG_SERVLET(MsgType_, session_arg_, req_arg_)	\
 	namespace {	\
 		namespace Impl_ {	\
-			::std::pair<long, ::std::string> TOKEN_CAT3(LogServlet, __LINE__, Proc_) (	\
-				::Poseidon::JsonObject &, const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> &, ::Poseidon::OptionalMap);	\
-			::std::pair<long, ::std::string> TOKEN_CAT3(LogServlet, __LINE__, Entry_) (	\
-				::Poseidon::JsonObject &root_, const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> &session_,	\
-				::Poseidon::OptionalMap params_)	\
+			void TOKEN_CAT3(LogServlet, __LINE__, Proc_) (	\
+				const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> &, MsgType_);	\
+			void TOKEN_CAT3(LogServlet, __LINE__, Entry_) (	\
+				const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> &session_, ::Poseidon::StreamBuffer payload_)	\
 			{	\
 				PROFILE_ME;	\
-				LOG_EMPERY_CENTER_LOG_INFO("Log servlet request: uri = ", uri_);	\
-				return TOKEN_CAT3(LogServlet, __LINE__, Proc_) (root_, session_, ::std::move(params_));	\
+				MsgType_ msg_(::std::move(payload_));	\
+				LOG_EMPERY_CENTER_LOG_TRACE("Received request from ", session_->get_remote_info(), ": ", msg_);	\
+				return TOKEN_CAT3(LogServlet, __LINE__, Proc_) (session_, ::std::move(msg_));	\
 			}	\
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(LogSession::create_servlet(uri_, & Impl_:: TOKEN_CAT3(LogServlet, __LINE__, Entry_)));	\
+		handles_.push(LogSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(LogServlet, __LINE__, Entry_)));	\
 	}	\
-	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(LogServlet, __LINE__, Proc_) (	\
-		::Poseidon::JsonObject & root_arg_ __attribute__((__unused__)),	\
+	void Impl_:: TOKEN_CAT3(LogServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr< ::EmperyCenterLog::LogSession> & session_arg_ __attribute__((__unused__)),	\
-		::Poseidon::OptionalMap params_arg_	\
-		)
+		MsgType_ req_arg_	\
+		)	\
 
-#define LOG_THROW(code_)              DEBUG_THROW(::Poseidon::Http::Exception, (code_))
+#define LOG_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
+#define LOG_THROW(code_)             LOG_THROW_MSG(code_, sslit(""))
 
 namespace EmperyCenterLog {
 
 namespace Msg = ::EmperyCenter::Msg;
-
-using Response = ::EmperyCenter::CbppResponse;
 
 }
 

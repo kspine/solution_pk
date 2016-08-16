@@ -53,6 +53,8 @@ namespace Msg {
 		ERR_INVALIDATION_IN_PROGRESS            = 71242,
 		ERR_CONTROLLER_CONNECTION_LOST          = 71243,
 		ERR_CONTROLLER_TOKEN_NOT_ACQUIRED       = 71244,
+		ERR_ACCOUNT_OFFLINE                     = 71245,
+		ERR_IP_MISMATCH                         = 71246,
 	};
 }
 

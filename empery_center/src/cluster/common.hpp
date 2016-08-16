@@ -34,12 +34,12 @@ CLUSTER_SERVLET(消息类型, 会话形参名, 消息形参名){
 		}	\
 	}	\
 	MODULE_RAII(handles_){	\
-		handles_.push(ClusterSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
+		handles_.push(::EmperyCenter::ClusterSession::create_servlet(MsgType_::ID, & Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Entry_)));	\
 	}	\
 	::std::pair<long, ::std::string> Impl_:: TOKEN_CAT3(ClusterServlet, __LINE__, Proc_) (	\
 		const ::boost::shared_ptr< ::EmperyCenter::ClusterSession> & session_arg_ __attribute__((__unused__)),	\
 		MsgType_ req_arg_	\
-		)	\
+		)
 
 #define CLUSTER_THROW_MSG(code_, msg_)   DEBUG_THROW(::Poseidon::Cbpp::Exception, code_, msg_)
 #define CLUSTER_THROW(code_)             CLUSTER_THROW_MSG(code_, sslit(""))

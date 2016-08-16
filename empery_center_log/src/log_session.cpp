@@ -1,48 +1,36 @@
 #include "precompiled.hpp"
 #include "log_session.hpp"
+#include "mmain.hpp"
 #include <boost/container/flat_map.hpp>
-#include <poseidon/http/verbs.hpp>
-#include <poseidon/http/status_codes.hpp>
-#include <poseidon/http/exception.hpp>
-#include <poseidon/http/utilities.hpp>
-#include <poseidon/cbpp/status_codes.hpp>
-#include <poseidon/cbpp/exception.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_base.hpp>
-#include <poseidon/json.hpp>
+#include <poseidon/job_promise.hpp>
+#include <poseidon/cbpp/control_message.hpp>
 
 namespace EmperyCenterLog {
 
 using ServletCallback = LogSession::ServletCallback;
 
 namespace {
-	boost::container::flat_map<std::string, boost::weak_ptr<const ServletCallback>> g_servlet_map;
+	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
-LogSession::LogSession(Poseidon::UniqueFile socket,
-	boost::shared_ptr<const Poseidon::Http::AuthInfo> auth_info, std::string prefix)
-	: Poseidon::Http::Session(std::move(socket))
-	, m_auth_info(std::move(auth_info)), m_prefix(std::move(prefix))
-{
-}
-LogSession::~LogSession(){
-}
-
-boost::shared_ptr<const ServletCallback> LogSession::create_servlet(const std::string &uri, ServletCallback callback){
+boost::shared_ptr<const ServletCallback> LogSession::create_servlet(std::uint16_t message_id, ServletCallback callback){
 	PROFILE_ME;
 
-	auto &weak = g_servlet_map[uri];
+	auto &weak = g_servlet_map[message_id];
 	if(!weak.expired()){
-		LOG_EMPERY_CENTER_LOG_ERROR("Duplicate log HTTP servlet: uri = ", uri);
-		DEBUG_THROW(Exception, sslit("Duplicate log HTTP servlet"));
+		LOG_EMPERY_CENTER_LOG_ERROR("Duplicate log servlet: message_id = ", message_id);
+		DEBUG_THROW(Exception, sslit("Duplicate log servlet"));
 	}
 	auto servlet = boost::make_shared<ServletCallback>(std::move(callback));
 	weak = servlet;
 	return std::move(servlet);
 }
-boost::shared_ptr<const ServletCallback> LogSession::get_servlet(const std::string &uri){
+boost::shared_ptr<const ServletCallback> LogSession::get_servlet(std::uint16_t message_id){
 	PROFILE_ME;
 
-	const auto it = g_servlet_map.find(uri);
+	const auto it = g_servlet_map.find(message_id);
 	if(it == g_servlet_map.end()){
 		return { };
 	}
@@ -54,57 +42,84 @@ boost::shared_ptr<const ServletCallback> LogSession::get_servlet(const std::stri
 	return servlet;
 }
 
-void LogSession::on_sync_request(Poseidon::Http::RequestHeaders request_headers, Poseidon::StreamBuffer /* entity */){
+LogSession::LogSession(Poseidon::UniqueFile socket)
+	: Poseidon::Cbpp::Session(std::move(socket),
+		get_config<std::uint64_t>("log_session_max_packet_size", 0x1000000))
+{
+	LOG_EMPERY_CENTER_LOG_INFO("Log session constructor: this = ", (void *)this);
+}
+LogSession::~LogSession(){
+	LOG_EMPERY_CENTER_LOG_INFO("Log session destructor: this = ", (void *)this);
+}
+
+void LogSession::on_connect(){
 	PROFILE_ME;
-	LOG_EMPERY_CENTER_LOG(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-		"Accepted log HTTP request from ", get_remote_info());
+	LOG_EMPERY_CENTER_LOG_INFO("Log session connected: remote = ", get_remote_info());
 
-	Poseidon::OptionalMap headers;
-	headers.set(sslit("Access-Control-Allow-Origin"),  "*");
-	headers.set(sslit("Access-Control-Allow-Headers"), "Authorization");
-	if(request_headers.verb == Poseidon::Http::V_OPTIONS){
-		send(Poseidon::Http::ST_OK, std::move(headers));
-		return;
-	}
-	check_and_throw_if_unauthorized(m_auth_info, get_remote_info(), request_headers, false, std::move(headers));
+	const auto initial_timeout = get_config<std::uint64_t>("log_session_initial_timeout", 30000);
+	set_timeout(initial_timeout);
 
-	auto uri = Poseidon::Http::url_decode(request_headers.uri);
-	if((uri.size() < m_prefix.size()) || (uri.compare(0, m_prefix.size(), m_prefix) != 0)){
-		LOG_EMPERY_CENTER_LOG_WARNING("Inacceptable log HTTP request: uri = ", uri, ", prefix = ", m_prefix);
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
-	}
-	uri.erase(0, m_prefix.size());
+	Poseidon::Cbpp::Session::on_connect();
+}
 
-	if(request_headers.verb != Poseidon::Http::V_GET){
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_METHOD_NOT_ALLOWED);
-	}
+void LogSession::on_sync_data_message(std::uint16_t message_id, Poseidon::StreamBuffer payload){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_LOG_TRACE("Received data message from log client: remote = ", get_remote_info(),
+		", message_id = ", message_id, ", size = ", payload.size());
 
-	const auto servlet = get_servlet(uri);
-	if(!servlet){
-		LOG_EMPERY_CENTER_LOG_WARNING("No servlet available: uri = ", uri);
-		DEBUG_THROW(Poseidon::Http::Exception, Poseidon::Http::ST_NOT_FOUND);
-	}
-
-	std::pair<long, std::string> result;
-	Poseidon::JsonObject root;
+	auto result = std::pair<long, std::string>(Poseidon::Cbpp::ST_OK, std::string());
 	try {
-		result = (*servlet)(root, virtual_shared_from_this<LogSession>(), std::move(request_headers.get_params));
-	} catch(Poseidon::Http::Exception &){
-		throw;
+		const auto servlet = get_servlet(message_id);
+		if(!servlet){
+			LOG_EMPERY_CENTER_LOG_WARNING("No servlet found: message_id = ", message_id);
+			DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND, sslit("Unknown packed request"));
+		}
+		(*servlet)(virtual_shared_from_this<LogSession>(), std::move(payload));
 	} catch(Poseidon::Cbpp::Exception &e){
-		LOG_EMPERY_CENTER_LOG_WARNING("Poseidon::Cbpp::Exception thrown: what = ", e.what());
+		LOG_EMPERY_CENTER_LOG(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+			"Poseidon::Cbpp::Exception thrown: message_id = ", message_id, ", what = ", e.what());
 		result.first = e.status_code();
 		result.second = e.what();
 	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_LOG_WARNING("std::exception thrown: what = ", e.what());
+		LOG_EMPERY_CENTER_LOG(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
+			"std::exception thrown: message_id = ", message_id, ", what = ", e.what());
 		result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
 		result.second = e.what();
 	}
-	root[sslit("err_code")] = result.first;
-	root[sslit("err_msg")] = std::move(result.second);
-	LOG_EMPERY_CENTER_LOG_DEBUG("Sending response: ", root.dump());
-	headers.set(sslit("Content-Type"), "application/json");
-	send(Poseidon::Http::ST_OK, std::move(headers), Poseidon::StreamBuffer(root.dump()));
+	if(result.first != 0){
+		LOG_EMPERY_CENTER_LOG_DEBUG("Sending response to log client: message_id = ", message_id,
+			", code = ", result.first, ", message = ", result.second);
+	}
+
+	Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, result.first, result.second.c_str());
+}
+void LogSession::on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param){
+	PROFILE_ME;
+	LOG_EMPERY_CENTER_LOG_TRACE("Control message from log client: control_code = ", control_code,
+		", vint_param = ", vint_param, ", string_param = ", string_param);
+
+	Poseidon::Cbpp::Session::on_sync_control_message(control_code, vint_param, std::move(string_param));
+}
+
+void LogSession::shutdown(const char *message) noexcept {
+	PROFILE_ME;
+
+	shutdown(Poseidon::Cbpp::ST_INTERNAL_ERROR, message);
+}
+void LogSession::shutdown(int code, const char *message) noexcept {
+	PROFILE_ME;
+
+	if(!message){
+		message = "";
+	}
+	try {
+		Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, code, message);
+		shutdown_read();
+		shutdown_write();
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_LOG_ERROR("std::exception thrown: what = ", e.what());
+		force_shutdown();
+	}
 }
 
 }

@@ -60,7 +60,10 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_VINT          (x)	\
-	FIELD_VINT          (y)
+	FIELD_VINT          (y)	\
+	FIELD_VINT          (dest_x)	\
+	FIELD_VINT          (dest_y)	\
+	FIELD_STRING        (tag)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    DS_DungeonWaitForPlayerConfirmation
@@ -115,6 +118,16 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_STRING        (account_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonMoveCamera
+#define MESSAGE_ID      50010
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)  \
+	FIELD_VINT          (x) \
+	FIELD_VINT          (y) \
+	FIELD_VUINT         (movement_duration)	\
+	FIELD_VUINT         (position_type)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

@@ -314,7 +314,7 @@ bool AccountMap::is_holding_controller_token(AccountUuid account_uuid){
 	}
 	return true;
 }
-void AccountMap::require_controller_token(AccountUuid account_uuid){
+void AccountMap::require_controller_token(AccountUuid account_uuid, const std::string &remote_ip){
 	PROFILE_ME;
 
 	const auto &account_map = g_account_map;
@@ -327,6 +327,7 @@ void AccountMap::require_controller_token(AccountUuid account_uuid){
 
 	Msg::ST_AccountAcquireToken treq;
 	treq.account_uuid = account_uuid.str();
+	treq.client_ip    = remote_ip;
 	auto tresult = controller->send_and_wait(treq);
 	LOG_EMPERY_CENTER_DEBUG("Controller response: code = ", tresult.first, ", msg = ", tresult.second);
 	if(tresult.first == Msg::ERR_INVALIDATION_IN_PROGRESS){

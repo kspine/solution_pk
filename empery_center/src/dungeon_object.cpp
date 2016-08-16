@@ -14,9 +14,9 @@
 namespace EmperyCenter {
 
 DungeonObject::DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
-	MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, Coord coord)
+	MapObjectTypeId map_object_type_id, AccountUuid owner_uuid, std::string tag, Coord coord)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_object_uuid(dungeon_object_uuid)
-	, m_map_object_type_id(map_object_type_id), m_owner_uuid(owner_uuid)
+	, m_map_object_type_id(map_object_type_id), m_owner_uuid(owner_uuid), m_tag(std::move(tag))
 	, m_coord(coord)
 {
 }
@@ -345,6 +345,7 @@ void DungeonObject::synchronize_with_dungeon_server(const boost::shared_ptr<Dung
 		msg.owner_uuid          = get_owner_uuid().str();
 		msg.x                   = get_coord().x();
 		msg.y                   = get_coord().y();
+		msg.tag                 = get_tag();
 		msg.attributes.reserve(m_attributes.size());
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 			auto &attribute = *msg.attributes.emplace(msg.attributes.end());

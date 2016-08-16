@@ -74,12 +74,12 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	if(req.battalions.empty()){
 		return Response(Msg::ERR_DUNGEON_NO_BATTALIONS);
 	}
-	const auto battalion_count_limit = dungeon_data->battalion_count_limit;
-	if(req.battalions.size() > battalion_count_limit){
-		return Response(Msg::ERR_DUNGEON_TOO_MANY_BATTALIONS) <<battalion_count_limit;
+	const auto &start_points = dungeon_data->start_points;
+	if(req.battalions.size() > start_points.size()){
+		return Response(Msg::ERR_DUNGEON_TOO_MANY_BATTALIONS) <<start_points.size();
 	}
 	std::vector<boost::shared_ptr<MapObject>> battalions;
-	battalions.reserve(battalion_count_limit);
+	battalions.reserve(start_points.size());
 	for(auto it = req.battalions.begin(); it != req.battalions.end(); ++it){
 		const auto map_object_uuid = MapObjectUuid(it->map_object_uuid);
 		auto map_object = WorldMap::get_map_object(map_object_uuid);
@@ -173,22 +173,22 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 		[&]{
 			const auto dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id, server, account_uuid, expiry_time);
 			dungeon->insert_observer(account_uuid, session);
-			for(auto it = battalions.begin(); it != battalions.end(); ++it){
-				const auto &map_object = *it;
+			for(std::size_t i = 0; i < battalions.size(); ++i){
+				const auto &map_object = battalions.at(i);
 				const auto map_object_uuid = map_object->get_map_object_uuid();
 				const auto map_object_type_id = map_object->get_map_object_type_id();
 
-				const auto start_point = Coord(2, 7); // TODO
+				const auto &start_point = start_points.at(i);
+				const auto start_coord = Coord(start_point.first, start_point.second);
+				LOG_EMPERY_CENTER_DEBUG("@@ New dungeon object: dungeon_uuid = ", dungeon_uuid,
+					", map_object_uuid = ", map_object_uuid, ", start_coord = ", start_coord);
 
-				auto dungeon_object = boost::make_shared<DungeonObject>(
-					dungeon_uuid, DungeonObjectUuid(map_object_uuid.get()), map_object_type_id, account_uuid, start_point);
+				auto dungeon_object = boost::make_shared<DungeonObject>(dungeon_uuid, DungeonObjectUuid(map_object_uuid.get()),
+					map_object_type_id, account_uuid, std::string(), start_coord);
 				dungeon_object->pump_status();
 				dungeon_object->recalculate_attributes(false);
 				dungeon->insert_object(std::move(dungeon_object));
 			}
-			//TODO CREATE DUNGEON MONSTER
-			//dungeon->create_dungeon_monster(MapObjectTypeId(2603101),Coord(7,8));
-			dungeon->create_dungeon_monster(MapObjectTypeId(2603102),Coord(9,10));
 			DungeonMap::insert(std::move(dungeon));
 
 			info.entry_count += 1;

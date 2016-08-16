@@ -186,6 +186,13 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 
 	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
 
+	const auto coord = Coord(req.x, req.y);
+	const auto cluster = WorldMap::get_cluster(coord);
+	if(!cluster){
+		LOG_EMPERY_CENTER_DEBUG("No cluster server available: coord = ", coord);
+		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<coord;
+	}
+
 	const auto parent_object_uuid = MapObjectUuid(req.parent_object_uuid);
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!map_object){
@@ -204,7 +211,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	LOG_EMPERY_CENTER_DEBUG("Checking building upgrade data: castle_level = ", castle_level,
 		", max_map_cell_count = ", updrade_data->max_map_cell_count, ", max_map_cell_distance = ", updrade_data->max_map_cell_distance);
 
-	const auto coord = Coord(req.x, req.y);
 	const auto cell_cluster_scope   = WorldMap::get_cluster_scope(coord);
 	const auto castle_cluster_scope = WorldMap::get_cluster_scope(castle->get_coord());
 	if(cell_cluster_scope.bottom_left() != castle_cluster_scope.bottom_left()){
@@ -241,11 +247,15 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 	}
 
 	std::vector<ResourceTransactionElement> resource_transaction;
-	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 	const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
-	if((protection_info.duration != 0) && ticket_data->protectable){
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && ticket_data->protectable){
+//		if(!req.protection_cost_notified){
+//			return Response(Msg::ERR_WOULD_HAVE_PROTECTION_COST) <<coord;
+//		}
+		const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+		const auto utc_now = Poseidon::get_utc_time();
+		const auto protection_duration = saturated_sub(protection_info.time_end, std::max(preparation_info.time_end, utc_now));
 		const auto days = checked_add<std::uint64_t>(protection_duration, 86400000 - 1) / 86400000;
 
 		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(parent_object_uuid.get()[0]));
@@ -331,17 +341,16 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 	const auto castle_level = castle->get_level();
 
 	std::vector<ResourceTransactionElement> resource_transaction;
-	const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 	const auto old_ticket_data = Data::MapCellTicket::require(old_ticket_item_id);
 	const auto new_ticket_data = Data::MapCellTicket::require(new_ticket_item_id);
-	if(new_ticket_data->protectable && !req.force
-	&&!map_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)
-	&& map_cell->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION)){
-		return Response(Msg::ERR_COMMON_UPGRADE_NOT_TO_PROTECT) <<coord;
-	}
-	if((protection_info.duration != 0) && !old_ticket_data->protectable && new_ticket_data->protectable){
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !old_ticket_data->protectable && new_ticket_data->protectable){
+		if(!req.protection_cost_notified){
+			return Response(Msg::ERR_WOULD_HAVE_PROTECTION_COST) <<coord;
+		}
+		const auto protection_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION);
 		const auto preparation_info = castle->get_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
-		const auto protection_duration = saturated_sub(protection_info.duration, preparation_info.duration);
+		const auto utc_now = Poseidon::get_utc_time();
+		const auto protection_duration = saturated_sub(protection_info.time_end, std::max(preparation_info.time_end, utc_now));
 		const auto days = checked_add<std::uint64_t>(protection_duration, 86400000 - 1) / 86400000;
 
 		const auto map_object_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(parent_object_uuid.get()[0]));
@@ -454,7 +463,7 @@ PLAYER_SERVLET(Msg::CS_MapApplyAccelerationCard, account, session, req){
 			map_cell->pump_status();
 		});
 	if(insuff_item_id){
-		return Response(Msg::ERR_NO_LAND_UPGRADE_TICKET) <<insuff_item_id;
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
 
 	return Response();
