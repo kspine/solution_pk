@@ -272,7 +272,7 @@ void LegionInviteJoinMap::deleteInfo(LegionUuid legion_uuid,AccountUuid account_
 
 	LOG_EMPERY_CENTER_DEBUG("Reclaiming legion apply join map strsql = ", strsql);
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionInviteJoin",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionInviteJoin",strsql);
 }
 
 void LegionInviteJoinMap::deleteInfo_by_invited_uuid(AccountUuid account_uuid)
@@ -295,7 +295,7 @@ void LegionInviteJoinMap::deleteInfo_by_invited_uuid(AccountUuid account_uuid)
 	strsql += account_uuid.str();
 	strsql += "';";
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionInviteJoin",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionInviteJoin",strsql);
 }
 
 void LegionInviteJoinMap::deleteInfo_by_legion_uuid(LegionUuid legion_uuid)
@@ -318,7 +318,7 @@ void LegionInviteJoinMap::deleteInfo_by_legion_uuid(LegionUuid legion_uuid)
 	strsql += legion_uuid.str();
 	strsql += "';";
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionInviteJoin",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionInviteJoin",strsql);
 }
 
 void LegionInviteJoinMap::deleteInfo_by_invitedres_uuid(AccountUuid account_uuid,LegionUuid legion_uuid,bool bAll/* = false*/)
@@ -369,7 +369,7 @@ void LegionInviteJoinMap::deleteInfo_by_invitedres_uuid(AccountUuid account_uuid
 
 	LOG_EMPERY_CENTER_DEBUG("deleteInfo_by_invitedres_uuid strsql = ", strsql);
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionInviteJoin",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionInviteJoin",strsql);
 }
 
 }

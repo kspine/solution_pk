@@ -251,25 +251,6 @@ void ControllerClient::on_sync_data_message(std::uint16_t message_id, Poseidon::
 				LOG_EMPERY_CENTER_DEBUG("Sending response to controller server: message_id = ", packed.message_id,
 					", code = ", result.first, ", message = ", result.second);
 			}
-<<<<<<< HEAD
-			result = (*servlet)(virtual_shared_from_this<ControllerClient>(), Poseidon::StreamBuffer(packed.payload));
-		} catch(Poseidon::Cbpp::Exception &e){
-			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-			result.first = e.get_status_code();
-			result.second = e.what();
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
-				"std::exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-			result.first = Poseidon::Cbpp::ST_INTERNAL_ERROR;
-			result.second = e.what();
-		}
-		if(result.first != 0){
-			LOG_EMPERY_CENTER_DEBUG("Sending response to controller server: message_id = ", packed.message_id,
-				", code = ", result.first, ", message = ", result.second);
-		}
-=======
->>>>>>> legion
 
 			Msg::G_PackedResponse res;
 			res.uuid    = std::move(packed.uuid);

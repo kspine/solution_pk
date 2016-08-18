@@ -695,7 +695,7 @@ void LegionMap::deletelegion(LegionUuid legion_uuid)
 		strsql += "';";
 
 		LOG_EMPERY_CENTER_INFO("LegionMap::deletelegion==============================================",strsql);
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_Legion",strsql);
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_Legion",strsql);
 	}
 }
 

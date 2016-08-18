@@ -223,7 +223,7 @@ void LegionApplyJoinMap::deleteInfo(LegionUuid legion_uuid,AccountUuid account_u
 
 	LOG_EMPERY_CENTER_DEBUG("Reclaiming legion apply join map strsql = ", strsql);
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionApplyJoin",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionApplyJoin",strsql);
 }
 
 void LegionApplyJoinMap::deleteInfo_by_legion_uuid(LegionUuid legion_uuid)
@@ -249,7 +249,7 @@ void LegionApplyJoinMap::deleteInfo_by_legion_uuid(LegionUuid legion_uuid)
 	strsql += "';";
 
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionApplyJoin",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionApplyJoin",strsql);
 
 }
 

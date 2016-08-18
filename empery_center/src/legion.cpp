@@ -286,7 +286,7 @@ void Legion::disband()
 	strsql += get_legion_uuid().str();
 	strsql += "';";
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionAttribute",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionAttribute",strsql);
 
 	// 军团解散的成员的善后操作
 	LegionMemberMap::disband_legion(get_legion_uuid());

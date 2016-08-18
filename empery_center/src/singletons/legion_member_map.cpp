@@ -627,7 +627,7 @@ void LegionMemberMap::deletemember(AccountUuid account_uuid,bool bdeletemap)
 		strsql += account_uuid.str();
 		strsql += "';";
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_Legion_Member",strsql);
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_Legion_Member",strsql);
 
 
 		// 个人贡献移动到账号身上

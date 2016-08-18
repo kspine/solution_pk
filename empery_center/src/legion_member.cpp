@@ -91,7 +91,7 @@ void LegionMember::leave()
 	strsql += get_account_uuid().str();
 	strsql += "';";
 
-	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionMemberAttribute",strsql);
+	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionMemberAttribute",strsql);
 }
 
 std::uint64_t LegionMember::get_created_time() const {
