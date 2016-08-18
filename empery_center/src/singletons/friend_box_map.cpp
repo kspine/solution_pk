@@ -66,7 +66,7 @@ namespace {
 			}
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_Friend",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_Friend",
 			"DELETE QUICK `f`.*"
 			"  FROM `Center_Friend` AS `f` "
 			"  WHERE `f`.`category` = 0");

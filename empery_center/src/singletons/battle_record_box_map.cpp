@@ -65,7 +65,7 @@ namespace {
 			}
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_BattleRecord",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_BattleRecord",
 			"DELETE QUICK `r`.* "
 			"  FROM `Center_BattleRecord` AS `r` "
 			"  WHERE `r`.`deleted` > 0");
@@ -120,7 +120,7 @@ namespace {
 			}
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_BattleRecordCrate",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_BattleRecordCrate",
 			"DELETE QUICK `r`.* "
 			"  FROM `Center_BattleRecordCrate` AS `r` "
 			"  WHERE `r`.`deleted` > 0");
