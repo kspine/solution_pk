@@ -608,6 +608,12 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 					reward_elem.count   = tit->second;
 				}
 			}
+			for(auto it = req.damage_solider.begin(); it != req.damage_solider.end(); ++it){
+				auto &damage_solider = *msg.damage_solider.emplace(msg.damage_solider.end());
+				damage_solider.dungeon_object_type_id = it->dungeon_object_type_id;
+				damage_solider.count                    = it->count;
+			}
+			msg.total_damage_solider = req.total_damage_solider;
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

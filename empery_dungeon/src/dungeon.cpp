@@ -36,7 +36,6 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const b
 	, m_dungeon_client(dungeon)
 	, m_founder_uuid(founder_uuid)
 	, m_create_dungeon_time(create_time)
-	, m_damage_solider(0)
 	, m_dungeon_state(S_INIT)
 {
 }
@@ -122,41 +121,23 @@ void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
 }
 
-void Dungeon::set_dungeon_duration(std::uint64_t duration){
-	PROFILE_ME;
-
-	/*
-	const auto timer_proc = [this](const boost::weak_ptr<Dungeon> &weak, std::uint64_t now){
-		PROFILE_ME;
-
-		const auto shared = weak.lock();
-		if(!shared){
-			return;
-		}
-		m_dungeon_timer.reset();
-		const auto dungeon_client = shared->get_dungeon_client();
-		if(dungeon_client){
-			try {
-				Msg::DS_DungeonPlayerWins msg;
-				msg.dungeon_uuid        = shared->get_dungeon_uuid().str();
-				msg.account_uuid        = shared->get_founder_uuid().str();
-				dungeon_client->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
-				dungeon_client->shutdown(e.what());
-			}
-		}
-	};
-	if(!m_dungeon_timer){
-		const auto now = Poseidon::get_fast_mono_clock();
-		auto timer = Poseidon::TimerDaemon::register_absolute_timer(now + duration, 0,
-			std::bind(timer_proc, virtual_weak_from_this<Dungeon>(), std::placeholders::_2));
-		LOG_EMPERY_DUNGEON_DEBUG("Created dungeon expired timer: dungeon_uuid = ", get_dungeon_uuid());
-		m_dungeon_timer = std::move(timer);
+void Dungeon::update_damage_solider(DungeonObjectTypeId dungeon_object_type_id,std::uint64_t damage_solider){
+	auto it = m_damage_solider.find(dungeon_object_type_id);
+	if(it == m_damage_solider.end()){
+		m_damage_solider.emplace(dungeon_object_type_id, damage_solider);
+		return;
+	}else{
+		m_damage_solider.at(it->first) = it->second + damage_solider;
 	}
-	*/
 }
 
+std::uint64_t Dungeon::get_total_damage_solider(){
+	std::uint64_t total_damage_solider = 0;
+	for(auto it = m_damage_solider.begin(); it != m_damage_solider.end(); ++it){
+		total_damage_solider += it->second;
+	}
+	return total_damage_solider;
+}
 
 boost::shared_ptr<DungeonObject> Dungeon::get_object(DungeonObjectUuid dungeon_object_uuid) const {
 	PROFILE_ME;
@@ -459,7 +440,7 @@ void Dungeon::check_triggers_dungeon_finish(){
 					if(type == 0){
 						//伤兵
 						auto threshold = boost::lexical_cast<std::uint64_t>(params_array.at(1).get<double>());
-						if(get_damage_solider() > threshold){
+						if(get_total_damage_solider() > threshold){
 							continue;
 						}
 					}else if(type == 1){
@@ -749,6 +730,12 @@ void Dungeon::on_triggers_dungeon_finished(const TriggerAction &action){
 					auto &task_finished = *msgDungeonWin.tasks_finished.emplace(msgDungeonWin.tasks_finished.end());
 					task_finished.dungeon_task_id = *it;
 				}
+				for(auto it = m_damage_solider.begin(); it != m_damage_solider.end();++it){
+					auto &damage_solider = *msgDungeonWin.damage_solider.emplace(msgDungeonWin.damage_solider.end());
+					damage_solider.dungeon_object_type_id = it->first.get();
+					damage_solider.count                    = it->second;
+				}
+				msgDungeonWin.total_damage_solider = get_total_damage_solider();
 				dungeon_client->send(msgDungeonWin);
 				LOG_EMPERY_DUNGEON_DEBUG("msg dungeon win:",msgDungeonWin);
 			} catch(std::exception &e){

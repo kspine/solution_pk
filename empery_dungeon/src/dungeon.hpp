@@ -40,7 +40,7 @@ private:
 
 	AccountUuid m_founder_uuid;
 	std::uint64_t                                                                   m_create_dungeon_time;
-	std::uint64_t                                                                   m_damage_solider;
+	boost::container::flat_map<DungeonObjectTypeId,std::uint64_t>                   m_damage_solider;
 	std::vector<std::uint64_t>                                                      m_finish_tasks;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 	boost::container::flat_map<std::uint64_t, boost::shared_ptr<Trigger>>           m_triggers;
@@ -68,12 +68,11 @@ public:
 		return m_founder_uuid;
 	}
 	void set_founder_uuid(AccountUuid founder_uuid);
-	void add_damage_solider(std::uint64_t damage_solider){
-		m_damage_solider += damage_solider;
-	}
-	std::uint64_t get_damage_solider(){
-		return m_damage_solider;
-	}
+
+	void update_damage_solider(DungeonObjectTypeId dungeon_object_type_id,std::uint64_t damage_solider);
+
+	std::uint64_t get_total_damage_solider();
+
 	std::uint64_t get_create_dungeon_time(){
 		return m_create_dungeon_time;
 	}
@@ -81,8 +80,6 @@ public:
 	boost::shared_ptr<DungeonClient> get_dungeon_client() const {
 		return m_dungeon_client.lock();
 	}
-	void set_dungeon_duration(std::uint64_t duration);
-
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const;

@@ -54,7 +54,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	const auto prerequisite_dungeon_type_id = dungeon_data->prerequisite_dungeon_type_id;
 	if(prerequisite_dungeon_type_id){
 		const auto prerequisite_info = dungeon_box->get(prerequisite_dungeon_type_id);
-		if(prerequisite_info.finish_count != 0){
+		if(prerequisite_info.finish_count == 0){
 			return Response(Msg::ERR_DUNGEON_PREREQUISITE_NOT_MET) <<prerequisite_dungeon_type_id;
 		}
 	}

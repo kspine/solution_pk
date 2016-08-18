@@ -166,7 +166,12 @@ namespace Msg {
 			FIELD_VUINT         (item_id)	\
 			FIELD_VUINT         (count)	\
 		)	\
-	)
+	)\
+	FIELD_ARRAY         (damage_solider,	\
+		FIELD_VUINT         (dungeon_object_type_id)	\
+		FIELD_VUINT         (count)	\
+	)	\
+	FIELD_VUINT         (total_damage_solider)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_DungeonMoveCamera
