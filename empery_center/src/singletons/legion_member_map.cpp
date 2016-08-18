@@ -76,23 +76,24 @@ namespace {
 
 	void gc_member_proc(std::uint64_t now){
 		PROFILE_ME;
-		LOG_EMPERY_CENTER_ERROR("legion member map gc timer: now =================================================== ", now);
+	//	LOG_EMPERY_CENTER_ERROR("legion member map gc timer: now =================================================== ", now);
 
 		const auto &account_map = g_legionmember_map;
 		if(!account_map){
 			return;
 		}
 
+		LegionMemberMap::check_in_resetime();
+
 		for(auto it = account_map->begin(); it != account_map->end(); ++it)
 		{
 			const auto &member = it->member;
 
 			if(LegionMemberMap::check_in_waittime(member))
+			{
+				account_map->erase(it);
 				break;
-
-
-			// 查看member权限
-		//
+			}
 
 		}
 	}
@@ -155,7 +156,7 @@ namespace {
 		handles.push(info_cache_map);
 
 	//	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 10*1000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, 100*1000,
+		auto timer = Poseidon::TimerDaemon::register_timer(0, 10*1000,
 			std::bind(&gc_member_proc, std::placeholders::_2));
 		handles.push(timer);
 	}
@@ -460,127 +461,7 @@ void LegionMemberMap::get_by_legion_uuid(std::vector<boost::shared_ptr<LegionMem
 		ret.emplace_back(it->member);
 	}
 }
-/*
-boost::shared_ptr<LegionMember> LegionMemberMap::get_or_reload(LegionUuid account_uuid){
-	PROFILE_ME;
 
-	auto account = get(account_uuid);
-	if(!account){
-		account = forced_reload(account_uuid);
-	}
-	return account;
-}
-*/
-/*
-boost::shared_ptr<LegionMember> LegionMemberMap::forced_reload(LegionUuid account_uuid){
-	PROFILE_ME;
-
-	const auto &account_map = g_legionmember_map;
-	if(!account_map){
-		LOG_EMPERY_CENTER_WARNING("legion map not loaded.");
-		return { };
-	}
-
-	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_LegionMember>>>();
-	{
-		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_LegionMember` WHERE `account_uuid` = " <<Poseidon::MySql::UuidFormatter(account_uuid.get());
-		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<MySql::Center_LegionMember>();
-				obj->fetch(conn);
-				obj->enable_auto_saving();
-				sink->emplace_back(std::move(obj));
-			}, "Center_LegionMember", oss.str());
-		Poseidon::JobDispatcher::yield(promise, true);
-	}
-	if(sink->empty()){
-		LOG_EMPERY_CENTER_DEBUG("LegionMember not found in database: account_uuid = ", account_uuid);
-		return { };
-	}
-
-	auto account = reload_account_aux(std::move(sink->front()));
-
-	const auto elem = LegionMemberElement(account);
-	const auto result = account_map->insert(elem);
-	if(!result.second){
-		account_map->replace(result.first, elem);
-	}
-
-	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid);
-	return std::move(account);
-
-}
-*/
-/*
-boost::shared_ptr<LegionMember> LegionMemberMap::get_or_reload_by_login_name(PlatformId platform_id, const std::string &login_name){
-	PROFILE_ME;
-
-	const auto &account_map = g_legionmember_map;
-	if(!account_map){
-		LOG_EMPERY_CENTER_WARNING("Center_LegionMember map not loaded.");
-		return { };
-	}
-
-
-	const auto key = std::make_pair(platform_id, hash_string_nocase(login_name));
-	const auto range = account_map->equal_range<1>(key);
-	for(auto it = range.first; it != range.second; ++it){
-		if(are_strings_equal_nocase(it->account->get_login_name(), login_name)){
-			return it->account;
-		}
-	}
-
-	LOG_EMPERY_CENTER_DEBUG("Login name not found. Reloading: platform_id = ", platform_id, ", login_name = ", login_name);
-
-	return forced_reload_by_login_name(platform_id, login_name);
-
-}
-
-*/
-/*
-boost::shared_ptr<LegionMember> LegionMemberMap::forced_reload_by_login_name(PlatformId platform_id, const std::string &login_name){
-	PROFILE_ME;
-
-	const auto &account_map = g_legionmember_map;
-	if(!account_map){
-		LOG_EMPERY_CENTER_WARNING("Center_LegionMember map not loaded.");
-		return { };
-	}
-
-	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_Legion_Member>>>();
-	{
-		std::ostringstream oss;
-		oss <<"SELECT * FROM `Center_LegionMember` WHERE `platform_id` = " <<platform_id
-		    <<" AND `login_name` = " <<Poseidon::MySql::StringEscaper(login_name);
-		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<MySql::Center_Legion_Member>();
-				obj->fetch(conn);
-				obj->enable_auto_saving();
-				sink->emplace_back(std::move(obj));
-			}, "Center_LegionMember", oss.str());
-		Poseidon::JobDispatcher::yield(promise, true);
-	}
-	if(sink->empty()){
-		LOG_EMPERY_CENTER_DEBUG("LegionMember not found in database: platform_id = ", platform_id, ", login_name = ", login_name);
-		return { };
-	}
-
-	auto account = reload_account_aux(std::move(sink->front()));
-	const auto account_uuid = account->get_account_uuid();
-
-	const auto elem = LegionMemberElement(account);
-	const auto result = account_map->insert(elem);
-	if(!result.second){
-		account_map->replace(result.first, elem);
-	}
-
-	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded account: account_uuid = ", account_uuid,
-		", platform_id = ", platform_id, ", login_name = ", login_name);
-	return std::move(account);
-}
-*/
 std::uint64_t LegionMemberMap::get_count(){
 	const auto &account_map = g_legionmember_map;
 	if(!account_map){
@@ -732,6 +613,8 @@ void LegionMemberMap::deletemember(AccountUuid account_uuid,bool bdeletemap)
 
 		const auto weekdonate = it->member->get_attribute(LegionMemberAttributeIds::ID_WEEKDONATE);
 
+		const auto exchange_record = it->member->get_attribute(LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD);
+
 		it->member->leave();
 
 		if(bdeletemap)
@@ -754,6 +637,7 @@ void LegionMemberMap::deletemember(AccountUuid account_uuid,bool bdeletemap)
 
 		Attributes[AccountAttributeIds::ID_DONATE] = donate;
 		Attributes[AccountAttributeIds::ID_WEEKDONATE] = weekdonate;
+		Attributes[AccountAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD] = exchange_record;
 
 		account->set_attributes(std::move(Attributes));
 	}
@@ -823,6 +707,8 @@ void LegionMemberMap::update(const boost::shared_ptr<LegionMember> &account, boo
 
 bool LegionMemberMap::is_in_same_legion(AccountUuid account_uuid,AccountUuid other_uuid)
 {
+	PROFILE_ME;
+
 	const auto member = get_by_account_uuid(account_uuid);
 	const auto member2 = get_by_account_uuid(other_uuid);
 	if(member && member2 && member->get_legion_uuid() == member2->get_legion_uuid())
@@ -843,7 +729,7 @@ bool LegionMemberMap::check_in_waittime(const boost::shared_ptr<LegionMember> &m
 	{
 		const auto account = AccountMap::get(member->get_account_uuid());
 		const auto titileid = member->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
-		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage titileid ================================ ",titileid,"  成员uuid：",member->get_account_uuid());
+	//	LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage titileid ================================ ",titileid,"  成员uuid：",member->get_account_uuid());
 		if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_QUIT))
 		{
 	//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage 可以退出================================ ");
@@ -862,9 +748,9 @@ bool LegionMemberMap::check_in_waittime(const boost::shared_ptr<LegionMember> &m
 			{
 				const auto utc_now = Poseidon::get_utc_time();
 
-				const auto leavetime = boost::lexical_cast<boost::uint64_t>(quittime) * 1000; 
+				const auto leavetime = boost::lexical_cast<boost::uint64_t>(quittime) * 1000;
 
-				LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage utc_now ================ ",utc_now," quittime==============",quittime, " leavetime==============",leavetime);
+	//			LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage utc_now ================ ",utc_now," quittime==============",quittime, " leavetime==============",leavetime);
 
 				if(utc_now > leavetime )
 				{
@@ -902,7 +788,7 @@ bool LegionMemberMap::check_in_waittime(const boost::shared_ptr<LegionMember> &m
 
 		// 看下是否转让军团长等待时间已过的逻辑
 		bool bAttorn = false;
-
+		std::string strlead="";
 		if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_ATTORN))
 		{
 			const auto utc_now = Poseidon::get_utc_time();
@@ -970,7 +856,7 @@ bool LegionMemberMap::check_in_waittime(const boost::shared_ptr<LegionMember> &m
 								LOG_EMPERY_CENTER_DEBUG("成功转让=============================== ",member->get_account_uuid(), "  目标对象：",target_member->get_account_uuid());
 								// 转让成功，重置转让等待时间
 								bAttorn = true;
-
+								strlead = AccountUuid(target_uuid).str();
 								bdelete = true;
 							}
 						}
@@ -996,7 +882,8 @@ bool LegionMemberMap::check_in_waittime(const boost::shared_ptr<LegionMember> &m
 		{
 			// 重置转让信息
 			boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-
+			if(!strlead.empty())
+				Attributes[LegionAttributeIds::ID_LEADER] = strlead;
 			Attributes[LegionAttributeIds::ID_ATTORNTIME] = "";
 			Attributes[LegionAttributeIds::ID_ATTORNLEADER] = "";
 
@@ -1009,77 +896,45 @@ bool LegionMemberMap::check_in_waittime(const boost::shared_ptr<LegionMember> &m
 	return bdelete;
 }
 
-void LegionMemberMap::synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
+void LegionMemberMap::check_in_resetime()
 {
 	PROFILE_ME;
 
-	const auto account = get(account_uuid);
-	if(!account){
-		LOG_EMPERY_CENTER_WARNING("LegionMember not found: account_uuid = ", account_uuid);
+	const auto &account_map = g_legionmember_map;
+	if(!account_map){
 		return;
 	}
 
-	/*
-	const auto now = Poseidon::get_fast_mono_clock();
-	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
 
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto dt = Poseidon::break_down_time(utc_now);
 
-	const auto info_cache_map = g_info_cache_map.lock();
-	if(info_cache_map){
-		info_cache_map->erase<1>(info_cache_map->begin<1>(), info_cache_map->upper_bound<1>(now));
-	}
+	for(auto it = account_map->begin(); it != account_map->end(); ++it)
+	{
+		const auto &member = it->member;
 
-	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,
-		(wants_nick               ? CT_NICK       : CT_NONE) |
-		(wants_attributes         ? CT_ATTRS      : CT_NONE) |
-		(wants_private_attributes ? CT_PRIV_ATTRS : CT_NONE) |
-		(item_box                 ? CT_ITEMS      : CT_NONE));
-		*/
-}
+//		LOG_EMPERY_CENTER_ERROR("check_in_resetime dt hr=================================================== ",  dt.hr, "  min:",dt.min, " dt.sec:",dt.sec);
+//		if(4 == dt.hr && 18 == dt.min )
+		if(dt.hr == Data::Global::as_unsigned(Data::Global::SLOT_LEGION_STORE_UPDATE_MINUTE) / 60 && dt.min == Data::Global::as_unsigned(Data::Global::SLOT_LEGION_STORE_UPDATE_MINUTE) % 60)
+		{
+			// 日购买记录的清空重置
+			const auto exchange_record = member->get_attribute(LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD);
+		//	LOG_EMPERY_CENTER_ERROR("成员uuid：",member->get_account_uuid()," 购买记录:",exchange_record);
+			if(!exchange_record.empty()  && exchange_record != Poseidon::EMPTY_STRING)
+			{
+				boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes;
 
-void LegionMemberMap::cached_synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
-{
-	PROFILE_ME;
+				Attributes[LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD] = "";
 
-	const auto account = get(account_uuid);
-	if(!account){
-		LOG_EMPERY_CENTER_WARNING("LegionMember not found: account_uuid = ", account_uuid);
-		return;
-	}
+				member->set_attributes(Attributes);
 
-	/*
-	const auto now = Poseidon::get_fast_mono_clock();
-	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
-
-	const auto info_cache_map = g_info_cache_map.lock();
-	if(info_cache_map){
-		info_cache_map->erase<1>(info_cache_map->begin<1>(), info_cache_map->upper_bound<1>(now));
-	}
-
-	const auto is_miss = [&](CacheType type){
-		if(!info_cache_map){
-			return true;
+		//		LOG_EMPERY_CENTER_ERROR("时间到，清空购买记录的清空重置");
+			}
 		}
-		auto elem = InfoCacheElement(account_uuid, session, type, 0);
-		const auto it = info_cache_map->find<0>(elem.key);
-		if(it == info_cache_map->end<0>()){
-			return true;
-		}
-		return false;
-	};
 
-	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,
-		(wants_nick               && is_miss(CT_NICK      ) ? CT_NICK       : CT_NONE) |
-		(wants_attributes         && is_miss(CT_ATTRS     ) ? CT_ATTRS      : CT_NONE) |
-		(wants_private_attributes && is_miss(CT_PRIV_ATTRS) ? CT_PRIV_ATTRS : CT_NONE) |
-		(item_box                 && is_miss(CT_ITEMS     ) ? CT_ITEMS      : CT_NONE));
+	}
 
-		*/
 }
-void LegionMemberMap::cached_synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
-	return cached_synchronize_account_with_player_all(account_uuid, session, true, true, false, { });
-}
+
 
 }

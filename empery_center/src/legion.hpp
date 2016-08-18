@@ -94,7 +94,7 @@ public:
 	// 初始化属性
 	void InitAttributes(AccountUuid accountid,std::string content, std::string language, std::string icon,unsigned bshenhe);
 	// 增加军团成员
-	void AddMember(AccountUuid accountid,unsigned level,std::uint64_t join_time,std::string  donate,std::string  weekdonate,std::string nick);
+	void AddMember(boost::shared_ptr<Account> account,unsigned level,std::uint64_t join_time);
 	// 军团解散的善后操作
 	void disband();
 	// 发送通知消息

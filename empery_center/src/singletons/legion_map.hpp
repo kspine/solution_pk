@@ -32,16 +32,10 @@ struct LegionMap {
 	static void get_by_nick(std::vector<boost::shared_ptr<Legion>> &ret, const std::string &nick);
 	static void get_by_referrer(std::vector<boost::shared_ptr<Legion>> &ret, AccountUuid referrer_uuid);
 
+	static boost::shared_ptr<Legion> get_by_account_uuid(AccountUuid account_uuid);
 	static void insert(const boost::shared_ptr<Legion> &account, const std::string &remote_ip);
 	static void update(const boost::shared_ptr<Legion> &account, bool throws_if_not_exists = true);
 	static void deletelegion(LegionUuid legion_uuid);
-
-	static void synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box);
-
-	static void cached_synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box);
-	static void cached_synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 
 private:
 	LegionMap() = delete;

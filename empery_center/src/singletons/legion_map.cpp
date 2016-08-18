@@ -648,36 +648,25 @@ void LegionMap::update(const boost::shared_ptr<Legion> &account, bool throws_if_
 		return;
 	}
 
-	/*
-	const auto account_uuid = account->get_account_uuid();
+	
+	const auto legion_uuid = account->get_legion_uuid();
 
-	const auto it = account_map->find<0>(account_uuid);
+	const auto it = account_map->find<0>(legion_uuid);
 	if(it == account_map->end<0>()){
-		LOG_EMPERY_CENTER_WARNING("Legion not found: account_uuid = ", account_uuid);
+		LOG_EMPERY_CENTER_WARNING("Legion not found: legion_uuid = ", legion_uuid);
 		if(throws_if_not_exists){
 			DEBUG_THROW(Exception, sslit("Legion not found"));
 		}
 		return;
 	}
 	if(it->account != account){
-		LOG_EMPERY_CENTER_DEBUG("Legion expired: account_uuid = ", account_uuid);
+		LOG_EMPERY_CENTER_DEBUG("Legion expired: legion_uuid = ", legion_uuid);
 		return;
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Updating Legion: account_uuid = ", account_uuid);
+	LOG_EMPERY_CENTER_DEBUG("Updating Legion: legion_uuid = ", legion_uuid);
 	account_map->replace<0>(it, LegionElement(account));
 
-	const auto session = PlayerSessionMap::get(account_uuid);
-	if(session){
-		try {
-			account->synchronize_with_player(session);
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			session->shutdown(e.what());
-		}
-	}
-
-	*/
 }
 
 void LegionMap::deletelegion(LegionUuid legion_uuid)
@@ -710,71 +699,23 @@ void LegionMap::deletelegion(LegionUuid legion_uuid)
 	}
 }
 
-void LegionMap::synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
+boost::shared_ptr<Legion> LegionMap::get_by_account_uuid(AccountUuid account_uuid)
 {
 	PROFILE_ME;
 
-	const auto account = get(account_uuid);
-	if(!account){
-		LOG_EMPERY_CENTER_WARNING("Legion not found: account_uuid = ", account_uuid);
-		return;
+	const auto &account_map = g_legion_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("legion map not loaded.");
+		return { };
 	}
 
-	const auto now = Poseidon::get_fast_mono_clock();
-	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
-
-	const auto info_cache_map = g_info_cache_map.lock();
-	if(info_cache_map){
-		info_cache_map->erase<1>(info_cache_map->begin<1>(), info_cache_map->upper_bound<1>(now));
+	const auto it = account_map->find<2>(account_uuid);
+	if(it == account_map->end<2>()){
+		LOG_EMPERY_CENTER_TRACE("legion not found: account_uuid = ", account_uuid);
+		return { };
 	}
+	return it->account;
 
-	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,
-		(wants_nick               ? CT_NICK       : CT_NONE) |
-		(wants_attributes         ? CT_ATTRS      : CT_NONE) |
-		(wants_private_attributes ? CT_PRIV_ATTRS : CT_NONE) |
-		(item_box                 ? CT_ITEMS      : CT_NONE));
-}
-
-void LegionMap::cached_synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
-	bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box)
-{
-	PROFILE_ME;
-
-	const auto account = get(account_uuid);
-	if(!account){
-		LOG_EMPERY_CENTER_WARNING("Legion not found: account_uuid = ", account_uuid);
-		return;
-	}
-
-	const auto now = Poseidon::get_fast_mono_clock();
-	const auto cache_timeout = get_config<std::uint64_t>("account_info_cache_timeout", 0);
-
-	const auto info_cache_map = g_info_cache_map.lock();
-	if(info_cache_map){
-		info_cache_map->erase<1>(info_cache_map->begin<1>(), info_cache_map->upper_bound<1>(now));
-	}
-
-	const auto is_miss = [&](CacheType type){
-		if(!info_cache_map){
-			return true;
-		}
-		auto elem = InfoCacheElement(account_uuid, session, type, 0);
-		const auto it = info_cache_map->find<0>(elem.key);
-		if(it == info_cache_map->end<0>()){
-			return true;
-		}
-		return false;
-	};
-
-	synchronize_account_and_update_cache(now, cache_timeout, account, item_box, session,
-		(wants_nick               && is_miss(CT_NICK      ) ? CT_NICK       : CT_NONE) |
-		(wants_attributes         && is_miss(CT_ATTRS     ) ? CT_ATTRS      : CT_NONE) |
-		(wants_private_attributes && is_miss(CT_PRIV_ATTRS) ? CT_PRIV_ATTRS : CT_NONE) |
-		(item_box                 && is_miss(CT_ITEMS     ) ? CT_ITEMS      : CT_NONE));
-}
-void LegionMap::cached_synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
-	return cached_synchronize_account_with_player_all(account_uuid, session, true, true, false, { });
 }
 
 }

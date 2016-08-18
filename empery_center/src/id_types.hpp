@@ -232,6 +232,8 @@ namespace IdTypes {
 	using LegionCorpsLevelId        = GenericId<std::uint32_t, 120032>;
 	using LegionCorpsPowerId        = GenericId<std::uint32_t, 120033>;
 	using LegionStoreGoodsId        = GenericId<std::uint32_t, 120034>;
+	using LegionBuildingAttributeId = GenericId<std::uint32_t, 120035>;
+	
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;

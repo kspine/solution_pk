@@ -47,6 +47,8 @@ struct LegionMemberMap {
 	static bool is_in_same_legion(AccountUuid account_uuid,AccountUuid other_uuid);
 	// 检查是否有退出、被踢出、转让军团长的等待时间，如果由进行相应处理
 	static bool check_in_waittime(const boost::shared_ptr<LegionMember> &member);
+	// 检查是否有需要重置的内容
+	static void check_in_resetime();
 
 	static void synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
 		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box);

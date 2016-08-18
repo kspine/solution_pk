@@ -17,12 +17,12 @@ namespace EmperyCenter {
 
 namespace {
 	struct LegionBuildingElement {
-		boost::shared_ptr<MySql::Center_LegionBuilding> building;
+		boost::shared_ptr<LegionBuilding> building;
 
 		LegionBuildingUuid legion_building_uuid;
 		LegionUuid legion_uuid;
 
-		explicit LegionBuildingElement(boost::shared_ptr<MySql::Center_LegionBuilding> building_)
+		explicit LegionBuildingElement(boost::shared_ptr<LegionBuilding> building_)
 			: building(std::move(building_))
 			, legion_building_uuid(building->get_legion_building_uuid())
 			, legion_uuid(building->get_legion_uuid())
@@ -32,12 +32,12 @@ namespace {
 
 	};
 
-	MULTI_INDEX_MAP(LegionContainer, LegionBuildingElement,
-		MULTI_MEMBER_INDEX(legion_building_uuid)
+	MULTI_INDEX_MAP(LegionBuildingContainer, LegionBuildingElement,
+		UNIQUE_MEMBER_INDEX(legion_building_uuid)
 		MULTI_MEMBER_INDEX(legion_uuid)
 	)
 
-	boost::shared_ptr<LegionContainer> g_building_map;
+	boost::shared_ptr<LegionBuildingContainer> g_building_map;
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
@@ -45,8 +45,9 @@ namespace {
 		// Legion
 		struct TempLegionBuildingElement {
 			boost::shared_ptr<MySql::Center_LegionBuilding> obj;
+			std::vector<boost::shared_ptr<MySql::Center_LegionBuildingAttribute>> attributes;
 		};
-		std::map<LegionUuid, TempLegionBuildingElement> temp_account_map;
+		std::map<LegionBuildingUuid, TempLegionBuildingElement> temp_account_map;
 
 		LOG_EMPERY_CENTER_INFO("Loading Center_LegionBuilding...");
 		conn->execute_sql("SELECT * FROM `Center_LegionBuilding`");
@@ -54,24 +55,42 @@ namespace {
 			auto obj = boost::make_shared<MySql::Center_LegionBuilding>();
 			obj->fetch(conn);
 			obj->enable_auto_saving();
-			const auto legion_uuid = LegionUuid(obj->get_legion_uuid());
-			temp_account_map[legion_uuid].obj = std::move(obj);
+			const auto legion_building_uuid = LegionBuildingUuid(obj->get_legion_building_uuid());
+			temp_account_map[legion_building_uuid].obj = std::move(obj);
 		}
 		LOG_EMPERY_CENTER_INFO("Loaded ", temp_account_map.size(), " Legion(s).");
 
-		const auto legion_map = boost::make_shared<LegionContainer>();
-		for(auto it = temp_account_map.begin(); it != temp_account_map.end(); ++it){
-			legion_map->insert(LegionBuildingElement(std::move(it->second.obj)));
+		LOG_EMPERY_CENTER_INFO("Loading LegionBuilding attributes...");
+		conn->execute_sql("SELECT * FROM `Center_LegionBuildingAttribute`");
+		while(conn->fetch_row()){
+			auto obj = boost::make_shared<MySql::Center_LegionBuildingAttribute>();
+			obj->fetch(conn);
+			const auto legion_building_uuid = LegionBuildingUuid(obj->unlocked_get_legion_building_uuid());
+			const auto it = temp_account_map.find(legion_building_uuid);
+			if(it == temp_account_map.end()){
+				continue;
+			}
+			obj->enable_auto_saving();
+			it->second.attributes.emplace_back(std::move(obj));
 		}
+
+		LOG_EMPERY_CENTER_INFO("Done loading LegionBuilding attributes.");
+
+		const auto legion_map = boost::make_shared<LegionBuildingContainer>();
+		for(auto it = temp_account_map.begin(); it != temp_account_map.end(); ++it){
+			auto building = boost::make_shared<LegionBuilding>(std::move(it->second.obj), it->second.attributes);
+
+			legion_map->insert(LegionBuildingElement(std::move(building)));
+		}
+
 		g_building_map = legion_map;
 		handles.push(legion_map);
-
 	}
 
 }
 
 
-void LegionBuildingMap::insert(const boost::shared_ptr<MySql::Center_LegionBuilding> &building){
+void LegionBuildingMap::insert(const boost::shared_ptr<LegionBuilding> &building){
 	PROFILE_ME;
 
 	const auto &legion_map = g_building_map;
@@ -81,37 +100,34 @@ void LegionBuildingMap::insert(const boost::shared_ptr<MySql::Center_LegionBuild
 	}
 
 
-	const auto legion_uuid = building->get_legion_uuid();
+	const auto legion_building_uuid = building->get_legion_building_uuid();
 
-	LOG_EMPERY_CENTER_DEBUG("Inserting legion building: account_uuid = ", legion_uuid);
+	LOG_EMPERY_CENTER_DEBUG("Inserting legion building: account_uuid = ", legion_building_uuid);
 
 	if(!legion_map->insert(LegionBuildingElement(building)).second){
-		LOG_EMPERY_CENTER_WARNING("Legion building already exists: account_uuid = ", legion_uuid);
+		LOG_EMPERY_CENTER_WARNING("Legion building already exists: legion_building_uuid = ", legion_building_uuid);
 		DEBUG_THROW(Exception, sslit("Legion building already exists"));
 	}
+
+
 }
 
 
-boost::shared_ptr<MySql::Center_LegionBuilding> LegionBuildingMap::find(LegionUuid legion_uuid)
+boost::shared_ptr<LegionBuilding> LegionBuildingMap::find(LegionBuildingUuid legion_building_uuid)
 {
 	PROFILE_ME;
 	const auto &account_map = g_building_map;
 	if(!account_map){
-		LOG_EMPERY_CENTER_WARNING("legion map not loaded.");
+		LOG_EMPERY_CENTER_WARNING("legion building map not loaded.");
 		return { };
 	}
 
-/*
-	const auto range = account_map->equal_range<1>(account_uuid);
-	for(auto it = range.first; it != range.second; ++it){
-		if(AccountUuid(it->account->unlocked_get_account_uuid()) == account_uuid && LegionUuid(it->account->unlocked_get_legion_uuid()) == legion_uuid)
-		{
-			return it->account;
-		}
+	const auto it = account_map->find<0>(legion_building_uuid);
+	if(it == account_map->end<0>()){
+		LOG_EMPERY_CENTER_TRACE("legion building not found: legion_building_uuid = ", legion_building_uuid);
+		return { };
 	}
-*/
-
-	return { };
+	return it->building;
 }
 
 std::uint64_t LegionBuildingMap::get_apply_count(LegionUuid account_uuid)
@@ -148,11 +164,13 @@ void LegionBuildingMap::synchronize_with_player(LegionUuid legion_uuid,const boo
 		auto &elem = *msg.buildings.emplace(msg.buildings.end());
 		const auto info = it->building;
 
-		elem.legion_building_uuid = AccountUuid(info->unlocked_get_legion_building_uuid()).str();
+		elem.legion_building_uuid = LegionBuildingUuid(info->get_legion_building_uuid()).str();
 
-		elem.type = boost::lexical_cast<std::string>(info->unlocked_get_ntype());
+		elem.map_object_uuid = info->get_attribute(LegionBuildingAttributeIds::ID_MAPOBJECT_UUID);
 
-		elem.level = "1";
+		elem.type = boost::lexical_cast<std::string>(info->get_type());
+
+		elem.level = info->get_attribute(LegionBuildingAttributeIds::ID_LEVEL);
 
 	}
 
@@ -242,12 +260,12 @@ void LegionBuildingMap::deleteInfo_by_legion_uuid(LegionUuid legion_uuid)
 
 }
 
-void  LegionBuildingMap::find_by_type(std::vector<boost::shared_ptr<MySql::Center_LegionBuilding>> &buildings,LegionUuid legion_uuid,std::uint64_t ntype)
+void  LegionBuildingMap::find_by_type(std::vector<boost::shared_ptr<LegionBuilding>> &buildings,LegionUuid legion_uuid,std::uint64_t ntype)
 {
 	PROFILE_ME;
 	const auto &account_map = g_building_map;
 	if(!account_map){
-		LOG_EMPERY_CENTER_WARNING("legion map not loaded.");
+		LOG_EMPERY_CENTER_WARNING("legion building map not loaded.");
 		return;
 	}
 
@@ -255,7 +273,7 @@ void  LegionBuildingMap::find_by_type(std::vector<boost::shared_ptr<MySql::Cente
 	const auto range = account_map->equal_range<1>(legion_uuid);
 
 	for(auto it = range.first; it != range.second; ++it){
-		if(it->building->unlocked_get_ntype() == ntype)
+		if(it->building->get_type() == ntype)
 		{
 			buildings.reserve(buildings.size() + 1);
 			buildings.emplace_back(it->building);
@@ -264,6 +282,38 @@ void  LegionBuildingMap::find_by_type(std::vector<boost::shared_ptr<MySql::Cente
 
 
 	return;
+}
+
+void LegionBuildingMap::update(const boost::shared_ptr<LegionBuilding> &building, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto &account_map = g_building_map;
+	if(!account_map){
+		LOG_EMPERY_CENTER_WARNING("Legion building map not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Legion building map not loaded"));
+		}
+		return;
+	}
+
+
+	const auto legion_building_uuid = building->get_legion_building_uuid();
+
+	const auto it = account_map->find<0>(legion_building_uuid);
+	if(it == account_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("Legion building not found: legion_building_uuid = ", legion_building_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Legion building not found"));
+		}
+		return;
+	}
+	if(it->building != building){
+		LOG_EMPERY_CENTER_DEBUG("Legion building expired: legion_building_uuid = ", legion_building_uuid);
+		return;
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Updating Legion building: legion_building_uuid = ", legion_building_uuid);
+	account_map->replace<0>(it, LegionBuildingElement(building));
 }
 
 

@@ -40,6 +40,12 @@ namespace Msg {
 		ERR_LEGION_STORE_CONSUMED_LACK						= 73028,		// 兑换时所需消耗不足
 		ERR_LEGION_STORE_LIMIT_PURCHASE						= 73029,		// 兑换时因为限购，不能兑换
 		ERR_LEGION_BUILDING_CREATE_LIMIT					= 73030,		// 创建军团建筑时，已到可建造数量上限
+		ERR_LEGION_BUILDING_CANNOT_FIND						= 73031,		// 升级军团建筑时，没找到该建筑
+		ERR_LEGION_BUILDING_UPGRADING					    = 73032,		// 升级军团建筑时，该建筑正在升级中
+		ERR_LEGION_BUILDING_UPGRADE_MAX					    = 73033,		// 升级军团建筑时，已经是最高等级，不能继续升级
+		ERR_LEGION_BUILDING_UPGRADE_LACK					= 73034,		// 升级军团建筑时，所需升级消耗资源不足
+		ERR_LEGION_BUILDING_UPGRADE_LIMIT					= 73035,		// 升级军团建筑时，所需升级条件不满足
+		ERR_LEGION_BUILDING_NOTIN_UPGRADING					= 73036,		// 取消升级军团建筑时，发现目前没有在升级
 	};
 }
 
