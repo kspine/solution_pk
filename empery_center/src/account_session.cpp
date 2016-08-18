@@ -91,7 +91,7 @@ void AccountSession::on_sync_request(Poseidon::Http::RequestHeaders request_head
 		throw;
 	} catch(Poseidon::Cbpp::Exception &e){
 		LOG_EMPERY_CENTER_WARNING("Poseidon::Cbpp::Exception thrown: what = ", e.what());
-		result.first = e.status_code();
+		result.first = e.get_status_code();
 		result.second = e.what();
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

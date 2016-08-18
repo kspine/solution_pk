@@ -110,7 +110,7 @@ namespace {
 			horn_message->delete_from_game();
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_HornMessage",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_HornMessage",
 			"DELETE QUICK `m`.* "
 			"  FROM `Center_HornMessage` AS `m` "
 			"  WHERE `m`.`expiry_time` = '0000-00-00 00:00:00'");

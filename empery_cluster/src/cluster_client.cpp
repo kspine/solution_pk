@@ -175,7 +175,7 @@ void ClusterClient::on_sync_data_message(std::uint16_t message_id, Poseidon::Str
 		} catch(Poseidon::Cbpp::Exception &e){
 			LOG_EMPERY_CLUSTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,
 				"Poseidon::Cbpp::Exception thrown: message_id = ", packed.message_id, ", what = ", e.what());
-			result.first = e.status_code();
+			result.first = e.get_status_code();
 			result.second = e.what();
 		} catch(std::exception &e){
 			LOG_EMPERY_CLUSTER(Poseidon::Logger::SP_MAJOR | Poseidon::Logger::LV_INFO,

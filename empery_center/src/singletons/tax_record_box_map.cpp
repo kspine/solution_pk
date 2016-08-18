@@ -64,7 +64,7 @@ namespace {
 			}
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_TaxRecord",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_TaxRecord",
 			"DELETE QUICK `r`.* "
 			"  FROM `Center_TaxRecord` AS `r` "
 			"  WHERE `r`.`deleted` > 0");

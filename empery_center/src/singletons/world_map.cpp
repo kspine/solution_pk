@@ -237,7 +237,7 @@ namespace {
 			}
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapObject",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_MapObject",
 			"DELETE QUICK `m`.*, `a`.*, `d`.* "
 			"  FROM `Center_MapObject` AS `m` "
 			"    LEFT JOIN `Center_MapObjectAttribute` AS `a` "
@@ -354,7 +354,7 @@ namespace {
 			strategic_resource->delete_from_game();
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_StrategicResource",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_StrategicResource",
 			"DELETE QUICK `r`.* "
 			"  FROM `Center_StrategicResource` AS `r` "
 			"  WHERE `r`.`resource_amount` = 0");
@@ -396,7 +396,7 @@ namespace {
 			}
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_MapEvent",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_MapEvent",
 			"DELETE QUICK `e`.*"
 			"  FROM `Center_MapEvent` AS `e` "
 			"  WHERE `e`.`expiry_time` = '0000-00-00 00:00:00'");
@@ -448,7 +448,7 @@ namespace {
 			resource_crate->delete_from_game();
 		}
 
-		Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_ResourceCrate",
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_ResourceCrate",
 			"DELETE QUICK `c`.* "
 			"  FROM `Center_ResourceCrate` AS `c` "
 			"  WHERE `c`.`amount_remaining` = 0");
