@@ -67,7 +67,7 @@ void Legion::InitAttributes(AccountUuid accountid,std::string content, std::stri
 	modifiers.emplace(LegionAttributeIds::ID_LEADER, accountid.str());
 	modifiers.emplace(LegionAttributeIds::ID_LEVEL, "1");
 	modifiers.emplace(LegionAttributeIds::ID_CONTENT, std::move(content));
-	modifiers.emplace(LegionAttributeIds::ID_NOTICE, "");
+//	modifiers.emplace(LegionAttributeIds::ID_NOTICE, "");
 	modifiers.emplace(LegionAttributeIds::ID_ICON, std::move(icon));
 	modifiers.emplace(LegionAttributeIds::ID_LANAGE, std::move(language));
 	if(bshenhe)
@@ -83,35 +83,37 @@ void Legion::InitAttributes(AccountUuid accountid,std::string content, std::stri
 	set_attributes(std::move(modifiers));
 }
 
-void Legion::AddMember(AccountUuid accountid,unsigned rank,std::uint64_t join_time,std::string  donate,std::string  weekdonate,std::string nick)
+
+//void Legion::AddMember(AccountUuid accountid,unsigned rank,std::uint64_t join_time,std::string  donate,std::string  weekdonate,std::string nick)
+void Legion::AddMember(boost::shared_ptr<Account> account,unsigned rank,std::uint64_t join_time)
 {
 	// 先判断玩家是否已经加入军团
-	const auto member = LegionMemberMap::get_by_account_uuid(accountid);
+	const auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
 	if(member)
 	{
-		LOG_EMPERY_CENTER_ERROR("AddMember Find same  account_uuid:", accountid);
+		LOG_EMPERY_CENTER_ERROR("AddMember Find same  account_uuid:", account->get_account_uuid());
 	}
 	else
 	{
-		auto pair = LegionMember::async_create( get_legion_uuid(),accountid,join_time);
+		auto pair = LegionMember::async_create( get_legion_uuid(),account->get_account_uuid(),join_time);
 		Poseidon::JobDispatcher::yield(pair.first, true);
 
 		auto member = std::move(pair.second);
 
 		// 设置成员属性
-		member->InitAttributes(rank,donate,weekdonate);
+		member->InitAttributes(account,rank);
 
 	//	m_members.emplace(AccountUuid((*it)->get_account_uuid()), *it);
 
 	//	m_members.emplace(accountid,member);
 
-		LOG_EMPERY_CENTER_DEBUG("AddMember account_uuid:", accountid,"  join_time:",join_time," rank:",rank);
+		LOG_EMPERY_CENTER_DEBUG("AddMember account_uuid:", account->get_account_uuid(),"  join_time:",join_time," rank:",rank);
 
 		LegionMemberMap::insert(member, std::string());
 
 		Msg::SC_LegionNoticeMsg msg;
 		msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_JOIN;
-		msg.nick = nick;
+		msg.nick = account->get_nick();
 		msg.ext1 = "";
 		sendNoticeMsg(msg);
 	}
@@ -234,7 +236,7 @@ void Legion::synchronize_with_player(AccountUuid account_uuid,const boost::share
 	const auto leader_account = AccountMap::require(AccountUuid(get_attribute(LegionAttributeIds::ID_LEADER)));
 	msg.legion_leadername    	= 	leader_account->get_nick();
 	msg.legion_icon     		= 	get_attribute(LegionAttributeIds::ID_ICON);
-	msg.legion_notice     		= 	get_attribute(LegionAttributeIds::ID_NOTICE);
+	msg.legion_notice     		= 	get_attribute(LegionAttributeIds::ID_CONTENT);
 	msg.legion_level     		= 	get_attribute(LegionAttributeIds::ID_LEVEL);
 	msg.legion_rank     		= 	get_attribute(LegionAttributeIds::ID_RANK);
 	msg.legion_money     		= 	get_attribute(LegionAttributeIds::ID_MONEY);
@@ -331,6 +333,8 @@ void Legion::sendmail(boost::shared_ptr<Account> account, ChatMessageTypeId ntyp
 	const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
 		ntype, AccountUuid(), std::move(str), std::move(segments), std::move(attachments));
 	MailBoxMap::insert_mail_data(mail_data);
+
+	AccountMap::require_controller_token(account->get_account_uuid(),"");
 
 	const auto to_mail_box = MailBoxMap::require(account->get_account_uuid());
 	to_mail_box->pump_status();

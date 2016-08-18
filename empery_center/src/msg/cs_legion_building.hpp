@@ -16,7 +16,24 @@ namespace Msg {
 #define MESSAGE_NAME    CS_CreateLegionBuildingMessage
 #define MESSAGE_ID      1631
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT          (ntype)
+	FIELD_STRING        (castle_uuid)	\
+	FIELD_VUINT         (map_object_type_id)	\
+	FIELD_VINT          (coord_x)	\
+	FIELD_VINT          (coord_y)
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    CS_UpgradeLegionBuildingMessage
+#define MESSAGE_ID      1632
+#define MESSAGE_FIELDS  \
+	FIELD_STRING          (legion_building_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    CS_CancleUpgradeLegionBuildingMessage
+#define MESSAGE_ID      1633
+#define MESSAGE_FIELDS  \
+	FIELD_STRING          (legion_building_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

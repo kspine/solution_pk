@@ -17,7 +17,6 @@ lib_LTLIBRARIES = \
 
 lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/controller_client.cpp	\
-	src/singletons/log_client.cpp	\
 	src/singletons/player_websocket_server.cpp	\
 	src/singletons/cluster_cbpp_server.cpp	\
 	src/singletons/dungeon_cbpp_server.cpp	\
@@ -113,12 +112,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/controller/map.cpp	\
 	src/controller/friend.cpp	\
 	src/controller/chat.cpp	\
-	src/event_listeners/account.cpp	\
-	src/event_listeners/item.cpp	\
-	src/event_listeners/castle.cpp	\
-	src/event_listeners/auction.cpp	\
-	src/event_listeners/map.cpp	\
-	src/event_listeners/dungeon.cpp	\
 	src/dungeon/dungeon.cpp	\
 	src/string_utilities.cpp	\
 	src/map_utilities.cpp	\
@@ -136,6 +129,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/account.cpp	\
 	src/legion.cpp	\
 	src/legion_member.cpp	\
+	src/legion_building.cpp	\
 	src/map_cell.cpp	\
 	src/map_object.cpp	\
 	src/castle.cpp	\

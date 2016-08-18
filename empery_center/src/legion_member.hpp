@@ -17,6 +17,7 @@ namespace MySql {
 }
 
 class PlayerSession;
+class Account;
 
 class LegionMember : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -39,31 +40,13 @@ public:
 public:
 	LegionUuid get_legion_uuid() const;
 	AccountUuid get_account_uuid() const;
-//	const std::string &get_login_name() const;
-	LegionUuid get_creater_uuid() const;
-
-//	unsigned get_promotion_level() const;
-	void set_promotion_level(unsigned promotion_level);
 
 	std::uint64_t get_created_time() const;
 
-//	const std::string &get_nick() const;
-//	void set_nick(std::string nick);
-
 	// 初始化属性
-	void InitAttributes(unsigned nTitleid,std::string  donate,std::string  weekdonate);
+	void InitAttributes(boost::shared_ptr<Account> account,unsigned nTitleid);
 	// 离开善后操作
 	void leave();
-
-/*	bool has_been_activated() const;
-	void set_activated(bool activated);
-
-	std::uint64_t get_banned_until() const;
-	void set_banned_until(std::uint64_t banned_until);
-
-	std::uint64_t get_quieted_until() const;
-	void set_quieted_until(std::uint64_t quieted_until);
-*/
 	const std::string &get_attribute(LegionMemberAttributeId account_attribute_id) const;
 	void get_attributes(boost::container::flat_map<LegionMemberAttributeId, std::string> &ret) const;
 	void set_attributes(boost::container::flat_map<LegionMemberAttributeId, std::string> modifiers);

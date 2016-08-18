@@ -9,9 +9,10 @@
 #include "legion.hpp"
 #include "legion_member.hpp"
 #include "legion_member_attribute_ids.hpp"
-#include <poseidon/singletons/mysql_daemon.hpp>
 #include "singletons/account_map.hpp"
 #include "singletons/legion_member_map.hpp"
+#include "account_attribute_ids.hpp"
+#include <poseidon/singletons/mysql_daemon.hpp>
 
 namespace EmperyCenter {
 
@@ -47,25 +48,35 @@ AccountUuid LegionMember::get_account_uuid() const{
 	return AccountUuid(m_obj->unlocked_get_account_uuid());
 }
 
-void LegionMember::InitAttributes(unsigned nTitleid,std::string  donate,std::string  weekdonate)
+void LegionMember::InitAttributes(boost::shared_ptr<Account> account,unsigned nTitleid)
 {
 	PROFILE_ME;
 
 	// 设置属性
 	boost::container::flat_map<LegionMemberAttributeId, std::string> modifiers;
 	modifiers.emplace(LegionMemberAttributeIds::ID_TITLEID, boost::lexical_cast<std::string>(nTitleid));
-	if(donate.empty())
+	const auto donate = account->get_attribute(AccountAttributeIds::ID_DONATE);
+	if(donate.empty() || donate == Poseidon::EMPTY_STRING)
 	{
 		modifiers.emplace(LegionMemberAttributeIds::ID_DONATE, "0");
 	}
 	else
 		modifiers.emplace(LegionMemberAttributeIds::ID_DONATE, donate);
-	if(weekdonate.empty())
+	const auto weekdonate = account->get_attribute(AccountAttributeIds::ID_WEEKDONATE);
+	if(weekdonate.empty()  || weekdonate == Poseidon::EMPTY_STRING)
 	{
 		modifiers.emplace(LegionMemberAttributeIds::ID_WEEKDONATE, "0");
 	}
 	else
-		modifiers.emplace(LegionMemberAttributeIds::ID_WEEKDONATE, donate);
+		modifiers.emplace(LegionMemberAttributeIds::ID_WEEKDONATE, weekdonate);
+
+	const auto exchange_record = account->get_attribute(AccountAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD);
+	if(exchange_record.empty()  || exchange_record == Poseidon::EMPTY_STRING)
+	{
+		modifiers.emplace(LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD, "");
+	}
+	else
+		modifiers.emplace(LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD, exchange_record);
 
 	modifiers.emplace(LegionMemberAttributeIds::ID_SPEAKFLAG, "0");
 
@@ -82,73 +93,11 @@ void LegionMember::leave()
 
 	Poseidon::MySqlDaemon::enqueue_for_batch_saving("Center_LegionMemberAttribute",strsql);
 }
-/*
-const std::string &Legion::get_login_name() const {
-	return m_obj->unlocked_get_login_name();
-}
-*/
-LegionUuid LegionMember::get_creater_uuid() const {
-	return LegionUuid(std::move(m_obj->unlocked_get_legion_uuid()));
-}
-/*
-unsigned Legion::get_promotion_level() const {
-	return m_obj->get_promotion_level();
-}
 
-void Legion::set_promotion_level(unsigned promotion_level){
-	PROFILE_ME;
-
-	m_obj->set_promotion_level(promotion_level);
-
-	LegionMap::update(virtual_shared_from_this<Legion>(), false);
-}
-*/
-/*
-const std::string &LegionMember::get_nick() const {
-	return m_obj->unlocked_get_name();
-}
-void LegionMember::set_nick(std::string nick){
-	PROFILE_ME;
-
-	m_obj->set_name(std::move(nick));
-
-	LegionMap::update(virtual_shared_from_this<Legion>(), false);
-}
-*/
 std::uint64_t LegionMember::get_created_time() const {
 	return m_obj->get_join_time();
 }
 
-/*
-bool Legion::has_been_activated() const {
-	return m_obj->get_activated();
-}
-void Legion::set_activated(bool activated){
-	PROFILE_ME;
-
-	m_obj->set_activated(activated);
-
-	LegionMap::update(virtual_shared_from_this<Legion>(), false);
-}
-
-std::uint64_t Legion::get_banned_until() const {
-	return m_obj->get_banned_until();
-}
-void Legion::set_banned_until(std::uint64_t banned_until){
-	m_obj->set_banned_until(banned_until);
-
-	LegionMap::update(virtual_shared_from_this<Legion>(), false);
-}
-
-std::uint64_t Legion::get_quieted_until() const {
-	return m_obj->get_quieted_until();
-}
-void Legion::set_quieted_until(std::uint64_t quieted_until){
-	m_obj->set_quieted_until(quieted_until);
-
-	LegionMap::update(virtual_shared_from_this<Legion>(), false);
-}
-*/
 const std::string &LegionMember::get_attribute(LegionMemberAttributeId account_attribute_id) const {
 	PROFILE_ME;
 
@@ -177,10 +126,6 @@ void LegionMember::set_attributes(boost::container::flat_map<LegionMemberAttribu
 				it->first.get(), std::string());
 			obj->async_save(true);
 			m_attributes.emplace(it->first, std::move(obj));
-		}
-		else
-		{
-			// 值发生改变，也要写数据库
 		}
 	}
 

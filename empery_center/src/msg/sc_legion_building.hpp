@@ -12,6 +12,7 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_ARRAY         (buildings,	\
 		FIELD_STRING        (legion_building_uuid)	\
+		FIELD_STRING        (map_object_uuid)	\
 		FIELD_STRING        (type)	\
 		FIELD_STRING        (level)	\
 	)

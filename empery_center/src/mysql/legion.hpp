@@ -85,6 +85,14 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (ntype)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   Center_LegionBuildingAttribute
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (legion_building_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (legion_building_attribute_id)	\
+	FIELD_STRING            (value)
+#include <poseidon/mysql/object_generator.hpp>
+
+
 }
 
 }

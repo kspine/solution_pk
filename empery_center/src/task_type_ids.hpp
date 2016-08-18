@@ -14,8 +14,8 @@ constexpr TaskTypeId
 	ID_HARVEST_RESOURCES            (  3), // 资源 ID   资源数      -               -
 	ID_HARVEST_SOLDIERS             (  4), // 部队 ID   部队数      -               -
 	ID_WIPE_OUT_MONSTERS            (  5), // 怪物 ID   单位数      -               -
-	ID_WIPE_OUT_ENEMY_BATTALIONS    (  6); // 部队 ID   单位数      -               -
-
+	ID_WIPE_OUT_ENEMY_BATTALIONS    (  6), // 部队 ID   单位数      -               -
+	ID_LEGION_DONATE    			(  12); // 军团捐献 单位数      -               -
 }
 
 }
