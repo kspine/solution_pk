@@ -98,7 +98,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 	if(old_solider_count > new_solider_count){
 		const auto damaged_solider_count = old_solider_count - new_solider_count;
 		if(!dungeon_object->is_monster()&&(damaged_solider_count > 0)){
-			expect_dungeon->add_damage_solider(damaged_solider_count);
+			expect_dungeon->update_damage_solider(dungeon_object->get_dungeon_object_type_id(),damaged_solider_count);
 		}
 	}
 	return Response();
