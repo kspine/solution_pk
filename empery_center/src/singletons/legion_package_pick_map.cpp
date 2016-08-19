@@ -4,6 +4,7 @@
 
 #include "../mmain.hpp"
 
+#include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
@@ -58,6 +59,11 @@ namespace EmperyCenter
 
         boost::shared_ptr<LegionPackagePickContainer> g_legion_package_pick_map;
 
+		//void gc_timer_proc(std::uint64_t now) 
+		//{
+
+		//}
+
         MODULE_RAII_PRIORITY(handles, 5000)
         {
             const auto conn = Poseidon::MySqlDaemon::create_connection();
@@ -75,6 +81,8 @@ namespace EmperyCenter
 
             while(conn->fetch_row())
             {
+                LOG_EMPERY_CENTER_ERROR("SELECT * FROM `Center_Legion_Package_Pick`");
+
                 auto obj = boost::make_shared<MySql::Center_Legion_Package_Pick>();
                 obj->fetch(conn);
                 obj->enable_auto_saving();
@@ -91,6 +99,11 @@ namespace EmperyCenter
             }
             g_legion_package_pick_map = legion_package_pick_map;
             handles.push(legion_package_pick_map);
+
+			//const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 300000);
+			//auto timer = Poseidon::TimerDaemon::register_timer(0, gc_interval,
+			//	std::bind(&gc_timer_proc, std::placeholders::_2));
+			//handles.push(timer);
         }
     }
 
@@ -262,15 +275,24 @@ namespace EmperyCenter
 			    {
 				   if (it->picks->unlocked_get_share_package_status() == EPickStatus_Received)
 				   {
+				      LOG_EMPERY_CENTER_DEBUG("1:get_share_package_status ********************** ");
+
 				      return (uint64_t)EPickStatus_Received;
 				   }
+				   LOG_EMPERY_CENTER_DEBUG("2:get_share_package_status ********************** ");
+
 
 				   return (uint64_t)EPickStatus_UnReceived;
 			    }
 	     	}
+	        
+	        LOG_EMPERY_CENTER_DEBUG("3:get_share_package_status ********************** ");
+
 
 		    return (uint64_t)EPickStatus_UnReceived;
      	}
+        LOG_EMPERY_CENTER_DEBUG("4:get_share_package_status ********************** ");
+
 
         return (uint64_t)EPickStatus_UnReceived;
      }

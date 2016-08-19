@@ -353,14 +353,14 @@ PLAYER_SERVLET(Msg::CS_GetLegionMemberInfoMessage, account, session, req){
 					const auto primary_castle =  WorldMap::get_primary_castle(info->get_account_uuid());
 					if(primary_castle)
 					{
-						elem.prosperity = primary_castle->get_attribute(AttributeIds::ID_PROSPERITY_POINTS);
+						elem.prosperity = boost::lexical_cast<std::uint64_t>(primary_castle->get_attribute(AttributeIds::ID_PROSPERITY_POINTS));
 
 						LOG_EMPERY_CENTER_INFO("城堡繁荣度==============================================",elem.prosperity, " 用户：",elem.account_uuid);
 					}
 					else
 					{
 						LOG_EMPERY_CENTER_INFO("城堡繁荣度 没找到==============================================");
-						elem.prosperity = "0";   //ID_PROSPERITY_POINTS
+						elem.prosperity = 0;   //ID_PROSPERITY_POINTS
 					}
 
 					elem.fighting = "0";
@@ -1398,7 +1398,7 @@ PLAYER_SERVLET(Msg::CS_KickLegionMemberReqMessage, account, session, req)
 						const auto utc_now = Poseidon::get_utc_time();
 						// 判断玩家最后一次在线时间
 						const auto last_logout_time = boost::lexical_cast<std::uint64_t>(target_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME));
-						if(utc_now - last_logout_time >= Data::Global::as_unsigned(Data::Global::SLOT_LEGION_STORE_UPDATE_MINUTE) * 60 * 1000)
+						if(utc_now - last_logout_time >= Data::Global::as_unsigned(Data::Global::SLOT_LEGION_KICK_OUTTIME) * 60 * 1000)
 						{
 							// 被踢出时发邮件
 							legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ account->get_nick());

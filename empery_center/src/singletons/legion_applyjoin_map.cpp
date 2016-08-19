@@ -160,14 +160,14 @@ void LegionApplyJoinMap::synchronize_with_player(LegionUuid legion_uuid,const bo
 		const auto primary_castle =  WorldMap::get_primary_castle(AccountUuid(info->unlocked_get_account_uuid()));
 		if(primary_castle)
 		{
-			elem.prosperity = primary_castle->get_attribute(AttributeIds::ID_PROSPERITY_POINTS);
+			elem.prosperity = boost::lexical_cast<std::uint64_t>(primary_castle->get_attribute(AttributeIds::ID_PROSPERITY_POINTS));
 
 			LOG_EMPERY_CENTER_INFO("城堡繁荣度==============================================",elem.prosperity);
 		}
 		else
 		{
 			LOG_EMPERY_CENTER_INFO("城堡繁荣度 没找到==============================================");
-			elem.prosperity = "0";   //ID_PROSPERITY_POINTS
+			elem.prosperity = 0;   //ID_PROSPERITY_POINTS
 		}
 	}
 

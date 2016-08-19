@@ -17,7 +17,7 @@ namespace EmperyCenter
 
     class PlayerSession;
 
-	enum EPickStatus{ EPickStatus_Received, EPickStatus_UnReceived };
+	enum EPickStatus{ EPickStatus_UnReceived, EPickStatus_Received };
 
     struct LegionPackagePickMap
     {

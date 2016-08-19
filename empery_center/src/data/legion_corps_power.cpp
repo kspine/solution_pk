@@ -22,15 +22,13 @@ namespace EmperyCenter
                  csv.get(elem.legionCorpsPower_level, "power_level");
                  csv.get(elem.power_id, "power_id");
                  csv.get(elem.power_members_max, "people");
-                csv.get(elem.power_array, "power");
+                 csv.get(elem.power_array, "power");
 
                 if(!legionCorpsPower_container->emplace(elem.legionCorpsPower_level, std::move(elem)).second)
                 {
                     LOG_EMPERY_CENTER_ERROR("Duplicate corps_power config: power_level = ", elem.legionCorpsPower_level);
                     DEBUG_THROW(Exception, sslit("Duplicate corps_power config"));
                 }
-
-                LOG_EMPERY_CENTER_ERROR("Load  corps_power.csv : success!!!");
             }
             g_legionCorpsPower_container = legionCorpsPower_container;
             handles.push(legionCorpsPower_container);
@@ -65,7 +63,7 @@ namespace EmperyCenter
 
         bool LegionCorpsPower::is_have_power(LegionCorpsPowerId legionCorpsPower_id,unsigned powerid)
         {
-
+            
             const auto power = get(legionCorpsPower_id);
             if(power)
             {

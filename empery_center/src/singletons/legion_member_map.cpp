@@ -85,17 +85,7 @@ namespace {
 
 		LegionMemberMap::check_in_resetime();
 
-		for(auto it = account_map->begin(); it != account_map->end(); ++it)
-		{
-			const auto &member = it->member;
-
-			if(LegionMemberMap::check_in_waittime(member))
-			{
-				account_map->erase(it);
-				break;
-			}
-
-		}
+		LegionMemberMap::check_in_waittime();
 	}
 
 
@@ -718,182 +708,206 @@ bool LegionMemberMap::is_in_same_legion(AccountUuid account_uuid,AccountUuid oth
 	return false;
 }
 
-bool LegionMemberMap::check_in_waittime(const boost::shared_ptr<LegionMember> &member)
+void LegionMemberMap::check_in_waittime()
 {
+	PROFILE_ME;
+	const auto &account_map = g_legionmember_map;
+	if(!account_map){
+		return;
+	}
 
-	// 查看member权限
-	bool bdelete = false;
-	// 根据account_uuid查找是否有军团
-	const auto legion = LegionMap::get(LegionUuid(member->get_legion_uuid()));
-	if(legion)
+	for(auto it = account_map->begin(); it != account_map->end();)
 	{
-		const auto account = AccountMap::get(member->get_account_uuid());
-		const auto titileid = member->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
-	//	LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage titileid ================================ ",titileid,"  成员uuid：",member->get_account_uuid());
-		if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_QUIT))
+		const auto &member = it->member;
+
+		// 查看member权限
+		bool bdelete = false;
+		// 根据account_uuid查找是否有军团
+		const auto legion = LegionMap::get(LegionUuid(member->get_legion_uuid()));
+		if(legion)
 		{
-	//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage 可以退出================================ ");
-			// 是否已经在退会等待中、被踢出等待中
-			auto quittime = member->get_attribute(LegionMemberAttributeIds::ID_QUITWAITTIME);
-	//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 111111111=============================== ",quittime);
-			bool bkick = false;
-			if(quittime.empty()  || quittime == Poseidon::EMPTY_STRING)
+			const auto account = AccountMap::get(member->get_account_uuid());
+			const auto titileid = member->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
+		//	LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage titileid ================================ ",titileid,"  成员uuid：",member->get_account_uuid());
+			if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_QUIT))
 			{
-				// 被踢出等待中
-				quittime = member->get_attribute(LegionMemberAttributeIds::ID_KICKWAITTIME);
-				bkick = true;
-			}
-	//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 2222222=============================== ",quittime);
-			if(quittime != Poseidon::EMPTY_STRING)
-			{
-				const auto utc_now = Poseidon::get_utc_time();
-
-				const auto leavetime = boost::lexical_cast<boost::uint64_t>(quittime) * 1000;
-
-	//			LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage utc_now ================ ",utc_now," quittime==============",quittime, " leavetime==============",leavetime);
-
-				if(utc_now > leavetime )
+		//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage 可以退出================================ ");
+				// 是否已经在退会等待中、被踢出等待中
+				auto quittime = member->get_attribute(LegionMemberAttributeIds::ID_QUITWAITTIME);
+		//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 111111111=============================== ",quittime);
+				bool bkick = false;
+				if(quittime.empty()  || quittime == Poseidon::EMPTY_STRING)
 				{
-					// 已经过了完全离开的时间，让玩家离开军团
-					const auto legion_uuid = member->get_legion_uuid();
-					const auto account_uuid = member->get_account_uuid();
+					// 被踢出等待中
+					quittime = member->get_attribute(LegionMemberAttributeIds::ID_KICKWAITTIME);
+					bkick = true;
+				}
+		//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 2222222=============================== ",quittime);
+				if(quittime != Poseidon::EMPTY_STRING)
+				{
+					const auto utc_now = Poseidon::get_utc_time();
 
-					LegionMemberMap::deletemember(member->get_account_uuid());
+					const auto leavetime = boost::lexical_cast<boost::uint64_t>(quittime) * 1000;
 
-					const auto target_account = AccountMap::get(account_uuid);
-					if(target_account)
+		//			LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage utc_now ================ ",utc_now," quittime==============",quittime, " leavetime==============",leavetime);
+
+					if(utc_now > leavetime )
 					{
-						// 广播给军团其他成员
-						Msg::SC_LegionNoticeMsg msg;
-						if(bkick)
+						// 已经过了完全离开的时间，让玩家离开军团
+						const auto account_uuid = member->get_account_uuid();
+
+						const auto target_account = AccountMap::get(account_uuid);
+						if(target_account)
 						{
-							// 被踢出时发邮件
-							legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ account->get_nick());
-							msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_KICK;
+							// 广播给军团其他成员
+							Msg::SC_LegionNoticeMsg msg;
+							if(bkick)
+							{
+								// 被踢出时发邮件
+								legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ account->get_nick());
+								msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_KICK;
+							}
+							else
+								msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_QUIT;
+							msg.nick = target_account->get_nick();
+							msg.ext1 = "";
+							legion->sendNoticeMsg(msg);
 						}
-						else
-							msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_QUIT;
-						msg.nick = target_account->get_nick();
-						msg.ext1 = "";
-						legion->sendNoticeMsg(msg);
+
+						LegionMemberMap::deletemember(member->get_account_uuid(),false);
+
+						bdelete = true;
 					}
-
-
-					LOG_EMPERY_CENTER_INFO("CS_QuitLegionReqMessage members size==============================================",LegionMemberMap::get_legion_member_count(legion_uuid));
-					bdelete = true;
-			//		break;
 				}
 			}
-		}
 
-		// 看下是否转让军团长等待时间已过的逻辑
-		bool bAttorn = false;
-		std::string strlead="";
-		if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_ATTORN))
-		{
-			const auto utc_now = Poseidon::get_utc_time();
-		//	LOG_EMPERY_CENTER_DEBUG("有转让权限 titileid ================================ ",titileid,"  成员uuid：", member->get_account_uuid());
-			// 转让军团等待中
-			const auto 	quittime = legion->get_attribute(LegionAttributeIds::ID_ATTORNTIME);
-			if(!quittime.empty() ||  quittime != Poseidon::EMPTY_STRING)
+			// 看下是否转让军团长等待时间已过的逻辑
+			bool bAttorn = false;
+			std::string strlead="";
+			if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_ATTORN))
 			{
-				// 先看下要转让的目标对象是否还在军团中
-				const auto target_uuid = legion->get_attribute(LegionAttributeIds::ID_ATTORNLEADER);
-		//		LOG_EMPERY_CENTER_DEBUG("存在转让等待时间=============================== ",target_uuid);
-				// 查看两个人是否属于同一军团
-				if(LegionMemberMap::is_in_same_legion(member->get_account_uuid(),AccountUuid(target_uuid)))
+				const auto utc_now = Poseidon::get_utc_time();
+			//	LOG_EMPERY_CENTER_DEBUG("有转让权限 titileid ================================ ",titileid,"  成员uuid：", member->get_account_uuid());
+				// 转让军团等待中
+				const auto 	quittime = legion->get_attribute(LegionAttributeIds::ID_ATTORNTIME);
+				if(!quittime.empty() ||  quittime != Poseidon::EMPTY_STRING)
 				{
-					const auto target_member =  LegionMemberMap::get_by_account_uuid(AccountUuid(target_uuid));
-					// 设置两者新的等级关系
-					if(target_member)
+					// 先看下要转让的目标对象是否还在军团中
+					const auto target_uuid = legion->get_attribute(LegionAttributeIds::ID_ATTORNLEADER);
+			//		LOG_EMPERY_CENTER_DEBUG("存在转让等待时间=============================== ",target_uuid);
+					// 查看两个人是否属于同一军团
+					if(LegionMemberMap::is_in_same_legion(member->get_account_uuid(),AccountUuid(target_uuid)))
 					{
-						// 查看目标对象是否有离开倒计时或者被踢出的倒计时
-						auto target_quittime = target_member->get_attribute(LegionMemberAttributeIds::ID_QUITWAITTIME);
-	//					LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 111111111=============================== ",target_quittime);
-						if(target_quittime.empty()  || target_quittime == Poseidon::EMPTY_STRING)
+						const auto target_member =  LegionMemberMap::get_by_account_uuid(AccountUuid(target_uuid));
+						// 设置两者新的等级关系
+						if(target_member)
 						{
-							// 被踢出等待中
-							target_quittime = target_member->get_attribute(LegionMemberAttributeIds::ID_KICKWAITTIME);
-						}
-	//					LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 2222222=============================== ",target_quittime);
-						if(!target_quittime.empty() || target_quittime != Poseidon::EMPTY_STRING)
-						{
-							// 因为目标对象要退出军团，所以无法转让
-							LOG_EMPERY_CENTER_DEBUG("因为目标对象要退出军团，所以无法转让=============================== ");
-							bAttorn = true;
+							// 查看目标对象是否有离开倒计时或者被踢出的倒计时
+							auto target_quittime = target_member->get_attribute(LegionMemberAttributeIds::ID_QUITWAITTIME);
+		//					LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 111111111=============================== ",target_quittime);
+							if(target_quittime.empty()  || target_quittime == Poseidon::EMPTY_STRING)
+							{
+								// 被踢出等待中
+								target_quittime = target_member->get_attribute(LegionMemberAttributeIds::ID_KICKWAITTIME);
+							}
+		//					LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 2222222=============================== ",target_quittime);
+							if(!target_quittime.empty() || target_quittime != Poseidon::EMPTY_STRING)
+							{
+								// 因为目标对象要退出军团，所以无法转让
+								LOG_EMPERY_CENTER_DEBUG("因为目标对象要退出军团，所以无法转让=============================== ");
+								bAttorn = true;
+							}
+							else
+							{
+								// 查看时间是否已经超过转让等待时间
+								const auto leavetime = boost::lexical_cast<boost::uint64_t>(quittime) * 1000;
+								if(utc_now > leavetime )
+								{
+									// 设置各自的等级
+									boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes;
+
+									Attributes[LegionMemberAttributeIds::ID_TITLEID] = "1";
+
+									target_member->set_attributes(Attributes);
+
+									// 设置原来团长为团员
+									boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
+
+									Attributes1[LegionMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(Data::Global::as_unsigned(Data::Global::SLOT_LEGION_MEMBER_DEFAULT_POWERID));
+
+									member->set_attributes(Attributes1);
+
+									// 广播给军团其他成员
+									const auto target_account = AccountMap::get(target_member->get_account_uuid());
+									if(target_account && account)
+									{
+										Msg::SC_LegionNoticeMsg msg;
+										msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_ATTORN;
+										msg.nick = target_account->get_nick();
+										msg.ext1 = account->get_nick();
+										legion->sendNoticeMsg(msg);
+									}
+
+									LOG_EMPERY_CENTER_DEBUG("成功转让=============================== ",member->get_account_uuid(), "  目标对象：",target_member->get_account_uuid());
+									// 转让成功，重置转让等待时间
+									bAttorn = true;
+									strlead = AccountUuid(target_uuid).str();
+								}
+							}
 						}
 						else
 						{
-							// 查看时间是否已经超过转让等待时间
-							const auto leavetime = boost::lexical_cast<boost::uint64_t>(quittime) * 1000;
-							if(utc_now > leavetime )
-							{
-								// 设置各自的等级
-								boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes;
-
-								Attributes[LegionMemberAttributeIds::ID_TITLEID] = "1";
-
-								target_member->set_attributes(Attributes);
-
-								// 设置原来团长为团员
-								boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
-
-								Attributes1[LegionMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(Data::Global::as_unsigned(Data::Global::SLOT_LEGION_MEMBER_DEFAULT_POWERID));
-
-								member->set_attributes(Attributes1);
-
-								// 广播给军团其他成员
-								const auto target_account = AccountMap::get(target_member->get_account_uuid());
-								if(target_account && account)
-								{
-									Msg::SC_LegionNoticeMsg msg;
-									msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_ATTORN;
-									msg.nick = target_account->get_nick();
-									msg.ext1 = account->get_nick();
-									legion->sendNoticeMsg(msg);
-								}
-
-								LOG_EMPERY_CENTER_DEBUG("成功转让=============================== ",member->get_account_uuid(), "  目标对象：",target_member->get_account_uuid());
-								// 转让成功，重置转让等待时间
-								bAttorn = true;
-								strlead = AccountUuid(target_uuid).str();
-								bdelete = true;
-							}
+							// 目标不存在无法转让
+							LOG_EMPERY_CENTER_DEBUG("没找到目标成员，所以无法转让=============================== ");
+							bAttorn = true;
 						}
+
 					}
 					else
 					{
-						// 目标不存在无法转让
-						LOG_EMPERY_CENTER_DEBUG("没找到目标成员，所以无法转让=============================== ");
+						// 要转让的目标已经和自己不属于同一军团了
+						LOG_EMPERY_CENTER_DEBUG("要转让的目标已经和自己不属于同一军团了，所以无法转让=============================== ");
 						bAttorn = true;
 					}
+				}
+			}
 
-				}
-				else
-				{
-					// 要转让的目标已经和自己不属于同一军团了
-					LOG_EMPERY_CENTER_DEBUG("要转让的目标已经和自己不属于同一军团了，所以无法转让=============================== ");
-					bAttorn = true;
-				}
+			if(bAttorn)
+			{
+				// 重置转让信息
+				boost::container::flat_map<LegionAttributeId, std::string> Attributes;
+				if(!strlead.empty())
+					Attributes[LegionAttributeIds::ID_LEADER] = strlead;
+				Attributes[LegionAttributeIds::ID_ATTORNTIME] = "";
+				Attributes[LegionAttributeIds::ID_ATTORNLEADER] = "";
+
+				legion->set_attributes(Attributes);
+
+		//		break;
 			}
 		}
 
-		if(bAttorn)
+		if(bdelete)
 		{
-			// 重置转让信息
-			boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-			if(!strlead.empty())
-				Attributes[LegionAttributeIds::ID_LEADER] = strlead;
-			Attributes[LegionAttributeIds::ID_ATTORNTIME] = "";
-			Attributes[LegionAttributeIds::ID_ATTORNLEADER] = "";
-
-			legion->set_attributes(Attributes);
-
-	//		break;
+			// 如果需要清空
+			it = account_map->erase(it);
+		}
+		else
+		{
+			++it;
 		}
 	}
+}
 
-	return bdelete;
+uint64_t CaculateWeekDay(unsigned y, unsigned m, unsigned d)
+{
+    if(m==1||m==2) //把一月和二月换算成上一年的十三月和是四月
+    {
+        m+=12;
+        y--;
+    }
+	// 返回1就是周一 返回7就是周日
+    return (d+2*m+3*(m+1)/5+y+y/4-y/100+y/400)%7 + 1;
 }
 
 void LegionMemberMap::check_in_resetime()
@@ -931,7 +945,32 @@ void LegionMemberMap::check_in_resetime()
 		//		LOG_EMPERY_CENTER_ERROR("时间到，清空购买记录的清空重置");
 			}
 		}
+	}
 
+	// 周捐献记录的清空重置
+//	LOG_EMPERY_CENTER_ERROR("check_in_resetime check week ",  dt.yr, "  min:",dt.mon, " dt.sec:",dt.day, " CaculateWeekDay:",CaculateWeekDay(dt.yr, dt.mon,dt.day));
+	if(CaculateWeekDay(dt.yr, dt.mon,dt.day) == Data::Global::as_unsigned(Data::Global::SLOT_LEGION_WEEK_DONATE_DAY))
+	{
+		for(auto it = account_map->begin(); it != account_map->end(); ++it)
+		{
+			const auto &member = it->member;
+
+			if(dt.hr == Data::Global::as_unsigned(Data::Global::SLOT_LEGION_WEEK_DONATE_UPDATETIME) / 60 && dt.min == Data::Global::as_unsigned(Data::Global::SLOT_LEGION_WEEK_DONATE_UPDATETIME) % 60)
+			{
+				const auto weejdonate = member->get_attribute(LegionMemberAttributeIds::ID_WEEKDONATE);
+			//	LOG_EMPERY_CENTER_ERROR("成员uuid：",member->get_account_uuid()," 周捐献:",weejdonate);
+				if(!weejdonate.empty()  && weejdonate != Poseidon::EMPTY_STRING)
+				{
+					boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes;
+
+					Attributes[LegionMemberAttributeIds::ID_WEEKDONATE] = "";
+
+					member->set_attributes(Attributes);
+
+			//		LOG_EMPERY_CENTER_ERROR("时间到，清空周捐献记录的清空重置");
+				}
+			}
+		}
 	}
 
 }
