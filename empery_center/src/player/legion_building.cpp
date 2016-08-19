@@ -29,12 +29,13 @@
 #include "../map_utilities_center.hpp"
 #include "../resource_utilities.hpp"
 #include "../map_utilities.hpp"
-#include "../data/global.hpp"
+#include "../warehouse_building.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 
 
 namespace EmperyCenter {
+
 
 PLAYER_SERVLET(Msg::CS_GetLegionBuildingInfoMessage, account, session,  req )
 {
@@ -83,6 +84,7 @@ namespace {
 		}
 	}
 }
+
 
 PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
 {
@@ -171,13 +173,13 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                             ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), 0, 0,
                             [&]{
 
-                                const auto defense_building = boost::make_shared<DefenseBuilding>(defense_building_uuid, map_object_type_id,
+                                const auto defense_building = boost::make_shared<WarehouseBuilding>(defense_building_uuid, map_object_type_id,
                                     account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now);
                                 defense_building->pump_status();
                                 copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
                                 copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
                                 copy_buff(defense_building, utc_now, castle, BuffIds::ID_NOVICIATE_PROTECTION);
-                                defense_building->create_mission(DefenseBuilding::MIS_CONSTRUCT, duration, { });
+                                defense_building->create_mission(WarehouseBuilding::MIS_CONSTRUCT, duration, { });
                                 WorldMap::insert_map_object(defense_building);
 
                                 auto pair = LegionBuilding::async_create(legion_building_uuid,member->get_legion_uuid(),req.map_object_type_id);
@@ -296,7 +298,7 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
                             // 满足条件，可以升级
 
                             const auto map_object_uuid = MapObjectUuid(legion_building->get_attribute(LegionBuildingAttributeIds::ID_MAPOBJECT_UUID));
-                            const auto defense_building = boost::dynamic_pointer_cast<DefenseBuilding>(WorldMap::get_map_object(map_object_uuid));
+                            const auto defense_building = boost::dynamic_pointer_cast<WarehouseBuilding>(WorldMap::get_map_object(map_object_uuid));
                             if(!defense_building){
                                 return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
                             }
@@ -314,19 +316,19 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
 
                             defense_building->pump_status();
 
-                            if(defense_building->get_mission() != DefenseBuilding::MIS_NONE){
+                            if(defense_building->get_mission() != WarehouseBuilding::MIS_NONE){
                                 return Response(Msg::ERR_BUILDING_MISSION_CONFLICT);
                             }
 
 
                             const auto map_object_type_id = defense_building->get_map_object_type_id();
 
-                            const auto duration = static_cast<std::uint64_t>(std::ceil(buildingingo->levelup_time * 60000.0 - 0.001));
+                        //    const auto duration = static_cast<std::uint64_t>(std::ceil(buildingingo->levelup_time * 60000.0 - 0.001));
 
                             const auto insuff_resource_id = try_decrement_resources(castle, task_box, { },
                                 ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), buildingingo->house_level, 0,
                                 [&]{
-                                    defense_building->create_mission(Castle::MIS_UPGRADE, duration, { });
+                           //         defense_building->create_mission(WarehouseBuilding::Mission::MIS_UPGRADE, duration, { });
 
                                     // 更新消耗的军团属性
                                     legion->set_attributes(Attributes);
@@ -378,6 +380,8 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
 
     return Response();
 }
+
+
 /*
 PLAYER_SERVLET(Msg::CS_CancleUpgradeLegionBuildingMessage, account, session,  req )
 {

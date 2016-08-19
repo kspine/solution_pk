@@ -64,9 +64,6 @@ namespace EmperyCenter
                         LOG_EMPERY_CENTER_ERROR("Duplicate legionCorpsLevel: legionCorpsLevel_Id = ", elem.legionCorpsLevel_id);
                         DEBUG_THROW(Exception, sslit("Duplicate legionCorpsLevel"));
                     }
-
-                LOG_EMPERY_CENTER_ERROR("Load  corps.csv : success!!!");
-
             }
 
 		   g_legionCorpsLevel_container = legionCorpsLevel_container;

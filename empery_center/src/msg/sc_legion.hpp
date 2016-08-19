@@ -32,7 +32,7 @@ namespace Msg {
 		FIELD_STRING        (titleid)	\
 		FIELD_STRING        (nick)	\
 		FIELD_STRING        (icon)	\
-		FIELD_STRING        (prosperity)	\
+		FIELD_VUINT         (prosperity)	\
 		FIELD_STRING        (fighting)	\
 		FIELD_STRING        (quit_time)	\
 		FIELD_STRING        (kick_time)	\
@@ -66,7 +66,7 @@ namespace Msg {
 		FIELD_STRING        (account_uuid)	\
 		FIELD_STRING        (nick)	\
 		FIELD_STRING        (icon)	\
-		FIELD_STRING        (prosperity)	\
+		FIELD_VUINT         (prosperity)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

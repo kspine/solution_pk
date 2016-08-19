@@ -53,6 +53,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/legion_package_share_map.cpp \
 	src/singletons/legion_package_pick_map.cpp \
 	src/singletons/legion_building_map.cpp \
+	src/singletons/log_client.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -72,6 +73,9 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/legion_package_corps_box.cpp  \
 	src/data/legion_store_config.cpp  \
 	src/data/legion_building_config.cpp  \
+	src/data/legion_package_task.cpp  \
+	src/data/legion_task_contribution.cpp  \
+	src/data/legion_task_reward.cpp  \
 	src/player/account.cpp	\
 	src/player/legion.cpp	\
 	src/player/map.cpp	\
@@ -156,4 +160,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/dungeon_object.cpp	\
 	src/activity.cpp \
 	src/friend_box.cpp	\
+	src/warehouse_building.cpp	\
 	src/mmain.cpp

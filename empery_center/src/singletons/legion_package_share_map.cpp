@@ -68,6 +68,8 @@ namespace EmperyCenter
 
             while(conn->fetch_row())
             {
+                LOG_EMPERY_CENTER_ERROR("SELECT * FROM `Center_Legion_Package_Share`");
+
                 auto obj = boost::make_shared<MySql::Center_Legion_Package_Share>();
                 obj->fetch(conn);
                 obj->enable_auto_saving();
