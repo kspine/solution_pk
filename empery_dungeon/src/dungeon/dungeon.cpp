@@ -120,6 +120,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectRemoved, dungeon, req){
 	const auto hp_total = checked_mul(dungeon_object_type_data->max_soldier_count, dungeon_object_type_data->hp);
 	expect_dungeon->check_triggers_hp(dungeon_object->get_tag(),hp_total,old_hp,0);
 	expect_dungeon->reove_dungeon_object_no_synchronize(dungeon_object_uuid);
+	expect_dungeon->check_triggers_all_die();
 	return Response();
 }
 

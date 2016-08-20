@@ -12,7 +12,8 @@ public:
 		C_DUNGEON_OBJECT_PASS         = 2, // 部队或野怪通过
 		C_DUNGEON_OBJECT_HP           = 3, // HP
 		C_DUNGEON_FINISH              = 4, // 通关触发(通关之后需要立即执行)
-		C_WAIT_CONFIRMATION           = 5, // 验证触发
+		C_TRIGGER                     = 5, // 触发器触发
+		C_ALL_DIE                     = 6, // 团灭触发
 	};
 
 	Type                     type;

@@ -259,6 +259,21 @@ void Dungeon::reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_obje
 	}
 }
 
+bool Dungeon::check_all_die(bool is_monster){
+	PROFILE_ME;
+	std::uint64_t count = 0;
+	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+		auto &dungeon_object = it->second;
+		if(dungeon_object->is_monster() == is_monster){
+			count +=1;
+		}
+	}
+	if(count ==0){
+		return true;
+	}
+	return false;
+}
+
 void Dungeon::init_triggers(){
 	PROFILE_ME;
 
@@ -450,6 +465,34 @@ void Dungeon::check_triggers_dungeon_finish(){
 						if(interval > threshold){
 							continue;
 						}
+					}
+				}catch(std::exception &e){
+					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+				}
+				trigger->activated = true;
+				trigger->activated_time = utc_now;
+			}
+		}
+		pump_triggers();
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::check_triggers_all_die(){
+	PROFILE_ME;
+
+	try{
+		const auto utc_now = Poseidon::get_utc_time();
+		for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
+			const auto &trigger = it->second;
+			if(!trigger->activated && trigger->condition.type == TriggerCondition::C_ALL_DIE){
+				try{
+					std::istringstream iss_params(trigger->condition.params);
+					auto params_array = Poseidon::JsonParser::parse_array(iss_params);
+					auto type = boost::lexical_cast<std::uint64_t>(params_array.at(0).get<double>());
+					if(!check_all_die(type)){
+						continue;
 					}
 				}catch(std::exception &e){
 					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
