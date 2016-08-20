@@ -91,7 +91,8 @@ constexpr ReasonId
 	ID_FINISH_DUNGEON_TASK           ( 674023 ), // 副本类型 ID         副本任务 ID         0
 	ID_LEGION_PACKAGE_TASK_PACKAGE_ITEM  (674024),//军团礼包 任务礼包 物品
 	ID_LEGION_PACKAGE_SHARE_PACKAGE_ITEM (674025),//军团礼包 分享礼包 物品
-	ID_LEGION_PACKAGE_SHARE_PACKAGE_COUNT_ITEM (674026);//军团礼包 分享礼包 已领计数物品
+	ID_LEGION_PACKAGE_SHARE_PACKAGE_COUNT_ITEM (674026),//军团礼包 分享礼包 已领计数物品
+	ID_KING_CHAT                     (674027);   //0
 
 }
 
