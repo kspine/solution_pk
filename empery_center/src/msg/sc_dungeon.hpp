@@ -113,7 +113,9 @@ namespace Msg {
 	FIELD_VUINT         (soldiers_wounded)	\
 	FIELD_VUINT         (soldiers_wounded_added)	\
 	FIELD_VUINT         (soldiers_damaged)	\
-	FIELD_VUINT         (soldiers_remaining)
+	FIELD_VUINT         (soldiers_remaining)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VUINT         (attacked_object_type_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_DungeonMonsterRewardGot

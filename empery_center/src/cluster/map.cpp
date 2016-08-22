@@ -542,17 +542,19 @@ _wounded_done:
 		PROFILE_ME;
 
 		Msg::SC_MapObjectAttackResult msg;
-		msg.attacking_object_uuid  = attacking_object_uuid.str();
-		msg.attacking_coord_x      = attacking_coord.x();
-		msg.attacking_coord_y      = attacking_coord.y();
-		msg.attacked_object_uuid   = attacked_object_uuid.str();
-		msg.attacked_coord_x       = attacked_coord.x();
-		msg.attacked_coord_y       = attacked_coord.y();
-		msg.result_type            = result_type;
-		msg.soldiers_wounded       = soldiers_wounded;
-		msg.soldiers_wounded_added = soldiers_wounded_added;
-		msg.soldiers_damaged       = hp_damaged;
-		msg.soldiers_remaining     = hp_remaining;
+		msg.attacking_object_uuid    = attacking_object_uuid.str();
+		msg.attacking_coord_x        = attacking_coord.x();
+		msg.attacking_coord_y        = attacking_coord.y();
+		msg.attacked_object_uuid     = attacked_object_uuid.str();
+		msg.attacked_coord_x         = attacked_coord.x();
+		msg.attacked_coord_y         = attacked_coord.y();
+		msg.result_type              = result_type;
+		msg.soldiers_wounded         = soldiers_wounded;
+		msg.soldiers_wounded_added   = soldiers_wounded_added;
+		msg.soldiers_damaged         = hp_damaged;
+		msg.soldiers_remaining       = hp_remaining;
+		msg.attacking_object_type_id = attacking_object_type_id.get();
+		msg.attacked_object_type_id  = attacked_object_type_id.get();
 		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
 
 		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
@@ -1051,15 +1053,16 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 		PROFILE_ME;
 
 		Msg::SC_MapResourceCrateHarvestResult msg;
-		msg.attacking_object_uuid  = attacking_object_uuid.str();
-		msg.attacking_coord_x      = attacking_coord.x();
-		msg.attacking_coord_y      = attacking_coord.y();
-		msg.resource_crate_uuid    = resource_crate_uuid.str();
-		msg.attacked_coord_x       = attacked_coord.x();
-		msg.attacked_coord_y       = attacked_coord.y();
-		msg.resource_id            = resource_id.get();
-		msg.amount_harvested       = amount_harvested;
-		msg.amount_remaining       = amount_remaining;
+		msg.attacking_object_uuid    = attacking_object_uuid.str();
+		msg.attacking_coord_x        = attacking_coord.x();
+		msg.attacking_coord_y        = attacking_coord.y();
+		msg.resource_crate_uuid      = resource_crate_uuid.str();
+		msg.attacked_coord_x         = attacked_coord.x();
+		msg.attacked_coord_y         = attacked_coord.y();
+		msg.resource_id              = resource_id.get();
+		msg.amount_harvested         = amount_harvested;
+		msg.amount_remaining         = amount_remaining;
+		msg.attacking_object_type_id = attacking_object_type_id.get();
 		LOG_EMPERY_CENTER_TRACE("Broadcasting harvest result message: msg = ", msg);
 
 		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
@@ -1234,14 +1237,15 @@ _occupation_done:
 		PROFILE_ME;
 
 		Msg:: SC_MapObjectAttackMapCellResult msg;
-		msg.attacking_object_uuid   = attacking_object_uuid.str();
-		msg.attacking_coord_x       = attacking_coord.x();
-		msg.attacking_coord_y       = attacking_coord.y();
-		msg.attacked_ticket_item_id = attacked_ticket_item_id.get();
-		msg.attacked_coord_x        = attacked_coord.x();
-		msg.attacked_coord_y        = attacked_coord.y();
-		msg.soldiers_damaged        = soldiers_damaged;
-		msg.soldiers_remaining      = soldiers_remaining;
+		msg.attacking_object_uuid    = attacking_object_uuid.str();
+		msg.attacking_coord_x        = attacking_coord.x();
+		msg.attacking_coord_y        = attacking_coord.y();
+		msg.attacked_ticket_item_id  = attacked_ticket_item_id.get();
+		msg.attacked_coord_x         = attacked_coord.x();
+		msg.attacked_coord_y         = attacked_coord.y();
+		msg.soldiers_damaged         = soldiers_damaged;
+		msg.soldiers_remaining       = soldiers_remaining;
+		msg.attacking_object_type_id = attacking_object_type_id.get();
 		LOG_EMPERY_CENTER_TRACE("Broadcasting map cell attack result message: msg = ", msg);
 
 		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
