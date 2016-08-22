@@ -91,10 +91,10 @@ namespace {
 			csv.get(object, "dungeon_reward");
 			elem.rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
-				auto collection_name = std::string(it->first.get());
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
 				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.rewards.emplace(std::move(collection_name), count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: collection_name = ", collection_name);
+				if(!elem.rewards.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: item_id = ", item_id);
 					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}

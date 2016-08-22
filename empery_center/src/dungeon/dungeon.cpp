@@ -545,24 +545,12 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 	info.finish_count += 1;
 
 	const auto dungeon_data = Data::Dungeon::require(dungeon_type_id);
-	for(auto rit = dungeon_data->rewards.begin(); rit != dungeon_data->rewards.end(); ++rit){
-		const auto &collection_name = rit->first;
-		const auto repeat_count = rit->second;
-		for(std::size_t i = 0; i < repeat_count; ++i){
-			const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
-			if(!reward_data){
-				LOG_EMPERY_CENTER_WARNING("Error getting random reward: dungeon_type_id = ", dungeon_type_id,
-					", collection_name = ", collection_name);
-				continue;
-			}
-			for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
-				const auto item_id = it->first;
-				const auto count = it->second;
-				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-					ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), static_cast<std::int64_t>(reward_data->unique_id), 0);
-				rewards[item_id] += count;
-			}
-		}
+	for(auto it = dungeon_data->rewards.begin(); it != dungeon_data->rewards.end(); ++it){
+		const auto item_id = it->first;
+		const auto count = it->second;
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+			ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), 0, 0);
+		rewards[item_id] += count;
 	}
 
 	for(auto tit = req.tasks_finished.begin(); tit != req.tasks_finished.end(); ++tit){

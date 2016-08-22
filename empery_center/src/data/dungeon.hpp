@@ -26,7 +26,7 @@ namespace Data {
 		boost::container::flat_multimap<ApplicabilityKeyType, std::uint64_t> battalions_forbidden;
 
 		boost::container::flat_set<DungeonTaskId> tasks;
-		boost::container::flat_map<std::string, std::uint64_t> rewards;
+		boost::container::flat_map<ItemId, std::uint64_t> rewards;
 		double resuscitation_ratio;
 	};
 
