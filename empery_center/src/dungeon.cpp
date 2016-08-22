@@ -68,7 +68,7 @@ void Dungeon::synchronize_with_all_observers(const boost::shared_ptr<DungeonObje
 	PROFILE_ME;
 
 	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
-		const auto session = it->second.lock();
+		const auto session = it->second.session.lock();
 		if(session){
 			try {
 				dungeon_object->synchronize_with_player(session);
@@ -153,7 +153,7 @@ boost::shared_ptr<PlayerSession> Dungeon::get_observer(AccountUuid account_uuid)
 		LOG_EMPERY_CENTER_DEBUG("Observer not found: account_uuid = ", account_uuid);
 		return { };
 	}
-	auto session = it->second.lock();
+	auto session = it->second.session.lock();
 	if(!session){
 		LOG_EMPERY_CENTER_DEBUG("Observer session expired: account_uuid = ", account_uuid);
 		return { };
@@ -165,7 +165,7 @@ void Dungeon::get_observers_all(std::vector<std::pair<AccountUuid, boost::shared
 
 	ret.reserve(ret.size() + m_observers.size());
 	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
-		auto session = it->second.lock();
+		auto session = it->second.session.lock();
 		if(!session){
 			continue;
 		}
@@ -175,7 +175,8 @@ void Dungeon::get_observers_all(std::vector<std::pair<AccountUuid, boost::shared
 void Dungeon::insert_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
-	const auto result = m_observers.emplace(account_uuid, session);
+	Observer elem = { session };
+	const auto result = m_observers.emplace(account_uuid, std::move(elem));
 	if(!result.second){
 		LOG_EMPERY_CENTER_WARNING("Observer already exists: dungeon_uuid = ", get_dungeon_uuid(), ", account_uuid = ", account_uuid);
 		DEBUG_THROW(Exception, sslit("Observer already exists"));
@@ -215,7 +216,7 @@ bool Dungeon::remove_observer(AccountUuid account_uuid, Dungeon::QuitReason reas
 		LOG_EMPERY_CENTER_DEBUG("Observer not found: dungeon_uuid = ", get_dungeon_uuid(), ", account_uuid = ", account_uuid);
 		return false;
 	}
-	const auto session = it->second.lock();
+	const auto session = it->second.session.lock();
 	m_observers.erase(it);
 
 	if(session){
@@ -241,7 +242,7 @@ void Dungeon::clear_observers(Dungeon::QuitReason reason, const char *param) noe
 	}
 
 	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
-		const auto session = it->second.lock();
+		const auto session = it->second.session.lock();
 		if(session){
 			try {
 				Msg::SC_DungeonLeft msg;
@@ -258,11 +259,34 @@ void Dungeon::clear_observers(Dungeon::QuitReason reason, const char *param) noe
 	m_observers.clear();
 }
 
+void Dungeon::get_soldier_stats(std::vector<std::pair<MapObjectTypeId, Dungeon::SoldierStat>> &ret, AccountUuid account_uuid) const {
+	PROFILE_ME;
+
+	const auto it = m_observers.find(account_uuid);
+	if(it == m_observers.end()){
+		return;
+	}
+	ret.reserve(ret.size() + it->second.soldier_stats.size());
+	for(auto sit = it->second.soldier_stats.begin(); sit != it->second.soldier_stats.end(); ++sit){
+		ret.emplace_back(sit->first, sit->second);
+	}
+}
+void Dungeon::update_soldier_stat(AccountUuid account_uuid, MapObjectTypeId map_object_type_id,
+	std::uint64_t damaged, std::uint64_t resuscitated, std::uint64_t wounded)
+{
+	PROFILE_ME;
+
+	auto &stat = m_observers[account_uuid].soldier_stats[map_object_type_id];
+	stat.damaged = saturated_add(stat.damaged, damaged);
+	stat.resuscitated = saturated_add(stat.resuscitated, resuscitated);
+	stat.wounded = saturated_add(stat.wounded, wounded);
+}
+
 void Dungeon::broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload){
 	PROFILE_ME;
 
 	for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
-		const auto session = it->second.lock();
+		const auto session = it->second.session.lock();
 		if(session){
 			try {
 				session->send(message_id, payload);
