@@ -85,6 +85,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<attacked_object_uuid;
 	}
 
+	const auto attacking_object_type_id = attacking_object ? attacking_object->get_map_object_type_id() : MapObjectTypeId();
 	const auto attacking_account_uuid = attacking_object ? attacking_object->get_owner_uuid() : AccountUuid();
 	const auto attacking_coord = attacking_object ? attacking_object->get_coord() : Coord(0, 0);
 
@@ -232,19 +233,21 @@ _wounded_done:
 		PROFILE_ME;
 
 		Msg::SC_DungeonObjectAttackResult msg;
-		msg.dungeon_uuid           = dungeon->get_dungeon_uuid().str();
-		msg.attacking_object_uuid  = attacking_object_uuid.str();
-		msg.attacking_coord_x      = attacking_coord.x();
-		msg.attacking_coord_y      = attacking_coord.y();
-		msg.attacked_object_uuid   = attacked_object_uuid.str();
-		msg.attacked_coord_x       = attacked_coord.x();
-		msg.attacked_coord_y       = attacked_coord.y();
-		msg.result_type            = result_type;
-		msg.soldiers_resuscitated  = soldiers_resuscitated;
-		msg.soldiers_wounded       = soldiers_wounded;
-		msg.soldiers_wounded_added = soldiers_wounded_added;
-		msg.soldiers_damaged       = hp_damaged;
-		msg.soldiers_remaining     = hp_remaining;
+		msg.dungeon_uuid             = dungeon->get_dungeon_uuid().str();
+		msg.attacking_object_uuid    = attacking_object_uuid.str();
+		msg.attacking_coord_x        = attacking_coord.x();
+		msg.attacking_coord_y        = attacking_coord.y();
+		msg.attacked_object_uuid     = attacked_object_uuid.str();
+		msg.attacked_coord_x         = attacked_coord.x();
+		msg.attacked_coord_y         = attacked_coord.y();
+		msg.result_type              = result_type;
+		msg.soldiers_resuscitated    = soldiers_resuscitated;
+		msg.soldiers_wounded         = soldiers_wounded;
+		msg.soldiers_wounded_added   = soldiers_wounded_added;
+		msg.soldiers_damaged         = hp_damaged;
+		msg.soldiers_remaining       = hp_remaining;
+		msg.attacking_object_type_id = attacking_object_type_id.get();
+		msg.attacked_object_type_id  = attacked_object_type_id.get();
 		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
 
 		std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> observers_all;

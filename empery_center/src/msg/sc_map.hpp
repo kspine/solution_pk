@@ -143,7 +143,9 @@ namespace Msg {
 	FIELD_VUINT         (soldiers_wounded)	\
 	FIELD_VUINT         (soldiers_wounded_added)	\
 	FIELD_VUINT         (soldiers_damaged)	\
-	FIELD_VUINT         (soldiers_remaining)
+	FIELD_VUINT         (soldiers_remaining)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VUINT         (attacked_object_type_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapMinimap
@@ -242,7 +244,8 @@ namespace Msg {
 	FIELD_VINT          (attacked_coord_y)	\
 	FIELD_VUINT         (resource_id)	\
 	FIELD_VUINT         (amount_harvested)	\
-	FIELD_VUINT         (amount_remaining)
+	FIELD_VUINT         (amount_remaining)	\
+	FIELD_VUINT         (attacking_object_type_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapDefenseBuilding
@@ -266,7 +269,8 @@ namespace Msg {
 	FIELD_VINT          (attacked_coord_x)	\
 	FIELD_VINT          (attacked_coord_y)	\
 	FIELD_VUINT         (soldiers_damaged)	\
-	FIELD_VUINT         (soldiers_remaining)
+	FIELD_VUINT         (soldiers_remaining)	\
+	FIELD_VUINT         (attacking_object_type_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapResourceCrateExplosion
