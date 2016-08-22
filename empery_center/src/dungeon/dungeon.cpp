@@ -218,7 +218,8 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 		parent_castle->commit_wounded_soldier_transaction(wounded_soldier_transaction);
 	}
 _wounded_done:
-	;
+	dungeon->update_soldier_stat(attacked_account_uuid, attacked_object_type_id,
+		soldiers_damaged, soldiers_resuscitated, soldiers_wounded_added);
 
 	const auto battle_status_timeout = get_config<std::uint64_t>("battle_status_timeout", 10000);
 	if(attacking_object){
@@ -604,6 +605,15 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 					reward_elem.item_id = tit->first.get();
 					reward_elem.count   = tit->second;
 				}
+			}
+			std::vector<std::pair<MapObjectTypeId, Dungeon::SoldierStat>> soldier_stats;
+			dungeon->get_soldier_stats(soldier_stats, account_uuid);
+			for(auto it = soldier_stats.begin(); it != soldier_stats.end(); ++it){
+				auto &soldier_elem = *msg.soldier_stats.emplace(msg.soldier_stats.end());
+				soldier_elem.map_object_type_id = it->first.get();
+				soldier_elem.soldiers_damaged = it->second.damaged;
+				soldier_elem.soldiers_resuscitated = it->second.resuscitated;
+				soldier_elem.soldiers_wounded = it->second.wounded;
 			}
 			session->send(msg);
 		} catch(std::exception &e){

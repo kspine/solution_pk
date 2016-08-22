@@ -33,6 +33,12 @@ public:
 		std::string param3;
 	};
 
+	struct SoldierStat {
+		std::uint64_t damaged;
+		std::uint64_t resuscitated;
+		std::uint64_t wounded;
+	};
+
 private:
 	const DungeonUuid m_dungeon_uuid;
 	const DungeonTypeId m_dungeon_type_id;
@@ -41,7 +47,11 @@ private:
 	AccountUuid m_founder_uuid;
 	std::uint64_t m_expiry_time;
 
-	boost::container::flat_map<AccountUuid, boost::weak_ptr<PlayerSession>> m_observers;
+	struct Observer {
+		boost::weak_ptr<PlayerSession> session;
+		boost::container::flat_map<MapObjectTypeId, SoldierStat> soldier_stats;
+	};
+	boost::container::flat_map<AccountUuid, Observer> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 
 	Rectangle m_scope;
@@ -94,6 +104,10 @@ public:
 	void insert_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 	bool remove_observer(AccountUuid account_uuid, QuitReason reason, const char *param) noexcept;
 	void clear_observers(QuitReason reason, const char *param) noexcept;
+
+	void get_soldier_stats(std::vector<std::pair<MapObjectTypeId, SoldierStat>> &ret, AccountUuid account_uuid) const;
+	void update_soldier_stat(AccountUuid account_uuid, MapObjectTypeId map_object_type_id,
+		std::uint64_t damaged, std::uint64_t resuscitated, std::uint64_t wounded);
 
 	void broadcast_to_observers(std::uint16_t message_id, const Poseidon::StreamBuffer &payload);
 	template<class MessageT>
