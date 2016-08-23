@@ -59,8 +59,8 @@ SYNUSER_SERVLET("querypayment", session, params){
 	std::sprintf(str, "%.2f", payment->amount / 100.0);
 	data[sslit("amount")] = str;
 	data[sslit("currency")] = std::move(payment->currency);
-	data[sslit("sourceorderid")] = "";
-	data[sslit("orderid")] = orderid;
+	data[sslit("sourceorderid")] = orderid;
+	data[sslit("orderid")] = "";
 	data[sslit("status")] = payment->state ? "success" : "failed";
 
 	root[sslit("state")] = "success";
