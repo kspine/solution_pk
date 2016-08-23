@@ -19,6 +19,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/data/promotion.cpp	\
 	src/singletons/account_http_server.cpp	\
 	src/singletons/admin_http_server.cpp	\
+	src/singletons/synuser_http_server.cpp	\
 	src/singletons/statistic_daemon.cpp	\
 	src/singletons/account_map.cpp	\
 	src/singletons/item_map.cpp	\
@@ -75,8 +76,13 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/decline_shared_recharge.cpp	\
 	src/account/commit_shared_recharge.cpp	\
 	src/account/rollback_shared_recharge.cpp	\
+	src/synuser/checkaccount.cpp	\
+	src/synuser/notify.cpp	\
+	src/synuser/createpayment.cpp	\
+	src/synuser/querypayment.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\
+	src/synuser_http_session.cpp	\
 	src/utilities.cpp	\
 	src/mmain.cpp
