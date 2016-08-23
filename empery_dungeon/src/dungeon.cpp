@@ -465,6 +465,8 @@ void Dungeon::check_triggers_dungeon_finish(){
 						if(interval > threshold){
 							continue;
 						}
+					}else if(type == 2){
+						//通关完成
 					}
 				}catch(std::exception &e){
 					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
