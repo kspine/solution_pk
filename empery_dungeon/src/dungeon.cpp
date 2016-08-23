@@ -11,6 +11,8 @@
 #include <poseidon/json.hpp>
 #include "mmain.hpp"
 #include <poseidon/cbpp/status_codes.hpp>
+#include "dungeon_utilities.hpp"
+#include "src/data/global.hpp"
 
 namespace EmperyDungeon {
 namespace Msg = ::EmperyCenter::Msg;
@@ -270,6 +272,46 @@ bool Dungeon::check_all_die(bool is_monster){
 	}
 	if(count ==0){
 		return true;
+	}
+	return false;
+}
+
+bool Dungeon::check_valid_coord_for_birth(const Coord &src_coord){
+	bool pos_occuried,pos_passable = false;
+	//判断src_coord上是否有对象
+	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+		auto &dungeon_object = it->second;
+		if(dungeon_object->get_coord() == src_coord){
+			pos_occuried = true;
+			break;
+		}
+	}
+	//判断相应点是否可通行
+	pos_passable = get_dungeon_coord_passable(get_dungeon_type_id(),src_coord);
+	if(!pos_occuried && pos_passable){
+		return true;
+	}
+	return false;
+}
+
+bool Dungeon::get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord){
+	PROFILE_ME;
+	bool src_valid =  check_valid_coord_for_birth(src_coord);
+	if(src_valid){
+		dest_coord = src_coord;
+		return true;
+	}
+	LOG_EMPERY_DUNGEON_DEBUG("src coord has been occurried,src_coord = ",src_coord);
+	
+	std::vector<Coord> surrounding;
+	get_surrounding_coords(surrounding,src_coord, 3);
+	for(auto it = surrounding.begin(); it != surrounding.end();++it){
+		src_valid =  check_valid_coord_for_birth(*it);
+		if(src_valid){
+			dest_coord = *it;
+			return true;
+		}
+		
 	}
 	return false;
 }
@@ -591,12 +633,20 @@ void Dungeon::on_triggers_create_dungeon_object(const TriggerAction &action){
 			}
 			if(dungeon_client){
 				try {
+					auto &birth                         = elem.at(1).get<Poseidon::JsonArray>();
+					auto birth_x                        = static_cast<int>(birth.at(0).get<double>());
+					auto birth_y                        = static_cast<int>(birth.at(1).get<double>());
+					Coord default_birth_coord(birth_x,birth_y);
+					Coord valid_birth_coord;
+					if(!get_monster_birth_coord(default_birth_coord,valid_birth_coord)){
+						LOG_EMPERY_DUNGEON_WARNING("server can not find a valid for monster, default_birth_coord = ",default_birth_coord);
+						return;
+					}
 					Msg::DS_DungeonCreateMonster msgCreateMonster;
 					msgCreateMonster.dungeon_uuid       = get_dungeon_uuid().str();
 					msgCreateMonster.map_object_type_id = static_cast<std::uint64_t>(elem.at(0).get<double>());
-					auto &birth                         = elem.at(1).get<Poseidon::JsonArray>();
-					msgCreateMonster.x                  = static_cast<int>(birth.at(0).get<double>());
-					msgCreateMonster.y                  = static_cast<int>(birth.at(1).get<double>());
+					msgCreateMonster.x                  = valid_birth_coord.x();
+					msgCreateMonster.y                  = valid_birth_coord.y();
 					auto &dest                          = elem.at(2).get<Poseidon::JsonArray>();
 					msgCreateMonster.dest_x             = static_cast<int>(dest.at(0).get<double>());
 					msgCreateMonster.dest_y             = static_cast<int>(dest.at(1).get<double>());

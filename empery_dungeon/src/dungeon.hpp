@@ -89,6 +89,8 @@ public:
 	void replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_object_uuid);
 	bool check_all_die(bool is_monster);
+	bool check_valid_coord_for_birth(const Coord &src_coord);
+	bool get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord);
 
 	void init_triggers();
 	void check_triggers_enter_dungeon();

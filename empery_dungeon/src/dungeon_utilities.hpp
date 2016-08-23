@@ -18,6 +18,8 @@ extern std::pair<long, std::string> get_move_result(DungeonUuid dungeon_uuid,Coo
 
 extern bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 	Coord from_coord, Coord to_coord,DungeonUuid dungeon_uuid, AccountUuid account_uuid, std::uint64_t distance_limit, std::uint64_t distance_close_enough);
+
+extern bool get_dungeon_coord_passable(DungeonTypeId dungeonTypeId, Coord coord);
 }
 
 #endif
