@@ -39,6 +39,7 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const b
 	, m_founder_uuid(founder_uuid)
 	, m_create_dungeon_time(create_time)
 	, m_dungeon_state(S_INIT)
+	, m_monster_removed_count(0)
 {
 }
 
@@ -257,6 +258,10 @@ void Dungeon::reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_obje
 		LOG_EMPERY_DUNGEON_TRACE("Dungeon object not found: dungeon_object_uuid = ", dungeon_object_uuid, ", dungeon_uuid = ", get_dungeon_uuid());
 		return;
 	}else{
+		auto &dungeon_object = it->second;
+		if(dungeon_object->is_monster()){
+			m_monster_removed_count += 1;
+		}
 		m_objects.erase(it);
 	}
 }
@@ -537,6 +542,12 @@ void Dungeon::check_triggers_all_die(){
 					auto type = boost::lexical_cast<std::uint64_t>(params_array.at(0).get<double>());
 					if(!check_all_die(type)){
 						continue;
+					}
+					if(type == 1){
+						auto monster_removed = boost::lexical_cast<std::uint64_t>(params_array.at(1).get<double>());
+						if(m_monster_removed_count < monster_removed){
+							continue;
+						}
 					}
 				}catch(std::exception &e){
 					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());

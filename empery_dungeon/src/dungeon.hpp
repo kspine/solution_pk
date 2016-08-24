@@ -48,6 +48,7 @@ private:
 	std::vector<boost::shared_ptr<TriggerDamage>>                                   m_triggers_damages;
 	boost::shared_ptr<Poseidon::TimerItem>                                          m_trigger_timer;
 	DungeonState                                                                    m_dungeon_state;
+	std::uint64_t                                                                   m_monster_removed_count;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
