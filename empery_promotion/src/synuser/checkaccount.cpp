@@ -12,8 +12,8 @@ namespace EmperyPromotion {
 
 SYNUSER_SERVLET("checkaccount", session, params){
 	const auto &username = params.at("username");
-	const auto &phone_number = params.at("mobilePhone");
-	const auto &sign = params.at("sign");
+	const auto &phone_number = params.get("mobilePhone");
+	const auto &sign = params.get("sign");
 
 	Poseidon::JsonObject root;
 
@@ -52,7 +52,6 @@ SYNUSER_SERVLET("checkaccount", session, params){
 		const auto level_elem = Data::Promotion::require(it->level);
 		std::sprintf(str, "%u", level_elem->display_level);
 		elem[sslit("level")] = str;
-		data.emplace_back(std::move(elem));
 		info = AccountMap::get(info.referrer_id);
 		if(Poseidon::has_any_flags_of(info.flags, AccountMap::FL_VALID)){
 			elem[sslit("invite")] = std::move(info.login_name);
@@ -60,6 +59,7 @@ SYNUSER_SERVLET("checkaccount", session, params){
 		elem[sslit("invite")] = std::move(it->password_hash);
 		elem[sslit("tradePassword")] = std::move(it->deal_password_hash);
 		elem[sslit("mobilePhone")] = std::move(it->phone_number);
+		data.emplace_back(std::move(elem));
 	}
 
 	root[sslit("state")] = "success";
