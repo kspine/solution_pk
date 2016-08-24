@@ -62,7 +62,10 @@ bool get_dungeon_coord_passable(DungeonTypeId dungeonTypeId, Coord coord){
 	const auto dungeon_data = Data::Dungeon::require(dungeonTypeId);
 	const auto map_x = coord.x();
 	const auto map_y = coord.y();
-	const auto cell_data = Data::MapCellBasic::require(dungeon_data->dungeon_map,map_x, map_y);
+	const auto cell_data = Data::MapCellBasic::get(dungeon_data->dungeon_map,map_x, map_y);
+	if(!cell_data){
+		return false;
+	}
 	const auto terrain_id = cell_data->terrain_id;
 	const auto terrain_data = Data::MapTerrain::require(terrain_id);
 	return terrain_data->passable;

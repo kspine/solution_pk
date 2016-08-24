@@ -14,8 +14,8 @@ namespace {
 
 			Poseidon::JsonArray array;
 			csv.get(array, "xy");
-			const unsigned x = array.at(0).get<double>();
-			const unsigned y = array.at(1).get<double>();
+			const int x = array.at(0).get<double>();
+			const int y = array.at(1).get<double>();
 			elem.dungeon_map_coord = std::make_pair(dungeon_map,std::make_pair(x, y));
 
 			csv.get(elem.terrain_id,         "property_id");
@@ -38,8 +38,8 @@ namespace {
 	boost::weak_ptr<const TerrainContainer> g_terrain_container;
 	const char TERRAIN_FILE[] = "Territory_product";
 
-	const auto MAX_DUNGE_MAP_COUNT = 1;
-	const std::string  DUNGEON_MAP_FILES[MAX_DUNGE_MAP_COUNT] = {"dungeon_map_1_1"};
+	const auto MAX_DUNGE_MAP_COUNT = 3;
+	const std::string  DUNGEON_MAP_FILES[MAX_DUNGE_MAP_COUNT] = {"dungeon_map_1_1","dungeon_map_1_2","dungeon_map_1_3"};
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		const auto dungeon_container = boost::make_shared<DungeonMapContainer>();
@@ -74,7 +74,7 @@ namespace {
 }
 
 namespace Data {
-	boost::shared_ptr<const MapCellBasic> MapCellBasic::get(std::string dungeon_map_name,unsigned map_x, unsigned map_y){
+	boost::shared_ptr<const MapCellBasic> MapCellBasic::get(std::string dungeon_map_name,int map_x, int map_y){
 		PROFILE_ME;
 
 		const auto dungeon_container = g_dungeon_container.lock();
@@ -90,7 +90,7 @@ namespace Data {
 		}
 		return boost::shared_ptr<const MapCellBasic>(dungeon_container, &*it);
 	}
-	boost::shared_ptr<const MapCellBasic> MapCellBasic::require(std::string dungeon_map_name,unsigned map_x, unsigned map_y){
+	boost::shared_ptr<const MapCellBasic> MapCellBasic::require(std::string dungeon_map_name,int map_x, int map_y){
 		PROFILE_ME;
 
 		auto ret = get(dungeon_map_name,map_x, map_y);

@@ -10,11 +10,11 @@ namespace EmperyDungeon {
 namespace Data {
 	class MapCellBasic {
 	public:
-		static boost::shared_ptr<const MapCellBasic> get(std::string dungeon_map_name,unsigned map_x, unsigned map_y);
-		static boost::shared_ptr<const MapCellBasic> require(std::string dungeon_map_name,unsigned map_x, unsigned map_y);
+		static boost::shared_ptr<const MapCellBasic> get(std::string dungeon_map_name,int map_x, int map_y);
+		static boost::shared_ptr<const MapCellBasic> require(std::string dungeon_map_name,int map_x, int map_y);
 
 	public:
-		std::pair<std::string,std::pair<unsigned, unsigned>>  dungeon_map_coord;
+		std::pair<std::string,std::pair<int, int>>  dungeon_map_coord;
 		TerrainId terrain_id;
 	};
 	
