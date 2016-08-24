@@ -190,7 +190,7 @@ PLAYER_SERVLET(Msg::CS_ItemTrade, account, session, req){
 	if(repeat_count == 0){
 		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
 	}
-	const auto trade_id = RechargeId(req.trade_id);
+	const auto trade_id = TradeId(req.trade_id);
 	const auto trade_data = Data::ItemTrade::get(trade_id);
 	if(!trade_data){
 		return Response(Msg::ERR_NO_SUCH_TRADE_ID) <<trade_id;
