@@ -63,7 +63,6 @@ SYNUSER_SERVLET("checkaccount", session, params){
 		if(Poseidon::has_any_flags_of(info.flags, AccountMap::FL_VALID)){
 			elem[sslit("invite")] = std::move(info.login_name);
 		}
-		elem[sslit("invite")] = std::move(it->password_hash);
 		elem[sslit("tradePassword")] = std::move(it->deal_password_hash);
 		elem[sslit("mobilePhone")] = std::move(it->phone_number);
 		data.emplace_back(std::move(elem));
