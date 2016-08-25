@@ -60,17 +60,7 @@ namespace {
 		}
 
 		const auto utc_now = Poseidon::get_utc_time();
-		const auto range = std::make_pair(dungeon_map->begin<2>(), dungeon_map->upper_bound<2>(utc_now));
-
-		dungeons.clear();
-		for(auto it = range.first; it != range.second; ++it){
-			dungeons.emplace_back(it->dungeon);
-		}
-		for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
-			const auto &dungeon = *it;
-			LOG_EMPERY_CENTER_DEBUG("Reclaiming dungeon: dungeon_uuid = ", dungeon->get_dungeon_uuid());
-			dungeon->clear_observers(Dungeon::Q_DUNGEON_EXPIRED, "");
-		}
+		dungeon_map->erase<2>(dungeon_map->begin<2>(), dungeon_map->upper_bound<2>(utc_now));
 	}
 
 	using ServerSet = boost::container::flat_set<boost::weak_ptr<DungeonSession>>;
