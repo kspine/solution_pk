@@ -95,7 +95,9 @@ namespace Msg {
 		FIELD_VINT          (dy)	\
 	)	\
 	FIELD_VUINT         (action)	\
-	FIELD_STRING        (param)
+	FIELD_STRING        (param)	\
+	FIELD_VINT          (target_x)	\
+	FIELD_VINT          (target_y)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_DungeonObjectAttackResult
