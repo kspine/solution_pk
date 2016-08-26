@@ -207,6 +207,8 @@ CLUSTER_SERVLET(Msg::KS_MapWaypointsSet, cluster, req){
 				}
 				msg.action          = req.action;
 				msg.param           = std::move(req.param);
+				msg.target_x        = req.target_x;
+				msg.target_y        = req.target_y;
 				session->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
