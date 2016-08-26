@@ -36,6 +36,13 @@ SYNUSER_SERVLET("checkaccount", session, params){
 	}
 	AccountMap::get_by_phone_number(accounts, phone_number);
 
+	std::sort(accounts.begin(), accounts.end(),
+		[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){ return lhs.account_id < rhs.account_id; });
+	accounts.erase(
+		std::unique(accounts.begin(), accounts.end(),
+			[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){ return lhs.account_id == rhs.account_id; }),
+		accounts.end());
+
 	Poseidon::JsonArray data;
 	for(auto it = accounts.begin(); it != accounts.end(); ++it){
 		Poseidon::JsonObject elem;
@@ -56,7 +63,6 @@ SYNUSER_SERVLET("checkaccount", session, params){
 		if(Poseidon::has_any_flags_of(info.flags, AccountMap::FL_VALID)){
 			elem[sslit("invite")] = std::move(info.login_name);
 		}
-		elem[sslit("invite")] = std::move(it->password_hash);
 		elem[sslit("tradePassword")] = std::move(it->deal_password_hash);
 		elem[sslit("mobilePhone")] = std::move(it->phone_number);
 		data.emplace_back(std::move(elem));

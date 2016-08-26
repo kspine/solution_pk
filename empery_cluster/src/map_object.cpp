@@ -970,6 +970,27 @@ void   MapObject::notify_way_points(const std::deque<std::pair<signed char, sign
 			}
 			msg.action          = static_cast<unsigned>(action);
 			msg.param           = action_param;
+			if(m_action == ACT_ATTACK){
+				const auto target_object_uuid = MapObjectUuid(m_action_param);
+				const auto target_object = WorldMap::get_map_object(target_object_uuid);
+				if(target_object){
+					msg.target_x        = target_object->get_coord().x();
+					msg.target_y        = target_object->get_coord().y();
+				}
+			} else if(m_action ==  ACT_HARVEST_RESOURCE_CRATE || m_action == ACT_HARVEST_RESOURCE_CRATE_FORCE){
+				const auto target_resource_crate = get_attack_resouce_crate();
+				if(target_resource_crate){
+					msg.target_x       = target_resource_crate->get_coord().x();
+					msg.target_y       = target_resource_crate->get_coord().y();
+				}
+			} else if(m_action == ACT_ATTACK_TERRITORY || m_action == ACT_ATTACK_TERRITORY_FORCE){
+				const auto map_cell = get_attack_territory();
+				if(map_cell){
+					msg.target_x       = map_cell->get_coord().x();
+					msg.target_y       = map_cell->get_coord().y();
+				}
+			}
+			LOG_EMPERY_CLUSTER_DEBUG("KS_MapWaypointsSet = ",msg);
 			cluster->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());

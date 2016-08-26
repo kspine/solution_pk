@@ -993,6 +993,15 @@ void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, 
 			}
 			msg.action          = static_cast<unsigned>(action);
 			msg.param           = action_param;
+			if(m_action == ACT_ATTACK){
+				const auto target_object_uuid = DungeonObjectUuid(m_action_param);
+				const auto target_object = dungeon->get_object(target_object_uuid);
+				if(target_object){
+					msg.target_x        = target_object->get_coord().x();
+					msg.target_y        = target_object->get_coord().y();
+				}
+			}
+			LOG_EMPERY_DUNGEON_DEBUG("DS_DungeonWaypointsSet = ",msg);
 			dungeon_client->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
