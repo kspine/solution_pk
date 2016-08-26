@@ -87,6 +87,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/announcement.cpp	\
 	src/player/tax_record.cpp	\
 	src/player/task.cpp	\
+	src/player/battle_record.cpp	\
 	src/player/dungeon.cpp	\
 	src/player/activity.cpp \
 	src/player/friend.cpp	\
