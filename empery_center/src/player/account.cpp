@@ -90,7 +90,7 @@ namespace {
 		return Response(Msg::ERR_MULTIPLE_LOGIN) <<old_account_uuid;
 	}
 
-	const auto account = AccountMap::forced_reload_by_login_name(platform_id, login_name);
+	auto account = AccountMap::forced_reload_by_login_name(platform_id, login_name);
 	if(!account){
 		return Response(Msg::ERR_NO_SUCH_LOGIN_NAME) <<login_name;
 	}
@@ -131,6 +131,7 @@ namespace {
 	PlayerSessionMap::add(account_uuid, session);
 	WorldMap::forced_reload_map_objects_by_owner(account_uuid);
 
+	account = AccountMap::require(account_uuid);
 	utc_now = Poseidon::get_utc_time();
 
 	get_signed_in(account);
