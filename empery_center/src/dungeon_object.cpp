@@ -40,7 +40,7 @@ void DungeonObject::recalculate_attributes(bool recursive){
 		modifiers.emplace_hint(modifiers.end(), attribute_id, 0);
 	}
 
-	const auto shadow_object_uuid = MapObjectUuid(get_dungeon_uuid().get());
+	const auto shadow_object_uuid = MapObjectUuid(get_dungeon_object_uuid().get());
 	const auto shadow_object = WorldMap::get_map_object(shadow_object_uuid);
 	if(shadow_object){
 		shadow_object->recalculate_attributes(recursive);
