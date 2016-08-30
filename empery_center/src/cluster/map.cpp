@@ -297,14 +297,14 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto interval = req.interval;
 	const auto amount_to_harvest = req.amount_harvested;
 	//地图活动翻倍
-	auto  activity_add_rate = 1;
+	double activity_add_rate = 1;
 	const auto map_activity = ActivityMap::get_map_activity();
 	if(map_activity){
 		if(map_activity->get_current_activity() == ActivityIds::ID_MAP_ACTIVITY_HARVEST){
 			activity_add_rate = 2;
 		}
 	}
-	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
+	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest * activity_add_rate / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack);
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
