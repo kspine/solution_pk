@@ -50,6 +50,12 @@ const std::initializer_list<AttributeId> MapObject::COMBAT_ATTRIBUTES = {
 	AttributeIds::ID_SIGHT_RANGE_ADD,
 	AttributeIds::ID_RATE_OF_FIRE_ADD,
 	AttributeIds::ID_SPEED_ADD,
+	AttributeIds::ID_SPEED_ADD,
+	AttributeIds::ID_SPEED_ADD,
+	AttributeIds::ID_CARRIAGE_BONUS,
+	AttributeIds::ID_CARRIAGE_ADD,
+	AttributeIds::ID_HARVEST_SPEED_BONUS,
+	AttributeIds::ID_HARVEST_SPEED_ADD,
 };
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
