@@ -28,4 +28,5 @@ lib_libposeidon_empery_cluster_la_SOURCES = \
 	src/map_cell.cpp	\
 	src/map_object.cpp	\
 	src/resource_crate.cpp	\
+	src/ai_control.cpp \
 	src/mmain.cpp
