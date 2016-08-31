@@ -282,7 +282,8 @@ bool Dungeon::check_all_die(bool is_monster){
 }
 
 bool Dungeon::check_valid_coord_for_birth(const Coord &src_coord){
-	bool pos_occuried,pos_passable = false;
+	bool pos_occuried = false;
+	bool pos_passable = false;
 	//判断src_coord上是否有对象
 	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
 		auto &dungeon_object = it->second;
@@ -306,8 +307,6 @@ bool Dungeon::get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord){
 		dest_coord = src_coord;
 		return true;
 	}
-	LOG_EMPERY_DUNGEON_DEBUG("src coord has been occurried,src_coord = ",src_coord);
-	
 	std::vector<Coord> surrounding;
 	get_surrounding_coords(surrounding,src_coord, 3);
 	for(auto it = surrounding.begin(); it != surrounding.end();++it){
@@ -316,7 +315,6 @@ bool Dungeon::get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord){
 			dest_coord = *it;
 			return true;
 		}
-		
 	}
 	return false;
 }
@@ -648,7 +646,7 @@ void Dungeon::on_triggers_create_dungeon_object(const TriggerAction &action){
 					auto birth_x                        = static_cast<int>(birth.at(0).get<double>());
 					auto birth_y                        = static_cast<int>(birth.at(1).get<double>());
 					Coord default_birth_coord(birth_x,birth_y);
-					Coord valid_birth_coord;
+					Coord valid_birth_coord(0,0);
 					if(!get_monster_birth_coord(default_birth_coord,valid_birth_coord)){
 						LOG_EMPERY_DUNGEON_WARNING("server can not find a valid for monster, default_birth_coord = ",default_birth_coord);
 						return;
