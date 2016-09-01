@@ -96,6 +96,7 @@ public:
 	void set_buff(BuffId buff_id, std::uint64_t duration);
 	void set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t duration);
 	void accumulate_buff(BuffId buff_id, std::uint64_t delta_duration);
+	void accumulate_buff_hint(BuffId buff_id, std::uint64_t utc_now, std::uint64_t delta_duration);
 	void clear_buff(BuffId buff_id) noexcept;
 
 	void self_heal();

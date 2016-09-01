@@ -456,6 +456,12 @@ void MapObject::set_buff(BuffId buff_id, std::uint64_t time_begin, std::uint64_t
 void MapObject::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 	PROFILE_ME;
 
+	const auto utc_now = Poseidon::get_utc_time();
+	accumulate_buff_hint(buff_id, utc_now, delta_duration);
+}
+void MapObject::accumulate_buff_hint(BuffId buff_id, std::uint64_t utc_now, std::uint64_t delta_duration){
+	PROFILE_ME;
+
 	auto it = m_buffs.find(buff_id);
 	if(it == m_buffs.end()){
 		auto obj = boost::make_shared<MySql::Center_MapObjectBuff>(m_obj->unlocked_get_map_object_uuid(),
@@ -464,7 +470,6 @@ void MapObject::accumulate_buff(BuffId buff_id, std::uint64_t delta_duration){
 		it = m_buffs.emplace(buff_id, std::move(obj)).first;
 	}
 	const auto &obj = it->second;
-	const auto utc_now = Poseidon::get_utc_time();
 
 	const auto old_time_begin = obj->get_time_begin(), old_time_end = obj->get_time_end();
 	std::uint64_t new_time_begin, new_time_end;
