@@ -1476,7 +1476,7 @@ std::uint64_t MapObject::on_action_harvest_strategic_resource(std::pair<long, st
 	Msg::KS_MapHarvestStrategicResource sreq;
 	sreq.map_object_uuid = get_map_object_uuid().str();
 	sreq.interval        = harvest_interval;
-	sreq.amount_harvested = (std::uint64_t)std::max((double)harvest_interval * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
+	sreq.amount_harvested = (std::uint64_t)std::max(harvest_interval / 1000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
 	if(forced_attack){
 		sreq.forced_attack   = true;
 	}
