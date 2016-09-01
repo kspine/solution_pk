@@ -69,7 +69,7 @@ SYNUSER_SERVLET("createpayment", session, params){
 	} else if(currency == "USD"){
 		item_id = ItemIds::ID_USD;
 	} else if(currency == "ACC"){
-		item_id = ItemIds::ID_ACCOUNT_BALANCE;
+		item_id = ItemIds::ID_ACCELERATION_CARD;
 	}
 	if(!item_id){
 		root[sslit("state")] = "failed";
