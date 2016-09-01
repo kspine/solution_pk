@@ -1734,17 +1734,18 @@ PLAYER_SERVLET(Msg::CS_CastleInitiateProtection, account, session, req){
 
 	const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(transaction,
 		[&]{
+			const auto utc_now = Poseidon::get_utc_time();
 			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
 				const auto &map_object = *it;
 				map_object->clear_buff(BuffIds::ID_OCCUPATION_PROTECTION);
-				map_object->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, delta_preparation_duration);
-				map_object->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
+				map_object->accumulate_buff_hint(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, utc_now, delta_preparation_duration);
+				map_object->accumulate_buff_hint(BuffIds::ID_CASTLE_PROTECTION,             utc_now, delta_protection_duration);
 			}
 			for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 				const auto &map_cell = *it;
 				map_cell->clear_buff(BuffIds::ID_OCCUPATION_PROTECTION);
-				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, delta_preparation_duration);
-				map_cell->accumulate_buff(BuffIds::ID_CASTLE_PROTECTION, delta_protection_duration);
+				map_cell->accumulate_buff_hint(BuffIds::ID_CASTLE_PROTECTION_PREPARATION, utc_now, delta_preparation_duration);
+				map_cell->accumulate_buff_hint(BuffIds::ID_CASTLE_PROTECTION,             utc_now, delta_protection_duration);
 			}
 		});
 	if(insuff_resource_id){
