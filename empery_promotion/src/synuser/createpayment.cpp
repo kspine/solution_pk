@@ -63,7 +63,15 @@ SYNUSER_SERVLET("createpayment", session, params){
 		return root;
 	}
 
-	if(currency != "PAI"){
+	ItemId item_id;
+	if(currency == "PAI"){
+		item_id = ItemIds::ID_ACCOUNT_BALANCE;
+	} else if(currency == "USD"){
+		item_id = ItemIds::ID_USD;
+	} else if(currency == "ACC"){
+		item_id = ItemIds::ID_ACCOUNT_BALANCE;
+	}
+	if(!item_id){
 		root[sslit("state")] = "failed";
 		root[sslit("errorcode")] = "currency_not_supported";
 		return root;
@@ -86,8 +94,7 @@ SYNUSER_SERVLET("createpayment", session, params){
 		return root;
 	}
 
-	const auto elem = ItemTransactionElement(info.account_id,
-		ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, amount,
+	const auto elem = ItemTransactionElement(info.account_id, ItemTransactionElement::OP_REMOVE, item_id, amount,
 		Events::ItemChanged::R_SYNUSER_PAYMENT, 0, 0, 0, orderid);
 	const auto insuff_item_id = ItemMap::commit_transaction_nothrow(&elem, 1);
 	if(insuff_item_id){

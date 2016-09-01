@@ -18,7 +18,7 @@ SYNUSER_SERVLET("checkaccount", session, params){
 	Poseidon::JsonObject root;
 
 	const auto &md5_key = get_config<std::string>("synuser_md5key");
-	const auto sign_md5 = Poseidon::md5_hash(username + md5_key);
+	const auto sign_md5 = Poseidon::md5_hash(username + phone_number + md5_key);
 	const auto sign_expected = Poseidon::Http::hex_encode(sign_md5.data(), sign_md5.size());
 	if(sign != sign_expected){
 		LOG_EMPERY_PROMOTION_WARNING("Unexpected sign from ", session->get_remote_info(),
@@ -56,6 +56,8 @@ SYNUSER_SERVLET("checkaccount", session, params){
 		elem[sslit("usdbalance")] = str;
 		std::sprintf(str, "%.2f", ItemMap::get_count(it->account_id, ItemIds::ID_ACCOUNT_BALANCE) / 100.0);
 		elem[sslit("paibalance")] = str;
+		std::sprintf(str, "%llu", (unsigned long long)ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS));
+		elem[sslit("acccards")] = str;
 		const auto level_elem = Data::Promotion::require(it->level);
 		std::sprintf(str, "%u", level_elem->display_level);
 		elem[sslit("level")] = str;
@@ -65,6 +67,13 @@ SYNUSER_SERVLET("checkaccount", session, params){
 		}
 		elem[sslit("tradePassword")] = std::move(it->deal_password_hash);
 		elem[sslit("mobilePhone")] = std::move(it->phone_number);
+		Poseidon::JsonArray subordinates;
+		std::vector<AccountMap::AccountInfo> subarray;
+		AccountMap::get_by_referrer_id(subarray, it->account_id);
+		for(auto kit = subarray.begin(); kit != subarray.end(); ++kit){
+			subordinates.emplace_back(std::move(kit->login_name));
+		}
+		elem[sslit("subordinates")] = std::move(subordinates);
 		data.emplace_back(std::move(elem));
 	}
 
