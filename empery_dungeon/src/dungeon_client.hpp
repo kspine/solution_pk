@@ -8,6 +8,7 @@
 #include <boost/function.hpp>
 #include <boost/container/flat_map.hpp>
 #include <utility>
+#include "id_types.hpp"
 
 namespace EmperyDungeon {
 

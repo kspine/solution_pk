@@ -2,28 +2,28 @@
 #include "global.hpp"
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
-#include "../data_session.hpp"
+#include <boost/container/flat_map.hpp>
 
-namespace EmperyCenter {
+namespace EmperyDungeon {
 
 namespace {
 	struct DataStorage {
 		std::string str;
 
-		mutable std::pair<bool, std::int64_t>         i64;
-		mutable std::pair<bool, std::uint64_t>        u64;
+		mutable std::pair<bool, std::int64_t>       i64;
+		mutable std::pair<bool, std::uint64_t>      u64;
 		mutable std::pair<bool, double>               dbl;
 		mutable std::pair<bool, Poseidon::JsonArray>  arr;
 		mutable std::pair<bool, Poseidon::JsonObject> obj;
 	};
 
-	using GlobalContainer = boost::container::flat_map<Data::Global::Slot, DataStorage>;
-	boost::weak_ptr<const GlobalContainer> g_global_container;
+	using GlobalMap = boost::container::flat_map<Data::Global::Slot, DataStorage>;
+	boost::weak_ptr<const GlobalMap> g_global_map;
 	const char GLOBAL_FILE[] = "Public";
 
 	MODULE_RAII_PRIORITY(handles, 900){
 		auto csv = Data::sync_load_data(GLOBAL_FILE);
-		const auto global_container = boost::make_shared<GlobalContainer>();
+		const auto global_map = boost::make_shared<GlobalMap>();
 		while(csv.fetch_row()){
 			unsigned slot = 0;
 			DataStorage storage = { };
@@ -31,15 +31,13 @@ namespace {
 			csv.get(slot,        "id");
 			csv.get(storage.str, "numerical");
 
-			if(!global_container->emplace((Data::Global::Slot)slot, std::move(storage)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate global config: slot = ", slot);
+			if(!global_map->emplace((Data::Global::Slot)slot, std::move(storage)).second){
+				LOG_EMPERY_DUNGEON_ERROR("Duplicate global config: slot = ", slot);
 				DEBUG_THROW(Exception, sslit("Duplicate global config"));
 			}
 		}
-		g_global_container = global_container;
-		handles.push(global_container);
-		auto servlet = DataSession::create_servlet(GLOBAL_FILE, Data::encode_csv_as_json(csv, "id"));
-		handles.push(std::move(servlet));
+		g_global_map = global_map;
+		handles.push(global_map);
 	}
 }
 
@@ -47,15 +45,15 @@ namespace Data {
 	const std::string &Global::as_string(Slot slot){
 		PROFILE_ME;
 
-		const auto global_container = g_global_container.lock();
-		if(!global_container){
-			LOG_EMPERY_CENTER_WARNING("Global config map has not been loaded.");
+		const auto global_map = g_global_map.lock();
+		if(!global_map){
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
-		const auto it = global_container->find(slot);
-		if(it == global_container->end()){
-			LOG_EMPERY_CENTER_WARNING("Global config not found: slot = ", slot);
+		const auto it = global_map->find(slot);
+		if(it == global_map->end()){
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		return it->second.str;
@@ -63,15 +61,15 @@ namespace Data {
 	std::int64_t Global::as_signed(Slot slot){
 		PROFILE_ME;
 
-		const auto global_container = g_global_container.lock();
-		if(!global_container){
-			LOG_EMPERY_CENTER_WARNING("Global config map has not been loaded.");
+		const auto global_map = g_global_map.lock();
+		if(!global_map){
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
-		const auto it = global_container->find(slot);
-		if(it == global_container->end()){
-			LOG_EMPERY_CENTER_WARNING("Global config not found: slot = ", slot);
+		const auto it = global_map->find(slot);
+		if(it == global_map->end()){
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.i64.first){
@@ -84,16 +82,16 @@ namespace Data {
 	std::uint64_t Global::as_unsigned(Slot slot){
 		PROFILE_ME;
 
-		const auto global_container = g_global_container.lock();
-		if(!global_container){
-			LOG_EMPERY_CENTER_WARNING("Global config map has not been loaded.");
+		const auto global_map = g_global_map.lock();
+		if(!global_map){
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
-		const auto it = global_container->find(slot);
-		if(it == global_container->end()){
-			LOG_EMPERY_CENTER_WARNING("Global config not found: slot = ", slot);
-			DEBUG_THROW(Exception, sslit("Global config not found"));
+		const auto it = global_map->find(slot);
+		if(it == global_map->end()){
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
+			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.u64.first){
 			const auto val = boost::lexical_cast<std::uint64_t>(it->second.str);
@@ -105,15 +103,15 @@ namespace Data {
 	double Global::as_double(Slot slot){
 		PROFILE_ME;
 
-		const auto global_container = g_global_container.lock();
-		if(!global_container){
-			LOG_EMPERY_CENTER_WARNING("Global config map has not been loaded.");
+		const auto global_map = g_global_map.lock();
+		if(!global_map){
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
-		const auto it = global_container->find(slot);
-		if(it == global_container->end()){
-			LOG_EMPERY_CENTER_WARNING("Global config not found: slot = ", slot);
+		const auto it = global_map->find(slot);
+		if(it == global_map->end()){
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.dbl.first){
@@ -126,15 +124,15 @@ namespace Data {
 	const Poseidon::JsonArray &Global::as_array(Slot slot){
 		PROFILE_ME;
 
-		const auto global_container = g_global_container.lock();
-		if(!global_container){
-			LOG_EMPERY_CENTER_WARNING("Global config map has not been loaded.");
+		const auto global_map = g_global_map.lock();
+		if(!global_map){
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
-		const auto it = global_container->find(slot);
-		if(it == global_container->end()){
-			LOG_EMPERY_CENTER_WARNING("Global config not found: slot = ", slot);
+		const auto it = global_map->find(slot);
+		if(it == global_map->end()){
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.arr.first){
@@ -148,15 +146,15 @@ namespace Data {
 	const Poseidon::JsonObject &Global::as_object(Slot slot){
 		PROFILE_ME;
 
-		const auto global_container = g_global_container.lock();
-		if(!global_container){
-			LOG_EMPERY_CENTER_WARNING("Global config map has not been loaded.");
+		const auto global_map = g_global_map.lock();
+		if(!global_map){
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
-		const auto it = global_container->find(slot);
-		if(it == global_container->end()){
-			LOG_EMPERY_CENTER_WARNING("Global config not found: slot = ", slot);
+		const auto it = global_map->find(slot);
+		if(it == global_map->end()){
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.obj.first){

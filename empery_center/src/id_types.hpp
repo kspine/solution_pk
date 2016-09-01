@@ -196,6 +196,8 @@ namespace IdTypes {
 	using ChatChannelId             = GenericId<std::uint32_t, 110006>;
 	using ChatMessageTypeId         = GenericId<std::uint32_t, 110007>;
 	using ChatMessageSlotId         = GenericId<std::uint32_t, 110008>;
+	using LegionAttributeId         = GenericId<std::uint32_t, 110009>;
+	using LegionMemberAttributeId   = GenericId<std::uint32_t, 110010>;
 
 	using TerrainId                 = GenericId<std::uint32_t, 120001>;
 	using ResourceId                = GenericId<std::uint32_t, 120003>;
@@ -221,7 +223,18 @@ namespace IdTypes {
 	using BuffId                    = GenericId<std::uint32_t, 120023>;
 	using BattalionLevelId          = GenericId<std::uint32_t, 120024>;
 	using DungeonTypeId             = GenericId<std::uint32_t, 120025>;
-	using DungeonTaskId             = GenericId<std::uint32_t, 120026>;
+	using ActivityId                = GenericId<std::uint32_t, 120026>;
+	using MapActivityId             = GenericId<std::uint32_t, 120027>;
+	using WorldActivityId           = GenericId<std::uint32_t, 120028>;
+	using DungeonObjectTypeId       = GenericId<std::uint32_t, 120029>;
+	using DungeonObjectWeaponId     = GenericId<std::uint32_t, 120030>;
+	using DungeonTaskId             = GenericId<std::uint32_t, 120031>;
+	using LegionCorpsLevelId        = GenericId<std::uint32_t, 120032>;
+	using LegionCorpsPowerId        = GenericId<std::uint32_t, 120033>;
+	using LegionStoreGoodsId        = GenericId<std::uint32_t, 120034>;
+	using LegionBuildingAttributeId = GenericId<std::uint32_t, 120035>;
+	using LegionTaskContributionId  = GenericId<std::uint32_t, 120036>;
+
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;
@@ -230,9 +243,16 @@ namespace IdTypes {
 	using AnnouncementUuid          = GenericUuid<210005>;
 	using ResourceCrateUuid         = GenericUuid<210006>;
 	using DungeonUuid               = GenericUuid<210007>;
-	using HornMessageUuid           = GenericUuid<210008>;
+	using HornMessageUuid  			= GenericUuid<210008>;
 	using DungeonObjectUuid         = GenericUuid<210009>;
-	using VoiceUuid                 = GenericUuid<210010>;
+    using VoiceUuid                 = GenericUuid<210010>;
+	using LegionUuid  				= GenericUuid<210011>;
+	using LegionBuildingUuid  		= GenericUuid<210012>;
+	
+
+
+
+
 }
 
 using namespace IdTypes;

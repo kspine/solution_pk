@@ -15,6 +15,9 @@ constexpr AccountAttributeId
 	ID_END                            ( 500 ),
 
 	ID_GENDER                         (   1 ),
+	ID_DONATE                         ( 102 ),
+	ID_WEEKDONATE					  ( 106 ),
+	ID_LEGION_STORE_EXCHANGE_RECORD	  ( 108 ),
 
 	ID_LAST_LOGGED_IN_TIME            ( 200 ),
 	ID_LAST_LOGGED_OUT_TIME           ( 201 ),
@@ -28,6 +31,7 @@ constexpr AccountAttributeId
 	ID_LAST_CHAT_TIME_TRADE           ( 401 ),
 	ID_LAST_CHAT_TIME_ALLIANCE        ( 402 ),
 	ID_GOLD_PAYMENT_ENABLED           ( 403 ),
+	ID_LAST_CHAT_TIME_KING            ( 404 ),
 
 	ID_VERIF_CODE                     ( 500 ),
 	ID_VERIF_CODE_EXPIRY_TIME         ( 501 ),

@@ -1,6 +1,6 @@
-#include "../precompiled.hpp"
+#include "precompiled.hpp"
 #include "dungeon_client.hpp"
-#include "../mmain.hpp"
+#include "mmain.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_base.hpp>
@@ -9,8 +9,8 @@
 #include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
-#include "../../../empery_center/src/msg/g_packed.hpp"
-#include "../../../empery_center/src/msg/ds_dungeon.hpp"
+#include "../../empery_center/src/msg/g_packed.hpp"
+#include "../../empery_center/src/msg/ds_dungeon.hpp"
 
 namespace EmperyDungeon {
 
