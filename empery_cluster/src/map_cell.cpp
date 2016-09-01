@@ -197,6 +197,19 @@ bool MapCell::is_in_castle_protect(){
 	return false;
 }
 
+bool MapCell::is_in_noviciate_protect(){
+		PROFILE_ME;
+	const auto map_cell_ticket = Data::MapCellTicket::get(get_ticket_item_id());
+	if(!map_cell_ticket){
+		return false;
+	}
+	if(is_buff_in_effect(BuffIds::ID_NOVICIATE_PROTECTION)&&map_cell_ticket->protect){
+		return true;
+	}
+	return false;
+}
+
+
 bool MapCell::is_protectable() const{
 	PROFILE_ME;
 

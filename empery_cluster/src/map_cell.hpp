@@ -63,6 +63,7 @@ public:
 	void clear_buff(BuffId buff_id) noexcept;
 	bool is_in_castle_protect();
 	bool is_protectable() const;
+	bool is_in_noviciate_protect();
 
 	MapObjectUuid get_occupier_object_uuid() const;
 	AccountUuid get_occupier_owner_uuid() const;

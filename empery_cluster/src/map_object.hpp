@@ -8,24 +8,13 @@
 #include "id_types.hpp"
 #include "coord.hpp"
 #include "data/map_object.hpp"
+#include "ai_control.hpp"
 
 namespace EmperyCluster {
 
 class MapObject;
 class ResourceCrate;
 class MapCell;
-class AiControl{
-public:
-	AiControl(boost::weak_ptr<MapObject> parent);
-public:
-	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
-	void          troops_attack(boost::shared_ptr<MapObject> target,bool passive = false);
-	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
-	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
-	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
-private:
-	boost::weak_ptr<MapObject> m_parent_object;
-};
 
 class ClusterClient;
 
@@ -52,6 +41,14 @@ public:
 		IMPACT_NORMAL            = 1,
 		IMPACT_MISS              = 2,
 		IMPACT_CRITICAL          = 3,
+	};
+
+	enum AI {
+		AI_SOLIDER                           = 5000101,
+		AI_MONSTER                           = 5000201,
+		AI_BUILDING                          = 5000301,
+		AI_BUILDING_NO_ATTACK                = 5000302,
+		AI_GOBLIN                            = 5000601,
 	};
 
 public:
@@ -102,31 +99,34 @@ public:
 	bool is_in_attack_scope(boost::shared_ptr<ResourceCrate> target_resource_crate);
 	bool is_in_attack_scope(boost::shared_ptr<MapCell> target_territory);
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject>& target_object);
+	bool is_in_monster_active_scope();
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
 	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObject> &new_enemy_map_object);
 	void          attack_new_target(boost::shared_ptr<MapObject> enemy_map_object);
 	bool          attacked_able(std::pair<long, std::string> &reason);
 	bool          attacking_able(std::pair<long, std::string> &reason);
+	std::uint64_t search_attack();
 	bool          is_protectable();
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
 	std::uint64_t attack(std::pair<long, std::string> &result, std::uint64_t now);
 	void          troops_attack(boost::shared_ptr<MapObject> target, bool passive = false);
-	std::uint64_t on_attack(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t on_attack_common(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
+	std::uint64_t on_attack_goblin(boost::shared_ptr<MapObject> attacker,std::uint64_t demage);
 	std::uint64_t harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_overplay(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t lost_target_common();
+	std::uint64_t lost_target_monster();
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const MapObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
-
-	std::uint64_t lost_target();
 	void          monster_regress();
 	bool          is_monster();
 	bool          is_building();
@@ -135,8 +135,7 @@ private:
 	bool          is_defense_tower();
 	bool          is_lost_attacked_target();
 	void          reset_attack_target_own_uuid();
-	AccountUuid   get_attack_target_own_uuid(); 
-	std::uint64_t search_attack();
+    AccountUuid   get_attack_target_own_uuid();
 	unsigned      get_arm_attack_type();
 	unsigned      get_arm_defence_type();
 	int           get_attacked_prority();
