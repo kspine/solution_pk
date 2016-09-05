@@ -59,6 +59,10 @@ constexpr ReasonId
 	ID_MONSTER_REWARD_COUNT          ( 673016 ), // 怪物兵种 ID         0                   0
 	ID_UNPACK                        ( 673017 ), // 0                   道具 ID             重复次数
 	ID_AUCTION_CENTER_BUY            ( 673018 ), // 0                   0                   0
+	ID_CREATE_LEGION                 ( 673019 ), //创建军团 0                   道具 ID             扣除数量
+	ID_DOANTE_LEGION                 ( 673020 ), // 军团捐献0                   道具 ID             数量
+	ID_LEGION_STORE_EXCHANGE         ( 673021 ), // 军团商店兑换 0               道具 ID             数量
+
 
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0
@@ -79,7 +83,16 @@ constexpr ReasonId
 	ID_HORN_MESSAGE                  ( 674015 ), // 0                   0                   0
 	ID_DUNGEON_RESUSCITATION         ( 674016 ), // 部队 UUID 高位      部队受到伤害        复活率 * 1000
 	ID_FINISH_DUNGEON                ( 674017 ), // 副本类型 ID         掉落表内的 ID       0
-	ID_FINISH_DUNGEON_TASK           ( 674018 ); // 副本类型 ID         副本任务 ID         0
+	ID_FINISH_DUNGEON_TASK           ( 674018 ), // 副本类型 ID         副本任务 ID         0
+	ID_SOLDIER_KILL_ACCUMULATE       ( 674019 ), // 满足累计战力        原来累计战力        新累计战力
+	ID_CASTLE_DMAGE_ACCUMULATE       ( 674020 ), // 满足伤害            原来累计伤害         新累计伤害
+	ID_SOLDIER_KILL_RANK             ( 674021 ), // 活动id              排名                活动开始时间
+	ID_WORLD_ACTIVITY                ( 674022 ), // 活动id              国家坐标x           国家坐标y
+	ID_WORLD_ACTIVITY_RANK           ( 674023 ), // 活动id              排名                活动开始时间
+	ID_LEGION_PACKAGE_TASK_PACKAGE_ITEM  (674024),//军团礼包 任务礼包 物品
+	ID_LEGION_PACKAGE_SHARE_PACKAGE_ITEM (674025),//军团礼包 分享礼包 物品
+	ID_LEGION_PACKAGE_SHARE_PACKAGE_COUNT_ITEM (674026),//军团礼包 分享礼包 已领计数物品
+	ID_KING_CHAT                     (674027);   //0
 
 }
 

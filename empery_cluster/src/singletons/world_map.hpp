@@ -46,6 +46,9 @@ struct WorldMap {
 	static void get_all_clusters(boost::container::flat_map<Coord, boost::shared_ptr<ClusterClient>> &ret);
 	static void set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Coord coord);
 
+	// legion
+	static void get_map_objects_by_legion_uuid(std::vector<boost::shared_ptr<MapObject>> &ret,LegionUuid legion_uuid);
+
 private:
 	WorldMap() = delete;
 };

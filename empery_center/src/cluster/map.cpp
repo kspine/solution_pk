@@ -48,6 +48,7 @@
 #include "../buff_ids.hpp"
 #include "../map_cell.hpp"
 #include "../singletons/controller_client.hpp"
+#include "../warehouse_building.hpp"
 
 namespace EmperyCenter {
 
@@ -405,6 +406,12 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	if(attacking_account_uuid == attacked_account_uuid){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
+	
+	// 查看双方的友好关系
+	if(AccountMap::is_friendly(attacking_account_uuid,attacked_account_uuid))
+	{
+		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+	}
 
 	auto result = is_under_protection(attacking_object, attacked_object);
 	if(result.first != Msg::ST_OK){
@@ -456,7 +463,18 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_SIEGE_PROTECTION_DURATION);
 			const auto protection_duration = saturated_mul<std::uint64_t>(protection_minutes, 60000);
 			attacked_object->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, utc_now, protection_duration);
-		} else {
+		}
+		else if(attacked_object_type_id == MapObjectTypeIds::ID_LEGION_WAREHOUSE)
+		{
+			const auto warehouse = boost::dynamic_pointer_cast<WarehouseBuilding>(attacked_object);
+			if(warehouse)
+			{
+				// 矿井不消失，给个击毁标识
+				if(warehouse->get_mission() == WarehouseBuilding::MIS_DESTRUCT)
+					return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) << attacked_object_uuid;
+			}
+		}
+		else {
 			attacked_object->delete_from_game();
 		}
 	}
@@ -676,6 +694,15 @@ _wounded_done:
 		}
 	}
 
+	// 攻击军团货仓
+	if(attacked_object_type_id == MapObjectTypeIds::ID_LEGION_WAREHOUSE){
+		const auto warehouse = boost::dynamic_pointer_cast<WarehouseBuilding>(attacked_object);
+		if(warehouse)
+		{
+			warehouse->on_hp_change(attacked_object->get_attribute(AttributeIds::ID_HP_TOTAL));
+		}
+	}
+	
 	// 怪物掉落。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try {
@@ -825,6 +852,52 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
+	
+	// 军团礼包任务。
+	if (attacking_account_uuid && (soldiers_remaining == 0)) {
+		try {
+			Poseidon::enqueue_async_job([=]() mutable {
+				PROFILE_ME;
+
+				const auto task_box = TaskBoxMap::get(attacking_account_uuid);
+				if (!task_box) {
+					LOG_EMPERY_CENTER_DEBUG("Failed to load task box: attacking_account_uuid = ", attacking_account_uuid);
+					return;
+				}
+
+				auto task_type_id = TaskTypeIds::ID_DESTROY_MONSTERS;
+				if (attacked_account_uuid)
+				{
+					task_type_id = TaskTypeIds::ID_DESTROY_SOLDIERS;
+				}
+				auto castle_category = TaskBox::TCC_ALL;
+
+				if (task_type_id == TaskTypeIds::ID_DESTROY_MONSTERS)
+				{
+					const auto monster_data = Data::MapObjectTypeMonster::require(attacked_object_type_id);
+					task_box->check(task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_MONSTERS.get(), monster_data->warfare,
+						castle_category, 0, 0);
+				}
+
+				if (task_type_id == TaskTypeIds::ID_DESTROY_SOLDIERS)
+				{
+					LOG_EMPERY_CENTER_DEBUG("军团礼包任务 soldiers_previous ", soldiers_damaged);
+
+					const auto map_object_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+					if(map_object_type_data)
+					{
+						task_box->check(task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_SOLDIERS.get(), soldiers_damaged*map_object_type_data->warfare,
+							castle_category, 0, 0);
+
+						LOG_EMPERY_CENTER_DEBUG("军团礼包任务 warfare ", map_object_type_data->warfare);
+					}
+				}
+			});
+		}
+		catch (std::exception &e) {
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
 
 	// 资源宝箱。
 	if(soldiers_remaining == 0){
@@ -908,6 +981,37 @@ _wounded_done:
 							amount = checked_add(amount, amount_dropped);
 						}
 						goto _create_crates;
+					}
+				}
+				{
+					// 军团矿井掉落
+					const auto warehouse_building = boost::dynamic_pointer_cast<WarehouseBuilding>(attacked_object);
+					if (warehouse_building)
+					{
+						// 查看矿井剩余资源数量
+						const auto left = warehouse_building->get_output_amount();
+						if (left > 0)
+						{
+							auto &amount = resources_dropped[ResourceId(warehouse_building->get_output_type())];
+							amount = checked_add(amount, left);
+
+							// 矿井不消失，给个击毁标识
+
+							warehouse_building->set_output_amount(0);
+
+							warehouse_building->cancel_mission();
+
+							warehouse_building->create_mission(WarehouseBuilding::MIS_DESTRUCT, UINT64_MAX, {});
+
+							goto _create_crates;
+						}
+						else
+						{
+							// 矿井不消失，给个击毁标识
+							warehouse_building->cancel_mission();
+
+							warehouse_building->create_mission(WarehouseBuilding::MIS_DESTRUCT, UINT64_MAX, {});
+						}
 					}
 				}
 				{
@@ -1299,6 +1403,160 @@ _occupation_done:
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 	}
 
+	return Response();
+}
+
+
+CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
+{
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	const auto test_cluster = WorldMap::get_cluster(map_object->get_coord());
+	if(cluster != test_cluster){
+		return Response(Msg::ERR_MAP_OBJECT_ON_ANOTHER_CLUSTER);
+	}
+
+	const auto target_object = boost::dynamic_pointer_cast<WarehouseBuilding>(WorldMap::get_map_object(MapObjectUuid(req.param)));
+	if(!target_object)
+	{
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+
+	/*
+	const auto parent_object_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
+	}
+	*/
+	/*
+	const auto coord = map_object->get_coord();
+
+	const auto strategic_resource = WorldMap::get_strategic_resource(coord);
+	if(!strategic_resource){
+		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
+	}
+	const auto resource_amount = strategic_resource->get_resource_amount();
+	if(resource_amount == 0){
+		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
+	}
+
+	*/
+	/*
+	const auto resource_id = strategic_resource->get_resource_id();
+	const auto resource_data = Data::CastleResource::require(resource_id);
+	const auto unit_weight = resource_data->unit_weight;
+	if(unit_weight <= 0){
+		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
+	}
+	const auto carried_attribute_id = resource_data->carried_attribute_id;
+	if(!carried_attribute_id){
+		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
+	}
+	*/
+//	const auto map_object_type_id = map_object->get_map_object_type_id();
+//	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
+//	const auto harvest_speed = map_object_type_data->harvest_speed;
+	const auto harvest_speed = 1;
+//	if(harvest_speed <= 0){
+//		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+//	}
+	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const bool forced_attack = req.forced_attack;
+	if(!forced_attack){
+		const auto resource_carriable = map_object->get_resource_amount_carriable();
+	//	const auto resource_carriable = static_cast<std::uint64_t>(20);
+		const auto resource_carried = map_object->get_resource_amount_carried();
+	//	LOG_EMPERY_CENTER_ERROR("KS_MapHarvestLegionResource 负重检测 *******************",soldier_count," resource_carried:",resource_carried);
+		if(resource_carried >= resource_carriable){
+			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
+		}
+	}
+	//	const auto harvest_speed_bonus = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+//	const auto harvest_speed_add = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
+
+	const auto harvest_speed_bonus = 1.0;
+	const auto harvest_speed_add = 1.0;
+	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
+
+	//地图活动翻倍
+	auto  activity_add_rate = 1;
+	/*
+	const auto map_activity = ActivityMap::get_map_activity();
+	if(map_activity){
+		if(map_activity->get_current_activity() == ActivityIds::ID_MAP_ACTIVITY_HARVEST){
+			activity_add_rate = 2;
+		}
+	}
+	*/
+	const auto unit_weight = 1;
+	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0 * activity_add_rate;
+	const auto amount_harvested = target_object->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
+	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, 
+		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack,", activity_add_rate = ", activity_add_rate);
+
+	if(amount_harvested == 0)
+	{
+		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) ;
+		/*
+		auto old_coord = map_object->get_coord();
+		Msg::SK_MapSetAction kreq;
+		kreq.map_object_uuid = map_object_uuid.str();
+		kreq.x               = old_coord.x();
+		kreq.y               = old_coord.y();
+
+		kreq.waypoints.reserve(0);
+		kreq.action = 0;
+		kreq.param = "";
+
+		const auto kresult = cluster->send_and_wait(kreq);
+		if(kresult.first != Msg::ST_OK){
+			LOG_EMPERY_CENTER_DEBUG("Cluster server returned an error: code = ", kresult.first, ", msg = ", kresult.second);
+			return std::move(kresult);
+		}
+		*/
+	}
+	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, req.interval);
+	/*
+	try {
+		Poseidon::enqueue_async_job([=]{
+			{
+				PROFILE_ME;
+				//世界活动累积贡献值
+				const auto world_activity = ActivityMap::get_world_activity();
+				if(!world_activity){
+					goto world_activity_resource_acculate_done;
+				}
+				auto primary_castle =  WorldMap::get_primary_castle(map_object->get_owner_uuid());
+				if(!primary_castle){
+					goto world_activity_resource_acculate_done;
+				}
+				auto attacking_primary_castle_coord = WorldMap::get_cluster_scope(primary_castle->get_coord()).bottom_left();
+				auto attacking_cluster_coord = WorldMap::get_cluster_scope(map_object->get_coord()).bottom_left();
+				if(attacking_primary_castle_coord !=  attacking_cluster_coord){
+					goto world_activity_resource_acculate_done;
+				}
+				const auto activity_contribute = Data::ActivityContribute::get(resource_id.get());
+				if(!activity_contribute || 0 == activity_contribute->factor){
+					goto world_activity_resource_acculate_done;
+				}
+				auto contribute = activity_contribute->contribute*amount_harvested/activity_contribute->factor;
+				if(contribute <= 0){
+					goto world_activity_resource_acculate_done;
+				}
+				world_activity->update_world_activity_schedule(attacking_primary_castle_coord,ActivityIds::ID_WORLD_ACTIVITY_RESOURCE,map_object->get_owner_uuid(),contribute);
+			}
+			world_activity_resource_acculate_done:
+			;
+		});
+	} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+	*/
 	return Response();
 }
 

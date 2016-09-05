@@ -52,11 +52,13 @@ namespace {
 		MapObjectUuid map_object_uuid;
 		Coord coord;
 		AccountUuid owner_uuid;
+		LegionUuid legion_uuid;
 
 		MapObjectElement(boost::shared_ptr<MapObject> map_object_, boost::weak_ptr<ClusterClient> master_)
 			: map_object(std::move(map_object_))
 			, master(std::move(master_))
 			, map_object_uuid(map_object->get_map_object_uuid()), coord(map_object->get_coord()), owner_uuid(map_object->get_owner_uuid())
+			,legion_uuid(map_object->get_legion_uuid())
 		{
 		}
 	};
@@ -66,6 +68,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(map_object_uuid)
 		MULTI_MEMBER_INDEX(coord)
 		MULTI_MEMBER_INDEX(owner_uuid)
+		MULTI_MEMBER_INDEX(legion_uuid)
 	)
 
 	boost::weak_ptr<MapObjectContainer> g_map_object_map;
@@ -741,6 +744,21 @@ void WorldMap::set_cluster(const boost::shared_ptr<ClusterClient> &cluster, Coor
 			DEBUG_THROW(Exception, sslit("Cluster server conflict"));
 		}
 		cluster_map->replace(result.first, ClusterElement(cluster_coord, cluster));
+	}
+}
+
+void WorldMap::get_map_objects_by_legion_uuid(std::vector<boost::shared_ptr<MapObject>> &ret,LegionUuid legion_uuid)
+{
+	PROFILE_ME;
+
+	const auto map_object_map = g_map_object_map.lock();
+	if(!map_object_map){
+		LOG_EMPERY_CLUSTER_WARNING("Map object map not loaded.");
+	}
+	const auto range = map_object_map->equal_range<4>(legion_uuid);
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		ret.emplace_back(it->map_object);
 	}
 }
 

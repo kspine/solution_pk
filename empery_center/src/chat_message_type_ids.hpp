@@ -15,6 +15,12 @@ constexpr ChatMessageTypeId
 	ID_INCOME_TAX                   ( 101 ),
 	ID_LEVEL_BONUS_EXTRA            ( 102 ),
 
+	ID_LEVEL_LEGION_JOIN            ( 103 ),
+	ID_LEVEL_LEGION_REFUSE_INVITE   ( 104 ),
+	ID_LEVEL_LEGION_DISBAND         ( 105 ),
+	ID_LEVEL_LEGION_KICK            ( 106 ),
+	ID_LEVEL_LEGION_REFUSE_APPLY    ( 107 ),
+
 	ID_AUCTION_RESULT               ( 200 ),
 	ID_PAYMENT_DIAMONDS             ( 201 ),
 	ID_PAYMENT_GOLD_COINS           ( 202 ),

@@ -45,6 +45,7 @@ namespace Msg {
 	FIELD_VUINT         (stamp)	\
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_STRING        (owner_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
 	FIELD_STRING        (parent_object_uuid)	\
 	FIELD_VUINT         (garrisoned)	\
 	FIELD_VINT          (x)	\
