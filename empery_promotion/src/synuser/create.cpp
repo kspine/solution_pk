@@ -19,6 +19,7 @@ SYNUSER_SERVLET("create", session, params){
 	const auto &gender = params.at("gender");
 	const auto &country = params.at("country");
 	const auto &password = params.at("password");
+	const auto &deal_password = params.at("dealPassword");
 	const auto &phone_number = params.at("phoneNumber");
 	const auto &bank_account_name = params.get("bankAccountName");
 	const auto &bank_name = params.get("bankName");
@@ -32,7 +33,7 @@ SYNUSER_SERVLET("create", session, params){
 	Poseidon::JsonObject root;
 
 	const auto &md5_key = get_config<std::string>("synuser_md5key");
-	const auto sign_md5 = Poseidon::md5_hash(login_name + nick + gender + country + password + phone_number +
+	const auto sign_md5 = Poseidon::md5_hash(login_name + nick + gender + country + password + deal_password + phone_number +
 		bank_account_name + bank_name + bank_account_number + referrer_login_name + bank_swift_code + remarks + ip + md5_key);
 	const auto sign_expected = Poseidon::Http::hex_encode(sign_md5.data(), sign_md5.size());
 	if(sign != sign_expected){
@@ -107,7 +108,7 @@ SYNUSER_SERVLET("create", session, params){
 		return root;
 	}
 
-	const auto new_account_id = AccountMap::create(login_name, phone_number, nick, password, password, referrer_info.account_id, 0, ip);
+	const auto new_account_id = AccountMap::create(login_name, phone_number, nick, password, deal_password, referrer_info.account_id, 0, ip);
 	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_GENDER, gender);
 	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_COUNTRY, country);
 	AccountMap::set_attribute(new_account_id, AccountMap::ATTR_BANK_ACCOUNT_NAME, bank_account_name);
