@@ -43,7 +43,6 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	if(!dungeon_data){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON_ID) <<dungeon_type_id;
 	}
-
 	const auto account_uuid = account->get_account_uuid();
 
 	const auto dungeon_box = DungeonBoxMap::require(account_uuid);
@@ -215,7 +214,7 @@ PLAYER_SERVLET(Msg::CS_DungeonQuit, account, session, req){
 	}
 
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_REQUEST, { });
-
+	DungeonMap::remove(dungeon);
 	return Response();
 }
 
