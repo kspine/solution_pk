@@ -26,6 +26,8 @@ SYNUSER_SERVLET("update", session, params){
 	auto bank_account_number          = params.get("bankAccountNumber");
 	auto bank_swift_code              = params.get("bankSwiftCode");
 	auto remarks                      = params.get("remarks");
+	auto level                        = params.get("level");
+	auto new_referrer                 = params.get("newReferrer");
 	auto forced_update                = !params.get("forcedUpdate").empty();
 	const auto &sign = params.at("sign");
 
@@ -33,7 +35,8 @@ SYNUSER_SERVLET("update", session, params){
 
 	const auto &md5_key = get_config<std::string>("synuser_md5key");
 	const auto sign_md5 = Poseidon::md5_hash(login_name + new_login_name + phone_number + nick + password + deal_password +
-		banned_until + gender + country + bank_account_name + bank_name + bank_account_number + bank_swift_code + remarks + md5_key);
+		banned_until + gender + country + bank_account_name + bank_name + bank_account_number + bank_swift_code + remarks +
+		level + new_referrer + md5_key);
 	const auto sign_expected = Poseidon::Http::hex_encode(sign_md5.data(), sign_md5.size());
 	if(sign != sign_expected){
 		LOG_EMPERY_PROMOTION_WARNING("Unexpected sign from ", session->get_remote_info(),
@@ -95,6 +98,30 @@ SYNUSER_SERVLET("update", session, params){
 			return root;
 		}
 	}
+	if(!level.empty()){
+		const auto num = boost::lexical_cast<std::uint64_t>(level);
+		if(num == 0){
+			level = "0";
+		} else {
+			const auto new_promotion_data = Data::Promotion::get_by_display_level(num);
+			if(!new_promotion_data){
+				root[sslit("state")] = "failed";
+				root[sslit("errorcode")] = "unknown_level";
+				return root;
+			}
+			level = boost::lexical_cast<std::string>(new_promotion_data->level);
+		}
+	}
+	AccountId new_referrer_id;
+	if(!new_referrer.empty()){
+		auto referrer_info = AccountMap::get_by_login_name(new_referrer);
+		if(Poseidon::has_none_flags_of(referrer_info.flags, AccountMap::FL_VALID)){
+			root[sslit("state")] = "failed";
+			root[sslit("errorcode")] = "no_such_referrer";
+			return root;
+		}
+		new_referrer_id = referrer_info.account_id;
+	}
 
 	if(!new_login_name.empty()){
 		AccountMap::set_login_name(info.account_id, std::move(new_login_name));
@@ -135,6 +162,13 @@ SYNUSER_SERVLET("update", session, params){
 	}
 	if(!remarks.empty()){
 		AccountMap::set_attribute(info.account_id, AccountMap::ATTR_REMARKS, std::move(remarks));
+	}
+
+	if(!level.empty()){
+		AccountMap::set_level(info.account_id, boost::lexical_cast<std::uint64_t>(level));
+	}
+	if(new_referrer_id){
+		AccountMap::set_referrer_id(info.account_id, new_referrer_id);
 	}
 
 	root[sslit("state")] = "success";
