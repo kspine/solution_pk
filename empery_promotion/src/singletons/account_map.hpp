@@ -74,6 +74,7 @@ struct AccountMap {
 	static void set_level(AccountId account_id, std::uint64_t level);
 	static void set_flags(AccountId account_id, std::uint64_t flags);
 	static void set_banned_until(AccountId account_id, std::uint64_t banned_until);
+	static void set_referrer_id(AccountId account_id, AccountId referrer_id);
 	static void accumulate_self_performance(AccountId account_id, std::uint64_t amount);
 	static void accumulate_performance(AccountId account_id, std::uint64_t amount);
 

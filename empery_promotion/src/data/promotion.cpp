@@ -8,6 +8,7 @@ namespace EmperyPromotion {
 namespace {
 	MULTI_INDEX_MAP(PromotionMap, Data::Promotion,
 		UNIQUE_MEMBER_INDEX(level)
+		UNIQUE_MEMBER_INDEX(display_level)
 	);
 
 	const char DATA_FILE[] = "empery_promotion_levels.csv";
@@ -62,6 +63,27 @@ namespace Data {
 	}
 	boost::shared_ptr<const Promotion> Promotion::require(std::uint64_t level){
 		auto ret = get(level);
+		if(!ret){
+			DEBUG_THROW(Exception, sslit("Promotion element not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const Promotion> Promotion::get_by_display_level(unsigned display_level){
+		auto map = g_map.lock();
+		if(!map){
+			LOG_EMPERY_PROMOTION_ERROR("Promotion data has not been loaded.");
+			return { };
+		}
+
+		auto it = map->find<1>(display_level);
+		if(it == map->end<1>()){
+			return { };
+		}
+		return boost::shared_ptr<const Promotion>(std::move(map), &*it);
+	}
+	boost::shared_ptr<const Promotion> Promotion::require_by_display_level(unsigned display_level){
+		auto ret = get_by_display_level(display_level);
 		if(!ret){
 			DEBUG_THROW(Exception, sslit("Promotion element not found"));
 		}
