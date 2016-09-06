@@ -60,7 +60,17 @@ namespace {
 		}
 
 		const auto utc_now = Poseidon::get_utc_time();
-		dungeon_map->erase<2>(dungeon_map->begin<2>(), dungeon_map->upper_bound<2>(utc_now));
+		const auto range = std::make_pair(dungeon_map->begin<2>(), dungeon_map->upper_bound<2>(utc_now));
+
+		dungeons.clear();
+		for(auto it = range.first; it != range.second; ++it){
+			dungeons.emplace_back(it->dungeon);
+		}
+		for(auto it = dungeons.begin(); it != dungeons.end(); ++it){
+			const auto &dungeon = *it;
+			LOG_EMPERY_CENTER_DEBUG("Reclaiming dungeon: dungeon_uuid = ", dungeon->get_dungeon_uuid());
+			dungeon->clear_observers(Dungeon::Q_DUNGEON_EXPIRED, "");
+		}
 	}
 
 	using ServerSet = boost::container::flat_set<boost::weak_ptr<DungeonSession>>;
@@ -178,6 +188,34 @@ void DungeonMap::update(const boost::shared_ptr<Dungeon> &dungeon, bool throws_i
 
 	LOG_EMPERY_CENTER_DEBUG("Updating dungeon: dungeon_uuid = ", dungeon_uuid);
 	dungeon_map->replace<0>(it, DungeonElement(dungeon));
+}
+
+void DungeonMap::remove(const boost::shared_ptr<Dungeon> &dungeon,bool throws_if_not_exists){
+	PROFILE_ME;
+	const auto dungeon_map = g_dungeon_map.lock();
+	if(!dungeon_map){
+		LOG_EMPERY_CENTER_WARNING("DungeonMap is not loaded.");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("DungeonMap is not loaded"));
+		}
+		return;
+	}
+
+	const auto dungeon_uuid = dungeon->get_dungeon_uuid();
+
+	const auto it = dungeon_map->find<0>(dungeon_uuid);
+	if(it == dungeon_map->end<0>()){
+		LOG_EMPERY_CENTER_DEBUG("Dungeon not found: dungeon_uuid = ", dungeon_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Dungeon not found"));
+		}
+		return;
+	}
+	if(it->dungeon != dungeon){
+		LOG_EMPERY_CENTER_DEBUG("Dungeon expired: dungeon_uuid = ", dungeon_uuid);
+		return;
+	}
+	dungeon_map->erase<0>(it);
 }
 
 boost::shared_ptr<DungeonSession> DungeonMap::pick_server(){
