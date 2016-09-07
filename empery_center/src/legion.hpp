@@ -47,6 +47,7 @@ public:
 		LEGION_POWER_CHAT 			= 20,	// 禁言
 		LEGION_POWER_GRADEUP 		= 21,	// 可被升级
 		LEGION_POWER_GRADEDOWN 		= 22,	// 可被降级
+		LEGION_POWER_LEAGUE_INVITE 	= 23,	// 可以处理邀请加入军团
 	};
 
 	enum LEGION_NOTICE_MSG_TYPE
