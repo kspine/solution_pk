@@ -37,6 +37,7 @@ namespace Msg {
 #define MESSAGE_ID      58804
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
 	FIELD_STRING        (league_name)	\
 	FIELD_ARRAY         (legions,	\
 		FIELD_STRING        (legion_uuid)	\
@@ -92,6 +93,21 @@ namespace Msg {
 	FIELD_STRING        (league_uuid)	\
 	FIELD_VUINT         (bagree)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SL_ExpandLeagueReq
+#define MESSAGE_ID      58811
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SL_ExpandLeagueRes
+#define MESSAGE_ID      58812
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

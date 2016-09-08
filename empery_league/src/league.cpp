@@ -7,6 +7,7 @@
 #include "league_member.hpp"
 #include "league_member_attribute_ids.hpp"
 #include "../../empery_center/src/msg/ls_league.hpp"
+#include "data/global.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 
@@ -109,7 +110,6 @@ void League::InitAttributes(LegionUuid legion_uuid,std::string content, std::str
 	modifiers.emplace(LeagueAttributeIds::ID_LEADER, legion_uuid.str());
 	modifiers.emplace(LeagueAttributeIds::ID_LEVEL, "1");
 	modifiers.emplace(LeagueAttributeIds::ID_CONTENT, std::move(content));
-//	modifiers.emplace(LegionAttributeIds::ID_NOTICE, "");
 	modifiers.emplace(LeagueAttributeIds::ID_ICON, std::move(icon));
 	modifiers.emplace(LeagueAttributeIds::ID_LANAGE, std::move(language));
 	if(bautojoin)
@@ -120,6 +120,7 @@ void League::InitAttributes(LegionUuid legion_uuid,std::string content, std::str
 	{
 		modifiers.emplace(LeagueAttributeIds::ID_AUTOJOIN,"0");
 	}
+	modifiers.emplace(LeagueAttributeIds::ID_MEMBER_MAX, Data::Global::as_string(Data::Global::SLOT_LEGAUE_CREATE_DEFAULT_MEMBERCOUNT));
 //	modifiers.emplace(LeagueAttributeIds::ID_MONEY, "0");
 //	modifiers.emplace(LeagueAttributeIds::ID_RANK, "0");
 	set_attributes(std::move(modifiers));

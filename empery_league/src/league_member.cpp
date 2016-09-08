@@ -120,7 +120,7 @@ void LeagueMember::synchronize_with_player(const boost::shared_ptr<PlayerSession
 	const auto leader_account = AccountMap::require(AccountUuid(get_attribute(LegionAttributeIds::ID_LEADER)));
 	msg.legion_leadername    	= 	get_attribute(LegionAttributeIds::ID_LEADER);
 	msg.legion_icon     		= 	get_attribute(LegionAttributeIds::ID_ICON);
-	msg.legion_notice     		= 	get_attribute(LegionAttributeIds::ID_NOTICE);
+	msg.legion_notice     		= 	get_attribute(LegionAttributeIds::ID_CONTENT);
 	msg.legion_level     		= 	get_attribute(LegionAttributeIds::ID_LEVEL);
 	msg.legion_rank     		= 	get_attribute(LegionAttributeIds::ID_RANK);
 	msg.legion_money     		= 	get_attribute(LegionAttributeIds::ID_MONEY);

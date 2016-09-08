@@ -88,7 +88,11 @@ namespace Msg {
 
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ExpandLeague
+#define MESSAGE_ID      1811
+#define MESSAGE_FIELDS  \
 
+#include <poseidon/cbpp/message_generator.hpp>
 
 
 }

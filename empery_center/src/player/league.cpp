@@ -17,10 +17,13 @@
 #include "../item_box.hpp"
 #include "../data/item.hpp"
 #include "../item_ids.hpp"
-#include <poseidon/singletons/mysql_daemon.hpp>
-#include <poseidon/singletons/job_dispatcher.hpp>
 #include "../singletons/league_client.hpp"
 #include "../data/legion_corps_level.hpp"
+#include "../data/global.hpp"
+#include <poseidon/json.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
+
 
 
 namespace EmperyCenter {
@@ -71,33 +74,32 @@ namespace EmperyCenter {
         // 判断创建条件是否满足
         const auto item_box = ItemBoxMap::require(account_uuid);
         std::vector<ItemTransactionElement> transaction;
-        const auto levelinfo = Data::LegionCorpsLevel::get(LegionCorpsLevelId(1));
-        if(levelinfo)
+
+        // 计算消耗
+		const auto& createinfo = Data::Global::as_object(Data::Global::SLOT_LEGAUE_CREATE_NEED);
+        for(auto it = createinfo.begin(); it != createinfo.end(); ++it)
         {
-            for(auto it = levelinfo->level_up_cost_map.begin(); it != levelinfo->level_up_cost_map.end();++it)
+            auto str = std::string(it->first.get());
+            if(str == boost::lexical_cast<std::string>(ItemIds::ID_DIAMONDS))
             {
-                if(it->first == boost::lexical_cast<std::string>(ItemIds::ID_DIAMONDS))
+                const auto  curDiamonds = item_box->get(ItemIds::ID_DIAMONDS).count;
+                const auto creatediamond = boost::lexical_cast<std::uint64_t>(it->second.get<double>());
+                if(curDiamonds < creatediamond)
                 {
-                    const auto  curDiamonds = item_box->get(ItemIds::ID_DIAMONDS).count;
-                    LOG_EMPERY_CENTER_DEBUG("CS_LeagueCreateReqMessage account_uuid:", account_uuid,"  curDiamonds:",curDiamonds);
-                    if(curDiamonds < it->second)
-                    {
-                        return Response(Msg::ERR_LEAGUE_CREATE_NOTENOUGH_MONEY);
-                    }
-                    else
-                    {
-                        transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, it->second,
-                            ReasonIds::ID_CREATE_LEAGUE, 0, 0, it->second);
-                    }
+                    return Response(Msg::ERR_LEAGUE_CREATE_NOTENOUGH_MONEY);
                 }
                 else
                 {
-                    // 玩家当前拥有的资源 (这个数值比前端现实的大100倍) / 100
-                    //	const auto  curmoney = item_box->get(ItemIds::ID_GOLD_COINS).count;
-                    LOG_EMPERY_CENTER_DEBUG("CS_LeagueCreateReqMessage: type unsupport  =================================================== ", it->first);
-                    return Response(Msg::ERR_LEAGUE_CREATE_NOTENOUGH_MONEY);
+                    transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, creatediamond / 100,
+                        ReasonIds::ID_CREATE_LEAGUE, 0, 0, creatediamond / 100 );
                 }
             }
+            else
+            {
+                LOG_EMPERY_CENTER_DEBUG("CS_LeagueCreateReqMessage: type unsupport  =================================================== ", it->first);
+                return Response(Msg::ERR_LEAGUE_CREATE_NOTENOUGH_MONEY);
+            }
+
         }
 
         // 先扣除资源
@@ -212,6 +214,7 @@ namespace EmperyCenter {
             Msg::SL_SearchLeague msg;
             msg.account_uuid = account_uuid.str();
             msg.league_name = req.league_name;
+            msg.legion_uuid = member->get_legion_uuid().str();
             if(!std::move(req.leader_name).empty())
             {
                 // 按照盟主昵称来查找
@@ -513,6 +516,44 @@ namespace EmperyCenter {
         return Response(Msg::ST_OK);
     }
 
+    PLAYER_SERVLET(Msg::CS_ExpandLeague, account, session, req)
+    {
+	    PROFILE_ME;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        // 判断玩家是否已经有军团
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        else
+        {
+            // 是否有权限
+			const auto titileid = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
+			if(titileid != 1)
+			{
+                // 不是军团长，没有联盟扩张权限
+				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
+			}
+
+            // 发消息去联盟服务器league
+            Msg::SL_ExpandLeagueReq msg;
+            msg.account_uuid = account_uuid.str();
+            msg.legion_uuid = member->get_legion_uuid().str();
+
+            const auto league = LeagueClient::require();
+
+            auto tresult = league->send_and_wait(msg);
+
+            LOG_EMPERY_CENTER_DEBUG("CS_ExpandLeague response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+            return Response(std::move(tresult.first));
+        }
+
+        return Response(Msg::ST_OK);
+    }
 
 
 }

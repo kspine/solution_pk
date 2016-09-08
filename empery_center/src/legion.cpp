@@ -69,7 +69,6 @@ void Legion::InitAttributes(AccountUuid accountid,std::string content, std::stri
 	modifiers.emplace(LegionAttributeIds::ID_LEADER, accountid.str());
 	modifiers.emplace(LegionAttributeIds::ID_LEVEL, "1");
 	modifiers.emplace(LegionAttributeIds::ID_CONTENT, std::move(content));
-//	modifiers.emplace(LegionAttributeIds::ID_NOTICE, "");
 	modifiers.emplace(LegionAttributeIds::ID_ICON, std::move(icon));
 	modifiers.emplace(LegionAttributeIds::ID_LANAGE, std::move(language));
 	if(bshenhe)

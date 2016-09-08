@@ -81,6 +81,16 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    LS_ExpandLeagueReq
+#define MESSAGE_ID      51006
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_ARRAY         (consumes,	\
+		FIELD_STRING        (consue_type)	\
+		FIELD_VUINT         (num)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

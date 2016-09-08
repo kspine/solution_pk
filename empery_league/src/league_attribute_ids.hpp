@@ -19,7 +19,7 @@ constexpr LeagueAttributeId
 	ID_MONEY                          ( 102 ),
 	ID_RANK                           ( 103 ),
 	ID_CONTENT                        ( 104 ),
-	ID_NOTICE                         ( 105 ),
+	ID_MEMBER_MAX                     ( 105 ),
 	ID_ICON                           ( 106 ),
 	ID_LANAGE                         ( 107 ),
 	ID_AUTOJOIN                       ( 108 ),

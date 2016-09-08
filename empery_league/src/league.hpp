@@ -22,6 +22,23 @@ namespace MySql {
 
 
 class League : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+public:
+	enum LEAGUE_POWER
+	{
+		LEAGUE_POWER_APPOINT 		= 1,	// 任命
+		LEAGUE_POWER_KICKMEMBER 	= 2,	// 移除军团
+		LEAGUE_POWER_INVITE 		= 3,	// 邀请加入
+		LEAGUE_POWER_APPROVE 		= 4,	// 审批加入
+		LEAGUE_POWER_CHAT 			= 5,	// 禁言
+		LEAGUE_POWER_QUIT 			= 6,	// 离开联盟
+		LEAGUE_POWER_SENDEMAIL 		= 7,	// 发送全联盟邮件
+		LEAGUE_POWER_ATTORN 		= 8,	// 转让盟主
+		LEAGUE_POWER_GRADEUP 		= 9,	// 可被升级
+		LEAGUE_POWER_GRADEDOWN 		= 10,	// 可被降级
+		LEAGUE_POWER_CHANGENOTICE 	= 11,	// 修改联盟公告
+		LEAGUE_POWER_DISBAND 		= 12,	// 解散联盟
+		LEAGUE_POWER_EXPAND 		= 13,	// 联盟扩张
+	};
 
 public:
 

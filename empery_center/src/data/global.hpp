@@ -103,6 +103,12 @@ namespace EmperyCenter {
 				SLOT_LEGION_WAREHOUSE_DEBUFF1 = 100129,
 				SLOT_LEGION_WAREHOUSE_DEBUFF2 = 100130,
 				SLOT_LEGION_WAREHOUSE_DEBUFF3 = 100131,
+				SLOT_LEGAUE_APPLYJOIN_MAX                              = 100132,
+				SLOT_LEGAUE_APPLYJOIN_EFFECT_MINUTE                    = 100133,
+				SLOT_LEGAUE_INVITEJOIN_EFFECT_MINUTE                   = 100134,
+				SLOT_LEGAUE_CREATE_NEED                                = 100135,
+				SLOT_LEGAUE_CREATE_DEFAULT_MEMBERCOUNT                 = 100136,
+				SLOT_LEGAUE_EXPAND_CONSUME                 			   = 100137,
 			};
 
 		public:

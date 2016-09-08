@@ -16,6 +16,10 @@ lib_LTLIBRARIES = \
 	lib/libposeidon-empery-league.la
 
 lib_libposeidon_empery_league_la_SOURCES = \
+	src/data/common.cpp	\
+	src/data/global.cpp	\
+	src/data/data_session.cpp	\
+	src/data/league_power.cpp	\
 	src/singletons/league_map.cpp	\
 	src/singletons/league_member_map.cpp	\
 	src/singletons/league_cbpp_server.cpp	\

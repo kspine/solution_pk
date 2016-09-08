@@ -13,6 +13,8 @@
 #include "../singletons/league_invitejoin_map.hpp"
 #include "../singletons/league_applyjoin_map.hpp"
 #include "../league_member_attribute_ids.hpp"
+#include "../data/league_power.hpp"
+#include "../data/global.hpp"
 #include <poseidon/async_job.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
@@ -135,12 +137,11 @@ LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_client, req){
 		elem.league_uuid = league->get_league_uuid().str();
 		elem.league_name = league->get_nick();
 		elem.league_icon = league->get_attribute(LeagueAttributeIds::ID_ICON);
-		elem.league_notice = league->get_attribute(LeagueAttributeIds::ID_NOTICE);
+		elem.league_notice = league->get_attribute(LeagueAttributeIds::ID_CONTENT);
 		elem.league_leader_uuid = league->get_create_uuid().str();
 		elem.autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
-		elem.isapplyjoin = "0";
 
 		// 根据account_uuid查找是否有军团
 		std::vector<boost::shared_ptr<LeagueMember>> members;
@@ -156,9 +157,8 @@ LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_client, req){
 
 		}
 
-		/*
 		// 是否请求加入过
-		const auto apply = LegionApplyJoinMap::find(account_uuid,legion->get_legion_uuid());
+		const auto apply = LeagueApplyJoinMap::find(LegionUuid(req.legion_uuid),league->get_league_uuid());
 		if(apply)
 		{
 			elem.isapplyjoin = "1";
@@ -167,7 +167,6 @@ LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_client, req){
 		{
 			elem.isapplyjoin = "0";
 		}
-		*/
 	}
 
 	league_client->send(msg);
@@ -284,12 +283,12 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_client, req){
 		elem.league_uuid = league->get_league_uuid().str();
 		elem.league_name = league->get_nick();
 		elem.league_icon = league->get_attribute(LeagueAttributeIds::ID_ICON);
-		elem.league_notice = league->get_attribute(LeagueAttributeIds::ID_NOTICE);
+		elem.league_notice = league->get_attribute(LeagueAttributeIds::ID_CONTENT);
 		elem.league_leader_uuid = league->get_create_uuid().str();
 		elem.autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
-		elem.isapplyjoin = "0";
+	//	elem.isapplyjoin = "0";
 
 		// 根据account_uuid查找是否有军团
 		std::vector<boost::shared_ptr<LeagueMember>> members;
@@ -305,9 +304,8 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_client, req){
 
 		}
 
-		/*
 		// 是否请求加入过
-		const auto apply = LegionApplyJoinMap::find(account_uuid,legion->get_legion_uuid());
+		const auto apply = LeagueApplyJoinMap::find(LegionUuid(req.legion_uuid),league->get_league_uuid());
 		if(apply)
 		{
 			elem.isapplyjoin = "1";
@@ -316,7 +314,6 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_client, req){
 		{
 			elem.isapplyjoin = "0";
 		}
-		*/
 	}
 
 	league_client->send(msg);
@@ -370,8 +367,7 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_client, req){
 				else
 				{
 					// 检查下最大允许申请的数量
-				//	if(LeagueApplyJoinMap::get_apply_count(legion_uuid) >= Data::Global::as_unsigned(Data::Global::SLOT_LEAGUE_ENABLE_APPLY_NUMBER))
-					if(LeagueApplyJoinMap::get_apply_count(legion_uuid) >= 2)
+					if(LeagueApplyJoinMap::get_apply_count(legion_uuid) >= Data::Global::as_unsigned(Data::Global::SLOT_LEGAUE_APPLYJOIN_MAX))
 					{
 						return Response(Msg::ERR_LEAGUE_APPLY_COUNT_LIMIT);
 					}
@@ -379,20 +375,8 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_client, req){
 			}
 
 			// 成员数
-		/*	const auto levelinfo = Data::LegionCorpsLevel::get(LegionCorpsLevelId(boost::lexical_cast<uint32_t>(legion->get_attribute(LegionAttributeIds::ID_LEVEL))));
-			std::uint64_t limit = 2;
-			if(levelinfo)
-			{
-				limit = levelinfo->legion_member_max;
-			}
-			else
-			{
-				return Response(Msg::ERR_LEAGUE_CONFIG_CANNOT_FIND);
-			}
-			*/
-			std::uint64_t limit = 2;
 			const auto count = LeagueMemberMap::get_league_member_count(league_uuid);
-			if(count < limit)
+			if(count < boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)))
 			{
 				const auto utc_now = Poseidon::get_utc_time();
 				const auto autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
@@ -463,8 +447,8 @@ LEAGUE_SERVLET(Msg::SL_GetApplyJoinLeague, league_client, req){
 		{
 			// 查看member是否有权限
 			const auto titileid = member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID);
-		//	if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_APPROVE))
-			if(titileid == "1")
+			if(Data::LeaguePower::is_have_power(boost::lexical_cast<uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_APPROVE))
+		//	if(titileid == "1")
 			{
 				LeagueApplyJoinMap::synchronize_with_player(league_client,LeagueUuid(member->get_league_uuid()),req.account_uuid);
 			}
@@ -516,29 +500,16 @@ LEAGUE_SERVLET(Msg::SL_LeagueAuditingRes, league_client, req){
 			{
 				// 查看member是否有权限
 				const auto titileid = member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID);
-			//	if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_APPROVE))
-				if(titileid != "1")
+				if(!Data::LeaguePower::is_have_power(boost::lexical_cast<uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_APPROVE))
+			//	if(titileid != "1")
 				{
 					return Response(Msg::ERR_LEAGUE_NO_POWER);
 				}
 				else
 				{
 					// 判断成员数
-					/*
-					const auto levelinfo = Data::LegionCorpsLevel::get(LegionCorpsLevelId(boost::lexical_cast<uint32_t>(legion->get_attribute(LegionAttributeIds::ID_LEVEL))));
-					std::uint64_t limit = 0;
-					if(levelinfo)
-					{
-						limit = levelinfo->legion_member_max;
-					}
-					else
-					{
-						return Response(Msg::ERR_LEGION_CONFIG_CANNOT_FIND);
-					}
-					*/
-					std::uint64_t limit = 2;
 					const auto count = LeagueMemberMap::get_league_member_count(league_uuid);
-					if(count >= limit)
+					if(count >= boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)))
 					{
 						return Response(Msg::ERR_LEAGUE_MEMBER_FULL);
 					}
@@ -616,8 +587,6 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoin, league_client, req){
 		return Response(Msg::ERR_ACCOUNT_HAVE_LEAGUE);
 	}
 
-
-
 	const auto member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
 
 	if(!member)
@@ -639,10 +608,15 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoin, league_client, req){
 			}
 			else
 			{
+				// 检查是否有邀请权限
+				const auto titileid = member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID);
+				if(!Data::LeaguePower::is_have_power(boost::lexical_cast<uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_INVITE))
+				{
+					return Response(Msg::ERR_LEAGUE_NO_POWER);
+				}
 				// 成员数
-				std::uint64_t limit = 2;
 				const auto count = LeagueMemberMap::get_league_member_count(league_uuid);
-				if(count < limit)
+				if(count < boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)))
 				{
 					const auto utc_now = Poseidon::get_utc_time();
 					// 添加到邀请列表中
@@ -728,9 +702,8 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_client, req){
 				else
 				{
 					// 检查是否已经达到数量上限
-					std::uint64_t limit = 2;
 					const auto count = LeagueMemberMap::get_league_member_count(league_uuid);
-					if(count >= limit)
+					if(count >= boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)))
 						return Response(Msg::ERR_LEAGUE_MEMBER_FULL);
 					else
 					{
@@ -774,6 +747,97 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_client, req){
 	}
 
 	return Response(Msg::ST_OK);
+}
+
+
+LEAGUE_SERVLET(Msg::SL_ExpandLeagueReq, league_client, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		// 没加入联盟
+		return Response(Msg::ERR_LEAGUE_NOT_JOIN);
+	}
+	else
+	{
+		// 查看联盟是否存在
+		const auto &league = LeagueMap::get(member->get_league_uuid());
+		if(league)
+		{
+			// 查看member是否有权限
+			const auto titileid = member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID);
+			if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_EXPAND))
+			{
+				return Response(Msg::ERR_LEAGUE_NO_POWER);
+			}
+			else
+			{
+				// 计算消耗
+				const auto & createinfo = Data::Global::as_object(Data::Global::SLOT_LEGAUE_CREATE_NEED);
+
+				const auto & expandinfo = Data::Global::as_object(Data::Global::SLOT_LEGAUE_EXPAND_CONSUME);
+
+				EmperyCenter::Msg::LS_ExpandLeagueReq msg;
+				msg.account_uuid = req.account_uuid;
+				unsigned size = 0;
+				for(auto it = createinfo.begin(); it != createinfo.end(); ++it)
+				{
+					auto &info = *msg.consumes.emplace(msg.consumes.end());
+					const auto str = std::string(it->first.get());
+
+					const auto creatediamond = boost::lexical_cast<std::uint64_t>(it->second.get<double>());
+
+					info.consue_type = str;
+					info.num = (creatediamond + (boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)) - Data::Global::as_unsigned(Data::Global::SLOT_LEGAUE_CREATE_DEFAULT_MEMBERCOUNT)) * boost::lexical_cast<std::uint64_t>(expandinfo.at(SharedNts::view(str.c_str())).get<double>()));
+
+					size += 1;
+				}
+
+				msg.consumes.reserve(size);
+
+				league_client->send(msg);
+			}
+		}
+		return Response(Msg::ST_OK);
+	}
+
+	return Response(Msg::ST_OK);
+}
+
+LEAGUE_SERVLET(Msg::SL_ExpandLeagueRes, league_client, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		// 没加入联盟
+		return Response(Msg::ERR_LEAGUE_NOT_JOIN);
+	}
+	else
+	{
+		// 查看联盟是否存在
+		const auto &league = LeagueMap::get(member->get_league_uuid());
+		if(league)
+		{
+
+			boost::container::flat_map<LeagueAttributeId, std::string> Attributes;
+
+			Attributes[LeagueAttributeIds::ID_MEMBER_MAX] = boost::lexical_cast<std::string>(boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)) + 1 );
+
+			league->set_attributes(std::move(Attributes));
+
+			return Response(Msg::ST_OK);
+		}
+	}
+
+	return Response();
 }
 
 
