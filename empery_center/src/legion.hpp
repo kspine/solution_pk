@@ -127,6 +127,11 @@ public:
 	}
 
 	void synchronize_with_player(AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const;
+	void broadcast_to_members(std::uint16_t message_id, const Poseidon::StreamBuffer &payload);
+	template<class MessageT>
+	void broadcast_to_members(const MessageT &msg){
+		broadcast_to_members(MessageT::ID, Poseidon::StreamBuffer(msg));
+	}
 };
 
 }

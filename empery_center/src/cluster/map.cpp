@@ -49,6 +49,10 @@
 #include "../map_cell.hpp"
 #include "../singletons/controller_client.hpp"
 #include "../warehouse_building.hpp"
+#include "../legion_task_box.hpp"
+#include "../singletons/legion_member_map.hpp"
+#include "../singletons/legion_task_box_map.hpp"
+#include "../legion_member.hpp"
 
 namespace EmperyCenter {
 
@@ -296,7 +300,25 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack);
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
-
+		//军团任务采集资源
+	try{
+		Poseidon::enqueue_async_job([=]{
+			{
+				PROFILE_ME;
+				const auto account_uuid = map_object->get_owner_uuid();
+				const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+				if (member){
+					const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+					const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+					const auto havest_weight = static_cast<std::uint64_t>(amount_harvested * unit_weight);
+					legion_task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionKeyIds::ID_HARVEST_STRATEGIC_RESOURCE, havest_weight,account_uuid, 0, 0);
+					legion_task_box->pump_status();
+				}
+			}
+		});
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
 	return Response();
 }
 
@@ -1061,6 +1083,56 @@ _wounded_done:
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		}
+	}
+		//军团任务杀兵
+	if(attacking_account_uuid && (soldiers_remaining == 0)){
+		try{
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+				const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+				if(!attacked_type_data || attacked_type_data->warfare == 0){
+						goto legion_destory_battalion_done;
+				}
+				{
+					const auto member = LegionMemberMap::get_by_account_uuid(attacking_account_uuid);
+					if (member){
+						const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+						const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+						legion_task_box->check(TaskTypeIds::ID_DESTROY_SOLDIERS, TaskLegionKeyIds::ID_WIPE_OUT_SOLIDERS, attacked_type_data->warfare*soldiers_damaged,attacking_account_uuid, 0, 0);
+						legion_task_box->pump_status();
+					}
+				}
+				legion_destory_battalion_done:
+				;
+			});
+		} catch (std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+	//军团任务杀怪
+	if(attacking_account_uuid && (soldiers_remaining == 0)){
+		try{
+			Poseidon::enqueue_async_job([=]{
+				PROFILE_ME;
+				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
+				if(!monster_type_data || monster_type_data->warfare == 0 ){
+					goto legion_destory_monster_done;
+				}
+				{
+					const auto member = LegionMemberMap::get_by_account_uuid(attacking_account_uuid);
+					if (member){
+						const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+						const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+						legion_task_box->check(TaskTypeIds::ID_DESTROY_MONSTERS, TaskLegionKeyIds::ID_WIPE_OUT_MONSTERS, monster_type_data->warfare*soldiers_damaged,attacking_account_uuid, 0, 0);
+						legion_task_box->pump_status();
+					}
+				}
+				legion_destory_monster_done:
+				;
+			});
+		} catch (std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
 

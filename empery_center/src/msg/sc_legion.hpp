@@ -135,6 +135,20 @@ namespace Msg {
 
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_LegionContributions
+#define MESSAGE_ID      1663
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_ARRAY         (contributions,	\
+		FIELD_STRING        (account_uuid)	\
+		FIELD_STRING        (account_nick)	\
+		FIELD_VUINT         (day_contribution)	\
+		FIELD_VUINT         (week_contribution)	\
+		FIELD_VUINT         (total_contribution) \
+	)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

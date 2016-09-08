@@ -233,6 +233,7 @@ namespace EmperyCenter {
 		using LegionStoreGoodsId = GenericId<std::uint32_t, 120034>;
 		using LegionBuildingAttributeId = GenericId<std::uint32_t, 120035>;
 		using LegionTaskContributionId = GenericId<std::uint32_t, 120036>;
+		using TaskLegionKeyId = GenericId<std::uint32_t, 120037>;
 		using TaskLegionPackageKeyId = GenericId<std::uint32_t, 120038>;
 
 		using AccountUuid = GenericUuid<210001>;

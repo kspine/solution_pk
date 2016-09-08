@@ -41,7 +41,10 @@
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
 #include "../singletons/task_box_map.hpp"
-
+#include "../legion_task_box.hpp"
+#include "../singletons/legion_task_box_map.hpp"
+#include "../legion_task_contribution_box.hpp"
+#include "../singletons/legion_task_contribution_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -2057,6 +2060,7 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 					//			LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  之前个人贡献 ===========",member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 
 								boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
+								
 								std::string strdotan = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num / dvalue * mvalue));
 								Attributes1[LegionMemberAttributeIds::ID_DONATE] = strdotan;
 
@@ -2075,14 +2079,20 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							msg.nick = account->get_nick();
 							msg.ext1 = boost::lexical_cast<std::string>(req.num);
 							legion->sendNoticeMsg(msg);
-
-							// 查看军团捐献任务
-							const auto task_box = TaskBoxMap::require(account->get_account_uuid());
-							try {
-								task_box->check(TaskTypeIds::ID_LEGION_DONATE, 5710006, boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)),
-									TaskBox::TCC_ALL, 0, 0);
-								}
-							catch(std::exception &e){
+							
+							//军团捐献任务
+							try{
+								Poseidon::enqueue_async_job([=]{
+									PROFILE_ME;
+									auto donate = req.num / dvalue * mvalue;
+									const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+									const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+									legion_task_box->check(TaskTypeIds::ID_LEGION_DONATE, TaskLegionKeyIds::ID_LEGION_DONATE,donate,account_uuid, 0, 0);
+									legion_task_box->pump_status();
+									
+								});
+								
+							} catch (std::exception &e){
 								LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 							}
 
@@ -2092,7 +2102,6 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							{
 								return Response(Msg::ERR_LEGION_CREATE_NOTENOUGH_MONEY);
 							}
-
 							return Response(Msg::ST_OK);
 						}
 				}
@@ -2309,6 +2318,51 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemRecordMessage, account, session, req)
 		return Response(Msg::ERR_LEGION_NOT_JOIN);
 	}
 
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_LegionContribution, account, session, req){
+	PROFILE_ME;
+	const auto account_uuid = account->get_account_uuid();
+
+	// 判断自己是否加入军团
+	const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+	if(member)
+	{
+		// 检查军团是否存在
+		const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+		const auto legion = LegionMap::get(legion_uuid);
+		if(legion)
+		{
+	        Msg::SC_LegionContributions msg;
+			msg.legion_uuid = legion_uuid.str();
+			auto legion_contribution_box = LegionTaskContributionBoxMap::get(legion_uuid);
+			if(legion_contribution_box){
+				std::vector<LegionTaskContributionBox::TaskContributionInfo> ret;
+				legion_contribution_box->get_all(ret);
+				msg.contributions.reserve(ret.size());
+				for(auto it = ret.begin(); it != ret.end(); ++it){
+					auto &elem = *msg.contributions.emplace(msg.contributions.end());
+					elem.account_uuid = it->account_uuid.str();
+					const auto temp_account = AccountMap::get(it->account_uuid);
+					elem.account_nick = temp_account->get_nick();
+					elem.day_contribution = it->day_contribution;
+					elem.week_contribution = it->week_contribution;
+					elem.total_contribution = it->day_contribution;
+				}
+			}
+			LOG_EMPERY_CENTER_DEBUG("SC_LegionContributions:",msg);
+			session->send(msg);
+
+			return Response(Msg::ST_OK);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEGION_CANNOT_FIND);
+		}
+	}else{
+		return Response(Msg::ERR_LEGION_NOT_JOIN);
+	}
 	return Response();
 }
 

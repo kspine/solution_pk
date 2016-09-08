@@ -65,25 +65,29 @@ namespace EmperyCenter
 			unsigned level_limit_min;
 			unsigned level_limit_max;
 		};
+		class TaskLegion : public TaskAbstract
+		{
+		public:
+			static boost::shared_ptr<const TaskLegion> get(TaskId task_id);
+			static boost::shared_ptr<const TaskLegion> require(TaskId task_id);
 
-		///***********************************************************************************************/
-		//class TaskLegionPackage :public TaskAbstract
-		//{
-		//public:
-		//	static boost::shared_ptr<const TaskLegionPackage> get(TaskId task_id);
-		//	static boost::shared_ptr<const TaskLegionPackage> require(TaskId task_id);
-
-		//	static void get_all(std::vector<boost::shared_ptr<const TaskLegionPackage>>& ret);
-		//	static std::uint64_t get_legion_package_task_num();
-
-		//public:
-		//	std::uint64_t task_class_1;
-		//	unsigned level_limit_min;
-		//	unsigned level_limit_max;
-
-		//public:
-		//};
-		///***********************************************************************************************/
+			static void get_all(std::vector<boost::shared_ptr<const TaskLegion>>& ret);
+		public:
+			unsigned level_limit_min;
+			unsigned level_limit_max;
+			boost::container::flat_map<std::uint64_t, std::vector<std::pair<ResourceId, std::uint64_t>>> stage_reward;
+		};
+		class TaskLegionContribution
+		{
+		public:
+			static boost::shared_ptr<const TaskLegionContribution> get(TaskLegionKeyId task_legion_key_id);
+			static boost::shared_ptr<const TaskLegionContribution> require(TaskLegionKeyId task_legion_key_id);
+		public:
+			TaskLegionKeyId  task_legion_key_id;
+			std::uint64_t    out_number;
+			std::uint64_t    legion_number;
+			std::uint64_t    personal_number;
+		};
 	}
 }
 
