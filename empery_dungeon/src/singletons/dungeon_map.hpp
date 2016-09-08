@@ -1,14 +1,13 @@
-#ifndef EMPERY_CENTER_SINGLETONS_DUNGEON_MAP_HPP_
-#define EMPERY_CENTER_SINGLETONS_DUNGEON_MAP_HPP_
+#ifndef EMPERY_DUNGEON_SINGLETONS_DUNGEON_MAP_HPP_
+#define EMPERY_DUNGEON_SINGLETONS_DUNGEON_MAP_HPP_
 
 #include <boost/shared_ptr.hpp>
 #include <vector>
 #include "../id_types.hpp"
 
-namespace EmperyCenter {
+namespace EmperyDungeon {
 
 class Dungeon;
-class DungeonSession;
 
 struct DungeonMap {
 	static boost::shared_ptr<Dungeon> get(DungeonUuid dungeon_uuid);
@@ -17,10 +16,9 @@ struct DungeonMap {
 
 	static void insert(const boost::shared_ptr<Dungeon> &dungeon);
 	static void update(const boost::shared_ptr<Dungeon> &dungeon, bool throws_if_not_exists = true);
-	static void remove(const boost::shared_ptr<Dungeon> &dungeon, bool throws_if_not_exists = true);
 
-	static boost::shared_ptr<DungeonSession> pick_server();
-	static void add_server(const boost::shared_ptr<DungeonSession> &server);
+	static void replace_dungeon_no_synchronize(const boost::shared_ptr<Dungeon> &dungeon);
+	static void remove_dungeon_no_synchronize(DungeonUuid dungeon_uuid) noexcept;
 
 private:
 	DungeonMap() = delete;

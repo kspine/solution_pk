@@ -4,7 +4,7 @@
 #include <poseidon/json.hpp>
 #include <boost/container/flat_map.hpp>
 
-namespace EmperyCluster {
+namespace EmperyDungeon {
 
 namespace {
 	struct DataStorage {
@@ -32,7 +32,7 @@ namespace {
 			csv.get(storage.str, "numerical");
 
 			if(!global_map->emplace((Data::Global::Slot)slot, std::move(storage)).second){
-				LOG_EMPERY_CLUSTER_ERROR("Duplicate global config: slot = ", slot);
+				LOG_EMPERY_DUNGEON_ERROR("Duplicate global config: slot = ", slot);
 				DEBUG_THROW(Exception, sslit("Duplicate global config"));
 			}
 		}
@@ -47,13 +47,13 @@ namespace Data {
 
 		const auto global_map = g_global_map.lock();
 		if(!global_map){
-			LOG_EMPERY_CLUSTER_WARNING("Global config map has not been loaded.");
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
 		const auto it = global_map->find(slot);
 		if(it == global_map->end()){
-			LOG_EMPERY_CLUSTER_WARNING("Global config not found: slot = ", slot);
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		return it->second.str;
@@ -63,13 +63,13 @@ namespace Data {
 
 		const auto global_map = g_global_map.lock();
 		if(!global_map){
-			LOG_EMPERY_CLUSTER_WARNING("Global config map has not been loaded.");
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
 		const auto it = global_map->find(slot);
 		if(it == global_map->end()){
-			LOG_EMPERY_CLUSTER_WARNING("Global config not found: slot = ", slot);
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.i64.first){
@@ -84,13 +84,13 @@ namespace Data {
 
 		const auto global_map = g_global_map.lock();
 		if(!global_map){
-			LOG_EMPERY_CLUSTER_WARNING("Global config map has not been loaded.");
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
 		const auto it = global_map->find(slot);
 		if(it == global_map->end()){
-			LOG_EMPERY_CLUSTER_WARNING("Global config not found: slot = ", slot);
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.u64.first){
@@ -105,13 +105,13 @@ namespace Data {
 
 		const auto global_map = g_global_map.lock();
 		if(!global_map){
-			LOG_EMPERY_CLUSTER_WARNING("Global config map has not been loaded.");
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
 		const auto it = global_map->find(slot);
 		if(it == global_map->end()){
-			LOG_EMPERY_CLUSTER_WARNING("Global config not found: slot = ", slot);
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.dbl.first){
@@ -126,13 +126,13 @@ namespace Data {
 
 		const auto global_map = g_global_map.lock();
 		if(!global_map){
-			LOG_EMPERY_CLUSTER_WARNING("Global config map has not been loaded.");
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
 		const auto it = global_map->find(slot);
 		if(it == global_map->end()){
-			LOG_EMPERY_CLUSTER_WARNING("Global config not found: slot = ", slot);
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.arr.first){
@@ -148,13 +148,13 @@ namespace Data {
 
 		const auto global_map = g_global_map.lock();
 		if(!global_map){
-			LOG_EMPERY_CLUSTER_WARNING("Global config map has not been loaded.");
+			LOG_EMPERY_DUNGEON_WARNING("Global config map has not been loaded.");
 			DEBUG_THROW(Exception, sslit("Global config map has not been loaded"));
 		}
 
 		const auto it = global_map->find(slot);
 		if(it == global_map->end()){
-			LOG_EMPERY_CLUSTER_WARNING("Global config not found: slot = ", slot);
+			LOG_EMPERY_DUNGEON_WARNING("Global config not found: slot = ", slot);
 			DEBUG_THROW(Exception, sslit("Global confignot found"));
 		}
 		if(!it->second.obj.first){

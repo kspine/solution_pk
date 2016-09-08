@@ -11,7 +11,8 @@ constexpr ChatChannelId
 	ID_ADJACENT             ( 1 ),
 	ID_SYSTEM               ( 2 ),
 	ID_TRADE                ( 3 ),
-	ID_ALLIANCE             ( 4 );
+	ID_ALLIANCE             ( 4 ),
+	ID_KING                 ( 7 );
 
 }
 

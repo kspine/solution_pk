@@ -35,11 +35,6 @@ void DungeonObject::recalculate_attributes(bool recursive){
 
 	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
 	modifiers.reserve(64);
-	for(auto it = MapObject::COMBAT_ATTRIBUTES.begin(); it != MapObject::COMBAT_ATTRIBUTES.end(); ++it){
-		const auto attribute_id = *it;
-		modifiers.emplace_hint(modifiers.end(), attribute_id, 0);
-	}
-
 	const auto shadow_object_uuid = MapObjectUuid(get_dungeon_object_uuid().get());
 	const auto shadow_object = WorldMap::get_map_object(shadow_object_uuid);
 	if(shadow_object){
@@ -350,6 +345,7 @@ void DungeonObject::synchronize_with_dungeon_server(const boost::shared_ptr<Dung
 		msg.owner_uuid          = get_owner_uuid().str();
 		msg.x                   = get_coord().x();
 		msg.y                   = get_coord().y();
+		msg.tag                 = get_tag();
 		msg.attributes.reserve(m_attributes.size());
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
