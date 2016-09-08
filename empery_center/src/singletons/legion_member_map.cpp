@@ -757,7 +757,8 @@ void LegionMemberMap::check_in_waittime()
 				{
 					// 被踢出等待中
 					quittime = member->get_attribute(LegionMemberAttributeIds::ID_KICKWAITTIME);
-					bkick = true;
+					if(quittime != Poseidon::EMPTY_STRING)
+						bkick = true;
 				}
 		//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 2222222=============================== ",quittime);
 				if(quittime != Poseidon::EMPTY_STRING)

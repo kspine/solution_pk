@@ -108,6 +108,31 @@ namespace Msg {
 	FIELD_STRING        (legion_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SL_QuitLeagueReq
+#define MESSAGE_ID      58813
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_VUINT         (bCancle)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SL_KickLeagueMemberReq
+#define MESSAGE_ID      58814
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_STRING        (target_legion_uuid)	\
+	FIELD_VUINT         (bCancle)
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    SL_disbandLeague
+#define MESSAGE_ID      58815
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

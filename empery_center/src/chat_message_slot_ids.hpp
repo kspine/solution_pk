@@ -30,8 +30,11 @@ constexpr ChatMessageSlotId
 	ID_HUP_DESTROYED_DEFENSE_LEVEL  ( 86414 ),
 	ID_HUP_LAST_COORD_X             ( 86415 ),
 	ID_HUP_LAST_COORD_Y             ( 86416 ),
-	ID_HUP_CASTLE_NAME              ( 86417 );
+	ID_HUP_CASTLE_NAME              ( 86417 ),
 
+	ID_LEGEION_NAME                 ( 86421 ),
+	ID_LEGEION_TASK_ID              ( 86422 ),
+	ID_LEGION_STAGE                 ( 86423 );
 }
 
 }

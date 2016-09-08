@@ -14,7 +14,9 @@ namespace EmperyLeague {
 			ID_END(500),
 
 			ID_TITLEID(101),
-			ID_SPEAKFLAG(102);
+			ID_SPEAKFLAG(102),
+			ID_QUITWAITTIME(103),
+			ID_KICKWAITTIME(104);
 	}
 }
 

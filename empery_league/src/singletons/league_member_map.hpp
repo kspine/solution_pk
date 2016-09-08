@@ -19,7 +19,6 @@ struct LeagueMemberMap {
 	static boost::shared_ptr<LeagueMember> require(LeagueUuid account_uuid);
 
 	static boost::shared_ptr<LeagueMember> get_by_legion_uuid(LegionUuid legion_uuid);
-	static void get_by_lea_uuid(std::vector<boost::shared_ptr<LeagueMember>> &ret, LeagueUuid legion_uuid);
 
 //	static boost::shared_ptr<LeagueMember> get_or_reload(LeagueUuid account_uuid);
 //	static boost::shared_ptr<LeagueMember> forced_reload(LeagueUuid account_uuid);
@@ -38,7 +37,7 @@ struct LeagueMemberMap {
 	// 联盟解散后的善后操作
 	static void disband_league(LeagueUuid legion_uuid);
 	// 检查是否处于同一个联盟
-	static bool is_in_same_league(AccountUuid account_uuid,AccountUuid other_uuid);
+	static bool is_in_same_league(LegionUuid account_uuid,LegionUuid other_uuid);
 	// 检查是否有退出、被踢出、转让联盟长的等待时间，如果有进行相应处理
 	static void check_in_waittime();
 	// 检查是否有需要重置的内容

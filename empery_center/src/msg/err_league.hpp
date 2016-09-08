@@ -25,7 +25,11 @@ namespace Msg {
 		ERR_LEGION_CANNOT_FIND             					= 74013,		// 没有找到军团
 		ERR_LEAGUE_APPLYJOIN_CANNOT_FIND_DATA				= 74014,		// 没有找到请求加入联盟的申请数据
 		ERR_LEAGUE_ALREADY_INVATE							= 74015,		// 已经邀请过
-		ERR_LEGION_NOTFIND_INVITE_INFO						= 74016,		// 没有找到邀请信息
+		ERR_LEAGUE_NOTFIND_INVITE_INFO						= 74016,		// 没有找到邀请信息
+		ERR_LEAGUE_QUIT_IN_WAITTIME						    = 74017,		// 已经在退出等待中了
+		ERR_LEAGUE_KICK_IN_WAITTIME							= 74018,		// 已经在被移除等待中了
+		ERR_LEAGUE_NOT_IN_SAME_LEAGUE						= 74019,		// 不属于同一联盟
+		ERR_LEAGUE_ERROR_LEAGUELEADER           			= 74020,		// 盟主需要先转让给别人
 		/*
 		ERR_LEGION_CREATE_NOTENOUGH_MONEY               	= 73001,		// 创建资源不足
 		ERR_LEGION_CREATE_HOMONYM              				= 73002,		// 军团名已存在

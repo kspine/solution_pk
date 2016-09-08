@@ -10,12 +10,14 @@ namespace Data {
 	class Global {
 	public:
 		enum Slot {
-			SLOT_LEGAUE_APPLYJOIN_MAX                              = 100132,
-			SLOT_LEGAUE_APPLYJOIN_EFFECT_MINUTE                    = 100133,
-			SLOT_LEGAUE_INVITEJOIN_EFFECT_MINUTE                   = 100134,
-			SLOT_LEGAUE_CREATE_NEED                                = 100135,
-			SLOT_LEGAUE_CREATE_DEFAULT_MEMBERCOUNT                 = 100136,
-			SLOT_LEGAUE_EXPAND_CONSUME                 			   = 100137,
+			SLOT_LEGAUE_APPLYJOIN_MAX                              	= 100132,
+			SLOT_LEGAUE_APPLYJOIN_EFFECT_MINUTE                    	= 100133,
+			SLOT_LEGAUE_INVITEJOIN_EFFECT_MINUTE                   	= 100134,
+			SLOT_LEGAUE_CREATE_NEED                                	= 100135,
+			SLOT_LEGAUE_CREATE_DEFAULT_MEMBERCOUNT                 	= 100136,
+			SLOT_LEGAUE_EXPAND_CONSUME                 			   	= 100137,
+			SLOT_LEAGUE_LEAVE_WAIT_MINUTE							= 100138,
+			SLOT_LEAGUE_ATTORN_WAIT_MINUTE						    = 100139,
 		};
 
 	public:

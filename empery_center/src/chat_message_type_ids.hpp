@@ -27,7 +27,8 @@ constexpr ChatMessageTypeId
 	ID_PAYMENT_GIFT_BOXES           ( 203 ),
 
 	ID_CASTLE_HUNG_UP               ( 300 ),
-	ID_NOVICIATE_PROTECTION_FINISH  ( 301 );
+	ID_NOVICIATE_PROTECTION_FINISH  ( 301 ),
+	ID_LEGION_TASK_REWARD           ( 302 );
 
 }
 

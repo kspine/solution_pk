@@ -255,7 +255,7 @@ void LeagueMap::update(const boost::shared_ptr<League> &league, bool throws_if_n
 }
 
 
-void LeagueMap::remove(LeagueUuid league_uuid) noexcept{
+void LeagueMap::remove(LeagueUuid league_uuid){
 	PROFILE_ME;
 
 	const auto league_map = g_league_map.lock();
@@ -265,12 +265,24 @@ void LeagueMap::remove(LeagueUuid league_uuid) noexcept{
 	}
 
 	const auto it = league_map->find<0>(league_uuid);
-	if(it == league_map->end<0>()){
-		LOG_EMPERY_LEAGUE_TRACE("League not found: league_uuid = ", league_uuid);
-		return;
+	if(it != league_map->end<0>()){
+
+		const auto& league = it->league;
+
+		// 联盟解散的善后操作
+		league->disband();
+
+		// 先从内存中删除
+		LOG_EMPERY_LEAGUE_TRACE("Removing League: league_uuid = ", league_uuid);
+		league_map->erase<0>(it);
+
+		// 从数据库中删掉
+		std::string strsql = "DELETE FROM League_Info WHERE league_uuid='";
+		strsql += league_uuid.str();
+		strsql += "';";
+
+		Poseidon::MySqlDaemon::enqueue_for_deleting("League_Info",strsql);
 	}
-	LOG_EMPERY_LEAGUE_TRACE("Removing League: league_uuid = ", league_uuid);
-	league_map->erase<0>(it);
 }
 
 void LeagueMap::get_all(std::vector<boost::shared_ptr<League>> &ret, std::uint64_t begin, std::uint64_t count)

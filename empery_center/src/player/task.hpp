@@ -45,7 +45,7 @@ namespace MySql {
 	FIELD_INTEGER_UNSIGNED  (day_contribution)	\
 	FIELD_INTEGER_UNSIGNED  (week_contribution)	\
 	FIELD_INTEGER_UNSIGNED  (total_contribution)	\
-	FIELD_DATETIME          (last_update_time)
+	FIELD_DATETIME          (created_time)
 #include <poseidon/mysql/object_generator.hpp>
 
 }

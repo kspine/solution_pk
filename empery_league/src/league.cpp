@@ -8,6 +8,8 @@
 #include "league_member_attribute_ids.hpp"
 #include "../../empery_center/src/msg/ls_league.hpp"
 #include "data/global.hpp"
+#include "singletons/league_invitejoin_map.hpp"
+#include "singletons/league_applyjoin_map.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 
@@ -186,6 +188,31 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 
 	league_client->send(msg);
 
+}
+
+void League::disband()
+{
+	// 清除联盟属性
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); )
+	{
+		it =  m_attributes.erase(it);
+	}
+
+	// 从数据库中删除联盟属性
+	std::string strsql = "DELETE FROM League_LeagueAttribute WHERE league_uuid='";
+	strsql += get_league_uuid().str();
+	strsql += "';";
+
+	Poseidon::MySqlDaemon::enqueue_for_deleting("League_LeagueAttribute",strsql);
+
+	// 联盟解散的成员的善后操作
+	LeagueMemberMap::disband_league(get_league_uuid());
+
+	// 清空请求加入的数据
+	LeagueApplyJoinMap::deleteInfo_by_league_uuid(get_league_uuid());
+
+	// 清空邀请加入的数据
+	LeagueInviteJoinMap::deleteInfo_by_invited_uuid(get_league_uuid());
 }
 
 }

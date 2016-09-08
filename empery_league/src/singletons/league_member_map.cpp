@@ -1,12 +1,6 @@
 #include "../precompiled.hpp"
 #include "league_map.hpp"
 #include "../mmain.hpp"
-#include <poseidon/multi_index_map.hpp>
-#include <poseidon/singletons/mysql_daemon.hpp>
-#include <poseidon/singletons/timer_daemon.hpp>
-#include <poseidon/singletons/job_dispatcher.hpp>
-#include <poseidon/job_promise.hpp>
-#include <tuple>
 #include "../mysql/league.hpp"
 #include "../league.hpp"
 #include "../league_attribute_ids.hpp"
@@ -14,9 +8,16 @@
 #include "league_member_map.hpp"
 #include "league_map.hpp"
 #include "../league_member.hpp"
+#include "league_map.hpp"
 #include "../league_member_attribute_ids.hpp"
-
+#include "../data/league_power.hpp"
 #include <poseidon/async_job.hpp>
+#include <poseidon/multi_index_map.hpp>
+#include <poseidon/singletons/mysql_daemon.hpp>
+#include <poseidon/singletons/timer_daemon.hpp>
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include <poseidon/job_promise.hpp>
+#include <tuple>
 
 namespace EmperyLeague {
 
@@ -147,11 +148,11 @@ namespace {
 
 	//	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 10*1000);
 		// 1秒检测
-		/*
 		auto timer = Poseidon::TimerDaemon::register_timer(0, 1*1000,
 			std::bind(&gc_member_proc, std::placeholders::_2));
 		handles.push(timer);
 
+		/*
 		// 30秒检测
 		auto timer2 = Poseidon::TimerDaemon::register_timer(0, 30*1000,
 			std::bind(&gc_member_reset_proc, std::placeholders::_2));
@@ -391,51 +392,27 @@ void LeagueMemberMap::deletemember(LegionUuid legion_uuid,bool bdeletemap)
 	// 先从内存中删，然后删数据库的
 	PROFILE_ME;
 
-	/*
 	const auto &league_map = g_LeagueMember_map;
 	if(!league_map){
 		LOG_EMPERY_LEAGUE_WARNING("LeagueMember map not loaded.");
 		DEBUG_THROW(Exception, sslit("LeagueMember map not loaded"));
 	}
 
-	const auto it = league_map->find<1>(account_uuid);
+	const auto it = league_map->find<1>(legion_uuid);
 	if(it != league_map->end<1>()){
-
-		const auto league_uuid = it->member->get_league_uuid();
-
-		const auto donate = it->member->get_attribute(LeagueMemberAttributeIds::ID_DONATE);
-
-		const auto weekdonate = it->member->get_attribute(LeagueMemberAttributeIds::ID_WEEKDONATE);
-
-		const auto exchange_record = it->member->get_attribute(LeagueMemberAttributeIds::ID_league_STORE_EXCHANGE_RECORD);
 
 		it->member->leave();
 
 		if(bdeletemap)
 			league_map->erase<1>(it);
 
-		LOG_EMPERY_LEAGUE_INFO("deletemember members size==============================================",get_league_member_count(league_uuid));
-
 		// 从数据库中删除该成员
-		std::string strsql = "DELETE FROM League_Member WHERE account_uuid='";
-		strsql += account_uuid.str();
+		std::string strsql = "DELETE FROM League_Member WHERE legion_uuid='";
+		strsql += legion_uuid.str();
 		strsql += "';";
 
 		Poseidon::MySqlDaemon::enqueue_for_deleting("League_Member",strsql);
-
-
-		// 个人贡献移动到账号身上
-		const auto account = AccountMap::require(account_uuid);
-
-		boost::container::flat_map<AccountAttributeId, std::string> Attributes;
-
-		Attributes[AccountAttributeIds::ID_DONATE] = donate;
-		Attributes[AccountAttributeIds::ID_WEEKDONATE] = weekdonate;
-		Attributes[AccountAttributeIds::ID_league_STORE_EXCHANGE_RECORD] = exchange_record;
-
-		account->set_attributes(std::move(Attributes));
 	}
-   */
 
 }
 
@@ -499,24 +476,24 @@ void LeagueMemberMap::update(const boost::shared_ptr<LeagueMember> &account, boo
 }
 
 
-bool LeagueMemberMap::is_in_same_league(AccountUuid account_uuid,AccountUuid other_uuid)
+bool LeagueMemberMap::is_in_same_league(LegionUuid legion_uuid,LegionUuid other_uuid)
 {
 	PROFILE_ME;
-	/*
-	const auto member = get_by_legaue_uuid(account_uuid);
-	const auto member2 = get_by_legaue_uuid(other_uuid);
+
+	const auto member = get_by_legion_uuid(legion_uuid);
+	const auto member2 = get_by_legion_uuid(other_uuid);
 	if(member && member2 && member->get_league_uuid() == member2->get_league_uuid())
 	{
 		return true;
 	}
-	*/
+
 	return false;
 }
 
 void LeagueMemberMap::check_in_waittime()
 {
 	PROFILE_ME;
-	/*
+
 	const auto &account_map = g_LeagueMember_map;
 	if(!account_map){
 		return;
@@ -526,16 +503,16 @@ void LeagueMemberMap::check_in_waittime()
 	{
 		const auto &member = it->member;
 
-		// 查看member权限
 		bool bdelete = false;
-		// 根据account_uuid查找是否有军团
-		const auto league = leagueMap::get(LeagueUuid(member->get_league_uuid()));
+		// 是否有联盟
+		const auto league = LeagueMap::get(LeagueUuid(member->get_league_uuid()));
 		if(league)
 		{
-			const auto account = AccountMap::get(member->get_account_uuid());
+		//	const auto account = AccountMap::get(member->get_account_uuid());
 			const auto titileid = member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID);
 		//	LOG_EMPERY_LEAGUE_DEBUG("CS_GetleagueBaseInfoMessage titileid ================================ ",titileid,"  成员uuid：",member->get_account_uuid());
-			if(Data::leagueCorpsPower::is_have_power(leagueCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),league::league_POWER::league_POWER_QUIT))
+			// 查看member权限
+			if(Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_QUIT))
 			{
 		//		LOG_EMPERY_LEAGUE_DEBUG("CS_GetleagueBaseInfoMessage 可以退出================================ ");
 				// 是否已经在退会等待中、被踢出等待中
@@ -546,9 +523,11 @@ void LeagueMemberMap::check_in_waittime()
 				{
 					// 被踢出等待中
 					quittime = member->get_attribute(LeagueMemberAttributeIds::ID_KICKWAITTIME);
-					bkick = true;
+					if(quittime != Poseidon::EMPTY_STRING)
+						bkick = true;
 				}
 		//		LOG_EMPERY_LEAGUE_DEBUG("CS_GetleagueBaseInfoMessage quittime= 2222222=============================== ",quittime);
+				LOG_EMPERY_LEAGUE_DEBUG("CS_GetleagueBaseInfoMessage quittime= 2222222=============================== ",quittime," bkick:",bkick);
 				if(quittime != Poseidon::EMPTY_STRING)
 				{
 					const auto utc_now = Poseidon::get_utc_time();
@@ -559,13 +538,14 @@ void LeagueMemberMap::check_in_waittime()
 
 					if(utc_now > leavetime )
 					{
-						// 已经过了完全离开的时间，让玩家离开军团
+						// 已经过了完全离开的时间，让玩家离开联盟
+						/*
 						const auto account_uuid = member->get_account_uuid();
 
 						const auto target_account = AccountMap::get(account_uuid);
 						if(target_account)
 						{
-							// 广播给军团其他成员
+							// 广播给联盟其他成员
 							Msg::SC_leagueNoticeMsg msg;
 							if(bkick)
 							{
@@ -579,14 +559,16 @@ void LeagueMemberMap::check_in_waittime()
 							msg.ext1 = "";
 							league->sendNoticeMsg(msg);
 						}
+						*/
 
-						LeagueMemberMap::deletemember(member->get_account_uuid(),false);
+						LeagueMemberMap::deletemember(member->get_legion_uuid(),false);
 
 						bdelete = true;
 					}
 				}
 			}
 
+			/*
 			// 看下是否转让军团长等待时间已过的逻辑
 			bool bAttorn = false;
 			std::string strlead="";
@@ -691,6 +673,8 @@ void LeagueMemberMap::check_in_waittime()
 
 		//		break;
 			}
+
+			*/
 		}
 
 		if(bdelete)
@@ -703,8 +687,6 @@ void LeagueMemberMap::check_in_waittime()
 			++it;
 		}
 	}
-
-	*/
 }
 
 uint64_t CaculateWeekDay(unsigned y, unsigned m, unsigned d)

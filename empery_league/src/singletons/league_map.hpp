@@ -19,7 +19,7 @@ struct LeagueMap {
 
 	static void insert(const boost::shared_ptr<League> &league);
 	static void update(const boost::shared_ptr<League> &league, bool throws_if_not_exists = true);
-	static void remove(LeagueUuid league_uuid) noexcept;
+	static void remove(LeagueUuid league_uuid);
 
 	static void get_all(std::vector<boost::shared_ptr<League>> &ret, std::uint64_t begin, std::uint64_t count);
 

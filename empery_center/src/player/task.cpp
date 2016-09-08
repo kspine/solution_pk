@@ -10,6 +10,10 @@
 #include "../castle.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
+#include "../legion_member.hpp"
+#include "../legion_task_box.hpp"
+#include "../singletons/legion_task_box_map.hpp"
+#include "../singletons/legion_member_map.hpp"
 
 namespace EmperyCenter {
 
@@ -18,7 +22,13 @@ PLAYER_SERVLET(Msg::CS_ItemGetAllTasks, account, session, /* req */){
 	task_box->pump_status();
 
 	task_box->synchronize_with_player(session);
-
+	auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
+	if (member){
+		const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+		const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+		legion_task_box->pump_status();
+		legion_task_box->synchronize_with_player(session);
+	}
 	return Response();
 }
 

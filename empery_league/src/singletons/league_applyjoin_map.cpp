@@ -232,5 +232,31 @@ void LeagueApplyJoinMap::deleteInfo_by_legion_uuid(LegionUuid legion_uuid)
 
 }
 
+void LeagueApplyJoinMap::deleteInfo_by_league_uuid(LeagueUuid league_uuid)
+{
+	PROFILE_ME;
+
+	const auto &account_map = g_applyjoin_map;
+	if(!account_map){
+		LOG_EMPERY_LEAGUE_WARNING("legion apply join map not loaded.");
+		return;
+	}
+
+	// 全部删除该军团的数据,先删除内存中的,因为访问的是内存中的数据
+	const auto range = account_map->equal_range<1>(league_uuid);
+	for(auto it = range.first; it != range.second;){
+		it = account_map->erase<1>(it);
+	}
+
+
+	// 再删除数据库中的
+	std::string strsql = "DELETE FROM League_LeagueApplyJoin WHERE league_uuid='";
+	strsql += league_uuid.str();
+	strsql += "';";
+
+
+	Poseidon::MySqlDaemon::enqueue_for_deleting("League_LeagueApplyJoin",strsql);
+}
+
 
 }

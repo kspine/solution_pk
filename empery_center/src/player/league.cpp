@@ -10,7 +10,6 @@
 #include "../singletons/legion_map.hpp"
 #include "../legion_member.hpp"
 #include "../legion_member_attribute_ids.hpp"
-#include "../league_session.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 #include "../singletons/item_box_map.hpp"
@@ -553,6 +552,126 @@ namespace EmperyCenter {
         }
 
         return Response(Msg::ST_OK);
+    }
+
+    PLAYER_SERVLET(Msg::CS_QuitLeagueReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        // 判断玩家是否已经有军团
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        else
+        {
+            // 是否有权限
+			const auto titileid = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
+			if(titileid != 1)
+			{
+                // 不是军团长，没有权限
+				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
+			}
+
+            // 发消息去联盟服务器league
+            Msg::SL_QuitLeagueReq msg;
+            msg.account_uuid = account_uuid.str();
+            msg.legion_uuid = member->get_legion_uuid().str();
+            msg.bCancle = req.bCancle;
+
+            const auto league = LeagueClient::require();
+
+            auto tresult = league->send_and_wait(msg);
+
+            LOG_EMPERY_CENTER_DEBUG("CS_QuitLeagueReqMessage response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+            return Response(std::move(tresult.first));
+        }
+
+        return Response();
+    }
+
+    PLAYER_SERVLET(Msg::CS_KickLeagueMemberReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        // 判断玩家是否已经有军团
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        else
+        {
+            // 是否有权限
+			const auto titileid = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
+			if(titileid != 1)
+			{
+                // 不是军团长，没有权限
+				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
+			}
+
+            // 发消息去联盟服务器league
+            Msg::SL_KickLeagueMemberReq msg;
+            msg.account_uuid = account_uuid.str();
+            msg.legion_uuid = member->get_legion_uuid().str();
+            msg.target_legion_uuid = req.legion_uuid;
+            msg.bCancle = req.bCancle;
+
+            const auto league = LeagueClient::require();
+
+            auto tresult = league->send_and_wait(msg);
+
+            LOG_EMPERY_CENTER_DEBUG("CS_KickLeagueMemberReqMessage response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+            return Response(std::move(tresult.first));
+        }
+
+        return Response();
+    }
+
+    PLAYER_SERVLET(Msg::CS_disbandLeagueMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        // 判断玩家是否已经有军团
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        else
+        {
+            // 是否有权限
+			const auto titileid = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
+			if(titileid != 1)
+			{
+                // 不是军团长，没有权限
+				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
+			}
+
+            // 发消息去联盟服务器league
+            Msg::SL_disbandLeague msg;
+            msg.account_uuid = account_uuid.str();
+            msg.legion_uuid = member->get_legion_uuid().str();
+
+            const auto league = LeagueClient::require();
+
+            auto tresult = league->send_and_wait(msg);
+
+            LOG_EMPERY_CENTER_DEBUG("CS_disbandLeagueMessage response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+            return Response(std::move(tresult.first));
+        }
+
+        return Response();
     }
 
 

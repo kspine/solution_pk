@@ -55,13 +55,13 @@ void LeagueMember::InitAttributes(LegionUuid legion_uuid,unsigned nTitleid)
 void LeagueMember::leave()
 {
 	// 删除属性表
-	/*
-	std::string strsql = "DELETE FROM League_MemberAttribute WHERE account_uuid='";
-	strsql += get_account_uuid().str();
+
+	std::string strsql = "DELETE FROM League_MemberAttribute WHERE legion_uuid='";
+	strsql += get_legion_uuid().str();
 	strsql += "';";
 
 	Poseidon::MySqlDaemon::enqueue_for_deleting("League_MemberAttribute",strsql);
-	*/
+
 }
 
 std::uint64_t LeagueMember::get_created_time() const {

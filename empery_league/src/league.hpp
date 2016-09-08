@@ -83,6 +83,9 @@ public:
 	// 增加成员
 	void AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned level,std::uint64_t join_time);
 
+	// 联盟解散的善后操作
+	void disband();
+
 	const std::string &get_attribute(LeagueAttributeId account_attribute_id) const;
 	void get_attributes(boost::container::flat_map<LeagueAttributeId, std::string> &ret) const;
 	void set_attributes(boost::container::flat_map<LeagueAttributeId, std::string> modifiers);

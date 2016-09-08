@@ -20,7 +20,6 @@
 #include "singletons/mail_box_map.hpp"
 #include "mail_box.hpp"
 #include "mail_data.hpp"
-#include "string_utilities.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 
@@ -348,6 +347,28 @@ void Legion::sendmail(boost::shared_ptr<Account> account, ChatMessageTypeId ntyp
 	mail_info.mail_uuid   = mail_uuid;
 	mail_info.expiry_time = saturated_add(utc_now, expiry_duration);
 	to_mail_box->insert(std::move(mail_info));
+}
+
+void Legion::broadcast_to_members(std::uint16_t message_id, const Poseidon::StreamBuffer &payload){
+	PROFILE_ME;
+	std::vector<boost::shared_ptr<LegionMember>> members;
+	LegionMemberMap::get_by_legion_uuid(members, get_legion_uuid());
+
+	for(auto it = members.begin(); it != members.end(); ++it)
+	{
+		// 判断玩家是否在线
+		const auto session = PlayerSessionMap::get((*it)->get_account_uuid());
+		if(session)
+		{
+			try {
+				session->send(message_id, payload);
+				LOG_EMPERY_CENTER_DEBUG("broadcast_to_legion members message_id:",message_id," msg_data = ", payload.dump());
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				session->shutdown(e.what());
+			}
+		}
+	}
 }
 
 }
