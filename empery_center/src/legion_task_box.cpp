@@ -346,6 +346,7 @@ namespace EmperyCenter {
 		obj->set_rewarded(info.rewarded);
 		if (reset_progress) {
 			obj->set_progress(std::move(progress_str));
+			*(pair.second) = *(info.progress);
 		}
 
 		const auto legion = LegionMap::get(get_legion_uuid());
