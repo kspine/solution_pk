@@ -13,6 +13,8 @@
 #include "singletons/legion_member_map.hpp"
 #include "account_attribute_ids.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include "legion_task_contribution_box.hpp"
+#include "singletons/legion_task_contribution_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -86,6 +88,12 @@ void LegionMember::InitAttributes(boost::shared_ptr<Account> account,unsigned nT
 
 void LegionMember::leave()
 {
+	//重置下军团个人贡献排行榜值
+	auto legion_task_contribution_box = LegionTaskContributionBoxMap::get(get_legion_uuid());
+	if(legion_task_contribution_box){
+		legion_task_contribution_box->reset_account_contribution(get_account_uuid());
+	}
+
 	// 删除属性表
 	std::string strsql = "DELETE FROM Center_LegionMemberAttribute WHERE account_uuid='";
 	strsql += get_account_uuid().str();

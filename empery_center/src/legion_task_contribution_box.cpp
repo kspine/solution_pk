@@ -105,4 +105,18 @@ namespace EmperyCenter {
 			obj->set_last_update_time(now);
 		}
 	}
+	void LegionTaskContributionBox::reset_account_contribution(AccountUuid account_uuid) noexcept{
+		PROFILE_ME;
+
+		const auto it = m_contributions.find(account_uuid);
+		if (it == m_contributions.end()) {
+			LOG_EMPERY_CENTER_WARNING("reset account contribute LegionUuid = ",get_legion_uuid(), " can not find account_uuid = ",account_uuid);
+			return;
+		}
+		auto &obj = it->second;
+		obj->set_day_contribution(0);
+		obj->set_week_contribution(0);
+		obj->set_total_contribution(0);
+		obj->set_last_update_time(0);
+	}
 }
