@@ -29,6 +29,10 @@
 #include "chat_message_slot_ids.hpp"
 #include "legion_task_contribution_box.hpp"
 #include "singletons/legion_task_contribution_box_map.hpp"
+#include "singletons/account_map.hpp"
+#include "account_attribute_ids.hpp"
+#include "account.hpp"
+#include <poseidon/string.hpp>
 
 namespace EmperyCenter {
 	namespace {
@@ -153,7 +157,6 @@ namespace EmperyCenter {
 				++it;
 				continue;
 			}
-			LOG_EMPERY_CENTER_FATAL("before check stage accomplished task_id = ",task_id);
 			check_stage_accomplished(task_id);
 			++it;
 			LOG_EMPERY_CENTER_DEBUG("> Removing expired task: legion_uuid = ", get_legion_uuid(), ", task_id = ", task_id);
@@ -200,7 +203,6 @@ namespace EmperyCenter {
 					m_tasks.erase(task_id);
 				}
 			}
-			LOG_EMPERY_CENTER_FATAL("task_candidates size:",task_candidates.size());
 			for (auto it = task_candidates.begin(); it != task_candidates.end(); ++it) {
 				const auto task_id = *it;
 				auto info = get(task_id);
@@ -211,8 +213,7 @@ namespace EmperyCenter {
 				info.expiry_time = legion_task_refresh_time;
 				const auto progress = boost::make_shared<Progress>();
 				info.progress = progress;
-				info.rewarded = false;
-				LOG_EMPERY_CENTER_FATAL("task_id:",task_id," nonexistent:",nonexistent);
+				info.rewarded = 0;
 				if (nonexistent) {
 					LOG_EMPERY_CENTER_DEBUG("New legion task: legion_uuid = ", legion_uuid, ", task_id = ", task_id);
 					insert(std::move(info));
@@ -232,6 +233,7 @@ namespace EmperyCenter {
 					{
 						auto account_uuid = (*it)->get_account_uuid();
 						auto legion_task_reward_box = LegionTaskRewardBoxMap::require(account_uuid);
+						LOG_EMPERY_CENTER_FATAL("reset task reward account_uuid = ",account_uuid, " members size:",members.size());
 						legion_task_reward_box->reset();
 					}
 				});
@@ -341,10 +343,10 @@ namespace EmperyCenter {
 		obj->set_category(info.category);
 		obj->set_created_time(info.created_time);
 		obj->set_expiry_time(info.expiry_time);
+		obj->set_rewarded(info.rewarded);
 		if (reset_progress) {
 			obj->set_progress(std::move(progress_str));
 		}
-		obj->set_rewarded(info.rewarded);
 
 		const auto legion = LegionMap::get(get_legion_uuid());
 		if (legion) {
@@ -431,6 +433,7 @@ namespace EmperyCenter {
 					for(auto it = members.begin(); it != members.end(); ++it)
 					{
 						auto account_uuid = (*it)->get_account_uuid();
+						LOG_EMPERY_CENTER_FATAL("send jiang li account_uuid = ",account_uuid," stage = ",its->first, " members size:",members.size());
 						auto legion_task_reward_box = LegionTaskRewardBoxMap::get(account_uuid);
 						LegionTaskRewardBox::TaskRewardInfo task_reward_info = legion_task_reward_box->get(task_id);
 						if(task_reward_info.created_time == 0){
@@ -560,10 +563,21 @@ namespace EmperyCenter {
 					(void)delta;
 					std::uint64_t person_contribution = delta * task_contribution_data->personal_number / task_contribution_data->out_number;
 					std::uint64_t legion_contribution = delta * task_contribution_data->legion_number / task_contribution_data->out_number;
+					legion_task_contribution_box->update(account_uuid,person_contribution);
+					const auto account = AccountMap::get(account_uuid);
+					if(account){
+						boost::container::flat_map<AccountAttributeId, std::string> account_attributes_modifer;
+						std::string donate = account->get_attribute(AccountAttributeIds::ID_DONATE);
+						if(donate == Poseidon::EMPTY_STRING){
+							account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(person_contribution);
+						}else{
+							account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + person_contribution);
+						}
+						account->set_attributes(std::move(account_attributes_modifer));
+					}
 					boost::container::flat_map<LegionAttributeId, std::string> Attributes;
 					Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + legion_contribution));
 					legion->set_attributes(Attributes);
-					legion_task_contribution_box->update(account_uuid,person_contribution);
 				}
 			});
 		} catch(std::exception &e){
@@ -574,12 +588,9 @@ namespace EmperyCenter {
 	void LegionTaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const{
 		const auto utc_now = Poseidon::get_utc_time();
 		for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
-			const auto &obj = it->second.first;
-			if (obj->get_rewarded()) {
-				continue;
-			}
 			Msg::SC_TaskChanged msg;
 			fill_task_message(msg, it->second, utc_now);
+			LOG_EMPERY_CENTER_DEBUG("LegionTaskBox task synchronize :",msg);
 			session->send(msg);
 		}
 	}
@@ -592,10 +603,6 @@ namespace EmperyCenter {
 			return;
 		}
 		for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
-			const auto &obj = it->second.first;
-			if (obj->get_rewarded()){
-				continue;
-			}
 			Msg::SC_TaskChanged msg;
 			fill_task_message(msg, it->second, utc_now);
 			legion->broadcast_to_members(msg);

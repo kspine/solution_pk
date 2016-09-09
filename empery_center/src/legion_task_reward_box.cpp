@@ -147,13 +147,14 @@ namespace EmperyCenter {
 		PROFILE_ME;
 
 		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
-			const auto pair = std::move(it->second);
-			const auto &obj = pair.first;
+			auto pair = it->second;
+			auto &obj = pair.first;
 			std::string progress_str;
-			const auto progress = boost::make_shared<Progress>();
+			auto progress = boost::make_shared<Progress>();
 			progress_str = encode_progress(*progress);
 			obj->set_last_reward_time(0);
 			obj->set_progress(progress_str);
+			pair.second = progress;
 		}
 	}
 }

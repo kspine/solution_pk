@@ -52,6 +52,7 @@ namespace EmperyCenter {
 		void reset(std::uint64_t now) noexcept;
 		void reset_day_contribution(std::uint64_t now) noexcept;
 		void reset_week_contribution(std::uint64_t now) noexcept;
+		void reset_account_contribution(AccountUuid account_uuid) noexcept;
 	};
 }
 

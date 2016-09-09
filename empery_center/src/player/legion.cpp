@@ -2332,23 +2332,25 @@ PLAYER_SERVLET(Msg::CS_LegionContribution, account, session, req){
 		// 检查军团是否存在
 		const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 		const auto legion = LegionMap::get(legion_uuid);
+		std::vector<boost::shared_ptr<LegionMember>> members;
+		LegionMemberMap::get_by_legion_uuid(members,legion_uuid);
 		if(legion)
 		{
 	        Msg::SC_LegionContributions msg;
 			msg.legion_uuid = legion_uuid.str();
 			auto legion_contribution_box = LegionTaskContributionBoxMap::get(legion_uuid);
 			if(legion_contribution_box){
-				std::vector<LegionTaskContributionBox::TaskContributionInfo> ret;
-				legion_contribution_box->get_all(ret);
-				msg.contributions.reserve(ret.size());
-				for(auto it = ret.begin(); it != ret.end(); ++it){
+				msg.contributions.reserve(members.size());
+				for(auto it = members.begin(); it != members.end(); ++it){
 					auto &elem = *msg.contributions.emplace(msg.contributions.end());
-					elem.account_uuid = it->account_uuid.str();
-					const auto temp_account = AccountMap::get(it->account_uuid);
+					auto account_uuid = (*it)->get_account_uuid();
+					LegionTaskContributionBox::TaskContributionInfo info = legion_contribution_box->get(account_uuid);
+					elem.account_uuid = account_uuid.str();
+					const auto temp_account = AccountMap::get(account_uuid);
 					elem.account_nick = temp_account->get_nick();
-					elem.day_contribution = it->day_contribution;
-					elem.week_contribution = it->week_contribution;
-					elem.total_contribution = it->day_contribution;
+					elem.day_contribution = info.day_contribution;
+					elem.week_contribution = info.week_contribution;
+					elem.total_contribution = info.total_contribution;
 				}
 			}
 			LOG_EMPERY_CENTER_DEBUG("SC_LegionContributions:",msg);
