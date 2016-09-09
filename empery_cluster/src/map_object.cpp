@@ -918,8 +918,11 @@ bool MapObject::is_in_group_view_scope(boost::shared_ptr<MapObject>& target_obje
 
 std::uint64_t MapObject::get_view_range(){
 	PROFILE_ME;
-
-	return get_shoot_range() + 1 + get_attribute(EmperyCenter::AttributeIds::ID_SIGHT_RANGE_ADD) / 1000.0;
+	const auto map_object_type_data = get_map_object_type_data();
+	if(!map_object_type_data){
+		return 0;
+	}
+	return map_object_type_data->view + get_attribute(EmperyCenter::AttributeIds::ID_SIGHT_RANGE_ADD) / 1000.0;
 }
 
 void MapObject::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
