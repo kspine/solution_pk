@@ -144,7 +144,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Checking tasks: legion_uuid = ", get_legion_uuid());
 
-		const auto utc_now = Poseidon::get_utc_time();
+		const auto utc_now = Poseidon::get_utc_time();	
 		LOG_EMPERY_CENTER_FATAL("LegionTaskBox::pump_status,tasks.size() = ",m_tasks.size());
 		auto it = m_tasks.begin();
 		while (it != m_tasks.end()) {
@@ -450,6 +450,7 @@ namespace EmperyCenter {
 						}
 						legion->set_attributes(Attributes);
 					}
+					
 
 					//TODO 发送军团成员阶段奖励
 					for(auto it = members.begin(); it != members.end(); ++it)
@@ -584,7 +585,7 @@ namespace EmperyCenter {
 					(void)delta;
 					std::uint64_t person_contribution = delta * task_contribution_data->personal_number / task_contribution_data->out_number;
 					std::uint64_t legion_contribution = delta * task_contribution_data->legion_number / task_contribution_data->out_number;
-					legion_task_contribution_box->update(account_uuid,person_contribution);
+					legion_task_contribution_box->update(account_uuid,delta);
 					const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
 					if(legion_member && (person_contribution > 0)){
 						boost::container::flat_map<LegionMemberAttributeId, std::string> legion_attributes_modifer;
