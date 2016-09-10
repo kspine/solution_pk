@@ -327,8 +327,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 				if (member){
 					const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 					const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
-					const auto havest_weight = static_cast<std::uint64_t>(amount_harvested * unit_weight);
-					legion_task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionKeyIds::ID_HARVEST_STRATEGIC_RESOURCE, havest_weight,account_uuid, 0, 0);
+					legion_task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionKeyIds::ID_HARVEST_STRATEGIC_RESOURCE, amount_to_harvest,account_uuid, 0, 0);
 					legion_task_box->pump_status();
 				}
 			}
@@ -1116,7 +1115,7 @@ _wounded_done:
 					if (member){
 						const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 						const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
-						legion_task_box->check(TaskTypeIds::ID_DESTROY_SOLDIERS, TaskLegionKeyIds::ID_WIPE_OUT_SOLIDERS, attacked_type_data->warfare*soldiers_damaged,attacking_account_uuid, 0, 0);
+						legion_task_box->check(TaskTypeIds::ID_DESTROY_SOLDIERS, TaskLegionKeyIds::ID_WIPE_OUT_SOLIDERS, attacked_type_data->warfare,attacking_account_uuid, 0, 0);
 						legion_task_box->pump_status();
 					}
 				}
@@ -1141,7 +1140,7 @@ _wounded_done:
 					if (member){
 						const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 						const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
-						legion_task_box->check(TaskTypeIds::ID_DESTROY_MONSTERS, TaskLegionKeyIds::ID_WIPE_OUT_MONSTERS, monster_type_data->warfare*soldiers_damaged,attacking_account_uuid, 0, 0);
+						legion_task_box->check(TaskTypeIds::ID_DESTROY_MONSTERS, TaskLegionKeyIds::ID_WIPE_OUT_MONSTERS, monster_type_data->warfare,attacking_account_uuid, 0, 0);
 						legion_task_box->pump_status();
 					}
 				}

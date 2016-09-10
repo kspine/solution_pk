@@ -21,7 +21,7 @@ namespace EmperyCenter {
 		using Progress = boost::container::flat_map<std::uint64_t, std::uint64_t>;
 
 		struct TaskRewardInfo {
-			TaskId task_id;
+			TaskTypeId task_type_id;
 			std::uint64_t created_time;
 			std::uint64_t last_reward_time;
 			boost::shared_ptr<Progress> progress;
@@ -32,7 +32,7 @@ namespace EmperyCenter {
 
 		boost::shared_ptr<MySql::Center_LegionTaskReward> m_stamps;
 
-		boost::container::flat_map<TaskId,
+		boost::container::flat_map<TaskTypeId,
 			std::pair<boost::shared_ptr<MySql::Center_LegionTaskReward>, boost::shared_ptr<Progress>>> m_tasks;
 
 	public:
@@ -45,7 +45,7 @@ namespace EmperyCenter {
 			return m_account_uuid;
 		}
 
-		TaskRewardInfo get(TaskId task_id) const;
+		TaskRewardInfo get(TaskTypeId task_type_id) const;
 		void get_all(std::vector<TaskRewardInfo> &ret) const;
 
 		void insert(TaskRewardInfo info);

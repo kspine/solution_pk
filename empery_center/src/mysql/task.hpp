@@ -32,7 +32,7 @@ namespace MySql {
 #define MYSQL_OBJECT_NAME   Center_LegionTaskReward
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (account_uuid) \
-	FIELD_INTEGER_UNSIGNED  (task_id)	\
+	FIELD_INTEGER_UNSIGNED  (task_type_id)	\
 	FIELD_STRING            (progress)	\
 	FIELD_DATETIME          (created_time) \
 	FIELD_DATETIME          (last_reward_time)

@@ -54,7 +54,7 @@ namespace EmperyCenter {
 			const auto &obj = pair.first;
 			const auto &progress = pair.second;
 
-			info.task_id = TaskId(obj->get_task_id());
+			info.task_type_id = TaskTypeId(obj->get_task_type_id());
 			info.created_time  = obj->get_created_time();
 			info.last_reward_time = obj->get_last_reward_time();
 			info.progress = progress;
@@ -67,12 +67,12 @@ namespace EmperyCenter {
 	{
 		for (auto it = tasks.begin(); it != tasks.end(); ++it) {
 			const auto &obj = *it;
-			const auto task_id = TaskId(obj->get_task_id());
-			if (!task_id) {
+			const auto task_type_id = TaskTypeId(obj->get_task_type_id());
+			if (!task_type_id) {
 				m_stamps = obj;
 			}
 			else {
-				m_tasks.emplace(task_id,
+				m_tasks.emplace(task_type_id,
 					std::make_pair(obj,
 						boost::make_shared<Progress>(decode_progress(obj->unlocked_get_progress()))));
 			}
@@ -81,13 +81,13 @@ namespace EmperyCenter {
 	LegionTaskRewardBox::~LegionTaskRewardBox() {
 	}
 
-	LegionTaskRewardBox::TaskRewardInfo LegionTaskRewardBox::get(TaskId task_id) const {
+	LegionTaskRewardBox::TaskRewardInfo LegionTaskRewardBox::get(TaskTypeId task_type_id) const {
 		PROFILE_ME;
 
 		TaskRewardInfo info = {};
-		info.task_id = task_id;
+		info.task_type_id = task_type_id;
 
-		const auto it = m_tasks.find(task_id);
+		const auto it = m_tasks.find(task_type_id);
 		if (it == m_tasks.end()) {
 			return info;
 		}
@@ -108,27 +108,27 @@ namespace EmperyCenter {
 	void LegionTaskRewardBox::insert(LegionTaskRewardBox::TaskRewardInfo info) {
 		PROFILE_ME;
 
-		const auto task_id = info.task_id;
-		auto it = m_tasks.find(task_id);
+		const auto task_type_id = info.task_type_id;
+		auto it = m_tasks.find(task_type_id);
 		if (it != m_tasks.end()) {
-			LOG_EMPERY_CENTER_WARNING("Task reward exists: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+			LOG_EMPERY_CENTER_WARNING("Task reward exists: account_uuid = ", get_account_uuid(), ", task_type_id = ", task_type_id);
 			DEBUG_THROW(Exception, sslit("Task reward exists"));
 		}
 		const auto progress = boost::make_shared<Progress>();
 		if (info.progress) {
 			*progress = *info.progress;
 		}
-		const auto obj = boost::make_shared<MySql::Center_LegionTaskReward>(get_account_uuid().get(), task_id.get(),encode_progress(*progress),info.created_time, info.last_reward_time);
+		const auto obj = boost::make_shared<MySql::Center_LegionTaskReward>(get_account_uuid().get(), task_type_id.get(),encode_progress(*progress),info.created_time, info.last_reward_time);
 		obj->async_save(true);
-		it = m_tasks.emplace(task_id, std::make_pair(obj, progress)).first;
+		it = m_tasks.emplace(task_type_id, std::make_pair(obj, progress)).first;
 	}
 	void LegionTaskRewardBox::update(LegionTaskRewardBox::TaskRewardInfo info, bool throws_if_not_exists) {
 		PROFILE_ME;
 
-		const auto task_id = info.task_id;
-		const auto it = m_tasks.find(task_id);
+		const auto task_type_id = info.task_type_id;
+		const auto it = m_tasks.find(task_type_id);
 		if (it == m_tasks.end()) {
-			LOG_EMPERY_CENTER_WARNING("Task not found: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+			LOG_EMPERY_CENTER_WARNING("Task not found: account_uuid = ", get_account_uuid(), ", task_type_id = ", task_type_id);
 			if (throws_if_not_exists) {
 				DEBUG_THROW(Exception, sslit("Task not found"));
 			}
