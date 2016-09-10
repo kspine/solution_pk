@@ -33,6 +33,7 @@
 #include "account_attribute_ids.hpp"
 #include "account.hpp"
 #include <poseidon/string.hpp>
+#include "legion_member_attribute_ids.hpp"
 
 namespace EmperyCenter {
 	namespace {
@@ -143,7 +144,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Checking tasks: legion_uuid = ", get_legion_uuid());
 
-		const auto utc_now = Poseidon::get_utc_time();	
+		const auto utc_now = Poseidon::get_utc_time();
 		LOG_EMPERY_CENTER_FATAL("LegionTaskBox::pump_status,tasks.size() = ",m_tasks.size());
 		auto it = m_tasks.begin();
 		while (it != m_tasks.end()) {
@@ -430,13 +431,32 @@ namespace EmperyCenter {
 				}
 				if(accomplished_size == objective_size){
 					stage_accomplished_size +=1;
+					//发送军团奖励
+					auto it_legion_reward = task_data->stage_legion_reward.find(its->first);
+					const auto &legion_rewards  = it_legion_reward->second;
+					std::uint64_t legion_donate = 0;
+					for(auto itl = legion_rewards.begin(); itl != legion_rewards.end(); ++itl){
+						if(itl->first.get() == 5500001){
+							legion_donate += itl->second;
+						}
+					}
+					if(legion && (legion_donate > 0)){
+						boost::container::flat_map<LegionAttributeId, std::string> Attributes;
+						std::string donate = legion->get_attribute(LegionAttributeIds::ID_MONEY);
+						if(donate.empty()){
+							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(legion_donate);
+						}else{
+							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + legion_donate);
+						}
+						legion->set_attributes(Attributes);
+					}
+
 					//TODO 发送军团成员阶段奖励
 					for(auto it = members.begin(); it != members.end(); ++it)
 					{
 						auto account_uuid = (*it)->get_account_uuid();
-						LOG_EMPERY_CENTER_FATAL("send jiang li account_uuid = ",account_uuid," stage = ",its->first, " members size:",members.size());
 						auto legion_task_reward_box = LegionTaskRewardBoxMap::get(account_uuid);
-						LegionTaskRewardBox::TaskRewardInfo task_reward_info = legion_task_reward_box->get(task_id);
+						LegionTaskRewardBox::TaskRewardInfo task_reward_info = legion_task_reward_box->get(task_data->type);
 						if(task_reward_info.created_time == 0){
 							task_reward_info.created_time = utc_now;
 							task_reward_info.last_reward_time = utc_now;
@@ -565,20 +585,28 @@ namespace EmperyCenter {
 					std::uint64_t person_contribution = delta * task_contribution_data->personal_number / task_contribution_data->out_number;
 					std::uint64_t legion_contribution = delta * task_contribution_data->legion_number / task_contribution_data->out_number;
 					legion_task_contribution_box->update(account_uuid,person_contribution);
-					const auto account = AccountMap::get(account_uuid);
-					if(account){
-						boost::container::flat_map<AccountAttributeId, std::string> account_attributes_modifer;
-						std::string donate = account->get_attribute(AccountAttributeIds::ID_DONATE);
-						if(donate == Poseidon::EMPTY_STRING){
-							account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(person_contribution);
+					const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
+					if(legion_member && (person_contribution > 0)){
+						boost::container::flat_map<LegionMemberAttributeId, std::string> legion_attributes_modifer;
+						std::string donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
+						if(donate.empty()){
+							legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(person_contribution);
 						}else{
-							account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + person_contribution);
+							legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + person_contribution);
 						}
-						account->set_attributes(std::move(account_attributes_modifer));
+						legion_member->set_attributes(std::move(legion_attributes_modifer));
 					}
-					boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-					Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + legion_contribution));
-					legion->set_attributes(Attributes);
+					
+					if(legion && (legion_contribution > 0)){
+						boost::container::flat_map<LegionAttributeId, std::string> Attributes;
+						std::string donate = legion->get_attribute(LegionAttributeIds::ID_MONEY);
+						if(donate.empty()){
+							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(legion_contribution);
+						}else{
+							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + legion_contribution);
+						}
+						legion->set_attributes(Attributes);
+					}				
 				}
 			});
 		} catch(std::exception &e){
