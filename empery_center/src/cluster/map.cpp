@@ -300,6 +300,23 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
 		", harvest_speed = ", harvest_speed, ", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack);
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
+	//军团礼包任务:采集n战略资源
+	const auto task_box = TaskBoxMap::require(map_object->get_owner_uuid());
+	try {
+		auto pShared = Data::CastleResource::get(resource_id);
+		if (pShared)
+		{
+			LOG_EMPERY_CENTER_DEBUG("采集n战略资源*4 * 权重!!!");
+
+			task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionPackageKeyIds::ID_HARVEST_STRATEGIC_RESOURCE.get(), (amount_harvested * 4)* pShared->unit_weight,
+				TaskBox::TCC_ALL, 0, 0);
+		}
+	}
+	catch (std::exception &e) {
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
+
 		//军团任务采集资源
 	try{
 		Poseidon::enqueue_async_job([=]{
@@ -724,7 +741,7 @@ _wounded_done:
 			warehouse->on_hp_change(attacked_object->get_attribute(AttributeIds::ID_HP_TOTAL));
 		}
 	}
-	
+
 	// 怪物掉落。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try {
@@ -874,7 +891,7 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
-	
+
 	// 军团礼包任务。
 	if (attacking_account_uuid && (soldiers_remaining == 0)) {
 		try {

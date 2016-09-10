@@ -568,25 +568,25 @@ void LeagueMemberMap::check_in_waittime()
 				}
 			}
 
-			/*
+
 			// 看下是否转让军团长等待时间已过的逻辑
 			bool bAttorn = false;
 			std::string strlead="";
-			if(Data::leagueCorpsPower::is_have_power(leagueCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),league::league_POWER::league_POWER_ATTORN))
+			if(Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_ATTORN))
 			{
 				const auto utc_now = Poseidon::get_utc_time();
 			//	LOG_EMPERY_LEAGUE_DEBUG("有转让权限 titileid ================================ ",titileid,"  成员uuid：", member->get_account_uuid());
 				// 转让军团等待中
-				const auto 	quittime = league->get_attribute(leagueAttributeIds::ID_ATTORNTIME);
+				const auto 	quittime = league->get_attribute(LeagueAttributeIds::ID_ATTORNTIME);
 				if(!quittime.empty() ||  quittime != Poseidon::EMPTY_STRING)
 				{
 					// 先看下要转让的目标对象是否还在军团中
-					const auto target_uuid = league->get_attribute(leagueAttributeIds::ID_ATTORNLEADER);
+					const auto target_uuid = league->get_attribute(LeagueAttributeIds::ID_ATTORNLEADER);
 			//		LOG_EMPERY_LEAGUE_DEBUG("存在转让等待时间=============================== ",target_uuid);
 					// 查看两个人是否属于同一军团
-					if(LeagueMemberMap::is_in_same_league(member->get_account_uuid(),AccountUuid(target_uuid)))
+					if(LeagueMemberMap::is_in_same_league(member->get_legion_uuid(),LegionUuid(target_uuid)))
 					{
-						const auto target_member =  LeagueMemberMap::get_by_account_uuid(AccountUuid(target_uuid));
+						const auto target_member =  LeagueMemberMap::get_by_legion_uuid(LegionUuid(target_uuid));
 						// 设置两者新的等级关系
 						if(target_member)
 						{
@@ -618,13 +618,14 @@ void LeagueMemberMap::check_in_waittime()
 
 									target_member->set_attributes(Attributes);
 
-									// 设置原来团长为团员
+									// 设置原来盟主为普通成员
 									boost::container::flat_map<LeagueMemberAttributeId, std::string> Attributes1;
 
-									Attributes1[LeagueMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(Data::Global::as_unsigned(Data::Global::SLOT_league_MEMBER_DEFAULT_POWERID));
+									Attributes1[LeagueMemberAttributeIds::ID_TITLEID] = "3";
 
 									member->set_attributes(Attributes1);
 
+									/*
 									// 广播给军团其他成员
 									const auto target_account = AccountMap::get(target_member->get_account_uuid());
 									if(target_account && account)
@@ -636,10 +637,11 @@ void LeagueMemberMap::check_in_waittime()
 										league->sendNoticeMsg(msg);
 									}
 
-									LOG_EMPERY_LEAGUE_DEBUG("成功转让=============================== ",member->get_account_uuid(), "  目标对象：",target_member->get_account_uuid());
+									*/
+									LOG_EMPERY_LEAGUE_DEBUG("成功转让=============================== ",member->get_legion_uuid(), "  目标对象：",target_member->get_legion_uuid());
 									// 转让成功，重置转让等待时间
 									bAttorn = true;
-									strlead = AccountUuid(target_uuid).str();
+									strlead = LegionUuid(target_uuid).str();
 								}
 							}
 						}
@@ -663,18 +665,17 @@ void LeagueMemberMap::check_in_waittime()
 			if(bAttorn)
 			{
 				// 重置转让信息
-				boost::container::flat_map<leagueAttributeId, std::string> Attributes;
+				boost::container::flat_map<LeagueAttributeId, std::string> Attributes;
 				if(!strlead.empty())
-					Attributes[leagueAttributeIds::ID_LEADER] = strlead;
-				Attributes[leagueAttributeIds::ID_ATTORNTIME] = "";
-				Attributes[leagueAttributeIds::ID_ATTORNLEADER] = "";
+					Attributes[LeagueAttributeIds::ID_LEADER] = strlead;
+				Attributes[LeagueAttributeIds::ID_ATTORNTIME] = "";
+				Attributes[LeagueAttributeIds::ID_ATTORNLEADER] = "";
 
 				league->set_attributes(Attributes);
 
 		//		break;
 			}
 
-			*/
 		}
 
 		if(bdelete)

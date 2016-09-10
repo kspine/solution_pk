@@ -30,6 +30,10 @@ namespace Msg {
 		ERR_LEAGUE_KICK_IN_WAITTIME							= 74018,		// 已经在被移除等待中了
 		ERR_LEAGUE_NOT_IN_SAME_LEAGUE						= 74019,		// 不属于同一联盟
 		ERR_LEAGUE_ERROR_LEAGUELEADER           			= 74020,		// 盟主需要先转让给别人
+		ERR_LEAGUE_ERROR_INATTORN_WAITTIME           		= 74021,		// 目标处于转让盟主等待中
+		ERR_LEAGUE_LEVEL_CANNOT_SAME						= 74022,		// 不能调整到和自己同等级
+		ERR_LEAGUE_LEVEL_MEMBERS_LIMIT						= 74023,		// 当前等级的人数已达上限
+		ERR_LEAGUE_TARGET_NO_POWER							= 74024,		// 目标无对应权限
 		/*
 		ERR_LEGION_CREATE_NOTENOUGH_MONEY               	= 73001,		// 创建资源不足
 		ERR_LEGION_CREATE_HOMONYM              				= 73002,		// 军团名已存在

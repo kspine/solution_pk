@@ -52,19 +52,25 @@ namespace EmperyCenter
 			{
 				ETaskLegionPackage_Class = 4,
 			};
+			enum ETaskLegion
+			{
+				ETaskLegion_Class = 5,
+			};
 		public:
 			static boost::shared_ptr<const TaskDaily> get(TaskId task_id);
 			static boost::shared_ptr<const TaskDaily> require(TaskId task_id);
 
 			static void get_all(std::vector<boost::shared_ptr<const TaskDaily>>& ret);
 			static void get_all_legion_package_task(std::vector<boost::shared_ptr<const TaskDaily>>& ret);
-			static std::uint64_t get_legion_package_task_num();
+			static void get_all_legion_task(std::vector<boost::shared_ptr<const TaskDaily>>& ret);
+			static unsigned get_legion_package_task_num(unsigned level);
 
 		public:
 			std::uint64_t task_class_1;
 			unsigned level_limit_min;
 			unsigned level_limit_max;
 		};
+
 		class TaskLegion : public TaskAbstract
 		{
 		public:

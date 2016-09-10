@@ -23,6 +23,8 @@
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 #include "../singletons/player_session_map.hpp"
+#include "../singletons/legion_member_map.hpp"
+#include "../msg/err_legion.hpp"
 
 namespace EmperyCenter {
 
@@ -57,7 +59,16 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 	} else if(channel == ChatChannelIds::ID_ALLIANCE){
 		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_ALLIANCE_CHANNEL);
-	} else {
+	}
+	else if(channel == ChatChannelIds::ID_LEGION){
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_CHAT_RATE);
+	}
+	else if(channel == ChatChannelIds::ID_UNION){
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_CHAT_RATE);
+	}
+	else {
 		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
 	const auto milliseconds_remaining = saturated_sub(saturated_mul<std::uint64_t>(min_seconds, 1000), saturated_sub(utc_now, last_chat_time));
@@ -112,6 +123,33 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 		}
 	} else if(channel == ChatChannelIds::ID_TRADE){
 	} else if(channel == ChatChannelIds::ID_ALLIANCE){
+	}
+	else if(channel == ChatChannelIds::ID_LEGION)
+	{
+		// 军团聊天
+		const auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
+		if(member)
+		{
+			const auto result = LegionMemberMap::chat(member,message);
+
+			return Response(result);
+		}
+	}
+	else if(channel == ChatChannelIds::ID_UNION)
+	{
+		// 联盟聊天
+		const auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
+		if(member)
+		{
+	
+		//	const auto result = account->league_chat(message);
+
+		//	return Response(result);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEGION_NOT_JOIN);
+		}
 	}
 
 	return Response();

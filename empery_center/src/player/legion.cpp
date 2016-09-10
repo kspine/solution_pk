@@ -2035,14 +2035,17 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 					else
 					{
 						std::vector<ItemTransactionElement> transaction;
-						transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, req.num,
-								ReasonIds::ID_DOANTE_LEGION, 0, 0, req.num);
+						transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, req.num * 100,
+								ReasonIds::ID_DOANTE_LEGION, 0, 0, req.num * 100);
 
 						const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 						[&]{
 							// 修改军团资金
+							LOG_EMPERY_CENTER_ERROR("军团资金 捐献前  ===========",legion->get_attribute(LegionAttributeIds::ID_MONEY));
 							boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + req.num / dvalue * lvalue));
+							const auto money = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + req.num * 100 / dvalue * lvalue));
+							Attributes[LegionAttributeIds::ID_MONEY] = money;
+							LOG_EMPERY_CENTER_ERROR("军团资金 捐献后  ===========",money);
 							legion->set_attributes(Attributes);
 
 							const auto strweekdonate = member->get_attribute(LegionMemberAttributeIds::ID_WEEKDONATE);
@@ -2057,18 +2060,21 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							if(weekdonate < Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT))
 							{
 								// 修改军团成员个人贡献
-					//			LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  之前个人贡献 ===========",member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
+								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  之前个人贡献 ===========",member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 
 								boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
 								
-								std::string strdotan = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num / dvalue * mvalue));
-								Attributes1[LegionMemberAttributeIds::ID_DONATE] = strdotan;
+								auto strdotan = std::ceil(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num * 100  / dvalue * mvalue);
+								if(strdotan > Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT))
+									strdotan = Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT);
+								
+								Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(strdotan);
 
-				//				LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人贡献 ===========",strdotan);
+								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  捐献后个人贡献 ===========",strdotan);
 				//				Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num / dvalue * mvalue);
-								Attributes1[LegionMemberAttributeIds::ID_WEEKDONATE] = boost::lexical_cast<std::string>(weekdonate + req.num);
+								Attributes1[LegionMemberAttributeIds::ID_WEEKDONATE] = boost::lexical_cast<std::string>(weekdonate + req.num );
 
-				//				LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人周贡献 ===========",boost::lexical_cast<std::string>(weekdonate + req.num));
+								LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人周贡献 ===========",boost::lexical_cast<std::string>(weekdonate + req.num));
 								member->set_attributes(std::move(Attributes1));
 							}
 

@@ -21,7 +21,7 @@
 
 namespace EmperyLeague {
 
-LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_client, req){
+LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -33,7 +33,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_client, req){
 	/*
 	auto dungeon_uuid = LeagueUuid(req.dungeon_uuid);
 	auto founder_uuid = AccountUuid(req.founder_uuid);
-	//boost::shared_ptr<League> new_league = boost::make_shared<League>(dungeon_uuid, league_client,founder_uuid,utc_now);
+	//boost::shared_ptr<League> new_league = boost::make_shared<League>(dungeon_uuid, league_session,founder_uuid,utc_now);
 	//new_dungeon->set_dungeon_duration(1000*60*3);
    */
     // 判断军团是否已经加入到联盟中
@@ -45,7 +45,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_client, req){
 		EmperyCenter::Msg::LS_CreateLeagueRes msg;
 		msg.account_uuid = account_uuid.str();
 		msg.res = Msg::ERR_ACCOUNT_HAVE_LEAGUE;
-		league_client->send(msg);
+		league_session->send(msg);
 		*/
 		return Response(Msg::ERR_ACCOUNT_HAVE_LEAGUE);
 	}
@@ -60,7 +60,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_client, req){
 		EmperyCenter::Msg::LS_CreateLeagueRes msg;
 		msg.account_uuid = account_uuid.str();
 		msg.res = Msg::ERR_LEAGUE_CREATE_HOMONYM;
-		league_client->send(msg);
+		league_session->send(msg);
 		*/
 		return Response(Msg::ERR_LEAGUE_CREATE_HOMONYM);
 	}
@@ -84,7 +84,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_client, req){
 //	count = LeagueMap::get_count();
 //	LOG_EMPERY_CENTER_INFO("SL_LeagueCreated count:", count);
 
-	league->synchronize_with_player(league_client,account_uuid,legion_uuid);
+	league->synchronize_with_player(league_session,account_uuid,legion_uuid);
 
 	// 如果还请求加入过其他联盟，也需要做善后操作，删除其他所有加入请求
 	LeagueApplyJoinMap::deleteInfo(legion_uuid,league_uuid,true);
@@ -95,7 +95,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_client, req){
 	return Response(Msg::ST_OK);
 }
 
-LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_client, req){
+LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -104,18 +104,19 @@ LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_client, req){
 	LeagueMap::get_by_legion_uuid(leagues,legion_uuid);
 	if(leagues.empty())
 	{
+		LOG_EMPERY_LEAGUE_ERROR(" 没找到对应的联盟================================= ",req.legion_uuid);
 		return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
 	}
 
 	const auto& league = leagues.at(0);
 
-	league->synchronize_with_player(league_client,AccountUuid(req.account_uuid),legion_uuid);
+	league->synchronize_with_player(league_session,AccountUuid(req.account_uuid),legion_uuid);
 
 	return Response(Msg::ST_OK);
 
 }
 
-LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_client, req){
+LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_session, req){
 	PROFILE_ME;
 
 	LOG_EMPERY_LEAGUE_ERROR("SL_GetAllLeagueInfo = ",req.account_uuid);
@@ -138,7 +139,7 @@ LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_client, req){
 		elem.league_name = league->get_nick();
 		elem.league_icon = league->get_attribute(LeagueAttributeIds::ID_ICON);
 		elem.league_notice = league->get_attribute(LeagueAttributeIds::ID_CONTENT);
-		elem.league_leader_uuid = league->get_create_uuid().str();
+		elem.league_leader_uuid = league->get_attribute(LeagueAttributeIds::ID_LEADER);
 		elem.autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
@@ -169,7 +170,7 @@ LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_client, req){
 		}
 	}
 
-	league_client->send(msg);
+	league_session->send(msg);
 
 	return Response(Msg::ST_OK);
 
@@ -216,7 +217,7 @@ void vectorbingji(const std::vector<boost::shared_ptr<League>>& v1,const std::ve
 	}
 }
 
-LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_client, req){
+LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_session, req){
 	PROFILE_ME;
 
 //	LOG_EMPERY_LEAGUE_ERROR("SL_SearchLeague = ",req.account_uuid, " req.league_name:",req.league_name, " legion size:",req.legions.size());
@@ -284,7 +285,7 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_client, req){
 		elem.league_name = league->get_nick();
 		elem.league_icon = league->get_attribute(LeagueAttributeIds::ID_ICON);
 		elem.league_notice = league->get_attribute(LeagueAttributeIds::ID_CONTENT);
-		elem.league_leader_uuid = league->get_create_uuid().str();
+		elem.league_leader_uuid = league->get_attribute(LeagueAttributeIds::ID_LEADER);
 		elem.autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
@@ -316,7 +317,7 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_client, req){
 		}
 	}
 
-	league_client->send(msg);
+	league_session->send(msg);
 
 	return Response(Msg::ST_OK);
 
@@ -324,7 +325,7 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_client, req){
 }
 
 
-LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_client, req){
+LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -385,7 +386,7 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_client, req){
 					// 不用审核，直接加入
 					league->AddMember(legion_uuid,account_uuid,3,utc_now);
 
-					league->synchronize_with_player(league_client,account_uuid,legion_uuid);
+					league->synchronize_with_player(league_session,account_uuid,legion_uuid);
 
 					// 如果还请求加入过其他联盟，也需要做善后操作，删除其他所有加入请求
 					LeagueApplyJoinMap::deleteInfo(legion_uuid,league_uuid,true);
@@ -433,7 +434,7 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_client, req){
 }
 
 
-LEAGUE_SERVLET(Msg::SL_GetApplyJoinLeague, league_client, req){
+LEAGUE_SERVLET(Msg::SL_GetApplyJoinLeague, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -450,7 +451,7 @@ LEAGUE_SERVLET(Msg::SL_GetApplyJoinLeague, league_client, req){
 			if(Data::LeaguePower::is_have_power(boost::lexical_cast<uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_APPROVE))
 		//	if(titileid == "1")
 			{
-				LeagueApplyJoinMap::synchronize_with_player(league_client,LeagueUuid(member->get_league_uuid()),req.account_uuid);
+				LeagueApplyJoinMap::synchronize_with_player(league_session,LeagueUuid(member->get_league_uuid()),req.account_uuid);
 			}
 			else
 			{
@@ -473,7 +474,7 @@ LEAGUE_SERVLET(Msg::SL_GetApplyJoinLeague, league_client, req){
 
 }
 
-LEAGUE_SERVLET(Msg::SL_LeagueAuditingRes, league_client, req){
+LEAGUE_SERVLET(Msg::SL_LeagueAuditingRes, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -523,7 +524,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueAuditingRes, league_client, req){
 
 						league->AddMember(target_legion_uuid,account_uuid,3,utc_now);
 
-						league->synchronize_with_player(league_client,account_uuid,target_legion_uuid);
+						league->synchronize_with_player(league_session,account_uuid,target_legion_uuid);
 
 						// 如果还请求加入过其他联盟，也需要做善后操作，删除其他所有加入请求
 						//LeagueApplyJoinMap::deleteInfo(legion_uuid,league_uuid,true);
@@ -574,7 +575,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueAuditingRes, league_client, req){
 
 }
 
-LEAGUE_SERVLET(Msg::SL_LeagueInviteJoin, league_client, req){
+LEAGUE_SERVLET(Msg::SL_LeagueInviteJoin, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -627,7 +628,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoin, league_client, req){
 					LeagueInviteJoinMap::insert(obj);
 
 					// 通知给目标
-					LeagueInviteJoinMap::synchronize_with_player(league_client,target_legion_uuid,AccountUuid());
+					LeagueInviteJoinMap::synchronize_with_player(league_session,target_legion_uuid,AccountUuid());
 				}
 				else
 				{
@@ -644,7 +645,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoin, league_client, req){
 	return Response(Msg::ST_OK);
 }
 
-LEAGUE_SERVLET(Msg::SL_LeagueInviteList, league_client, req){
+LEAGUE_SERVLET(Msg::SL_LeagueInviteList, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -659,7 +660,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteList, league_client, req){
 	}
 	else
 	{
-		LeagueInviteJoinMap::synchronize_with_player(league_client,legion_uuid,account_uuid);
+		LeagueInviteJoinMap::synchronize_with_player(league_session,legion_uuid,account_uuid);
 
 		return Response(Msg::ST_OK);
 	}
@@ -667,7 +668,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteList, league_client, req){
 	return Response(Msg::ST_OK);
 }
 
-LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_client, req){
+LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -711,7 +712,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_client, req){
 						// 加入
 						league->AddMember(legion_uuid,account_uuid,3,utc_now);
 
-						league->synchronize_with_player(league_client,account_uuid,legion_uuid);
+						league->synchronize_with_player(league_session,account_uuid,legion_uuid);
 
 						// 如果还请求加入过其他联盟，也需要做善后操作，删除其他所有加入请求
 						LeagueApplyJoinMap::deleteInfo(legion_uuid,league_uuid,true);
@@ -750,7 +751,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_client, req){
 }
 
 
-LEAGUE_SERVLET(Msg::SL_ExpandLeagueReq, league_client, req){
+LEAGUE_SERVLET(Msg::SL_ExpandLeagueReq, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -799,7 +800,7 @@ LEAGUE_SERVLET(Msg::SL_ExpandLeagueReq, league_client, req){
 
 				msg.consumes.reserve(size);
 
-				league_client->send(msg);
+				league_session->send(msg);
 
 				return Response(Msg::ST_OK);
 			}
@@ -814,7 +815,7 @@ LEAGUE_SERVLET(Msg::SL_ExpandLeagueReq, league_client, req){
 	return Response(Msg::ST_OK);
 }
 
-LEAGUE_SERVLET(Msg::SL_ExpandLeagueRes, league_client, req){
+LEAGUE_SERVLET(Msg::SL_ExpandLeagueRes, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -850,7 +851,7 @@ LEAGUE_SERVLET(Msg::SL_ExpandLeagueRes, league_client, req){
 	return Response();
 }
 
-LEAGUE_SERVLET(Msg::SL_QuitLeagueReq, league_client, req){
+LEAGUE_SERVLET(Msg::SL_QuitLeagueReq, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -881,6 +882,12 @@ LEAGUE_SERVLET(Msg::SL_QuitLeagueReq, league_client, req){
 				{
 					return Response(Msg::ERR_LEAGUE_KICK_IN_WAITTIME);
 				}
+				// 判断是否是盟主要转让的目标
+				if(!req.bCancle && league->get_attribute(LeagueAttributeIds::ID_ATTORNLEADER) == req.legion_uuid)
+				{
+					return Response(Msg::ERR_LEAGUE_ERROR_INATTORN_WAITTIME);
+				}
+
 				// 是否在退出等待中
 				if(member->get_attribute(LeagueMemberAttributeIds::ID_QUITWAITTIME) != Poseidon::EMPTY_STRING)
 				{
@@ -941,7 +948,7 @@ LEAGUE_SERVLET(Msg::SL_QuitLeagueReq, league_client, req){
 }
 
 
-LEAGUE_SERVLET(Msg::SL_KickLeagueMemberReq, league_client, req){
+LEAGUE_SERVLET(Msg::SL_KickLeagueMemberReq, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -978,6 +985,12 @@ LEAGUE_SERVLET(Msg::SL_KickLeagueMemberReq, league_client, req){
 				if(!req.bCancle && target_member->get_attribute(LeagueMemberAttributeIds::ID_QUITWAITTIME) != Poseidon::EMPTY_STRING)
 				{
 					return Response(Msg::ERR_LEAGUE_QUIT_IN_WAITTIME);
+				}
+
+				// 判断是否是盟主要转让的目标
+				if(!req.bCancle && league->get_attribute(LeagueAttributeIds::ID_ATTORNLEADER) == req.target_legion_uuid)
+				{
+					return Response(Msg::ERR_LEAGUE_ERROR_INATTORN_WAITTIME);
 				}
 
 				// 是否在被移除等待中
@@ -1039,7 +1052,7 @@ LEAGUE_SERVLET(Msg::SL_KickLeagueMemberReq, league_client, req){
 	return Response();
 }
 
-LEAGUE_SERVLET(Msg::SL_disbandLeague, league_client, req){
+LEAGUE_SERVLET(Msg::SL_disbandLeague, league_session, req){
 	PROFILE_ME;
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
@@ -1085,5 +1098,287 @@ LEAGUE_SERVLET(Msg::SL_disbandLeague, league_client, req){
 	return Response();
 }
 
+LEAGUE_SERVLET(Msg::SL_AttornLeagueReq, league_session, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		// 没加入联盟
+		return Response(Msg::ERR_LEAGUE_NOT_JOIN);
+	}
+	else
+	{
+		// 查看联盟是否存在
+		const auto &league = LeagueMap::get(member->get_league_uuid());
+		if(league)
+		{
+			// 是否有权限
+			const auto titileid = member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID);
+			if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titileid),League::LEAGUE_POWER::LEAGUE_POWER_ATTORN))
+			{
+				return Response(Msg::ERR_LEAGUE_NO_POWER);
+			}
+
+			// 是否是同一联盟
+			if(!LeagueMemberMap::is_in_same_league(legion_uuid,LegionUuid(req.target_legion_uuid)))
+			{
+				return Response(Msg::ERR_LEAGUE_NOT_IN_SAME_LEAGUE);
+			}
+
+			// 检查目标是否处于退出、踢出等待中
+			const auto & target_member = LeagueMemberMap::get_by_legion_uuid(LegionUuid(req.target_legion_uuid));
+			if(!req.bCancle)
+			{
+				if(target_member->get_attribute(LeagueMemberAttributeIds::ID_QUITWAITTIME) != Poseidon::EMPTY_STRING || target_member->get_attribute(LeagueMemberAttributeIds::ID_KICKWAITTIME) != Poseidon::EMPTY_STRING)
+					return Response(Msg::ERR_LEAGUE_QUIT_IN_WAITTIME);
+			}
+
+			if(league->get_attribute(LeagueAttributeIds::ID_ATTORNTIME) == Poseidon::EMPTY_STRING)
+			{
+				if(!req.bCancle)
+				{
+					// 设置转让盟主等待时间
+					boost::container::flat_map<LeagueAttributeId, std::string> Attributes;
+
+					const auto utc_now = Poseidon::get_utc_time();
+
+					std::string strtime = boost::lexical_cast<std::string>(utc_now + 60 * 1000 * Data::Global::as_unsigned(Data::Global::SLOT_LEAGUE_ATTORN_WAIT_MINUTE));  // 退出等待时间
+
+					strtime = strtime.substr(0,10);
+
+					LOG_EMPERY_LEAGUE_INFO("CS_AttornLegionReqMessage ==============================================",utc_now,"   strtime:",strtime);
+
+					Attributes[LeagueAttributeIds::ID_ATTORNTIME] = strtime;
+					Attributes[LeagueAttributeIds::ID_ATTORNLEADER] = req.target_legion_uuid;
+
+					league->set_attributes(Attributes);
+
+					return Response(Msg::ST_OK);
+				}
+				else
+				{
+					return Response(Msg::ERR_LEAGUE_CANNOT_FIND_DATA);
+				}
+			}
+			else
+			{
+				if(req.bCancle)
+				{
+					// 重置转让盟主等待时间
+					boost::container::flat_map<LeagueAttributeId, std::string> Attributes;
+
+					Attributes[LeagueAttributeIds::ID_ATTORNTIME] = "";
+					Attributes[LeagueAttributeIds::ID_ATTORNLEADER] = "";
+
+					league->set_attributes(Attributes);
+
+					return Response(Msg::ST_OK);
+				}
+				else
+				{
+					return Response(Msg::ERR_LEAGUE_ERROR_INATTORN_WAITTIME);
+				}
+			}
+
+			return Response(Msg::ST_OK);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+		}
+	}
+
+	return Response();
+}
+
+LEAGUE_SERVLET(Msg::SL_LeaguenMemberGradeReq, league_session, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		// 没加入联盟
+		return Response(Msg::ERR_LEAGUE_NOT_JOIN);
+	}
+	else
+	{
+		// 查看联盟是否存在
+		const auto &league = LeagueMap::get(member->get_league_uuid());
+		if(league)
+		{
+
+			// 查看是否有权限
+			const auto own_titleid = boost::lexical_cast<uint>(member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+			if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(own_titleid),League::LEAGUE_POWER::LEAGUE_POWER_APPOINT))
+			{
+				return Response(Msg::ERR_LEAGUE_NO_POWER);
+			}
+
+			// 是否是同一联盟
+			if(!LeagueMemberMap::is_in_same_league(legion_uuid,LegionUuid(req.target_legion_uuid)))
+			{
+				return Response(Msg::ERR_LEAGUE_NOT_IN_SAME_LEAGUE);
+			}
+
+			// 查看两者的权限
+			const auto & target_member = LeagueMemberMap::get_by_legion_uuid(LegionUuid(req.target_legion_uuid));
+			const auto titleid= boost::lexical_cast<uint>(target_member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+			if(titleid > own_titleid)
+			{
+				if(req.bup)  // 升级
+				{
+					// 查看目标是否有该权限
+					if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titleid),League::LEAGUE_POWER::LEAGUE_POWER_GRADEUP))
+					{
+						// 目标没有权限
+						return Response(Msg::ERR_LEAGUE_TARGET_NO_POWER);
+					}
+					// 是否升级后和自己同级
+					if(titleid -1 == own_titleid)
+					{
+						// 不能调整到和自己同等级
+						return Response(Msg::ERR_LEAGUE_LEVEL_CANNOT_SAME);
+					}
+					// 再检查下，要升级的目标层级当前的人数
+					std::vector<boost::shared_ptr<LeagueMember>> members;
+					LeagueMemberMap::get_member_by_titleid(members, member->get_league_uuid(),titleid - 1);
+					LOG_EMPERY_LEAGUE_DEBUG("找到目标等级的人数 ========================================= ", members.size());
+					if(members.size() < Data::LeaguePower::get_member_max_num((titleid - 1)))
+					{
+						boost::container::flat_map<LeagueMemberAttributeId, std::string> modifiers;
+						modifiers[LeagueMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(titleid -1);
+						target_member->set_attributes(modifiers);
+					}
+					else
+					{
+						return Response(Msg::ERR_LEAGUE_LEVEL_MEMBERS_LIMIT);
+					}
+				}
+				else // 降级
+				{
+					// 是否升级后和自己同级
+					if(titleid +1 == own_titleid)
+					{
+						// 不能调整到和自己同等级
+						return Response(Msg::ERR_LEAGUE_LEVEL_CANNOT_SAME);
+					}
+
+					// 查看目标是否有该权限
+					if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titleid),League::LEAGUE_POWER::LEAGUE_POWER_GRADEDOWN))
+					{
+						// 目标没有权限
+						return Response(Msg::ERR_LEAGUE_TARGET_NO_POWER);
+					}
+
+					// 再检查下，要升级的目标层级当前的人数
+					std::vector<boost::shared_ptr<LeagueMember>> members;
+					LeagueMemberMap::get_member_by_titleid(members, member->get_league_uuid(),titleid + 1);
+					LOG_EMPERY_LEAGUE_DEBUG("找到目标等级的人数 ========================================= ", members.size());
+					if(members.size() < Data::LeaguePower::get_member_max_num((titleid + 1)))
+					{
+						boost::container::flat_map<LeagueMemberAttributeId, std::string> modifiers;
+						modifiers[LeagueMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(titleid +1);
+						target_member->set_attributes(modifiers);
+					}
+					else
+					{
+						return Response(Msg::ERR_LEAGUE_LEVEL_MEMBERS_LIMIT);
+					}
+				}
+
+				/*
+				// 广播给军团其他成员
+				Msg::SC_LegionNoticeMsg msg;
+				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_GRADE;
+				msg.nick = target_account->get_nick();
+				msg.ext1 = boost::lexical_cast<std::string>(titleid -1);
+				legion->sendNoticeMsg(msg);
+				*/
+
+				return Response(Msg::ST_OK);
+			}
+			else
+			{
+				return Response(Msg::ERR_LEAGUE_NO_POWER);
+			}
+
+			return Response(Msg::ST_OK);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+		}
+	}
+
+	return Response();
+}
+
+LEAGUE_SERVLET(Msg::SL_banChatLeagueReq, league_session, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		// 没加入联盟
+		return Response(Msg::ERR_LEAGUE_NOT_JOIN);
+	}
+	else
+	{
+		// 查看联盟是否存在
+		const auto &league = LeagueMap::get(member->get_league_uuid());
+		if(league)
+		{
+
+			// 查看是否有权限
+			const auto own_titleid = boost::lexical_cast<uint>(member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+			if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(own_titleid),League::LEAGUE_POWER::LEAGUE_POWER_CHAT))
+			{
+				return Response(Msg::ERR_LEAGUE_NO_POWER);
+			}
+
+			// 是否是同一联盟
+			if(!LeagueMemberMap::is_in_same_league(legion_uuid,LegionUuid(req.target_legion_uuid)))
+			{
+				return Response(Msg::ERR_LEAGUE_NOT_IN_SAME_LEAGUE);
+			}
+
+			// 查看两者的权限
+			const auto & target_member = LeagueMemberMap::get_by_legion_uuid(LegionUuid(req.target_legion_uuid));
+			const auto titleid= boost::lexical_cast<uint>(target_member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+			if(titleid > own_titleid)
+			{
+				EmperyCenter::Msg::LS_banChatLeagueReq msg;
+				msg.account_uuid = req.target_account_uuid;
+				msg.bban = req.bban;
+
+				league_session->send(msg);
+
+				return Response(Msg::ST_OK);
+			}
+			else
+			{
+				return Response(Msg::ERR_LEAGUE_NO_POWER);
+			}
+
+			return Response(Msg::ST_OK);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+		}
+	}
+
+	return Response();
+}
 
 }

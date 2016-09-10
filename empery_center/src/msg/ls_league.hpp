@@ -91,6 +91,22 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+
+#define MESSAGE_NAME    LS_AttornLeagueRes
+#define MESSAGE_ID      51007
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_STRING        (target_legion_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    LS_banChatLeagueReq
+#define MESSAGE_ID      51008
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_VUINT         (bban)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -68,6 +68,13 @@ namespace EmperyCenter {
 		/*************************************************************************************************/
 		void reset_legion_package_tasks();
 		void check_legion_package_tasks();
+
+		void update_reward_status(TaskId task_id);
+		bool check_reward_status(TaskId task_id);
+
+		//建筑升级刷新任务
+		//void check_caster_legion_package_task();
+		//void sync_legion_package_finished_task();
 		/*************************************************************************************************/
 
 		TaskInfo get(TaskId task_id) const;

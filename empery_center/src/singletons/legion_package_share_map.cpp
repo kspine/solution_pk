@@ -73,8 +73,8 @@ namespace EmperyCenter
 			LOG_EMPERY_CENTER_INFO("Loading Center_Legion_Package_Share...");
 
 			std::string str_query = "SELECT * FROM `Center_Legion_Package_Share` ";
-			std::string str_condition = " WHERE DATE(share_package_time) = CURDATE()";
-			str_query += str_condition;
+			//std::string str_condition = " WHERE DATE(share_package_time) = CURDATE()";
+			//str_query += str_condition;
 
 			conn->execute_sql(str_query);
 

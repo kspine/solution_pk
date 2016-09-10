@@ -878,6 +878,17 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
+	try
+	{
+		//触发任务：累计建造部队，训练士兵，战力计算
+		task_box->check(TaskTypeIds::ID_BUILD_SOLDIERS, TaskLegionPackageKeyIds::ID_BUILD_SOLDIERS.get(), (count)* map_object_type_data->warfare, TaskBox::TCC_ALL, 0, 0);
+	}
+	catch (std::exception &e)
+	{
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
+
 	//军团任务兵种建造
 	try{
 		Poseidon::enqueue_async_job([=]{

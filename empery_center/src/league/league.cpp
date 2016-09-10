@@ -22,6 +22,7 @@
 #include "../data/legion_corps_level.hpp"
 #include "../legion_attribute_ids.hpp"
 #include "../legion_member.hpp"
+#include "../account_attribute_ids.hpp"
 #include <poseidon/async_job.hpp>
 
 
@@ -68,10 +69,20 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 			msg.league_notice = req.league_notice;
 			msg.league_level = req.league_level;
 			msg.leader_uuid = req.leader_legion_uuid;
+			msg.leader_name = "";
+			const auto& leader_legion = LegionMap::get(LegionUuid(req.leader_legion_uuid));
+			if(leader_legion)
+			{
+				const auto& leader_account = AccountMap::get(AccountUuid(leader_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+				if(leader_account)
+					msg.leader_name = leader_account->get_nick();
+			}
 
+			/*
 			const auto leader_account = AccountMap::get(AccountUuid(req.create_account_uuid));
 			if(leader_account)
 				msg.leader_name = leader_account->get_nick();
+			*/
 
 			msg.league_titleid = req.legion_titleid;
 
@@ -83,7 +94,7 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 
 				elem.legion_uuid = info.legion_uuid;
 
-				const auto legion = LegionMap::get(LegionUuid(info.legion_uuid));
+				const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
 				if(legion)
 				{
 					elem.legion_name = legion->get_nick();
@@ -127,9 +138,19 @@ LEAGUE_SERVLET(Msg::LS_Leagues, server, req){
 				elem.league_icon = info.league_icon;
 				elem.league_notice = info.league_notice;
 
+				/*
 				const auto leader_account = AccountMap::get(AccountUuid(info.league_leader_uuid));
 				if(leader_account)
 					elem.league_leader_name = leader_account->get_nick();
+				*/
+				elem.league_leader_name = "";
+				const auto& leader_legion = LegionMap::get(LegionUuid(info.league_leader_uuid));
+				if(leader_legion)
+				{
+					const auto& leader_account = AccountMap::get(AccountUuid(leader_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+					if(leader_account)
+						elem.league_leader_name = leader_account->get_nick();
+				}
 
 				elem.autojoin = info.autojoin;
 				elem.league_create_time = info.league_create_time;
@@ -266,11 +287,25 @@ LEAGUE_SERVLET(Msg::LS_InvieJoinList, server, req){
 		elem.league_name = info.league_name;
 		elem.league_icon = info.league_icon;
 
+		const auto& leader_legion = LegionMap::get(LegionUuid(info.league_leader_uuid));
+		if(leader_legion)
+		{
+			const auto& leader_account = AccountMap::get(AccountUuid(leader_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+			if(leader_account)
+				elem.leader_name = leader_account->get_nick();
+		}
+		else
+		{
+			elem.leader_name = "";
+		}
+		/*
 		const auto leader_account = AccountMap::get(AccountUuid(info.league_leader_uuid));
 		if(leader_account)
 			elem.leader_name = leader_account->get_nick();
 		else
 			elem.leader_name = "";
+
+			*/
 	}
 
 	const auto account_uuid = AccountUuid(req.account_uuid);
@@ -314,7 +349,7 @@ LEAGUE_SERVLET(Msg::LS_ExpandLeagueReq, server, req){
 		std::vector<ItemTransactionElement> transaction;
 		for(auto it = req.consumes.begin(); it != req.consumes.end(); ++it )
 		{
-			auto &info = *it; 
+			auto &info = *it;
 
 			if(info.consue_type == boost::lexical_cast<std::string>(ItemIds::ID_DIAMONDS))
 			{
@@ -361,5 +396,49 @@ LEAGUE_SERVLET(Msg::LS_ExpandLeagueReq, server, req){
 	return Response();
 }
 
+
+LEAGUE_SERVLET(Msg::LS_AttornLeagueRes, server, req){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("LS_AttornLeagueRes=================== ", req.legion_uuid);
+
+	const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+	if(legion)
+	{
+		//
+	}
+	else
+	{
+		return Response(Msg::ERR_LEGION_CANNOT_FIND);
+	}
+
+	return Response();
+}
+
+LEAGUE_SERVLET(Msg::LS_banChatLeagueReq, server, req){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("LS_banChatLeagueReq=================== ", req.account_uuid);
+
+	const auto account_uuid = AccountUuid(req.account_uuid);
+
+	const auto account = AccountMap::get(account_uuid);
+	if(account)
+	{
+		// 设置account的联盟聊天禁言标识
+
+		boost::container::flat_map<AccountAttributeId, std::string> Attributes;
+
+		Attributes[AccountAttributeIds::ID_LEAGUE_CAHT_FALG] = boost::lexical_cast<std::string>(req.bban);
+
+		account->set_attributes(std::move(Attributes));
+	}
+	else
+	{
+		return Response(Msg::ERR_LEGION_CANNOT_FIND);
+	}
+
+	return Response();
+}
 
 }

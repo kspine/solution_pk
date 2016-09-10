@@ -16,19 +16,12 @@ namespace EmperyCenter
 		using TaskDailyContainer = boost::container::flat_map<TaskId, Data::TaskDaily>;
 		boost::weak_ptr<const TaskDailyContainer> g_task_daily_container;
 
-		///***********************************************************************************************/
-		//using TaskLegionPackageContainer = boost::container::flat_map<TaskId, Data::TaskLegionPackage>;
-		//boost::weak_ptr<const TaskLegionPackageContainer> g_task_legion_package_container;
-		///***********************************************************************************************/
-
 		const char TASK_LEGION_FILE[] = "corps_task";
 		using TaskLegionContainer = boost::container::flat_map<TaskId, Data::TaskLegion>;
-		boost::weak_ptr<const TaskLegionContainer> g_task_legion_container;
-
-		const char TASK_DAILY_FILE[] = "task_everyday";
+		boost::weak_ptr<const TaskLegionContainer> g_task_legion_container;		const char TASK_DAILY_FILE[] = "task_everyday";
 
 		template <typename ElementT>
-		void read_task_abstract(ElementT& elem, const Poseidon::CsvParser& csv,bool read_award = true)
+		void read_task_abstract(ElementT& elem, const Poseidon::CsvParser& csv, bool read_award = true)
 		{
 			csv.get(elem.task_id, "task_id");
 			csv.get(elem.castle_category, "task_city");
@@ -56,7 +49,7 @@ namespace EmperyCenter
 			}
 
 			object.clear();
-			if(read_award){
+			if (read_award) {
 				csv.get(object, "task_reward");
 				elem.rewards.reserve(object.size());
 				for (auto it = object.begin(); it != object.end(); ++it)
@@ -117,53 +110,25 @@ namespace EmperyCenter
 				{
 					DEBUG_THROW(Exception, sslit("Duplicate TaskDaily"));
 				}
+
+				LOG_EMPERY_CENTER_DEBUG("elem.task_id:", elem.task_id, "elem.task_class_1", elem.task_class_1);
 			}
 			g_task_daily_container = task_daily_container;
 			handles.push(task_daily_container);
 
-			///***********************************************************************************************/
-			//csv = Data::sync_load_data(TASK_DAILY_FILE);
-			//const auto task_legion_package_container = boost::make_shared<TaskLegionPackageContainer>();
-			//while (csv.fetch_row())
-			//{
-			//	Data::TaskLegionPackage elem = {};
-			//	csv.get(elem.task_class_1, "task_class_1");
-
-			//	read_task_abstract(elem, csv);
-
-			//	Poseidon::JsonArray array;
-			//	csv.get(array, "task_class");
-
-			//	elem.level_limit_min = array.at(0).get<double>();
-			//	elem.level_limit_max = array.at(1).get<double>();
-
-			//	if (elem.task_class_1 == (uint64_t)Data::TaskLegionPackage::ETaskLegionPackage_Class)
-			//	{
-			//		if (!task_legion_package_container->emplace(elem.task_id, std::move(elem)).second)
-			//		{
-			//			DEBUG_THROW(Exception, sslit("Duplicate TaskDaily"));
-			//		}
-			//	}
-			//}
-
-			//g_task_legion_package_container = task_legion_package_container;
-			//handles.push(task_legion_package_container);
-
-			///***********************************************************************************************/
 			servlet = DataSession::create_servlet(TASK_DAILY_FILE, Data::encode_csv_as_json(csv, "task_id"));
 			handles.push(std::move(servlet));
-
 			csv = Data::sync_load_data(TASK_LEGION_FILE);
 			const auto task_legion_container = boost::make_shared<TaskLegionContainer>();
 			while (csv.fetch_row())
 			{
 				Data::TaskLegion elem = {};
-				read_task_abstract(elem, csv,false);
+				read_task_abstract(elem, csv, false);
 				Poseidon::JsonArray array;
 				csv.get(array, "task_class");
 				elem.level_limit_min = array.at(0).get<double>();
 				elem.level_limit_max = array.at(1).get<double>();
-				std::uint64_t stage1 = 0,stage2 = 0, stage3 = 0, stage4 = 0;
+				std::uint64_t stage1 = 0, stage2 = 0, stage3 = 0, stage4 = 0;
 				csv.get(stage1, "task_stage1");
 				csv.get(stage2, "task_stage2");
 				csv.get(stage3, "task_stage3");
@@ -175,9 +140,9 @@ namespace EmperyCenter
 				{
 					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
 					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-					rewards.push_back(std::make_pair(resource_id,count));
+					rewards.push_back(std::make_pair(resource_id, count));
 				}
-				if(!elem.stage_reward.emplace(stage1, rewards).second){
+				if (!elem.stage_reward.emplace(stage1, rewards).second) {
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage1 = ", stage1);
 					DEBUG_THROW(Exception, sslit("Duplicate task stage1 reward"));
 				}
@@ -189,9 +154,9 @@ namespace EmperyCenter
 				{
 					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
 					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-					rewards.push_back(std::make_pair(resource_id,count));
+					rewards.push_back(std::make_pair(resource_id, count));
 				}
-				if(!elem.stage_reward.emplace(stage2, rewards).second){
+				if (!elem.stage_reward.emplace(stage2, rewards).second) {
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage2 = ", stage2);
 					DEBUG_THROW(Exception, sslit("Duplicate task stage2 reward"));
 				}
@@ -203,9 +168,9 @@ namespace EmperyCenter
 				{
 					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
 					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-					rewards.push_back(std::make_pair(resource_id,count));
+					rewards.push_back(std::make_pair(resource_id, count));
 				}
-				if(!elem.stage_reward.emplace(stage3, rewards).second){
+				if (!elem.stage_reward.emplace(stage3, rewards).second) {
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage3 = ", stage3);
 					DEBUG_THROW(Exception, sslit("Duplicate task stage3 reward"));
 				}
@@ -217,9 +182,9 @@ namespace EmperyCenter
 				{
 					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
 					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-					rewards.push_back(std::make_pair(resource_id,count));
+					rewards.push_back(std::make_pair(resource_id, count));
 				}
-				if(!elem.stage_reward.emplace(stage4, rewards).second){
+				if (!elem.stage_reward.emplace(stage4, rewards).second) {
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage4 = ", stage4);
 					DEBUG_THROW(Exception, sslit("Duplicate task stage4 reward"));
 				}
@@ -411,7 +376,7 @@ namespace EmperyCenter
 			}
 		}
 
-		std::uint64_t TaskDaily::get_legion_package_task_num()
+		unsigned TaskDaily::get_legion_package_task_num(unsigned level)
 		{
 			PROFILE_ME;
 
@@ -419,75 +384,42 @@ namespace EmperyCenter
 
 			get_all_legion_package_task(ret);
 
-			return ret.size();
+			unsigned count = 0;
+			for (auto it = ret.begin(); it != ret.end(); ++it)
+			{
+				const auto &task_data = *it;
+				if ((level < task_data->level_limit_min) || (task_data->level_limit_max < level))
+				{
+					continue;
+				}
+				count++;
+			}
+
+			return count;
 		}
-		///***********************************************************************************************/
-		//boost::shared_ptr<const TaskLegionPackage> TaskLegionPackage::get(TaskId task_id)
-		//{
-		//	PROFILE_ME;
 
-		//	const auto task_legion_package_container = g_task_legion_package_container.lock();
-		//	if (!task_legion_package_container)
-		//	{
-		//		LOG_EMPERY_CENTER_WARNING("task_legion_package_container has not been loaded.");
-		//		return{};
-		//	}
+		void TaskDaily::get_all_legion_task(std::vector<boost::shared_ptr<const TaskDaily>>& ret)
+		{
+			PROFILE_ME;
 
-		//	const auto it = task_legion_package_container->find(task_id);
-		//	if (it == task_legion_package_container->end())
-		//	{
-		//		LOG_EMPERY_CENTER_TRACE("task_legion_package_container not found: task_id = ", task_id);
-		//		return{};
-		//	}
-		//	return boost::shared_ptr<const TaskLegionPackage>(task_legion_package_container, &(it->second));
-		//}
+			const auto task_daily_container = g_task_daily_container.lock();
+			if (!task_daily_container)
+			{
+				LOG_EMPERY_CENTER_WARNING("TaskDailyContainer has not been loaded.");
+				return;
+			}
 
-		//boost::shared_ptr<const TaskLegionPackage> TaskLegionPackage::require(TaskId task_id)
-		//{
-		//	PROFILE_ME;
+			ret.reserve(ret.size() + task_daily_container->size());
+			for (auto it = task_daily_container->begin(); it != task_daily_container->end(); ++it)
+			{
+				if ((it->second).task_class_1 == ETaskLegion_Class)
+				{
+					ret.emplace_back(task_daily_container, &(it->second));
+				}
+			}
+		}
 
-		//	auto ret = get(task_id);
-		//	if (!ret)
-		//	{
-		//		LOG_EMPERY_CENTER_WARNING("TaskLegionPackage not found: task_id = ", task_id);
-		//		DEBUG_THROW(Exception, sslit("TaskLegionPackage not found"));
-		//	}
-		//	return ret;
-		//}
-
-		//void TaskLegionPackage::get_all(std::vector<boost::shared_ptr<const TaskLegionPackage>>& ret)
-		//{
-		//	PROFILE_ME;
-
-		//	const auto task_legion_package_container = g_task_legion_package_container.lock();
-		//	if (!task_legion_package_container)
-		//	{
-		//		LOG_EMPERY_CENTER_WARNING("task_legion_package_container has not been loaded.");
-		//		return;
-		//	}
-
-		//	LOG_EMPERY_CENTER_ERROR(" ret.size()->", ret.size(), "task_legion_package_container->size()->", task_legion_package_container->size());
-		//	ret.reserve(ret.size() + task_legion_package_container->size());
-		//	for (auto it = task_legion_package_container->begin(); it != task_legion_package_container->end(); ++it)
-		//	{
-		//		LOG_EMPERY_CENTER_ERROR(" TaskLegionPackage::get_all");
-		//		ret.emplace_back(task_legion_package_container, &(it->second));
-		//	}
-		//}
-
-		//std::uint64_t TaskLegionPackage::get_legion_package_task_num()
-		//{
-		//	PROFILE_ME;
-
-		//	std::vector<boost::shared_ptr<const TaskLegionPackage>> ret;
-
-		//	get_all(ret);
-
-		//	return ret.size();
-		//}
-		///***********************************************************************************************/
-
-		boost::shared_ptr<const TaskLegion> TaskLegion::get(TaskId task_id){
+		boost::shared_ptr<const TaskLegion> TaskLegion::get(TaskId task_id) {
 			PROFILE_ME;
 
 			const auto task_legion_container = g_task_legion_container.lock();
@@ -506,7 +438,7 @@ namespace EmperyCenter
 			return boost::shared_ptr<const TaskLegion>(task_legion_container, &(it->second));
 		}
 
-		boost::shared_ptr<const TaskLegion> TaskLegion::require(TaskId task_id){
+		boost::shared_ptr<const TaskLegion> TaskLegion::require(TaskId task_id) {
 			PROFILE_ME;
 
 			auto ret = get(task_id);
@@ -518,7 +450,7 @@ namespace EmperyCenter
 			return ret;
 		}
 
-		void TaskLegion::get_all(std::vector<boost::shared_ptr<const TaskLegion>>& ret){
+		void TaskLegion::get_all(std::vector<boost::shared_ptr<const TaskLegion>>& ret) {
 			PROFILE_ME;
 
 			const auto task_legion_container = g_task_legion_container.lock();
@@ -534,7 +466,7 @@ namespace EmperyCenter
 				ret.emplace_back(task_legion_container, &(it->second));
 			}
 		}
-		boost::shared_ptr<const TaskLegionContribution> TaskLegionContribution::get(TaskLegionKeyId task_legion_key_id){
+		boost::shared_ptr<const TaskLegionContribution> TaskLegionContribution::get(TaskLegionKeyId task_legion_key_id) {
 			PROFILE_ME;
 
 			const auto task_legion_contribution_container = g_task_legion_contribution_container.lock();
@@ -553,7 +485,7 @@ namespace EmperyCenter
 			return boost::shared_ptr<const TaskLegionContribution>(task_legion_contribution_container, &(it->second));
 		}
 
-		boost::shared_ptr<const TaskLegionContribution> TaskLegionContribution::require(TaskLegionKeyId task_legion_key_id){
+		boost::shared_ptr<const TaskLegionContribution> TaskLegionContribution::require(TaskLegionKeyId task_legion_key_id) {
 			PROFILE_ME;
 
 			auto ret = get(task_legion_key_id);

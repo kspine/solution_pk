@@ -33,6 +33,10 @@ constexpr AccountAttributeId
 	ID_GOLD_PAYMENT_ENABLED           ( 403 ),
 	ID_LAST_CHAT_TIME_KING            ( 404 ),
 
+	ID_LEGION_UUID            		  ( 410 ),
+	ID_LEAGUE_UUID            		  ( 411 ),
+	ID_LEAGUE_CAHT_FALG            	  ( 412 ),
+
 	ID_VERIF_CODE                     ( 500 ),
 	ID_VERIF_CODE_EXPIRY_TIME         ( 501 ),
 	ID_VERIF_CODE_COOLDOWN            ( 502 ),

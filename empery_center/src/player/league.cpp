@@ -674,5 +674,165 @@ namespace EmperyCenter {
         return Response();
     }
 
+    PLAYER_SERVLET(Msg::CS_AttornLeagueReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        // 判断玩家是否已经有军团
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        else
+        {
+            // 是否有权限
+			const auto titileid = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
+			if(titileid != 1)
+			{
+                // 不是军团长，没有权限
+				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
+			}
+
+            // 指定的军团是否存在
+            const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+            if(legion)
+            {
+                // 发消息去联盟服务器league
+                Msg::SL_AttornLeagueReq msg;
+                msg.account_uuid = account_uuid.str();
+                msg.legion_uuid = member->get_legion_uuid().str();
+                msg.target_legion_uuid = req.legion_uuid;
+                msg.bCancle = req.bCancle;
+
+                const auto league = LeagueClient::require();
+
+                auto tresult = league->send_and_wait(msg);
+
+                LOG_EMPERY_CENTER_DEBUG("CS_AttornLeagueReqMessage response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+                return Response(std::move(tresult.first));
+            }
+            else
+            {
+                 return Response(Msg::ERR_LEGION_CANNOT_FIND);
+            }
+
+        }
+
+        return Response();
+    }
+
+    PLAYER_SERVLET(Msg::CS_LeaguenMemberGradeReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        // 判断玩家是否已经有军团
+        const auto& member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        else
+        {
+            // 是否有权限
+			const auto titileid = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
+			if(titileid != 1)
+			{
+                // 不是军团长，没有权限
+				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
+			}
+
+            // 指定的军团是否存在
+            const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+            if(legion)
+            {
+                // 发消息去联盟服务器league
+                Msg::SL_LeaguenMemberGradeReq msg;
+                msg.account_uuid = account_uuid.str();
+                msg.legion_uuid = member->get_legion_uuid().str();
+                msg.target_legion_uuid = req.legion_uuid;
+                msg.bup = req.bup;
+
+                const auto league = LeagueClient::require();
+
+                auto tresult = league->send_and_wait(msg);
+
+                LOG_EMPERY_CENTER_DEBUG("CS_LeaguenMemberGradeReqMessage response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+                return Response(std::move(tresult.first));
+            }
+            else
+            {
+                 return Response(Msg::ERR_LEGION_CANNOT_FIND);
+            }
+
+        }
+
+        return Response();
+    }
+
+    PLAYER_SERVLET(Msg::CS_banChatLeagueReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        // 判断玩家是否已经有军团
+        const auto& member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        else
+        {
+            // 是否有权限
+			const auto titileid = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
+			if(titileid != 1)
+			{
+                // 不是军团长，没有权限
+				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
+			}
+
+            // 指定的军团是否存在
+            const auto& target_member = LegionMemberMap::get_by_account_uuid(AccountUuid(req.target_account_uuid));
+            if(!target_member)
+            {
+                return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+            }
+
+            const auto& legion = LegionMap::get(member->get_legion_uuid());
+            const auto& target_legion = LegionMap::get(target_member->get_legion_uuid());
+            if(legion && target_legion)
+            {
+                // 发消息去联盟服务器league
+                Msg::SL_banChatLeagueReq msg;
+                msg.account_uuid = account_uuid.str();
+                msg.legion_uuid = member->get_legion_uuid().str();
+                msg.target_legion_uuid = target_member->get_legion_uuid().str();
+                msg.target_account_uuid = req.target_account_uuid;
+                msg.bban = req.bban;
+
+                const auto league = LeagueClient::require();
+
+                auto tresult = league->send_and_wait(msg);
+
+                LOG_EMPERY_CENTER_DEBUG("CS_banChatLeagueReqMessage response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+                return Response(std::move(tresult.first));
+            }
+            else
+            {
+                 return Response(Msg::ERR_LEGION_CANNOT_FIND);
+            }
+
+        }
+
+        return Response();
+    }
 
 }

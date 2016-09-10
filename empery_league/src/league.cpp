@@ -166,7 +166,7 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 	msg.league_notice     		= 	get_attribute(LeagueAttributeIds::ID_CONTENT);
 	msg.league_level     		= 	boost::lexical_cast<std::uint64_t>(get_attribute(LeagueAttributeIds::ID_LEVEL));
 	msg.leader_legion_uuid		=   get_attribute(LeagueAttributeIds::ID_LEADER);
-	msg.create_account_uuid		=   get_create_uuid().str();
+//	msg.create_account_uuid		=   get_create_uuid().str();
 
 	// 根据account_uuid查找是否有军团
 	std::vector<boost::shared_ptr<LeagueMember>> members;

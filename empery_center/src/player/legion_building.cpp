@@ -114,7 +114,7 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                 // 是否已经有该建筑物，以后可以扩展该建筑物的数量
                 std::vector<boost::shared_ptr<LegionBuilding>> buildings;
                 LegionBuildingMap::find_by_type(buildings,LegionUuid(member->get_legion_uuid()),req.map_object_type_id);
-                if(buildings.size() > 10)
+                if(buildings.size() > 1)
                 {
                     return Response(Msg::ERR_LEGION_BUILDING_CREATE_LIMIT);
                 }

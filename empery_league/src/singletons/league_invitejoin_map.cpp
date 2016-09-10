@@ -198,7 +198,7 @@ void LeagueInviteJoinMap::synchronize_with_player(const boost::shared_ptr<League
 			elem.league_uuid = league->get_league_uuid().str();
 			elem.league_name = league->get_nick();
             elem.league_icon = league->get_attribute(LeagueAttributeIds::ID_ICON);
-			elem.league_leader_uuid = league->get_create_uuid().str();
+			elem.league_leader_uuid = league->get_attribute(LeagueAttributeIds::ID_LEADER);
 		}
 
 	}
