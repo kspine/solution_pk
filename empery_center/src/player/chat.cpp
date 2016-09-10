@@ -24,7 +24,8 @@
 #include "../reason_ids.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../singletons/legion_member_map.hpp"
-#include "../msg/err_legion.hpp"
+#include "../msg/err_league.hpp"
+#include "../legion_member.hpp"
 
 namespace EmperyCenter {
 
@@ -141,14 +142,21 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 		const auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
 		if(member)
 		{
-	
-		//	const auto result = account->league_chat(message);
+			if(account->get_attribute(AccountAttributeIds::ID_LEAGUE_CAHT_FALG) == "1")
+			{
+				return Response(Msg::ERR_LEAGUE_BAN_CHAT);
+			}
+			else
+			{
+				// 本来是在account增加个方法，但是不想在account上加代码，就先写在军团成员里
+				const auto result = member->league_chat(message);
 
-		//	return Response(result);
+				return Response(result);
+			}
 		}
 		else
 		{
-			return Response(Msg::ERR_LEGION_NOT_JOIN);
+			return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
 		}
 	}
 

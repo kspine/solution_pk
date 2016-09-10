@@ -34,6 +34,7 @@ namespace Msg {
 		ERR_LEAGUE_LEVEL_CANNOT_SAME						= 74022,		// 不能调整到和自己同等级
 		ERR_LEAGUE_LEVEL_MEMBERS_LIMIT						= 74023,		// 当前等级的人数已达上限
 		ERR_LEAGUE_TARGET_NO_POWER							= 74024,		// 目标无对应权限
+		ERR_LEAGUE_BAN_CHAT									= 74025,		// 已经被禁言
 		/*
 		ERR_LEGION_CREATE_NOTENOUGH_MONEY               	= 73001,		// 创建资源不足
 		ERR_LEGION_CREATE_HOMONYM              				= 73002,		// 军团名已存在

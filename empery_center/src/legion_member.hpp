@@ -18,6 +18,7 @@ namespace MySql {
 
 class PlayerSession;
 class Account;
+class ChatMessage;
 
 class LegionMember : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -59,6 +60,9 @@ public:
 		}
 		return boost::lexical_cast<T>(str);
 	}
+
+	// 军团成员在联盟中聊天
+	int league_chat(const boost::shared_ptr<ChatMessage> &message);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

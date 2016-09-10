@@ -5,6 +5,7 @@
 #include "singletons/legion_map.hpp"
 #include "msg/cs_legion.hpp"
 #include "msg/sc_legion.hpp"
+#include "msg/sl_league.hpp"
 #include "player_session.hpp"
 #include "legion.hpp"
 #include "legion_member.hpp"
@@ -12,6 +13,8 @@
 #include "singletons/account_map.hpp"
 #include "singletons/legion_member_map.hpp"
 #include "account_attribute_ids.hpp"
+#include "singletons/league_client.hpp"
+#include "chat_message.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include "legion_task_contribution_box.hpp"
 #include "singletons/legion_task_contribution_box_map.hpp"
@@ -184,6 +187,39 @@ void LegionMember::synchronize_with_player(const boost::shared_ptr<PlayerSession
 	msg.activated       = has_been_activated();
 	session->send(msg);
 	*/
+}
+
+int LegionMember::league_chat(const boost::shared_ptr<ChatMessage> &message)
+{
+	PROFILE_ME;
+
+	// 发消息去联盟服务器league
+	Msg::SL_LeagueChatReq msg;
+	msg.account_uuid = get_account_uuid().str();
+	msg.legion_uuid =  get_legion_uuid().str();
+	msg.chat_message_uuid = message->get_chat_message_uuid().str();
+	msg.channel = boost::lexical_cast<uint64_t>(message->get_channel());
+	msg.type = boost::lexical_cast<uint64_t>(message->get_type());
+	msg.language_id = boost::lexical_cast<uint64_t>(message->get_language_id());
+	msg.created_time = message->get_created_time();
+	const auto& chat_segments = message->get_segments();
+	msg.segments.reserve(chat_segments.size());
+	for(auto it = chat_segments.begin(); it != chat_segments.end(); ++it)
+	{
+		auto &elem = *msg.segments.emplace(msg.segments.end());
+		elem.slot = boost::lexical_cast<uint64_t>(it->first);
+		elem.value = it->second;
+	}
+
+	const auto& league = LeagueClient::require();
+
+	auto tresult = league->send_and_wait(msg);
+
+    LOG_EMPERY_CENTER_DEBUG("league_chat response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+    return boost::lexical_cast<int>(std::move(tresult.first));
+
+
 }
 
 }

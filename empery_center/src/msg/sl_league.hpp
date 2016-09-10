@@ -162,6 +162,23 @@ namespace Msg {
 	FIELD_VUINT         (bban)
 #include <poseidon/cbpp/message_generator.hpp>
 
+
+#define MESSAGE_NAME    SL_LeagueChatReq
+#define MESSAGE_ID      58819
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_STRING        (chat_message_uuid)	\
+	FIELD_VUINT         (channel)	\
+	FIELD_VUINT         (type)	\
+	FIELD_VUINT         (language_id)	\
+	FIELD_VUINT         (created_time)	\
+	FIELD_ARRAY         (segments,	\
+		FIELD_VUINT         (slot)	\
+		FIELD_STRING        (value)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

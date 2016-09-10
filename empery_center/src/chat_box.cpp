@@ -82,6 +82,12 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 	} else if(channel == ChatChannelIds::ID_TRADE){
 		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_TRADE_CHANNEL);
 	}
+	else if(channel == ChatChannelIds::ID_LEGION){
+		max_count_in_channel = 8;
+	}
+	else if(channel == ChatChannelIds::ID_UNION){
+		max_count_in_channel = 9999;
+	}
 	if(max_count_in_channel == 0){
 		LOG_EMPERY_CENTER_WARNING("Channel capacity is zero: channel = ", channel);
 		return;

@@ -5,6 +5,7 @@
 #include "../msg/sl_league.hpp"
 #include "../msg/sc_league.hpp"
 #include "../msg/err_legion.hpp"
+#include "../msg/err_chat.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/account_map.hpp"
@@ -23,6 +24,12 @@
 #include "../legion_attribute_ids.hpp"
 #include "../legion_member.hpp"
 #include "../account_attribute_ids.hpp"
+#include "../chat_channel_ids.hpp"
+#include "../chat_message_type_ids.hpp"
+#include "../chat_message_slot_ids.hpp"
+#include "../chat_box.hpp"
+#include "../chat_message.hpp"
+#include "../singletons/chat_box_map.hpp"
 #include <poseidon/async_job.hpp>
 
 
@@ -440,5 +447,87 @@ LEAGUE_SERVLET(Msg::LS_banChatLeagueReq, server, req){
 
 	return Response();
 }
+
+LEAGUE_SERVLET(Msg::LS_LeagueChat, server, req){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("LS_LeagueChat=================== ", req.account_uuid);
+
+	const auto account_uuid = AccountUuid(req.account_uuid);
+
+	const auto account = AccountMap::get(account_uuid);
+	if(account)
+	{
+		// 
+
+		const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(member)
+        {
+			std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
+			segments.reserve(req.segments.size());
+			for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
+				const auto slot = ChatMessageSlotId(it->slot);
+				if((slot != ChatMessageSlotIds::ID_TEXT) && (slot != ChatMessageSlotIds::ID_SMILEY) && (slot != ChatMessageSlotIds::ID_VOICE)){
+					return Response(Msg::ERR_INVALID_CHAT_MESSAGE_SLOT) <<slot;
+				}
+				segments.emplace_back(slot, std::move(it->value));
+			}
+
+			const auto message = boost::make_shared<ChatMessage>(
+				ChatMessageUuid(req.chat_message_uuid), ChatChannelId(req.channel), ChatMessageTypeId(req.type), LanguageId(req.language_id), req.created_time, AccountUuid(req.account_uuid), std::move(segments));
+
+           for(auto it = req.legions.begin(); it != req.legions.end(); ++it )
+			{
+				auto info = *it;
+
+				const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
+				if(legion)
+				{
+					// 根据account_uuid查找是否有军团
+					std::vector<boost::shared_ptr<LegionMember>> members;
+					LegionMemberMap::get_by_legion_uuid(members, legion->get_legion_uuid());
+
+					LOG_EMPERY_CENTER_INFO("get_by_legion_uuid legion members size*******************",members.size());
+
+					if(!members.empty())
+					{
+
+						for(auto it = members.begin(); it != members.end(); ++it )
+						{
+							auto info = *it;
+
+							// 判断是否在线
+							const auto target_session = PlayerSessionMap::get(AccountUuid(info->get_account_uuid()));
+							if(target_session)
+							{
+								try {
+								Poseidon::enqueue_async_job(
+									[=]() mutable {
+										PROFILE_ME;
+										const auto other_chat_box = ChatBoxMap::require(info->get_account_uuid());
+										other_chat_box->insert(message);
+
+										LOG_EMPERY_CENTER_INFO("LegionMemberMap::chat 有人说话  内容已转发============");
+									});
+								} catch(std::exception &e){
+									LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+									target_session->shutdown(e.what());
+								}
+							}
+						}
+					}
+				}
+			}
+        }
+	}
+	else
+	{
+		return Response(Msg::ERR_LEGION_CANNOT_FIND);
+	}
+
+	return Response();
+}
+
+
 
 }
