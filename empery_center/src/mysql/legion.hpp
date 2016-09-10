@@ -4,9 +4,7 @@
 #include <poseidon/mysql/object_base.hpp>
 
 namespace EmperyCenter {
-
-namespace MySql {
-
+	namespace MySql {
 #define MYSQL_OBJECT_NAME   Center_Legion
 #define MYSQL_OBJECT_FIELDS \
     FIELD_UUID              (legion_uuid)	\
@@ -14,7 +12,6 @@ namespace MySql {
     FIELD_UUID            	(creater_uuid)	\
     FIELD_DATETIME          (created_time)
 #include <poseidon/mysql/object_generator.hpp>
-
 
 #define MYSQL_OBJECT_NAME   Center_LegionAttribute
 #define MYSQL_OBJECT_FIELDS \
@@ -30,14 +27,12 @@ namespace MySql {
     FIELD_DATETIME          (join_time)
 #include <poseidon/mysql/object_generator.hpp>
 
-
 #define MYSQL_OBJECT_NAME   Center_LegionMemberAttribute
 #define MYSQL_OBJECT_FIELDS \
     FIELD_UUID              (account_uuid)	\
     FIELD_INTEGER_UNSIGNED  (legion_member_attribute_id)	\
     FIELD_STRING            (value)
 #include <poseidon/mysql/object_generator.hpp>
-
 
 #define MYSQL_OBJECT_NAME   Center_LegionApplyJoin
 #define MYSQL_OBJECT_FIELDS \
@@ -54,7 +49,6 @@ namespace MySql {
     FIELD_DATETIME          (invite_time)
 #include <poseidon/mysql/object_generator.hpp>
 
-
 #define MYSQL_OBJECT_NAME   Center_Legion_Package_Share
 #define MYSQL_OBJECT_FIELDS \
     FIELD_UUID              (share_uuid)	\
@@ -68,14 +62,13 @@ namespace MySql {
 
 #include <poseidon/mysql/object_generator.hpp>
 
-
 #define MYSQL_OBJECT_NAME   Center_Legion_Package_Pick_Share
 #define MYSQL_OBJECT_FIELDS \
     FIELD_UUID              (share_uuid)	\
     FIELD_UUID              (account_uuid)	\
-    FIELD_INTEGER_UNSIGNED  (share_package_status)
+    FIELD_INTEGER_UNSIGNED  (share_package_status) \
+    FIELD_DATETIME          (share_package_pick_time)
 #include <poseidon/mysql/object_generator.hpp>
-
 
 #define MYSQL_OBJECT_NAME   Center_LegionBuilding
 #define MYSQL_OBJECT_FIELDS \
@@ -91,10 +84,7 @@ namespace MySql {
     FIELD_INTEGER_UNSIGNED  (legion_building_attribute_id)	\
     FIELD_STRING            (value)
 #include <poseidon/mysql/object_generator.hpp>
-
-
-}
-
+	}
 }
 
 #endif

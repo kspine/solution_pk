@@ -20,6 +20,7 @@ namespace MySql {
 	class League_LeagueAttribute;
 }
 
+class LeagueSession;
 
 class League : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -40,6 +41,18 @@ public:
 		LEAGUE_POWER_EXPAND 		= 13,	// 联盟扩张
 	};
 
+	enum LEAGUE_NOTICE_MSG_TYPE
+	{
+		LEAGUE_NOTICE_MSG_TYPE_JOIN 			= 1,	// 有成员加入
+		LEAGUE_NOTICE_MSG_TYPE_QUIT 			= 2,	// 有成员离开
+		LEAGUE_NOTICE_MSG_TYPE_KICK 			= 3,	// 有成员被踢出
+		LEAGUE_NOTICE_MSG_TYPE_GRADE_UP 		= 4,	// 成员职位升级
+		LEAGUE_NOTICE_MSG_TYPE_GRADE_DOWN 		= 5,	// 成员职位降级
+		LEAGUE_NOTICE_MSG_TYPE_ATTORN 			= 6,	// 转让盟主
+		LEAGUE_NOTICE_MSG_TYPE_SPEACK 			= 7,	// 禁言
+		LEAGUE_NOTICE_MSG_TYPE_EXPAND  			= 8,	// 联盟扩张
+	};
+
 public:
 
 	static std::pair<boost::shared_ptr<const Poseidon::JobPromise>, boost::shared_ptr<League>> async_create(
@@ -50,6 +63,8 @@ private:
 
 	boost::container::flat_map<LeagueAttributeId,
 		boost::shared_ptr<MySql::League_LeagueAttribute>> m_attributes;
+
+	boost::weak_ptr<LeagueSession> m_leaguesession;
 
 public:
 	League(boost::shared_ptr<MySql::League_Info> obj,
@@ -78,6 +93,14 @@ public:
 
 	const std::string &get_nick() const;
 
+	const boost::weak_ptr<LeagueSession> &get_weak_controller() const {
+		return m_leaguesession;
+	}
+	boost::shared_ptr<LeagueSession> get_controller() const {
+		return m_leaguesession.lock();
+	}
+	void set_controller(const boost::shared_ptr<LeagueSession> &controller);
+
 	// 初始化属性
 	void InitAttributes(LegionUuid legion_uuid,std::string content, std::string language, std::string icon,unsigned bautojoin);
 	// 增加成员
@@ -85,6 +108,9 @@ public:
 
 	// 联盟解散的善后操作
 	void disband();
+
+	// 发送通知消息
+	void sendNoticeMsg(std::uint64_t msgtype,std::string nick,std::string ext1);
 
 	const std::string &get_attribute(LeagueAttributeId account_attribute_id) const;
 	void get_attributes(boost::container::flat_map<LeagueAttributeId, std::string> &ret) const;

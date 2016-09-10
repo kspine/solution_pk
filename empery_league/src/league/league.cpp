@@ -81,6 +81,8 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 
 	LeagueMap::insert(league);
 
+	league->set_controller(league_session);
+
 //	count = LeagueMap::get_count();
 //	LOG_EMPERY_CENTER_INFO("SL_LeagueCreated count:", count);
 
@@ -111,6 +113,8 @@ LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_session, req){
 	const auto& league = leagues.at(0);
 
 	league->synchronize_with_player(league_session,AccountUuid(req.account_uuid),legion_uuid);
+
+	league->set_controller(league_session);
 
 	return Response(Msg::ST_OK);
 
@@ -840,6 +844,9 @@ LEAGUE_SERVLET(Msg::SL_ExpandLeagueRes, league_session, req){
 
 			league->set_attributes(std::move(Attributes));
 
+			// 广播通知下
+			league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_EXPAND,"",league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
+
 			return Response(Msg::ST_OK);
 		}
 		else
@@ -1255,6 +1262,9 @@ LEAGUE_SERVLET(Msg::SL_LeaguenMemberGradeReq, league_session, req){
 						boost::container::flat_map<LeagueMemberAttributeId, std::string> modifiers;
 						modifiers[LeagueMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(titleid -1);
 						target_member->set_attributes(modifiers);
+
+						// 广播通知下
+						league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_GRADE_UP,"",req.target_legion_uuid);
 					}
 					else
 					{
@@ -1286,6 +1296,9 @@ LEAGUE_SERVLET(Msg::SL_LeaguenMemberGradeReq, league_session, req){
 						boost::container::flat_map<LeagueMemberAttributeId, std::string> modifiers;
 						modifiers[LeagueMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(titleid +1);
 						target_member->set_attributes(modifiers);
+
+						// 广播通知下
+						league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_GRADE_DOWN,"",req.target_legion_uuid);
 					}
 					else
 					{

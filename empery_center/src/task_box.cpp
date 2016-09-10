@@ -351,17 +351,20 @@ namespace EmperyCenter {
 			}
 			const auto &progress = it->second.second;
 			const auto task_data = Data::TaskDaily::require(task_id);
-			if (task_data->task_class_1 == Data::TaskDaily::ETaskLegionPackage_Class)
+			if (task_data->task_class_1 != Data::TaskDaily::ETaskLegionPackage_Class)
 			{
-				if (!has_task_been_accomplished(task_data.get(), *progress))
-				{
-					++it;
-					continue;
-				}
-
-				LOG_EMPERY_CENTER_DEBUG("> Removing expired task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
-				it = m_tasks.erase(it);
+				++it;
+				continue;
 			}
+
+			if (!has_task_been_accomplished(task_data.get(), *progress))
+			{
+				++it;
+				continue;
+			}
+
+			LOG_EMPERY_CENTER_DEBUG("> Removing expired task: account_uuid = ", get_account_uuid(), ", task_id = ", task_id);
+			it = m_tasks.erase(it);
 		}
 	}
 

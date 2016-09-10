@@ -507,9 +507,11 @@ namespace EmperyCenter
 		//领取信息存储
 		// LOG_EMPERY_CENTER_DEBUG("CS_ReceiveSharedRewardReqMessage
 		// =============接收者领取分享礼包流程{记录军团分享礼包领取记录:开始} ");
+
+		auto share_package_pick_time = Poseidon::get_utc_time();
 		auto obj = boost::make_shared<MySql::Center_Legion_Package_Pick_Share>(
 			unique_share_uuid.get(), unique_account_uuid.get(),
-			(uint64_t)EPickShareStatus_Received);
+			(uint64_t)EPickShareStatus_Received, share_package_pick_time);
 
 		obj->enable_auto_saving();
 

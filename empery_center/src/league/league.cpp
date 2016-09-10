@@ -528,6 +528,60 @@ LEAGUE_SERVLET(Msg::LS_LeagueChat, server, req){
 	return Response();
 }
 
+LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("LS_LeagueNoticeMsg=================== ", req.msgtype);
+
+	Msg::SC_LeagueNoticeMsg msg;
+	msg.msgtype = req.msgtype;
+	msg.nick = req.nick;
+	msg.ext1 = req.ext1;
+
+	if(msg.msgtype == 6)
+	{
+		const auto& legion = LegionMap::get(LegionUuid(msg.nick));
+		if(legion)
+		{
+			msg.nick = legion->get_nick();
+		}
+	}
+	if(msg.msgtype == 1 || msg.msgtype == 2 || msg.msgtype == 3 || msg.msgtype == 6)
+	{
+		const auto& legion = LegionMap::get(LegionUuid(req.ext1));
+		if(legion)
+		{
+			msg.ext1 = legion->get_nick();
+		}
+	}
+	else if(msg.msgtype == 3 || msg.msgtype == 4)
+	{
+		const auto& legion = LegionMap::get(LegionUuid(req.ext1));
+		if(legion)
+		{
+			msg.ext1 = legion->get_nick();
+
+			const auto leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+			if(leader_account)
+				msg.nick = leader_account->get_nick();
+		}
+	}
+
+	for(auto it = req.legions.begin(); it != req.legions.end(); ++it)
+	{
+		auto info = *it;
+
+		const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
+		if(legion)
+		{
+			legion->broadcast_to_members(msg);
+		}
+	}
+
+	return Response();
+}
+
+
 
 
 }

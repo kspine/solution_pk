@@ -560,6 +560,15 @@ void LeagueMemberMap::check_in_waittime()
 							league->sendNoticeMsg(msg);
 						}
 						*/
+						// 广播通知下
+						if(bkick)
+						{
+							league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_KICK,"",member->get_legion_uuid().str());
+						}
+						else
+						{
+							league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_QUIT,"",member->get_legion_uuid().str());
+						}
 
 						LeagueMemberMap::deletemember(member->get_legion_uuid(),false);
 
@@ -642,6 +651,8 @@ void LeagueMemberMap::check_in_waittime()
 									// 转让成功，重置转让等待时间
 									bAttorn = true;
 									strlead = LegionUuid(target_uuid).str();
+									// 广播通知下
+									league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_ATTORN,member->get_legion_uuid().str(),target_member->get_legion_uuid().str());
 								}
 							}
 						}

@@ -1,5 +1,4 @@
-﻿
-#ifndef EMPERY_CENTER_SINGLETONS_LEGION_PACKAGE_PICK_SHARE_MAP_HPP_
+﻿#ifndef EMPERY_CENTER_SINGLETONS_LEGION_PACKAGE_PICK_SHARE_MAP_HPP_
 #define EMPERY_CENTER_SINGLETONS_LEGION_PACKAGE_PICK_SHARE_MAP_HPP_
 
 #include <string>
@@ -17,7 +16,7 @@ namespace EmperyCenter
 
 	class PlayerSession;
 
-	enum EPickShareStatus{ EPickShareStatus_UnReceived, EPickShareStatus_Received };
+	enum EPickShareStatus { EPickShareStatus_UnReceived, EPickShareStatus_Received };
 
 	struct LegionPackagePickShareMap
 	{
@@ -25,17 +24,18 @@ namespace EmperyCenter
 
 		static void get_by_share_uuid(std::vector<boost::shared_ptr<MySql::Center_Legion_Package_Pick_Share>> &ret, AccountUuid account_uuid);
 
-		static bool check_share_package_status(LegionPackageShareUuid share_uuid,AccountUuid account_uuid);
+		static bool check_share_package_status(LegionPackageShareUuid share_uuid, AccountUuid account_uuid);
 
-	 public:
-			enum EIndex
-			{
-				EIndex_share_uuid,
-				EIndex_account_uuid,
-				EIndex_share_package_status
-			};
-		private:
-		  LegionPackagePickShareMap() = delete;
+	public:
+		enum EIndex
+		{
+			EIndex_share_uuid,
+			EIndex_account_uuid,
+			EIndex_share_package_status,
+			EIndex_share_package_pick_time
+		};
+	private:
+		LegionPackagePickShareMap() = delete;
 	};
 }
 

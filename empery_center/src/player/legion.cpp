@@ -2063,11 +2063,11 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  之前个人贡献 ===========",member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 
 								boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
-								
+
 								auto strdotan = std::ceil(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num * 100  / dvalue * mvalue);
 								if(strdotan > Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT))
 									strdotan = Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT);
-								
+
 								Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(strdotan);
 
 								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  捐献后个人贡献 ===========",strdotan);
@@ -2085,19 +2085,19 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							msg.nick = account->get_nick();
 							msg.ext1 = boost::lexical_cast<std::string>(req.num);
 							legion->sendNoticeMsg(msg);
-							
+
 							//军团捐献任务
 							try{
 								Poseidon::enqueue_async_job([=]{
 									PROFILE_ME;
-									auto donate = req.num / dvalue * mvalue;
+									auto donate = req.num * 100 / dvalue * mvalue;
 									const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 									const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
 									legion_task_box->check(TaskTypeIds::ID_LEGION_DONATE, TaskLegionKeyIds::ID_LEGION_DONATE,donate,account_uuid, 0, 0);
 									legion_task_box->pump_status();
-									
+
 								});
-								
+
 							} catch (std::exception &e){
 								LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 							}

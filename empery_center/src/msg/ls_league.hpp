@@ -126,6 +126,17 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    LS_LeagueNoticeMsg
+#define MESSAGE_ID      51010
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (msgtype)	\
+	FIELD_STRING        (nick)	\
+	FIELD_STRING        (ext1) 	\
+	FIELD_ARRAY         (legions,	\
+		FIELD_STRING        (legion_uuid)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

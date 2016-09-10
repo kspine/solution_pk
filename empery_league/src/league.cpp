@@ -151,6 +151,8 @@ void League::AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned 
 		LOG_EMPERY_LEAGUE_DEBUG("AddMember legion_uuid:", legion_uuid,"  join_time:",join_time," rank:",level);
 
 		LeagueMemberMap::insert(member, std::string());
+
+		sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_JOIN,"",legion_uuid.str());
 	}
 }
 
@@ -168,7 +170,7 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 	msg.leader_legion_uuid		=   get_attribute(LeagueAttributeIds::ID_LEADER);
 //	msg.create_account_uuid		=   get_create_uuid().str();
 
-	// 根据account_uuid查找是否有军团
+	// 找到联盟成员
 	std::vector<boost::shared_ptr<LeagueMember>> members;
 	LeagueMemberMap::get_by_league_uuid(members, get_league_uuid());
 
@@ -192,6 +194,7 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 
 void League::disband()
 {
+	PROFILE_ME;
 	// 清除联盟属性
 	for(auto it = m_attributes.begin(); it != m_attributes.end(); )
 	{
@@ -213,6 +216,55 @@ void League::disband()
 
 	// 清空邀请加入的数据
 	LeagueInviteJoinMap::deleteInfo_by_invited_uuid(get_league_uuid());
+}
+
+void League::set_controller(const boost::shared_ptr<LeagueSession> &controller)
+{
+	PROFILE_ME;
+
+	m_leaguesession = controller;
+
+	LeagueMap::update(virtual_shared_from_this<League>(), false);
+}
+
+void League::sendNoticeMsg(std::uint64_t msgtype,std::string nick,std::string ext1)
+{
+	PROFILE_ME;
+
+	// 找到联盟成员
+	try
+	{
+		std::vector<boost::shared_ptr<LeagueMember>> members;
+		LeagueMemberMap::get_by_league_uuid(members, get_league_uuid());
+		if(!members.empty())
+		{
+			LOG_EMPERY_LEAGUE_INFO(" sendNoticeMsg get_by_league_uuid league members size*******************",members.size());
+
+			EmperyCenter::Msg::LS_LeagueNoticeMsg msg;
+			msg.msgtype = msgtype;
+			msg.nick = nick;
+			msg.ext1 = ext1;
+			msg.legions.reserve(members.size());
+			for(auto it = members.begin(); it != members.end(); ++it )
+			{
+				auto &elem = *msg.legions.emplace(msg.legions.end());
+				auto info = *it;
+
+				elem.legion_uuid = info->get_legion_uuid().str();
+			}
+
+			get_controller()->send(msg);
+		}
+	}
+	catch (const std::exception&)
+	{
+
+	}
+	catch(...)
+	{
+
+	}
+
 }
 
 }
