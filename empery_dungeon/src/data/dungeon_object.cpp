@@ -55,6 +55,7 @@ namespace {
 			csv.get(elem.max_soldier_count,                 "force_mnax");
 			csv.get(elem.hp,                                "hp");
 			csv.get(elem.ai_id,                             "ai_id");
+			csv.get(elem.view,                              "view");
 
 			if(!dungeon_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_DUNGEON_ERROR("Duplicate DungeonObjectType: dungeon_object_type_id = ", elem.dungeon_object_type_id);
@@ -81,6 +82,7 @@ namespace {
 			csvMonster.get(elem.max_soldier_count,                  "force_mnax");
 			csvMonster.get(elem.hp,                                "hp");
 			csvMonster.get(elem.ai_id,                             "ai_id");
+			csvMonster.get(elem.view,                              "view");
 
 			if(!dungeon_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_DUNGEON_ERROR("Duplicate DungeonObjectType: dungeon_object_type_id = ", elem.dungeon_object_type_id);

@@ -64,6 +64,7 @@ namespace {
 			csv.get(elem.defence_type,                      "arm_def_type");
 			csv.get(elem.hp,                                "hp");
 			csv.get(elem.ai_id,                             "ai_id");
+			csv.get(elem.view,                              "view");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -89,6 +90,7 @@ namespace {
 			csvMonster.get(elem.defence_type,                      "arm_def_type");
 			csvMonster.get(elem.hp,                      		   "hp");
 			csvMonster.get(elem.ai_id,                             "ai_id");
+			csvMonster.get(elem.view,                              "view");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);
@@ -121,6 +123,7 @@ namespace {
 			csvBuilding.get(elem.defence_type,                      "arm_def_type");
 			csvBuilding.get(elem.hp,                      		    "hp");
 			csvBuilding.get(elem.ai_id,                             "ai_id");
+			csvBuilding.get(elem.view,                              "view");
 
 			if(!map_object_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CLUSTER_ERROR("Duplicate MapObjectType: map_object_type_id = ", elem.map_object_type_id);

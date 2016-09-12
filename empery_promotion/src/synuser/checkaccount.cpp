@@ -61,9 +61,9 @@ SYNUSER_SERVLET("checkaccount", session, params){
 		const auto level_elem = Data::Promotion::require(it->level);
 		std::sprintf(str, "%u", level_elem->display_level);
 		elem[sslit("level")] = str;
-		info = AccountMap::get(info.referrer_id);
-		if(Poseidon::has_any_flags_of(info.flags, AccountMap::FL_VALID)){
-			elem[sslit("invite")] = std::move(info.login_name);
+		auto referrer_info = AccountMap::get(it->referrer_id);
+		if(Poseidon::has_any_flags_of(referrer_info.flags, AccountMap::FL_VALID)){
+			elem[sslit("invite")] = std::move(referrer_info.login_name);
 		}
 		elem[sslit("tradePassword")] = std::move(it->deal_password_hash);
 		elem[sslit("mobilePhone")] = std::move(it->phone_number);
@@ -74,7 +74,7 @@ SYNUSER_SERVLET("checkaccount", session, params){
 			subordinates.emplace_back(std::move(kit->login_name));
 		}
 		elem[sslit("subordinates")] = std::move(subordinates);
-		elem[sslit("remarks")] = AccountMap::get_attribute(info.account_id, AccountMap::ATTR_REMARKS);
+		elem[sslit("remarks")] = AccountMap::get_attribute(it->account_id, AccountMap::ATTR_REMARKS);
 		data.emplace_back(std::move(elem));
 	}
 
