@@ -1498,11 +1498,16 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	if(castle->is_buff_in_effect(BuffIds::ID_BATTLE_STATUS)){
 		return Response(Msg::ERR_BATTLE_IN_PROGRESS) <<map_object_uuid;
 	}
+
 	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
 		return Response(Msg::ERR_PROTECTION_IN_PROGRESS) <<map_object_uuid;
 	}
 	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
 		return Response(Msg::ERR_PROTECTION_PREPARATION_IN_PROGRESS) <<map_object_uuid;
+	}
+
+	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
+	   return Response(Msg::ERR_PROTECTION_PREPARATION_IN_PROGRESS) <<map_object_uuid;
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;

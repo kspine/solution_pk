@@ -434,7 +434,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateMonster, dungeon, server, req){
 	modifiers[AttributeIds::ID_MONSTER_START_POINT_X]       = coord.x();
 	modifiers[AttributeIds::ID_MONSTER_START_POINT_Y]       = coord.y();
 	modifiers[AttributeIds::ID_MONSTER_PATROL_DEST_POINT_X] = dest_coord.x();
-	modifiers[AttributeIds::ID_MONSTER_START_POINT_Y]       = dest_coord.y();
+	modifiers[AttributeIds::ID_MONSTER_PATROL_DEST_POINT_Y]      = dest_coord.y();
 	modifiers[AttributeIds::ID_HP_TOTAL]                    = static_cast<std::int64_t>(hp_total);
 
 	auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), monster_uuid,
