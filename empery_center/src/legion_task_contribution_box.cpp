@@ -12,6 +12,7 @@ namespace EmperyCenter {
 	namespace {
 		void fill_task_contribution_info(LegionTaskContributionBox::TaskContributionInfo &info,boost::shared_ptr<MySql::Center_LegionTaskContribution> obj){
 			info.account_uuid        = AccountUuid(obj->get_account_uuid());
+			info.day_personal_contribution = obj->get_day_personal_contribution();
 		    info.day_contribution    = obj->get_day_contribution();
 		    info.week_contribution   = obj->get_week_contribution();
 		    info.total_contribution  = obj->get_total_contribution();
@@ -60,17 +61,18 @@ namespace EmperyCenter {
 			ret.emplace_back(std::move(info));
 		}
 	}
-	void LegionTaskContributionBox::update(AccountUuid account_uuid,std::uint64_t delta) {
+	void LegionTaskContributionBox::update(AccountUuid account_uuid,std::uint64_t delta,std::uint64_t personal_contribute) {
 		PROFILE_ME;
 		const auto utc_now = Poseidon::get_utc_time();
 		const auto it = m_contributions.find(account_uuid);
 		if (it == m_contributions.end()) {
-			const auto obj = boost::make_shared<MySql::Center_LegionTaskContribution>(get_legion_uuid().get(), account_uuid.get(),delta,delta,delta,utc_now);
+			const auto obj = boost::make_shared<MySql::Center_LegionTaskContribution>(get_legion_uuid().get(), account_uuid.get(),personal_contribute,delta,delta,delta,utc_now);
 			obj->async_save(true);
 			m_contributions.emplace(account_uuid,obj);
 			return;
 		}
 		auto &obj = it->second;
+		obj->set_day_personal_contribution(obj->get_day_personal_contribution() + personal_contribute);
 		obj->set_day_contribution(obj->get_day_contribution() + delta);
 		obj->set_week_contribution(obj->get_week_contribution() + delta);
 		obj->set_total_contribution(obj->get_total_contribution() + delta);
@@ -81,6 +83,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 		for(auto it = m_contributions.begin(); it != m_contributions.end(); ++it){
 			const auto &obj = it->second;
+			obj->set_day_personal_contribution(0);
 			obj->set_day_contribution(0);
 			obj->set_week_contribution(0);
 			obj->set_total_contribution(0);
@@ -92,6 +95,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 		for(auto it = m_contributions.begin(); it != m_contributions.end(); ++it){
 			const auto &obj = it->second;
+			obj->set_day_personal_contribution(0);
 			obj->set_day_contribution(0);
 			obj->set_last_update_time(now);
 		}
@@ -114,6 +118,7 @@ namespace EmperyCenter {
 			return;
 		}
 		auto &obj = it->second;
+		obj->set_day_personal_contribution(0);
 		obj->set_day_contribution(0);
 		obj->set_week_contribution(0);
 		obj->set_total_contribution(0);

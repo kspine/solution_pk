@@ -21,6 +21,7 @@ namespace EmperyCenter {
 
 		struct TaskContributionInfo {
 			AccountUuid   account_uuid;
+			std::uint64_t day_personal_contribution;
 			std::uint64_t day_contribution;
 			std::uint64_t week_contribution;
 			std::uint64_t total_contribution;
@@ -48,7 +49,7 @@ namespace EmperyCenter {
 
 		TaskContributionInfo get(AccountUuid   account_uuid) const;
 		void get_all(std::vector<TaskContributionInfo> &ret) const;
-		void update(AccountUuid account_uuid,std::uint64_t delta);
+		void update(AccountUuid account_uuid,std::uint64_t delta,std::uint64_t personal_contribute);
 		void reset(std::uint64_t now) noexcept;
 		void reset_day_contribution(std::uint64_t now) noexcept;
 		void reset_week_contribution(std::uint64_t now) noexcept;
