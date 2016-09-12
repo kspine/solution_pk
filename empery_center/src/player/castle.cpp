@@ -1504,7 +1504,6 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
 		return Response(Msg::ERR_PROTECTION_PREPARATION_IN_PROGRESS) <<map_object_uuid;
 	}
-
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){

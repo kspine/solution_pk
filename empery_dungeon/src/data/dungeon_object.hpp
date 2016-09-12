@@ -29,6 +29,7 @@ namespace Data {
 		std::uint64_t       max_soldier_count;
 		std::uint64_t       hp;
 		std::uint32_t       ai_id;
+		std::uint32_t       view;
 	};
 
 	class DungeonObjectRelative {

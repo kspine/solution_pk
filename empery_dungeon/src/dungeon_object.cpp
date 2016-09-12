@@ -366,9 +366,15 @@ bool DungeonObject::is_in_group_view_scope(boost::shared_ptr<DungeonObject>& tar
 std::uint64_t DungeonObject::get_view_range(){
 	PROFILE_ME;
 
-	return get_shoot_range() + 1 + get_attribute(EmperyCenter::AttributeIds::ID_SIGHT_RANGE_ADD) / 1000.0;
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		return 0;
+	}
+	return dungeon_object_type_data->view + get_attribute(EmperyCenter::AttributeIds::ID_SIGHT_RANGE_ADD) / 1000.0;
 }
 std::uint64_t DungeonObject::get_shoot_range(){
+	PROFILE_ME;
+
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(!dungeon_object_type_data){
 		return 0;
