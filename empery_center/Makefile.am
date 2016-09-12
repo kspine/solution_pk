@@ -45,6 +45,8 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/dungeon_box_map.cpp	\
 	src/singletons/dungeon_map.cpp	\
 	src/singletons/friend_box_map.cpp	\
+	src/singletons/activity_map.cpp \
+	src/singletons/map_activity_accumulate_map.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -58,7 +60,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/task.cpp	\
 	src/data/map_event.cpp	\
 	src/data/dungeon.cpp	\
-	src/data/activity.cpp \
+	src/data/activity.cpp   \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
