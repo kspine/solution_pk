@@ -35,8 +35,8 @@ namespace {
 	)
 	boost::weak_ptr<const DungeonTriggerContainer> g_dungeon_trigger_container;
 
-	const auto MAX_DUNGE_TRIGGER_COUNT = 3;
-	const std::string  DUNGEON_TRIGGER_FILES[MAX_DUNGE_TRIGGER_COUNT] = {"dungeon_trigger_1_1","dungeon_trigger_1_2","dungeon_trigger_1_3"};
+	const auto MAX_DUNGE_TRIGGER_COUNT = 7;
+	const std::string  DUNGEON_TRIGGER_FILES[MAX_DUNGE_TRIGGER_COUNT] = {"dungeon_trigger_1_1","dungeon_trigger_1_2","dungeon_trigger_1_3","dungeon_trigger_1_4","dungeon_trigger_1_5","dungeon_trigger_1_6","dungeon_trigger_2_1"};
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		const auto dungeon_trigger_container = boost::make_shared<DungeonTriggerContainer>();
