@@ -7,6 +7,7 @@
 #include "data/task.hpp"
 #include "task_type_ids.hpp"
 #include "account_utilities.hpp"
+#include "msg/sc_task.hpp"
 
 namespace EmperyCenter {
 	namespace {
@@ -58,6 +59,21 @@ namespace EmperyCenter {
 			info.created_time  = obj->get_created_time();
 			info.last_reward_time = obj->get_last_reward_time();
 			info.progress = progress;
+		}
+		
+		void fill_task_reward_message(Msg::SC_TaskLegionRewardChanged &msg, const TaskAwardObjectPair &pair){
+			PROFILE_ME;
+	
+			const auto &obj = pair.first;
+			const auto &progress = pair.second;
+	
+			msg.task_type_id = obj->get_task_type_id();
+			msg.progress.reserve(progress->size());
+			for (auto it = progress->begin(); it != progress->end(); ++it) {
+				auto &elem = *msg.progress.emplace(msg.progress.end());
+				elem.key = it->first;
+				elem.count = it->second;
+			}
 		}
 	}
 
@@ -121,6 +137,19 @@ namespace EmperyCenter {
 		const auto obj = boost::make_shared<MySql::Center_LegionTaskReward>(get_account_uuid().get(), task_type_id.get(),encode_progress(*progress),info.created_time, info.last_reward_time);
 		obj->async_save(true);
 		it = m_tasks.emplace(task_type_id, std::make_pair(obj, progress)).first;
+		
+		//
+		auto session = PlayerSessionMap::get(get_account_uuid());
+		if(session){
+			try {
+				Msg::SC_TaskLegionRewardChanged msg;
+				fill_task_reward_message(msg, it->second);
+				session->send(msg);
+			}
+			catch (std::exception &e) {
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
 	}
 	void LegionTaskRewardBox::update(LegionTaskRewardBox::TaskRewardInfo info, bool throws_if_not_exists) {
 		PROFILE_ME;
@@ -141,6 +170,18 @@ namespace EmperyCenter {
 		*(pair.second) = *(info.progress);
 		obj->set_progress(std::move(progress_str));
 		obj->set_last_reward_time(info.last_reward_time);
+		
+		auto session = PlayerSessionMap::get(get_account_uuid());
+		if(session){
+			try {
+				Msg::SC_TaskLegionRewardChanged msg;
+				fill_task_reward_message(msg, it->second);
+				session->send(msg);
+			}
+			catch (std::exception &e) {
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
 	}
 
 	void LegionTaskRewardBox::reset() noexcept {
@@ -155,6 +196,25 @@ namespace EmperyCenter {
 			obj->set_last_reward_time(0);
 			obj->set_progress(progress_str);
 			pair.second = progress;
+		}
+		auto session = PlayerSessionMap::get(get_account_uuid());
+		if(session){
+			try {
+				synchronize_with_player(session);
+			}
+			catch (std::exception &e) {
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}	
+	}
+	void LegionTaskRewardBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const{
+		PROFILE_ME;
+
+		for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
+			Msg::SC_TaskLegionRewardChanged msg;
+			fill_task_reward_message(msg, it->second);
+			LOG_EMPERY_CENTER_DEBUG("LegionTaskRewardBox task synchronize :",msg);
+			session->send(msg);
 		}
 	}
 }

@@ -585,9 +585,20 @@ namespace EmperyCenter {
 					(void)delta;
 					std::uint64_t person_contribution = delta * task_contribution_data->personal_number / task_contribution_data->out_number;
 					std::uint64_t legion_contribution = delta * task_contribution_data->legion_number / task_contribution_data->out_number;
-					legion_task_contribution_box->update(account_uuid,delta);
+					//
+					bool should_award_personal_contribution = false;
+					LegionTaskContributionBox::TaskContributionInfo task_contribution_info = legion_task_contribution_box->get(account_uuid);
+					std::uint64_t person_contribution_finish = static_cast<std::uint64_t>(Data::Global::as_double(Data::Global::SLOT_LEGION_TASK_PERSONAL_CONTRIBUTE_THRESHOLD));
+					if(task_contribution_info.day_personal_contribution < person_contribution_finish){
+						should_award_personal_contribution = true;
+					}
+					std::uint64_t total_contribution = task_contribution_info.day_personal_contribution + person_contribution;
+					if(total_contribution > person_contribution_finish){
+						person_contribution = person_contribution_finish - task_contribution_info.day_personal_contribution;
+					}
+					legion_task_contribution_box->update(account_uuid,delta,person_contribution);
 					const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
-					if(legion_member && (person_contribution > 0)){
+					if(legion_member && (person_contribution > 0) && should_award_personal_contribution){
 						boost::container::flat_map<LegionMemberAttributeId, std::string> legion_attributes_modifer;
 						std::string donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
 						if(donate.empty()){

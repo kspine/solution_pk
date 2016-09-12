@@ -51,6 +51,7 @@ namespace EmperyCenter {
 		void insert(TaskRewardInfo info);
 		void update(TaskRewardInfo info, bool throws_if_not_exists = true);
 		void reset() noexcept;
+		void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	};
 }
 
