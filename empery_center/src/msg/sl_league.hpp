@@ -179,6 +179,24 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+
+#define MESSAGE_NAME    SL_LookLeagueLegionsReq
+#define MESSAGE_ID      58820
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (league_uuid)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    SL_disbandLegionReq
+#define MESSAGE_ID      58821
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

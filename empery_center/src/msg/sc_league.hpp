@@ -17,13 +17,11 @@ namespace Msg {
 	FIELD_VUINT         (league_level)	\
 	FIELD_STRING        (leader_uuid)	\
 	FIELD_STRING        (leader_name)	\
-	FIELD_VUINT         (league_titleid)	\
 	FIELD_ARRAY         (members,	\
 		FIELD_STRING        (legion_uuid)	\
 		FIELD_STRING        (legion_name)	\
 		FIELD_STRING        (legion_icon)	\
 		FIELD_VUINT         (titleid)	\
-		FIELD_VUINT         (speakflag)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -85,6 +83,29 @@ namespace Msg {
 	FIELD_STRING        (ext1)
 
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_LookLeagueMembers
+#define MESSAGE_ID      1856
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (members,	\
+		FIELD_STRING        (titleid)	\
+		FIELD_STRING        (nick)	\
+		FIELD_STRING        (icon)	\
+		FIELD_VUINT         (prosperity)	\
+		FIELD_STRING        (speakflag)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_LookLeagueLegions
+#define MESSAGE_ID      1857
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (legions,	\
+		FIELD_STRING        (legion_name)	\
+		FIELD_STRING        (legion_icon)	\
+		FIELD_STRING        (legion_leader_name)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 /*
 #define MESSAGE_NAME    SC_LegionMembers

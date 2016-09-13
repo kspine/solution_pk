@@ -152,6 +152,9 @@ void League::AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned 
 
 		LeagueMemberMap::insert(member, std::string());
 
+		// 发邮件
+		sendemail(EmperyCenter::ChatMessageTypeId(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_JOIN),legion_uuid,get_nick());
+		// 广播通知
 		sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_JOIN,"",legion_uuid.str());
 	}
 }
@@ -183,7 +186,6 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 		auto info = *it;
 
 		elem.legion_uuid = info->get_legion_uuid().str();
-		elem.speakflag = boost::lexical_cast<std::uint64_t>(info->get_attribute(LeagueMemberAttributeIds::ID_SPEAKFLAG));
 		elem.titleid = boost::lexical_cast<std::uint64_t>(info->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
 
 	}
@@ -241,6 +243,7 @@ void League::sendNoticeMsg(std::uint64_t msgtype,std::string nick,std::string ex
 			LOG_EMPERY_LEAGUE_INFO(" sendNoticeMsg get_by_league_uuid league members size*******************",members.size());
 
 			EmperyCenter::Msg::LS_LeagueNoticeMsg msg;
+			msg.league_uuid = get_league_uuid().str();
 			msg.msgtype = msgtype;
 			msg.nick = nick;
 			msg.ext1 = ext1;
@@ -253,7 +256,8 @@ void League::sendNoticeMsg(std::uint64_t msgtype,std::string nick,std::string ex
 				elem.legion_uuid = info->get_legion_uuid().str();
 			}
 
-			get_controller()->send(msg);
+			if(get_controller())
+				get_controller()->send(msg);
 		}
 	}
 	catch (const std::exception&)
@@ -264,6 +268,34 @@ void League::sendNoticeMsg(std::uint64_t msgtype,std::string nick,std::string ex
 	{
 
 	}
+
+}
+
+void League::sendemail(EmperyCenter::ChatMessageTypeId ntype,LegionUuid legion_uuid,std::string strnick,std::string str_account_uuid)
+{
+	PROFILE_ME;
+	// 找到联盟成员
+	try
+	{
+		EmperyCenter::Msg::LS_LeagueEamilMsg msg;
+		msg.ntype = ntype.get();
+		msg.legion_uuid = legion_uuid.str();
+		msg.ext1 = strnick;
+		msg.mandator = str_account_uuid;
+
+		if(get_controller())
+			get_controller()->send(msg);
+
+	}
+	catch (const std::exception&)
+	{
+
+	}
+	catch(...)
+	{
+
+	}
+
 
 }
 

@@ -10,6 +10,7 @@
 #include "mysql/league.hpp"
 #include "league_attribute_ids.hpp"
 #include "league_session.hpp"
+#include "../../empery_center/src/chat_message_type_ids.hpp"
 
 
 
@@ -111,6 +112,9 @@ public:
 
 	// 发送通知消息
 	void sendNoticeMsg(std::uint64_t msgtype,std::string nick,std::string ext1);
+
+	// 发邮件
+	void sendemail(EmperyCenter::ChatMessageTypeId ntype,LegionUuid legion_uuid,std::string strnick,std::string str_account_uuid = "");
 
 	const std::string &get_attribute(LeagueAttributeId account_attribute_id) const;
 	void get_attributes(boost::container::flat_map<LeagueAttributeId, std::string> &ret) const;

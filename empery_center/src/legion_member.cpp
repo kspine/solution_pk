@@ -103,6 +103,8 @@ void LegionMember::leave()
 	strsql += "';";
 
 	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionMemberAttribute",strsql);
+
+	set_league_uuid("");
 }
 
 std::uint64_t LegionMember::get_created_time() const {
@@ -220,6 +222,19 @@ int LegionMember::league_chat(const boost::shared_ptr<ChatMessage> &message)
     return boost::lexical_cast<int>(std::move(tresult.first));
 
 
+}
+
+void LegionMember::set_league_uuid(std::string str_league_uuid)
+{
+	const auto& account = AccountMap::get(get_account_uuid());
+	if(account)
+	{
+		boost::container::flat_map<AccountAttributeId, std::string> Attributes;
+
+		Attributes[AccountAttributeIds::ID_LEAGUE_UUID] = str_league_uuid;
+
+		account->set_attributes(std::move(Attributes));
+	}
 }
 
 }

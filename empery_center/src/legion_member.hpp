@@ -52,6 +52,9 @@ public:
 	void get_attributes(boost::container::flat_map<LegionMemberAttributeId, std::string> &ret) const;
 	void set_attributes(boost::container::flat_map<LegionMemberAttributeId, std::string> modifiers);
 
+	// 设置联盟uuid
+	void set_league_uuid(std::string str_league_uuid);
+
 	template<typename T, typename DefaultT = T>
 	T cast_attribute(LegionMemberAttributeId account_attribute_id, const DefaultT def = DefaultT()){
 		const auto &str = get_attribute(account_attribute_id);

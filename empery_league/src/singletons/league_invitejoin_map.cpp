@@ -23,11 +23,13 @@ namespace {
 
 		LegionUuid legion_uuid;
 		LeagueUuid league_uuid;
+		AccountUuid account_uuid;
 
 		explicit LegionElement(boost::shared_ptr<MySql::League_LeagueInviteJoin> account_)
 			: account(std::move(account_))
 			, legion_uuid(account->get_legion_uuid())
 			, league_uuid(account->get_league_uuid())
+			, account_uuid(account->get_account_uuid())
 		{
 		}
 	};

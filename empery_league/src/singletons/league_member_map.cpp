@@ -527,7 +527,7 @@ void LeagueMemberMap::check_in_waittime()
 						bkick = true;
 				}
 		//		LOG_EMPERY_LEAGUE_DEBUG("CS_GetleagueBaseInfoMessage quittime= 2222222=============================== ",quittime);
-				LOG_EMPERY_LEAGUE_DEBUG("CS_GetleagueBaseInfoMessage quittime= 2222222=============================== ",quittime," bkick:",bkick);
+		//		LOG_EMPERY_LEAGUE_DEBUG("CS_GetleagueBaseInfoMessage quittime= 2222222=============================== ",quittime," bkick:",bkick);
 				if(quittime != Poseidon::EMPTY_STRING)
 				{
 					const auto utc_now = Poseidon::get_utc_time();
@@ -563,6 +563,9 @@ void LeagueMemberMap::check_in_waittime()
 						// 广播通知下
 						if(bkick)
 						{
+							// 发邮件
+							league->sendemail(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_KICK,member->get_legion_uuid(),league->get_nick(), member->get_attribute(LeagueMemberAttributeIds::ID_KICK_MANDATOR));
+
 							league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_KICK,"",member->get_legion_uuid().str());
 						}
 						else

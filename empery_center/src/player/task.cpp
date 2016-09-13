@@ -30,7 +30,7 @@ PLAYER_SERVLET(Msg::CS_ItemGetAllTasks, account, session, /* req */){
 		const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
 		legion_task_box->pump_status();
 		legion_task_box->synchronize_with_player(session);
-		
+
 		const auto legion_task_reward_box = LegionTaskRewardBoxMap::require(account->get_account_uuid());
 		legion_task_reward_box->synchronize_with_player(session);
 	}

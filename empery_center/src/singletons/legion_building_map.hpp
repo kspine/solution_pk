@@ -33,6 +33,7 @@ struct LegionBuildingMap {
 	static void insert(const boost::shared_ptr<LegionBuilding> &building);
 	static void deleteInfo(LegionUuid legion_uuid,AccountUuid account_uuid,bool bAll = false);
 	static void deleteInfo_by_legion_uuid(LegionUuid legion_uuid);
+	static void deleteInfo_by_legion_building_uuid(LegionBuildingUuid legion_building_uuid);
 
 	static void synchronize_with_player(LegionUuid legion_uuid,const boost::shared_ptr<PlayerSession> &session);
 

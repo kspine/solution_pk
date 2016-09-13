@@ -45,6 +45,8 @@
 #include "../singletons/legion_task_box_map.hpp"
 #include "../legion_task_contribution_box.hpp"
 #include "../singletons/legion_task_contribution_box_map.hpp"
+#include "../msg/sl_league.hpp"
+#include "../singletons/league_client.hpp"
 
 namespace EmperyCenter {
 
@@ -1613,6 +1615,18 @@ PLAYER_SERVLET(Msg::CS_disbandLegionReqMessage, account, session, req)
 		// 自己是否是军团长
 		if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID))),Legion::LEGION_POWER::LEGION_POWER_DISBAND))
 		{
+			// 需要发消息去联盟服务器，查看是不是盟主
+			Msg::SL_disbandLegionReq msg;
+            msg.account_uuid = account_uuid.str();
+            msg.legion_uuid = member->get_legion_uuid().str();
+
+            const auto league = LeagueClient::require();
+
+            auto tresult = league->send_and_wait(msg);
+
+			return Response(std::move(tresult.first));
+
+			/*
 			const auto legion = LegionMap::get(LegionUuid(member->get_legion_uuid()));
 			if(legion)
 			{
@@ -1622,18 +1636,10 @@ PLAYER_SERVLET(Msg::CS_disbandLegionReqMessage, account, session, req)
 				// 解散军团
 				LegionMap::deletelegion(LegionUuid(member->get_legion_uuid()));
 
-				/*
-				// 发邮件告诉结果
-				Msg::SC_LegionEmailMessage msg;
-				msg.legion_uuid = LegionUuid(member->get_legion_uuid()).str();
-				msg.legion_name = legion->get_nick();
-				msg.ntype = Legion::LEGION_EMAIL_TYPE::LEGION_EMAIL_DISBAND;
-				session->send(msg);
-				*/
-
-
 				return Response(Msg::ST_OK);
 			}
+
+			*/
 		}
 		else
 		{

@@ -6,6 +6,7 @@
 #include "../../../empery_center/src/msg/sl_league.hpp"
 #include "../../../empery_center/src/msg/ls_league.hpp"
 #include "../../../empery_center/src/msg/err_league.hpp"
+#include "../../../empery_center/src/chat_message_type_ids.hpp"
 #include "../singletons/league_member_map.hpp"
 #include "../singletons/league_map.hpp"
 #include "../league_member.hpp"
@@ -76,12 +77,12 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 	// 初始化联盟的一些属性
 	league->InitAttributes(legion_uuid,std::move(content), std::move(language), std::move(icon),req.bautojoin);
 
+	league->set_controller(league_session);
+
 	// 增加联盟成员
 	league->AddMember(legion_uuid,account_uuid,1,utc_now);
 
 	LeagueMap::insert(league);
-
-	league->set_controller(league_session);
 
 //	count = LeagueMap::get_count();
 //	LOG_EMPERY_CENTER_INFO("SL_LeagueCreated count:", count);
@@ -412,7 +413,7 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_session, req){
 				else
 				{
 					// 添加到待审批的列表中
-					auto obj = boost::make_shared<MySql::League_LeagueApplyJoin>( legion_uuid.get(),league_uuid.get(),utc_now);
+					auto obj = boost::make_shared<MySql::League_LeagueApplyJoin>( legion_uuid.get(),league_uuid.get(),account_uuid.get(),utc_now);
 					obj->enable_auto_saving();
 					auto promise = Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
 
@@ -540,19 +541,16 @@ LEAGUE_SERVLET(Msg::SL_LeagueAuditingRes, league_session, req){
 					}
 					else
 					{
-						// 不同意加入
-					}
+						// 不同意加入,发邮件告诉结果
+						EmperyCenter::Msg::LS_LeagueEamilMsg msg;
+						msg.account_uuid = AccountUuid(ApplyJoininfo->get_account_uuid()).str();
+						msg.ntype = boost::lexical_cast<std::string>(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_REFUSE_APPLY);
+						msg.legion_uuid = "";
+						msg.ext1 = league->get_nick();
+						msg.mandator = account_uuid.str();
 
-
-					// 发邮件告诉结果
-					/*
-					if(req.bagree == 1)
-						legion->sendmail(join_account,ChatMessageTypeIds::ID_LEVEL_LEGION_JOIN,legion->get_nick());
-					else
-					{
-						legion->sendmail(join_account,ChatMessageTypeIds::ID_LEVEL_LEGION_REFUSE_APPLY,legion->get_nick() + ","+ account->get_nick());
+						league_session->send(msg);
 					}
-					*/
 
 					// 删除该条请求数据
 					LeagueApplyJoinMap::deleteInfo(target_legion_uuid,league_uuid,bdeleteAll);
@@ -625,7 +623,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoin, league_session, req){
 				{
 					const auto utc_now = Poseidon::get_utc_time();
 					// 添加到邀请列表中
-					auto obj = boost::make_shared<MySql::League_LeagueInviteJoin>( target_legion_uuid.get(),league_uuid.get(),utc_now);
+					auto obj = boost::make_shared<MySql::League_LeagueInviteJoin>( target_legion_uuid.get(),league_uuid.get(),AccountUuid(req.account_uuid).get(),utc_now);
 					obj->enable_auto_saving();
 					auto promise = Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
 
@@ -701,6 +699,15 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_session, req){
 					// 不同意加入
 					LOG_EMPERY_LEAGUE_DEBUG("SL_LeagueInviteJoinRes 不同意加入联盟 legion_uuid = ",legion_uuid," league_uuid:",league_uuid);
 
+					// 拒绝邀请,发邮件告诉结果
+					EmperyCenter::Msg::LS_LeagueEamilMsg msg;
+					msg.account_uuid = AccountUuid(invite->get_account_uuid()).str();
+					msg.ntype = boost::lexical_cast<std::string>(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_REFUSE_INVITE);
+					msg.legion_uuid = legion_uuid.str();
+					msg.ext1 = "";
+					msg.mandator = account_uuid.str();
+
+					league_session->send(msg);
 					// 删除该条记录
 					LeagueInviteJoinMap::deleteInfo_by_invitedres_uuid(league_uuid,legion_uuid,false);
 				}
@@ -723,16 +730,6 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_session, req){
 
 						// 删除所有和自己相关的邀请数据
 						LeagueInviteJoinMap::deleteInfo_by_legion_uuid(legion_uuid);
-
-						// 发邮件告诉结果
-						//league->sendmail(account,ChatMessageTypeIds::ID_LEVEL_LEGION_JOIN,legion->get_nick());
-						/*
-						Msg::SC_LegionEmailMessage msg;
-						msg.legion_uuid = LegionUuid(req.legion_uuid).str();
-						msg.legion_name = legion->get_nick();
-						msg.ntype = Legion::LEGION_EMAIL_TYPE::LEGION_EMAIL_JOIN;
-						session->send(msg);
-						*/
 					}
 				}
 
@@ -1009,6 +1006,7 @@ LEAGUE_SERVLET(Msg::SL_KickLeagueMemberReq, league_session, req){
 						boost::container::flat_map<LeagueMemberAttributeId, std::string> Attributes;
 
 						Attributes[LeagueMemberAttributeIds::ID_KICKWAITTIME] = "";
+						Attributes[LeagueMemberAttributeIds::ID_KICK_MANDATOR] = "";
 
 						target_member->set_attributes(std::move(Attributes));
 
@@ -1034,6 +1032,8 @@ LEAGUE_SERVLET(Msg::SL_KickLeagueMemberReq, league_session, req){
 						LOG_EMPERY_LEAGUE_INFO("SL_KickLeagueMemberReq ==============================================",utc_now,"   strtime:",strtime);
 
 						Attributes[LeagueMemberAttributeIds::ID_KICKWAITTIME] = strtime;
+
+						Attributes[LeagueMemberAttributeIds::ID_KICK_MANDATOR] = req.account_uuid;
 
 						target_member->set_attributes(std::move(Attributes));
 
@@ -1091,6 +1091,8 @@ LEAGUE_SERVLET(Msg::SL_disbandLeague, league_session, req){
 				return Response(Msg::ERR_LEAGUE_ERROR_LEAGUELEADER);
 			}
 
+			// 发邮件
+			league->sendemail(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_DISBAND,legion_uuid,league->get_nick());
 			// 解散联盟
 			LeagueMap::remove(member->get_league_uuid());
 
@@ -1458,5 +1460,88 @@ LEAGUE_SERVLET(Msg::SL_LeagueChatReq, league_session, req){
 
 	return Response();
 }
+
+LEAGUE_SERVLET(Msg::SL_LookLeagueLegionsReq, league_session, req){
+	PROFILE_ME;
+
+	// 查看联盟是否存在
+	const auto league = LeagueMap::get(LeagueUuid(req.league_uuid));
+	if(league)
+	{
+
+		EmperyCenter::Msg::LS_LookLeagueLegionsReq msg;
+		msg.account_uuid = req.account_uuid;
+		std::vector<boost::shared_ptr<LeagueMember>> members;
+		LeagueMemberMap::get_by_league_uuid(members, league->get_league_uuid());
+
+		msg.legions.reserve(members.size());
+		for(auto it = members.begin(); it != members.end(); ++it )
+		{
+			auto &legion = *msg.legions.emplace(msg.legions.end());
+			auto info = *it;
+
+			legion.legion_uuid = info->get_legion_uuid().str();
+
+		}
+
+		league_session->send(msg);
+
+		return Response(Msg::ST_OK);
+	}
+	else
+		return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+
+
+	return Response(Msg::ST_OK);
+
+}
+
+LEAGUE_SERVLET(Msg::SL_disbandLegionReq, league_session, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		// 没加入联盟
+		EmperyCenter::Msg::LS_disbandLegionRes msg;
+		msg.account_uuid = req.account_uuid;
+		msg.legion_uuid = req.legion_uuid;
+		league_session->send(msg);
+		return Response(Msg::ST_OK);
+	}
+	else
+	{
+		// 查看联盟是否存在
+		const auto &league = LeagueMap::get(member->get_league_uuid());
+		if(league)
+		{
+			if(league->get_attribute(LeagueAttributeIds::ID_LEADER) == req.account_uuid)
+			{
+				return Response(Msg::ERR_LEGION_DISBAND_IS_LEAGUE_LEADER);
+			}
+			else
+			{
+				EmperyCenter::Msg::LS_disbandLegionRes msg;
+				msg.account_uuid = req.account_uuid;
+				msg.legion_uuid = req.legion_uuid;
+
+				league_session->send(msg);
+			}
+
+			return Response(Msg::ST_OK);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+		}
+	}
+
+	return Response(Msg::ST_OK);
+}
+
+
 
 }

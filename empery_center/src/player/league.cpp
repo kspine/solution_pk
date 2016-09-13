@@ -4,6 +4,7 @@
 #include "../msg/cs_league.hpp"
 #include "../msg/sl_league.hpp"
 #include "../msg/err_league.hpp"
+#include "../msg/sc_league.hpp"
 #include "../account.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../singletons/legion_member_map.hpp"
@@ -19,6 +20,10 @@
 #include "../singletons/league_client.hpp"
 #include "../data/legion_corps_level.hpp"
 #include "../data/global.hpp"
+#include "../account_attribute_ids.hpp"
+#include "../singletons/world_map.hpp"
+#include "../attribute_ids.hpp"
+#include "../castle.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
@@ -833,6 +838,76 @@ namespace EmperyCenter {
         }
 
         return Response();
+    }
+
+    PLAYER_SERVLET(Msg::CS_LookLeagueMembersMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        // 找到军团
+		const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+		if(legion)
+		{
+			std::vector<boost::shared_ptr<LegionMember>> members;
+			LegionMemberMap::get_by_legion_uuid(members, legion->get_legion_uuid());
+
+            Msg::SC_LookLeagueMembers msg;
+            msg.members.reserve(members.size());
+            for(auto it = members.begin(); it != members.end(); ++it )
+            {
+                auto &elem = *msg.members.emplace(msg.members.end());
+                auto info = *it;
+
+                elem.titleid = info->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
+
+                const auto legionmember = AccountMap::require(info->get_account_uuid());
+                elem.nick = legionmember->get_nick();
+                elem.icon = legionmember->get_attribute(AccountAttributeIds::ID_AVATAR);
+                if(legionmember->get_attribute(AccountAttributeIds::ID_LEAGUE_CAHT_FALG) != Poseidon::EMPTY_STRING)
+                    elem.speakflag = legionmember->get_attribute(AccountAttributeIds::ID_LEAGUE_CAHT_FALG);
+                else
+                     elem.speakflag = "0";
+
+                const auto primary_castle =  WorldMap::get_primary_castle(info->get_account_uuid());
+                if(primary_castle)
+                {
+                    elem.prosperity = boost::lexical_cast<std::uint64_t>(primary_castle->get_attribute(AttributeIds::ID_PROSPERITY_POINTS));
+                }
+                else
+                {
+                    LOG_EMPERY_CENTER_INFO("城堡繁荣度 没找到==============================================");
+                    elem.prosperity = 0;   //ID_PROSPERITY_POINTS
+                }
+
+
+            }
+
+            session->send(msg);
+
+            return Response(Msg::ST_OK);
+
+        }
+        else
+            return Response(Msg::ERR_LEGION_CANNOT_FIND);
+    }
+
+     PLAYER_SERVLET(Msg::CS_LookLeagueLegionsMessage, account, session, req)
+    {
+	    PROFILE_ME;
+
+        // 发消息去联盟服务器league
+        Msg::SL_LookLeagueLegionsReq msg;
+        msg.account_uuid = account->get_account_uuid().str();
+        msg.league_uuid = req.league_uuid;
+
+        const auto league = LeagueClient::require();
+
+        auto tresult = league->send_and_wait(msg);
+
+        LOG_EMPERY_CENTER_DEBUG("CS_LookLeagueLegionsMessage response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+        return Response(std::move(tresult.first));
+
     }
 
 }
