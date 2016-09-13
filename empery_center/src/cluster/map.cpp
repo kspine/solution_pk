@@ -446,7 +446,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	if(attacking_account_uuid == attacked_account_uuid){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
-	
+
 	// 查看双方的友好关系
 	if(AccountMap::is_friendly(attacking_account_uuid,attacked_account_uuid))
 	{

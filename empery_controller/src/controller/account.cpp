@@ -42,14 +42,11 @@ CONTROLLER_SERVLET(Msg::ST_AccountAccumulatePromotionBonus, controller, req){
 	const auto dividend_total = static_cast<std::uint64_t>(taxing_amount * bonus_ratio);
 	const auto income_tax_ratio_total = std::accumulate(income_tax_array.begin(), income_tax_array.end(), 0.0);
 
-<<<<<<< HEAD
-	const auto send_tax_nothrow = [&](const boost::shared_ptr<Account> referrer, ReasonId reason_id, std::uint64_t amount) noexcept {
-=======
 	const auto send_tax_nothrow = [&](const boost::shared_ptr<Account> &referrer, ReasonId reason_id, std::uint64_t amount) noexcept {
 		const auto using_controller = referrer->try_set_controller(controller);
 		const auto referrer_uuid = referrer->get_account_uuid();
 		const auto taxer_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(referrer_uuid.get()[0]));
->>>>>>> 659f8fd... test?
+
 		try {
 			Msg::TS_AccountSendPromotionBonus sreq;
 			sreq.account_uuid = referrer_uuid.str();
