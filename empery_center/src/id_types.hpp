@@ -28,7 +28,7 @@ public:
 	constexpr UnderlyingT get() const {
 		return m_id;
 	}
-	void set(UnderlyingT id){
+	void set(UnderlyingT id) {
 		m_id = id;
 	}
 
@@ -56,11 +56,11 @@ public:
 		return get() != 0;
 	}
 
-	GenericId &operator+=(UnderlyingT rhs){
+	GenericId &operator+=(UnderlyingT rhs) {
 		m_id += rhs;
 		return *this;
 	}
-	GenericId &operator-=(UnderlyingT rhs){
+	GenericId &operator-=(UnderlyingT rhs) {
 		m_id -= rhs;
 		return *this;
 	}
@@ -75,18 +75,18 @@ public:
 		return m_id - rhs.m_id;
 	}
 
-	GenericId &operator++(){
+	GenericId &operator++() {
 		return *this += 1;
 	}
-	GenericId &operator--(){
+	GenericId &operator--() {
 		return *this -= 1;
 	}
-	GenericId operator++(int){
+	GenericId operator++(int) {
 		auto ret = *this;
 		++*this;
 		return ret;
 	}
-	GenericId operator--(int){
+	GenericId operator--(int) {
 		auto ret = *this;
 		--*this;
 		return ret;
@@ -94,19 +94,19 @@ public:
 };
 
 template<typename UnderlyingT, int MAGIC_T>
-GenericId<UnderlyingT, MAGIC_T> operator+(UnderlyingT lhs, GenericId<UnderlyingT, MAGIC_T> rhs){
+GenericId<UnderlyingT, MAGIC_T> operator+(UnderlyingT lhs, GenericId<UnderlyingT, MAGIC_T> rhs) {
 	return rhs += lhs;
 }
 
 template<typename UnderlyingT, int MAGIC_T>
-std::ostream &operator<<(std::ostream &os, const GenericId<UnderlyingT, MAGIC_T> &id){
-	os <<id.get();
+std::ostream &operator<<(std::ostream &os, const GenericId<UnderlyingT, MAGIC_T> &id) {
+	os << id.get();
 	return os;
 }
 template<typename UnderlyingT, int MAGIC_T>
-std::istream &operator>>(std::istream &is, GenericId<UnderlyingT, MAGIC_T> &id){
+std::istream &operator >> (std::istream &is, GenericId<UnderlyingT, MAGIC_T> &id) {
 	UnderlyingT temp;
-	if(is >>temp){
+	if (is >> temp) {
 		id.set(temp);
 	}
 	return is;
@@ -135,13 +135,13 @@ public:
 	constexpr const Poseidon::Uuid &get() const {
 		return m_uuid;
 	}
-	void set(const Poseidon::Uuid &uuid){
+	void set(const Poseidon::Uuid &uuid) {
 		m_uuid = uuid;
 	}
 
 	std::string str() const {
-		if(m_uuid == Poseidon::Uuid()){
-			return { };
+		if (m_uuid == Poseidon::Uuid()) {
+			return{};
 		}
 		return m_uuid.to_string();
 	}
@@ -172,18 +172,18 @@ public:
 };
 
 template<int MAGIC_T>
-std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &uuid){
+std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &uuid) {
 	char str[37];
-	uuid.get().to_string(reinterpret_cast<char (&)[36]>(str));
+	uuid.get().to_string(reinterpret_cast<char(&)[36]>(str));
 	str[36] = 0;
-	os <<str;
+	os << str;
 	return os;
 }
 template<int MAGIC_T>
-std::istream &operator>>(std::istream &is, GenericUuid<MAGIC_T> &uuid){
+std::istream &operator >> (std::istream &is, GenericUuid<MAGIC_T> &uuid) {
 	char str[37];
-	if(is >>std::setw(sizeof(str)) >>str){
-		uuid.from_string(reinterpret_cast<const char (&)[36]>(str));
+	if (is >> std::setw(sizeof(str)) >> str) {
+		uuid.from_string(reinterpret_cast<const char(&)[36]>(str));
 	}
 	return is;
 }
@@ -234,7 +234,8 @@ namespace IdTypes {
 	using LegionStoreGoodsId        = GenericId<std::uint32_t, 120034>;
 	using LegionBuildingAttributeId = GenericId<std::uint32_t, 120035>;
 	using LegionTaskContributionId  = GenericId<std::uint32_t, 120036>;
-
+	using TaskLegionKeyId           = GenericId<std::uint32_t, 120037>;
+	using TaskLegionPackageKeyId    = GenericId<std::uint32_t, 120038>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;
@@ -248,11 +249,8 @@ namespace IdTypes {
     using VoiceUuid                 = GenericUuid<210010>;
 	using LegionUuid  				= GenericUuid<210011>;
 	using LegionBuildingUuid  		= GenericUuid<210012>;
-	
-
-
-
-
+	using LegionPackageShareUuid    = GenericUuid<210013>;
+	using LeagueUuid                = GenericUuid<210014>;
 }
 
 using namespace IdTypes;

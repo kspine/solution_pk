@@ -25,6 +25,9 @@
 #include "../data/legion_corps_power.hpp"
 #include "../data/global.hpp"
 #include "../chat_message_type_ids.hpp"
+#include "../singletons/chat_box_map.hpp"
+#include "../chat_box.hpp"
+#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -83,11 +86,19 @@ namespace {
 			return;
 		}
 
-		LegionMemberMap::check_in_resetime();
-
 		LegionMemberMap::check_in_waittime();
 	}
 
+	void gc_member_reset_proc(std::uint64_t now){
+		PROFILE_ME;
+
+		const auto &account_map = g_legionmember_map;
+		if(!account_map){
+			return;
+		}
+
+		LegionMemberMap::check_in_resetime();
+	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
 		const auto conn = Poseidon::MySqlDaemon::create_connection();
@@ -146,9 +157,15 @@ namespace {
 		handles.push(info_cache_map);
 
 	//	const auto gc_interval = get_config<std::uint64_t>("object_gc_interval", 10*1000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, 10*1000,
+		// 1秒检测
+		auto timer = Poseidon::TimerDaemon::register_timer(0, 1*1000,
 			std::bind(&gc_member_proc, std::placeholders::_2));
 		handles.push(timer);
+
+		// 30秒检测
+		auto timer2 = Poseidon::TimerDaemon::register_timer(0, 30*1000,
+			std::bind(&gc_member_reset_proc, std::placeholders::_2));
+		handles.push(timer2);
 	}
 
 	boost::shared_ptr<LegionMember> reload_account_aux(boost::shared_ptr<MySql::Center_Legion_Member> obj){
@@ -643,8 +660,8 @@ void LegionMemberMap::disband_legion(LegionUuid legion_uuid)
 
 	for(auto it = members.begin(); it != members.end();)
 	{
-		const auto member = *it;
-		deletemember(member->get_account_uuid(),false);
+		const auto &member = *it;
+		deletemember(member->get_account_uuid());
 		it = members.erase(it);
 	}
 
@@ -740,7 +757,8 @@ void LegionMemberMap::check_in_waittime()
 				{
 					// 被踢出等待中
 					quittime = member->get_attribute(LegionMemberAttributeIds::ID_KICKWAITTIME);
-					bkick = true;
+					if(quittime != Poseidon::EMPTY_STRING)
+						bkick = true;
 				}
 		//		LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage quittime= 2222222=============================== ",quittime);
 				if(quittime != Poseidon::EMPTY_STRING)
@@ -973,6 +991,65 @@ void LegionMemberMap::check_in_resetime()
 		}
 	}
 
+}
+
+int LegionMemberMap::chat(const boost::shared_ptr<LegionMember> &member,const boost::shared_ptr<ChatMessage> &message)
+{
+	if(member->get_attribute(LegionMemberAttributeIds::ID_SPEAKFLAG) == "1" )
+	{
+		return Msg::ERR_LEGION_BAN_CHAT;
+	}
+	else
+	{
+		// 根据account_uuid查找是否有军团
+		const auto legion = LegionMap::get(LegionUuid(member->get_legion_uuid()));
+		if(legion)
+		{
+			// 根据account_uuid查找是否有军团
+			std::vector<boost::shared_ptr<LegionMember>> members;
+			LegionMemberMap::get_by_legion_uuid(members, member->get_legion_uuid());
+
+			LOG_EMPERY_CENTER_INFO("get_by_legion_uuid legion members size*******************",members.size());
+
+			if(!members.empty())
+			{
+
+				for(auto it = members.begin(); it != members.end(); ++it )
+				{
+					auto info = *it;
+
+					// 判断是否在线
+					const auto target_session = PlayerSessionMap::get(AccountUuid(info->get_account_uuid()));
+					if(target_session)
+					{
+						try {
+						Poseidon::enqueue_async_job(
+							[=]() mutable {
+								PROFILE_ME;
+								const auto other_chat_box = ChatBoxMap::require(info->get_account_uuid());
+								other_chat_box->insert(message);
+
+				//				LOG_EMPERY_CENTER_INFO("LegionMemberMap::chat 有人说话  内容已转发============");
+							});
+						} catch(std::exception &e){
+							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+							target_session->shutdown(e.what());
+						}
+					}
+				}
+			}
+			else
+			{
+				return Msg::ERR_LEGION_CANNOT_FIND;
+			}
+		}
+		else
+		{
+			return Msg::ERR_LEGION_CANNOT_FIND;
+		}
+	}
+
+	return Msg::ST_OK;
 }
 
 

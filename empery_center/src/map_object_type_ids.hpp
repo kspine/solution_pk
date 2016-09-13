@@ -12,6 +12,7 @@ constexpr MapObjectTypeId
 	ID_DEFENSE_TOWER        ( 1206001 ),
 	ID_IMMIGRANTS           ( 1207001 ),
 	ID_BATTLE_BUNKER        ( 1208001 ),
+	ID_LEGION_WAREHOUSE     ( 5500002 ),
 	ID_WORLD_ACTIVITY_BOSS  ( 2605102 );
 
 }

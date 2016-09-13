@@ -8,6 +8,13 @@
 #include <boost/lexical_cast.hpp>
 #include "id_types.hpp"
 #include "msg/sc_legion.hpp"
+#include "singletons/legion_member_map.hpp"
+#include "legion_member_attribute_ids.hpp"
+#include "legion_member.hpp"
+#include "singletons/player_session_map.hpp"
+#include "data/legion_corps_power.hpp"
+#include "player_session.hpp"
+
 
 namespace EmperyCenter {
 
@@ -47,18 +54,21 @@ public:
 		LEGION_POWER_CHAT 			= 20,	// 禁言
 		LEGION_POWER_GRADEUP 		= 21,	// 可被升级
 		LEGION_POWER_GRADEDOWN 		= 22,	// 可被降级
+		LEGION_POWER_LEAGUE_INVITE 	= 23,	// 可以处理邀请加入军团
+		LEGION_POWER_DEMOLISH_MINE 	= 24,	// 拆除军团矿井
 	};
 
 	enum LEGION_NOTICE_MSG_TYPE
 	{
-		LEGION_NOTICE_MSG_TYPE_JOIN 	= 1,	// 有成员加入
-		LEGION_NOTICE_MSG_TYPE_QUIT 	= 2,	// 有成员离开
-		LEGION_NOTICE_MSG_TYPE_KICK 	= 3,	// 有成员被踢出
-		LEGION_NOTICE_MSG_TYPE_GRADE 	= 4,	// 成员职位变动
-		LEGION_NOTICE_MSG_TYPE_ATTORN 	= 5,	// 转让军团长
-		LEGION_NOTICE_MSG_TYPE_SPEACK 	= 6,	// 禁言
-		LEGION_NOTICE_MSG_TYPE_CHAT 	= 7,	// 聊天
-		LEGION_NOTICE_MSG_TYPE_DONATE 	= 8,	// 个人捐献
+		LEGION_NOTICE_MSG_TYPE_JOIN 			= 1,	// 有成员加入
+		LEGION_NOTICE_MSG_TYPE_QUIT 			= 2,	// 有成员离开
+		LEGION_NOTICE_MSG_TYPE_KICK 			= 3,	// 有成员被踢出
+		LEGION_NOTICE_MSG_TYPE_GRADE 			= 4,	// 成员职位变动
+		LEGION_NOTICE_MSG_TYPE_ATTORN 			= 5,	// 转让军团长
+		LEGION_NOTICE_MSG_TYPE_SPEACK 			= 6,	// 禁言
+		LEGION_NOTICE_MSG_TYPE_CHAT 			= 7,	// 聊天
+		LEGION_NOTICE_MSG_TYPE_DONATE 			= 8,	// 个人捐献
+		LEGION_NOTICE_MSG_TYPE_LEGION_GRADE  	= 9,	// 军团升级
 	};
 public:
 
@@ -102,6 +112,8 @@ public:
 
 	// 发邮件
 	void sendmail(boost::shared_ptr<Account> account, ChatMessageTypeId ntype,std::string);
+	// 设置军团成员的联盟uuid字段
+	void set_member_league_uuid(std::string str_league_uuid);
 
 /*	bool has_been_activated() const;
 	void set_activated(bool activated);
@@ -125,7 +137,41 @@ public:
 		return boost::lexical_cast<T>(str);
 	}
 
+
 	void synchronize_with_player(AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const;
+	void broadcast_to_members(std::uint16_t message_id, const Poseidon::StreamBuffer &payload);
+	template<class MessageT>
+	void broadcast_to_members(const MessageT &msg){
+		broadcast_to_members(MessageT::ID, Poseidon::StreamBuffer(msg));
+	}
+
+	template<class MessageT>
+	void send_msg_by_power(const MessageT &msg,unsigned powerid)
+	{
+		PROFILE_ME;
+		std::vector<boost::shared_ptr<LegionMember>> members;
+		LegionMemberMap::get_by_legion_uuid(members, get_legion_uuid());
+
+		for(auto it = members.begin(); it != members.end(); ++it)
+		{
+			// 判断玩家是否在线
+			auto member = *it;
+			const auto titileid = member->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
+			if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),powerid))
+			{
+				const auto session = PlayerSessionMap::get((*it)->get_account_uuid());
+				if(session)
+				{
+					try {
+						session->send(msg);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						session->shutdown(e.what());
+					}
+				}
+			}
+		}
+	}
 };
 
 }

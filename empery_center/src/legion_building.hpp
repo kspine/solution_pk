@@ -22,7 +22,7 @@ class LegionBuilding : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromTh
 public:
 
 	static std::pair<boost::shared_ptr<const Poseidon::JobPromise>, boost::shared_ptr<LegionBuilding>> async_create(
-		 LegionBuildingUuid legion_building_uuid,  LegionUuid legion_uuid,  std::uint64_t ntype);
+		 LegionBuildingUuid legion_building_uuid,  LegionUuid legion_uuid,  MapObjectUuid map_object_uuid, std::uint64_t ntype);
 
 private:
 	const boost::shared_ptr<MySql::Center_LegionBuilding> m_obj;
@@ -40,6 +40,8 @@ public:
 	LegionBuildingUuid get_legion_building_uuid() const;
 
 	LegionUuid get_legion_uuid() const;
+
+	MapObjectUuid get_map_object_uuid()  const;
 
 	std::uint64_t get_type() const;
 

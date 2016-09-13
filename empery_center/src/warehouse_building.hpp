@@ -20,6 +20,8 @@ public:
 		MIS_DESTRUCT   = 3,
 		MIS_GARRISON   = 4,
 		MIS_EVICT      = 5,
+		MIS_OPENCD	   = 6,
+		MIS_OPENEFFECT = 7,
 	};
 
 private:
@@ -28,9 +30,14 @@ private:
 	// 非持久化数据。
 	double m_self_healing_remainder = 0;
 
+	unsigned int  m_buffid = 0;
+
+	// 最大血量
+	std::int64_t m_maxHp = 0;
+
 public:
 	WarehouseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
-		MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time);
+		MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time,LegionUuid legion_uuid);
 	WarehouseBuilding(boost::shared_ptr<MySql::Center_MapObject> obj,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> &attributes,
 		const std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>> &buffs,
@@ -46,11 +53,18 @@ public:
 
 	bool is_protectable() const override;
 
+	LegionUuid get_legion_uuid() const;
+
 	virtual unsigned get_level() const;
 	WarehouseBuilding::Mission get_mission() const;
 	std::uint64_t get_mission_duration() const;
 	std::uint64_t get_mission_time_begin() const;
 	std::uint64_t get_mission_time_end() const;
+	std::uint64_t get_cd_time();
+	std::int64_t get_max_hp();
+	std::uint64_t get_output_amount();
+	std::uint64_t get_output_type();
+	std::uint64_t get_effect_time();
 
 	void create_mission(WarehouseBuilding::Mission mission, std::uint64_t duration, MapObjectUuid garrisoning_object_uuid);
 	void cancel_mission();
@@ -62,6 +76,16 @@ public:
 	void self_heal();
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
+	// 血量改变，传入当前血量
+	void on_hp_change(std::int64_t curhp);
+	// 开启
+	void open(unsigned output_type,unsigned amount,std::uint64_t effect_time,std::uint64_t  opencd_time);
+	// 改变血量和最大血量
+	void set_maxhp(std::uint64_t maxhp);
+	// 采集矿井资源
+	std::uint64_t harvest(const boost::shared_ptr<MapObject> &harvester, double amount_to_harvest, bool saturated = false);
+	// 设置剩余采集量
+	void set_output_amount(std::uint64_t amount);
 };
 
 }

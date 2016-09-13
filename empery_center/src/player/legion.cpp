@@ -41,7 +41,12 @@
 #include "../task_box.hpp"
 #include "../task_type_ids.hpp"
 #include "../singletons/task_box_map.hpp"
-
+#include "../legion_task_box.hpp"
+#include "../singletons/legion_task_box_map.hpp"
+#include "../legion_task_contribution_box.hpp"
+#include "../singletons/legion_task_contribution_box_map.hpp"
+#include "../msg/sl_league.hpp"
+#include "../singletons/league_client.hpp"
 
 namespace EmperyCenter {
 
@@ -415,6 +420,7 @@ PLAYER_SERVLET(Msg::CS_GetAllLegionMessage, account, session, req){
 		elem.legion_name = legion->get_nick();
 		elem.legion_icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
 
+		LOG_EMPERY_CENTER_INFO("CS_GetAllLegionMessage elem.legion_uuid:", elem.legion_uuid);
 		const auto leader_account = AccountMap::require(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
 		elem.legion_leadername = leader_account->get_nick();
 		elem.level = legion->get_attribute(LegionAttributeIds::ID_LEVEL);
@@ -1397,38 +1403,44 @@ PLAYER_SERVLET(Msg::CS_KickLegionMemberReqMessage, account, session, req)
 						}
 						const auto utc_now = Poseidon::get_utc_time();
 						// 判断玩家最后一次在线时间
-						const auto last_logout_time = boost::lexical_cast<std::uint64_t>(target_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME));
-						if(utc_now - last_logout_time >= Data::Global::as_unsigned(Data::Global::SLOT_LEGION_KICK_OUTTIME) * 60 * 1000)
+
+						const auto strlast_logout_time = target_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME);
+						if(!strlast_logout_time.empty()  && strlast_logout_time != Poseidon::EMPTY_STRING)
 						{
-							// 被踢出时发邮件
-							legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ account->get_nick());
+							const auto last_logout_time = boost::lexical_cast<std::uint64_t>(target_account->get_attribute(AccountAttributeIds::ID_LAST_LOGGED_OUT_TIME));
+							if(utc_now - last_logout_time >= Data::Global::as_unsigned(Data::Global::SLOT_LEGION_KICK_OUTTIME) * 60 * 1000)
+							{
+								// 被踢出时发邮件
+								legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ account->get_nick());
 
-							// 广播给军团其他成员
-							Msg::SC_LegionNoticeMsg msg;
-							msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_KICK;
-							msg.nick = target_account->get_nick();
-							msg.ext1 = "";
-							legion->sendNoticeMsg(msg);
+								// 广播给军团其他成员
+								Msg::SC_LegionNoticeMsg msg;
+								msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_KICK;
+								msg.nick = target_account->get_nick();
+								msg.ext1 = "";
+								legion->sendNoticeMsg(msg);
 
-							// 离线时间过长的可以直接踢掉
-							LegionMemberMap::deletemember(AccountUuid(req.account_uuid),true);
+								// 离线时间过长的可以直接踢掉
+								LegionMemberMap::deletemember(AccountUuid(req.account_uuid),true);
 
+								return Response(Msg::ST_OK);
+
+							}
 						}
-						else
-						{
-							// 设置移除等待时间
-							boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes;
 
-							std::string strtime = boost::lexical_cast<std::string>(utc_now + 60 * 1000 *  Data::Global::as_unsigned(Data::Global::SLOT_LEGION_LEAVE_WAIT_MINUTE));  // 5分钟的默认退出等待时间
+						// 设置移除等待时间
+						boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes;
 
-							strtime = strtime.substr(0,10);
+						std::string strtime = boost::lexical_cast<std::string>(utc_now + 60 * 1000 *  Data::Global::as_unsigned(Data::Global::SLOT_LEGION_LEAVE_WAIT_MINUTE));  // 5分钟的默认退出等待时间
 
-							LOG_EMPERY_CENTER_INFO("CS_KickLegionMemberReqMessage ==============================================",utc_now,"   strtime:",strtime);
+						strtime = strtime.substr(0,10);
 
-							Attributes[LegionMemberAttributeIds::ID_KICKWAITTIME] = strtime;
+						LOG_EMPERY_CENTER_INFO("CS_KickLegionMemberReqMessage ==============================================",utc_now,"   strtime:",strtime);
 
-							othermember->set_attributes(Attributes);
-						}
+						Attributes[LegionMemberAttributeIds::ID_KICKWAITTIME] = strtime;
+
+						othermember->set_attributes(Attributes);
+
 
 					}
 
@@ -1603,6 +1615,20 @@ PLAYER_SERVLET(Msg::CS_disbandLegionReqMessage, account, session, req)
 		// 自己是否是军团长
 		if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID))),Legion::LEGION_POWER::LEGION_POWER_DISBAND))
 		{
+			// 需要发消息去联盟服务器，查看是不是盟主
+			Msg::SL_disbandLegionReq msg;
+            msg.account_uuid = account_uuid.str();
+            msg.legion_uuid = member->get_legion_uuid().str();
+
+            const auto league = LeagueClient::require();
+
+            auto tresult = league->send_and_wait(msg);
+
+			LOG_EMPERY_CENTER_DEBUG("CS_disbandLegionReqMessage response: code =================== ", tresult.first);
+
+			return Response(std::move(tresult.first));
+
+			/*
 			const auto legion = LegionMap::get(LegionUuid(member->get_legion_uuid()));
 			if(legion)
 			{
@@ -1612,18 +1638,10 @@ PLAYER_SERVLET(Msg::CS_disbandLegionReqMessage, account, session, req)
 				// 解散军团
 				LegionMap::deletelegion(LegionUuid(member->get_legion_uuid()));
 
-				/*
-				// 发邮件告诉结果
-				Msg::SC_LegionEmailMessage msg;
-				msg.legion_uuid = LegionUuid(member->get_legion_uuid()).str();
-				msg.legion_name = legion->get_nick();
-				msg.ntype = Legion::LEGION_EMAIL_TYPE::LEGION_EMAIL_DISBAND;
-				session->send(msg);
-				*/
-
-
 				return Response(Msg::ST_OK);
 			}
+
+			*/
 		}
 		else
 		{
@@ -2025,14 +2043,17 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 					else
 					{
 						std::vector<ItemTransactionElement> transaction;
-						transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, req.num,
-								ReasonIds::ID_DOANTE_LEGION, 0, 0, req.num);
+						transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, req.num * 100,
+								ReasonIds::ID_DOANTE_LEGION, 0, 0, req.num * 100);
 
 						const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 						[&]{
 							// 修改军团资金
+							LOG_EMPERY_CENTER_ERROR("军团资金 捐献前  ===========",legion->get_attribute(LegionAttributeIds::ID_MONEY));
 							boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + req.num / dvalue * lvalue);
+							const auto money = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + req.num * 100 / dvalue * lvalue));
+							Attributes[LegionAttributeIds::ID_MONEY] = money;
+							LOG_EMPERY_CENTER_ERROR("军团资金 捐献后  ===========",money);
 							legion->set_attributes(Attributes);
 
 							const auto strweekdonate = member->get_attribute(LegionMemberAttributeIds::ID_WEEKDONATE);
@@ -2047,17 +2068,21 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							if(weekdonate < Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT))
 							{
 								// 修改军团成员个人贡献
-					//			LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  之前个人贡献 ===========",member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
+								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  之前个人贡献 ===========",member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 
 								boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
-								std::string strdotan = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num / dvalue * mvalue);
-								Attributes1[LegionMemberAttributeIds::ID_DONATE] = strdotan;
 
-				//				LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人贡献 ===========",strdotan);
+								auto strdotan = std::ceil(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num * 100  / dvalue * mvalue);
+								if(strdotan > Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT))
+									strdotan = Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT);
+
+								Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(strdotan);
+
+								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  捐献后个人贡献 ===========",strdotan);
 				//				Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num / dvalue * mvalue);
-								Attributes1[LegionMemberAttributeIds::ID_WEEKDONATE] = boost::lexical_cast<std::string>(weekdonate + req.num);
+								Attributes1[LegionMemberAttributeIds::ID_WEEKDONATE] = boost::lexical_cast<std::string>(weekdonate + req.num );
 
-				//				LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人周贡献 ===========",boost::lexical_cast<std::string>(weekdonate + req.num));
+								LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人周贡献 ===========",boost::lexical_cast<std::string>(weekdonate + req.num));
 								member->set_attributes(std::move(Attributes1));
 							}
 
@@ -2069,13 +2094,19 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							msg.ext1 = boost::lexical_cast<std::string>(req.num);
 							legion->sendNoticeMsg(msg);
 
-							// 查看军团捐献任务
-							const auto task_box = TaskBoxMap::require(account->get_account_uuid());
-							try {
-								task_box->check(TaskTypeIds::ID_LEGION_DONATE, 5710006, boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)),
-									TaskBox::TCC_ALL, 0, 0);
-								}
-							catch(std::exception &e){
+							//军团捐献任务
+							try{
+								Poseidon::enqueue_async_job([=]{
+									PROFILE_ME;
+									auto donate = req.num * 100 / dvalue * mvalue;
+									const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+									const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+									legion_task_box->check(TaskTypeIds::ID_LEGION_DONATE, TaskLegionKeyIds::ID_LEGION_DONATE,donate,account_uuid, 0, 0);
+									legion_task_box->pump_status();
+
+								});
+
+							} catch (std::exception &e){
 								LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 							}
 
@@ -2085,7 +2116,6 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							{
 								return Response(Msg::ERR_LEGION_CREATE_NOTENOUGH_MONEY);
 							}
-
 							return Response(Msg::ST_OK);
 						}
 				}
@@ -2302,6 +2332,54 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemRecordMessage, account, session, req)
 		return Response(Msg::ERR_LEGION_NOT_JOIN);
 	}
 
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_LegionContribution, account, session, req){
+	PROFILE_ME;
+	const auto account_uuid = account->get_account_uuid();
+
+	// 判断自己是否加入军团
+	const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+	if(member)
+	{
+		// 检查军团是否存在
+		const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+		const auto legion = LegionMap::get(legion_uuid);
+		std::vector<boost::shared_ptr<LegionMember>> members;
+		LegionMemberMap::get_by_legion_uuid(members,legion_uuid);
+		if(legion)
+		{
+	        Msg::SC_LegionContributions msg;
+			msg.legion_uuid = legion_uuid.str();
+			auto legion_contribution_box = LegionTaskContributionBoxMap::get(legion_uuid);
+			if(legion_contribution_box){
+				msg.contributions.reserve(members.size());
+				for(auto it = members.begin(); it != members.end(); ++it){
+					auto &elem = *msg.contributions.emplace(msg.contributions.end());
+					auto account_uuid = (*it)->get_account_uuid();
+					LegionTaskContributionBox::TaskContributionInfo info = legion_contribution_box->get(account_uuid);
+					elem.account_uuid = account_uuid.str();
+					const auto temp_account = AccountMap::get(account_uuid);
+					elem.account_nick = temp_account->get_nick();
+					elem.day_personal_contribution = info.day_personal_contribution;
+					elem.day_contribution = info.day_contribution;
+					elem.week_contribution = info.week_contribution;
+					elem.total_contribution = info.total_contribution;
+				}
+			}
+			LOG_EMPERY_CENTER_DEBUG("SC_LegionContributions:",msg);
+			session->send(msg);
+
+			return Response(Msg::ST_OK);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEGION_CANNOT_FIND);
+		}
+	}else{
+		return Response(Msg::ERR_LEGION_NOT_JOIN);
+	}
 	return Response();
 }
 

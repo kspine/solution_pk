@@ -41,7 +41,31 @@ namespace Msg {
 #define MESSAGE_ID      1634
 #define MESSAGE_FIELDS  \
 	FIELD_STRING          (legion_building_uuid) \
-	FIELD_STRING          (ntype)
+	FIELD_VUINT           (ntype) \
+	FIELD_VUINT           (consume)
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    CS_RepairLegionGrubeMessage
+#define MESSAGE_ID      1635
+#define MESSAGE_FIELDS  \
+	FIELD_STRING          (legion_building_uuid) \
+	FIELD_STRING          (type) \
+	FIELD_VUINT           (percent)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_GradeLegionMessage
+#define MESSAGE_ID      1636
+#define MESSAGE_FIELDS  \
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    CS_DemolishLegionGrubeMessage
+#define MESSAGE_ID      1638
+#define MESSAGE_FIELDS  \
+	FIELD_STRING          (legion_building_uuid)
+
 #include <poseidon/cbpp/message_generator.hpp>
 }
 

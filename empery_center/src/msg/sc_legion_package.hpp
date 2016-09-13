@@ -5,32 +5,45 @@
 
 namespace EmperyCenter
 {
-    namespace Msg
-    {
-        #define MESSAGE_NAME    SC_GetSharePackageInfoReqMessage
-        #define MESSAGE_ID      1750
-        #define MESSAGE_FIELDS  \
+	namespace Msg
+	{
+#define MESSAGE_NAME    SC_GetSharePackageInfoReqMessage
+#define MESSAGE_ID      1750
+#define MESSAGE_FIELDS  \
             FIELD_VUINT         (share_package_taken_counts) \
             FIELD_ARRAY(share_package_array,	\
-                FIELD_STRING        (account_uuid)	\
+                FIELD_STRING        (share_uuid) \
+				FIELD_STRING        (account_uuid)	\
                 FIELD_VUINT         (task_id) \
+				FIELD_VUINT         (task_package_item_id) \
                 FIELD_VUINT         (share_package_item_id) \
                 FIELD_VUINT         (share_package_time) \
-                FIELD_VUINT         (share_package_status) \
             )
 
 #include <poseidon/cbpp/message_generator.hpp>
 
-        #define MESSAGE_NAME    SC_ShareSyncMessage
-        #define MESSAGE_ID      1751
-        #define MESSAGE_FIELDS  \
-          FIELD_STRING         (account_uuid)	\
+#define MESSAGE_NAME    SC_ShareSyncMessage
+#define MESSAGE_ID      1751
+#define MESSAGE_FIELDS  \
+          FIELD_STRING         (share_uuid) \
+          FIELD_STRING         (account_uuid) \
           FIELD_VUINT          (task_id) \
           FIELD_VUINT          (share_package_item_id) \
-          FIELD_VUINT          (share_package_time)\
-          FIELD_VUINT          (share_package_taken_counts)
+          FIELD_VUINT          (share_package_time)
 
 #include <poseidon/cbpp/message_generator.hpp>
-    }
+
+
+#define MESSAGE_NAME    SC_GetPickSharePackageInfoReqMessage
+#define MESSAGE_ID      1752
+#define MESSAGE_FIELDS  \
+			FIELD_ARRAY(pick_share_package_array,\
+            FIELD_STRING        (share_uuid) \
+            FIELD_STRING        (account_uuid) \
+            FIELD_VUINT         (share_package_status) \
+	    )
+
+#include <poseidon/cbpp/message_generator.hpp>
+	}
 }
 #endif//

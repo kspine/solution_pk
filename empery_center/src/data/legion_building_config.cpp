@@ -95,6 +95,69 @@ namespace EmperyCenter
                         }
                     }
 
+                     // 开启结果
+                  //   LOG_EMPERY_CENTER_ERROR("house_level : house_level = ",elem.house_level);
+                      csv.get(object, "open_effect");
+                 //   LOG_EMPERY_CENTER_ERROR("open_effect map: open_effect = ", object.dump());
+
+                     for(auto it = object.begin(); it != object.end(); ++it)
+                     {
+                         auto collection_name = boost::lexical_cast<std::uint64_t>(it->first.get());
+                  //       LOG_EMPERY_CENTER_ERROR("open_effect map: collection_name = ", collection_name);
+
+
+                 //        LOG_EMPERY_CENTER_ERROR("open_effect map: object1 = ", it->second.type());
+
+                        auto elem1 = it->second.get<Poseidon::JsonArray>();
+                        boost::container::flat_map<std::uint64_t, boost::container::flat_map<std::uint64_t, std::uint64_t> > map2;
+                        for(auto pit = elem1.begin(); pit != elem1.end(); ++pit)
+                        {
+                            auto elem2 = pit->get<Poseidon::JsonObject>();
+                            for(auto oit = elem2.begin(); oit != elem2.end(); ++oit)
+                            {
+                                auto name = boost::lexical_cast<std::uint64_t>(oit->first.get());
+                           //     LOG_EMPERY_CENTER_ERROR("open_effect map: name = ", name);
+
+                           //     LOG_EMPERY_CENTER_ERROR("open_effect map: oit = ", oit->second.type());
+
+                          //      LOG_EMPERY_CENTER_ERROR("open_effect map: oit dump = ", oit->second.dump());
+
+                                auto elem3 = oit->second.get<Poseidon::JsonObject>();
+
+                                boost::container::flat_map<std::uint64_t, std::uint64_t> map3;
+
+                                for(auto sit = elem3.begin(); sit != elem3.end(); ++sit)
+                                {
+                                    auto key = boost::lexical_cast<std::uint64_t>(sit->first.get());
+                                    auto count = boost::lexical_cast<std::uint64_t>(sit->second.get<std::string>());
+
+                                    if(!map3.emplace(key, count).second)
+                                    {
+                                        LOG_EMPERY_CENTER_ERROR("effect map: name = ", name);
+                                        DEBUG_THROW(Exception, sslit("Duplicate open_effect map"));
+                                    }
+                                }
+
+                                if(!map2.emplace(name, std::move(map3)).second)
+                                {
+                                    LOG_EMPERY_CENTER_ERROR("effect map: name = ", name);
+                                    DEBUG_THROW(Exception, sslit("Duplicate open_effect map"));
+                                }
+                            }
+
+                        }
+
+ //                       LOG_EMPERY_CENTER_ERROR("effect map: map2 size = ", map2.size());
+                        if(!map2.empty())
+                        {
+ //                           LOG_EMPERY_CENTER_ERROR("effect map: map2 size = ", map2.size());
+                            if(!elem.open_effect.emplace(std::move(collection_name), std::move(map2)).second)
+                            {
+                                LOG_EMPERY_CENTER_ERROR("effect map: collection_name = ", collection_name);
+                                DEBUG_THROW(Exception, sslit("Duplicate effect map"));
+                            }
+                        }
+                    }
                     // 战损属性
                     csv.get(object, "damage_buff");
                     elem.damage_buff.reserve(object.size());

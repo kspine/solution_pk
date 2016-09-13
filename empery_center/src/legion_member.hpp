@@ -18,6 +18,7 @@ namespace MySql {
 
 class PlayerSession;
 class Account;
+class ChatMessage;
 
 class LegionMember : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -51,6 +52,9 @@ public:
 	void get_attributes(boost::container::flat_map<LegionMemberAttributeId, std::string> &ret) const;
 	void set_attributes(boost::container::flat_map<LegionMemberAttributeId, std::string> modifiers);
 
+	// 设置联盟uuid
+	void set_league_uuid(std::string str_league_uuid);
+
 	template<typename T, typename DefaultT = T>
 	T cast_attribute(LegionMemberAttributeId account_attribute_id, const DefaultT def = DefaultT()){
 		const auto &str = get_attribute(account_attribute_id);
@@ -59,6 +63,9 @@ public:
 		}
 		return boost::lexical_cast<T>(str);
 	}
+
+	// 军团成员在联盟中聊天
+	int league_chat(const boost::shared_ptr<ChatMessage> &message);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

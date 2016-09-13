@@ -28,7 +28,7 @@ namespace EmperyCenter
                boost::container::flat_map<std::string, std::uint64_t> need;
                boost::container::flat_map<std::uint64_t, std::string> damage_buff;
 
-
+                boost::container::flat_map<std::uint64_t, boost::container::flat_map<std::uint64_t, boost::container::flat_map<std::uint64_t, std::uint64_t> > >  open_effect ;
         };
     }
 }

@@ -16,8 +16,7 @@ constexpr LegionBuildingAttributeId
 	ID_END                            ( 500 ),
 
 	ID_LEVEL                          ( 101 ),
-	ID_MAPOBJECT_UUID                 ( 102 ),
-	ID_UPGRADE_TIME                   ( 103 );
+	ID_MAPOBJECT_UUID                 ( 102 );
 
 }
 

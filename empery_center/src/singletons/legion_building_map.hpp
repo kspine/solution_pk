@@ -28,9 +28,12 @@ struct LegionBuildingMap {
 
     static void  find_by_type(std::vector<boost::shared_ptr<LegionBuilding>> &buildings,LegionUuid legion_uuid,std::uint64_t ntype);
 
+	static boost::shared_ptr<LegionBuilding> find_by_map_object_uuid(MapObjectUuid map_object_uuid);
+
 	static void insert(const boost::shared_ptr<LegionBuilding> &building);
 	static void deleteInfo(LegionUuid legion_uuid,AccountUuid account_uuid,bool bAll = false);
 	static void deleteInfo_by_legion_uuid(LegionUuid legion_uuid);
+	static void deleteInfo_by_legion_building_uuid(LegionBuildingUuid legion_building_uuid);
 
 	static void synchronize_with_player(LegionUuid legion_uuid,const boost::shared_ptr<PlayerSession> &session);
 

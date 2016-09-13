@@ -46,6 +46,14 @@ namespace Msg {
 		ERR_LEGION_BUILDING_UPGRADE_LACK					= 73034,		// 升级军团建筑时，所需升级消耗资源不足
 		ERR_LEGION_BUILDING_UPGRADE_LIMIT					= 73035,		// 升级军团建筑时，所需升级条件不满足
 		ERR_LEGION_BUILDING_NOTIN_UPGRADING					= 73036,		// 取消升级军团建筑时，发现目前没有在升级
+		ERR_LEGION_OPEN_GRUBE_INCDTIMR						= 73037,		// 开启货仓时，发现没有过CD时间
+		ERR_LEGION_OPEN_GRUBE_RESIDUE						= 73038,		// 开启货仓时，发现资源有剩余
+		ERR_LEGION_OPEN_GRUBE_LACK							= 73039,		// 开启货仓时，条件不足
+		ERR_LEGION_REPAIR_GRUBE_HPERROR						= 73040,		// 维修货仓时，血量错误
+		ERR_LEGION_UPGRADE_NEED_LACK						= 73041,		// 升级军团时，升级所需消耗资源不足
+		ERR_LEGION_UPGRADE_NEEDRESOURCE_ERROR				= 73042,		// 升级军团时，升级所需升级条件不满足
+		ERR_LEGION_OPEN_GRUBE_DESTRUCT						= 73043,		// 开启货仓时，因为处于击毁状态不能开启
+		ERR_LEGION_UPGRADE_GRUBE_LEFT						= 73044,		// 升级货仓时，货仓中有剩余资源，不可升级
 	};
 }
 

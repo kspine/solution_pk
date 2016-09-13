@@ -37,8 +37,9 @@
 #include "controller_client.hpp"
 #include "../msg/st_map.hpp"
 #include "global_status.hpp"
-#include "map_activity_accumulate_map.hpp"
+//#include "map_activity_accumulate_map.hpp"
 #include "../attribute_ids.hpp"
+#include "../warehouse_building.hpp"
 
 namespace EmperyCenter {
 
@@ -238,12 +239,14 @@ namespace {
 		}
 
 		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_MapObject",
-			"DELETE QUICK `m`.*, `a`.*, `d`.* "
+			"DELETE QUICK `m`.*, `a`.*, `d`.*, `w`.* "
 			"  FROM `Center_MapObject` AS `m` "
 			"    LEFT JOIN `Center_MapObjectAttribute` AS `a` "
 			"      ON `m`.`map_object_uuid` = `a`.`map_object_uuid` "
 			"    LEFT JOIN `Center_DefenseBuilding` AS `d` "
 			"      ON `m`.`map_object_uuid` = `d`.`map_object_uuid` "
+			"    LEFT JOIN `Center_WarehouseBuilding` AS `w` "
+			"      ON `m`.`map_object_uuid` = `w`.`map_object_uuid` "
 			"    LEFT JOIN `Center_MapObjectBuff` AS `b` "
 			"      ON `m`.`map_object_uuid` = `b`.`map_object_uuid` "
 			"  WHERE `m`.`expiry_time` = '0000-00-00 00:00:00'");
@@ -614,6 +617,8 @@ namespace {
 		const auto buffs              = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapObjectBuff>>>();
 		// DefenseBuilding
 		const auto defense_objs       = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_DefenseBuilding>>>();
+		// WarehouseBuilding
+		const auto warehouse_objs	  = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_WarehouseBuilding>>>();
 		// Castle
 		const auto buildings          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleBuildingBase>>>();
 		const auto techs              = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleTech>>>();
@@ -650,6 +655,8 @@ namespace {
 		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
 		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
 			RELOAD_PART_(defense_objs,       Center_DefenseBuilding)
+		case MapObjectTypeIds::ID_LEGION_WAREHOUSE.get():
+			RELOAD_PART_(warehouse_objs,       Center_WarehouseBuilding)
 		default:
 			RELOAD_PART_(attributes,         Center_MapObjectAttribute)
 			RELOAD_PART_(buffs,              Center_MapObjectBuff)
@@ -672,6 +679,8 @@ namespace {
 		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
 		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
 			return boost::make_shared<DefenseBuilding>(std::move(obj), *attributes, *buffs, *defense_objs);
+		case MapObjectTypeIds::ID_LEGION_WAREHOUSE.get():
+			return boost::make_shared<WarehouseBuilding>(std::move(obj), *attributes, *buffs, *warehouse_objs);
 		default:
 			return boost::make_shared<MapObject>(std::move(obj), *attributes, *buffs);
 		}
@@ -1603,6 +1612,7 @@ boost::shared_ptr<MapEventBlock> WorldMap::get_map_event_block(Coord coord){
 	return it->map_event_block;
 }
 
+/*
 void WorldMap::get_cluster_map_event_blocks(Coord cluster_coord, std::vector<boost::shared_ptr<MapEventBlock>> &ret){
 	PROFILE_ME;
 
@@ -1620,6 +1630,7 @@ void WorldMap::get_cluster_map_event_blocks(Coord cluster_coord, std::vector<boo
 		ret.emplace_back(it->map_event_block);
 	}
 }
+*/
 boost::shared_ptr<MapEventBlock> WorldMap::require_map_event_block(Coord coord){
 	PROFILE_ME;
 
@@ -1675,6 +1686,7 @@ void WorldMap::update_map_event_block(const boost::shared_ptr<MapEventBlock> &ma
 	map_event_block_map->replace<0>(it, MapEventBlockElement(map_event_block));
 }
 
+/*
 void WorldMap::refresh_activity_event(unsigned map_event_type){
 	PROFILE_ME;
 	LOG_EMPERY_CENTER_TRACE("refresh activity event ");
@@ -1744,13 +1756,12 @@ void WorldMap::remove_world_activity_event(Coord cluster_coord, unsigned map_eve
 
 void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t since){
 	PROFILE_ME;
-	
 	//先查一下有没有存在的boss，有则直接返回
 	WorldActivityBossMap::WorldActivityBossInfo boss_info = WorldActivityBossMap::get(cluster_coord,since);
 	if(boss_info.since == since){
 		return;
 	}
-	
+
 	//不存在则直接开刷
 	const auto map_event_block_map = g_map_event_block_map.lock();
 	if(!map_event_block_map){
@@ -1762,7 +1773,7 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 	WorldMap::get_cluster_map_event_blocks(cluster_coord,ret);
 	std::sort(ret.begin(), ret.end(),
 					[](const boost::shared_ptr<MapEventBlock> &lhs, const boost::shared_ptr<MapEventBlock> &rhs){
-						
+
 						return lhs->get_map_event_cicle_id() < rhs->get_map_event_cicle_id();
 					});
 	for(auto it = ret.begin(); it != ret.end(); ++it){
@@ -1789,7 +1800,7 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 
 void WorldMap::remove_world_activity_boss(Coord cluster_coord,std::uint64_t since){
 	PROFILE_ME;
-	
+
 	WorldActivityBossMap::WorldActivityBossInfo boss_info = WorldActivityBossMap::get(cluster_coord,since);
 	if(boss_info.since != since){
 		return;
@@ -1803,7 +1814,7 @@ void WorldMap::remove_world_activity_boss(Coord cluster_coord,std::uint64_t sinc
 		monster_boss->delete_from_game();
 	}
 }
-
+*/
 boost::shared_ptr<ResourceCrate> WorldMap::get_resource_crate(ResourceCrateUuid resource_crate_uuid){
 	PROFILE_ME;
 

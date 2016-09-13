@@ -12,7 +12,7 @@ namespace EmperyCenter {
 class LegionMember;
 class PlayerSession;
 class ItemBox;
-
+class ChatMessage;
 
 struct LegionMemberMap {
 	static bool is_holding_controller_token(LegionUuid account_uuid);
@@ -49,6 +49,8 @@ struct LegionMemberMap {
 	static void check_in_waittime();
 	// 检查是否有需要重置的内容
 	static void check_in_resetime();
+	// 军团成员聊天
+	static int chat(const boost::shared_ptr<LegionMember> &member,const boost::shared_ptr<ChatMessage> &message);
 
 	static void synchronize_account_with_player_all(LegionUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,
 		bool wants_nick, bool wants_attributes, bool wants_private_attributes, const boost::shared_ptr<ItemBox> &item_box);

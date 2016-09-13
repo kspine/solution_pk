@@ -63,7 +63,7 @@ namespace EmperyCenter
 
         bool LegionCorpsPower::is_have_power(LegionCorpsPowerId legionCorpsPower_id,unsigned powerid)
         {
-            
+
             const auto power = get(legionCorpsPower_id);
             if(power)
             {
@@ -80,7 +80,7 @@ namespace EmperyCenter
             }
 
 
-            LOG_EMPERY_CENTER_DEBUG("没找到对应权限 ========================================= ", powerid);
+     //       LOG_EMPERY_CENTER_DEBUG("没找到对应权限 ========================================= ", powerid);
 
             return false;
         }

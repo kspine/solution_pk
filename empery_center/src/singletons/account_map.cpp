@@ -21,6 +21,7 @@
 #include "controller_client.hpp"
 #include "../msg/st_account.hpp"
 #include "../msg/err_account.hpp"
+#include "legion_member_map.hpp"
 
 namespace EmperyCenter {
 
@@ -703,5 +704,28 @@ void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_
 void AccountMap::cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
 	return cached_synchronize_account_with_player_all(account_uuid, session, true, true, false, { });
 }
+
+bool AccountMap::is_friendly(AccountUuid account_uuid,AccountUuid other_uuid)
+{
+	// 目前只查看两者是否是同一军团
+	if(LegionMemberMap::is_in_same_legion(account_uuid,other_uuid))
+		return true;
+
+	// 不是同一军团的，查看是否是同一联盟的
+	const auto& account = AccountMap::get(account_uuid);
+	const auto& other_account = AccountMap::get(other_uuid);
+	if(account && other_account)
+	{
+		const auto str_league_uuid = account->get_attribute(AccountAttributeIds::ID_LEAGUE_UUID);
+
+		const auto str_other_league_uuid = other_account->get_attribute(AccountAttributeIds::ID_LEAGUE_UUID);
+
+		if(!str_league_uuid.empty() && str_league_uuid == str_other_league_uuid)
+			return true;
+	}
+
+	return false;
+}
+
 
 }

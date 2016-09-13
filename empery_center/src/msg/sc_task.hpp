@@ -21,6 +21,16 @@ namespace Msg {
 	FIELD_VUINT         (rewarded)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_TaskLegionRewardChanged
+#define MESSAGE_ID      1298
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (task_type_id)	\
+	FIELD_ARRAY         (progress,	\
+		FIELD_VUINT         (key)	\
+		FIELD_VUINT         (count)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

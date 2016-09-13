@@ -5,6 +5,7 @@
 #include "singletons/legion_map.hpp"
 #include "msg/cs_legion.hpp"
 #include "msg/sc_legion.hpp"
+#include "msg/sl_league.hpp"
 #include "player_session.hpp"
 #include "legion.hpp"
 #include "legion_member.hpp"
@@ -12,7 +13,11 @@
 #include "singletons/account_map.hpp"
 #include "singletons/legion_member_map.hpp"
 #include "account_attribute_ids.hpp"
+#include "singletons/league_client.hpp"
+#include "chat_message.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include "legion_task_contribution_box.hpp"
+#include "singletons/legion_task_contribution_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -86,12 +91,20 @@ void LegionMember::InitAttributes(boost::shared_ptr<Account> account,unsigned nT
 
 void LegionMember::leave()
 {
+	//重置下军团个人贡献排行榜值
+	auto legion_task_contribution_box = LegionTaskContributionBoxMap::get(get_legion_uuid());
+	if(legion_task_contribution_box){
+		legion_task_contribution_box->reset_account_contribution(get_account_uuid());
+	}
+
 	// 删除属性表
 	std::string strsql = "DELETE FROM Center_LegionMemberAttribute WHERE account_uuid='";
 	strsql += get_account_uuid().str();
 	strsql += "';";
 
 	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionMemberAttribute",strsql);
+
+	set_league_uuid("");
 }
 
 std::uint64_t LegionMember::get_created_time() const {
@@ -150,7 +163,7 @@ void LegionMember::synchronize_with_player(const boost::shared_ptr<PlayerSession
 	const auto leader_account = AccountMap::require(AccountUuid(get_attribute(LegionAttributeIds::ID_LEADER)));
 	msg.legion_leadername    	= 	get_attribute(LegionAttributeIds::ID_LEADER);
 	msg.legion_icon     		= 	get_attribute(LegionAttributeIds::ID_ICON);
-	msg.legion_notice     		= 	get_attribute(LegionAttributeIds::ID_NOTICE);
+	msg.legion_notice     		= 	get_attribute(LegionAttributeIds::ID_CONTENT);
 	msg.legion_level     		= 	get_attribute(LegionAttributeIds::ID_LEVEL);
 	msg.legion_rank     		= 	get_attribute(LegionAttributeIds::ID_RANK);
 	msg.legion_money     		= 	get_attribute(LegionAttributeIds::ID_MONEY);
@@ -176,6 +189,52 @@ void LegionMember::synchronize_with_player(const boost::shared_ptr<PlayerSession
 	msg.activated       = has_been_activated();
 	session->send(msg);
 	*/
+}
+
+int LegionMember::league_chat(const boost::shared_ptr<ChatMessage> &message)
+{
+	PROFILE_ME;
+
+	// 发消息去联盟服务器league
+	Msg::SL_LeagueChatReq msg;
+	msg.account_uuid = get_account_uuid().str();
+	msg.legion_uuid =  get_legion_uuid().str();
+	msg.chat_message_uuid = message->get_chat_message_uuid().str();
+	msg.channel = boost::lexical_cast<uint64_t>(message->get_channel());
+	msg.type = boost::lexical_cast<uint64_t>(message->get_type());
+	msg.language_id = boost::lexical_cast<uint64_t>(message->get_language_id());
+	msg.created_time = message->get_created_time();
+	const auto& chat_segments = message->get_segments();
+	msg.segments.reserve(chat_segments.size());
+	for(auto it = chat_segments.begin(); it != chat_segments.end(); ++it)
+	{
+		auto &elem = *msg.segments.emplace(msg.segments.end());
+		elem.slot = boost::lexical_cast<uint64_t>(it->first);
+		elem.value = it->second;
+	}
+
+	const auto& league = LeagueClient::require();
+
+	auto tresult = league->send_and_wait(msg);
+
+    LOG_EMPERY_CENTER_DEBUG("league_chat response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+    return boost::lexical_cast<int>(std::move(tresult.first));
+
+
+}
+
+void LegionMember::set_league_uuid(std::string str_league_uuid)
+{
+	const auto& account = AccountMap::get(get_account_uuid());
+	if(account)
+	{
+		boost::container::flat_map<AccountAttributeId, std::string> Attributes;
+
+		Attributes[AccountAttributeIds::ID_LEAGUE_UUID] = str_league_uuid;
+
+		account->set_attributes(std::move(Attributes));
+	}
 }
 
 }

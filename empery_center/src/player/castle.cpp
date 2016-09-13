@@ -39,8 +39,11 @@
 #include "../resource_ids.hpp"
 #include "../events/castle.hpp"
 #include "../account_utilities.hpp"
-#include "../singletons/activity_map.hpp"
-#include "../activity.hpp"
+#include "../legion_task_box.hpp"
+#include "../singletons/legion_member_map.hpp"
+#include "../singletons/legion_task_box_map.hpp"
+#include "../legion_member.hpp"
+#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -875,6 +878,41 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
+	try
+	{
+		//触发任务：累计建造部队，训练士兵，战力计算
+		task_box->check(TaskTypeIds::ID_BUILD_SOLDIERS, TaskLegionPackageKeyIds::ID_BUILD_SOLDIERS.get(), (count)* map_object_type_data->warfare, TaskBox::TCC_ALL, 0, 0);
+	}
+	catch (std::exception &e)
+	{
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
+
+	//军团任务兵种建造
+	try{
+		Poseidon::enqueue_async_job([=]{
+			PROFILE_ME;
+			if( map_object_type_data->warfare == 0){
+					goto legion_build_battalion_done;
+			}
+			{
+				const auto account_uuid = account->get_account_uuid();
+				const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+				if(member){
+					const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+					const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+					legion_task_box->check(TaskTypeIds::ID_BUILD_SOLDIERS, TaskLegionKeyIds::ID_BUILD_SOLDIERS, (count)* map_object_type_data->warfare,account_uuid, 0, 0);
+					legion_task_box->pump_status();
+				}
+			}
+			legion_build_battalion_done:
+			;
+		});
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
 	return Response();
 }
 
@@ -909,7 +947,6 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestSoldier, account, session, req){
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
-
 	return Response();
 }
 
@@ -1482,14 +1519,6 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	if(!new_cluster){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
 	}
-	const auto world_activity = ActivityMap::get_world_activity();
-	if(world_activity && world_activity->is_on()){
-		auto old_cluster_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
-		auto new_cluster_coord = WorldMap::get_cluster_scope(new_castle_coord).bottom_left();
-		if(old_cluster_coord != new_cluster_coord){
-			return Response(Msg::ERR_CANNOT_DEPLOY_IN_WORLD_ACTIVITY) << map_object_uuid;
-		}
-	}
 	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid);
 	if(result.first != Msg::ST_OK){
 		return std::move(result);
@@ -1498,12 +1527,15 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	if(castle->is_buff_in_effect(BuffIds::ID_BATTLE_STATUS)){
 		return Response(Msg::ERR_BATTLE_IN_PROGRESS) <<map_object_uuid;
 	}
+
 	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION) && !castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
 		return Response(Msg::ERR_PROTECTION_IN_PROGRESS) <<map_object_uuid;
 	}
+
 	if(castle->is_buff_in_effect(BuffIds::ID_CASTLE_PROTECTION_PREPARATION)){
-		return Response(Msg::ERR_PROTECTION_PREPARATION_IN_PROGRESS) <<map_object_uuid;
+	   return Response(Msg::ERR_PROTECTION_PREPARATION_IN_PROGRESS) <<map_object_uuid;
 	}
+
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
@@ -1959,6 +1991,7 @@ PLAYER_SERVLET(Msg::CS_CastleSetName, account, session, req){
 		const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_NAME_MODIFICATION_TRADE_ID));
 		const auto trade_data = Data::ItemTrade::require(trade_id);
 		Data::unpack_item_trade(transaction, trade_data, 1, req.ID);
+	} else {
 		modifiers[AccountAttributeIds::ID_FIRST_CASTLE_NAME_SET] = "1";
 	}
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,

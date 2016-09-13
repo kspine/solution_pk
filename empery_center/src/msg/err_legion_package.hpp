@@ -15,6 +15,7 @@ namespace EmperyCenter
 			ERR_LEGION_PACKAGE_TASK_RECEIVED    = 80002, //军团礼包任务礼包已经领取
 			ERR_LEGION_PACKAGE_SHARE_RECEIVED   = 80003, //军团礼包分享礼包已经领取
             ERR_LEGION_PACKAGE_SHARE_EXPIRE     = 80004, //军团礼包分享超期
+			ERR_LEGION_PACKAGE_SHARE_NOTEXPIRE  = 80005, //军团礼包分享未超期
         };
     }
 }

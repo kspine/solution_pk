@@ -3,6 +3,8 @@
 #include "mmain.hpp"
 #include "mysql/legion.hpp"
 #include "legion_building.hpp"
+#include "singletons/world_map.hpp"
+#include "map_object.hpp"
 #include "singletons/legion_building_map.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
 
@@ -10,11 +12,11 @@
 namespace EmperyCenter {
 
 std::pair<boost::shared_ptr<const Poseidon::JobPromise>, boost::shared_ptr<LegionBuilding>> LegionBuilding::async_create(
-	LegionBuildingUuid legion_building_uuid,   LegionUuid legion_uuid,  std::uint64_t ntype)
+	LegionBuildingUuid legion_building_uuid,   LegionUuid legion_uuid,  MapObjectUuid map_object_uuid,std::uint64_t ntype)
 {
 	PROFILE_ME;
 
-	auto obj = boost::make_shared<MySql::Center_LegionBuilding>(legion_building_uuid.get(),legion_uuid.get() ,ntype);
+	auto obj = boost::make_shared<MySql::Center_LegionBuilding>(legion_building_uuid.get(),legion_uuid.get() ,map_object_uuid.get(),ntype);
 	obj->enable_auto_saving();
 	auto promise = Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
 	auto account = boost::make_shared<LegionBuilding>(std::move(obj), std::vector<boost::shared_ptr<MySql::Center_LegionBuildingAttribute>>());
@@ -41,6 +43,10 @@ LegionUuid LegionBuilding::get_legion_uuid()  const {
 	return LegionUuid(m_obj->unlocked_get_legion_uuid());
 }
 
+MapObjectUuid LegionBuilding::get_map_object_uuid()  const {
+	return MapObjectUuid(m_obj->unlocked_get_map_object_uuid());
+}
+
 std::uint64_t LegionBuilding::get_type()  const {
 	return std::uint64_t(m_obj->unlocked_get_ntype());
 }
@@ -50,16 +56,20 @@ void LegionBuilding::InitAttributes(std::string strobjuuid)
 	PROFILE_ME;
 
 	// 设置属性
-	boost::container::flat_map<LegionBuildingAttributeId, std::string> modifiers;
-	modifiers.emplace(LegionBuildingAttributeIds::ID_LEVEL, "0");
-	modifiers.emplace(LegionBuildingAttributeIds::ID_MAPOBJECT_UUID, strobjuuid);
-
-	set_attributes(std::move(modifiers));
+//	boost::container::flat_map<LegionBuildingAttributeId, std::string> modifiers;
+//	modifiers.emplace(LegionBuildingAttributeIds::ID_LEVEL, "0");
+//	set_attributes(std::move(modifiers));
 
 }
 
 void LegionBuilding::leave()
 {
+	const auto obj = WorldMap::get_map_object(get_map_object_uuid());
+	if(obj)
+	{
+		obj->delete_from_game();
+	}
+	
 	// 删除属性表
 	std::string strsql = "DELETE FROM Center_LegionBuildingAttribute WHERE legion_building_uuid='";
 	strsql += get_legion_building_uuid().str();
