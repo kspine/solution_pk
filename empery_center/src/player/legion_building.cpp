@@ -162,10 +162,12 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                         const auto castle_upgrade_data = Data::CastleUpgradePrimary::require(castle_level);
 
                         const auto coord = Coord(req.coord_x, req.coord_y);
-                        const auto distance = get_distance_of_coords(coord, castle->get_coord());
+                        // 屏蔽掉势利范围的检测
+                        /*const auto distance = get_distance_of_coords(coord, castle->get_coord());
                         if(distance > castle_upgrade_data->max_map_cell_distance){
                             return Response(Msg::ERR_DEFENSE_BUILDING_IS_TOO_FAR_AWAY) <<distance;
                         }
+                        */
                         const auto cluster = WorldMap::get_cluster(coord);
                         if(!cluster){
                             return CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST);

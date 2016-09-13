@@ -176,10 +176,20 @@ namespace EmperyCenter {
 
         const auto account_uuid = account->get_account_uuid();
 
+        const auto str_league_uuid = account->get_attribute(AccountAttributeIds::ID_LEAGUE_UUID);
+
         // 判断玩家是否已经有军团
         const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
         if(!member)
         {
+            if(!str_league_uuid.empty())
+            {
+                boost::container::flat_map<AccountAttributeId, std::string> Attributes;
+
+                Attributes[AccountAttributeIds::ID_LEAGUE_UUID] = "";
+
+                account->set_attributes(std::move(Attributes));
+            }
             return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
         }
         else
@@ -187,6 +197,7 @@ namespace EmperyCenter {
             Msg::SL_LeagueInfo msg;
             msg.account_uuid = account_uuid.str();
             msg.legion_uuid = member->get_legion_uuid().str();
+            msg.league_uuid = str_league_uuid;
 
             const auto league = LeagueClient::require();
 

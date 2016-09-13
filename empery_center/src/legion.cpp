@@ -284,6 +284,9 @@ void Legion::disband()
 
 	Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionAttribute",strsql);
 
+	// 设置对应的联盟信息为空
+	set_member_league_uuid("");
+
 	// 军团解散的成员的善后操作
 	LegionMemberMap::disband_legion(get_legion_uuid());
 

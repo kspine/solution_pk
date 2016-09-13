@@ -1624,6 +1624,8 @@ PLAYER_SERVLET(Msg::CS_disbandLegionReqMessage, account, session, req)
 
             auto tresult = league->send_and_wait(msg);
 
+			LOG_EMPERY_CENTER_DEBUG("CS_disbandLegionReqMessage response: code =================== ", tresult.first);
+
 			return Response(std::move(tresult.first));
 
 			/*

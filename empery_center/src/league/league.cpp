@@ -65,51 +65,61 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 	const auto account = AccountMap::get(account_uuid);
 	if(account)
 	{
-		const auto target_session = PlayerSessionMap::get(account_uuid);
-		if(target_session)
+		if(req.rewrite == 1)
 		{
+			boost::container::flat_map<AccountAttributeId, std::string> Attributes;
 
-			Msg::SC_LeagueInfo msg;
-			msg.league_uuid = req.league_uuid;
-			msg.league_name = req.league_name;
-			msg.league_icon = req.league_icon;
-			msg.league_notice = req.league_notice;
-			msg.league_level = req.league_level;
-			msg.leader_uuid = req.leader_legion_uuid;
-			msg.leader_name = "";
-			const auto& leader_legion = LegionMap::get(LegionUuid(req.leader_legion_uuid));
-			if(leader_legion)
+			Attributes[AccountAttributeIds::ID_LEAGUE_UUID] = req.league_uuid;
+
+			account->set_attributes(std::move(Attributes));
+		}
+		if(req.res == 0)
+		{
+			const auto target_session = PlayerSessionMap::get(account_uuid);
+			if(target_session)
 			{
-				const auto& leader_account = AccountMap::get(AccountUuid(leader_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
-				if(leader_account)
-					msg.leader_name = leader_account->get_nick();
-			}
-
-			/*
-			const auto leader_account = AccountMap::get(AccountUuid(req.create_account_uuid));
-			if(leader_account)
-				msg.leader_name = leader_account->get_nick();
-			*/
-
-			msg.members.reserve(req.members.size());
-			for(auto it = req.members.begin(); it != req.members.end(); ++it )
-			{
-				auto &elem = *msg.members.emplace(msg.members.end());
-				auto info = *it;
-
-				elem.legion_uuid = info.legion_uuid;
-
-				const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
-				if(legion)
+				Msg::SC_LeagueInfo msg;
+				msg.league_uuid = req.league_uuid;
+				msg.league_name = req.league_name;
+				msg.league_icon = req.league_icon;
+				msg.league_notice = req.league_notice;
+				msg.league_level = req.league_level;
+				msg.leader_uuid = req.leader_legion_uuid;
+				msg.leader_name = "";
+				const auto& leader_legion = LegionMap::get(LegionUuid(req.leader_legion_uuid));
+				if(leader_legion)
 				{
-					elem.legion_name = legion->get_nick();
-					elem.legion_icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
+					const auto& leader_account = AccountMap::get(AccountUuid(leader_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+					if(leader_account)
+						msg.leader_name = leader_account->get_nick();
 				}
 
-				elem.titleid = info.titleid;
-			}
+				/*
+				const auto leader_account = AccountMap::get(AccountUuid(req.create_account_uuid));
+				if(leader_account)
+					msg.leader_name = leader_account->get_nick();
+				*/
 
-			target_session->send(msg);
+				msg.members.reserve(req.members.size());
+				for(auto it = req.members.begin(); it != req.members.end(); ++it )
+				{
+					auto &elem = *msg.members.emplace(msg.members.end());
+					auto info = *it;
+
+					elem.legion_uuid = info.legion_uuid;
+
+					const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
+					if(legion)
+					{
+						elem.legion_name = legion->get_nick();
+						elem.legion_icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
+					}
+
+					elem.titleid = info.titleid;
+				}
+
+				target_session->send(msg);
+			}
 		}
 	}
 
@@ -539,12 +549,17 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 	msg.nick = req.nick;
 	msg.ext1 = req.ext1;
 
-	if(msg.msgtype == 6)
+	if(msg.msgtype == 6 || msg.msgtype == 9)
 	{
 		const auto& legion = LegionMap::get(LegionUuid(msg.nick));
 		if(legion)
 		{
 			msg.nick = legion->get_nick();
+
+			if(msg.msgtype == 9)
+			{
+				legion->set_member_league_uuid("");
+			}
 		}
 	}
 	if(msg.msgtype == 1 || msg.msgtype == 2 || msg.msgtype == 3 || msg.msgtype == 6)
@@ -742,6 +757,25 @@ LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
 
 	return Response();
 }
+
+
+LEAGUE_SERVLET(Msg::LS_disbandLeagueRes, server, req){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("LS_disbandLeagueRes=================== ", req.account_uuid);
+
+	const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+	if(legion)
+	{
+		legion->set_member_league_uuid("");
+
+		return Response(Msg::ST_OK);
+	}
+
+	return Response();
+}
+
+
 
 
 }

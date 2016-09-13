@@ -16,6 +16,8 @@ namespace Msg {
 #define MESSAGE_NAME    LS_LeagueInfo
 #define MESSAGE_ID      51001
 #define MESSAGE_FIELDS  \
+	FIELD_VUINT         (res)	\
+	FIELD_VUINT         (rewrite)	\
 	FIELD_STRING        (account_uuid)	\
 	FIELD_STRING        (league_uuid)	\
 	FIELD_STRING        (league_name)	\
@@ -159,6 +161,15 @@ namespace Msg {
 
 #define MESSAGE_NAME    LS_disbandLegionRes
 #define MESSAGE_ID      51013
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    LS_disbandLeagueRes
+#define MESSAGE_ID      51014
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
 	FIELD_STRING        (legion_uuid)
