@@ -66,7 +66,7 @@ namespace Msg {
 		FIELD_VINT          (dy)	\
 	)	\
 	FIELD_VUINT         (action)	\
-	FIELD_STRING        (param)	\
+	FIELD_STRING        (param)		\
 	FIELD_VINT          (target_x)	\
 	FIELD_VINT          (target_y)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -142,6 +142,15 @@ namespace Msg {
 	FIELD_VINT          (attacked_coord_y)	\
 	FIELD_VUINT         (soldiers_damaged)	\
 	FIELD_VUINT         (forced_attack)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    KS_MapHarvestLegionResource
+#define MESSAGE_ID      32313
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (interval)	\
+	FIELD_VUINT         (forced_attack) \
+	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

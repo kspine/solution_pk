@@ -35,6 +35,7 @@ public:
 		ACT_HARVEST_STRATEGIC_RESOURCE_FORCE  = 11,
 		ACT_HARVEST_RESOURCE_CRATE_FORCE      = 12,
 		ACT_STAND_BY                          = 13,
+		ACT_HARVEST_LEGION_RESOURCE           = 14,
 	};
 
 	enum AttackImpact {
@@ -64,6 +65,7 @@ private:
 	const std::uint64_t m_stamp;
 	const MapObjectTypeId m_map_object_type_id;
 	const AccountUuid m_owner_uuid;
+	const LegionUuid m_legion_uuid;
 	const MapObjectUuid m_parent_object_uuid;
 	const bool m_garrisoned;
 	const boost::weak_ptr<ClusterClient> m_cluster;
@@ -85,7 +87,7 @@ private:
 
 public:
 	MapObject(MapObjectUuid map_object_uuid, std::uint64_t stamp, MapObjectTypeId map_object_type_id,
-		AccountUuid owner_uuid, MapObjectUuid parent_object_uuid,bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
+		AccountUuid owner_uuid, LegionUuid legion_uuid, MapObjectUuid parent_object_uuid,bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 		Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,
 		boost::container::flat_map<BuffId, BuffInfo> buffs);
 	~MapObject();
@@ -119,6 +121,7 @@ public:
 	std::uint64_t attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_overplay(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
+	std::uint64_t on_action_harvest_legion_resource(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t on_action_attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack = false);
 	std::uint64_t lost_target_common();
@@ -133,6 +136,7 @@ private:
 	bool          is_castle();
 	bool          is_bunker();
 	bool          is_defense_tower();
+	bool  		  is_legion_warehouse();
 	bool          is_lost_attacked_target();
 	void          reset_attack_target_own_uuid();
     AccountUuid   get_attack_target_own_uuid();
@@ -155,6 +159,9 @@ public:
 	}
 	AccountUuid get_owner_uuid() const {
 		return m_owner_uuid;
+	}
+	LegionUuid get_legion_uuid() const {
+		return m_legion_uuid;
 	}
 	MapObjectUuid get_parent_object_uuid() const {
 		return m_parent_object_uuid;

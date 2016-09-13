@@ -24,6 +24,9 @@
 #include "../reason_ids.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../castle.hpp"
+#include "../singletons/legion_member_map.hpp"
+#include "../msg/err_league.hpp"
+#include "../legion_member.hpp"
 
 namespace EmperyCenter {
 
@@ -61,6 +64,12 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 	} else if(channel == ChatChannelIds::ID_KING){
 		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_KING);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_KING_CHANNEL);
+	} else if(channel == ChatChannelIds::ID_LEGION){
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_CHAT_RATE);
+	} else if(channel == ChatChannelIds::ID_UNION){
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_CHAT_RATE);
 	} else {
 		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
@@ -152,6 +161,40 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 		});
 		if(insuff_item_id){
 			return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+		}
+	}
+	else if(channel == ChatChannelIds::ID_LEGION)
+	{
+		// 军团聊天
+		const auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
+		if(member)
+		{
+			const auto result = LegionMemberMap::chat(member,message);
+
+			return Response(result);
+		}
+	}
+	else if(channel == ChatChannelIds::ID_UNION)
+	{
+		// 联盟聊天
+		const auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
+		if(member)
+		{
+			if(account->get_attribute(AccountAttributeIds::ID_LEAGUE_CAHT_FALG) == "1")
+			{
+				return Response(Msg::ERR_LEAGUE_BAN_CHAT);
+			}
+			else
+			{
+				// 本来是在account增加个方法，但是不想在account上加代码，就先写在军团成员里
+				const auto result = member->league_chat(message);
+
+				return Response(result);
+			}
+		}
+		else
+		{
+			return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
 		}
 	}
 

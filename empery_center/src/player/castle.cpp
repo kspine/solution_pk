@@ -39,6 +39,11 @@
 #include "../resource_ids.hpp"
 #include "../events/castle.hpp"
 #include "../account_utilities.hpp"
+#include "../legion_task_box.hpp"
+#include "../singletons/legion_member_map.hpp"
+#include "../singletons/legion_task_box_map.hpp"
+#include "../legion_member.hpp"
+#include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
 
@@ -873,6 +878,41 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
 
+	try
+	{
+		//触发任务：累计建造部队，训练士兵，战力计算
+		task_box->check(TaskTypeIds::ID_BUILD_SOLDIERS, TaskLegionPackageKeyIds::ID_BUILD_SOLDIERS.get(), (count)* map_object_type_data->warfare, TaskBox::TCC_ALL, 0, 0);
+	}
+	catch (std::exception &e)
+	{
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
+
+	//军团任务兵种建造
+	try{
+		Poseidon::enqueue_async_job([=]{
+			PROFILE_ME;
+			if( map_object_type_data->warfare == 0){
+					goto legion_build_battalion_done;
+			}
+			{
+				const auto account_uuid = account->get_account_uuid();
+				const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+				if(member){
+					const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+					const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+					legion_task_box->check(TaskTypeIds::ID_BUILD_SOLDIERS, TaskLegionKeyIds::ID_BUILD_SOLDIERS, (count)* map_object_type_data->warfare,account_uuid, 0, 0);
+					legion_task_box->pump_status();
+				}
+			}
+			legion_build_battalion_done:
+			;
+		});
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+
 	return Response();
 }
 
@@ -907,7 +947,6 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestSoldier, account, session, req){
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
-
 	return Response();
 }
 

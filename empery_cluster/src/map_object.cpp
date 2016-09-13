@@ -41,10 +41,10 @@ namespace {
 }
 
 MapObject::MapObject(MapObjectUuid map_object_uuid, std::uint64_t stamp, MapObjectTypeId map_object_type_id,
-	AccountUuid owner_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
+	AccountUuid owner_uuid,  LegionUuid legion_uuid, MapObjectUuid parent_object_uuid, bool garrisoned, boost::weak_ptr<ClusterClient> cluster,
 	Coord coord, boost::container::flat_map<AttributeId, std::int64_t> attributes,boost::container::flat_map<BuffId, BuffInfo> buffs)
 	: m_map_object_uuid(map_object_uuid), m_stamp(stamp), m_map_object_type_id(map_object_type_id)
-	, m_owner_uuid(owner_uuid), m_parent_object_uuid(parent_object_uuid),m_garrisoned(garrisoned), m_cluster(std::move(cluster))
+	, m_owner_uuid(owner_uuid), m_legion_uuid(legion_uuid), m_parent_object_uuid(parent_object_uuid),m_garrisoned(garrisoned), m_cluster(std::move(cluster))
 	, m_coord(coord), m_attributes(std::move(attributes)),m_buffs(std::move(buffs))
 {
 }
@@ -58,6 +58,7 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	const auto garrisoned         = is_garrisoned();
 
 	const auto map_object_type_data = get_map_object_type_data();
+//	if(!map_object_type_data && !is_legion_warehouse()){
 	if(!map_object_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
 		return UINT64_MAX;
@@ -67,7 +68,6 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 		return UINT64_MAX;
 	}
 	*/
-
 	if(garrisoned){
 	 	result = CbppResponse(Msg::ERR_MAP_OBJECT_IS_GARRISONED);
 	 	return UINT64_MAX;
@@ -155,6 +155,9 @@ std::uint64_t MapObject::pump_action(std::pair<long, std::string> &result, std::
 	}
 	ON_ACTION(ACT_HARVEST_STRATEGIC_RESOURCE){
 		return on_action_harvest_strategic_resource(result,now);
+	}
+	ON_ACTION(ACT_HARVEST_LEGION_RESOURCE){
+		return on_action_harvest_legion_resource(result,now);
 	}
 	ON_ACTION(ACT_HARVEST_STRATEGIC_RESOURCE_FORCE){
 		return on_action_harvest_strategic_resource(result,now,true);
@@ -933,7 +936,15 @@ void MapObject::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
-	WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
+	if(is_legion_warehouse())
+	{
+		WorldMap::get_map_objects_by_legion_uuid(friendly_map_objects,get_legion_uuid());
+	}
+	else
+	{
+		WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
+	}
+	
 	if(friendly_map_objects.empty()){
 		return;
 	}
@@ -993,8 +1004,7 @@ void   MapObject::notify_way_points(const std::deque<std::pair<signed char, sign
 					msg.target_y       = map_cell->get_coord().y();
 				}
 			}
-			LOG_EMPERY_CLUSTER_DEBUG("KS_MapWaypointsSet = ",msg);
-			cluster->send(msg);
+			LOG_EMPERY_CLUSTER_DEBUG("KS_MapWaypointsSet = ",msg);			cluster->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CLUSTER_WARNING("std::exception thrown: what = ", e.what());
 			cluster->shutdown(e.what());
@@ -1362,7 +1372,7 @@ int MapObject::get_attacked_prority(){
 }
 
 bool  MapObject::is_building(){
-	if(is_castle() || is_bunker() || is_defense_tower()){
+	if(is_castle() || is_bunker() || is_defense_tower() || is_legion_warehouse()){
 		return true;
 	}
 	return false;
@@ -1387,6 +1397,14 @@ bool  MapObject::is_bunker(){
 bool  MapObject::is_defense_tower(){
 	const auto map_object_type_id = get_map_object_type_id();
 	if( map_object_type_id == EmperyCenter::MapObjectTypeIds::ID_DEFENSE_TOWER){
+		return true;
+	}
+	return false;
+}
+
+bool  MapObject::is_legion_warehouse(){
+	const auto map_object_type_id = get_map_object_type_id();
+	if( map_object_type_id == EmperyCenter::MapObjectTypeIds::ID_LEGION_WAREHOUSE){
 		return true;
 	}
 	return false;
@@ -1465,6 +1483,30 @@ std::uint64_t MapObject::on_action_harvest_overplay(std::pair<long, std::string>
 	}
 	return harvest_interval;
 }*/
+// unmerged代码
+//std::uint64_t MapObject::on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t /*now*/,bool forced_attack){
+/*	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
+	const auto cluster = get_cluster();
+	if(!cluster){
+		return UINT64_MAX;
+	}
+	Msg::KS_MapHarvestStrategicResource sreq;
+	sreq.map_object_uuid = get_map_object_uuid().str();
+	sreq.interval        = harvest_interval;
+	if(forced_attack){
+		sreq.forced_attack   = true;
+	}
+	auto sresult = cluster->send_and_wait(sreq);
+	if(sresult.first != Msg::ST_OK){
+		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+		result = std::move(sresult);
+		return UINT64_MAX;
+	}
+	return harvest_interval;
+}
+*/
+
+// master代码
 std::uint64_t MapObject::on_action_harvest_strategic_resource(std::pair<long, std::string> &result, std::uint64_t /*now*/,bool forced_attack){
 	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
 	const auto cluster = get_cluster();
@@ -1491,6 +1533,30 @@ std::uint64_t MapObject::on_action_harvest_strategic_resource(std::pair<long, st
 	}
 	return harvest_interval;
 }
+
+std::uint64_t MapObject::on_action_harvest_legion_resource(std::pair<long, std::string> &result, std::uint64_t /*now*/,bool forced_attack){
+	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
+	const auto cluster = get_cluster();
+	if(!cluster){
+		return UINT64_MAX;
+	}
+	Msg::KS_MapHarvestLegionResource sreq;
+	sreq.map_object_uuid = get_map_object_uuid().str();
+	sreq.interval        = harvest_interval;
+	if(forced_attack){
+		sreq.forced_attack   = true;
+	}
+	sreq.param = m_action_param;
+	auto sresult = cluster->send_and_wait(sreq);
+	if(sresult.first != Msg::ST_OK){
+		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+		result = std::move(sresult);
+		return UINT64_MAX;
+	}
+	return harvest_interval;
+}
+
+
 std::uint64_t MapObject::on_action_harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
 	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
 	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);

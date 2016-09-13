@@ -30,6 +30,7 @@ namespace {
 	const char MAP_OBJECT_TYPE_BUILDING_TOWER_FILE[] = "Building_towers";
 	const char MAP_OBJECT_TYPE_BUILDING_CASTLE_FILE[] = "Building_castel";
 	const char MAP_OBJECT_TYPE_BUILDING_BUNKER_FILE[] = "Building_bunker";
+	const char MAP_OBJECT_TYPE_BUILDING_WAREHOUSE_FILE[] = "corps_house";
 	MULTI_INDEX_MAP(MapObjectTypeBuildingMap, Data::MapObjectTypeBuilding,
 		UNIQUE_MEMBER_INDEX(type_level)
 		MULTI_MEMBER_INDEX(map_object_type_id)
@@ -204,6 +205,22 @@ namespace {
 				DEBUG_THROW(Exception, sslit("Duplicate bunker"));
 			}
 		}
+
+		auto csvWareHouse = Data::sync_load_data(MAP_OBJECT_TYPE_BUILDING_WAREHOUSE_FILE);
+		while(csvWareHouse.fetch_row()){
+			Data::MapObjectTypeBuilding elem = { };
+			csvWareHouse.get(elem.map_object_type_id,         "building_id");
+			csvWareHouse.get(elem.level,                      "house_level");
+			csvWareHouse.get(elem.arm_type_id,                "building_combat_attributes");
+			elem.type_level = std::make_pair(elem.map_object_type_id, elem.level);
+
+			if(!map_object_building_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CLUSTER_ERROR("Duplicate WareHouse: map_object_type_id = ", elem.map_object_type_id, " level:",elem.level);
+				DEBUG_THROW(Exception, sslit("Duplicate WareHouse"));
+			}
+		}
+
+
 		g_map_object_type_building_map = map_object_building_map;
 		handles.push(map_object_building_map);
 

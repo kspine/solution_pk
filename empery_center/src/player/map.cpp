@@ -93,6 +93,9 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
 	}
+
+	LOG_EMPERY_CENTER_ERROR("CS_MapSetWaypoints: req.action = ", req.action, ", type = ", map_object->get_map_object_type_id());
+
 	if(map_object->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
