@@ -22,7 +22,7 @@ namespace Msg {
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_TaskLegionRewardChanged
-#define MESSAGE_ID      1299
+#define MESSAGE_ID      1298
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (task_type_id)	\
 	FIELD_ARRAY         (progress,	\
