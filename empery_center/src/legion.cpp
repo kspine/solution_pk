@@ -7,14 +7,10 @@
 #include "msg/cs_legion.hpp"
 #include "player_session.hpp"
 #include "legion.hpp"
-#include "legion_member.hpp"
 #include "legion_attribute_ids.hpp"
 #include "singletons/account_map.hpp"
-#include "legion_member_attribute_ids.hpp"
-#include "singletons/legion_member_map.hpp"
 #include "singletons/legion_applyjoin_map.hpp"
 #include "singletons/legion_invitejoin_map.hpp"
-#include "singletons/player_session_map.hpp"
 #include "chat_message_type_ids.hpp"
 #include "data/global.hpp"
 #include "singletons/mail_box_map.hpp"
@@ -323,7 +319,7 @@ void Legion::sendmail(boost::shared_ptr<Account> account, ChatMessageTypeId ntyp
 	const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
 //	const auto language_id = LanguageId(legion->get_attribute(LegionAttributeIds::ID_LANAGE));
 
-	const auto language_id = LanguageId(0);
+	const auto language_id = LanguageId(boost::lexical_cast<unsigned int>(get_attribute(LegionAttributeIds::ID_LANAGE)));
 
 	const auto default_mail_expiry_duration = Data::Global::as_double(Data::Global::SLOT_DEFAULT_MAIL_EXPIRY_DURATION);
 	const auto expiry_duration = static_cast<std::uint64_t>(default_mail_expiry_duration * 60000);
@@ -368,6 +364,19 @@ void Legion::broadcast_to_members(std::uint16_t message_id, const Poseidon::Stre
 				session->shutdown(e.what());
 			}
 		}
+	}
+}
+
+void Legion::set_member_league_uuid(std::string str_league_uuid)
+{
+	std::vector<boost::shared_ptr<LegionMember>> members;
+	LegionMemberMap::get_by_legion_uuid(members, get_legion_uuid());
+
+	for(auto it = members.begin(); it != members.end(); ++it)
+	{
+		auto member = *it;
+
+		member->set_league_uuid(str_league_uuid);
 	}
 }
 

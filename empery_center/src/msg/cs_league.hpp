@@ -139,6 +139,21 @@ namespace Msg {
 
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_LookLeagueMembersMessage
+#define MESSAGE_ID      1818
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (legion_uuid)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    CS_LookLeagueLegionsMessage
+#define MESSAGE_ID      1819
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (league_uuid)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

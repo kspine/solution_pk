@@ -369,5 +369,30 @@ void LegionBuildingMap::update(const boost::shared_ptr<LegionBuilding> &building
 	account_map->replace<0>(it, LegionBuildingElement(building));
 }
 
+void LegionBuildingMap::deleteInfo_by_legion_building_uuid(LegionBuildingUuid legion_building_uuid)
+{
+	PROFILE_ME;
+	const auto &building_map = g_building_map;
+	if(!building_map){
+		LOG_EMPERY_CENTER_WARNING("legion building map not loaded.");
+		return;
+	}
+
+	const auto it = building_map->find<0>(legion_building_uuid);
+	if(it != building_map->end<0>()){
+
+		// 删除军团建筑属性相关
+		it->building->leave();
+		building_map->erase<0>(it);
+
+		// 再删除数据库中的
+		std::string strsql = "DELETE FROM Center_LegionBuilding WHERE legion_building_uuid='";
+		strsql += legion_building_uuid.str();
+		strsql += "';";
+
+
+		Poseidon::MySqlDaemon::enqueue_for_deleting("Center_LegionBuilding",strsql);
+	}
+}
 
 }

@@ -189,6 +189,7 @@ namespace EmperyLeague {
 
 	namespace IdTypes {
 
+		using ChatMessageTypeId = GenericId<std::uint32_t, 110007>;
 		using LeagueAttributeId = GenericId<std::uint32_t, 120039>;
 		using LeagueMemberAttributeId = GenericId<std::uint32_t, 120040>;
 

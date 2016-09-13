@@ -450,7 +450,7 @@ namespace EmperyCenter {
 						}
 						legion->set_attributes(Attributes);
 					}
-					
+
 
 					//TODO 发送军团成员阶段奖励
 					for(auto it = members.begin(); it != members.end(); ++it)
@@ -608,7 +608,7 @@ namespace EmperyCenter {
 						}
 						legion_member->set_attributes(std::move(legion_attributes_modifer));
 					}
-					
+
 					if(legion && (legion_contribution > 0)){
 						boost::container::flat_map<LegionAttributeId, std::string> Attributes;
 						std::string donate = legion->get_attribute(LegionAttributeIds::ID_MONEY);
@@ -618,7 +618,7 @@ namespace EmperyCenter {
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + legion_contribution);
 						}
 						legion->set_attributes(Attributes);
-					}				
+					}
 				}
 			});
 		} catch(std::exception &e){

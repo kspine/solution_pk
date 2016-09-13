@@ -21,6 +21,12 @@ constexpr ChatMessageTypeId
 	ID_LEVEL_LEGION_KICK            ( 106 ),
 	ID_LEVEL_LEGION_REFUSE_APPLY    ( 107 ),
 
+	ID_LEVEL_LEAGUE_JOIN            ( 130 ),
+	ID_LEVEL_LEAGUE_REFUSE_INVITE   ( 131 ),
+	ID_LEVEL_LEAGUE_DISBAND         ( 132 ),
+	ID_LEVEL_LEAGUE_KICK            ( 133 ),
+	ID_LEVEL_LEAGUE_REFUSE_APPLY    ( 134 ),
+
 	ID_AUCTION_RESULT               ( 200 ),
 	ID_PAYMENT_DIAMONDS             ( 201 ),
 	ID_PAYMENT_GOLD_COINS           ( 202 ),

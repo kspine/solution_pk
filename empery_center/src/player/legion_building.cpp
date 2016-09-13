@@ -114,20 +114,33 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                 // 是否已经有该建筑物，以后可以扩展该建筑物的数量
                 std::vector<boost::shared_ptr<LegionBuilding>> buildings;
                 LegionBuildingMap::find_by_type(buildings,LegionUuid(member->get_legion_uuid()),req.map_object_type_id);
-                if(buildings.size() > 1)
+                if(buildings.size() >= 1)
                 {
                     return Response(Msg::ERR_LEGION_BUILDING_CREATE_LIMIT);
                 }
                 else
                 {
                     // 检查所需消耗的资源、道具是否满足
-                    const auto buildingingo = Data::LegionBuilding::get(0);
+                    const auto buildingingo = Data::LegionBuilding::get(1);
                     if(buildingingo)
                     {
                         // 查看消耗资源
+                        boost::container::flat_map<LegionAttributeId, std::string> Attributes;
+
                         for(auto it = buildingingo->need_resource.begin(); it != buildingingo->need_resource.end(); ++it)
                         {
-
+                            if(std::string(it->first) == "5500001")  // 军团资金
+                            {
+                                const auto legion_momey = boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY));
+                                if(legion_momey < it->second)
+                                {
+                                    return Response(Msg::ERR_LEGION_BUILDING_UPGRADE_LACK);
+                                }
+                                else
+                                {
+                                    Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) - it->second);
+                                }
+                            }
                         }
 
                         // 满足条件，可以建造
@@ -175,6 +188,9 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                         const auto insuff_resource_id = try_decrement_resources(castle, task_box, { },
                             ReasonIds::ID_UPGRADE_BUILDING, map_object_type_id.get(), 0, 0,
                             [&]{
+
+                                // 更新消耗的军团属性
+                                legion->set_attributes(Attributes);
 
                                 const auto defense_building = boost::make_shared<WarehouseBuilding>(defense_building_uuid, map_object_type_id,
                                     account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now,member->get_legion_uuid());
@@ -268,6 +284,11 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
                         return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
                     }
                     */
+                    // 检查当前矿井是否还有剩余资源
+                    if(defense_building->get_output_amount() > 0)
+                    {
+                        return Response(Msg::ERR_LEGION_UPGRADE_GRUBE_LEFT);
+                    }
 
                     // 查看当前是否正在升级中
                     const auto mission = defense_building->get_mission();
@@ -625,6 +646,7 @@ PLAYER_SERVLET(Msg::CS_OpenLegionGrubeMessage, account, session,  req )
 
                         warehouse_building->open(req.ntype,req.consume,static_cast<std::uint64_t>(std::ceil(buildingingo->effect_time * 60000.0)), saturated_add(utc_now, static_cast<std::uint64_t>(std::ceil(buildingingo->open_time * 60000.0))));
 
+                        return Response(Msg::ST_OK);
                     }
                 }
                 else
@@ -743,6 +765,8 @@ PLAYER_SERVLET(Msg::CS_RepairLegionGrubeMessage, account, session,  req )
 					warehouse_building->set_attributes(modifiers);
 
                     warehouse_building->on_hp_change(curhp+repairhp);
+
+                    return Response(Msg::ST_OK);
                 }
                 else
                 {
@@ -874,5 +898,64 @@ PLAYER_SERVLET(Msg::CS_GradeLegionMessage, account, session, req)
 
 	return Response();
 }
+
+PLAYER_SERVLET(Msg::CS_DemolishLegionGrubeMessage, account, session,  req )
+{
+    PROFILE_ME;
+
+    const auto account_uuid = account->get_account_uuid();
+
+    // 判断自己是否加入军团
+	const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+	if(member)
+	{
+		// 检查军团是否存在
+		const auto legion = LegionMap::get(LegionUuid(member->get_legion_uuid()));
+		if(legion)
+		{
+            // 查看member是否有权限
+			const auto titileid = member->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
+			if(!Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_DEMOLISH_MINE))
+			{
+				return Response(Msg::ERR_LEGION_NO_POWER);
+			}
+			else
+			{
+                // 查看是否存在该建筑物
+                const auto legion_building = LegionBuildingMap::find(LegionBuildingUuid(req.legion_building_uuid));
+                if(legion_building)
+                {
+                    const auto map_object_uuid = MapObjectUuid(legion_building->get_map_object_uuid());
+
+                    const auto &warehouse_building = boost::dynamic_pointer_cast<WarehouseBuilding>(WorldMap::get_map_object(map_object_uuid));
+                    if(!warehouse_building){
+                        return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+                    }
+
+                    // 从LegionBuildingMap中删除
+                    LegionBuildingMap::deleteInfo_by_legion_building_uuid(LegionBuildingUuid(req.legion_building_uuid));
+
+                    return Response(Msg::ST_OK);
+                }
+                else
+                {
+                    return Response(Msg::ERR_LEGION_BUILDING_CANNOT_FIND);
+                }
+			}
+        }
+        else
+        {
+            return Response(Msg::ERR_LEGION_CANNOT_FIND);
+        }
+    }
+    else
+    {
+        // 没有加入军团
+		return Response(Msg::ERR_LEGION_NOT_JOIN);
+    }
+
+    return Response();
+}
+
 
 }

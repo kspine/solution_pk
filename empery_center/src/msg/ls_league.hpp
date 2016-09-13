@@ -22,13 +22,11 @@ namespace Msg {
 	FIELD_STRING        (league_icon)	\
 	FIELD_STRING        (league_notice)	\
 	FIELD_VUINT         (league_level)	\
-	FIELD_VUINT         (legion_titleid)	\
 	FIELD_STRING        (leader_legion_uuid)	\
 	FIELD_STRING        (create_account_uuid)	\
 	FIELD_ARRAY         (members,	\
 		FIELD_STRING        (legion_uuid)	\
 		FIELD_VUINT         (titleid)	\
-		FIELD_VUINT         (speakflag)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -129,6 +127,7 @@ namespace Msg {
 #define MESSAGE_NAME    LS_LeagueNoticeMsg
 #define MESSAGE_ID      51010
 #define MESSAGE_FIELDS  \
+	FIELD_STRING        (league_uuid)	\
 	FIELD_VUINT         (msgtype)	\
 	FIELD_STRING        (nick)	\
 	FIELD_STRING        (ext1) 	\
@@ -137,6 +136,34 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+
+#define MESSAGE_NAME    LS_LeagueEamilMsg
+#define MESSAGE_ID      51011
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_STRING        (ntype)	\
+	FIELD_STRING        (ext1) 	\
+	FIELD_STRING        (mandator)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    LS_LookLeagueLegionsReq
+#define MESSAGE_ID      51012
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_ARRAY         (legions,	\
+		FIELD_STRING        (legion_uuid)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    LS_disbandLegionRes
+#define MESSAGE_ID      51013
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)
+
+#include <poseidon/cbpp/message_generator.hpp>
 
 }
 

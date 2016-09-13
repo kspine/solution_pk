@@ -72,6 +72,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/legion_package_corps_box.cpp  \
 	src/data/legion_store_config.cpp  \
 	src/data/legion_building_config.cpp  \
+	src/data/league_power.cpp  \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\

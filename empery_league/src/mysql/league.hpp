@@ -45,6 +45,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
     FIELD_UUID              (legion_uuid)	\
     FIELD_UUID  			(league_uuid)	\
+    FIELD_UUID  			(account_uuid)	\
     FIELD_DATETIME          (apply_time)
 #include <poseidon/mysql/object_generator.hpp>
 
@@ -52,6 +53,7 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
     FIELD_UUID              (legion_uuid)	\
     FIELD_UUID              (league_uuid)	\
+    FIELD_UUID  			(account_uuid)	\
     FIELD_DATETIME          (invite_time)
 #include <poseidon/mysql/object_generator.hpp>
 

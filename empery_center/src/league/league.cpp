@@ -91,8 +91,6 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 				msg.leader_name = leader_account->get_nick();
 			*/
 
-			msg.league_titleid = req.legion_titleid;
-
 			msg.members.reserve(req.members.size());
 			for(auto it = req.members.begin(); it != req.members.end(); ++it )
 			{
@@ -108,7 +106,6 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 					elem.legion_icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
 				}
 
-				elem.speakflag = info.speakflag;
 				elem.titleid = info.titleid;
 			}
 
@@ -329,7 +326,11 @@ LEAGUE_SERVLET(Msg::LS_InvieJoinList, server, req){
 	else
 	{
 		// 发送给军团邀请加入联盟的
-
+		const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+		if(legion)
+		{
+			legion->send_msg_by_power(msg,Legion::LEGION_POWER::LEGION_POWER_LEAGUE_INVITE);
+		}
 	}
 
 	return Response();
@@ -552,6 +553,15 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 		if(legion)
 		{
 			msg.ext1 = legion->get_nick();
+
+			if(msg.msgtype == 1)
+			{
+				legion->set_member_league_uuid(req.league_uuid);
+			}
+			else if( msg.msgtype == 2 || msg.msgtype == 3 )
+			{
+				legion->set_member_league_uuid("");
+			}
 		}
 	}
 	else if(msg.msgtype == 3 || msg.msgtype == 4)
@@ -561,7 +571,7 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 		{
 			msg.ext1 = legion->get_nick();
 
-			const auto leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+			const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
 			if(leader_account)
 				msg.nick = leader_account->get_nick();
 		}
@@ -581,7 +591,157 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 	return Response();
 }
 
+LEAGUE_SERVLET(Msg::LS_LeagueEamilMsg, server, req){
+	PROFILE_ME;
 
+	LOG_EMPERY_CENTER_DEBUG("LS_LeagueEamilMsg=================== ");
+
+	std::string strcontent = req.ext1;
+	const auto typeID = ChatMessageTypeId(boost::lexical_cast<unsigned int>(req.ntype));
+	if(typeID == EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_REFUSE_APPLY)
+	{
+		// 拒绝申请加入
+		const auto& account = AccountMap::get(AccountUuid(req.account_uuid));
+		if(account)
+		{
+			const auto& mandator_account = AccountMap::get(AccountUuid(req.mandator));
+			if(mandator_account)
+				strcontent += "," + mandator_account->get_nick();
+
+			const auto& member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
+			if(member)
+			{
+				const auto& legion = LegionMap::get(member->get_legion_uuid());
+				if(legion)
+				{
+					legion->sendmail(account, typeID, strcontent);
+				}
+
+				return Response();
+			}
+		}
+	}
+	else if(typeID == EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_REFUSE_INVITE)
+	{
+		// 拒绝邀请加入
+		const auto& account = AccountMap::get(AccountUuid(req.account_uuid));
+		if(account)
+		{
+			const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+			if(legion)
+			{
+				strcontent = legion->get_nick();
+			}
+			const auto& mandator_account = AccountMap::get(AccountUuid(req.mandator));
+			if(mandator_account)
+				strcontent += "," + mandator_account->get_nick();
+
+			legion->sendmail(account, typeID, strcontent);
+
+			return Response();
+		}
+	}
+	else if(typeID == EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_KICK)
+	{
+		const auto& leader_account = AccountMap::get(AccountUuid(req.mandator));
+		if(leader_account)
+			strcontent += "," + leader_account->get_nick();
+	}
+	const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+	if(legion)
+	{
+		std::vector<boost::shared_ptr<LegionMember>> members;
+		LegionMemberMap::get_by_legion_uuid(members, legion->get_legion_uuid());
+		if(!members.empty())
+		{
+			for(auto it = members.begin(); it != members.end(); ++it)
+			{
+				auto& member = *it;
+				const auto& account = AccountMap::get(member->get_account_uuid());
+				if(account)
+				{
+					legion->sendmail(account, typeID, strcontent);
+				}
+			}
+		}
+	}
+
+	return Response();
+}
+
+LEAGUE_SERVLET(Msg::LS_LookLeagueLegionsReq, server, req){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("LS_LookLeagueLegionsReq=================== ", req.account_uuid);
+
+	const auto account_uuid = AccountUuid(req.account_uuid);
+
+	const auto account = AccountMap::get(account_uuid);
+	if(account)
+	{
+		const auto target_session = PlayerSessionMap::get(account_uuid);
+		if(target_session)
+		{
+
+			Msg::SC_LookLeagueLegions msg;
+			unsigned int ncount = 0;
+			for(auto it = req.legions.begin(); it != req.legions.end(); ++it )
+			{
+				auto &elem = *msg.legions.emplace(msg.legions.end());
+				auto info = *it;
+
+				const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
+				if(legion)
+				{
+					elem.legion_name = legion->get_nick();
+					elem.legion_icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
+					const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+					if(leader_account)
+						elem.legion_leader_name = leader_account->get_nick();
+					else
+						elem.legion_leader_name = "";
+
+					ncount += 1;
+				}
+
+			}
+
+			msg.legions.reserve(ncount);
+
+			target_session->send(msg);
+		}
+	}
+
+	return Response();
+}
+
+LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
+	PROFILE_ME;
+
+	LOG_EMPERY_CENTER_DEBUG("LS_disbandLegionRes=================== ", req.account_uuid);
+
+
+
+	const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
+	if(legion)
+	{
+		const auto account_uuid = AccountUuid(req.account_uuid);
+
+		const auto account = AccountMap::get(account_uuid);
+		if(account)
+		{
+			// 发邮件告诉结果
+			legion->sendmail(account,ChatMessageTypeIds::ID_LEVEL_LEGION_DISBAND,legion->get_nick());
+		}
+
+		// 解散军团
+		LegionMap::deletelegion(legion->get_legion_uuid());
+
+		return Response(Msg::ST_OK);
+	}
+
+	return Response();
+}
 
 
 }
