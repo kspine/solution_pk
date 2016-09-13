@@ -745,6 +745,11 @@ void LegionMemberMap::check_in_waittime()
 		{
 			const auto account = AccountMap::get(member->get_account_uuid());
 			const auto titileid = member->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
+			if(!titileid.empty())
+			{
+				LOG_EMPERY_CENTER_ERROR(" member cannot find titileid ================================ ",titileid,"  uuid：",member->get_account_uuid());
+				continue;
+			}
 		//	LOG_EMPERY_CENTER_DEBUG("CS_GetLegionBaseInfoMessage titileid ================================ ",titileid,"  成员uuid：",member->get_account_uuid());
 			if(Data::LegionCorpsPower::is_have_power(LegionCorpsPowerId(boost::lexical_cast<uint32_t>(titileid)),Legion::LEGION_POWER::LEGION_POWER_QUIT))
 			{
