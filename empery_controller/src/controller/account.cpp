@@ -6,7 +6,6 @@
 #include "../mmain.hpp"
 #include "../reason_ids.hpp"
 #include <poseidon/json.hpp>
-#include <poseidon/async_job.hpp>
 #include "../singletons/world_map.hpp"
 
 namespace EmperyController {
@@ -44,27 +43,19 @@ CONTROLLER_SERVLET(Msg::ST_AccountAccumulatePromotionBonus, controller, req){
 	const auto income_tax_ratio_total = std::accumulate(income_tax_array.begin(), income_tax_array.end(), 0.0);
 
 	const auto send_tax_nothrow = [&](const boost::shared_ptr<Account> &referrer, ReasonId reason_id, std::uint64_t amount) noexcept {
+		const auto using_controller = referrer->try_set_controller(controller);
+		const auto referrer_uuid = referrer->get_account_uuid();
+		const auto taxer_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(referrer_uuid.get()[0]));
 		try {
-			Poseidon::enqueue_async_job(
-				[=]() mutable {
-			 		PROFILE_ME;
-
-					const auto using_controller = referrer->try_set_controller(controller);
-					const auto referrer_uuid = referrer->get_account_uuid();
-					const auto taxer_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(referrer_uuid.get()[0]));
-
-					Msg::TS_AccountSendPromotionBonus sreq;
-					sreq.account_uuid = referrer_uuid.str();
-					sreq.taxer_uuid   = account_uuid.str();
-					sreq.amount       = amount;
-					sreq.reason       = reason_id.get();
-					sreq.param1       = static_cast<std::int64_t>(taxer_uuid_head);
-					sreq.param2       = referrer->get_promotion_level();
-					sreq.param3       = 0;
-					auto result = using_controller->send_and_wait(sreq);
-					LOG_EMPERY_CONTROLLER_INFO("@> Promotion bonus sent: sreq = ", sreq,
-						", code = ", result.first, ", msg = ", result.second);
-				});
+			Msg::TS_AccountSendPromotionBonus sreq;
+			sreq.account_uuid = referrer_uuid.str();
+			sreq.taxer_uuid   = account_uuid.str();
+			sreq.amount       = amount;
+			sreq.reason       = reason_id.get();
+			sreq.param1       = static_cast<std::int64_t>(taxer_uuid_head);
+			sreq.param2       = referrer->get_promotion_level();
+			sreq.param3       = 0;
+			using_controller->send(sreq);
 		} catch(std::exception &e){
 			LOG_EMPERY_CONTROLLER_WARNING("std::exception thrown: what = ", e.what());
 		}
