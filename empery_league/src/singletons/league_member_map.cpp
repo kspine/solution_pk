@@ -566,7 +566,7 @@ void LeagueMemberMap::check_in_waittime()
 							// 发邮件
 							league->sendemail(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_KICK,member->get_legion_uuid(),league->get_nick(), member->get_attribute(LeagueMemberAttributeIds::ID_KICK_MANDATOR));
 
-							league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_KICK,"",member->get_legion_uuid().str());
+							league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_KICK,league->get_nick(),member->get_legion_uuid().str());
 						}
 						else
 						{
