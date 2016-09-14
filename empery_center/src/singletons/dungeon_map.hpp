@@ -17,6 +17,7 @@ struct DungeonMap {
 
 	static void insert(const boost::shared_ptr<Dungeon> &dungeon);
 	static void update(const boost::shared_ptr<Dungeon> &dungeon, bool throws_if_not_exists = true);
+	static void remove(const boost::shared_ptr<Dungeon> &dungeon, bool throws_if_not_exists = true);
 
 	static boost::shared_ptr<DungeonSession> pick_server();
 	static void add_server(const boost::shared_ptr<DungeonSession> &server);

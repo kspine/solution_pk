@@ -61,6 +61,8 @@ namespace Msg {
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
+	FIELD_VINT          (dest_x)	\
+	FIELD_VINT          (dest_y)	\
 	FIELD_STRING        (tag)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -110,7 +112,12 @@ namespace Msg {
 	FIELD_STRING        (account_uuid)	\
 	FIELD_ARRAY         (tasks_finished,	\
 		FIELD_VUINT         (dungeon_task_id)	\
-	)
+	)	\
+	FIELD_ARRAY         (damage_solider,	\
+		FIELD_VUINT        (dungeon_object_type_id)	\
+		FIELD_VUINT        (count)	\
+	)	\
+	FIELD_VUINT         (total_damage_solider)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    DS_DungeonPlayerLoses

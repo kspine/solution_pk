@@ -23,6 +23,7 @@
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
 #include "../singletons/player_session_map.hpp"
+#include "../castle.hpp"
 #include "../singletons/legion_member_map.hpp"
 #include "../msg/err_league.hpp"
 #include "../legion_member.hpp"
@@ -60,16 +61,16 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 	} else if(channel == ChatChannelIds::ID_ALLIANCE){
 		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_ALLIANCE_CHANNEL);
-	}
-	else if(channel == ChatChannelIds::ID_LEGION){
+	} else if(channel == ChatChannelIds::ID_KING){
+		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_KING);
+		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_MIN_MESSAGE_INTERVAL_IN_KING_CHANNEL);
+	} else if(channel == ChatChannelIds::ID_LEGION){
 		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_CHAT_RATE);
-	}
-	else if(channel == ChatChannelIds::ID_UNION){
+	} else if(channel == ChatChannelIds::ID_UNION){
 		last_chat_time = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE);
 		min_seconds = Data::Global::as_unsigned(Data::Global::SLOT_CHAT_RATE);
-	}
-	else {
+	} else {
 		return Response(Msg::ERR_CANNOT_SEND_TO_SYSTEM_CHANNEL) <<channel;
 	}
 	const auto milliseconds_remaining = saturated_sub(saturated_mul<std::uint64_t>(min_seconds, 1000), saturated_sub(utc_now, last_chat_time));
@@ -84,10 +85,6 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 	const auto chat_message_uuid = ChatMessageUuid(Poseidon::Uuid::random());
 	const auto message = boost::make_shared<ChatMessage>(
 		chat_message_uuid, channel, type, language_id, utc_now, account->get_account_uuid(), std::move(segments));
-
-	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-	modifiers[AccountAttributeIds::ID_LAST_CHAT_TIME_ALLIANCE] = boost::lexical_cast<std::string>(utc_now);
-	account->set_attributes(std::move(modifiers));
 
 	if(channel == ChatChannelIds::ID_ADJACENT){
 		const auto view = session->get_view();
@@ -124,6 +121,47 @@ PLAYER_SERVLET(Msg::CS_ChatSendMessage, account, session, req){
 		}
 	} else if(channel == ChatChannelIds::ID_TRADE){
 	} else if(channel == ChatChannelIds::ID_ALLIANCE){
+	} else if(channel == ChatChannelIds::ID_KING){
+		const auto &cost_item = Data::Global::as_object(Data::Global::SLOT_CHAT_KINGCHANNLE_MONEY);
+		std::vector<ItemTransactionElement> transaction;
+		for(auto it = cost_item.begin(); it != cost_item.end(); ++it){
+			const auto item_id  = boost::lexical_cast<std::uint64_t>(it->first.get());
+			const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+			transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemId(item_id), count,
+			ReasonIds::ID_KING_CHAT, 0, 0, 0);
+		}
+		const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+		const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+		[&]{
+			boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+			modifiers[AccountAttributeIds::ID_LAST_CHAT_TIME_KING] = boost::lexical_cast<std::string>(utc_now);
+			account->set_attributes(std::move(modifiers));
+			auto primary_castle =  WorldMap::get_primary_castle(account->get_account_uuid());
+			auto scope          =  WorldMap::get_cluster_scope(primary_castle->get_coord());
+			std::vector<boost::shared_ptr<PlayerSession>> other_sessions;
+			WorldMap::get_players_viewing_rectangle(other_sessions,scope);
+			for(auto it = other_sessions.begin(); it != other_sessions.end(); ++it){
+				const auto &other_session = *it;
+				try {
+					Poseidon::enqueue_async_job(
+						[=]() mutable {
+							PROFILE_ME;
+							const auto other_account_uuid = PlayerSessionMap::get_account_uuid(other_session);
+							if(!other_account_uuid){
+								return;
+							}
+							const auto other_chat_box = ChatBoxMap::require(other_account_uuid);
+							other_chat_box->insert(message);
+						});
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+					other_session->shutdown(e.what());
+				}
+			}
+		});
+		if(insuff_item_id){
+			return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+		}
 	}
 	else if(channel == ChatChannelIds::ID_LEGION)
 	{

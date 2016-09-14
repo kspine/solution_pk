@@ -63,9 +63,8 @@ constexpr ReasonId
 	ID_DOANTE_LEGION                 ( 673020 ), // 军团捐献0                   道具 ID             数量
 	ID_LEGION_STORE_EXCHANGE         ( 673021 ), // 军团商店兑换 0               道具 ID             数量
 	ID_CREATE_LEAGUE                 ( 673022 ), //创建联盟 0                    道具 ID             扣除数量
-	ID_CREATE_LEAGUE_FAIL            ( 673022 ), //创建联盟失败 0                道具 ID             扣除数量
-	ID_EXPAND_LEAGUE                 ( 673023 ), //扩展联盟 0                    道具 ID             扣除数量
-
+	ID_CREATE_LEAGUE_FAIL            ( 673023 ), //创建联盟失败 0                道具 ID             扣除数量
+	ID_EXPAND_LEAGUE                 ( 673024 ), //扩展联盟 0                    道具 ID             扣除数量
 
 	ID_MAP_CELL_PURCHASE             ( 674001 ), // 世界坐标 X          世界坐标 Y          0
 	ID_MAP_CELL_UPGRADE              ( 674002 ), // 世界坐标 X          世界坐标 Y          0

@@ -81,6 +81,8 @@ void ChatBox::insert(const boost::shared_ptr<ChatMessage> &message){
 		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_SYSTEM_CHANNEL);
 	} else if(channel == ChatChannelIds::ID_TRADE){
 		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_TRADE_CHANNEL);
+	} else if(channel == ChatChannelIds::ID_KING){
+		max_count_in_channel = Data::Global::as_unsigned(Data::Global::SLOT_MAX_MESSAGES_IN_KING_CHANNEL);
 	}
 	else if(channel == ChatChannelIds::ID_LEGION){
 		max_count_in_channel = 8;

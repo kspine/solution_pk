@@ -8,252 +8,253 @@
 #include <poseidon/uuid.hpp>
 
 namespace EmperyCenter {
-	template<typename UnderlyingT, int>
-	class GenericId {
-	private:
-		UnderlyingT m_id;
 
-	public:
-		constexpr GenericId()
-			: m_id()
-		{
-		}
-		explicit constexpr GenericId(UnderlyingT id)
-			: m_id(id)
-		{
-		}
+template<typename UnderlyingT, int>
+class GenericId {
+private:
+	UnderlyingT m_id;
 
-	public:
-		constexpr UnderlyingT get() const {
-			return m_id;
-		}
-		void set(UnderlyingT id) {
-			m_id = id;
-		}
-
-	public:
-		constexpr bool operator==(const GenericId &rhs) const {
-			return get() == rhs.get();
-		}
-		constexpr bool operator!=(const GenericId &rhs) const {
-			return get() != rhs.get();
-		}
-		constexpr bool operator<(const GenericId &rhs) const {
-			return get() < rhs.get();
-		}
-		constexpr bool operator>(const GenericId &rhs) const {
-			return get() > rhs.get();
-		}
-		constexpr bool operator<=(const GenericId &rhs) const {
-			return get() <= rhs.get();
-		}
-		constexpr bool operator>=(const GenericId &rhs) const {
-			return get() >= rhs.get();
-		}
-
-		constexpr explicit operator bool() const noexcept {
-			return get() != 0;
-		}
-
-		GenericId &operator+=(UnderlyingT rhs) {
-			m_id += rhs;
-			return *this;
-		}
-		GenericId &operator-=(UnderlyingT rhs) {
-			m_id -= rhs;
-			return *this;
-		}
-
-		GenericId operator+(UnderlyingT rhs) const {
-			return GenericId(m_id + rhs);
-		}
-		GenericId operator-(UnderlyingT rhs) const {
-			return GenericId(m_id - rhs);
-		}
-		UnderlyingT operator-(GenericId rhs) const {
-			return m_id - rhs.m_id;
-		}
-
-		GenericId &operator++() {
-			return *this += 1;
-		}
-		GenericId &operator--() {
-			return *this -= 1;
-		}
-		GenericId operator++(int) {
-			auto ret = *this;
-			++*this;
-			return ret;
-		}
-		GenericId operator--(int) {
-			auto ret = *this;
-			--*this;
-			return ret;
-		}
-	};
-
-	template<typename UnderlyingT, int MAGIC_T>
-	GenericId<UnderlyingT, MAGIC_T> operator+(UnderlyingT lhs, GenericId<UnderlyingT, MAGIC_T> rhs) {
-		return rhs += lhs;
+public:
+	constexpr GenericId()
+		: m_id()
+	{
+	}
+	explicit constexpr GenericId(UnderlyingT id)
+		: m_id(id)
+	{
 	}
 
-	template<typename UnderlyingT, int MAGIC_T>
-	std::ostream &operator<<(std::ostream &os, const GenericId<UnderlyingT, MAGIC_T> &id) {
-		os << id.get();
-		return os;
+public:
+	constexpr UnderlyingT get() const {
+		return m_id;
 	}
-	template<typename UnderlyingT, int MAGIC_T>
-	std::istream &operator >> (std::istream &is, GenericId<UnderlyingT, MAGIC_T> &id) {
-		UnderlyingT temp;
-		if (is >> temp) {
-			id.set(temp);
-		}
-		return is;
+	void set(UnderlyingT id) {
+		m_id = id;
 	}
 
-	template<int>
-	class GenericUuid {
-	private:
-		Poseidon::Uuid m_uuid;
-
-	public:
-		constexpr GenericUuid()
-			: m_uuid()
-		{
-		}
-		explicit constexpr GenericUuid(const Poseidon::Uuid &uuid)
-			: m_uuid(uuid)
-		{
-		}
-		explicit GenericUuid(const std::string &str)
-			: m_uuid(str.empty() ? Poseidon::Uuid() : Poseidon::Uuid(str))
-		{
-		}
-
-	public:
-		constexpr const Poseidon::Uuid &get() const {
-			return m_uuid;
-		}
-		void set(const Poseidon::Uuid &uuid) {
-			m_uuid = uuid;
-		}
-
-		std::string str() const {
-			if (m_uuid == Poseidon::Uuid()) {
-				return{};
-			}
-			return m_uuid.to_string();
-		}
-
-	public:
-		constexpr bool operator==(GenericUuid rhs) const {
-			return get() == rhs.get();
-		}
-		constexpr bool operator!=(GenericUuid rhs) const {
-			return get() != rhs.get();
-		}
-		constexpr bool operator<(GenericUuid rhs) const {
-			return get() < rhs.get();
-		}
-		constexpr bool operator>(GenericUuid rhs) const {
-			return get() > rhs.get();
-		}
-		constexpr bool operator<=(GenericUuid rhs) const {
-			return get() <= rhs.get();
-		}
-		constexpr bool operator>=(GenericUuid rhs) const {
-			return get() >= rhs.get();
-		}
-
-		constexpr explicit operator bool() const noexcept {
-			return get() != Poseidon::Uuid();
-		}
-	};
-
-	template<int MAGIC_T>
-	std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &uuid) {
-		char str[37];
-		uuid.get().to_string(reinterpret_cast<char(&)[36]>(str));
-		str[36] = 0;
-		os << str;
-		return os;
+public:
+	constexpr bool operator==(const GenericId &rhs) const {
+		return get() == rhs.get();
 	}
-	template<int MAGIC_T>
-	std::istream &operator >> (std::istream &is, GenericUuid<MAGIC_T> &uuid) {
-		char str[37];
-		if (is >> std::setw(sizeof(str)) >> str) {
-			uuid.from_string(reinterpret_cast<const char(&)[36]>(str));
-		}
-		return is;
+	constexpr bool operator!=(const GenericId &rhs) const {
+		return get() != rhs.get();
+	}
+	constexpr bool operator<(const GenericId &rhs) const {
+		return get() < rhs.get();
+	}
+	constexpr bool operator>(const GenericId &rhs) const {
+		return get() > rhs.get();
+	}
+	constexpr bool operator<=(const GenericId &rhs) const {
+		return get() <= rhs.get();
+	}
+	constexpr bool operator>=(const GenericId &rhs) const {
+		return get() >= rhs.get();
 	}
 
-	namespace IdTypes {
-		using PlatformId = GenericId<std::uint32_t, 110001>;
-		using LanguageId = GenericId<std::uint32_t, 110002>;
-		using AccountAttributeId = GenericId<std::uint32_t, 110003>;
-		using ReasonId = GenericId<std::uint32_t, 110004>;
-		using ChatChannelId = GenericId<std::uint32_t, 110006>;
-		using ChatMessageTypeId = GenericId<std::uint32_t, 110007>;
-		using ChatMessageSlotId = GenericId<std::uint32_t, 110008>;
-		using LegionAttributeId = GenericId<std::uint32_t, 110009>;
-		using LegionMemberAttributeId = GenericId<std::uint32_t, 110010>;
-
-		using TerrainId = GenericId<std::uint32_t, 120001>;
-		using ResourceId = GenericId<std::uint32_t, 120003>;
-		using MapObjectTypeId = GenericId<std::uint32_t, 120004>;
-		using AttributeId = GenericId<std::uint32_t, 120005>;
-		using BuildingBaseId = GenericId<std::uint32_t, 120006>;
-		using BuildingId = GenericId<std::uint32_t, 120007>;
-		using TechId = GenericId<std::uint32_t, 120008>;
-		using ItemId = GenericId<std::uint32_t, 120009>;
-		using TradeId = GenericId<std::uint32_t, 120010>;
-		using RechargeId = GenericId<std::uint32_t, 120011>;
-		using ShopId = GenericId<std::uint32_t, 120012>;
-		using StartPointId = GenericId<std::uint32_t, 120013>;
-		using TaskId = GenericId<std::uint32_t, 120014>;
-		using TaskTypeId = GenericId<std::uint32_t, 120015>;
-		using BuildingTypeId = GenericId<std::uint32_t, 120016>;
-		using MapObjectWeaponId = GenericId<std::uint32_t, 120017>;
-		using MapEventId = GenericId<std::uint32_t, 120018>;
-		using MapEventCircleId = GenericId<std::uint32_t, 120019>;
-		using MapObjectChassisId = GenericId<std::uint32_t, 120020>;
-		using CrateId = GenericId<std::uint32_t, 120021>;
-		using DefenseCombatId = GenericId<std::uint32_t, 120022>;
-		using BuffId = GenericId<std::uint32_t, 120023>;
-		using BattalionLevelId = GenericId<std::uint32_t, 120024>;
-		using DungeonTypeId = GenericId<std::uint32_t, 120025>;
-		using ActivityId = GenericId<std::uint32_t, 120026>;
-		using MapActivityId = GenericId<std::uint32_t, 120027>;
-		using WorldActivityId = GenericId<std::uint32_t, 120028>;
-		using DungeonObjectTypeId = GenericId<std::uint32_t, 120029>;
-		using DungeonObjectWeaponId = GenericId<std::uint32_t, 120030>;
-		using DungeonTaskId = GenericId<std::uint32_t, 120031>;
-		using LegionCorpsLevelId = GenericId<std::uint32_t, 120032>;
-		using LegionCorpsPowerId = GenericId<std::uint32_t, 120033>;
-		using LegionStoreGoodsId = GenericId<std::uint32_t, 120034>;
-		using LegionBuildingAttributeId = GenericId<std::uint32_t, 120035>;
-		using LegionTaskContributionId = GenericId<std::uint32_t, 120036>;
-		using TaskLegionKeyId = GenericId<std::uint32_t, 120037>;
-		using TaskLegionPackageKeyId = GenericId<std::uint32_t, 120038>;
-
-		using AccountUuid = GenericUuid<210001>;
-		using MapObjectUuid = GenericUuid<210002>;
-		using MailUuid = GenericUuid<210003>;
-		using ChatMessageUuid = GenericUuid<210004>;
-		using AnnouncementUuid = GenericUuid<210005>;
-		using ResourceCrateUuid = GenericUuid<210006>;
-		using DungeonUuid = GenericUuid<210007>;
-		using HornMessageUuid = GenericUuid<210008>;
-		using DungeonObjectUuid = GenericUuid<210009>;
-		using VoiceUuid = GenericUuid<210010>;
-		using LegionUuid = GenericUuid<210011>;
-		using LegionBuildingUuid = GenericUuid<210012>;
-
-		using LegionPackageShareUuid = GenericUuid<210013>;
-		using LeagueUuid = GenericUuid<210014>;
+	constexpr explicit operator bool() const noexcept {
+		return get() != 0;
 	}
 
-	using namespace IdTypes;
+	GenericId &operator+=(UnderlyingT rhs) {
+		m_id += rhs;
+		return *this;
+	}
+	GenericId &operator-=(UnderlyingT rhs) {
+		m_id -= rhs;
+		return *this;
+	}
+
+	GenericId operator+(UnderlyingT rhs) const {
+		return GenericId(m_id + rhs);
+	}
+	GenericId operator-(UnderlyingT rhs) const {
+		return GenericId(m_id - rhs);
+	}
+	UnderlyingT operator-(GenericId rhs) const {
+		return m_id - rhs.m_id;
+	}
+
+	GenericId &operator++() {
+		return *this += 1;
+	}
+	GenericId &operator--() {
+		return *this -= 1;
+	}
+	GenericId operator++(int) {
+		auto ret = *this;
+		++*this;
+		return ret;
+	}
+	GenericId operator--(int) {
+		auto ret = *this;
+		--*this;
+		return ret;
+	}
+};
+
+template<typename UnderlyingT, int MAGIC_T>
+GenericId<UnderlyingT, MAGIC_T> operator+(UnderlyingT lhs, GenericId<UnderlyingT, MAGIC_T> rhs) {
+	return rhs += lhs;
+}
+
+template<typename UnderlyingT, int MAGIC_T>
+std::ostream &operator<<(std::ostream &os, const GenericId<UnderlyingT, MAGIC_T> &id) {
+	os << id.get();
+	return os;
+}
+template<typename UnderlyingT, int MAGIC_T>
+std::istream &operator >> (std::istream &is, GenericId<UnderlyingT, MAGIC_T> &id) {
+	UnderlyingT temp;
+	if (is >> temp) {
+		id.set(temp);
+	}
+	return is;
+}
+
+template<int>
+class GenericUuid {
+private:
+	Poseidon::Uuid m_uuid;
+
+public:
+	constexpr GenericUuid()
+		: m_uuid()
+	{
+	}
+	explicit constexpr GenericUuid(const Poseidon::Uuid &uuid)
+		: m_uuid(uuid)
+	{
+	}
+	explicit GenericUuid(const std::string &str)
+		: m_uuid(str.empty() ? Poseidon::Uuid() : Poseidon::Uuid(str))
+	{
+	}
+
+public:
+	constexpr const Poseidon::Uuid &get() const {
+		return m_uuid;
+	}
+	void set(const Poseidon::Uuid &uuid) {
+		m_uuid = uuid;
+	}
+
+	std::string str() const {
+		if (m_uuid == Poseidon::Uuid()) {
+			return{};
+		}
+		return m_uuid.to_string();
+	}
+
+public:
+	constexpr bool operator==(GenericUuid rhs) const {
+		return get() == rhs.get();
+	}
+	constexpr bool operator!=(GenericUuid rhs) const {
+		return get() != rhs.get();
+	}
+	constexpr bool operator<(GenericUuid rhs) const {
+		return get() < rhs.get();
+	}
+	constexpr bool operator>(GenericUuid rhs) const {
+		return get() > rhs.get();
+	}
+	constexpr bool operator<=(GenericUuid rhs) const {
+		return get() <= rhs.get();
+	}
+	constexpr bool operator>=(GenericUuid rhs) const {
+		return get() >= rhs.get();
+	}
+
+	constexpr explicit operator bool() const noexcept {
+		return get() != Poseidon::Uuid();
+	}
+};
+
+template<int MAGIC_T>
+std::ostream &operator<<(std::ostream &os, const GenericUuid<MAGIC_T> &uuid) {
+	char str[37];
+	uuid.get().to_string(reinterpret_cast<char(&)[36]>(str));
+	str[36] = 0;
+	os << str;
+	return os;
+}
+template<int MAGIC_T>
+std::istream &operator >> (std::istream &is, GenericUuid<MAGIC_T> &uuid) {
+	char str[37];
+	if (is >> std::setw(sizeof(str)) >> str) {
+		uuid.from_string(reinterpret_cast<const char(&)[36]>(str));
+	}
+	return is;
+}
+
+namespace IdTypes {
+	using PlatformId                = GenericId<std::uint32_t, 110001>;
+	using LanguageId                = GenericId<std::uint32_t, 110002>;
+	using AccountAttributeId        = GenericId<std::uint32_t, 110003>;
+	using ReasonId                  = GenericId<std::uint32_t, 110004>;
+	using ChatChannelId             = GenericId<std::uint32_t, 110006>;
+	using ChatMessageTypeId         = GenericId<std::uint32_t, 110007>;
+	using ChatMessageSlotId         = GenericId<std::uint32_t, 110008>;
+	using LegionAttributeId         = GenericId<std::uint32_t, 110009>;
+	using LegionMemberAttributeId   = GenericId<std::uint32_t, 110010>;
+
+	using TerrainId                 = GenericId<std::uint32_t, 120001>;
+	using ResourceId                = GenericId<std::uint32_t, 120003>;
+	using MapObjectTypeId           = GenericId<std::uint32_t, 120004>;
+	using AttributeId               = GenericId<std::uint32_t, 120005>;
+	using BuildingBaseId            = GenericId<std::uint32_t, 120006>;
+	using BuildingId                = GenericId<std::uint32_t, 120007>;
+	using TechId                    = GenericId<std::uint32_t, 120008>;
+	using ItemId                    = GenericId<std::uint32_t, 120009>;
+	using TradeId                   = GenericId<std::uint32_t, 120010>;
+	using RechargeId                = GenericId<std::uint32_t, 120011>;
+	using ShopId                    = GenericId<std::uint32_t, 120012>;
+	using StartPointId              = GenericId<std::uint32_t, 120013>;
+	using TaskId                    = GenericId<std::uint32_t, 120014>;
+	using TaskTypeId                = GenericId<std::uint32_t, 120015>;
+	using BuildingTypeId            = GenericId<std::uint32_t, 120016>;
+	using MapObjectWeaponId         = GenericId<std::uint32_t, 120017>;
+	using MapEventId                = GenericId<std::uint32_t, 120018>;
+	using MapEventCircleId          = GenericId<std::uint32_t, 120019>;
+	using MapObjectChassisId        = GenericId<std::uint32_t, 120020>;
+	using CrateId                   = GenericId<std::uint32_t, 120021>;
+	using DefenseCombatId           = GenericId<std::uint32_t, 120022>;
+	using BuffId                    = GenericId<std::uint32_t, 120023>;
+	using BattalionLevelId          = GenericId<std::uint32_t, 120024>;
+	using DungeonTypeId             = GenericId<std::uint32_t, 120025>;
+	using ActivityId                = GenericId<std::uint32_t, 120026>;
+	using MapActivityId             = GenericId<std::uint32_t, 120027>;
+	using WorldActivityId           = GenericId<std::uint32_t, 120028>;
+	using DungeonObjectTypeId       = GenericId<std::uint32_t, 120029>;
+	using DungeonObjectWeaponId     = GenericId<std::uint32_t, 120030>;
+	using DungeonTaskId             = GenericId<std::uint32_t, 120031>;
+	using LegionCorpsLevelId        = GenericId<std::uint32_t, 120032>;
+	using LegionCorpsPowerId        = GenericId<std::uint32_t, 120033>;
+	using LegionStoreGoodsId        = GenericId<std::uint32_t, 120034>;
+	using LegionBuildingAttributeId = GenericId<std::uint32_t, 120035>;
+	using LegionTaskContributionId  = GenericId<std::uint32_t, 120036>;
+	using TaskLegionKeyId           = GenericId<std::uint32_t, 120037>;
+	using TaskLegionPackageKeyId    = GenericId<std::uint32_t, 120038>;
+
+	using AccountUuid               = GenericUuid<210001>;
+	using MapObjectUuid             = GenericUuid<210002>;
+	using MailUuid                  = GenericUuid<210003>;
+	using ChatMessageUuid           = GenericUuid<210004>;
+	using AnnouncementUuid          = GenericUuid<210005>;
+	using ResourceCrateUuid         = GenericUuid<210006>;
+	using DungeonUuid               = GenericUuid<210007>;
+	using HornMessageUuid  			= GenericUuid<210008>;
+	using DungeonObjectUuid         = GenericUuid<210009>;
+    using VoiceUuid                 = GenericUuid<210010>;
+	using LegionUuid  				= GenericUuid<210011>;
+	using LegionBuildingUuid  		= GenericUuid<210012>;
+	using LegionPackageShareUuid    = GenericUuid<210013>;
+	using LeagueUuid                = GenericUuid<210014>;
+}
+
+using namespace IdTypes;
+
 }
 
 #endif

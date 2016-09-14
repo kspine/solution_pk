@@ -32,7 +32,6 @@ SYNUSER_SERVLET("createpayment", session, params){
 	const auto &username = params.at("username");
 	const auto &password = params.at("password");
 	const auto &amount_str = params.at("amount");
-	const auto amount = static_cast<std::uint64_t>(std::ceil(boost::lexical_cast<double>(amount_str) * 100 - 0.001));
 	const auto &orderid = params.at("orderid");
 	const auto &source = params.at("source");
 	const auto &currency = params.at("currency");
@@ -64,12 +63,17 @@ SYNUSER_SERVLET("createpayment", session, params){
 	}
 
 	ItemId item_id;
+	std::uint64_t amount = 0;
+	const auto amount_raw = boost::lexical_cast<double>(amount_str);
 	if(currency == "PAI"){
 		item_id = ItemIds::ID_ACCOUNT_BALANCE;
+		amount = static_cast<std::uint64_t>(std::ceil(amount_raw * 100 - 0.001));
 	} else if(currency == "USD"){
 		item_id = ItemIds::ID_USD;
+		amount = static_cast<std::uint64_t>(std::ceil(amount_raw * 100 - 0.001));
 	} else if(currency == "ACC"){
-		item_id = ItemIds::ID_ACCOUNT_BALANCE;
+		item_id = ItemIds::ID_ACCELERATION_CARDS;
+		amount = static_cast<std::uint64_t>(std::ceil(amount_raw - 0.001));
 	}
 	if(!item_id){
 		root[sslit("state")] = "failed";
@@ -78,7 +82,7 @@ SYNUSER_SERVLET("createpayment", session, params){
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto obj = boost::make_shared<Promotion_SynuserPayment>(source, orderid, username, amount, currency, utc_now, false);
+	const auto obj = boost::make_shared<Promotion_SynuserPayment>(source, orderid, username, amount_raw, currency, utc_now, false);
 	obj->enable_auto_saving();
 	const auto promise = Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
 	try {

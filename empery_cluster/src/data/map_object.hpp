@@ -28,6 +28,7 @@ namespace Data {
 		unsigned            defence_type;
 		std::uint32_t       hp;
 		std::uint32_t       ai_id;
+		std::uint32_t       view;
 	};
 
 	class MapObjectRelative {

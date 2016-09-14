@@ -450,6 +450,22 @@ void AccountMap::set_flags(AccountId account_id, std::uint64_t flags){
 
 	it->obj->set_flags(flags);
 }
+void AccountMap::set_referrer_id(AccountId account_id, AccountId referrer_id){
+	PROFILE_ME;
+
+	const auto it = g_account_map->find<0>(account_id);
+	if(it == g_account_map->end<0>()){
+		LOG_EMPERY_PROMOTION_DEBUG("Account not found: account_id = ", account_id);
+		DEBUG_THROW(Exception, sslit("Account not found"));
+	}
+	if(Poseidon::has_none_flags_of(it->obj->get_flags(), FL_VALID)){
+		LOG_EMPERY_PROMOTION_DEBUG("Account deleted: account_id = ", account_id);
+		DEBUG_THROW(Exception, sslit("Account deleted"));
+	}
+
+	g_account_map->set_key<0, 4>(it, referrer_id);
+	it->obj->set_referrer_id(referrer_id.get());
+}
 void AccountMap::set_banned_until(AccountId account_id, std::uint64_t banned_until){
 	PROFILE_ME;
 
