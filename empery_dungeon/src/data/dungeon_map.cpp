@@ -38,10 +38,9 @@ namespace {
 	boost::weak_ptr<const TerrainContainer> g_terrain_container;
 	const char TERRAIN_FILE[] = "Territory_product";
 
-	const auto MAX_DUNGE_MAP_COUNT = 7;
-	const std::string  DUNGEON_MAP_FILES[MAX_DUNGE_MAP_COUNT] = {"dungeon_map_1_1","dungeon_map_1_2","dungeon_map_1_3",
-	"dungeon_map_1_4","dungeon_map_1_5","dungeon_map_1_6",
-	"dungeon_map_2_1"};
+	const auto MAX_DUNGE_MAP_COUNT = 12;
+	const std::string  DUNGEON_MAP_FILES[MAX_DUNGE_MAP_COUNT] = {"dungeon_map_1_1","dungeon_map_1_2","dungeon_map_1_3","dungeon_map_1_4","dungeon_map_1_5","dungeon_map_1_6",
+	"dungeon_map_2_1","dungeon_map_2_2","dungeon_map_2_3","dungeon_map_2_4","dungeon_map_2_5","dungeon_map_2_6",};
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		const auto dungeon_container = boost::make_shared<DungeonMapContainer>();
