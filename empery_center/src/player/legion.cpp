@@ -2051,7 +2051,7 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 
 					const auto item_box = ItemBoxMap::require(account_uuid);
 					const auto  curDiamonds = item_box->get(ItemIds::ID_DIAMONDS).count;
-					if(curDiamonds < req.num || req.num < dvalue)
+					if(curDiamonds < req.num || req.num < dvalue / 100)
 					{
 						return Response(Msg::ERR_LEGION_DONATE_LACK);
 					}
@@ -2080,7 +2080,7 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 
 					//		LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  周捐献数量 ===========",weekdonate);
 
-							if(weekdonate < Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT))
+							if(weekdonate < Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT) / 100)
 							{
 								// 修改军团成员个人贡献
 								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  之前个人贡献 ===========",member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
@@ -2088,8 +2088,8 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 								boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
 
 								auto strdotan = std::ceil(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num * 100  / dvalue * mvalue);
-								if(strdotan > Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT))
-									strdotan = Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT);
+								if(strdotan > Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT) / 100)
+									strdotan = Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT) / 100;
 
 								Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(strdotan);
 
