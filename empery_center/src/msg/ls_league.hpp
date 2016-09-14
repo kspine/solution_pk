@@ -29,6 +29,9 @@ namespace Msg {
 	FIELD_ARRAY         (members,	\
 		FIELD_STRING        (legion_uuid)	\
 		FIELD_VUINT         (titleid)	\
+		FIELD_STRING        (quit_time)	\
+		FIELD_STRING        (kick_time)	\
+		FIELD_STRING        (attorn_time) \
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

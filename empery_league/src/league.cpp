@@ -192,6 +192,13 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 		elem.legion_uuid = info->get_legion_uuid().str();
 		elem.titleid = boost::lexical_cast<std::uint64_t>(info->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
 
+		elem.quit_time = info->get_attribute(LeagueMemberAttributeIds::ID_QUITWAITTIME);
+		elem.kick_time = info->get_attribute(LeagueMemberAttributeIds::ID_KICKWAITTIME);
+		if(info->get_legion_uuid().str() == get_attribute(LeagueAttributeIds::ID_ATTORNLEADER))
+			elem.attorn_time = get_attribute(LeagueAttributeIds::ID_ATTORNTIME);
+		else
+			elem.attorn_time = "";
+
 	}
 
 	league_client->send(msg);

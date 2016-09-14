@@ -94,8 +94,8 @@ namespace EmperyCenter {
                 }
                 else
                 {
-                    transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, creatediamond / 100,
-                        ReasonIds::ID_CREATE_LEAGUE, 0, 0, creatediamond / 100 );
+                    transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, creatediamond,
+                        ReasonIds::ID_CREATE_LEAGUE, 0, 0, creatediamond);
                 }
             }
             else

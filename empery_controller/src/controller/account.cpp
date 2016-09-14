@@ -46,6 +46,7 @@ CONTROLLER_SERVLET(Msg::ST_AccountAccumulatePromotionBonus, controller, req){
 		const auto using_controller = referrer->try_set_controller(controller);
 		const auto referrer_uuid = referrer->get_account_uuid();
 		const auto taxer_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(referrer_uuid.get()[0]));
+
 		try {
 			Msg::TS_AccountSendPromotionBonus sreq;
 			sreq.account_uuid = referrer_uuid.str();

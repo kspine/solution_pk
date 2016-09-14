@@ -54,6 +54,7 @@ namespace Msg {
 		ERR_LEGION_UPGRADE_NEEDRESOURCE_ERROR				= 73042,		// 升级军团时，升级所需升级条件不满足
 		ERR_LEGION_OPEN_GRUBE_DESTRUCT						= 73043,		// 开启货仓时，因为处于击毁状态不能开启
 		ERR_LEGION_UPGRADE_GRUBE_LEFT						= 73044,		// 升级货仓时，货仓中有剩余资源，不可升级
+		ERR_LEGION_GATHER_IN_LEAVE_TIME						= 73045,		// 处于离开等待时，不能采集
 	};
 }
 

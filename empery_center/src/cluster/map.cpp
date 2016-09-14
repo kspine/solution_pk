@@ -10,6 +10,7 @@
 #include "../msg/err_account.hpp"
 #include "../msg/kill.hpp"
 #include "../msg/st_map.hpp"
+#include "../msg/err_legion.hpp"
 #include <poseidon/json.hpp>
 #include <poseidon/async_job.hpp>
 #include "../singletons/world_map.hpp"
@@ -53,6 +54,7 @@
 #include "../singletons/legion_member_map.hpp"
 #include "../singletons/legion_task_box_map.hpp"
 #include "../legion_member.hpp"
+#include "../legion_member_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -444,7 +446,7 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 	if(attacking_account_uuid == attacked_account_uuid){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
-	
+
 	// 查看双方的友好关系
 	if(AccountMap::is_friendly(attacking_account_uuid,attacked_account_uuid))
 	{
@@ -1511,6 +1513,19 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 	if(!target_object)
 	{
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+
+	// 检测是否离开等待中
+	const auto account_uuid = target_object->get_owner_uuid();
+	const auto& member = LegionMemberMap::get_by_account_uuid(account_uuid);;
+	if(!member)
+	{
+		return Response(Msg::ERR_LEGION_NOT_JOIN);
+	}
+	else
+	{
+		if(!member->get_attribute(LegionMemberAttributeIds::ID_QUITWAITTIME).empty() || !member->get_attribute(LegionMemberAttributeIds::ID_KICKWAITTIME).empty())
+			return Response(Msg::ERR_LEGION_GATHER_IN_LEAVE_TIME);
 	}
 
 	/*

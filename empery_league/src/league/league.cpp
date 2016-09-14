@@ -103,6 +103,37 @@ LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_session, req){
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
 
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+	if(member)
+	{
+		// 查看联盟是否存在
+		const auto& league = LeagueMap::get(LeagueUuid(member->get_league_uuid()));
+		if(league)
+		{
+
+			league->set_controller(league_session);
+
+			league->synchronize_with_player(league_session,AccountUuid(req.account_uuid),legion_uuid, req.league_uuid);
+
+			return Response(Msg::ST_OK);
+		}
+	}
+
+	if(!req.league_uuid.empty())
+	{
+		EmperyCenter::Msg::LS_LeagueInfo msg;
+		msg.res = 1;
+		msg.rewrite = 1;
+		msg.account_uuid = 	req.account_uuid;
+		msg.league_uuid  = 	"";
+
+		league_session->send(msg);
+	}
+	LOG_EMPERY_LEAGUE_ERROR(" 没找到对应的联盟================================= ",req.legion_uuid);
+	return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+
+
+	/*
 	std::vector<boost::shared_ptr<League>> leagues;
 	LeagueMap::get_by_legion_uuid(leagues,legion_uuid);
 	if(leagues.empty())
@@ -128,6 +159,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_session, req){
 	league->set_controller(league_session);
 
 	return Response(Msg::ST_OK);
+	*/
 
 }
 
@@ -454,7 +486,7 @@ LEAGUE_SERVLET(Msg::SL_GetApplyJoinLeague, league_session, req){
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
 
-	const auto member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
 	if(member)
 	{
 		// 查看联盟是否存在
