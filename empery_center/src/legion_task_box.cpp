@@ -34,6 +34,7 @@
 #include "account.hpp"
 #include <poseidon/string.hpp>
 #include "legion_member_attribute_ids.hpp"
+#include "msg/sc_legion.hpp"
 
 namespace EmperyCenter {
 	namespace {
@@ -632,12 +633,24 @@ namespace EmperyCenter {
 					if(legion && (legion_contribution > 0)){
 						boost::container::flat_map<LegionAttributeId, std::string> Attributes;
 						std::string donate = legion->get_attribute(LegionAttributeIds::ID_MONEY);
+				
 						if(donate.empty()){
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(legion_contribution);
 						}else{
+							std::uint64_t old_donate = boost::lexical_cast<uint64_t>(donate);
+							LOG_EMPERY_CENTER_FATAL("legion money:",old_donate);
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + legion_contribution);
 						}
 						legion->set_attributes(Attributes);
+						// 广播通知
+						Msg::SC_LegionNoticeMsg msg;
+						msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_TASK_CHANGE;
+						msg.nick = "";
+						msg.ext1 = "";
+						legion->sendNoticeMsg(msg);
+						donate = legion->get_attribute(LegionAttributeIds::ID_MONEY);
+						std::uint64_t new_donate = boost::lexical_cast<uint64_t>(donate);
+						LOG_EMPERY_CENTER_FATAL("legion money:",new_donate);
 					}
 				}
 			});

@@ -191,6 +191,7 @@ LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_session, req){
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
 
+		elem.legion_max_count = boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
 		// 根据account_uuid查找是否有军团
 		std::vector<boost::shared_ptr<LeagueMember>> members;
 		LeagueMemberMap::get_by_league_uuid(members, league->get_league_uuid());
@@ -336,6 +337,8 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_session, req){
 		elem.autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
+
+		elem.legion_max_count = boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
 	//	elem.isapplyjoin = "0";
 
 		// 根据account_uuid查找是否有军团
@@ -424,6 +427,7 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_session, req){
 
 			// 成员数
 			const auto count = LeagueMemberMap::get_league_member_count(league_uuid);
+			LOG_EMPERY_LEAGUE_INFO("SL_ApplyJoinLeague count= ",count, " league_uuid:",league_uuid, " max:",league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
 			if(count < boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)))
 			{
 				const auto utc_now = Poseidon::get_utc_time();

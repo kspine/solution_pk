@@ -43,6 +43,7 @@ namespace Msg {
 		FIELD_STRING        (league_create_time)	\
 		FIELD_STRING        (isapplyjoin)	\
 		FIELD_VUINT         (legion_count)	\
+		FIELD_VUINT         (legion_max_count)	\
 		FIELD_VUINT         (totalmembercount)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
