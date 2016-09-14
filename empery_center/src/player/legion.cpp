@@ -1624,6 +1624,8 @@ PLAYER_SERVLET(Msg::CS_disbandLegionReqMessage, account, session, req)
 
             auto tresult = league->send_and_wait(msg);
 
+			LOG_EMPERY_CENTER_DEBUG("CS_disbandLegionReqMessage response: code =================== ", tresult.first);
+
 			return Response(std::move(tresult.first));
 
 			/*
@@ -1762,6 +1764,14 @@ PLAYER_SERVLET(Msg::CS_LegionNoticeReqMessage, account, session, req)
 				Attributes[LegionAttributeIds::ID_CONTENT] = std::move(req.notice);
 
 				legion->set_attributes(Attributes);
+
+				// 广播给军团其他成员
+				Msg::SC_LegionNoticeMsg msg;
+				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_CHANGENOTICE;
+				msg.nick = account->get_nick();
+				msg.ext1 = req.notice;
+				legion->sendNoticeMsg(msg);
+
 
 				return Response(Msg::ST_OK);
 			}

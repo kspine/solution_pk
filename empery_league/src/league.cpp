@@ -159,11 +159,15 @@ void League::AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned 
 	}
 }
 
-void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& league_client, AccountUuid account_uuid,LegionUuid legion_uuid) const
+void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& league_client, AccountUuid account_uuid,LegionUuid legion_uuid, std::string str_league_uuid) const
 {
 	PROFILE_ME;
 
 	EmperyCenter::Msg::LS_LeagueInfo msg;
+	msg.res = 0;
+	msg.rewrite = 0;
+	if(get_league_uuid().str() != str_league_uuid)
+		msg.rewrite = 1;
 	msg.account_uuid 			= 	account_uuid.str();
 	msg.league_uuid     		= 	get_league_uuid().str();
 	msg.league_name     		= 	get_nick();
@@ -187,6 +191,13 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 
 		elem.legion_uuid = info->get_legion_uuid().str();
 		elem.titleid = boost::lexical_cast<std::uint64_t>(info->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+
+		elem.quit_time = info->get_attribute(LeagueMemberAttributeIds::ID_QUITWAITTIME);
+		elem.kick_time = info->get_attribute(LeagueMemberAttributeIds::ID_KICKWAITTIME);
+		if(info->get_legion_uuid().str() == get_attribute(LeagueAttributeIds::ID_ATTORNLEADER))
+			elem.attorn_time = get_attribute(LeagueAttributeIds::ID_ATTORNTIME);
+		else
+			elem.attorn_time = "";
 
 	}
 
@@ -277,8 +288,10 @@ void League::sendemail(EmperyCenter::ChatMessageTypeId ntype,LegionUuid legion_u
 	// 找到联盟成员
 	try
 	{
+		LOG_EMPERY_LEAGUE_ERROR(" sendemail *******************",ntype," legion_uuid:",legion_uuid," strnick:",strnick," str_account_uuid:",str_account_uuid);
+
 		EmperyCenter::Msg::LS_LeagueEamilMsg msg;
-		msg.ntype = ntype.get();
+		msg.ntype = boost::lexical_cast<std::string>(ntype);
 		msg.legion_uuid = legion_uuid.str();
 		msg.ext1 = strnick;
 		msg.mandator = str_account_uuid;

@@ -23,7 +23,8 @@ namespace Msg {
 #define MESSAGE_ID      58802
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
-	FIELD_STRING        (legion_uuid)
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_STRING        (league_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SL_GetAllLeagueInfo

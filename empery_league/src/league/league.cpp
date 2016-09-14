@@ -103,21 +103,63 @@ LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_session, req){
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
 
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+	if(member)
+	{
+		// 查看联盟是否存在
+		const auto& league = LeagueMap::get(LeagueUuid(member->get_league_uuid()));
+		if(league)
+		{
+
+			league->set_controller(league_session);
+
+			league->synchronize_with_player(league_session,AccountUuid(req.account_uuid),legion_uuid, req.league_uuid);
+
+			return Response(Msg::ST_OK);
+		}
+	}
+
+	if(!req.league_uuid.empty())
+	{
+		EmperyCenter::Msg::LS_LeagueInfo msg;
+		msg.res = 1;
+		msg.rewrite = 1;
+		msg.account_uuid = 	req.account_uuid;
+		msg.league_uuid  = 	"";
+
+		league_session->send(msg);
+	}
+	LOG_EMPERY_LEAGUE_ERROR(" 没找到对应的联盟================================= ",req.legion_uuid);
+	return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+
+
+	/*
 	std::vector<boost::shared_ptr<League>> leagues;
 	LeagueMap::get_by_legion_uuid(leagues,legion_uuid);
 	if(leagues.empty())
 	{
+		if(!req.league_uuid.empty())
+		{
+			EmperyCenter::Msg::LS_LeagueInfo msg;
+			msg.res = 1;
+			msg.rewrite = 1;
+			msg.account_uuid = 	req.account_uuid;
+			msg.league_uuid  = 	"";
+
+			league_session->send(msg);
+		}
 		LOG_EMPERY_LEAGUE_ERROR(" 没找到对应的联盟================================= ",req.legion_uuid);
 		return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
 	}
 
 	const auto& league = leagues.at(0);
 
-	league->synchronize_with_player(league_session,AccountUuid(req.account_uuid),legion_uuid);
+	league->synchronize_with_player(league_session,AccountUuid(req.account_uuid),legion_uuid, req.league_uuid);
 
 	league->set_controller(league_session);
 
 	return Response(Msg::ST_OK);
+	*/
 
 }
 
@@ -444,7 +486,7 @@ LEAGUE_SERVLET(Msg::SL_GetApplyJoinLeague, league_session, req){
 
 	const auto legion_uuid = LegionUuid(req.legion_uuid);
 
-	const auto member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
 	if(member)
 	{
 		// 查看联盟是否存在
@@ -1091,10 +1133,19 @@ LEAGUE_SERVLET(Msg::SL_disbandLeague, league_session, req){
 				return Response(Msg::ERR_LEAGUE_ERROR_LEAGUELEADER);
 			}
 
+			// 广播
+			league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_DISBAND,req.legion_uuid,league->get_nick());
 			// 发邮件
 			league->sendemail(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_DISBAND,legion_uuid,league->get_nick());
 			// 解散联盟
 			LeagueMap::remove(member->get_league_uuid());
+
+			// 通知center
+			EmperyCenter::Msg::LS_disbandLeagueRes msg;
+			msg.account_uuid = req.account_uuid;
+			msg.legion_uuid = req.legion_uuid;
+
+			league_session->send(msg);
 
 			return Response(Msg::ST_OK);
 		}
@@ -1518,7 +1569,7 @@ LEAGUE_SERVLET(Msg::SL_disbandLegionReq, league_session, req){
 		const auto &league = LeagueMap::get(member->get_league_uuid());
 		if(league)
 		{
-			if(league->get_attribute(LeagueAttributeIds::ID_LEADER) == req.account_uuid)
+			if(league->get_attribute(LeagueAttributeIds::ID_LEADER) == req.legion_uuid)
 			{
 				return Response(Msg::ERR_LEGION_DISBAND_IS_LEAGUE_LEADER);
 			}

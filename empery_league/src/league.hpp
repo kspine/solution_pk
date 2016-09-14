@@ -52,6 +52,7 @@ public:
 		LEAGUE_NOTICE_MSG_TYPE_ATTORN 			= 6,	// 转让盟主
 		LEAGUE_NOTICE_MSG_TYPE_SPEACK 			= 7,	// 禁言
 		LEAGUE_NOTICE_MSG_TYPE_EXPAND  			= 8,	// 联盟扩张
+		LEAGUE_NOTICE_MSG_TYPE_DISBAND  		= 9,	// 联盟解散
 	};
 
 public:
@@ -120,7 +121,7 @@ public:
 	void get_attributes(boost::container::flat_map<LeagueAttributeId, std::string> &ret) const;
 	void set_attributes(boost::container::flat_map<LeagueAttributeId, std::string> modifiers);
 
-	void synchronize_with_player(const boost::shared_ptr<LeagueSession>& league_client, AccountUuid account_uuid,LegionUuid legion_uuid) const;
+	void synchronize_with_player(const boost::shared_ptr<LeagueSession>& league_client, AccountUuid account_uuid,LegionUuid legion_uuid, std::string str_league_uuid = "") const;
 
 	/*
 	boost::shared_ptr<LeagueClient> get_league_client() const {

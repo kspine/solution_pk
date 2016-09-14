@@ -47,7 +47,7 @@ void LeagueMember::InitAttributes(LegionUuid legion_uuid,unsigned nTitleid)
 	// 设置属性
 	boost::container::flat_map<LeagueMemberAttributeId, std::string> modifiers;
 	modifiers.emplace(LeagueMemberAttributeIds::ID_TITLEID, boost::lexical_cast<std::string>(nTitleid));
-	modifiers.emplace(LeagueMemberAttributeIds::ID_SPEAKFLAG, "0");
+//	modifiers.emplace(LeagueMemberAttributeIds::ID_SPEAKFLAG, "0");
 	set_attributes(std::move(modifiers));
 
 }
