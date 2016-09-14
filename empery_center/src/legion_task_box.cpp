@@ -600,7 +600,11 @@ namespace EmperyCenter {
 					if(!account){
 						continue;
 					}
-					const auto day_personal_contribution = account->cast_attribute<std::uint64_t>(AccountAttributeIds::ID_LEGION_PERSONAL_CONTRIBUTION);
+					const std::string day_personal_contribution_str = account->get_attribute(AccountAttributeIds::ID_LEGION_PERSONAL_CONTRIBUTION);
+					std::uint64_t day_personal_contribution = 0;
+					if(!day_personal_contribution_str.empty()){
+						day_personal_contribution = boost::lexical_cast<std::uint64_t>(day_personal_contribution_str);
+					}
 					std::uint64_t person_contribution_finish = static_cast<std::uint64_t>(Data::Global::as_double(Data::Global::SLOT_LEGION_TASK_PERSONAL_CONTRIBUTE_THRESHOLD));
 					if(day_personal_contribution < person_contribution_finish){
 						should_award_personal_contribution = true;
@@ -621,7 +625,7 @@ namespace EmperyCenter {
 						}
 						legion_member->set_attributes(std::move(legion_attributes_modifer));
 						boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-						modifiers[AccountAttributeIds::ID_LEGION_PERSONAL_CONTRIBUTION] = day_personal_contribution + person_contribution;
+						modifiers[AccountAttributeIds::ID_LEGION_PERSONAL_CONTRIBUTION] = boost::lexical_cast<std::string>(day_personal_contribution + person_contribution);
 						account->set_attributes(std::move(modifiers));
 					}
 
