@@ -15,6 +15,7 @@ namespace Msg {
 	FIELD_STRING        (league_icon)	\
 	FIELD_STRING        (league_notice)	\
 	FIELD_VUINT         (league_level)	\
+	FIELD_VUINT         (league_max_member)	\
 	FIELD_STRING        (leader_uuid)	\
 	FIELD_STRING        (leader_name)	\
 	FIELD_ARRAY         (members,	\
