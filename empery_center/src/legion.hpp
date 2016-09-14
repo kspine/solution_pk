@@ -69,6 +69,8 @@ public:
 		LEGION_NOTICE_MSG_TYPE_CHAT 			= 7,	// 聊天
 		LEGION_NOTICE_MSG_TYPE_DONATE 			= 8,	// 个人捐献
 		LEGION_NOTICE_MSG_TYPE_LEGION_GRADE  	= 9,	// 军团升级
+		LEGION_NOTICE_MSG_TYPE_CHANGENOTICE  	= 10,	// 修改军团公告
+		LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK  	= 11,	// 军团被踢出联盟
 	};
 public:
 

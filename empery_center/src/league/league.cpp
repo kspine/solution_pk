@@ -116,6 +116,9 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 					}
 
 					elem.titleid = info.titleid;
+					elem.quit_time = info.quit_time;
+					elem.kick_time = info.kick_time;
+					elem.attorn_time = info.attorn_time;
 				}
 
 				target_session->send(msg);
@@ -585,6 +588,16 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 		if(legion)
 		{
 			msg.ext1 = legion->get_nick();
+
+			if(msg.msgtype == 3)
+			{
+				// 军团别踢出联盟 广播给军团其他成员
+				Msg::SC_LegionNoticeMsg msg;
+				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK;
+				msg.nick = msg.nick;
+				msg.ext1 = "";
+				legion->sendNoticeMsg(msg);
+			}
 
 			const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
 			if(leader_account)
