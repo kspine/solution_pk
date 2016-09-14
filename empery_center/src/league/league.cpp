@@ -173,7 +173,7 @@ LEAGUE_SERVLET(Msg::LS_Leagues, server, req){
 				elem.autojoin = info.autojoin;
 				elem.league_create_time = info.league_create_time;
 				elem.isapplyjoin = info.isapplyjoin;
-
+				elem.legion_max_count =info.legion_max_count;
 				elem.legion_count = info.legions.size();
 
 				for(auto lit = info.legions.begin(); lit != info.legions.end();++lit)

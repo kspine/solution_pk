@@ -49,6 +49,7 @@ namespace Msg {
 		FIELD_STRING        (autojoin)	\
 		FIELD_STRING        (league_create_time) \
 		FIELD_STRING        (isapplyjoin) \
+		FIELD_VUINT         (legion_max_count)	\
 		FIELD_ARRAY         (legions,	\
 			FIELD_STRING        (legion_uuid)	\
 		)	\
