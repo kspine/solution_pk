@@ -1313,7 +1313,14 @@ PLAYER_SERVLET(Msg::CS_LegionMemberGradeReqMessage, account, session, req)
 					Msg::SC_LegionNoticeMsg msg;
 					msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_GRADE;
 					msg.nick = target_account->get_nick();
-					msg.ext1 = boost::lexical_cast<std::string>(titleid -1);
+					if(req.bup)  // 升级
+					{
+						msg.ext1 = boost::lexical_cast<std::string>(titleid -1);
+					}
+					else
+					{
+						msg.ext1 = boost::lexical_cast<std::string>(titleid + 1);
+					}
 					legion->sendNoticeMsg(msg);
 
 					return Response(Msg::ST_OK);
