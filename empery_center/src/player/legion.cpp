@@ -2360,7 +2360,6 @@ PLAYER_SERVLET(Msg::CS_LegionContribution, account, session, req){
 					elem.account_uuid = account_uuid.str();
 					const auto temp_account = AccountMap::get(account_uuid);
 					elem.account_nick = temp_account->get_nick();
-					elem.day_personal_contribution = info.day_personal_contribution;
 					elem.day_contribution = info.day_contribution;
 					elem.week_contribution = info.week_contribution;
 					elem.total_contribution = info.total_contribution;

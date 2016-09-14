@@ -42,7 +42,6 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (legion_uuid) \
 	FIELD_UUID              (account_uuid) \
-	FIELD_INTEGER_UNSIGNED  (day_personal_contribution) \
 	FIELD_INTEGER_UNSIGNED  (day_contribution)	\
 	FIELD_INTEGER_UNSIGNED  (week_contribution)	\
 	FIELD_INTEGER_UNSIGNED  (total_contribution)	\
