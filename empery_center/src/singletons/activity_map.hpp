@@ -17,6 +17,7 @@ struct ActivityMap {
 	static boost::shared_ptr<Activity> require(std::uint64_t unique_id);
 	static boost::shared_ptr<MapActivity> get_map_activity();
 	static boost::shared_ptr<WorldActivity> get_world_activity();
+	static void  reload();
 private:
 	ActivityMap() = delete;
 };

@@ -3,9 +3,11 @@
 #include "../mmain.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
+#include <poseidon/json.hpp>
 #include "../activity.hpp"
 #include "../data/activity.hpp"
 #include "../activity_ids.hpp"
+#include "../singletons/simple_http_client_daemon.hpp"
 
 namespace EmperyCenter {
 
@@ -44,28 +46,8 @@ namespace {
 	}
 
 	MODULE_RAII_PRIORITY(handles, 5000){
+
 		const auto activity_map = boost::make_shared<ActivityContainer>();
-		std::vector<boost::shared_ptr<const Data::Activity>> ret;
-		Data::Activity::get_all(ret);
-		for(auto it = ret.begin(); it != ret.end(); ++it){
-			auto unique_id = (*it)->unique_id;
-			auto available_since = (*it)->available_since;
-			auto available_until = (*it)->available_until;
-			boost::shared_ptr<Activity> activity;
-			switch(unique_id){
-				case ActivityIds::ID_MAP_ACTIVITY.get():
-					activity = boost::make_shared<MapActivity>(unique_id, available_since,available_until);
-					break;
-				case ActivityIds::ID_WORLD_ACTIVITY.get():
-					activity = boost::make_shared<WorldActivity>(unique_id, available_since,available_until);
-					break;
-				default:
-					LOG_EMPERY_CENTER_DEBUG("unknow activity: ", unique_id);
-					continue;
-					break;
-			}
-			activity_map->insert(ActivityElement(std::move(activity)));
-		}
 		g_activity_map = activity_map;
 		handles.push(activity_map);
 
@@ -82,6 +64,10 @@ boost::shared_ptr<Activity> ActivityMap::get(std::uint64_t unique_id){
 	if(!activity_map){
 		LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
 		return { };
+	}
+
+	if(activity_map->empty()){
+		reload();
 	}
 
 	const auto it = activity_map->find<0>(unique_id);
@@ -103,7 +89,6 @@ boost::shared_ptr<Activity> ActivityMap::require(std::uint64_t unique_id){
 
 boost::shared_ptr<MapActivity> ActivityMap::get_map_activity(){
 	PROFILE_ME;
-	
 	auto activity = require(ActivityIds::ID_MAP_ACTIVITY.get());
 	return boost::dynamic_pointer_cast<MapActivity>(activity);
 }
@@ -113,6 +98,40 @@ boost::shared_ptr<WorldActivity> ActivityMap::get_world_activity(){
 
 	auto activity = require(ActivityIds::ID_WORLD_ACTIVITY.get());
 	return boost::dynamic_pointer_cast<WorldActivity>(activity);
+}
+
+void  ActivityMap::reload(){
+	PROFILE_ME;
+	Data::Activity::reload();
+	Data::MapActivity::reload();
+	Data::WorldActivity::reload();
+	const auto activity_map = g_activity_map.lock();
+	if(!activity_map){
+		LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+		return;
+	}
+	activity_map->clear();
+	std::vector<boost::shared_ptr<const Data::Activity>> ret;
+	Data::Activity::get_all(ret);
+	for(auto it = ret.begin(); it != ret.end(); ++it){
+		auto unique_id = (*it)->unique_id;
+		auto available_since = (*it)->available_since;
+		auto available_until = (*it)->available_until;
+		boost::shared_ptr<Activity> activity;
+		switch(unique_id){
+			case ActivityIds::ID_MAP_ACTIVITY.get():
+				activity = boost::make_shared<MapActivity>(unique_id, available_since,available_until);
+				break;
+			case ActivityIds::ID_WORLD_ACTIVITY.get():
+				activity = boost::make_shared<WorldActivity>(unique_id, available_since,available_until);
+				break;
+			default:
+				LOG_EMPERY_CENTER_DEBUG("unknow activity: ", unique_id);
+				continue;
+				break;
+		}
+		activity_map->insert(ActivityElement(std::move(activity)));
+	}
 }
 
 }
