@@ -155,7 +155,7 @@ namespace Data {
 				continue;
 			}
 			Data::Activity elem = { };
-			elem.unique_id       = boost::lexical_cast<std::uint64_t>(activity_array.at(0).get<double>());
+			elem.unique_id       = static_cast<std::uint64_t>(activity_array.at(0).get<double>());
 			elem.available_since = Poseidon::scan_time(activity_array.at(1).get<std::string>().c_str());
 			elem.available_until = Poseidon::scan_time(activity_array.at(2).get<std::string>().c_str());
 			if(!activity_map->insert(std::move(elem)).second){
@@ -231,9 +231,9 @@ namespace Data {
 				continue;
 			}
 			Data::MapActivity elem = { };
-			elem.unique_id       = boost::lexical_cast<std::uint64_t>(activity_array.at(0).get<double>());
-			elem.activity_type   = boost::lexical_cast<unsigned>(activity_array.at(1).get<double>());
-			elem.continued_time  = boost::lexical_cast<std::uint64_t>(activity_array.at(2).get<double>());
+			elem.unique_id       = static_cast<std::uint64_t>(activity_array.at(0).get<double>());
+			elem.activity_type   = static_cast<unsigned>(activity_array.at(1).get<double>());
+			elem.continued_time  = static_cast<std::uint64_t>(activity_array.at(2).get<double>());
 			auto object = activity_array.at(3).get<Poseidon::JsonObject>();
 			elem.rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
@@ -363,8 +363,8 @@ namespace Data {
 				continue;
 			}
 			Data::WorldActivity elem = { };
-			elem.unique_id       = boost::lexical_cast<std::uint64_t>(activity_array.at(0).get<double>());
-			elem.pre_unique_id   = boost::lexical_cast<unsigned>(activity_array.at(1).get<double>());
+			elem.unique_id       = static_cast<std::uint64_t>(activity_array.at(0).get<double>());
+			elem.pre_unique_id   = static_cast<unsigned>(activity_array.at(1).get<double>());
 			auto object = activity_array.at(4).get<Poseidon::JsonObject>();
 			elem.objective.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
