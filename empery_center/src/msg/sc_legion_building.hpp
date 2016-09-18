@@ -14,6 +14,8 @@ namespace Msg {
 		FIELD_STRING        (legion_building_uuid)	\
 		FIELD_STRING        (legion_uuid)	\
 		FIELD_STRING        (map_object_uuid)	\
+		FIELD_VINT          (x)	\
+		FIELD_VINT          (y)	\
 		FIELD_VUINT         (building_level)	\
 		FIELD_VUINT         (mission)	\
 		FIELD_VUINT         (mission_duration)	\
