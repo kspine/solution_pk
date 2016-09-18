@@ -229,9 +229,10 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		// XXX 根据不同 action 计算路径。
 		const auto to_coord = std::accumulate(m_waypoints.begin(), m_waypoints.end(), coord,
 			[](Coord c, std::pair<signed char, signed char> d){ return Coord(c.x() + d.first, c.y() + d.second); });
-		std::vector<std::pair<signed char, signed char>> new_path;
-		if(find_way_points(m_waypoints, coord, to_coord, true)){
-			notify_way_points(m_waypoints, m_action, m_action_param);
+		std::deque<std::pair<signed char, signed char>> new_waypoints;
+		if(find_way_points(new_waypoints, coord, to_coord, true)){
+			notify_way_points(new_waypoints, m_action, m_action_param);
+			m_waypoints = std::move(new_waypoints);
 			return 0;
 		}
 		return UINT64_MAX;
