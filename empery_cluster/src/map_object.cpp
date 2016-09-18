@@ -226,14 +226,12 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	m_blocked_retry_count = 0;
 
 	if(result.first != Msg::ST_OK){
-		const auto distance_limit = get_config<unsigned>("path_recalculation_radius", 10);
 		// XXX 根据不同 action 计算路径。
 		const auto to_coord = std::accumulate(m_waypoints.begin(), m_waypoints.end(), coord,
 			[](Coord c, std::pair<signed char, signed char> d){ return Coord(c.x() + d.first, c.y() + d.second); });
 		std::vector<std::pair<signed char, signed char>> new_path;
-		if(find_path(new_path, coord, to_coord, owner_uuid, distance_limit, 0)){
-			m_waypoints.clear();
-			m_waypoints.insert(m_waypoints.end(), new_path.begin(), new_path.end());
+		if(find_way_points(m_waypoints, coord, to_coord, true)){
+			notify_way_points(m_waypoints, m_action, m_action_param);
 			return 0;
 		}
 		return UINT64_MAX;
@@ -1094,7 +1092,8 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 	if(!precise){
 		distance_close_enough = get_shoot_range();
 	}
-	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, distance_close_enough)){
+	const auto distance_limit = get_config<unsigned>("path_recalculation_radius", 10);
+	if(find_path(path,from_coord, target_coord,get_owner_uuid(), distance_limit, distance_close_enough)){
 		for(auto it = path.begin(); it != path.end(); ++it){
 			waypoints.emplace_back(it->first, it->second);
 		}
