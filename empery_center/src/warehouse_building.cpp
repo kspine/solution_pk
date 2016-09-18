@@ -480,10 +480,12 @@ void WarehouseBuilding::synchronize_with_player(const boost::shared_ptr<PlayerSe
 		elem.legion_building_uuid = LegionBuildingUuid(legionbuilding->get_legion_building_uuid()).str();
 		elem.legion_uuid = LegionUuid(legionbuilding->get_legion_uuid()).str();
 		elem.map_object_uuid = boost::lexical_cast<std::string>(get_map_object_uuid());
-		const auto mapobject = boost::dynamic_pointer_cast<WarehouseBuilding>(WorldMap::get_map_object(MapObjectUuid(elem.map_object_uuid)));
+		const auto& mapobject = boost::dynamic_pointer_cast<WarehouseBuilding>(WorldMap::get_map_object(MapObjectUuid(elem.map_object_uuid)));
 		if(mapobject)
 		{
 			const auto utc_now = Poseidon::get_utc_time();
+			elem.x                  	 = mapobject->get_coord().x();
+			elem.y                  	 = mapobject->get_coord().y();
 			elem.building_level          = boost::lexical_cast<std::uint64_t>(mapobject->get_attribute(AttributeIds::ID_BUILDING_LEVEL));
 			elem.mission                 = mapobject->get_mission();
 			elem.mission_duration        = mapobject->get_mission_duration();
