@@ -114,6 +114,11 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 					{
 						elem.legion_name = legion->get_nick();
 						elem.legion_icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
+
+						const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+						if(leader_account)
+							elem.legion_leader_name = leader_account->get_nick();
+
 					}
 
 					elem.titleid = info.titleid;
