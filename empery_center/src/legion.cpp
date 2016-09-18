@@ -300,7 +300,7 @@ void Legion::disband()
 
 	// 同时清空相关的军团建筑
 	LegionBuildingMap::deleteInfo_by_legion_uuid(get_legion_uuid());
-	
+
 	// 卸载军团任务
 	LegionTaskBoxMap::unload(get_legion_uuid());
 }

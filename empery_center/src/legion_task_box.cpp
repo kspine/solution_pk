@@ -633,7 +633,7 @@ namespace EmperyCenter {
 					if(legion && (legion_contribution > 0)){
 						boost::container::flat_map<LegionAttributeId, std::string> Attributes;
 						std::string donate = legion->get_attribute(LegionAttributeIds::ID_MONEY);
-				
+
 						if(donate.empty()){
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(legion_contribution);
 						}else{
