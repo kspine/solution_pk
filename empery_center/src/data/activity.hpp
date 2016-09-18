@@ -10,6 +10,7 @@ namespace EmperyCenter {
 namespace Data {
 	class Activity{
 	public:
+		static void reload();
 		static boost::shared_ptr<const Activity> get(std::uint64_t unique_id);
 		static boost::shared_ptr<const Activity> require(std::uint64_t unique_id);
 		static void get_all(std::vector<boost::shared_ptr<const Activity>> &ret);
@@ -21,6 +22,7 @@ namespace Data {
 
 	class MapActivity{
 	public:
+		static void reload();
 		static boost::shared_ptr<const MapActivity> get(std::uint64_t unique_id);
 		static boost::shared_ptr<const MapActivity> require(std::uint64_t unique_id);
 		static void get_all(std::vector<boost::shared_ptr<const MapActivity>> &ret);
@@ -49,6 +51,7 @@ namespace Data {
 		static boost::shared_ptr<const WorldActivity> require(std::uint64_t unique_id);
 		static void get_all(std::vector<boost::shared_ptr<const WorldActivity>> &ret);
 	public:
+		static void reload();
 		std::uint64_t unique_id;
 		std::uint64_t pre_unique_id;
 		boost::container::flat_map<std::uint64_t, std::uint64_t> objective;

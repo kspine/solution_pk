@@ -54,6 +54,8 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/legion_package_pick_share_map.cpp \
 	src/singletons/league_client.cpp \
 	src/singletons/legion_task_box_map.cpp \
+	src/singletons/activity_map.cpp \
+	src/singletons/map_activity_accumulate_map.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -73,6 +75,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/legion_store_config.cpp  \
 	src/data/legion_building_config.cpp  \
 	src/data/league_power.cpp  \
+	src/data/activity.cpp   \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
@@ -90,6 +93,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/legion_package.cpp \
 	src/player/legion_building.cpp \
 	src/player/league.cpp \
+	src/player/activity.cpp \
 	src/admin/account.cpp	\
 	src/admin/item.cpp	\
 	src/admin/castle.cpp	\
@@ -170,4 +174,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/legion_task_reward_box_map.cpp \
 	src/legion_task_contribution_box.cpp \
 	src/singletons/legion_task_contribution_box_map.cpp \
+	src/activity.cpp \
 	src/mmain.cpp

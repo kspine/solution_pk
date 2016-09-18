@@ -5,10 +5,18 @@
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
 #include "../data_session.hpp"
+#include "../singletons/simple_http_client_daemon.hpp"
+#include "../mmain.hpp"
 
 namespace EmperyCenter {
 
 namespace {
+	std::string g_server_activity_host    = "localhost";
+	unsigned    g_server_activity_port    = 7121;
+	bool        g_server_activity_use_ssl = false;
+	std::string g_server_activity_auth    = { };
+	std::string g_server_activity_path    = { };
+	/*
 	template<typename ElementT>
 	void read_activiy_type(ElementT &elem, const Poseidon::CsvParser &csv){
 		csv.get(elem.unique_id,     "activity_ID");
@@ -18,18 +26,19 @@ namespace {
 		csv.get(str, "end_time");
 		elem.available_until = Poseidon::scan_time(str.c_str());
 	}
+	*/
 
 	MULTI_INDEX_MAP(ActivityMap, Data::Activity,
 		UNIQUE_MEMBER_INDEX(unique_id)
 		MULTI_MEMBER_INDEX(available_since)
 	)
-	boost::weak_ptr<const ActivityMap> g_activity_map;
+	boost::weak_ptr<ActivityMap> g_activity_map;
 	const char ACTIVITY_FILE[] = "activity";
 
 	MULTI_INDEX_MAP(MapActivityMap, Data::MapActivity,
 		UNIQUE_MEMBER_INDEX(unique_id)
 	)
-	boost::weak_ptr<const MapActivityMap> g_map_activity_map;
+	boost::weak_ptr<MapActivityMap> g_map_activity_map;
 	const char MAP_ACTIVITY_FILE[] = "worldmap_activity";
 
 	MULTI_INDEX_MAP(ActivityAwardMap, Data::ActivityAward,
@@ -42,7 +51,7 @@ namespace {
 	MULTI_INDEX_MAP(WorldActivityMap, Data::WorldActivity,
 		UNIQUE_MEMBER_INDEX(unique_id)
 	)
-	boost::weak_ptr<const WorldActivityMap> g_world_activity_map;
+	boost::weak_ptr<WorldActivityMap> g_world_activity_map;
 	const char WORLD_ACTIVITY_FILE[] = "activity_task";
 
 	MULTI_INDEX_MAP(ActivityContributeMap, Data::ActivityContribute,
@@ -53,61 +62,25 @@ namespace {
 
 
 	MODULE_RAII_PRIORITY(handles, 1000){
+		get_config(g_server_activity_host,    "activity_server_host");
+		get_config(g_server_activity_port,    "activity_server_port");
+		get_config(g_server_activity_use_ssl, "activity_server_use_ssl");
+		get_config(g_server_activity_auth,    "activity_server_auth_user_pass");
+		get_config(g_server_activity_path,    "activity_server_path");
 
-		auto csv = Data::sync_load_data(ACTIVITY_FILE);
 		const auto activity_map = boost::make_shared<ActivityMap>();
-		while(csv.fetch_row()){
-			Data::Activity elem = { };
-
-			read_activiy_type(elem,csv);
-
-			if(!activity_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate Activity: unique_id = ", elem.unique_id);
-				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
-			}
-		}
 		g_activity_map = activity_map;
 		handles.push(activity_map);
-		auto servlet = DataSession::create_servlet(ACTIVITY_FILE, Data::encode_csv_as_json(csv, "activity_ID"));
-		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(MAP_ACTIVITY_FILE);
 		const auto map_activity_map = boost::make_shared<MapActivityMap>();
-		while(csv.fetch_row()){
-			Data::MapActivity elem = { };
-			csv.get(elem.unique_id,                "activity_ID");
-			csv.get(elem.activity_type,            "activity_type");
-			csv.get(elem.continued_time,           "continued_time");
-			Poseidon::JsonObject object;
-			csv.get(object, "drop");
-			elem.rewards.reserve(object.size());
-			for(auto it = object.begin(); it != object.end(); ++it){
-				auto condition = boost::lexical_cast<std::uint64_t>(std::string(it->first));
-				std::vector<std::pair<std::uint64_t,std::uint64_t>> item_vec;
-				const auto &item_obj = it->second.get<Poseidon::JsonObject>();
-				item_vec.reserve(item_obj.size());
-				for(auto itt = item_obj.begin(); itt != item_obj.end(); ++itt){
-					auto item_id = boost::lexical_cast<std::uint64_t>(std::string(itt->first));
-					auto num = boost::lexical_cast<std::uint64_t>(itt->second.get<double>());
-					item_vec.push_back(std::make_pair(item_id,num));
-				}
-				if(!elem.rewards.emplace(condition, std::move(item_vec)).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: conditon  = ",condition);
-					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
-				}
-			}
-
-			if(!map_activity_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate MapActivity: unique_id = ", elem.unique_id);
-				DEBUG_THROW(Exception, sslit("Duplicate MapActivity"));
-			}
-		}
 		g_map_activity_map = map_activity_map;
 		handles.push(map_activity_map);
-		servlet = DataSession::create_servlet(MAP_ACTIVITY_FILE, Data::encode_csv_as_json(csv, "activity_ID"));
-		handles.push(std::move(servlet));
 
-		csv = Data::sync_load_data(ACTIVITY_AWARD_FILE);
+		const auto world_activity_map = boost::make_shared<WorldActivityMap>();
+		g_world_activity_map = world_activity_map;
+		handles.push(world_activity_map);
+
+		auto csv = Data::sync_load_data(ACTIVITY_AWARD_FILE);
 		const auto activity_award_map = boost::make_shared<ActivityAwardMap>();
 		while(csv.fetch_row()){
 			Data::ActivityAward elem = { };
@@ -132,45 +105,7 @@ namespace {
 		}
 		g_activity_award_map = activity_award_map;
 		handles.push(activity_award_map);
-		servlet = DataSession::create_servlet(ACTIVITY_AWARD_FILE, Data::encode_csv_as_json(csv, "id"));
-		handles.push(std::move(servlet));
-
-		csv = Data::sync_load_data(WORLD_ACTIVITY_FILE);
-		const auto world_activity_map = boost::make_shared<WorldActivityMap>();
-		while(csv.fetch_row()){
-			Data::WorldActivity elem = { };
-			csv.get(elem.unique_id,                "activity_ID");
-			csv.get(elem.pre_unique_id,            "activity_open");
-			Poseidon::JsonObject object;
-			csv.get(object, "activity_target");
-			elem.objective.reserve(object.size());
-			for(auto it = object.begin(); it != object.end(); ++it){
-				auto id = boost::lexical_cast<std::uint64_t>(it->first.get());
-				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.objective.emplace(id, count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate world activity target : id = ", id);
-					DEBUG_THROW(Exception, sslit("Duplicate world activity target"));
-				}
-			}
-			object.clear();
-			csv.get(object, "drop");
-			elem.rewards.reserve(object.size());
-			for(auto it = object.begin(); it != object.end(); ++it){
-				auto collection_name = std::string(it->first.get());
-				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-				if(!elem.rewards.emplace(std::move(collection_name), count).second){
-					LOG_EMPERY_CENTER_ERROR("Duplicate world activity reward set: collection_name = ", collection_name);
-					DEBUG_THROW(Exception, sslit("Duplicate world activity reward set"));
-				}
-			}
-			if(!world_activity_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate Activity : unique_id = ", elem.unique_id);
-				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
-			}
-		}
-		g_world_activity_map = world_activity_map;
-		handles.push(world_activity_map);
-		servlet = DataSession::create_servlet(WORLD_ACTIVITY_FILE, Data::encode_csv_as_json(csv, "activity_ID"));
+		auto servlet = DataSession::create_servlet(ACTIVITY_AWARD_FILE, Data::encode_csv_as_json(csv, "id"));
 		handles.push(std::move(servlet));
 
 		csv = Data::sync_load_data(ACTIVITY_CONTRIBUTE_FILE);
@@ -193,6 +128,41 @@ namespace {
 }
 
 namespace Data {
+
+	void Activity::reload(){
+		PROFILE_ME;
+		auto activity_map = g_activity_map.lock();
+		if(!activity_map){
+			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			return;
+		}
+		activity_map->clear();
+
+		Poseidon::OptionalMap get_params;
+		get_params.set(sslit("server"), "102");
+		get_params.set(sslit("channel"), "1000");
+		auto entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
+		Poseidon::Http::V_GET, g_server_activity_path + "/get_activity_info", std::move(get_params), g_server_activity_auth);
+		//std::istringstream iss(entity.dump());
+		std::string test_data = "[[\"3500001\",\"2016-9-18 7:40:00\",\"2016-9-18 23:30\"],[\"3500002\",\"2016-9-18 7:40:00\",\"2016-9-18 23:30\"]]";
+		std::istringstream iss(test_data);
+		auto response_array = Poseidon::JsonParser::parse_array(iss);
+		for(auto it = response_array.begin(); it != response_array.end();++it){
+			auto activity_array = (*it).get<Poseidon::JsonArray>();
+			if(activity_array.size() != 3){
+				LOG_EMPERY_CENTER_FATAL("unvalid activity data");
+				continue;
+			}
+			Data::Activity elem = { };
+			elem.unique_id       = boost::lexical_cast<std::uint64_t>(activity_array.at(0));
+			elem.available_since = Poseidon::scan_time(activity_array.at(1).get<std::string>().c_str());
+			elem.available_until = Poseidon::scan_time(activity_array.at(2).get<std::string>().c_str());
+			if(!activity_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate Activity: unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
+			}
+		}
+	}
 	boost::shared_ptr<const Activity> Activity::get(std::uint64_t unique_id){
 		PROFILE_ME;
 		const auto activity_map = g_activity_map.lock();
@@ -230,6 +200,59 @@ namespace Data {
 		ret.reserve(activity_map->size());
 		for(auto it = activity_map->begin<0>(); it != activity_map->end<0>(); ++it){
 			ret.emplace_back(activity_map, &*it);
+		}
+	}
+
+	void MapActivity::reload(){
+		PROFILE_ME;
+
+		auto map_activity_map = g_map_activity_map.lock();
+		if(!map_activity_map){
+			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			return;
+		}
+		map_activity_map->clear();
+
+		Poseidon::OptionalMap get_params;
+		get_params.set(sslit("server"), "102");
+		get_params.set(sslit("channel"), "1000");
+		auto map_activity_entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
+		Poseidon::Http::V_GET, g_server_activity_path + "/get_map_activity_info", std::move(get_params), g_server_activity_auth);
+		//std::istringstream map_activity_iss(map_activity_entity.dump());
+		std::string test_map_activity_data = "[[\"3501001\",\"1\",\"10\",\"{}\"],[\"3502001\",\"2\",\"10\",\"{}\"],[\"3503001\",\"3\",\"10\",\"{}\"],[\"3504001\",\"4\",\"30\",\"{}\"],[\"3505001\",\"5\",\"0\",\"{\"5000\":{\"2100034\":5},\"10000\":{\"2100034\":10}}\"],[\"3506001\",\"6\",\"0\",\"{\"5000\":{\"2100034\":5},\"10000\":{\"2100034\":10}}\"]]";
+		std::istringstream map_activity_iss(test_map_activity_data);
+		auto response_array = Poseidon::JsonParser::parse_array(map_activity_iss);
+		for(auto it = response_array.begin(); it != response_array.end();++it){
+			auto activity_array = (*it).get<Poseidon::JsonArray>();
+			if(activity_array.size() != 4){
+				LOG_EMPERY_CENTER_FATAL("unvalid activity data");
+				continue;
+			}
+			Data::MapActivity elem = { };
+			elem.unique_id       = boost::lexical_cast<std::uint64_t>(activity_array.at(0));
+			elem.activity_type   = boost::lexical_cast<unsigned>(activity_array.at(1));
+			elem.continued_time  = boost::lexical_cast<std::uint64_t>(activity_array.at(2));
+			auto object = activity_array.at(3).get<Poseidon::JsonObject>();
+			elem.rewards.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto condition = boost::lexical_cast<std::uint64_t>(std::string(it->first));
+				std::vector<std::pair<std::uint64_t,std::uint64_t>> item_vec;
+				const auto &item_obj = it->second.get<Poseidon::JsonObject>();
+				item_vec.reserve(item_obj.size());
+				for(auto itt = item_obj.begin(); itt != item_obj.end(); ++itt){
+					auto item_id = boost::lexical_cast<std::uint64_t>(std::string(itt->first));
+					auto num = boost::lexical_cast<std::uint64_t>(itt->second.get<double>());
+					item_vec.push_back(std::make_pair(item_id,num));
+				}
+				if(!elem.rewards.emplace(condition, std::move(item_vec)).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: conditon  = ",condition);
+					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
+				}
+			}
+			if(!map_activity_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate Activity: unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
+			}
 		}
 	}
 
@@ -310,6 +333,60 @@ namespace Data {
 			}
 		}
 		return max_rank;
+	}
+
+	void WorldActivity::reload(){
+		PROFILE_ME;
+		auto world_activity_map = g_world_activity_map.lock();
+		if(!world_activity_map){
+			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			return;
+		}
+		world_activity_map->clear();
+		Poseidon::OptionalMap get_params;
+		get_params.set(sslit("server"), "102");
+		get_params.set(sslit("channel"), "1000");
+		auto world_activity_entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
+		Poseidon::Http::V_GET, g_server_activity_path + "/get_world_activity_info", std::move(get_params), g_server_activity_auth);
+		//std::istringstream world_activity_iss(world_activity_entity.dump());
+		std::string test_world_activity_data = "[[\"3510001\",\"0\",\"3500002\",\"{\"0\":500000}\",\"1\",\"{\"guaibag10\":1,\"liangbag10\":1,\"mubag10\":1,\"shibag10\":1}\"],[\"3511001\",\"3510001\",\"3500002\",\"{\"0\":1000000}\",\"2\",\"{\"guaibag20\":1,\"liangbag20\":1,\"mubag20\":1,\"shibag20\":1}\"],[\"3512001\",\"3511001\",\"3500002\",\"{\"2605102\":1}\",\"3\",\"{\"guaibag30\":1,\"liangbag30\":1,\"mubag30\":1,\"shibag30\":1}\"]]";
+		std::istringstream world_activity_iss(test_world_activity_data);
+		auto response_array = Poseidon::JsonParser::parse_array(world_activity_iss);
+		for(auto it = response_array.begin(); it != response_array.end();++it){
+			auto activity_array = (*it).get<Poseidon::JsonArray>();
+			if(activity_array.size() != 4){
+				LOG_EMPERY_CENTER_FATAL("unvalid activity data");
+				continue;
+			}
+			Data::WorldActivity elem = { };
+			elem.unique_id       = boost::lexical_cast<std::uint64_t>(activity_array.at(0));
+			elem.pre_unique_id   = boost::lexical_cast<unsigned>(activity_array.at(1));
+			auto object = activity_array.at(4).get<Poseidon::JsonObject>();
+			elem.objective.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto id = boost::lexical_cast<std::uint64_t>(it->first.get());
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.objective.emplace(id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate world activity target : id = ", id);
+					DEBUG_THROW(Exception, sslit("Duplicate world activity target"));
+				}
+			}
+			object.clear();
+			object = activity_array.at(5).get<Poseidon::JsonObject>();
+			elem.rewards.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto collection_name = std::string(it->first.get());
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.rewards.emplace(std::move(collection_name), count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate world activity reward set: collection_name = ", collection_name);
+					DEBUG_THROW(Exception, sslit("Duplicate world activity reward set"));
+				}
+			}
+			if(!world_activity_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate Activity : unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
+			}
+		}
 	}
 
 	boost::shared_ptr<const WorldActivity> WorldActivity::get(std::uint64_t unique_id){
