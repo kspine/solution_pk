@@ -830,7 +830,7 @@ bool DungeonObject::find_way_points(std::deque<std::pair<signed char, signed cha
 	if(!precise){
 		distance_close_enough = get_shoot_range();
 	}
-	const auto distance_limit = get_config<unsigned>("path_recalculation_radius", 10);
+	const auto distance_limit = get_config<unsigned>("path_recalculation_radius", 20);
 	if(find_path(path,from_coord, target_coord,get_dungeon_uuid(),get_owner_uuid(), distance_limit, distance_close_enough)){
 		for(auto it = path.begin(); it != path.end(); ++it){
 			waypoints.emplace_back(it->first, it->second);
