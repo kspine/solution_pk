@@ -137,13 +137,14 @@ namespace Data {
 			return;
 		}
 		activity_map->clear();
-
+		/*
 		Poseidon::OptionalMap get_params;
 		get_params.set(sslit("server"), "102");
 		get_params.set(sslit("channel"), "1000");
 		auto entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
 		Poseidon::Http::V_GET, g_server_activity_path + "/get_activity_info", std::move(get_params), g_server_activity_auth);
-		//std::istringstream iss(entity.dump());
+		std::istringstream iss(entity.dump());
+		*/
 		std::string test_data = "[[\"3500001\",\"2016-9-18 7:40:00\",\"2016-9-18 23:30\"],[\"3500002\",\"2016-9-18 7:40:00\",\"2016-9-18 23:30\"]]";
 		std::istringstream iss(test_data);
 		auto response_array = Poseidon::JsonParser::parse_array(iss);
@@ -212,13 +213,14 @@ namespace Data {
 			return;
 		}
 		map_activity_map->clear();
-
+		/*
 		Poseidon::OptionalMap get_params;
 		get_params.set(sslit("server"), "102");
 		get_params.set(sslit("channel"), "1000");
 		auto map_activity_entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
 		Poseidon::Http::V_GET, g_server_activity_path + "/get_map_activity_info", std::move(get_params), g_server_activity_auth);
-		//std::istringstream map_activity_iss(map_activity_entity.dump());
+		std::istringstream map_activity_iss(map_activity_entity.dump());
+		*/
 		std::string test_map_activity_data = "[[\"3501001\",\"1\",\"10\",\"{}\"],[\"3502001\",\"2\",\"10\",\"{}\"],[\"3503001\",\"3\",\"10\",\"{}\"],[\"3504001\",\"4\",\"30\",\"{}\"],[\"3505001\",\"5\",\"0\",\"{\"5000\":{\"2100034\":5},\"10000\":{\"2100034\":10}}\"],[\"3506001\",\"6\",\"0\",\"{\"5000\":{\"2100034\":5},\"10000\":{\"2100034\":10}}\"]]";
 		std::istringstream map_activity_iss(test_map_activity_data);
 		auto response_array = Poseidon::JsonParser::parse_array(map_activity_iss);
@@ -343,18 +345,20 @@ namespace Data {
 			return;
 		}
 		world_activity_map->clear();
+		/*
 		Poseidon::OptionalMap get_params;
 		get_params.set(sslit("server"), "102");
 		get_params.set(sslit("channel"), "1000");
 		auto world_activity_entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
 		Poseidon::Http::V_GET, g_server_activity_path + "/get_world_activity_info", std::move(get_params), g_server_activity_auth);
-		//std::istringstream world_activity_iss(world_activity_entity.dump());
+		std::istringstream world_activity_iss(world_activity_entity.dump());
+		*/
 		std::string test_world_activity_data = "[[\"3510001\",\"0\",\"3500002\",\"{\"0\":500000}\",\"1\",\"{\"guaibag10\":1,\"liangbag10\":1,\"mubag10\":1,\"shibag10\":1}\"],[\"3511001\",\"3510001\",\"3500002\",\"{\"0\":1000000}\",\"2\",\"{\"guaibag20\":1,\"liangbag20\":1,\"mubag20\":1,\"shibag20\":1}\"],[\"3512001\",\"3511001\",\"3500002\",\"{\"2605102\":1}\",\"3\",\"{\"guaibag30\":1,\"liangbag30\":1,\"mubag30\":1,\"shibag30\":1}\"]]";
 		std::istringstream world_activity_iss(test_world_activity_data);
 		auto response_array = Poseidon::JsonParser::parse_array(world_activity_iss);
 		for(auto it = response_array.begin(); it != response_array.end();++it){
 			auto activity_array = (*it).get<Poseidon::JsonArray>();
-			if(activity_array.size() != 4){
+			if(activity_array.size() != 6){
 				LOG_EMPERY_CENTER_FATAL("unvalid activity data");
 				continue;
 			}
