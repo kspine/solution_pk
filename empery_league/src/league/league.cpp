@@ -79,6 +79,16 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 
 	league->set_controller(league_session);
 
+	EmperyCenter::Msg::LS_LeagueNoticeMsg msg;
+	msg.league_uuid = league->get_league_uuid().str();
+	msg.msgtype = League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_CREATE_SUCCESS;
+	msg.nick = "";
+	msg.ext1 = "";
+	msg.legions.reserve(1);
+	auto &elem = *msg.legions.emplace(msg.legions.end());
+	elem.legion_uuid = req.legion_uuid;
+	league_session->send(msg);
+
 	// 增加联盟成员
 	league->AddMember(legion_uuid,account_uuid,1,utc_now);
 

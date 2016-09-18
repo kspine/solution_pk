@@ -72,6 +72,7 @@ public:
 		LEGION_NOTICE_MSG_TYPE_CHANGENOTICE  	= 10,	// 修改军团公告
 		LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK  	= 11,	// 军团被踢出联盟
 		LEGION_NOTICE_MSG_TYPE_TASK_CHANGE  	= 12,	// 任务进度有改变
+		LEGION_NOTICE_MSG_CREATE_SUCCESS  	    = 13,	// 创建成功
 	};
 public:
 
