@@ -226,6 +226,16 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	m_blocked_retry_count = 0;
 
 	if(result.first != Msg::ST_OK){
+		const auto distance_limit = get_config<unsigned>("path_recalculation_radius", 10);
+		// XXX 根据不同 action 计算路径。
+		const auto to_coord = std::accumulate(m_waypoints.begin(), m_waypoints.end(), coord,
+			[](Coord c, std::pair<signed char, signed char> d){ return Coord(c.x() + d.first, c.y() + d.second); });
+		std::vector<std::pair<signed char, signed char>> new_path;
+		if(find_path(new_path, coord, to_coord, owner_uuid, distance_limit, 0)){
+			m_waypoints.clear();
+			m_waypoints.insert(m_waypoints.end(), new_path.begin(), new_path.end());
+			return 0;
+		}
 		return UINT64_MAX;
 	}
 
