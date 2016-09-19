@@ -10,12 +10,18 @@ ACCOUNT_SERVLET("sellAccelerationCardsInternal", session, params){
 	const auto &login_name = params.at("loginName");
 	const auto unit_price = boost::lexical_cast<std::uint64_t>(params.at("unitPrice"));
 	const auto cards_to_sell = boost::lexical_cast<std::uint64_t>(params.at("cardsToSell"));
+	const auto &deal_password = params.at("dealPassword");
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);
 	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
 		ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_ACCOUNT;
 		ret[sslit("errorMessage")] = "Account is not found";
+		return ret;
+	}
+	if(AccountMap::get_password_hash(deal_password) != info.deal_password_hash){
+		ret[sslit("errorCode")] = (int)Msg::ERR_INVALID_DEAL_PASSWORD;
+		ret[sslit("errorMessage")] = "Deal password is incorrect";
 		return ret;
 	}
 	if(cards_to_sell == 0){
