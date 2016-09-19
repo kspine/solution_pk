@@ -219,7 +219,7 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                                 msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
                                 msg.nick = account->get_nick();
                                 msg.ext1 = "";
-                                legion->sendNoticeMsg();
+                                legion->sendNoticeMsg(msg);
 
                                 LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
                                     ", map_object_type_id = ", map_object_type_id, ", account_uuid = ", account->get_account_uuid());
@@ -379,7 +379,7 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
                                         msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
                                         msg.nick = account->get_nick();
                                         msg.ext1 = "";
-                                        legion->sendNoticeMsg();
+                                        legion->sendNoticeMsg(msg);
                                     });
                             if(insuff_resource_id){
                                 return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
@@ -667,7 +667,7 @@ PLAYER_SERVLET(Msg::CS_OpenLegionGrubeMessage, account, session,  req )
                         msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
                         msg.nick = account->get_nick();
                         msg.ext1 = "";
-                        legion->sendNoticeMsg();
+                        legion->sendNoticeMsg(msg);
 
                         return Response(Msg::ST_OK);
                     }
@@ -794,7 +794,7 @@ PLAYER_SERVLET(Msg::CS_RepairLegionGrubeMessage, account, session,  req )
                     msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
                     msg.nick = account->get_nick();
                     msg.ext1 = "";
-                    legion->sendNoticeMsg();
+                    legion->sendNoticeMsg(msg);
 
                     return Response(Msg::ST_OK);
                 }
