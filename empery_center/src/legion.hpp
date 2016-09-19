@@ -73,6 +73,7 @@ public:
 		LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK  	= 11,	// 军团被踢出联盟
 		LEGION_NOTICE_MSG_TYPE_TASK_CHANGE  	= 12,	// 任务进度有改变
 		LEGION_NOTICE_MSG_CREATE_SUCCESS  	    = 13,	// 创建成功
+		LEGION_NOTICE_MSG_MINE_STATUS_CHANGE 	= 14,	// 货仓变动
 	};
 public:
 
