@@ -24,6 +24,7 @@ extern void accumulate_balance_bonus_abs(AccountId account_id, std::uint64_t amo
 
 extern std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell);
 extern std::uint64_t sell_acceleration_cards_mojinpai(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell);
+extern std::uint64_t sell_acceleration_cards_internal(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell);
 
 extern std::string generate_bill_serial(const std::string &prefix);
 
