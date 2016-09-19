@@ -22,6 +22,7 @@ namespace Msg {
 		FIELD_STRING        (legion_uuid)	\
 		FIELD_STRING        (legion_name)	\
 		FIELD_STRING        (legion_icon)	\
+		FIELD_STRING        (legion_leader_name)	\
 		FIELD_VUINT         (titleid)	\
 		FIELD_STRING        (quit_time)	\
 		FIELD_STRING        (kick_time)	\

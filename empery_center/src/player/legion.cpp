@@ -2091,6 +2091,10 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 					// 查看是否限购
 					if(storeitem->limited_purchase != 0 )
 					{
+						if(req.num > storeitem->limited_purchase)
+						{
+							return Response(Msg::ERR_LEGION_STORE_LIMIT_PURCHASE);
+						}
 						const auto strgoodsid = boost::lexical_cast<std::string>(req.goodsid);
 						const auto  recordinfo = member->get_attribute(LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD);
 
@@ -2112,7 +2116,7 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 								LOG_EMPERY_CENTER_INFO("CS_LegionExchangeItemMessage  获得曾经的兑换次数 ===========",dvalue);
 								if(dvalue < storeitem->limited_purchase)
 								{
-									obj[SharedNts(strgoodsid.c_str())] = dvalue + 1;
+									obj[SharedNts(strgoodsid.c_str())] = dvalue + req.num;
 
 									Attributes[LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD] = obj.dump();
 
