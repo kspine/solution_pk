@@ -40,6 +40,7 @@ namespace Events {
 			R_SHARED_RECHARGE_ROLLBACK  = 201028, // 发起人账号      共享人账号      0
 			R_SELL_CARDS_ALT            = 201029, // 买卡账号        0               0
 			R_SYNUSER_PAYMENT           = 201030, // 0               0               0
+			R_SELL_CARDS_MOJINPAI       = 201031, // 买卡账号        0               0
 		};
 
 		AccountId account_id;

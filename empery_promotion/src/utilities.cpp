@@ -550,6 +550,83 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 	ItemMap::commit_transaction(transaction.data(), transaction.size());
 	return cards_sold;
 }
+std::uint64_t sell_acceleration_cards_mojinpai(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell){
+	PROFILE_ME;
+
+	std::deque<AccountMap::AccountInfo> queue;
+	auto info = AccountMap::require(buyer_id);
+	for(;;){
+		const auto referrer_id = info.referrer_id;
+		queue.emplace_back(std::move(info));
+		if(!referrer_id){
+			break;
+		}
+		info = AccountMap::require(referrer_id);
+	}
+
+	LOG_EMPERY_PROMOTION_DEBUG("Sell acceleration cards: buyer_id = ", buyer_id, ", unit_price = ", unit_price, ", cards_to_sell = ", cards_to_sell);
+
+	std::vector<ItemTransactionElement> transaction;
+	std::uint64_t cards_sold = 0;
+
+	for(std::uint64_t i = 0; i < cards_to_sell; ++i){
+		for(auto qit = queue.begin(); qit != queue.end(); ++qit){
+			const auto card_count = ItemMap::get_count(qit->account_id, ItemIds::ID_ACCELERATION_CARDS);
+			LOG_EMPERY_PROMOTION_DEBUG("> Path upward: account_id = ", qit->account_id, ", card_count = ", card_count);
+			if(card_count > 0){
+				transaction.emplace_back(qit->account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCELERATION_CARDS, 1,
+					Events::ItemChanged::R_SELL_CARDS_MOJINPAI, buyer_id.get(), 0, 0, std::string());
+				transaction.emplace_back(qit->account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, unit_price,
+					Events::ItemChanged::R_SELL_CARDS_MOJINPAI, buyer_id.get(), 0, 0, std::string());
+				cards_sold += 1;
+				goto _end;
+			}
+		}
+		for(auto qit = queue.begin(); qit != queue.end(); ++qit){
+			LOG_EMPERY_PROMOTION_DEBUG("Unpacking: account_id = ", qit->account_id);
+			std::vector<AccountMap::AccountInfo> subordinates;
+			AccountMap::get_by_referrer_id(subordinates, qit->account_id);
+			if(qit != queue.begin()){
+				const auto excluded_account_id = qit[-1].account_id;
+				for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+					if(it->account_id == excluded_account_id){
+						subordinates.erase(it);
+						break;
+					}
+				}
+			}
+			while(!subordinates.empty()){
+				std::sort(subordinates.begin(), subordinates.end(),
+					[](const AccountMap::AccountInfo &lhs, const AccountMap::AccountInfo &rhs){
+						return lhs.created_time < rhs.created_time;
+					});
+				for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+					const auto card_count = ItemMap::get_count(it->account_id, ItemIds::ID_ACCELERATION_CARDS);
+					LOG_EMPERY_PROMOTION_DEBUG("> Path downward: account_id = ", it->account_id, ", card_count = ", card_count);
+					if(card_count > 0){
+						transaction.emplace_back(it->account_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCELERATION_CARDS, 1,
+							Events::ItemChanged::R_SELL_CARDS_MOJINPAI, buyer_id.get(), 0, 0, std::string());
+						transaction.emplace_back(it->account_id, ItemTransactionElement::OP_ADD, ItemIds::ID_ACCOUNT_BALANCE, unit_price,
+							Events::ItemChanged::R_SELL_CARDS_MOJINPAI, buyer_id.get(), 0, 0, std::string());
+						cards_sold += 1;
+						goto _end;
+					}
+				}
+
+				std::vector<AccountMap::AccountInfo> new_subordinates;
+				for(auto it = subordinates.begin(); it != subordinates.end(); ++it){
+					LOG_EMPERY_PROMOTION_DEBUG("Unpacking: account_id = ", it->account_id);
+					AccountMap::get_by_referrer_id(new_subordinates, it->account_id);
+				}
+				subordinates.swap(new_subordinates);
+			}
+		}
+	_end:
+		;
+	}
+	ItemMap::commit_transaction(transaction.data(), transaction.size());
+	return cards_sold;
+}
 
 std::string generate_bill_serial(const std::string &prefix){
 	PROFILE_ME;
