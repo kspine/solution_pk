@@ -22,6 +22,7 @@ namespace Msg {
 		FIELD_VUINT         (mission_time_remaining)	\
 		FIELD_VUINT         (output_type)	\
 		FIELD_VUINT         (output_amount)	\
+		FIELD_VUINT         (cd_time_remaining)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
