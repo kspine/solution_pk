@@ -94,6 +94,7 @@ namespace Msg {
 #define MESSAGE_ID      1856
 #define MESSAGE_FIELDS  \
 	FIELD_ARRAY         (members,	\
+		FIELD_STRING        (account_uuid)	\
 		FIELD_STRING        (titleid)	\
 		FIELD_STRING        (nick)	\
 		FIELD_STRING        (icon)	\
