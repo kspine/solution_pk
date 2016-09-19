@@ -82,6 +82,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/synuser/querypayment.cpp	\
 	src/synuser/create.cpp	\
 	src/synuser/update.cpp	\
+	src/synuser/buycards.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\
