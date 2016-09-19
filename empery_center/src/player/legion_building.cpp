@@ -214,6 +214,13 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
 
                                 LegionBuildingMap::synchronize_with_player(member->get_legion_uuid(),session);
 
+                                // 广播通知下
+                                Msg::SC_LegionNoticeMsg msg;
+                                msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
+                                msg.nick = account->get_nick();
+                                msg.ext1 = "";
+                                legion->sendNoticeMsg(msg);
+
                                 LOG_EMPERY_CENTER_DEBUG("Created defense building: defense_building_uuid = ", defense_building_uuid,
                                     ", map_object_type_id = ", map_object_type_id, ", account_uuid = ", account->get_account_uuid());
                             });
@@ -366,6 +373,13 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
                                     legion->set_attributes(Attributes);
 
                                     LegionBuildingMap::synchronize_with_player(member->get_legion_uuid(),session);
+
+                                        // 广播通知下
+                                        Msg::SC_LegionNoticeMsg msg;
+                                        msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
+                                        msg.nick = account->get_nick();
+                                        msg.ext1 = "";
+                                        legion->sendNoticeMsg(msg);
                                     });
                             if(insuff_resource_id){
                                 return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
@@ -648,6 +662,13 @@ PLAYER_SERVLET(Msg::CS_OpenLegionGrubeMessage, account, session,  req )
 
                         warehouse_building->open(req.ntype,req.consume,static_cast<std::uint64_t>(std::ceil(buildingingo->effect_time * 60000.0)), saturated_add(utc_now, static_cast<std::uint64_t>(std::ceil(buildingingo->open_time * 60000.0))));
 
+                        // 广播通知下
+                        Msg::SC_LegionNoticeMsg msg;
+                        msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
+                        msg.nick = account->get_nick();
+                        msg.ext1 = "";
+                        legion->sendNoticeMsg(msg);
+
                         return Response(Msg::ST_OK);
                     }
                 }
@@ -767,6 +788,13 @@ PLAYER_SERVLET(Msg::CS_RepairLegionGrubeMessage, account, session,  req )
 					warehouse_building->set_attributes(modifiers);
 
                     warehouse_building->on_hp_change(curhp+repairhp);
+
+                    // 广播通知下
+                    Msg::SC_LegionNoticeMsg msg;
+                    msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MINE_STATUS_CHANGE;
+                    msg.nick = account->get_nick();
+                    msg.ext1 = "";
+                    legion->sendNoticeMsg(msg);
 
                     return Response(Msg::ST_OK);
                 }

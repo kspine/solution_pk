@@ -2130,7 +2130,7 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 							}
 							else
 							{
-								obj[SharedNts(strgoodsid.c_str())] = 1;
+								obj[SharedNts(strgoodsid.c_str())] = req.num;
 
 								Attributes[LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD] = obj.dump();
 
@@ -2140,7 +2140,7 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 						}
 						else
 						{
-							obj[SharedNts(strgoodsid.c_str())] = 1;
+							obj[SharedNts(strgoodsid.c_str())] = req.num;
 
 							Attributes[LegionMemberAttributeIds::ID_LEGION_STORE_EXCHANGE_RECORD] = obj.dump();
 
@@ -2179,8 +2179,8 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 
 					for(auto it = trade_data->items_produced.begin(); it != trade_data->items_produced.end(); ++it)
 					{
-						transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemId(it->first), it->second,
-							ReasonIds::ID_LEGION_STORE_EXCHANGE, 0, 0, it->second);
+						transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemId(it->first), req.num,
+							ReasonIds::ID_LEGION_STORE_EXCHANGE, 0, 0, req.num);
 					}
 
 
