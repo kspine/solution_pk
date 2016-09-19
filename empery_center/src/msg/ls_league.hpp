@@ -24,6 +24,7 @@ namespace Msg {
 	FIELD_STRING        (league_icon)	\
 	FIELD_STRING        (league_notice)	\
 	FIELD_VUINT         (league_level)	\
+	FIELD_VUINT         (league_max_member)	\
 	FIELD_STRING        (leader_legion_uuid)	\
 	FIELD_STRING        (create_account_uuid)	\
 	FIELD_ARRAY         (members,	\
@@ -48,6 +49,7 @@ namespace Msg {
 		FIELD_STRING        (autojoin)	\
 		FIELD_STRING        (league_create_time) \
 		FIELD_STRING        (isapplyjoin) \
+		FIELD_VUINT         (legion_max_count)	\
 		FIELD_ARRAY         (legions,	\
 			FIELD_STRING        (legion_uuid)	\
 		)	\
