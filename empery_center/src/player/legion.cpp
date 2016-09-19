@@ -2179,8 +2179,8 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 
 					for(auto it = trade_data->items_produced.begin(); it != trade_data->items_produced.end(); ++it)
 					{
-						transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemId(it->first), req.num,
-							ReasonIds::ID_LEGION_STORE_EXCHANGE, 0, 0, req.num);
+						transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemId(it->first), it->second * req.num,
+							ReasonIds::ID_LEGION_STORE_EXCHANGE, 0, 0, it->second * req.num);
 					}
 
 
