@@ -208,6 +208,7 @@ void LegionBuildingMap::synchronize_with_player(LegionUuid legion_uuid,const boo
 			elem.mission_time_remaining  = saturated_sub(mapobject->get_mission_time_end(), utc_now);
 			elem.output_type			 = mapobject->get_output_type();
 			elem.output_amount			 = mapobject->get_output_amount();
+			elem.cd_time_remaining		 = saturated_sub(mapobject->get_cd_time(), utc_now);
 		}
 	}
 
