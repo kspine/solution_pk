@@ -74,6 +74,7 @@ SYNUSER_SERVLET("checkaccount", session, params){
 			subordinates.emplace_back(std::move(kit->login_name));
 		}
 		elem[sslit("subordinates")] = std::move(subordinates);
+		elem[sslit("gender")] = AccountMap::get_attribute(it->account_id, AccountMap::ATTR_GENDER);
 		elem[sslit("remarks")] = AccountMap::get_attribute(it->account_id, AccountMap::ATTR_REMARKS);
 		data.emplace_back(std::move(elem));
 	}
