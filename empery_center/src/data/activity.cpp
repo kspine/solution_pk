@@ -292,8 +292,8 @@ namespace Data {
 		//活动6
 		Poseidon::JsonArray activity6;
 		activity6.emplace_back(3506001);
-		activity5.emplace_back(6);
-		activity5.emplace_back(0);
+		activity6.emplace_back(6);
+		activity6.emplace_back(0);
 		Poseidon::JsonObject objective6;
 		Poseidon::JsonObject objective61;
 		objective61[FormatSharedNts(2100034)] = 5;
@@ -482,8 +482,8 @@ namespace Data {
 		activity3.emplace_back(3500002);
 		Poseidon::JsonObject objective3;
 		objective3[FormatSharedNts(2605102)] = 1;
-		activity2.emplace_back(objective3);
-		activity2.emplace_back(3);
+		activity3.emplace_back(objective3);
+		activity3.emplace_back(3);
 		Poseidon::JsonObject award3;
 		award3[SharedNts("guaibag20")]  = 1;
 		award3[SharedNts("liangbag20")] = 1;
