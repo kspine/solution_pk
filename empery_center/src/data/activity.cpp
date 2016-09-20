@@ -27,7 +27,11 @@ namespace {
 		elem.available_until = Poseidon::scan_time(str.c_str());
 	}
 	*/
-
+    SharedNts FormatSharedNts(std::uint64_t key){
+		char str[256];
+		unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)key);
+		return SharedNts(str, len);
+	}
 	MULTI_INDEX_MAP(ActivityMap, Data::Activity,
 		UNIQUE_MEMBER_INDEX(unique_id)
 		MULTI_MEMBER_INDEX(available_since)
@@ -145,8 +149,26 @@ namespace Data {
 		Poseidon::Http::V_GET, g_server_activity_path + "/get_activity_info", std::move(get_params), g_server_activity_auth);
 		std::istringstream iss(entity.dump());
 		*/
-		std::string test_data = "[[\"3500001\",\"2016-9-18 7:40:00\",\"2016-9-18 23:30\"],[\"3500002\",\"2016-9-18 7:40:00\",\"2016-9-18 23:30\"]]";
-		std::istringstream iss(test_data);
+		/*
+		[[3500001,"2016-9-18 7:40:00","2016-9-18 23:30"],
+		[3500002,"2016-9-18 7:40:00","2016-9-18 23:30"]]
+		*/
+		Poseidon::JsonArray activitys;
+		//活动1
+		Poseidon::JsonArray activity1;
+		activity1.emplace_back(3500001);
+		activity1.emplace_back("2016-9-20 5:40:00");
+		activity1.emplace_back("2016-9-20 23:30:00");
+		activitys.emplace_back(activity1);
+		//活动2
+		Poseidon::JsonArray activity2;
+		activity2.emplace_back(3500002);
+		activity2.emplace_back("2016-9-20 5:40:00");
+		activity2.emplace_back("2016-9-20 23:30:00");
+		activitys.emplace_back(activity2);
+		std::string test_activity = activitys.dump();
+		LOG_EMPERY_CENTER_FATAL("test activity data:",test_activity);
+		std::istringstream iss(test_activity);
 		auto response_array = Poseidon::JsonParser::parse_array(iss);
 		for(auto it = response_array.begin(); it != response_array.end();++it){
 			auto activity_array = (*it).get<Poseidon::JsonArray>();
@@ -221,8 +243,78 @@ namespace Data {
 		Poseidon::Http::V_GET, g_server_activity_path + "/get_map_activity_info", std::move(get_params), g_server_activity_auth);
 		std::istringstream map_activity_iss(map_activity_entity.dump());
 		*/
-		std::string test_map_activity_data = "[[\"3501001\",\"1\",\"10\",\"{}\"],[\"3502001\",\"2\",\"10\",\"{}\"],[\"3503001\",\"3\",\"10\",\"{}\"],[\"3504001\",\"4\",\"30\",\"{}\"],[\"3505001\",\"5\",\"0\",\"{\"5000\":{\"2100034\":5},\"10000\":{\"2100034\":10}}\"],[\"3506001\",\"6\",\"0\",\"{\"5000\":{\"2100034\":5},\"10000\":{\"2100034\":10}}\"]]";
-		std::istringstream map_activity_iss(test_map_activity_data);
+		/*
+		[[3501001,1,10,{}],
+		[3502001,2,10,{}],
+		[3503001,3,10,{}],
+		[3504001,4,30,{}],
+        [3505001,5,0,{"5000":{"2100034":5},"10000":{"2100034":10}}],
+		[3506001,6,0,{"5000":{"2100034":5},"10000":{"2100034":10}}]];
+		*/
+		Poseidon::JsonArray activitys;
+		// 活动1
+		Poseidon::JsonArray activity1;
+		activity1.emplace_back(3501001);
+		activity1.emplace_back(1);
+		activity1.emplace_back(10);
+		Poseidon::JsonObject objective1;
+		activity1.emplace_back(objective1);
+		activitys.emplace_back(activity1);
+		//活动2
+		Poseidon::JsonArray activity2;
+		activity2.emplace_back(3502001);
+		activity2.emplace_back(2);
+		activity2.emplace_back(10);
+		Poseidon::JsonObject objective2;
+		activity2.emplace_back(objective2);
+		activitys.emplace_back(activity2);
+		//活动3
+		Poseidon::JsonArray activity3;
+		activity3.emplace_back(3503001);
+		activity3.emplace_back(3);
+		activity3.emplace_back(10);
+		Poseidon::JsonObject objective3;
+		activity3.emplace_back(objective3);
+		activitys.emplace_back(activity3);
+		//活动4
+		Poseidon::JsonArray activity4;
+		activity4.emplace_back(3504001);
+		activity4.emplace_back(4);
+		activity4.emplace_back(10);
+		Poseidon::JsonObject objective4;
+		activity4.emplace_back(objective4);
+		activitys.emplace_back(activity4);
+		//活动5
+		Poseidon::JsonArray activity5;
+		activity5.emplace_back(3505001);
+		activity5.emplace_back(5);
+		activity5.emplace_back(0);
+		Poseidon::JsonObject objective5;
+		Poseidon::JsonObject objective51;
+		objective51[FormatSharedNts(2100034)] = 5;
+		objective5[FormatSharedNts(5000)] = objective51;
+		Poseidon::JsonObject objective52;
+		objective52[FormatSharedNts(2100034)] = 10;
+		objective5[FormatSharedNts(10000)] = objective52;
+		activity5.emplace_back(objective5);
+		activitys.emplace_back(activity5);
+		//活动6
+		Poseidon::JsonArray activity6;
+		activity6.emplace_back(3506001);
+		activity5.emplace_back(6);
+		activity5.emplace_back(0);
+		Poseidon::JsonObject objective6;
+		Poseidon::JsonObject objective61;
+		objective61[FormatSharedNts(2100034)] = 5;
+		objective6[FormatSharedNts(5000)] = objective61;
+		Poseidon::JsonObject objective62;
+		objective62[FormatSharedNts(2100034)] = 10;
+		objective6[FormatSharedNts(10000)] = objective62;
+		activity6.emplace_back(objective6);
+		activitys.emplace_back(activity6);
+		std::string test_data = activitys.dump();
+		LOG_EMPERY_CENTER_FATAL("test map activity data:",test_data);
+		std::istringstream map_activity_iss(test_data);
 		auto response_array = Poseidon::JsonParser::parse_array(map_activity_iss);
 		for(auto it = response_array.begin(); it != response_array.end();++it){
 			auto activity_array = (*it).get<Poseidon::JsonArray>();
@@ -353,8 +445,64 @@ namespace Data {
 		Poseidon::Http::V_GET, g_server_activity_path + "/get_world_activity_info", std::move(get_params), g_server_activity_auth);
 		std::istringstream world_activity_iss(world_activity_entity.dump());
 		*/
-		std::string test_world_activity_data = "[[\"3510001\",\"0\",\"3500002\",\"{\"0\":500000}\",\"1\",\"{\"guaibag10\":1,\"liangbag10\":1,\"mubag10\":1,\"shibag10\":1}\"],[\"3511001\",\"3510001\",\"3500002\",\"{\"0\":1000000}\",\"2\",\"{\"guaibag20\":1,\"liangbag20\":1,\"mubag20\":1,\"shibag20\":1}\"],[\"3512001\",\"3511001\",\"3500002\",\"{\"2605102\":1}\",\"3\",\"{\"guaibag30\":1,\"liangbag30\":1,\"mubag30\":1,\"shibag30\":1}\"]]";
-		std::istringstream world_activity_iss(test_world_activity_data);
+		/*
+		[[3510001,0,3500002,{"0":500000},1,{"guaibag10":1,"liangbag10":1,"mubag10":1,"shibag10":1}],
+		[3511001,3510001,3500002,{"0":1000000},2,{"guaibag20":1,"liangbag20":1,"mubag20":1,"shibag20":1}],
+		[3512001,3511001,3500002,{"2605102":1},3,{"guaibag30":1,"liangbag30":1,"mubag30":1,"shibag30":1}]]
+		*/
+		Poseidon::JsonArray activitys;
+		// 活动1
+		Poseidon::JsonArray activity1;
+		activity1.emplace_back(3510001);
+		activity1.emplace_back(0);
+		activity1.emplace_back(3500002);
+		Poseidon::JsonObject objective1;
+		objective1[FormatSharedNts(0)] = 500000;
+		activity1.emplace_back(objective1);
+		activity1.emplace_back(1);
+		Poseidon::JsonObject award1;
+		award1[SharedNts("guaibag10")]  = 1;
+		award1[SharedNts("liangbag10")] = 1;
+		award1[SharedNts("mubag10")]    = 1;
+		award1[SharedNts("shibag10")]   = 1;
+		activity1.emplace_back(award1);
+		activitys.emplace_back(activity1);
+		// 活动2
+		Poseidon::JsonArray activity2;
+		activity2.emplace_back(3511001);
+		activity2.emplace_back(3510001);
+		activity2.emplace_back(3500002);
+		Poseidon::JsonObject objective2;
+		objective2[FormatSharedNts(0)] = 1000000;
+		activity2.emplace_back(objective2);
+		activity2.emplace_back(2);
+		Poseidon::JsonObject award2;
+		award2[SharedNts("guaibag20")]  = 1;
+		award2[SharedNts("liangbag20")] = 1;
+		award2[SharedNts("mubag20")]    = 1;
+		award2[SharedNts("shibag20")]   = 1;
+		activity2.emplace_back(award2);
+		activitys.emplace_back(activity2);
+		// 活动3
+		Poseidon::JsonArray activity3;
+		activity3.emplace_back(3512001);
+		activity3.emplace_back(3511001);
+		activity3.emplace_back(3500002);
+		Poseidon::JsonObject objective3;
+		objective3[FormatSharedNts(2605102)] = 1;
+		activity2.emplace_back(objective3);
+		activity2.emplace_back(3);
+		Poseidon::JsonObject award3;
+		award3[SharedNts("guaibag20")]  = 1;
+		award3[SharedNts("liangbag20")] = 1;
+		award3[SharedNts("mubag20")]    = 1;
+		award3[SharedNts("shibag20")]   = 1;
+		activity3.emplace_back(award3);
+		activitys.emplace_back(activity3);
+
+		std::string test_data = activitys.dump();
+		LOG_EMPERY_CENTER_FATAL("test world activity:",test_data);
+		std::istringstream world_activity_iss(test_data);
 		auto response_array = Poseidon::JsonParser::parse_array(world_activity_iss);
 		for(auto it = response_array.begin(); it != response_array.end();++it){
 			auto activity_array = (*it).get<Poseidon::JsonArray>();
@@ -365,7 +513,7 @@ namespace Data {
 			Data::WorldActivity elem = { };
 			elem.unique_id       = static_cast<std::uint64_t>(activity_array.at(0).get<double>());
 			elem.pre_unique_id   = static_cast<unsigned>(activity_array.at(1).get<double>());
-			auto object = activity_array.at(4).get<Poseidon::JsonObject>();
+			auto object = activity_array.at(3).get<Poseidon::JsonObject>();
 			elem.objective.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto id = boost::lexical_cast<std::uint64_t>(it->first.get());
