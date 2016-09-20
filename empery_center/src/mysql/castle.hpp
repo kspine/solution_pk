@@ -74,6 +74,13 @@ namespace MySql {
 	FIELD_DATETIME          (time_end)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   Center_CastleTechEra
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (map_object_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (tech_era)	\
+	FIELD_BOOLEAN           (unlocked)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }
