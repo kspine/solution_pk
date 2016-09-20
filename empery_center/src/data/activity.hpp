@@ -35,6 +35,7 @@ namespace Data {
 
 	class ActivityAward{
 	public:
+		static void reload();
 		static bool get_activity_rank_award(std::uint64_t activity_id,const std::uint64_t rank,std::vector<std::pair<std::uint64_t,std::uint64_t>> &rewards);
 		static std::uint64_t get_max_activity_award_rank(std::uint64_t activity_id);
 	public:

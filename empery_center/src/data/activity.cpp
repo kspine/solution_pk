@@ -45,7 +45,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(unique_id)
 		MULTI_MEMBER_INDEX(activity_id)
 	)
-	boost::weak_ptr<const ActivityAwardMap> g_activity_award_map;
+	boost::weak_ptr<ActivityAwardMap> g_activity_award_map;
 	const char ACTIVITY_AWARD_FILE[] = "rank_reward";
 
 	MULTI_INDEX_MAP(WorldActivityMap, Data::WorldActivity,
@@ -74,6 +74,10 @@ namespace {
 		g_world_activity_map = world_activity_map;
 		handles.push(world_activity_map);
 
+		const auto activity_award_map = boost::make_shared<ActivityAwardMap>();
+		g_activity_award_map = activity_award_map;
+		handles.push(activity_award_map);
+		/*
 		auto csv = Data::sync_load_data(ACTIVITY_AWARD_FILE);
 		const auto activity_award_map = boost::make_shared<ActivityAwardMap>();
 		while(csv.fetch_row()){
@@ -99,10 +103,9 @@ namespace {
 		}
 		g_activity_award_map = activity_award_map;
 		handles.push(activity_award_map);
-		auto servlet = DataSession::create_servlet(ACTIVITY_AWARD_FILE, Data::encode_csv_as_json(csv, "id"));
-		handles.push(std::move(servlet));
+		*/
 
-		csv = Data::sync_load_data(ACTIVITY_CONTRIBUTE_FILE);
+		auto csv = Data::sync_load_data(ACTIVITY_CONTRIBUTE_FILE);
 		const auto activity_contribute_map = boost::make_shared<ActivityContributeMap>();
 		while(csv.fetch_row()){
 			Data::ActivityContribute elem = { };
@@ -116,7 +119,7 @@ namespace {
 		}
 		g_activity_contribute_map = activity_contribute_map;
 		handles.push(activity_contribute_map);
-		servlet = DataSession::create_servlet(ACTIVITY_CONTRIBUTE_FILE, Data::encode_csv_as_json(csv, "contribution_id"));
+		auto servlet = DataSession::create_servlet(ACTIVITY_CONTRIBUTE_FILE, Data::encode_csv_as_json(csv, "contribution_id"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -383,6 +386,120 @@ namespace Data {
 		}
 	}
 
+	void ActivityAward::reload(){
+		PROFILE_ME;
+		auto activity_award_map = g_activity_award_map.lock();
+		if(!activity_award_map){
+			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			return;
+		}
+		activity_award_map->clear();
+		/*
+		Poseidon::OptionalMap get_params;
+		get_params.set(sslit("server"), "102");
+		get_params.set(sslit("channel"), "1000");
+		auto entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
+		Poseidon::Http::V_GET, g_server_activity_path + "/get_activity_reward_info", std::move(get_params), g_server_activity_auth);
+		std::istringstream iss(entity.dump());
+		*/
+		/*
+		[[3600001,3505001,[1,1],{"2100034":5}],
+		 [3600002,3505001,[2,2],{"2100034":4}],
+		 [3600003,3505001,[3,3],{"2100034":3}],
+		 [3600004,3500001,[4,50],{"2100034":2}],
+		 [3600005,3500002,[1,1],{"2204004":100}],
+		 [3600006,3500002,[2,2],{"2204004":50}],
+		 [3600007,3500002,[3,3],{"2204004":20}],
+		 [3600008,3500002,[4,10],{"2204004":10}],
+		 [3600009,3500002,[11,50],{"2204004":5}],
+		 [36000010,3500002,[50,100],{"2204004":2}]
+		 ]
+		*/
+		Poseidon::JsonArray rewards;
+		//奖励1
+		Poseidon::JsonArray reward1;
+		reward1.emplace_back(3600001);
+		reward1.emplace_back(3505001);
+		Poseidon::JsonArray rank1;
+		rank1.emplace_back(1);
+		rank1.emplace_back(1);
+		reward1.emplace_back(rank1);
+		Poseidon::JsonObject object1;
+		object1[FormatSharedNts(2100034)] = 5;
+		reward1.emplace_back(object1);
+		rewards.emplace_back(reward1);
+		//奖励2
+		Poseidon::JsonArray reward2;
+		reward2.emplace_back(3600002);
+		reward2.emplace_back(3505001);
+		Poseidon::JsonArray rank2;
+		rank2.emplace_back(2);
+		rank2.emplace_back(50);
+		reward2.emplace_back(rank2);
+		Poseidon::JsonObject object2;
+		object2[FormatSharedNts(2100034)] = 5;
+		reward2.emplace_back(object2);
+		rewards.emplace_back(reward2);
+		//3
+		Poseidon::JsonArray reward3;
+		reward3.emplace_back(3600003);
+		reward3.emplace_back(3500002);
+		Poseidon::JsonArray rank3;
+		rank3.emplace_back(1);
+		rank3.emplace_back(1);
+		reward3.emplace_back(rank3);
+		Poseidon::JsonObject object3;
+		object3[FormatSharedNts(2204004)] = 5;
+		reward3.emplace_back(object3);
+		rewards.emplace_back(reward3);
+		//4
+		Poseidon::JsonArray reward4;
+		reward4.emplace_back(3600004);
+		reward4.emplace_back(3500002);
+		Poseidon::JsonArray rank4;
+		rank4.emplace_back(2);
+		rank4.emplace_back(100);
+		reward4.emplace_back(rank4);
+		Poseidon::JsonObject object4;
+		object4[FormatSharedNts(2204004)] = 5;
+		reward4.emplace_back(object4);
+		rewards.emplace_back(reward4);
+
+		std::string test_rewards = rewards.dump();
+		LOG_EMPERY_CENTER_FATAL("test activity reward data:",test_rewards);
+		std::istringstream iss(test_rewards);
+		auto response_array = Poseidon::JsonParser::parse_array(iss);
+		for(auto it = response_array.begin(); it != response_array.end();++it){
+			auto reward_array = (*it).get<Poseidon::JsonArray>();
+			if(reward_array.size() != 4){
+				LOG_EMPERY_CENTER_FATAL("unvalid activity reward data:",reward_array.dump());
+				continue;
+			}
+			Data::ActivityAward elem = { };
+			elem.unique_id       = static_cast<std::uint64_t>(reward_array.at(0).get<double>());
+			elem.activity_id     = static_cast<std::uint64_t>(reward_array.at(1).get<double>());
+			auto rank_array = reward_array.at(2).get<Poseidon::JsonArray>();
+			if(rank_array.size() != 2){
+				LOG_EMPERY_CENTER_FATAL("unvalid activity reward rank data:",rank_array.dump());
+				continue;
+			}
+			elem.rank_begin = boost::lexical_cast<std::uint64_t>(rank_array.at(0));
+			elem.rank_end =  boost::lexical_cast<std::uint64_t>(rank_array.at(1));
+			auto object = reward_array.at(3).get<Poseidon::JsonObject>();
+			elem.rewards.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				auto item_id = boost::lexical_cast<std::uint64_t>(std::string(it->first));
+				auto num = boost::lexical_cast<std::uint64_t>(it->second.get<double>());
+				elem.rewards.push_back(std::make_pair(item_id,num));
+			}
+			if(!activity_award_map->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate Activity award: unique_id = ", elem.unique_id);
+				DEBUG_THROW(Exception, sslit("Duplicate Activity award"));
+			}
+		}
+		ActivitySession::create_servlet(ACTIVITY_AWARD_FILE,response_array);
+	}
+
 	bool ActivityAward::get_activity_rank_award(std::uint64_t activity_id,const std::uint64_t rank,std::vector<std::pair<std::uint64_t,std::uint64_t>> &rewards){
 		PROFILE_ME;
 
@@ -449,7 +566,7 @@ namespace Data {
 		activity1.emplace_back(0);
 		activity1.emplace_back(3500002);
 		Poseidon::JsonObject objective1;
-		objective1[FormatSharedNts(0)] = 500000;
+		objective1[FormatSharedNts(0)] = 500;
 		activity1.emplace_back(objective1);
 		activity1.emplace_back(1);
 		Poseidon::JsonObject award1;
@@ -465,7 +582,7 @@ namespace Data {
 		activity2.emplace_back(3510001);
 		activity2.emplace_back(3500002);
 		Poseidon::JsonObject objective2;
-		objective2[FormatSharedNts(0)] = 1000000;
+		objective2[FormatSharedNts(0)] = 100;
 		activity2.emplace_back(objective2);
 		activity2.emplace_back(2);
 		Poseidon::JsonObject award2;

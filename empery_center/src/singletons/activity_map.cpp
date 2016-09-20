@@ -105,6 +105,7 @@ void  ActivityMap::reload(){
 	Data::Activity::reload();
 	Data::MapActivity::reload();
 	Data::WorldActivity::reload();
+	Data::ActivityAward::reload();
 	const auto activity_map = g_activity_map.lock();
 	if(!activity_map){
 		LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
