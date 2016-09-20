@@ -2006,4 +2006,32 @@ PLAYER_SERVLET(Msg::CS_CastleSetName, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_CastleUnlockTechEra, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+
+//	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+
+	const auto tech_era = static_cast<unsigned>(req.tech_era);
+	std::vector<boost::shared_ptr<const Data::CastleTech>> techs_in_era;
+	Data::CastleTech::get_by_era(techs_in_era, tech_era);
+	if(techs_in_era.empty()){
+		return Response(Msg::ERR_TECH_ERA_NOT_FOUND) <<tech_era;
+	}
+	const auto info = castle->get_tech_era(tech_era);
+	if(info.unlocked){
+		return Response(Msg::ERR_TECH_ERA_UNLOCKED) <<tech_era;
+	}
+
+	castle->unlock_tech_era(tech_era);
+
+	return Response();
+}
+
 }

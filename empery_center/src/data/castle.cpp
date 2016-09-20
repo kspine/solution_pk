@@ -89,6 +89,7 @@ namespace {
 
 	MULTI_INDEX_MAP(CastleTechContainer, Data::CastleTech,
 		UNIQUE_MEMBER_INDEX(tech_id_level)
+		MULTI_MEMBER_INDEX(tech_era)
 	)
 	boost::weak_ptr<const CastleTechContainer> g_tech_container;
 	const char TECH_FILE[] = "City_College_tech";
@@ -581,6 +582,7 @@ namespace {
 			elem.tech_id_level.first = TechId(array.at(0).get<double>());
 			elem.tech_id_level.second = array.at(1).get<double>();
 
+			csv.get(elem.tech_era,         "tech_class");
 			csv.get(elem.upgrade_duration, "levelup_time");
 
 			Poseidon::JsonObject object;
@@ -1319,6 +1321,22 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("CastleTech not found"));
 		}
 		return ret;
+	}
+
+	void CastleTech::get_by_era(std::vector<boost::shared_ptr<const CastleTech>> &ret, unsigned era){
+		PROFILE_ME;
+
+		const auto tech_container = g_tech_container.lock();
+		if(!tech_container){
+			LOG_EMPERY_CENTER_WARNING("CastleTechContainer has not been loaded.");
+			return;
+		}
+
+		const auto range = tech_container->equal_range<1>(era);
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			ret.emplace_back(tech_container, &*it);
+		}
 	}
 
 	boost::shared_ptr<const CastleResource> CastleResource::get(ResourceId resource_id){
