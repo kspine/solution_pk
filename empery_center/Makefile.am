@@ -56,6 +56,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/legion_task_box_map.cpp \
 	src/singletons/activity_map.cpp \
 	src/singletons/map_activity_accumulate_map.cpp \
+	src/singletons/activity_http_server.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -106,6 +107,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/admin/auction.cpp	\
 	src/admin/dungeon.cpp	\
 	src/admin/friend.cpp	\
+	src/admin/activity.cpp \
 	src/auction/query.cpp	\
 	src/auction/transfer.cpp	\
 	src/auction/create_bill.cpp	\
@@ -175,4 +177,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/legion_task_contribution_box.cpp \
 	src/singletons/legion_task_contribution_box_map.cpp \
 	src/activity.cpp \
+	src/activity_session.cpp \
 	src/mmain.cpp

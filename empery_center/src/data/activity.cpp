@@ -6,16 +6,12 @@
 #include <poseidon/json.hpp>
 #include "../data_session.hpp"
 #include "../singletons/simple_http_client_daemon.hpp"
+#include "../activity_session.hpp"
 #include "../mmain.hpp"
 
 namespace EmperyCenter {
 
 namespace {
-	std::string g_server_activity_host    = "localhost";
-	unsigned    g_server_activity_port    = 7121;
-	bool        g_server_activity_use_ssl = false;
-	std::string g_server_activity_auth    = { };
-	std::string g_server_activity_path    = { };
 	/*
 	template<typename ElementT>
 	void read_activiy_type(ElementT &elem, const Poseidon::CsvParser &csv){
@@ -66,12 +62,6 @@ namespace {
 
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		get_config(g_server_activity_host,    "activity_server_host");
-		get_config(g_server_activity_port,    "activity_server_port");
-		get_config(g_server_activity_use_ssl, "activity_server_use_ssl");
-		get_config(g_server_activity_auth,    "activity_server_auth_user_pass");
-		get_config(g_server_activity_path,    "activity_server_path");
-
 		const auto activity_map = boost::make_shared<ActivityMap>();
 		g_activity_map = activity_map;
 		handles.push(activity_map);
@@ -185,6 +175,7 @@ namespace Data {
 				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
 			}
 		}
+		ActivitySession::create_servlet(ACTIVITY_FILE,response_array);
 	}
 	boost::shared_ptr<const Activity> Activity::get(std::uint64_t unique_id){
 		PROFILE_ME;
@@ -348,6 +339,7 @@ namespace Data {
 				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
 			}
 		}
+		ActivitySession::create_servlet(MAP_ACTIVITY_FILE,response_array);
 	}
 
 	boost::shared_ptr<const MapActivity> MapActivity::get(std::uint64_t unique_id){
@@ -538,6 +530,7 @@ namespace Data {
 				LOG_EMPERY_CENTER_ERROR("Duplicate Activity : unique_id = ", elem.unique_id);
 				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
 			}
+			ActivitySession::create_servlet(WORLD_ACTIVITY_FILE,response_array);
 		}
 	}
 
