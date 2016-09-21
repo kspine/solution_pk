@@ -230,7 +230,7 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		const auto to_coord = std::accumulate(m_waypoints.begin(), m_waypoints.end(), coord,
 			[](Coord c, std::pair<signed char, signed char> d){ return Coord(c.x() + d.first, c.y() + d.second); });
 		std::deque<std::pair<signed char, signed char>> new_waypoints;
-		if(find_way_points(new_waypoints, coord, to_coord, true)){
+		if(find_way_points(new_waypoints, coord, to_coord,false)){
 			notify_way_points(new_waypoints, m_action, m_action_param);
 			m_waypoints = std::move(new_waypoints);
 			return 0;
