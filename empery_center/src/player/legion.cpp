@@ -146,12 +146,13 @@ PLAYER_SERVLET(Msg::CS_LegionCreateReqMessage, account, session, req){
 			// 增加军团成员
 		//	legion->AddMember(account_uuid,1,utc_now,account->get_attribute(AccountAttributeIds::ID_DONATE),account->get_attribute(AccountAttributeIds::ID_WEEKDONATE),account->get_nick());
 
+			/*
 			Msg::SC_LegionNoticeMsg msg;
 			msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_CREATE_SUCCESS;
 			msg.nick = "";
 			msg.ext1 = "";
 			session->send(msg);
-
+			*/
 			legion->AddMember(account,1,utc_now);
 
 			LegionMap::insert(legion, std::string());

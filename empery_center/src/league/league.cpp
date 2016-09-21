@@ -459,6 +459,23 @@ LEAGUE_SERVLET(Msg::LS_banChatLeagueReq, server, req){
 		Attributes[AccountAttributeIds::ID_LEAGUE_CAHT_FALG] = boost::lexical_cast<std::string>(req.bban);
 
 		account->set_attributes(std::move(Attributes));
+
+		// 广播通知
+		for(auto it = req.legions.begin(); it != req.legions.end(); ++it )
+		{
+			auto info = *it;
+
+			const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
+			if(legion)
+			{
+				Msg::SC_LeagueNoticeMsg msg;
+				msg.msgtype = 7;      // 联盟禁言
+				msg.nick = account->get_nick();
+				msg.ext1 = boost::lexical_cast<std::string>(req.bban);
+
+				legion->broadcast_to_members(msg);
+			}
+		}
 	}
 	else
 	{
@@ -598,11 +615,11 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 			if(msg.msgtype == 3)
 			{
 				// 军团别踢出联盟 广播给军团其他成员
-				Msg::SC_LegionNoticeMsg msg;
-				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK;
-				msg.nick = msg.nick;
-				msg.ext1 = "";
-				legion->sendNoticeMsg(msg);
+				Msg::SC_LegionNoticeMsg kmsg;
+				kmsg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK;
+				kmsg.nick = msg.nick;
+				kmsg.ext1 = "";
+				legion->sendNoticeMsg(kmsg);
 			}
 
 			const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
