@@ -31,6 +31,7 @@ namespace Msg {
 		ERR_FAIL_SEARCH_TARGE                   = 72520,
 		ERR_DUNGEON_SUSPENDED                   = 71521,
 		ERR_DUNGEON_NOT_SUSPENDED               = 72522,
+		ERR_NO_DUNGEON_CELL                     = 72523,
 	};
 }
 
