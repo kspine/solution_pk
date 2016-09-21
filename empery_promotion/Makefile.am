@@ -61,6 +61,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/account/notify_gold_scramble_reward.cpp	\
 	src/account/check_login_backtrace.cpp	\
 	src/account/sell_acceleration_cards.cpp	\
+	src/account/sell_acceleration_cards_internal.cpp	\
 	src/account/buy_diamonds.cpp	\
 	src/account/buy_gift_box.cpp	\
 	src/account/buy_large_gift_box.cpp	\
@@ -82,6 +83,7 @@ lib_libposeidon_empery_promotion_la_SOURCES = \
 	src/synuser/querypayment.cpp	\
 	src/synuser/create.cpp	\
 	src/synuser/update.cpp	\
+	src/synuser/buycards.cpp	\
 	src/checked_arithmetic.cpp	\
 	src/account_http_session.cpp	\
 	src/admin_http_session.cpp	\

@@ -83,6 +83,7 @@ MODULE_RAII_PRIORITY(handles, 9000){
 					break;
 				case Events::ItemChanged::R_SELL_CARDS:
 				case Events::ItemChanged::R_SELL_CARDS_ALT:
+				case Events::ItemChanged::R_SELL_CARDS_MOJINPAI:
 					PUT_ACCOUNT(param1)
 					break;
 				case Events::ItemChanged::R_BUY_DIAMONDS:
