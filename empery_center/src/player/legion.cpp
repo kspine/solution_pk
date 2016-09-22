@@ -295,8 +295,7 @@ PLAYER_SERVLET(Msg::CS_GetAllLegionMessage, account, session, req){
 	LegionMap::get_all(legions, 0, 1000);
 
 	Msg::SC_Legions msg;
-	
-	
+	unsigned size = 0;
 	for(auto it = legions.begin(); it != legions.end(); ++it )
 	{
 		auto legion = *it;
@@ -310,7 +309,7 @@ PLAYER_SERVLET(Msg::CS_GetAllLegionMessage, account, session, req){
 		}
 
 		auto membercount = LegionMemberMap::get_legion_member_count(legion->get_legion_uuid());
-		if(limit >= membercount)
+		if(limit <= membercount)
 			continue;
 
 		auto &elem = *msg.legions.emplace(msg.legions.end());
@@ -350,9 +349,11 @@ PLAYER_SERVLET(Msg::CS_GetAllLegionMessage, account, session, req){
 		{
 			elem.isapplyjoin = "0";
 		}
+
+		size += 1;
 	}
 
-	msg.legions.reserve(legions.size());
+	msg.legions.reserve(size);
 
 	LOG_EMPERY_CENTER_INFO("CS_GetAllLegionMessage size==============================================",msg.legions.size());
 
@@ -1029,6 +1030,13 @@ PLAYER_SERVLET(Msg::CS_QuitLegionReqMessage, account, session, req)
 
 					member->set_attributes(std::move(Attributes));
 
+					// 广播给军团其他成员
+					Msg::SC_LegionNoticeMsg msg;
+					msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE;
+					msg.nick = account->get_nick();
+					msg.ext1 = "";
+					legion->sendNoticeMsg(msg);
+
 					return Response(Msg::ST_OK);
 					/* 真正退出军团逻辑
 					const auto legion_uuid = member->get_legion_uuid();
@@ -1085,6 +1093,13 @@ PLAYER_SERVLET(Msg::CS_CancelQuitLegionReqMessage, account, session, req)
 					Attributes[LegionMemberAttributeIds::ID_QUITWAITTIME] = "";
 
 					member->set_attributes(std::move(Attributes));
+
+					// 广播给军团其他成员
+					Msg::SC_LegionNoticeMsg msg;
+					msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE;
+					msg.nick = account->get_nick();
+					msg.ext1 = "";
+					legion->sendNoticeMsg(msg);
 
 					return Response(Msg::ST_OK);
 				}
@@ -1338,6 +1353,13 @@ PLAYER_SERVLET(Msg::CS_KickLegionMemberReqMessage, account, session, req)
 							Attributes[LegionMemberAttributeIds::ID_KICK_MANDATOR] = "";
 
 							othermember->set_attributes(Attributes);
+
+							// 广播给军团其他成员
+							Msg::SC_LegionNoticeMsg msg;
+							msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE;
+							msg.nick = account->get_nick();
+							msg.ext1 = "";
+							legion->sendNoticeMsg(msg);
 						}
 					}
 					else
@@ -1397,7 +1419,12 @@ PLAYER_SERVLET(Msg::CS_KickLegionMemberReqMessage, account, session, req)
 
 						othermember->set_attributes(Attributes);
 
-
+						// 广播给军团其他成员
+						Msg::SC_LegionNoticeMsg msg;
+						msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE;
+						msg.nick = account->get_nick();
+						msg.ext1 = "";
+						legion->sendNoticeMsg(msg);
 					}
 
 					return Response(Msg::ST_OK);
@@ -1490,6 +1517,14 @@ PLAYER_SERVLET(Msg::CS_AttornLegionReqMessage, account, session, req)
 
 					legion->set_attributes(Attributes);
 
+
+					// 广播给军团其他成员
+					Msg::SC_LegionNoticeMsg msg;
+					msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE;
+					msg.nick = account->get_nick();
+					msg.ext1 = "";
+					legion->sendNoticeMsg(msg);
+
 					return Response(Msg::ST_OK);
 
 				}
@@ -1544,6 +1579,13 @@ PLAYER_SERVLET(Msg::CS_CancleAttornLegionReqMessage, account, session, req)
 					Attributes[LegionAttributeIds::ID_ATTORNLEADER] = "";
 
 					legion->set_attributes(Attributes);
+
+					// 广播给军团其他成员
+					Msg::SC_LegionNoticeMsg msg;
+					msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE;
+					msg.nick = account->get_nick();
+					msg.ext1 = "";
+					legion->sendNoticeMsg(msg);
 
 					return Response(Msg::ST_OK);
 				}

@@ -74,6 +74,7 @@ public:
 		LEGION_NOTICE_MSG_TYPE_TASK_CHANGE  	= 12,	// 任务进度有改变
 		LEGION_NOTICE_MSG_CREATE_SUCCESS  	    = 13,	// 创建成功
 		LEGION_NOTICE_MSG_MINE_STATUS_CHANGE 	= 14,	// 货仓变动
+		LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE 	= 15,	// 军团成员信息有更新
 	};
 public:
 
