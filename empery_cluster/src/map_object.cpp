@@ -945,7 +945,9 @@ void MapObject::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
-	if(is_legion_warehouse())
+
+	LOG_EMPERY_CLUSTER_ERROR("troops_attack legion_uuid = ", get_legion_uuid());
+	if(!get_legion_uuid().str().empty())
 	{
 		WorldMap::get_map_objects_by_legion_uuid(friendly_map_objects,get_legion_uuid());
 	}
