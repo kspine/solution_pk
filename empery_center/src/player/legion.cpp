@@ -1415,7 +1415,7 @@ PLAYER_SERVLET(Msg::CS_KickLegionMemberReqMessage, account, session, req)
 
 						Attributes[LegionMemberAttributeIds::ID_KICKWAITTIME] = strtime;
 
-						Attributes[LegionMemberAttributeIds::ID_KICK_MANDATOR] = account->get_nick();
+						Attributes[LegionMemberAttributeIds::ID_KICK_MANDATOR] = account_uuid.str();
 
 						othermember->set_attributes(Attributes);
 
