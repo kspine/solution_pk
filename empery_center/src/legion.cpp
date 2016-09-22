@@ -82,7 +82,7 @@ void Legion::InitAttributes(AccountUuid accountid,std::string content, std::stri
 
 
 //void Legion::AddMember(AccountUuid accountid,unsigned rank,std::uint64_t join_time,std::string  donate,std::string  weekdonate,std::string nick)
-void Legion::AddMember(boost::shared_ptr<Account> account,unsigned rank,std::uint64_t join_time)
+void Legion::AddMember(boost::shared_ptr<Account> account,unsigned rank,std::uint64_t join_time,bool bnotify/* = true*/)
 {
 	// 先判断玩家是否已经加入军团
 	const auto member = LegionMemberMap::get_by_account_uuid(account->get_account_uuid());
@@ -108,11 +108,15 @@ void Legion::AddMember(boost::shared_ptr<Account> account,unsigned rank,std::uin
 
 		LegionMemberMap::insert(member, std::string());
 
-		Msg::SC_LegionNoticeMsg msg;
-		msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_JOIN;
-		msg.nick = account->get_nick();
-		msg.ext1 = "";
-		sendNoticeMsg(msg);
+		if(bnotify)
+		{
+			Msg::SC_LegionNoticeMsg msg;
+			msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_JOIN;
+			msg.nick = account->get_nick();
+			msg.ext1 = "";
+			sendNoticeMsg(msg);
+		}
+
 	}
 }
 

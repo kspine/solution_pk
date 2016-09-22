@@ -811,6 +811,7 @@ namespace EmperyCenter {
 			if(titileid != 1)
 			{
                 // 不是军团长，没有权限
+                
 				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
 			}
 
