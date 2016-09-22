@@ -787,12 +787,15 @@ void LegionMemberMap::check_in_waittime()
 							if(bkick)
 							{
 								// 被踢出时发邮件
-								const auto& mandator_account = AccountMap::get(AccountUuid(member->get_attribute(LegionMemberAttributeIds::ID_KICK_MANDATOR)));
-								if(mandator_account)
+								if(!member->get_attribute(LegionMemberAttributeIds::ID_KICK_MANDATOR).empty())
 								{
-									legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ mandator_account->get_nick());
+									const auto& mandator_account = AccountMap::get(AccountUuid(member->get_attribute(LegionMemberAttributeIds::ID_KICK_MANDATOR)));
+									if(mandator_account)
+									{
+										legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ mandator_account->get_nick());
+									}
 								}
-								
+
 								msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_KICK;
 							}
 							else
