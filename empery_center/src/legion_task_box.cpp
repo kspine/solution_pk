@@ -85,19 +85,21 @@ namespace EmperyCenter {
 			return progress;
 		}
 
-		using TaskObjectPair = std::pair<boost::shared_ptr<MySql::Center_LegionTask>, boost::shared_ptr<LegionTaskBox::Progress>>;
+		using TaskObjectPair = std::pair<boost::shared_ptr<MySql::Center_LegionTask>, std::pair<boost::shared_ptr<LegionTaskBox::Progress>,boost::shared_ptr<LegionTaskBox::Progress>>>;
 
 		void fill_task_info(LegionTaskBox::TaskInfo &info, const TaskObjectPair &pair) {
 			PROFILE_ME;
 
 			const auto &obj = pair.first;
-			const auto &progress = pair.second;
+			const auto &progress = pair.second.first;
+			const auto &rewarded_progress = pair.second.second;
 
 			info.task_id = TaskId(obj->get_task_id());
 			info.category = LegionTaskBox::Category(obj->get_category());
 			info.created_time = obj->get_created_time();
 			info.expiry_time = obj->get_expiry_time();
 			info.progress = progress;
+			info.rewarded_progress = rewarded_progress;
 			info.rewarded = obj->get_rewarded();
 		}
 
@@ -105,7 +107,7 @@ namespace EmperyCenter {
 			PROFILE_ME;
 
 			const auto &obj = pair.first;
-			const auto &progress = pair.second;
+			const auto &progress = pair.second.first;
 
 			msg.task_id = obj->get_task_id();
 			msg.category = obj->get_category();
@@ -134,7 +136,8 @@ namespace EmperyCenter {
 			else {
 				m_tasks.emplace(task_id,
 					std::make_pair(obj,
-						boost::make_shared<Progress>(decode_progress(obj->unlocked_get_progress()))));
+						std::make_pair(boost::make_shared<Progress>(decode_progress(obj->unlocked_get_progress())),boost::make_shared<Progress>(decode_progress(obj->unlocked_get_rewarded_progress())))
+						));
 			}
 		}
 	}
@@ -145,7 +148,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Checking tasks: legion_uuid = ", get_legion_uuid());
 
-		const auto utc_now = Poseidon::get_utc_time();
+		const auto utc_now = Poseidon::get_utc_time();	
 		LOG_EMPERY_CENTER_FATAL("LegionTaskBox::pump_status,tasks.size() = ",m_tasks.size());
 		auto it = m_tasks.begin();
 		while (it != m_tasks.end()) {
@@ -174,7 +177,7 @@ namespace EmperyCenter {
 		const auto utc_now = Poseidon::get_utc_time();
 
 		if (!m_stamps) {
-			auto obj = boost::make_shared<MySql::Center_LegionTask>(get_legion_uuid().get(), 0, 0, 0, 0, std::string(), false);
+			auto obj = boost::make_shared<MySql::Center_LegionTask>(get_legion_uuid().get(), 0, 0, 0, 0, std::string(),std::string(), false);
 			obj->async_save(true);
 			m_stamps = std::move(obj);
 		}
@@ -215,6 +218,7 @@ namespace EmperyCenter {
 				info.expiry_time = legion_task_refresh_time;
 				const auto progress = boost::make_shared<Progress>();
 				info.progress = progress;
+				info.rewarded_progress = progress;
 				info.rewarded = 0;
 				if (nonexistent) {
 					LOG_EMPERY_CENTER_DEBUG("New legion task: legion_uuid = ", legion_uuid, ", task_id = ", task_id);
@@ -306,13 +310,17 @@ namespace EmperyCenter {
 		const auto utc_now = Poseidon::get_utc_time();
 
 		const auto progress = boost::make_shared<Progress>();
+		const auto rewarded_progress = boost::make_shared<Progress>();
 		if (info.progress) {
 			*progress = *info.progress;
 		}
+		if(info.rewarded_progress){
+			*rewarded_progress = *info.rewarded_progress;
+		}
 		const auto obj = boost::make_shared<MySql::Center_LegionTask>(get_legion_uuid().get(), task_id.get(),
-			info.category, info.created_time, info.expiry_time, encode_progress(*progress), info.rewarded);
+			info.category, info.created_time, info.expiry_time, encode_progress(*progress),encode_progress(*rewarded_progress), info.rewarded);
 		obj->async_save(true);
-		it = m_tasks.emplace(task_id, std::make_pair(obj, progress)).first;
+		it = m_tasks.emplace(task_id, std::make_pair(obj, std::make_pair(progress,rewarded_progress))).first;
 
 		const auto legion = LegionMap::get(get_legion_uuid());
 		if (legion) {
@@ -344,12 +352,17 @@ namespace EmperyCenter {
 		const auto task_data = Data::TaskLegion::require(task_id);
 		const auto utc_now = Poseidon::get_utc_time();
 
-		std::string progress_str;
-		bool reset_progress = false;
-		if (pair.second != info.progress) {
+		std::string progress_str, rewarded_progress_str;
+		bool reset_progress = false,reset_rewarded_progress = false;
+		if (pair.second.first != info.progress) {
 			progress_str = encode_progress(*info.progress);
 			reset_progress = true;
 		}
+		if (pair.second.second != info.rewarded_progress) {
+			rewarded_progress_str = encode_progress(*info.rewarded_progress);
+			reset_rewarded_progress = true;
+		}
+	
 
 		obj->set_category(info.category);
 		obj->set_created_time(info.created_time);
@@ -357,7 +370,11 @@ namespace EmperyCenter {
 		obj->set_rewarded(info.rewarded);
 		if (reset_progress) {
 			obj->set_progress(std::move(progress_str));
-			*(pair.second) = *(info.progress);
+			*(pair.second.first) = *(info.progress);
+		}
+		if (reset_rewarded_progress) {
+			obj->set_rewarded_progress(std::move(rewarded_progress_str));
+			*(pair.second.second) = *(info.rewarded_progress);
 		}
 
 		const auto legion = LegionMap::get(get_legion_uuid());
@@ -408,9 +425,10 @@ namespace EmperyCenter {
 			if (it == m_tasks.end()) {
 				return;
 			}
-			const auto &pair = it->second;
-			const auto &obj = pair.first;
-			const auto &progress = pair.second;
+			auto &pair = it->second;
+			auto &obj = pair.first;
+			auto &progress = pair.second.first;
+			auto &rewarded_progress = pair.second.second;
 			if(obj->get_rewarded()){
 				return;
 			}
@@ -441,6 +459,18 @@ namespace EmperyCenter {
 				}
 				if(accomplished_size == objective_size){
 					stage_accomplished_size +=1;
+					
+					const auto rpit = rewarded_progress->find(its->first);
+					if(rpit != rewarded_progress->end()){
+						if(rpit->second > 0){
+							continue;
+						}
+					}
+					auto new_rewarded_progress = boost::make_shared<Progress>(*rewarded_progress);
+					(*new_rewarded_progress)[its->first] = 1;
+					auto new_rewarded_progress_str = encode_progress(*new_rewarded_progress);
+					pair.second.second = std::move(new_rewarded_progress);
+					obj->set_rewarded_progress(std::move(new_rewarded_progress_str));
 					//发送军团奖励
 					auto it_legion_reward = task_data->stage_legion_reward.find(its->first);
 					const auto &legion_rewards  = it_legion_reward->second;
@@ -463,6 +493,7 @@ namespace EmperyCenter {
 						std::string new_donate = legion->get_attribute(LegionAttributeIds::ID_MONEY);
 						LOG_EMPERY_CENTER_FATAL("legion task stage legion monye task id = ",task_id.get()," stage = ",its->first," new donate =",new_donate, "old  donate =",donate," delta",legion_donate);
 					}
+					
 					//发送个人奖励
 					auto it_personal_reward = task_data->stage_personal_reward.find(its->first);
 					const auto &personal_rewards  = it_personal_reward->second;
@@ -478,19 +509,6 @@ namespace EmperyCenter {
 					for(auto it = members.begin(); it != members.end(); ++it)
 					{
 						auto account_uuid = (*it)->get_account_uuid();
-						const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
-						if(legion_member && personal_donate > 0){
-							boost::container::flat_map<LegionMemberAttributeId, std::string> legion_attributes_modifer;
-							std::string donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
-							if(donate.empty()){
-								legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(personal_donate);
-							}else{
-								legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + personal_donate);
-							}
-							legion_member->set_attributes(std::move(legion_attributes_modifer));
-							std::string new_donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
-							LOG_EMPERY_CENTER_FATAL("legion task stage personal monye task id = ",task_id.get()," stage = ",its->first," new donate =",new_donate, "old  donate =",donate," delta",personal_donate);
-						}
 						auto legion_task_reward_box = LegionTaskRewardBoxMap::get(account_uuid);
 						LegionTaskRewardBox::TaskRewardInfo task_reward_info = legion_task_reward_box->get(task_data->type);
 						if(task_reward_info.created_time == 0){
@@ -512,6 +530,21 @@ namespace EmperyCenter {
 							task_reward_info.progress = new_progress;
 							legion_task_reward_box->update(std::move(task_reward_info));
 						}
+						
+						const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
+						if(legion_member && personal_donate > 0){
+							boost::container::flat_map<LegionMemberAttributeId, std::string> legion_attributes_modifer;
+							std::string donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
+							if(donate.empty()){
+								legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(personal_donate);
+							}else{
+								legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + personal_donate);
+							}
+							legion_member->set_attributes(std::move(legion_attributes_modifer));
+							std::string new_donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
+							LOG_EMPERY_CENTER_FATAL("legion task stage personal monye task id = ",task_id.get()," stage = ",its->first," new donate =",new_donate, "old  donate =",donate," delta",personal_donate);
+						}
+						
 						//TODO 发送邮件
 						try {
 							const auto mail_box = MailBoxMap::require(account_uuid);
@@ -543,6 +576,12 @@ namespace EmperyCenter {
 							LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 						}
 					}
+					// 广播通知
+					Msg::SC_LegionNoticeMsg msg;
+					msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_TASK_CHANGE;
+					msg.nick = "";
+					msg.ext1 = "";
+					legion->sendNoticeMsg(msg);
 				}
 			}
 			if(stage_size == stage_accomplished_size){
@@ -581,7 +620,7 @@ namespace EmperyCenter {
 					if (oit == task_data->objective.end()) {
 						continue;
 					}
-					const auto old_progress = pair.second;
+					const auto old_progress = pair.second.first;
 					std::uint64_t count_old, count_new;
 					const auto cit = old_progress->find(key.get());
 					if (cit != old_progress->end()) {
@@ -607,7 +646,7 @@ namespace EmperyCenter {
 					auto new_progress = boost::make_shared<Progress>(*old_progress);
 					(*new_progress)[key.get()] = count_new;
 					auto new_progress_str = encode_progress(*new_progress);
-					pair.second = std::move(new_progress);
+					pair.second.first = std::move(new_progress);
 					obj->set_progress(std::move(new_progress_str));
 					try {
 						Msg::SC_TaskChanged msg;
