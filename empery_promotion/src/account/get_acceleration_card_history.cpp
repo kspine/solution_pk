@@ -41,7 +41,7 @@ ACCOUNT_SERVLET("getAccelerationCardHistory", session, params){
 	} else {
 		oss <<"SUM(CONVERT(`new_count`, SIGNED) - CONVERT(`old_count`, SIGNED)) AS `sum`, COUNT(*) AS `rows` ";
 	}
-	oss <<"FROM `PromotionLog_Item` WHERE `item_id` = " <<ItemIds::ID_ACCELERATION_CARDS <<" ";
+	oss <<"FROM `PromotionLog_ItemChanged` WHERE `item_id` = " <<ItemIds::ID_ACCELERATION_CARDS <<" ";
 	if(!time_begin.empty()){
 		char str[256];
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(time_begin), false);
