@@ -977,6 +977,9 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeDefenseBuilding, account, session, req){
 	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
 	}
+	if(defense_building->get_action() == MapObject::ACT_ATTACK){
+		return Response(Msg::ERR_CANNOT_UPGRADE_IN_ATTACKING) << map_object_uuid;
+	}
 
 	const auto parent_object_uuid = defense_building->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
