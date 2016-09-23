@@ -757,7 +757,7 @@ PLAYER_SERVLET(Msg::CS_RepairLegionGrubeMessage, account, session,  req )
                             if(str == "5500001")
                             {
                                 const auto legion_momey = boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY));
-                                const auto needmoney = static_cast<std::uint64_t>(it->second.get<double>()) * static_cast<std::uint64_t>(repairhp);
+                                const auto needmoney = static_cast<std::uint64_t>(it->second.get<double>()) * static_cast<std::uint64_t>(repairhp) / 10;
                      //           LOG_EMPERY_CENTER_INFO("CS_RepairLegionGrubeMessage  legion_momey:*******************",legion_momey," needmoney:",needmoney);
                                 if(legion_momey <  needmoney)
                                 {
