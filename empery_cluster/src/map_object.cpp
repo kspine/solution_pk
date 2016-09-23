@@ -428,7 +428,6 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_action = ACT_GUARD;
 	m_action_param.clear();
 
-	set_coord(from_coord);
 
 	const auto now = Poseidon::get_fast_mono_clock();
 
@@ -446,6 +445,8 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_waypoints    = std::move(waypoints);
 	m_action       = action;
 	m_action_param = std::move(action_param);
+	//set_coord(from_coord);
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 	notify_way_points(m_waypoints,action,m_action_param);
 	reset_attack_target_own_uuid();
 }
