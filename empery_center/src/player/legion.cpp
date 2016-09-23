@@ -2126,6 +2126,7 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 									auto donate = req.num * 100 / dvalue * mvalue;
 									const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 									const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
+									LOG_EMPERY_CENTER_FATAL("LEGION DONATE ORIGIN donate:",donate);
 									legion_task_box->check(TaskTypeIds::ID_LEGION_DONATE, TaskLegionKeyIds::ID_LEGION_DONATE,donate,account_uuid, 0, 0);
 									legion_task_box->pump_status();
 
