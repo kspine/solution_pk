@@ -958,7 +958,7 @@ PLAYER_SERVLET(Msg::CS_LegionInviteJoinResMessage, account, session, req)
 				}
 				else
 				{
-					const auto& invite_account = AccountMap::require(AccountUuid(invite->unlocked_get_invited_uuid()));
+					const auto& invite_account = AccountMap::require(AccountUuid(invite->unlocked_get_account_uuid()));
 					// 发邮件告诉拒绝加入
 					legion->sendmail(invite_account,ChatMessageTypeIds::ID_LEVEL_LEGION_REFUSE_INVITE, account->get_nick());
 				}
