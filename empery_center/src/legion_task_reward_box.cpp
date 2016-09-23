@@ -188,7 +188,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 
 		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
-			auto pair = it->second;
+			auto &pair = it->second;
 			auto &obj = pair.first;
 			std::string progress_str;
 			auto progress = boost::make_shared<Progress>();

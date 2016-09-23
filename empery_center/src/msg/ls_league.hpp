@@ -109,7 +109,10 @@ namespace Msg {
 #define MESSAGE_ID      51008
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
-	FIELD_VUINT         (bban)
+	FIELD_VUINT         (bban)	\
+	FIELD_ARRAY         (legions,	\
+		FIELD_STRING        (legion_uuid)	\
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 
