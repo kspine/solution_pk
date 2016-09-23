@@ -57,7 +57,7 @@ ACCOUNT_SERVLET("getAccelerationCardHistory", session, params){
 		oss <<"AND `account_id` = " <<account_id <<" ";
 	}
 	if(brief_mode.empty()){
-		oss <<"ORDER BY `timestamp` DESC, `auto_id` DESC ";
+		oss <<"ORDER BY `timestamp` DESC ";
 		if(!count.empty()){
 			oss <<"LIMIT ";
 			if(!begin.empty()){
