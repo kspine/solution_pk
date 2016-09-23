@@ -204,6 +204,8 @@ namespace EmperyCenter {
             auto tresult = league->send_and_wait(msg);
 
             LOG_EMPERY_CENTER_DEBUG("LeagueServer response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+            return Response(std::move(tresult.first));
         }
 
         return Response(Msg::ST_OK);
