@@ -189,6 +189,18 @@ namespace Msg {
 	FIELD_VUINT         (position_type)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_DungeonFailed
+#define MESSAGE_ID      1585
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (dungeon_type_id)	\
+	FIELD_ARRAY         (soldier_stats,	\
+		FIELD_VUINT         (map_object_type_id)	\
+		FIELD_VUINT         (soldiers_damaged)	\
+		FIELD_VUINT         (soldiers_resuscitated)	\
+		FIELD_VUINT         (soldiers_wounded)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

@@ -223,6 +223,15 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 	m_blocked_retry_count = 0;
 
 	if(result.first != Msg::ST_OK){
+		// XXX 根据不同 action 计算路径。
+		const auto to_coord = std::accumulate(m_waypoints.begin(), m_waypoints.end(), coord,
+			[](Coord c, std::pair<signed char, signed char> d){ return Coord(c.x() + d.first, c.y() + d.second); });
+		std::deque<std::pair<signed char, signed char>> new_waypoints;
+		if(find_way_points(new_waypoints, coord, to_coord,false)){
+			notify_way_points(new_waypoints, m_action, m_action_param);
+			m_waypoints = std::move(new_waypoints);
+			return 0;
+		}
 		return UINT64_MAX;
 	}
 
@@ -416,7 +425,6 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_action = ACT_GUARD;
 	m_action_param.clear();
 
-	set_coord(from_coord);
 
 	const auto now = Poseidon::get_fast_mono_clock();
 
@@ -434,6 +442,8 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_waypoints    = std::move(waypoints);
 	m_action       = action;
 	m_action_param = std::move(action_param);
+	//set_coord(from_coord);
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 	notify_way_points(m_waypoints,action,m_action_param);
 	reset_attack_target_own_uuid();
 }
@@ -1074,7 +1084,8 @@ bool    MapObject::find_way_points(std::deque<std::pair<signed char, signed char
 	if(!precise){
 		distance_close_enough = get_shoot_range();
 	}
-	if(find_path(path,from_coord, target_coord,get_owner_uuid(), 20, distance_close_enough)){
+	const auto distance_limit = get_config<unsigned>("path_recalculation_radius", 10);
+	if(find_path(path,from_coord, target_coord,get_owner_uuid(), distance_limit, distance_close_enough)){
 		for(auto it = path.begin(); it != path.end(); ++it){
 			waypoints.emplace_back(it->first, it->second);
 		}

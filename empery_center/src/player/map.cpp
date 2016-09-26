@@ -93,6 +93,9 @@ PLAYER_SERVLET(Msg::CS_MapSetWaypoints, account, session, req){
 	if(!map_object){
 		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
 	}
+
+	LOG_EMPERY_CENTER_ERROR("CS_MapSetWaypoints: req.action = ", req.action, ", type = ", map_object->get_map_object_type_id());
+
 	if(map_object->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
 	}
@@ -325,7 +328,6 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 		return Response(Msg::ERR_MAX_MAP_CELL_LEVEL_EXCEEDED);
 	}
 	const auto new_ticket_item_id = new_ticket_item_data->item_id;
-
 	const auto parent_object_uuid = map_cell->get_parent_object_uuid();
 	const auto map_object = WorldMap::get_map_object(parent_object_uuid);
 	if(!map_object){
@@ -975,6 +977,9 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeDefenseBuilding, account, session, req){
 	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
 	}
+	if(defense_building->get_action() == MapObject::ACT_ATTACK){
+		return Response(Msg::ERR_CANNOT_UPGRADE_IN_ATTACKING) << map_object_uuid;
+	}
 
 	const auto parent_object_uuid = defense_building->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
@@ -1024,6 +1029,10 @@ PLAYER_SERVLET(Msg::CS_MapDestroyDefenseBuilding, account, session, req){
 	}
 	if(defense_building->get_owner_uuid() != account->get_account_uuid()){
 		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<defense_building->get_owner_uuid();
+	}
+	const auto garrisoning_object_uuid = defense_building->get_garrisoning_object_uuid();
+	if(garrisoning_object_uuid){
+		return Response(Msg::ERR_CANNOT_DESTORY_GARRISONED) <<map_object_uuid;
 	}
 
 	defense_building->pump_status();
