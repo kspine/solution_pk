@@ -139,7 +139,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueInfo, league_session, req){
 
 		league_session->send(msg);
 	}
-	LOG_EMPERY_LEAGUE_ERROR(" 没找到对应的联盟================================= ",req.legion_uuid);
+	LOG_EMPERY_LEAGUE_INFO(" 没找到对应的联盟================================= ",req.legion_uuid);
 	return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
 
 
