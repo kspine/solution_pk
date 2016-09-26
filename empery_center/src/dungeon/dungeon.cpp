@@ -629,6 +629,27 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerLoses, dungeon, server, req){
 	if(!dungeon_box){
 		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED);
 	}
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+		try {
+			Msg::SC_DungeonFailed msg;
+			msg.dungeon_uuid    = dungeon->get_dungeon_uuid().str();
+			msg.dungeon_type_id = dungeon->get_dungeon_type_id().get();
+			std::vector<std::pair<MapObjectTypeId, Dungeon::SoldierStat>> soldier_stats;
+			dungeon->get_soldier_stats(soldier_stats, account_uuid);
+			for(auto it = soldier_stats.begin(); it != soldier_stats.end(); ++it){
+				auto &soldier_elem = *msg.soldier_stats.emplace(msg.soldier_stats.end());
+				soldier_elem.map_object_type_id = it->first.get();
+				soldier_elem.soldiers_damaged = it->second.damaged;
+				soldier_elem.soldiers_resuscitated = it->second.resuscitated;
+				soldier_elem.soldiers_wounded = it->second.wounded;
+			}
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
 
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_LOSES, "");
 

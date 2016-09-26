@@ -142,7 +142,6 @@ namespace Msg {
 	FIELD_ARRAY         (contributions,	\
 		FIELD_STRING        (account_uuid)	\
 		FIELD_STRING        (account_nick)	\
-		FIELD_VUINT         (day_personal_contribution)	\
 		FIELD_VUINT         (day_contribution)	\
 		FIELD_VUINT         (week_contribution)	\
 		FIELD_VUINT         (total_contribution) \

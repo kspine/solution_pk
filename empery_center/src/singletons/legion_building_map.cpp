@@ -195,17 +195,20 @@ void LegionBuildingMap::synchronize_with_player(LegionUuid legion_uuid,const boo
 		elem.legion_uuid = LegionUuid(info->get_legion_uuid()).str();
 		elem.map_object_uuid = boost::lexical_cast<std::string>(info->get_map_object_uuid());
 
-		const auto mapobject = boost::dynamic_pointer_cast<WarehouseBuilding>(WorldMap::get_map_object(MapObjectUuid(elem.map_object_uuid)));
+		const auto& mapobject = boost::dynamic_pointer_cast<WarehouseBuilding>(WorldMap::get_map_object(MapObjectUuid(elem.map_object_uuid)));
 		if(mapobject)
 		{
 			const auto utc_now = Poseidon::get_utc_time();
 	//		msg.map_object_uuid         = m_defense_obj->unlocked_get_map_object_uuid().to_string();
+			elem.x                  	 = mapobject->get_coord().x();
+			elem.y                  	 = mapobject->get_coord().y();
 			elem.building_level          = boost::lexical_cast<std::uint64_t>(mapobject->get_attribute(AttributeIds::ID_BUILDING_LEVEL));
 			elem.mission                 = mapobject->get_mission();
 			elem.mission_duration        = mapobject->get_mission_duration();
 			elem.mission_time_remaining  = saturated_sub(mapobject->get_mission_time_end(), utc_now);
 			elem.output_type			 = mapobject->get_output_type();
 			elem.output_amount			 = mapobject->get_output_amount();
+			elem.cd_time_remaining		 = saturated_sub(mapobject->get_cd_time(), utc_now);
 		}
 	}
 
