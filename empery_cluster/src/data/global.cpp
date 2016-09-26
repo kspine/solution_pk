@@ -25,7 +25,7 @@ namespace {
 		auto csv = Data::sync_load_data(GLOBAL_FILE);
 		const auto global_map = boost::make_shared<GlobalMap>();
 		while(csv.fetch_row()){
-			unsigned slot;
+			unsigned slot = 0;
 			DataStorage storage = { };
 
 			csv.get(slot,        "id");
