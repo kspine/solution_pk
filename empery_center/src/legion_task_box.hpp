@@ -38,6 +38,7 @@ namespace EmperyCenter {
 			std::uint64_t created_time;
 			std::uint64_t expiry_time;
 			boost::shared_ptr<const Progress> progress;
+			boost::shared_ptr<const Progress> rewarded_progress;
 			bool rewarded;
 		};
 
@@ -45,9 +46,8 @@ namespace EmperyCenter {
 		const LegionUuid m_legion_uuid;
 
 		boost::shared_ptr<MySql::Center_LegionTask> m_stamps;
-
 		boost::container::flat_map<TaskId,
-			std::pair<boost::shared_ptr<MySql::Center_LegionTask>, boost::shared_ptr<Progress>>> m_tasks;
+			std::pair<boost::shared_ptr<MySql::Center_LegionTask>, std::pair<boost::shared_ptr<Progress>,boost::shared_ptr<Progress>>>> m_tasks;
 
 	public:
 		LegionTaskBox(LegionUuid legion_uuid,
