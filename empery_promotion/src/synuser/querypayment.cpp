@@ -56,11 +56,7 @@ SYNUSER_SERVLET("querypayment", session, params){
 	Poseidon::JsonObject data;
 	data[sslit("username")] = std::move(payment->username);
 	char str[64];
-	if(payment->currency == "ACC"){
-		std::sprintf(str, "%llu", (unsigned long long)payment->amount);
-	} else {
-		std::sprintf(str, "%.2f", payment->amount / 100.0);
-	}
+	std::sprintf(str, "%llu", (unsigned long long)payment->amount);
 	data[sslit("amount")] = str;
 	data[sslit("currency")] = std::move(payment->currency);
 	data[sslit("sourceorderid")] = orderid;
