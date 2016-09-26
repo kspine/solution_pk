@@ -115,7 +115,7 @@ namespace EmperyCenter {
 			}
 			msg.rewarded = obj->get_rewarded();
 
-			LOG_EMPERY_CENTER_ERROR("msg.task_id = ", msg.task_id, "msg.category= ", msg.category);
+	//		LOG_EMPERY_CENTER_ERROR("msg.task_id = ", msg.task_id, "msg.category= ", msg.category);
 		}
 	}
 
@@ -951,7 +951,7 @@ namespace EmperyCenter {
 				continue;
 			}
 
-			LOG_EMPERY_CENTER_ERROR("synchronize_with_player");
+	//		LOG_EMPERY_CENTER_ERROR("synchronize_with_player");
 
 			Msg::SC_TaskChanged msg;
 			fill_task_message(msg, it->second, utc_now);
