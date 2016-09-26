@@ -21,6 +21,24 @@ class ClusterSession;
 
 class MapObject : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
+		enum Action {
+		ACT_GUARD                             = 0,
+		ACT_ATTACK                            = 1,
+		ACT_DEPLOY_INTO_CASTLE                = 2,
+//		ACT_HARVEST_OVERLAY                   = 3,
+		ACT_ENTER_CASTLE                      = 4,
+		ACT_HARVEST_STRATEGIC_RESOURCE        = 5,
+		ACT_ATTACK_TERRITORY_FORCE            = 6,
+		ACT_MONTER_REGRESS             		  = 7,
+		ACT_HARVEST_RESOURCE_CRATE            = 8,
+		ACT_ATTACK_TERRITORY           		  = 9,
+//		ACT_HARVEST_OVERLAY_FORCE             = 10,
+		ACT_HARVEST_STRATEGIC_RESOURCE_FORCE  = 11,
+		ACT_HARVEST_RESOURCE_CRATE_FORCE      = 12,
+		ACT_STAND_BY                          = 13,
+		ACT_HARVEST_LEGION_RESOURCE           = 14,
+	};
+public:
 	struct BuffInfo {
 		BuffId buff_id;
 		std::uint64_t duration;

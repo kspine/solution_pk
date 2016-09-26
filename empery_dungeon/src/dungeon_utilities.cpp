@@ -21,7 +21,11 @@ std::pair<long, std::string> get_move_result(DungeonUuid dungeon_uuid,Coord coor
 	const auto dungeon_data = Data::Dungeon::require(dungeon->get_dungeon_type_id());
 	const auto map_x = coord.x();
 	const auto map_y = coord.y();
-	const auto cell_data = Data::MapCellBasic::require(dungeon_data->dungeon_map,map_x, map_y);
+	const auto cell_data = Data::MapCellBasic::get(dungeon_data->dungeon_map,map_x, map_y);
+	if(!cell_data){
+		LOG_EMPERY_DUNGEON_FATAL("no dungeon cell,dungeon_map = ",dungeon_data->dungeon_map);
+		return CbppResponse(Msg::ERR_NO_DUNGEON_CELL) << dungeon_data->dungeon_map << map_x << map_y;
+	}
 	const auto terrain_id = cell_data->terrain_id;
 	const auto terrain_data = Data::MapTerrain::require(terrain_id);
 	if(!terrain_data->passable){
@@ -126,7 +130,15 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 			get_surrounding_coords(surrounding, elem_popped.coord, 1);
 			for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
 				const auto coord = *it;
-
+				//除去地图中不存在的点
+				const auto dungeon = DungeonMap::require(dungeon_uuid);
+				const auto dungeon_data = Data::Dungeon::require(dungeon->get_dungeon_type_id());
+				const auto map_x = coord.x();
+				const auto map_y = coord.y();
+				const auto cell_data = Data::MapCellBasic::get(dungeon_data->dungeon_map,map_x, map_y);
+				if(!cell_data){
+					continue;
+				}
 				auto cit = astar_coords.find(coord);
 				if(cit == astar_coords.end()){
 					AStarCoordElement elem = { };
