@@ -406,6 +406,12 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
 
+	// 查看双方的友好关系
+	if(AccountMap::is_friendly(attacking_account_uuid,attacked_account_uuid))
+	{
+		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+	}
+
 	auto result = is_under_protection(attacking_object, attacked_object);
 	if(result.first != Msg::ST_OK){
 		return std::move(result);
@@ -1126,6 +1132,12 @@ CLUSTER_SERVLET(Msg::KS_MapAttackMapCellAction, cluster, req){
 	const auto attacked_account_uuid = attacked_cell->get_virtual_owner_uuid();
 
 	if(attacking_account_uuid == attacked_account_uuid){
+		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
+	}
+
+	// 查看双方的友好关系
+	if(AccountMap::is_friendly(attacking_account_uuid,attacked_account_uuid))
+	{
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
 
