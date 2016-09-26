@@ -15,12 +15,14 @@ namespace Msg {
 	FIELD_STRING        (league_icon)	\
 	FIELD_STRING        (league_notice)	\
 	FIELD_VUINT         (league_level)	\
+	FIELD_VUINT         (league_max_member)	\
 	FIELD_STRING        (leader_uuid)	\
 	FIELD_STRING        (leader_name)	\
 	FIELD_ARRAY         (members,	\
 		FIELD_STRING        (legion_uuid)	\
 		FIELD_STRING        (legion_name)	\
 		FIELD_STRING        (legion_icon)	\
+		FIELD_STRING        (legion_leader_name)	\
 		FIELD_VUINT         (titleid)	\
 		FIELD_STRING        (quit_time)	\
 		FIELD_STRING        (kick_time)	\
@@ -42,6 +44,7 @@ namespace Msg {
 		FIELD_STRING        (league_create_time)	\
 		FIELD_STRING        (isapplyjoin)	\
 		FIELD_VUINT         (legion_count)	\
+		FIELD_VUINT         (legion_max_count)	\
 		FIELD_VUINT         (totalmembercount)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -91,6 +94,7 @@ namespace Msg {
 #define MESSAGE_ID      1856
 #define MESSAGE_FIELDS  \
 	FIELD_ARRAY         (members,	\
+		FIELD_STRING        (account_uuid)	\
 		FIELD_STRING        (titleid)	\
 		FIELD_STRING        (nick)	\
 		FIELD_STRING        (icon)	\

@@ -82,6 +82,16 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 	// 增加联盟成员
 	league->AddMember(legion_uuid,account_uuid,1,utc_now);
 
+	EmperyCenter::Msg::LS_LeagueNoticeMsg msg;
+	msg.league_uuid = league->get_league_uuid().str();
+	msg.msgtype = League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_CREATE_SUCCESS;
+	msg.nick = name;
+	msg.ext1 = "";
+	msg.legions.reserve(1);
+	auto &elem = *msg.legions.emplace(msg.legions.end());
+	elem.legion_uuid = req.legion_uuid;
+	league_session->send(msg);
+
 	LeagueMap::insert(league);
 
 //	count = LeagueMap::get_count();
@@ -191,6 +201,7 @@ LEAGUE_SERVLET(Msg::SL_GetAllLeagueInfo, league_session, req){
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
 
+		elem.legion_max_count = boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
 		// 根据account_uuid查找是否有军团
 		std::vector<boost::shared_ptr<LeagueMember>> members;
 		LeagueMemberMap::get_by_league_uuid(members, league->get_league_uuid());
@@ -336,6 +347,8 @@ LEAGUE_SERVLET(EmperyCenter::Msg::SL_SearchLeague, league_session, req){
 		elem.autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 
 		elem.league_create_time =  boost::lexical_cast<std::string>(league->get_create_league_time());
+
+		elem.legion_max_count = boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
 	//	elem.isapplyjoin = "0";
 
 		// 根据account_uuid查找是否有军团
@@ -424,6 +437,7 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_session, req){
 
 			// 成员数
 			const auto count = LeagueMemberMap::get_league_member_count(league_uuid);
+			LOG_EMPERY_LEAGUE_INFO("SL_ApplyJoinLeague count= ",count, " league_uuid:",league_uuid, " max:",league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
 			if(count < boost::lexical_cast<std::uint64_t>(league->get_attribute(LeagueAttributeIds::ID_MEMBER_MAX)))
 			{
 				const auto utc_now = Poseidon::get_utc_time();
@@ -1420,12 +1434,27 @@ LEAGUE_SERVLET(Msg::SL_banChatLeagueReq, league_session, req){
 
 			// 查看两者的权限
 			const auto & target_member = LeagueMemberMap::get_by_legion_uuid(LegionUuid(req.target_legion_uuid));
+
 			const auto titleid= boost::lexical_cast<uint>(target_member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
-			if(titleid > own_titleid)
+			if(member->get_legion_uuid() == target_member->get_legion_uuid() || titleid > own_titleid)
 			{
 				EmperyCenter::Msg::LS_banChatLeagueReq msg;
 				msg.account_uuid = req.target_account_uuid;
 				msg.bban = req.bban;
+
+				// 找到联盟中的军团
+				std::vector<boost::shared_ptr<LeagueMember>> members;
+				LeagueMemberMap::get_by_league_uuid(members, member->get_league_uuid());
+
+				msg.legions.reserve(members.size());
+				for(auto it = members.begin(); it != members.end(); ++it )
+				{
+					auto &elem = *msg.legions.emplace(msg.legions.end());
+					auto info = *it;
+
+					elem.legion_uuid = info->get_legion_uuid().str();
+
+				}
 
 				league_session->send(msg);
 

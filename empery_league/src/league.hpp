@@ -53,6 +53,7 @@ public:
 		LEAGUE_NOTICE_MSG_TYPE_SPEACK 			= 7,	// 禁言
 		LEAGUE_NOTICE_MSG_TYPE_EXPAND  			= 8,	// 联盟扩张
 		LEAGUE_NOTICE_MSG_TYPE_DISBAND  		= 9,	// 联盟解散
+		LEAGUE_NOTICE_MSG_CREATE_SUCCESS  		= 10,	// 联盟创建成功
 	};
 
 public:

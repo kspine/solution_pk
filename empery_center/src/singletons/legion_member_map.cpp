@@ -779,7 +779,7 @@ void LegionMemberMap::check_in_waittime()
 						// 已经过了完全离开的时间，让玩家离开军团
 						const auto account_uuid = member->get_account_uuid();
 
-						const auto target_account = AccountMap::get(account_uuid);
+						const auto& target_account = AccountMap::get(account_uuid);
 						if(target_account)
 						{
 							// 广播给军团其他成员
@@ -787,7 +787,15 @@ void LegionMemberMap::check_in_waittime()
 							if(bkick)
 							{
 								// 被踢出时发邮件
-								legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ account->get_nick());
+								if(!member->get_attribute(LegionMemberAttributeIds::ID_KICK_MANDATOR).empty())
+								{
+									const auto& mandator_account = AccountMap::get(AccountUuid(member->get_attribute(LegionMemberAttributeIds::ID_KICK_MANDATOR)));
+									if(mandator_account)
+									{
+										legion->sendmail(target_account,ChatMessageTypeIds::ID_LEVEL_LEGION_KICK,legion->get_nick() + ","+ mandator_account->get_nick());
+									}
+								}
+
 								msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_KICK;
 							}
 							else

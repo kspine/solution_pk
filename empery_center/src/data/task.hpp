@@ -83,6 +83,7 @@ namespace EmperyCenter
 			unsigned level_limit_max;
 			boost::container::flat_map<std::uint64_t, std::vector<std::pair<ResourceId, std::uint64_t>>> stage_reward;
 			boost::container::flat_map<std::uint64_t, std::vector<std::pair<ResourceId, std::uint64_t>>> stage_legion_reward;
+			boost::container::flat_map<std::uint64_t, std::vector<std::pair<ResourceId, std::uint64_t>>> stage_personal_reward;
 		};
 		class TaskLegionContribution
 		{

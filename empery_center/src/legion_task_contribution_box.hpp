@@ -21,7 +21,6 @@ namespace EmperyCenter {
 
 		struct TaskContributionInfo {
 			AccountUuid   account_uuid;
-			std::uint64_t day_personal_contribution;
 			std::uint64_t day_contribution;
 			std::uint64_t week_contribution;
 			std::uint64_t total_contribution;
