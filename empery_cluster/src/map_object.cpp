@@ -1542,9 +1542,15 @@ std::uint64_t MapObject::on_action_harvest_legion_resource(std::pair<long, std::
 	if(!cluster){
 		return UINT64_MAX;
 	}
+	const auto map_object_type_data = get_map_object_type_data();
+	if(!map_object_type_data){
+		return UINT64_MAX;
+	}
+	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
 	Msg::KS_MapHarvestLegionResource sreq;
 	sreq.map_object_uuid = get_map_object_uuid().str();
 	sreq.interval        = harvest_interval;
+	sreq.amount_harvested = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
 	if(forced_attack){
 		sreq.forced_attack   = true;
 	}

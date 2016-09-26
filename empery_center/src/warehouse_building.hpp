@@ -35,6 +35,9 @@ private:
 	// 最大血量
 	std::int64_t m_maxHp = 0;
 
+	// 非持久化数据。
+	double m_harvest_remainder = 0;
+
 public:
 	WarehouseBuilding(MapObjectUuid map_object_uuid, MapObjectTypeId map_object_type_id, AccountUuid owner_uuid,
 		MapObjectUuid parent_object_uuid, std::string name, Coord coord, std::uint64_t created_time,LegionUuid legion_uuid);
@@ -83,7 +86,7 @@ public:
 	// 改变血量和最大血量
 	void set_maxhp(std::uint64_t maxhp);
 	// 采集矿井资源
-	std::uint64_t harvest(const boost::shared_ptr<MapObject> &harvester, double amount_to_harvest, bool saturated = false);
+	std::int64_t harvest(const boost::shared_ptr<MapObject> &harvester, double amount_to_harvest, bool saturated = false);
 	// 设置剩余采集量
 	void set_output_amount(std::uint64_t amount);
 };
