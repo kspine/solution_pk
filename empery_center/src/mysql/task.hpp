@@ -26,6 +26,7 @@ namespace MySql {
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
 	FIELD_STRING            (progress)	\
+	FIELD_STRING            (rewarded_progress)\
 	FIELD_BOOLEAN           (rewarded)
 #include <poseidon/mysql/object_generator.hpp>
 
@@ -42,7 +43,6 @@ namespace MySql {
 #define MYSQL_OBJECT_FIELDS \
 	FIELD_UUID              (legion_uuid) \
 	FIELD_UUID              (account_uuid) \
-	FIELD_INTEGER_UNSIGNED  (day_personal_contribution) \
 	FIELD_INTEGER_UNSIGNED  (day_contribution)	\
 	FIELD_INTEGER_UNSIGNED  (week_contribution)	\
 	FIELD_INTEGER_UNSIGNED  (total_contribution)	\

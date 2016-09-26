@@ -14,12 +14,15 @@ namespace Msg {
 		FIELD_STRING        (legion_building_uuid)	\
 		FIELD_STRING        (legion_uuid)	\
 		FIELD_STRING        (map_object_uuid)	\
+		FIELD_VINT          (x)	\
+		FIELD_VINT          (y)	\
 		FIELD_VUINT         (building_level)	\
 		FIELD_VUINT         (mission)	\
 		FIELD_VUINT         (mission_duration)	\
 		FIELD_VUINT         (mission_time_remaining)	\
 		FIELD_VUINT         (output_type)	\
 		FIELD_VUINT         (output_amount)	\
+		FIELD_VUINT         (cd_time_remaining)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

@@ -204,6 +204,8 @@ namespace EmperyCenter {
             auto tresult = league->send_and_wait(msg);
 
             LOG_EMPERY_CENTER_DEBUG("LeagueServer response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+            return Response(std::move(tresult.first));
         }
 
         return Response(Msg::ST_OK);
@@ -811,6 +813,7 @@ namespace EmperyCenter {
 			if(titileid != 1)
 			{
                 // 不是军团长，没有权限
+                
 				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
 			}
 
@@ -869,9 +872,10 @@ namespace EmperyCenter {
                 auto &elem = *msg.members.emplace(msg.members.end());
                 auto info = *it;
 
+                elem.account_uuid = info->get_account_uuid().str();
                 elem.titleid = info->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
 
-                const auto legionmember = AccountMap::require(info->get_account_uuid());
+                const auto& legionmember = AccountMap::require(info->get_account_uuid());
                 elem.nick = legionmember->get_nick();
                 elem.icon = legionmember->get_attribute(AccountAttributeIds::ID_AVATAR);
                 if(legionmember->get_attribute(AccountAttributeIds::ID_LEAGUE_CAHT_FALG) != Poseidon::EMPTY_STRING)

@@ -174,6 +174,7 @@ void League::synchronize_with_player(const boost::shared_ptr<LeagueSession>& lea
 	msg.league_icon     		= 	get_attribute(LeagueAttributeIds::ID_ICON);
 	msg.league_notice     		= 	get_attribute(LeagueAttributeIds::ID_CONTENT);
 	msg.league_level     		= 	boost::lexical_cast<std::uint64_t>(get_attribute(LeagueAttributeIds::ID_LEVEL));
+	msg.league_max_member		=   boost::lexical_cast<std::uint64_t>(get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
 	msg.leader_legion_uuid		=   get_attribute(LeagueAttributeIds::ID_LEADER);
 //	msg.create_account_uuid		=   get_create_uuid().str();
 
