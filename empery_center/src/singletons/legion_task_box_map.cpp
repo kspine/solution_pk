@@ -98,7 +98,7 @@ boost::shared_ptr<LegionTaskBox> LegionTaskBoxMap::get(LegionUuid legion_uuid){
 			if(!it->promise){
 				auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_LegionTask>>>();
 				std::ostringstream oss;
-				oss <<"SELECT * FROM `Center_LegionTask` WHERE `legion_uuid` = " <<Poseidon::MySql::UuidFormatter(legion_uuid.get());
+				oss <<"SELECT * FROM `Center_LegionTask` WHERE `legion_uuid` = " <<Poseidon::MySql::UuidFormatter(legion_uuid.get()) << " and `deleted` = 0";
 				auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 					[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 						auto obj = boost::make_shared<MySql::Center_LegionTask>();
