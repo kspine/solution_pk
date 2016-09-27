@@ -148,7 +148,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Checking tasks: legion_uuid = ", get_legion_uuid());
 
-		const auto utc_now = Poseidon::get_utc_time();	
+		const auto utc_now = Poseidon::get_utc_time();
 		auto it = m_tasks.begin();
 		while (it != m_tasks.end()) {
 			const auto task_id = it->first;
