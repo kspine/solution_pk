@@ -300,7 +300,8 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	const auto amount_to_harvest = req.amount_harvested;
 	const auto amount_harvested = strategic_resource->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, ", map_object_type_id = ", map_object_type_id,
-		", harvest_speed = ", harvest_speed, ", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack);
+		", harvest_speed = ", harvest_speed, ", amount_to_harvest = ", amount_to_harvest,", unit_weight = ", unit_weight,
+		", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack);
 	map_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
 	//军团礼包任务:采集n战略资源
 	const auto task_box = TaskBoxMap::require(map_object->get_owner_uuid());
@@ -1534,29 +1535,30 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 			return Response(Msg::ERR_LEGION_GATHER_IN_LEAVE_TIME);
 	}
 
-	/*
+	
 	const auto parent_object_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
 	}
-	*/
-	/*
+	
+	
 	const auto coord = map_object->get_coord();
-
+	/*
 	const auto strategic_resource = WorldMap::get_strategic_resource(coord);
 	if(!strategic_resource){
 		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
 	}
-	const auto resource_amount = strategic_resource->get_resource_amount();
+	*/
+	const auto resource_amount = target_object->get_output_amount();
 	if(resource_amount == 0){
 		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
 	}
 
-	*/
-	/*
-	const auto resource_id = strategic_resource->get_resource_id();
-	const auto resource_data = Data::CastleResource::require(resource_id);
+	
+	
+	const auto resource_id = target_object->get_output_type();
+	const auto resource_data = Data::CastleResource::require(ResourceId(resource_id));
 	const auto unit_weight = resource_data->unit_weight;
 	if(unit_weight <= 0){
 		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
@@ -1565,31 +1567,31 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 	if(!carried_attribute_id){
 		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
 	}
-	*/
-//	const auto map_object_type_id = map_object->get_map_object_type_id();
-//	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
-//	const auto harvest_speed = map_object_type_data->harvest_speed;
-	const auto harvest_speed = 1;
-//	if(harvest_speed <= 0){
-//		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
-//	}
-	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
+	const auto harvest_speed = map_object_type_data->harvest_speed;
+//	const auto harvest_speed = 1;
+	if(harvest_speed <= 0){
+		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
+	}
+//	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const bool forced_attack = req.forced_attack;
 	if(!forced_attack){
 		const auto resource_carriable = map_object->get_resource_amount_carriable();
 	//	const auto resource_carriable = static_cast<std::uint64_t>(20);
 		const auto resource_carried = map_object->get_resource_amount_carried();
-	//	LOG_EMPERY_CENTER_ERROR("KS_MapHarvestLegionResource 负重检测 *******************",soldier_count," resource_carried:",resource_carried);
+		LOG_EMPERY_CENTER_ERROR("KS_MapHarvestLegionResource 负重检测 *******************",resource_carriable," resource_carried:",resource_carried);
 		if(resource_carried >= resource_carriable){
 			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
 		}
 	}
-	//	const auto harvest_speed_bonus = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
+//	const auto harvest_speed_bonus = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
 //	const auto harvest_speed_add = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
 
-	const auto harvest_speed_bonus = 1.0;
-	const auto harvest_speed_add = 1.0;
-	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
+//	const auto harvest_speed_bonus = 1.0;
+//	const auto harvest_speed_add = 1.0;
+//	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
 
 	//地图活动翻倍
 	auto  activity_add_rate = 1;
@@ -1601,14 +1603,24 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 		}
 	}
 	*/
-	const auto unit_weight = 1;
+//	const auto unit_weight = 1;
+	/*
 	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0 * activity_add_rate;
 	const auto amount_harvested = target_object->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, 
 		", harvest_speed = ", harvest_speed, ", interval = ", req.interval, ", amount_harvested = ", amount_harvested,
 		", forced_attack = ", forced_attack,", activity_add_rate = ", activity_add_rate);
 
-	if(amount_harvested == 0)
+	*/
+//	const auto interval = req.interval;
+	const auto amount_to_harvest = req.amount_harvested;
+	const auto amount_harvested = target_object->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
+	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, 
+		", harvest_speed = ", harvest_speed, ",  amount_to_harvest = ", amount_to_harvest, ",  unit_weight = ", unit_weight,",  amount_harvested = ", amount_harvested,
+		", forced_attack = ", forced_attack,", activity_add_rate = ", activity_add_rate);
+
+
+	if(amount_harvested < 0)
 	{
 		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) ;
 		/*

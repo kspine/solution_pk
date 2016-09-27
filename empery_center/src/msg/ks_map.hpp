@@ -150,6 +150,7 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)	\
 	FIELD_VUINT         (interval)	\
 	FIELD_VUINT         (forced_attack) \
+	FIELD_VUINT         (amount_harvested)	\
 	FIELD_STRING        (param)
 #include <poseidon/cbpp/message_generator.hpp>
 

@@ -28,6 +28,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
 	auto resource_amount = req.resource_amount;
 	auto occupier_object_uuid = MapObjectUuid(req.occupier_object_uuid);
 	auto occupier_owner_uuid = AccountUuid(req.occupier_owner_uuid);
+	auto legion_uuid         = LegionUuid(req.legion_uuid);
 
 	boost::container::flat_map<AttributeId, std::int64_t> attributes;
 	attributes.reserve(req.attributes.size());
@@ -47,7 +48,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapCell, cluster, req){
 
 	LOG_EMPERY_CLUSTER_TRACE("Creating map cell: coord = ", coord,
 		", parent_object_uuid = ", parent_object_uuid, ", owner_uuid = ", owner_uuid);
-	const auto map_cell = boost::make_shared<MapCell>(coord, parent_object_uuid, owner_uuid,acceleration_card_applied, ticket_item_id, production_resource_id,
+	const auto map_cell = boost::make_shared<MapCell>(coord, parent_object_uuid, owner_uuid,legion_uuid,acceleration_card_applied, ticket_item_id, production_resource_id,
 	resource_amount,std::move(attributes),std::move(buffs),occupier_object_uuid,occupier_owner_uuid);
 	WorldMap::replace_map_cell_no_synchronize(cluster, map_cell);
 

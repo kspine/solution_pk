@@ -148,8 +148,7 @@ namespace EmperyCenter {
 		PROFILE_ME;
 		LOG_EMPERY_CENTER_TRACE("Checking tasks: legion_uuid = ", get_legion_uuid());
 
-		const auto utc_now = Poseidon::get_utc_time();	
-		LOG_EMPERY_CENTER_FATAL("LegionTaskBox::pump_status,tasks.size() = ",m_tasks.size());
+		const auto utc_now = Poseidon::get_utc_time();
 		auto it = m_tasks.begin();
 		while (it != m_tasks.end()) {
 			const auto task_id = it->first;
@@ -158,7 +157,7 @@ namespace EmperyCenter {
 				++it;
 				continue;
 			}
-			if(obj->get_rewarded()){
+			if(obj->get_rewarded() || obj->get_deleted()){
 				++it;
 				continue;
 			}
@@ -177,7 +176,7 @@ namespace EmperyCenter {
 		const auto utc_now = Poseidon::get_utc_time();
 
 		if (!m_stamps) {
-			auto obj = boost::make_shared<MySql::Center_LegionTask>(get_legion_uuid().get(), 0, 0, 0, 0, std::string(),std::string(), false);
+			auto obj = boost::make_shared<MySql::Center_LegionTask>(get_legion_uuid().get(), 0, 0, 0, 0, std::string(),std::string(), false,0);
 			obj->async_save(true);
 			m_stamps = std::move(obj);
 		}
@@ -203,9 +202,12 @@ namespace EmperyCenter {
 			//删除已有的已经不符合的任务
 			for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
 				const auto task_id = it->first;
+				
 				const auto cit = std::find(task_candidates.begin(), task_candidates.end(), task_id);
 				if (cit == task_candidates.end()) {
-					m_tasks.erase(task_id);
+					const auto &pair = it->second;
+					const auto &obj = pair.first;
+					obj->set_deleted(1);
 				}
 			}
 			for (auto it = task_candidates.begin(); it != task_candidates.end(); ++it) {
@@ -282,6 +284,10 @@ namespace EmperyCenter {
 		if (it == m_tasks.end()) {
 			return info;
 		}
+		const auto &obj = it->second.first;
+		if(obj->get_deleted()){
+			return info;
+		}
 		fill_task_info(info, it->second);
 		return info;
 	}
@@ -290,6 +296,10 @@ namespace EmperyCenter {
 
 		ret.reserve(ret.size() + m_tasks.size());
 		for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
+			const auto &obj = it->second.first;
+			if(obj->get_deleted()){
+				continue;
+			}
 			TaskInfo info;
 			fill_task_info(info, it->second);
 			ret.emplace_back(std::move(info));
@@ -318,7 +328,7 @@ namespace EmperyCenter {
 			*rewarded_progress = *info.rewarded_progress;
 		}
 		const auto obj = boost::make_shared<MySql::Center_LegionTask>(get_legion_uuid().get(), task_id.get(),
-			info.category, info.created_time, info.expiry_time, encode_progress(*progress),encode_progress(*rewarded_progress), info.rewarded);
+			info.category, info.created_time, info.expiry_time, encode_progress(*progress),encode_progress(*rewarded_progress), info.rewarded,0);
 		obj->async_save(true);
 		it = m_tasks.emplace(task_id, std::make_pair(obj, std::make_pair(progress,rewarded_progress))).first;
 
@@ -429,7 +439,7 @@ namespace EmperyCenter {
 			auto &obj = pair.first;
 			auto &progress = pair.second.first;
 			auto &rewarded_progress = pair.second.second;
-			if(obj->get_rewarded()){
+			if(obj->get_rewarded() || obj->get_deleted()){
 				return;
 			}
 			const auto utc_now = Poseidon::get_utc_time();
@@ -558,6 +568,8 @@ namespace EmperyCenter {
 							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_STAGE, boost::lexical_cast<std::string>(its->first));
 							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_PERSONAL_DONATE_ITEM,"1103005");
 							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_PERSONAL_DONATE_COUNT,boost::lexical_cast<std::string>(personal_donate));
+							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_DONATE_ITMEM,"5500001");
+							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_DONATE_COUNT,boost::lexical_cast<std::string>(legion_donate));
 							const auto &rewards = its->second;
 							boost::container::flat_map<ItemId, std::uint64_t> attachments;
 							attachments.reserve(rewards.size());
@@ -608,7 +620,7 @@ namespace EmperyCenter {
 					auto &pair = it->second;
 					const auto &obj = pair.first;
 
-					if (obj->get_rewarded()) {
+					if (obj->get_rewarded() || obj->get_deleted()) {
 						continue;
 					}
 					const auto task_data = Data::TaskLegion::require(task_id);
@@ -730,9 +742,13 @@ namespace EmperyCenter {
 	void LegionTaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const{
 		const auto utc_now = Poseidon::get_utc_time();
 		for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
+			const auto &obj = it->second.first;
+			if(obj->get_deleted()){
+				continue;
+			}
 			Msg::SC_TaskChanged msg;
 			fill_task_message(msg, it->second, utc_now);
-			LOG_EMPERY_CENTER_DEBUG("LegionTaskBox task synchronize :",msg);
+			LOG_EMPERY_CENTER_FATAL("LegionTaskBox task synchronize :",msg);
 			session->send(msg);
 		}
 	}
@@ -745,6 +761,10 @@ namespace EmperyCenter {
 			return;
 		}
 		for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
+			const auto &obj = it->second.first;
+			if(obj->get_deleted()){
+				continue;
+			}
 			Msg::SC_TaskChanged msg;
 			fill_task_message(msg, it->second, utc_now);
 			legion->broadcast_to_members(msg);
