@@ -168,12 +168,13 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 	if(!ret.empty()){
 		return false;
 	}
+	/*
 	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapActivityAccumulate>>>();
 	{
 		std::ostringstream oss;
 		char str[256];
 		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(activity_kill_solider_info.available_since), false);
-		oss <<"SELECT * FROM `Center_MapActivityAccumulate` WHERE `map_activity_id` = " << ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get() << " and `avaliable_since` = " << Poseidon::MySql::StringEscaper(str) << " order by accumulate_value desc limit 50";
+		oss <<"SELECT * FROM `Center_MapActivityAccumulate` WHERE `map_activity_id` = " << ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get() << " and `avaliable_since` = " << Poseidon::MySql::StringEscaper(str);
 		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
 			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
 				auto obj = boost::make_shared<MySql::Center_MapActivityAccumulate>();
@@ -185,15 +186,32 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 	if(sink->empty()){
 		return false;
 	}
+	*/
+	std::vector<MapActivityAccumulateMap::AccumulateInfo> accumuate_vec;
+	MapActivityAccumulateMap::get_recent(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER,activity_kill_solider_info.available_since,accumuate_vec);
+	std::sort(accumuate_vec.begin(),accumuate_vec.end(),[](const MapActivityAccumulateMap::AccumulateInfo& left, const MapActivityAccumulateMap::AccumulateInfo& right)
+	{
+		if(left.accumulate_value > right.accumulate_value){
+			return true;
+		}
+		return false;
+	});
 	std::uint64_t rank = 1;
-	for(auto it = sink->begin(); it != sink->end(); ++it,++rank){
+	std::vector<MapActivityRankMap::MapActivityRankInfo> map_activity_accumulate_vec;
+	for(auto it = accumuate_vec.begin(); it != accumuate_vec.end(),rank <= 50; ++it,++rank){
 		MapActivityRankMap::MapActivityRankInfo info = {};
-		info.account_uuid     = AccountUuid((*it)->get_account_uuid());
-		info.activity_id      = MapActivityId((*it)->get_map_activity_id());
+		info.account_uuid     = (*it).account_uuid;
+		info.activity_id      = (*it).activity_id;
 		info.settle_date      = activity_kill_solider_info.available_until;
 		info.rank             = rank;
-		info.accumulate_value = (*it)->get_accumulate_value();
+		info.accumulate_value = (*it).accumulate_value;
 		info.process_date     = now;
+		map_activity_accumulate_vec.emplace_back(std::move(info));
+	}
+
+	for(auto it = map_activity_accumulate_vec.begin(); it != map_activity_accumulate_vec.end(),rank <= 50; ++it,++rank){
+		auto info = *it;
+		info.rank = rank;
 		MapActivityRankMap::insert(std::move(info));
 		//发送奖励
 		try{
@@ -221,6 +239,7 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
+	
 	return true;
 }
 
@@ -493,6 +512,36 @@ void WorldActivity::synchronize_with_player(const Coord cluster_coord,AccountUui
 	}
 }
 
+void WorldActivity::account_accmulate_sort(const Coord cluster_coord,std::vector<std::pair<AccountUuid,std::uint64_t>> &account_accumulate_vec){
+	std::vector<WorldActivityAccumulateMap::WorldActivityAccumulateInfo> world_activity_accumulate_vec;
+	WorldActivityAccumulateMap::get_recent_activity_accumulate_info(cluster_coord,m_available_since,world_activity_accumulate_vec);
+	if(world_activity_accumulate_vec.empty()){
+		return;
+	}
+	boost::container::flat_map<AccountUuid,boost::uint64_t> account_accumulate_map;
+	for(auto it = world_activity_accumulate_vec.begin(); it != world_activity_accumulate_vec.end(); ++it){
+		auto account_uuid = (*it).account_uuid;
+		auto accumulate_value = (*it).accumulate_value;
+		auto ita = account_accumulate_map.find(account_uuid);
+		if(ita == account_accumulate_map.end()){
+			account_accumulate_map.emplace(account_uuid,accumulate_value);
+		}else{
+			const auto old_accmulate = ita->second;
+			ita->second = old_accmulate + accumulate_value;
+		}
+	}
+	for(auto it = account_accumulate_map.begin(); it != account_accumulate_map.end();++it){
+		account_accumulate_vec.push_back(std::make_pair(it->first,it->second));
+	}
+	std::sort(account_accumulate_vec.begin(),account_accumulate_vec.end(),[](const std::pair<AccountUuid,std::uint64_t>& left,const std::pair<AccountUuid,std::uint64_t>& right)
+	{
+		if(left.second > right.second){
+			return true;
+		}
+		return false;
+	});
+}
+
 bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now){
 	if(now < m_available_until){
 		return false;
@@ -504,31 +553,16 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 	}
 
 	std::uint64_t max_rank = Data::ActivityAward::get_max_activity_award_rank(ActivityIds::ID_WORLD_ACTIVITY.get());
-	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCountryStatics>>>();
-	{
-		std::ostringstream oss;
-		char str[256];
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(m_available_since), false);
-		oss <<"SELECT account_uuid,sum(accumulate_value) as accumulate_value FROM `Center_MapWorldActivityAccumulate` WHERE `since` = " << Poseidon::MySql::StringEscaper(str) << " and `cluster_x` = " << cluster_coord.x()  << " and `cluster_y` = " << cluster_coord.y() << " GROUP BY account_uuid order by accumulate_value desc limit " << max_rank;
-		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<MySql::Center_MapCountryStatics>();
-				obj->fetch(conn);
-				sink->emplace_back(std::move(obj));
-			}, "Center_MapWorldActivityRank", oss.str());
-		Poseidon::JobDispatcher::yield(promise, true);
-	}
-	if(sink->empty()){
-		return false;
-	}
+	std::vector<std::pair<AccountUuid,std::uint64_t>> account_accumulate_vec;
+	account_accmulate_sort(cluster_coord,account_accumulate_vec);
 	std::uint64_t rank = 1;
-	for(auto it = sink->begin(); it != sink->end(); ++it,++rank){
+	for(auto it = account_accumulate_vec.begin(); it != account_accumulate_vec.end(),rank <= max_rank; ++it,++rank){
 		WorldActivityRankMap::WorldActivityRankInfo info = {};
-		info.account_uuid     = AccountUuid((*it)->get_account_uuid());
+		info.account_uuid     = (*it).first;
 		info.cluster_coord    = cluster_coord;
 		info.since            = m_available_since;
 		info.rank             = rank;
-		info.accumulate_value = (*it)->get_accumulate_value();
+		info.accumulate_value = (*it).second;
 		info.process_date     = now;
 		WorldActivityRankMap::insert(std::move(info));
 		//发送奖励
@@ -557,35 +591,21 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
+	
 	return true;
 }
 bool WorldActivity::settle_world_activity_in_activity(Coord cluster_coord,std::uint64_t now,std::vector<WorldActivityRankMap::WorldActivityRankInfo> &ret){
 	const auto rank_threshold = Data::Global::as_unsigned(Data::Global::SLOT_WORLD_ACTIVITY_RANK_THRESHOLD);
-	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapCountryStatics>>>();
-	{
-		std::ostringstream oss;
-		char str[256];
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(m_available_since), false);
-		oss <<"SELECT account_uuid,sum(accumulate_value) as accumulate_value FROM `Center_MapWorldActivityAccumulate` WHERE `since` = " << Poseidon::MySql::StringEscaper(str) << " and `cluster_x` = " << cluster_coord.x()  << " and `cluster_y` = " << cluster_coord.y() << " GROUP BY account_uuid order by accumulate_value desc limit " << rank_threshold;
-		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<MySql::Center_MapCountryStatics>();
-				obj->fetch(conn);
-				sink->emplace_back(std::move(obj));
-			}, "Center_MapWorldActivityRank", oss.str());
-		Poseidon::JobDispatcher::yield(promise, true);
-	}
-	if(sink->empty()){
-		return false;
-	}
+	std::vector<std::pair<AccountUuid,std::uint64_t>> account_accumulate_vec;
+	account_accmulate_sort(cluster_coord,account_accumulate_vec);
 	std::uint64_t rank = 1;
-	for(auto it = sink->begin(); it != sink->end(); ++it,++rank){
+	for(auto it = account_accumulate_vec.begin(); it != account_accumulate_vec.end(),rank <= rank_threshold; ++it,++rank){
 		WorldActivityRankMap::WorldActivityRankInfo info = {};
-		info.account_uuid     = AccountUuid((*it)->get_account_uuid());
+		info.account_uuid     = (*it).first;
 		info.cluster_coord    = cluster_coord;
 		info.since            = m_available_since;
 		info.rank             = rank;
-		info.accumulate_value = (*it)->get_accumulate_value();
+		info.accumulate_value = (*it).second;
 		info.process_date     = now;
 		ret.push_back(std::move(info));
 	}
@@ -622,6 +642,7 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 	//活动期间排行榜为实时数据，不写入数据库
 	else
 	{
+		//TODO 改成每分钟结算一次
 		settle_world_activity_in_activity(cluster_coord,utc_now,ret);
 	}
 	std::sort(ret.begin(),ret.end(),
