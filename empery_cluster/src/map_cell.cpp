@@ -19,14 +19,14 @@ namespace {
 	}
 }
 
-MapCell::MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,
+MapCell::MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,LegionUuid legion_uuid,
     bool acceleration_card_applied,
 	ItemId ticket_item_id,ResourceId production_resource_id,std::uint64_t resource_amount,
 	boost::container::flat_map<AttributeId, std::int64_t> attributes,
 	boost::container::flat_map<BuffId, BuffInfo> buffs,
 	MapObjectUuid occupier_object_uuid,AccountUuid occupier_owner_uuid)
 	: m_coord(coord)
-	, m_parent_object_uuid(parent_object_uuid), m_owner_uuid(owner_uuid), m_acceleration_card_applied(acceleration_card_applied)
+	, m_parent_object_uuid(parent_object_uuid), m_owner_uuid(owner_uuid),m_legion_uuid(legion_uuid), m_acceleration_card_applied(acceleration_card_applied)
 	, m_ticket_item_id(ticket_item_id),m_production_resource_id(production_resource_id),m_resource_amount(resource_amount)
 	, m_attributes(std::move(attributes)), m_buffs(std::move(buffs))
 	, m_occupier_object_uuid(occupier_object_uuid), m_occupier_owner_uuid(occupier_owner_uuid)

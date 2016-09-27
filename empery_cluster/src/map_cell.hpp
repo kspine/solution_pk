@@ -22,6 +22,7 @@ private:
 
 	MapObjectUuid m_parent_object_uuid;
 	AccountUuid m_owner_uuid;
+	LegionUuid m_legion_uuid;
 	bool m_acceleration_card_applied;
 	ItemId m_ticket_item_id;
 	ResourceId m_production_resource_id;
@@ -32,7 +33,7 @@ private:
 	AccountUuid m_occupier_owner_uuid;
 
 public:
-	MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,bool acceleration_card_applied,ItemId ticket_item_id,ResourceId production_resource_id,std::uint64_t resource_amount,
+	MapCell(Coord coord, MapObjectUuid parent_object_uuid, AccountUuid owner_uuid,LegionUuid legion_uuid,bool acceleration_card_applied,ItemId ticket_item_id,ResourceId production_resource_id,std::uint64_t resource_amount,
 		boost::container::flat_map<AttributeId,std::int64_t> attributes,boost::container::flat_map<BuffId, BuffInfo> buffs,MapObjectUuid occupier_object_uuid,AccountUuid occupier_owner_uuid);
 	~MapCell();
 
@@ -46,6 +47,9 @@ public:
 	}
 	AccountUuid get_owner_uuid() const {
 		return m_owner_uuid;
+	}
+	LegionUuid get_legion_uuid() const {
+		return m_legion_uuid;
 	}
 	void on_attack(boost::shared_ptr<MapObject> attacker);
 	bool is_in_group_view_scope(boost::shared_ptr<MapObject> attacker);
