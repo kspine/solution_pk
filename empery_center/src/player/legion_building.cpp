@@ -195,7 +195,7 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                                 legion->set_attributes(Attributes);
 
                                 const auto defense_building = boost::make_shared<WarehouseBuilding>(defense_building_uuid, map_object_type_id,
-                                    AccountUuid(), MapObjectUuid(), std::string(), coord, utc_now,member->get_legion_uuid());
+                                    account_uuid, MapObjectUuid(), std::string(), coord, utc_now,member->get_legion_uuid());
                                 defense_building->pump_status();
                                 copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
                                 copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
