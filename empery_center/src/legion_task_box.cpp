@@ -568,6 +568,8 @@ namespace EmperyCenter {
 							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_STAGE, boost::lexical_cast<std::string>(its->first));
 							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_PERSONAL_DONATE_ITEM,"1103005");
 							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_PERSONAL_DONATE_COUNT,boost::lexical_cast<std::string>(personal_donate));
+							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_DONATE_ITMEM,"5500001");
+							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_DONATE_COUNT,boost::lexical_cast<std::string>(legion_donate));
 							const auto &rewards = its->second;
 							boost::container::flat_map<ItemId, std::uint64_t> attachments;
 							attachments.reserve(rewards.size());
