@@ -319,12 +319,12 @@ namespace EmperyCenter {
 				info.expiry_time = daily_task_refresh_time;
 				if (nonexistent) {
 					LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-					LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+			//		LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
 					insert(std::move(info));
 				}
 				else {
 					LOG_EMPERY_CENTER_DEBUG("Unrewarded daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-					LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+			//		LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
 					update(std::move(info));
 				}
 			}
@@ -448,7 +448,7 @@ namespace EmperyCenter {
 							task_id_candidates.erase(it_find);
 						}
 
-						LOG_EMPERY_CENTER_ERROR("task_id_candidates.size", task_id_candidates.size());
+				//		LOG_EMPERY_CENTER_ERROR("task_id_candidates.size", task_id_candidates.size());
 
 						for (auto it = task_id_candidates.begin(); it != task_id_candidates.end(); ++it)
 						{
@@ -461,12 +461,12 @@ namespace EmperyCenter {
 							info.expiry_time = daily_task_refresh_time;
 							if (nonexistent)
 							{
-								LOG_EMPERY_CENTER_ERROR("task_id_candidates insert ", info.task_id, info.category);
+					//			LOG_EMPERY_CENTER_ERROR("task_id_candidates insert ", info.task_id, info.category);
 								insert(std::move(info));
 							}
 							else
 							{
-								LOG_EMPERY_CENTER_ERROR("task_id_candidates update ", info.task_id, info.category);
+					//			LOG_EMPERY_CENTER_ERROR("task_id_candidates update ", info.task_id, info.category);
 								update(std::move(info));
 							}
 						}
