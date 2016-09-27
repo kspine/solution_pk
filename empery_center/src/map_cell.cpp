@@ -27,6 +27,8 @@
 #include "item_ids.hpp"
 #include "data/castle.hpp"
 #include "map_utilities.hpp"
+#include "singletons/legion_member_map.hpp"
+#include "legion_member.hpp"
 
 namespace EmperyCenter {
 
@@ -803,6 +805,12 @@ void MapCell::synchronize_with_cluster(const boost::shared_ptr<ClusterSession> &
 	msg.y                         = get_coord().y();
 	msg.parent_object_uuid        = get_parent_object_uuid().str();
 	msg.owner_uuid                = get_owner_uuid().str();
+	msg.legion_uuid        = "";
+	const auto& member = LegionMemberMap::get_by_account_uuid(get_owner_uuid());
+	if(member)
+	{
+		msg.legion_uuid		   = member->get_legion_uuid().str();
+	}
 	msg.acceleration_card_applied = is_acceleration_card_applied();
 	msg.ticket_item_id            = get_ticket_item_id().get();
 	msg.production_resource_id    = get_production_resource_id().get();
