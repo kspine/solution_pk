@@ -195,7 +195,7 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                                 legion->set_attributes(Attributes);
 
                                 const auto defense_building = boost::make_shared<WarehouseBuilding>(defense_building_uuid, map_object_type_id,
-                                    account->get_account_uuid(), castle_uuid, std::string(), coord, utc_now,member->get_legion_uuid());
+                                    account_uuid, MapObjectUuid(), std::string(), coord, utc_now,member->get_legion_uuid());
                                 defense_building->pump_status();
                                 copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION_PREPARATION);
                                 copy_buff(defense_building, utc_now, castle, BuffIds::ID_CASTLE_PROTECTION);
@@ -345,12 +345,18 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
                             }
 
                             // 满足条件，可以升级
-                            const auto parent_object_uuid = defense_building->get_parent_object_uuid();
+                  //          const auto parent_object_uuid = defense_building->get_parent_object_uuid();  
+                            const auto castle_uuid = MapObjectUuid(req.castle_uuid);
+                            const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+                            if(!castle){
+                                return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+                            }
+                            /*
                             const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
                             if(!castle){
                                 return Response(Msg::ERR_NO_SUCH_CASTLE) <<parent_object_uuid;
                             }
-
+                            */
                             const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
                             defense_building->pump_status();

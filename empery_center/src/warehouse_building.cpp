@@ -579,18 +579,18 @@ void WarehouseBuilding::set_maxhp(std::uint64_t maxhp)
 	m_maxHp = boost::lexical_cast<std::int64_t>(maxhp);
 }
 
-std::uint64_t WarehouseBuilding::harvest(const boost::shared_ptr<MapObject> &harvester, double amount_to_harvest, bool saturated){
+std::int64_t WarehouseBuilding::harvest(const boost::shared_ptr<MapObject> &harvester, double amount_to_harvest, bool saturated){
 	PROFILE_ME;
 
 	const auto resource_id = get_output_type();
 	if(!resource_id){
 		LOG_EMPERY_CENTER_DEBUG("No resource id: resource_crate_uuid = ", get_output_type());
-		return 0;
+		return -1;
 	}
 	const auto amount_remaining = get_output_amount();
 	if(amount_remaining == 0){
 		LOG_EMPERY_CENTER_DEBUG("No resource available: resource_crate_uuid = ", get_output_amount());
-		return 0;
+		return -2;
 	}
 
 	// 判断debuff
@@ -614,22 +614,34 @@ std::uint64_t WarehouseBuilding::harvest(const boost::shared_ptr<MapObject> &har
 	if(rate > 100)
 	{
 		LOG_EMPERY_CENTER_DEBUG("have  debuff 100 rate");
-		return 0;
+		return -3;
 	}
 
 
+	amount_to_harvest +=  m_harvest_remainder;
+
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
-	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining) * (100 - rate) / 100;
+	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
+	const auto amount_added = harvester->load_resource(ResourceId(resource_id), rounded_amount_removable, false, false);
+	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
+//	m_obj->set_resource_amount(saturated_sub(amount_remaining, amount_removed));
+
+	m_harvest_remainder = amount_to_harvest - rounded_amount_to_harvest;
+//	m_last_harvester = harvester;
+
+	/*
+	const auto rounded_amount_to_harvest = amount_to_harvest;
+	const auto rounded_amount_removable = static_cast<std::uint64_t>(std::min(rounded_amount_to_harvest, static_cast<double>(amount_remaining)) * (100 - rate) / 100);
 	const auto amount_added =harvester->load_resource(ResourceId(resource_id), rounded_amount_removable, false, true);
 	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
-
-	LOG_EMPERY_CENTER_DEBUG("WarehouseBuilding harvest*******************",amount_to_harvest, "amount_remaining:",amount_remaining," amount_removed:" ,amount_removed," amount_added:",amount_added);
+	*/
+	LOG_EMPERY_CENTER_DEBUG("WarehouseBuilding harvest*******************",m_harvest_remainder, ", rounded_amount_to_harvest:",rounded_amount_to_harvest, ", amount_to_harvest:",amount_to_harvest, "amount_remaining:",amount_remaining," amount_removed:" ,amount_removed," amount_added:",amount_added);
 
 	set_output_amount(saturated_sub(amount_remaining, amount_removed));
 
 	WorldMap::update_map_object(virtual_shared_from_this<WarehouseBuilding>(), false);
 
-	return amount_removed;
+	return static_cast<std::int64_t>(amount_removed);
 }
 
 
