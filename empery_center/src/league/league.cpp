@@ -30,6 +30,7 @@
 #include "../chat_box.hpp"
 #include "../chat_message.hpp"
 #include "../singletons/chat_box_map.hpp"
+#include "../events/legion.hpp"
 #include <poseidon/async_job.hpp>
 
 
@@ -797,6 +798,8 @@ LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
 	const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
 	if(legion)
 	{
+		const auto legion_name = legion->get_nick();
+
 		const auto account_uuid = AccountUuid(req.account_uuid);
 
 		const auto account = AccountMap::get(account_uuid);
@@ -808,6 +811,17 @@ LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
 
 		// 解散军团
 		LegionMap::deletelegion(legion->get_legion_uuid());
+
+		// 记录日志，抛出事件
+		const auto utc_now = Poseidon::get_utc_time();
+
+		const auto event = boost::make_shared<Events::LegionDisband>(account_uuid, legion_name, utc_now);
+
+		const auto withdrawn = boost::make_shared<bool>(true);
+
+		Poseidon::async_raise_event(event, withdrawn);
+
+		*withdrawn = false;
 
 		return Response(Msg::ST_OK);
 	}
