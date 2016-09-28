@@ -607,7 +607,16 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 			// 获得对应的军团长名称
 			const auto& target_leader_account = AccountMap::get(AccountUuid(target_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
 			if(target_leader_account)
+			{
 				msg.ext1 = target_leader_account->get_nick();
+
+				// 转让盟主后，去除新盟主的禁言状态
+				boost::container::flat_map<AccountAttributeId, std::string> Attributes;
+
+				Attributes[AccountAttributeIds::ID_LEAGUE_CAHT_FALG] = "0";
+
+				target_leader_account->set_attributes(std::move(Attributes));
+			}
 		}
 	}
 	else if(msg.msgtype == 1 || msg.msgtype == 2 || msg.msgtype == 3 )
