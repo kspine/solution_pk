@@ -171,4 +171,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/legion_task_reward_box_map.cpp \
 	src/legion_task_contribution_box.cpp \
 	src/singletons/legion_task_contribution_box_map.cpp \
+	src/legion_log.cpp \
 	src/mmain.cpp
