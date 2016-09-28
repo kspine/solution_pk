@@ -255,7 +255,16 @@ namespace EmperyCenter {
                 }
 
                 if(msg.legions.empty())
-                    return Response(Msg::ERR_LEAGUE_SEARCH_BY_LEADNAME_CANNOT_FIND);
+                {
+                    Msg::SC_Leagues msg;
+
+			        msg.leagues.reserve(0);
+
+                    session->send(msg);
+                    
+                    return Response(Msg::ST_OK);
+               //     return Response(Msg::ERR_LEAGUE_SEARCH_BY_LEADNAME_CANNOT_FIND);
+                }
             }
 
             if( !req.league_name.empty() ||  !msg.legions.empty())
