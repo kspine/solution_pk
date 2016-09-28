@@ -345,12 +345,18 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
                             }
 
                             // 满足条件，可以升级
-                            const auto parent_object_uuid = defense_building->get_parent_object_uuid();
+                  //          const auto parent_object_uuid = defense_building->get_parent_object_uuid();  
+                            const auto castle_uuid = MapObjectUuid(req.castle_uuid);
+                            const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+                            if(!castle){
+                                return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+                            }
+                            /*
                             const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
                             if(!castle){
                                 return Response(Msg::ERR_NO_SUCH_CASTLE) <<parent_object_uuid;
                             }
-
+                            */
                             const auto task_box = TaskBoxMap::require(account->get_account_uuid());
 
                             defense_building->pump_status();
