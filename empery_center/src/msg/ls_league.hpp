@@ -180,6 +180,7 @@ namespace Msg {
 #define MESSAGE_ID      51014
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (league_name)	\
 	FIELD_STRING        (legion_uuid)
 
 #include <poseidon/cbpp/message_generator.hpp>

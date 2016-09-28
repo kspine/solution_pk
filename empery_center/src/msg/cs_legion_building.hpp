@@ -26,6 +26,7 @@ namespace Msg {
 #define MESSAGE_NAME    CS_UpgradeLegionBuildingMessage
 #define MESSAGE_ID      1632
 #define MESSAGE_FIELDS  \
+	FIELD_STRING          (castle_uuid)	\
 	FIELD_STRING          (legion_building_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 

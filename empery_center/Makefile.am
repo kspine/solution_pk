@@ -120,6 +120,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/event_listeners/auction.cpp	\
 	src/event_listeners/map.cpp	\
 	src/event_listeners/dungeon.cpp	\
+	src/event_listeners/legion.cpp	\
 	src/dungeon/dungeon.cpp	\
 	src/league/league.cpp	\
 	src/string_utilities.cpp	\
