@@ -26,6 +26,12 @@ namespace {
 	)
 	boost::weak_ptr<const TradeContainer> g_trade_container;
 	const char TRADE_FILE[] = "item_trading";
+	
+	MULTI_INDEX_MAP(ResourceTradeContainer, Data::ResourceTrade,
+		UNIQUE_MEMBER_INDEX(trade_id)
+	)
+	boost::weak_ptr<const ResourceTradeContainer> g_resouce_trade_container;
+	const char RESOUCE_TRADE_FILE[] = "item_material";
 
 	MULTI_INDEX_MAP(RechargeContainer, Data::ItemRecharge,
 		UNIQUE_MEMBER_INDEX(recharge_id)
@@ -129,7 +135,36 @@ namespace {
 		handles.push(trade_container);
 		servlet = DataSession::create_servlet(TRADE_FILE, Data::encode_csv_as_json(csv, "trading_id"));
 		handles.push(std::move(servlet));
+		
+		csv = Data::sync_load_data(RESOUCE_TRADE_FILE);
+		const auto resource_trade_container = boost::make_shared<ResourceTradeContainer>();
+		while(csv.fetch_row()){
+			Data::ResourceTrade elem = { };
 
+			csv.get(elem.trade_id, "trading_id");
+
+			Poseidon::JsonObject object;
+			csv.get(object, "obtain_item");
+			elem.resource_produced.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.resource_produced.emplace(resource_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate resource amount: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate resource amount"));
+				}
+			}
+
+			if(!resource_trade_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate trade element: trade_id = ", elem.trade_id);
+				DEBUG_THROW(Exception, sslit("Duplicate trade element"));
+			}
+		}
+		g_resouce_trade_container = resource_trade_container;
+		handles.push(resource_trade_container);
+		servlet = DataSession::create_servlet(RESOUCE_TRADE_FILE, Data::encode_csv_as_json(csv, "trading_id"));
+		handles.push(std::move(servlet));
+		
 		csv = Data::sync_load_data(RECHARGE_FILE);
 		const auto recharge_container = boost::make_shared<RechargeContainer>();
 		while(csv.fetch_row()){
@@ -299,6 +334,34 @@ namespace Data {
 		}
 		return ret;
 	}
+	
+	boost::shared_ptr<const ResourceTrade> ResourceTrade::get(TradeId trade_id){
+		PROFILE_ME;
+
+		const auto resource_trade_container = g_resouce_trade_container.lock();
+		if(!resource_trade_container){
+			LOG_EMPERY_CENTER_WARNING("TradeContainer has not been loaded.");
+			return { };
+		}
+
+		const auto it = resource_trade_container->find<0>(trade_id);
+		if(it == resource_trade_container->end<0>()){
+			LOG_EMPERY_CENTER_TRACE("ResourceTrade not found: trade_id = ", trade_id);
+			return { };
+		}
+		return boost::shared_ptr<const ResourceTrade>(resource_trade_container, &*it);
+	}
+	boost::shared_ptr<const ResourceTrade> ResourceTrade::require(TradeId trade_id){
+		PROFILE_ME;
+
+		auto ret = get(trade_id);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("ResourceTrade not found: trade_id = ", trade_id);
+			DEBUG_THROW(Exception, sslit("ResourceTrade not found"));
+		}
+		return ret;
+	}
+	
 
 	boost::shared_ptr<const ItemRecharge> ItemRecharge::get(RechargeId recharge_id){
 		PROFILE_ME;
