@@ -15,7 +15,13 @@ namespace Msg {
 	FIELD_VUINT         (disband_time)
 #include <poseidon/cbpp/message_generator.hpp>
 
-
+#define MESSAGE_NAME    SL_LeagueDisbandLog
+#define MESSAGE_ID      58702
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (league_name)	\
+	FIELD_VUINT         (disband_time)
+#include <poseidon/cbpp/message_generator.hpp>
 
 }
 

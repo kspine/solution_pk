@@ -18,6 +18,16 @@ namespace Events {
 		}
 	};
 
+	struct LeagueDisband : public Poseidon::EventBase<340702> {
+		AccountUuid account_uuid;
+		std::string league_name;
+		std::uint64_t disband_time;
+
+		LeagueDisband(AccountUuid account_uuid_, std::string league_name_,std::uint64_t disband_time_)
+			: account_uuid(account_uuid_), league_name(league_name_),disband_time(disband_time_)
+		{
+		}
+	};
 	
 }
 

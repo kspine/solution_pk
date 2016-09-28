@@ -16,6 +16,16 @@ EVENT_LISTENER(Events::LegionDisband, event){
 	log->send(msg);
 }
 
+EVENT_LISTENER(Events::LeagueDisband, event){
+	const auto log = LogClient::require();
+
+	Msg::SL_LeagueDisbandLog msg;
+	msg.account_uuid    = event.account_uuid.str();
+	msg.league_name     = event.league_name;
+	msg.disband_time    = event.disband_time;
+	log->send(msg);
+}
+
 
 
 }

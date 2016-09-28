@@ -14,6 +14,12 @@ namespace MySql {
 	FIELD_DATETIME          (disband_time)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   CenterLog_LeagueDisband
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_STRING  			(league_name) \
+	FIELD_DATETIME          (disband_time)
+#include <poseidon/mysql/object_generator.hpp>
 }
 
 }

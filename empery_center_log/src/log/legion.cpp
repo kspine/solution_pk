@@ -12,5 +12,9 @@ LOG_SERVLET(Msg::SL_LegionDisbandLog, log, req){
 	obj->async_save(false, true);
 }
 
-
+LOG_SERVLET(Msg::SL_LeagueDisbandLog, log, req){
+	auto obj = boost::make_shared<MySql::CenterLog_LeagueDisband>(
+		Poseidon::Uuid(req.account_uuid), req.league_name,req.disband_time);
+	obj->async_save(false, true);
+}
 }
