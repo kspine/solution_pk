@@ -1147,6 +1147,7 @@ LEAGUE_SERVLET(Msg::SL_disbandLeague, league_session, req){
 				return Response(Msg::ERR_LEAGUE_ERROR_LEAGUELEADER);
 			}
 
+			const auto league_name = league->get_nick();
 			// 广播
 			league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_DISBAND,req.legion_uuid,league->get_nick());
 			// 发邮件
@@ -1158,6 +1159,7 @@ LEAGUE_SERVLET(Msg::SL_disbandLeague, league_session, req){
 			EmperyCenter::Msg::LS_disbandLeagueRes msg;
 			msg.account_uuid = req.account_uuid;
 			msg.legion_uuid = req.legion_uuid;
+			msg.league_name = league_name;
 
 			league_session->send(msg);
 

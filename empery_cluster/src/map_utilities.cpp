@@ -67,6 +67,16 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 		const auto &other_object = *it;
 		const auto other_map_object_uuid = other_object->get_map_object_uuid();
 		const auto other_coord = other_object->get_coord();
+		const auto other_account_uuid = other_object->get_owner_uuid();
+		const auto other_object_type_id = other_object->get_map_object_type_id();
+		//军团建筑
+		if(other_object_type_id == MapObjectTypeIds::ID_LEGION_WAREHOUSE){
+			if((coord == other_coord) || (coord == Coord(other_coord.x()+1,other_coord.y()))){
+				CbppResponse(Msg::ERR_BLOCKED_BY_LEGION_WAREHOUSE) <<other_map_object_uuid;
+			}
+		}
+		
+		//其他部队
 		if(coord == other_coord){
 			LOG_EMPERY_CLUSTER_TRACE("Blocked by another map object: other_map_object_uuid = ", other_map_object_uuid);
 			if(wait_for_moving_objects && other_object->is_moving()){
@@ -74,8 +84,7 @@ std::pair<long, std::string> get_move_result(Coord coord, AccountUuid account_uu
 			}
 			return CbppResponse(Msg::ERR_BLOCKED_BY_TROOPS) <<other_map_object_uuid;
 		}
-		const auto other_account_uuid = other_object->get_owner_uuid();
-		const auto other_object_type_id = other_object->get_map_object_type_id();
+		//城堡
 		if((other_account_uuid != account_uuid) && (other_object_type_id == MapObjectTypeIds::ID_CASTLE)){
 			foundation.clear();
 			get_castle_foundation(foundation, other_coord, false);

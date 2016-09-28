@@ -22,6 +22,7 @@ lib_libposeidon_empery_center_log_la_SOURCES = \
 	src/log/castle.cpp	\
 	src/log/auction.cpp	\
 	src/log/map.cpp	\
+	src/log/legion.cpp	\
 	src/log/dungeon.cpp	\
 	src/log_session.cpp	\
 	src/mmain.cpp
