@@ -81,4 +81,46 @@ EVENT_LISTENER(Events::LegionMoneyChanged, event){
 	log->send(msg);
 }
 
+EVENT_LISTENER(Events::CreateWarehouseBuildingTrace, event){
+	const auto log = LogClient::require();
+
+	Msg::SL_CreateWarehouseBuildingTrace msg;
+	msg.account_uuid    = event.account_uuid.str();
+	msg.legion_uuid   	= event.legion_uuid.str();
+	msg.x    			= event.x;
+	msg.y    			= event.y;
+	msg.created_time   = event.created_time;
+
+	log->send(msg);
+}
+
+
+EVENT_LISTENER(Events::OpenWarehouseBuildingTrace, event){
+	const auto log = LogClient::require();
+
+	Msg::SL_OpenWarehouseBuildingTrace msg;
+	msg.account_uuid    = event.account_uuid.str();
+	msg.legion_uuid   	= event.legion_uuid.str();
+	msg.x    			= event.x;
+	msg.y    			= event.y;
+	msg.level    		= event.level;
+	msg.open_time   = event.open_time;
+
+	log->send(msg);
+}
+
+EVENT_LISTENER(Events::RobWarehouseBuildingTrace, event){
+	const auto log = LogClient::require();
+
+	Msg::SL_RobWarehouseBuildingTrace msg;
+	msg.account_uuid    = event.account_uuid.str();
+	msg.legion_uuid   	= event.legion_uuid.str();
+	msg.ntype    		= event.ntype;
+	msg.amount    		= event.amount;
+	msg.level    		= event.level;
+	msg.rob_time        = event.rob_time;
+
+	log->send(msg);
+}
+
 }

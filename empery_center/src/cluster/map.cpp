@@ -55,6 +55,7 @@
 #include "../singletons/legion_task_box_map.hpp"
 #include "../legion_member.hpp"
 #include "../legion_member_attribute_ids.hpp"
+#include "../legion_log.hpp"
 
 namespace EmperyCenter {
 
@@ -1044,6 +1045,14 @@ _wounded_done:
 
 							warehouse_building->create_mission(WarehouseBuilding::MIS_DESTRUCT, UINT64_MAX, {});
 
+							// 日志数据埋点
+							const auto utc_now = Poseidon::get_utc_time();
+							const auto& member = LegionMemberMap::get_by_account_uuid(attacked_object->get_owner_uuid());
+							if(member)
+							{
+								LegionLog::RobWarehouseBuildingTrace(attacking_account_uuid,member->get_legion_uuid(),warehouse_building->get_level(),warehouse_building->get_output_type(), left,utc_now);
+							}
+
 							goto _create_crates;
 						}
 						else
@@ -1575,23 +1584,18 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 	if(harvest_speed <= 0){
 		return Response(Msg::ERR_ZERO_HARVEST_SPEED) <<map_object_type_id;
 	}
+
 //	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
 	const bool forced_attack = req.forced_attack;
 	if(!forced_attack){
 		const auto resource_carriable = map_object->get_resource_amount_carriable();
 	//	const auto resource_carriable = static_cast<std::uint64_t>(20);
 		const auto resource_carried = map_object->get_resource_amount_carried();
-		LOG_EMPERY_CENTER_ERROR("KS_MapHarvestLegionResource 负重检测 *******************",resource_carriable," resource_carried:",resource_carried);
+	//	LOG_EMPERY_CENTER_ERROR("KS_MapHarvestLegionResource 负重检测 *******************",resource_carriable," resource_carried:",resource_carried);
 		if(resource_carried >= resource_carriable){
 			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
 		}
 	}
-//	const auto harvest_speed_bonus = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0;
-//	const auto harvest_speed_add = castle->get_attribute(AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
-
-//	const auto harvest_speed_bonus = 1.0;
-//	const auto harvest_speed_add = 1.0;
-//	const auto harvest_speed_total = (harvest_speed * (1 + harvest_speed_bonus) + harvest_speed_add) * soldier_count;
 
 	//地图活动翻倍
 	auto  activity_add_rate = 1;
@@ -1604,6 +1608,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 	}
 	*/
 //	const auto unit_weight = 1;
+
 	/*
 	const auto amount_to_harvest = harvest_speed_total * req.interval / 60000.0 * activity_add_rate;
 	const auto amount_harvested = target_object->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);

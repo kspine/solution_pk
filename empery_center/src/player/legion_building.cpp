@@ -33,6 +33,7 @@
 #include "../attribute_ids.hpp"
 #include "../data/legion_corps_level.hpp"
 #include "../msg/sc_legion.hpp"
+#include "../legion_log.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "../legion_log.hpp"
@@ -233,6 +234,9 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
                         if(insuff_resource_id){
                             return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
                         }
+
+                        // 日志数据埋点
+                        LegionLog::CreateWarehouseBuildingTrace(account_uuid,legion->get_legion_uuid(),req.coord_x, req.coord_y,utc_now);
 
                         return Response(Msg::ST_OK);
 
@@ -687,6 +691,10 @@ PLAYER_SERVLET(Msg::CS_OpenLegionGrubeMessage, account, session,  req )
                         msg.nick = account->get_nick();
                         msg.ext1 = "";
                         legion->sendNoticeMsg(msg);
+
+                        // 日志数据埋点
+                        const auto coord =  warehouse_building->get_coord();
+                        LegionLog::OpenWarehouseBuildingTrace(account_uuid,legion->get_legion_uuid(),coord.x(), coord.y(),cur_level,utc_now);
 
                         return Response(Msg::ST_OK);
                     }

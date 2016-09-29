@@ -44,9 +44,6 @@
 #include "../singletons/legion_task_box_map.hpp"
 #include "../legion_member.hpp"
 #include "../legion_member_attribute_ids.hpp"
-#include "../singletons/legion_map.hpp"
-#include "../msg/sc_legion.hpp"
-#include "../legion.hpp"
 #include <poseidon/async_job.hpp>
 #include "../legion_log.hpp"
 
@@ -2050,12 +2047,6 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}
 				member->set_attributes(std::move(legion_attributes_modifer));
-				const auto legion = LegionMap::require(member->get_legion_uuid());
-				Msg::SC_LegionNoticeMsg msg;
-				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_TASK_CHANGE;
-				msg.nick = "";
-				msg.ext1 = "";
-				legion->sendNoticeMsg(msg);
 			}else{
 				std::string donate = account->get_attribute(AccountAttributeIds::ID_DONATE);
 				boost::container::flat_map<AccountAttributeId, std::string> account_attributes_modifer;

@@ -67,6 +67,36 @@ namespace MySql {
 	FIELD_BIGINT            (param3)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   CenterLog_CreateWarehouseBuildingTrace
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_UUID              (legion_uuid)	\
+	FIELD_BIGINT            (x)	\
+	FIELD_BIGINT            (y)	\
+	FIELD_DATETIME          (created_time)
+#include <poseidon/mysql/object_generator.hpp>
+
+
+#define MYSQL_OBJECT_NAME   CenterLog_OpenWarehouseBuildingTrace
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_UUID              (legion_uuid)	\
+	FIELD_BIGINT            (x)	\
+	FIELD_BIGINT            (y)	\
+	FIELD_INTEGER_UNSIGNED  (level)	\
+	FIELD_DATETIME          (open_time)
+#include <poseidon/mysql/object_generator.hpp>
+
+#define MYSQL_OBJECT_NAME   CenterLog_RobWarehouseBuildingTrace
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_UUID              (legion_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (level)	\
+	FIELD_INTEGER_UNSIGNED  (ntype)	\
+	FIELD_INTEGER_UNSIGNED  (amount)	\
+	FIELD_DATETIME          (rob_time)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }
