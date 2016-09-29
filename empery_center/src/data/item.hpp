@@ -40,6 +40,7 @@ namespace Data {
 			CAT_CASTLE_BUFF           = 17, // 城堡增益
 			CAT_ITEM_BOX              = 18, // 道具木箱
 			CAT_HORN                  = 19, // 小喇叭
+			CAT_PERSONAL_DONATE_BOX   = 21, // 个人贡献箱
 		};
 
 	public:
