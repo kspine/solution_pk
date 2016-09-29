@@ -44,9 +44,6 @@
 #include "../singletons/legion_task_box_map.hpp"
 #include "../legion_member.hpp"
 #include "../legion_member_attribute_ids.hpp"
-#include "../singletons/legion_map.hpp"
-#include "../msg/sc_legion.hpp"
-#include "../legion.hpp"
 #include <poseidon/async_job.hpp>
 
 namespace EmperyCenter {
@@ -2047,12 +2044,6 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 					legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + amount_to_add);
 				}
 				member->set_attributes(std::move(legion_attributes_modifer));
-				const auto legion = LegionMap::require(member->get_legion_uuid());
-				Msg::SC_LegionNoticeMsg msg;
-				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_TASK_CHANGE;
-				msg.nick = "";
-				msg.ext1 = "";
-				legion->sendNoticeMsg(msg);
 			}else{
 				std::string donate = account->get_attribute(AccountAttributeIds::ID_DONATE);
 				boost::container::flat_map<AccountAttributeId, std::string> account_attributes_modifer;

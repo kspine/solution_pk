@@ -34,7 +34,16 @@ public:
 	static void LegionDisbandTrace(AccountUuid account_uuid,std::string legion_name,std::uint64_t disband_time);
 
 	static void LeagueDisbandTrace(AccountUuid account_uuid,std::string league_name,std::uint64_t disband_time);
+
+	static void CreateWarehouseBuildingTrace(AccountUuid account_uuid,LegionUuid legion_uuid,
+				std::int64_t x,std::int64_t y,std::uint64_t created_time);
+
+	static void OpenWarehouseBuildingTrace(AccountUuid account_uuid,LegionUuid legion_uuid,
+				std::int64_t x,std::int64_t y,std::uint64_t level,std::uint64_t open_time);
 	
+	static void RobWarehouseBuildingTrace(AccountUuid account_uuid,LegionUuid legion_uuid,
+				std::uint64_t level,std::uint64_t ntype,std::uint64_t amount,std::uint64_t rob_time);
+
 };
 
 }

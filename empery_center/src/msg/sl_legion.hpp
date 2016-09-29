@@ -23,6 +23,40 @@ namespace Msg {
 	FIELD_VUINT         (disband_time)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SL_CreateWarehouseBuildingTrace
+#define MESSAGE_ID      58703
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (created_time)
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    SL_OpenWarehouseBuildingTrace
+#define MESSAGE_ID      58704
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (level) \
+	FIELD_VUINT         (open_time)
+#include <poseidon/cbpp/message_generator.hpp>
+
+
+#define MESSAGE_NAME    SL_RobWarehouseBuildingTrace
+#define MESSAGE_ID      58705
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_VUINT         (level) \
+	FIELD_VUINT         (ntype) \
+	FIELD_VUINT         (amount) \
+	FIELD_VUINT         (rob_time)
+#include <poseidon/cbpp/message_generator.hpp>
+
 #define MESSAGE_NAME    SL_LegionMemberTrace
 #define MESSAGE_ID      58710
 #define MESSAGE_FIELDS  \
