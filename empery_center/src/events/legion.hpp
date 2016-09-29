@@ -29,6 +29,51 @@ namespace Events {
 		}
 	};
 	
+
+	struct LegionMemberTrace : public Poseidon::EventBase<340710> {
+		AccountUuid account_uuid;
+		LegionUuid legion_uuid;
+		AccountUuid action_uuid;
+		std::uint64_t action_type;
+		std::uint64_t created_time;
+
+		LegionMemberTrace(
+				AccountUuid account_uuid_,
+				LegionUuid legion_uuid_,
+				AccountUuid action_uuid_,
+				std::uint64_t action_type_,
+				std::uint64_t created_time_)
+		:account_uuid(account_uuid_),
+			legion_uuid(legion_uuid_),
+			action_uuid(action_uuid_),
+			action_type(action_type_),
+			created_time(created_time_)
+		{
+		}
+	};
+
+
+	struct LeagueLegionTrace : public Poseidon::EventBase<340711> {
+		LegionUuid legion_uuid;
+		LeagueUuid league_uuid;
+		LegionUuid action_uuid;
+		std::uint64_t action_type;
+		std::uint64_t created_time;
+
+		LeagueLegionTrace(
+				LegionUuid legion_uuid_,
+				LeagueUuid league_uuid_,
+				LegionUuid action_uuid_,
+				std::uint64_t action_type_,
+				std::uint64_t created_time_)
+		:legion_uuid(legion_uuid_),
+		 league_uuid(league_uuid_),
+			action_uuid(action_uuid_),
+			action_type(action_type_),
+			created_time(created_time_)
+		{
+		}
+	};
 }
 
 }

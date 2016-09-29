@@ -20,6 +20,25 @@ namespace MySql {
 	FIELD_STRING  			(league_name) \
 	FIELD_DATETIME          (disband_time)
 #include <poseidon/mysql/object_generator.hpp>
+
+#define MYSQL_OBJECT_NAME   CenterLog_LegionMemberTrace
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_UUID              (legion_uuid)	\
+	FIELD_UUID              (action_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (action_type)	\
+	FIELD_DATETIME          (created_time)
+#include <poseidon/mysql/object_generator.hpp>
+
+#define MYSQL_OBJECT_NAME   CenterLog_LeagueLegionTrace
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (legion_uuid)	\
+	FIELD_UUID              (league_uuid)	\
+	FIELD_UUID              (action_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (action_type)	\
+	FIELD_DATETIME          (created_time)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }
