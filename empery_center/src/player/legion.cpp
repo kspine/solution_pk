@@ -2095,10 +2095,12 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							// 修改军团资金
 							LOG_EMPERY_CENTER_ERROR("军团资金 捐献前  ===========",legion->get_attribute(LegionAttributeIds::ID_MONEY));
 							boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-							const auto money = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + req.num * 100 / dvalue * lvalue));
+							const auto old_money = boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY));
+							const auto money = boost::lexical_cast<std::string>(std::ceil(old_money + req.num * 100 / dvalue * lvalue));
 							Attributes[LegionAttributeIds::ID_MONEY] = money;
 							LOG_EMPERY_CENTER_ERROR("军团资金 捐献后  ===========",money);
-							legion->set_attributes(Attributes);
+							legion->set_attributes(Attributes);								
+							LegionLog::LegionMoneyTrace(member->get_legion_uuid(),old_money,boost::lexical_cast<std::uint64_t>(money),ReasonIds::ID_DOANTE_LEGION, 0, 0, static_cast<std::uint64_t>(req.num * 100));
 
 							const auto strweekdonate = member->get_attribute(LegionMemberAttributeIds::ID_WEEKDONATE);
 							double weekdonate= 0;
@@ -2125,9 +2127,11 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  捐献后个人贡献 ===========",strdotan);
 				//				Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num / dvalue * mvalue);
 								Attributes1[LegionMemberAttributeIds::ID_WEEKDONATE] = boost::lexical_cast<std::string>(std::ceil(weekdonate + req.num ));
-
 								LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人周贡献 ===========",boost::lexical_cast<std::string>(weekdonate + req.num));
+								const auto old_donate = boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 								member->set_attributes(std::move(Attributes1));
+								const auto new_donate = boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
+								LegionLog::LegionPersonalDonateTrace(account_uuid,old_donate,new_donate,ReasonIds::ID_DOANTE_LEGION, 0, 0, static_cast<std::uint64_t>(req.num * 100));
 							}
 
 
@@ -2318,8 +2322,13 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 
 					const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 					[&]{
+						const auto old_donate = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 						// 消耗处理
 						member->set_attributes(std::move(Attributes));
+						const auto new_donate = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
+						if(old_donate != new_donate){
+							LegionLog::LegionPersonalDonateTrace(account_uuid,old_donate,new_donate,ReasonIds::ID_LEGION_EXCHANGE_ITEM,0,0,0);
+						}
 					});
 
 					if(insuff_item_id)
