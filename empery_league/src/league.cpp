@@ -128,7 +128,7 @@ void League::InitAttributes(LegionUuid legion_uuid,std::string content, std::str
 	set_attributes(std::move(modifiers));
 }
 
-void League::AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned level,std::uint64_t join_time)
+void League::AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned level,std::uint64_t join_time, std::string eventtypes)
 {
 	PROFILE_ME;
 
@@ -155,7 +155,7 @@ void League::AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned 
 		// 发邮件
 		sendemail(EmperyCenter::ChatMessageTypeId(EmperyCenter::ChatMessageTypeIds::ID_LEVEL_LEAGUE_JOIN),legion_uuid,get_nick());
 		// 广播通知
-		sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_JOIN,"",legion_uuid.str());
+		sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_JOIN,eventtypes,legion_uuid.str());
 	}
 }
 
