@@ -43,4 +43,26 @@ void LegionLog::LeagueLegionTrace(LegionUuid legion_uuid,
 		*withdrawn = false;
 }
 
+void LegionLog::LegionDisbandTrace(AccountUuid account_uuid,std::string legion_name,std::uint64_t disband_time)
+{
+	const auto event = boost::make_shared<Events::LegionDisband>(account_uuid, legion_name, disband_time);
+
+	const auto withdrawn = boost::make_shared<bool>(true);
+
+	Poseidon::async_raise_event(event, withdrawn);
+
+	*withdrawn = false;
+}
+
+void LegionLog::LeagueDisbandTrace(AccountUuid account_uuid,std::string league_name,std::uint64_t disband_time)
+{
+	const auto event = boost::make_shared<Events::LeagueDisband>(account_uuid, league_name, disband_time);
+
+	const auto withdrawn = boost::make_shared<bool>(true);
+
+	Poseidon::async_raise_event(event, withdrawn);
+
+	*withdrawn = false;
+}
+
 }

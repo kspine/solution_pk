@@ -31,6 +31,7 @@
 #include "../chat_message.hpp"
 #include "../singletons/chat_box_map.hpp"
 #include "../events/legion.hpp"
+#include "../legion_log.hpp"
 #include <poseidon/async_job.hpp>
 
 
@@ -823,14 +824,7 @@ LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
 
 		// 记录日志，抛出事件
 		const auto utc_now = Poseidon::get_utc_time();
-
-		const auto event = boost::make_shared<Events::LegionDisband>(account_uuid, legion_name, utc_now);
-
-		const auto withdrawn = boost::make_shared<bool>(true);
-
-		Poseidon::async_raise_event(event, withdrawn);
-
-		*withdrawn = false;
+		LegionLog::LegionDisbandTrace(account_uuid,legion_name,utc_now);
 
 		return Response(Msg::ST_OK);
 	}
@@ -851,14 +845,7 @@ LEAGUE_SERVLET(Msg::LS_disbandLeagueRes, server, req){
 
 		// 记录日志，抛出事件
 		const auto utc_now = Poseidon::get_utc_time();
-
-		const auto event = boost::make_shared<Events::LeagueDisband>(AccountUuid(req.account_uuid), req.league_name, utc_now);
-
-		const auto withdrawn = boost::make_shared<bool>(true);
-
-		Poseidon::async_raise_event(event, withdrawn);
-
-		*withdrawn = false;
+		LegionLog::LeagueDisbandTrace(AccountUuid(req.account_uuid),req.league_name,utc_now);
 
 		return Response(Msg::ST_OK);
 	}
