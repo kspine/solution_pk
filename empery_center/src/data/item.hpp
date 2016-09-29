@@ -41,6 +41,7 @@ namespace Data {
 			CAT_ITEM_BOX              = 18, // 道具木箱
 			CAT_HORN                  = 19, // 小喇叭
 			CAT_RESOURCE_GIFT_BOX     = 20, // 资源礼包
+			CAT_PERSONAL_DONATE_BOX   = 21, // 个人贡献箱
 		};
 
 	public:

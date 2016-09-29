@@ -233,6 +233,12 @@ void LegionMember::set_league_uuid(std::string str_league_uuid)
 
 		Attributes[AccountAttributeIds::ID_LEAGUE_UUID] = str_league_uuid;
 
+		if(str_league_uuid.empty())
+		{
+			// 如果是清空玩家联盟，也同步清空下联盟禁言标识
+			Attributes[AccountAttributeIds::ID_LEAGUE_CAHT_FALG] = "0";
+		}
+
 		account->set_attributes(std::move(Attributes));
 	}
 }
