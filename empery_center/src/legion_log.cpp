@@ -65,4 +65,18 @@ void LegionLog::LeagueDisbandTrace(AccountUuid account_uuid,std::string league_n
 	*withdrawn = false;
 }
 
+void LegionLog::LegionPersonalDonateTrace(AccountUuid account_uuid,std::uint64_t old_count,std::uint64_t new_count,ReasonId reason,std::uint64_t param1,std::uint64_t param2,std::uint64_t param3){
+	boost::shared_ptr<Poseidon::EventBaseWithoutId> event = boost::make_shared<Events::LegionPersonalDonateChanged>(
+					account_uuid,ItemId(1103005), old_count, new_count, reason, param1, param2, param3);
+	const auto withdrawn = boost::make_shared<bool>(true);
+	Poseidon::async_raise_event(event, withdrawn);
+}
+
+void LegionLog::LegionMoneyTrace(LegionUuid legion_uuid,std::uint64_t old_count,std::uint64_t new_count,ReasonId reason,std::uint64_t param1,std::uint64_t param2,std::uint64_t param3){
+	boost::shared_ptr<Poseidon::EventBaseWithoutId> event = boost::make_shared<Events::LegionMoneyChanged>(
+					legion_uuid, ItemId(5500001), old_count, new_count, reason, param1, param2, param3);
+	const auto withdrawn = boost::make_shared<bool>(true);
+	Poseidon::async_raise_event(event, withdrawn);
+}
+
 }

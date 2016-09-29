@@ -48,6 +48,7 @@
 #include "../msg/sc_legion.hpp"
 #include "../legion.hpp"
 #include <poseidon/async_job.hpp>
+#include "../legion_log.hpp"
 
 namespace EmperyCenter {
 
@@ -2043,8 +2044,10 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 				std::string donate = member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
 				if(donate.empty()){
 					legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(amount_to_add);
+					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),0,amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}else{
 					legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + amount_to_add);
+					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}
 				member->set_attributes(std::move(legion_attributes_modifer));
 				const auto legion = LegionMap::require(member->get_legion_uuid());
@@ -2058,8 +2061,10 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 				boost::container::flat_map<AccountAttributeId, std::string> account_attributes_modifer;
 				if(donate.empty()){
 					account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(amount_to_add);
+					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),0,amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}else{
 					account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + amount_to_add);
+					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);	
 				}
 				account->set_attributes(std::move(account_attributes_modifer));
 			}

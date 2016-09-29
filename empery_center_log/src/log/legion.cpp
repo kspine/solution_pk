@@ -40,6 +40,19 @@ LOG_SERVLET(Msg::SL_LeagueLegionTrace, log, req){
 	obj->async_save(false, true);
 }
 
+LOG_SERVLET(Msg::SL_LegionPersonalDonateChanged, log, req){
+	auto obj = boost::make_shared<MySql::CenterLog_PersonalDonateChanged>(
+		Poseidon::get_utc_time(),
+		Poseidon::Uuid(req.account_uuid), req.item_id, req.old_count, req.new_count,
+		static_cast<std::int64_t>(req.new_count - req.old_count), req.reason, req.param1, req.param2, req.param3);
+	obj->async_save(false, true);
+}
 
-
+LOG_SERVLET(Msg::SL_LegionMoneyChanged, log, req){
+	auto obj = boost::make_shared<MySql::CenterLog_LegionMoneyChanged>(
+		Poseidon::get_utc_time(),
+		Poseidon::Uuid(req.legion_uuid), req.item_id, req.old_count, req.new_count,
+		static_cast<std::int64_t>(req.new_count - req.old_count), req.reason, req.param1, req.param2, req.param3);
+	obj->async_save(false, true);
+}
 }

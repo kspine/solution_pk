@@ -34,6 +34,8 @@ public:
 	static void LegionDisbandTrace(AccountUuid account_uuid,std::string legion_name,std::uint64_t disband_time);
 
 	static void LeagueDisbandTrace(AccountUuid account_uuid,std::string league_name,std::uint64_t disband_time);
+	static void LegionMoneyTrace(LegionUuid legion_uuid,std::uint64_t old_count,std::uint64_t new_count,ReasonId reason,std::uint64_t param1,std::uint64_t param2,std::uint64_t param3);
+	static void LegionPersonalDonateTrace(AccountUuid account_uuid,std::uint64_t old_count,std::uint64_t new_count,ReasonId reason,std::uint64_t param1,std::uint64_t param2,std::uint64_t param3);
 	
 };
 

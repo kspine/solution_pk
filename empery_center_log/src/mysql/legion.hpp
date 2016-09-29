@@ -39,6 +39,34 @@ namespace MySql {
 	FIELD_DATETIME          (created_time)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   CenterLog_PersonalDonateChanged
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_DATETIME          (timestamp)	\
+	FIELD_UUID              (account_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (item_id)	\
+	FIELD_BIGINT_UNSIGNED   (old_count)	\
+	FIELD_BIGINT_UNSIGNED   (new_count)	\
+	FIELD_BIGINT            (delta_count)	\
+	FIELD_INTEGER_UNSIGNED  (reason)	\
+	FIELD_BIGINT            (param1)	\
+	FIELD_BIGINT            (param2)	\
+	FIELD_BIGINT            (param3)
+#include <poseidon/mysql/object_generator.hpp>
+
+#define MYSQL_OBJECT_NAME   CenterLog_LegionMoneyChanged
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_DATETIME          (timestamp)	\
+	FIELD_UUID              (legion_uuid)	\
+	FIELD_INTEGER_UNSIGNED  (item_id)	\
+	FIELD_BIGINT_UNSIGNED   (old_count)	\
+	FIELD_BIGINT_UNSIGNED   (new_count)	\
+	FIELD_BIGINT            (delta_count)	\
+	FIELD_INTEGER_UNSIGNED  (reason)	\
+	FIELD_BIGINT            (param1)	\
+	FIELD_BIGINT            (param2)	\
+	FIELD_BIGINT            (param3)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }

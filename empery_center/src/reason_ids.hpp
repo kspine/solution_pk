@@ -94,8 +94,16 @@ constexpr ReasonId
 	ID_LEGION_PACKAGE_TASK_PACKAGE_ITEM  (674024),//军团礼包 任务礼包 物品
 	ID_LEGION_PACKAGE_SHARE_PACKAGE_ITEM (674025),//军团礼包 分享礼包 物品
 	ID_LEGION_PACKAGE_SHARE_PACKAGE_COUNT_ITEM (674026),//军团礼包 分享礼包 已领计数物品
-	ID_KING_CHAT                     (674027);   //0
+	ID_KING_CHAT                     (674027),   //0
 
+	ID_LEGION_TASK_STAGE_REWARD      ( 675001 ),//  活动id               活动阶段           0
+	ID_LEGION_TASK_PROCESS_REWARD    ( 675002 ),//  活动id               活动进度变化       0
+	ID_LEGION_CREATE_BUILDING        ( 675003 ),//  建筑类型 ID          0                  0
+	ID_LEGION_OPEN_GRUBE             ( 675004 ),//   0                   0                  0
+	ID_LEGION_UPGRADE                ( 675005 ),//  军团UUID 高位        等级               0
+	ID_LEGION_REPAIR_GRUBE           ( 675006 ),//  矿井UUID 高位        0                  0
+	ID_LEGION_USE_DONATE_ITEM        ( 675007 ),//  道具 ID              道具数量           0
+	ID_LEGION_EXCHANGE_ITEM          ( 675008 );//  0                    0                  0
 }
 
 }

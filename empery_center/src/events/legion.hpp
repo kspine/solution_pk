@@ -28,7 +28,6 @@ namespace Events {
 		{
 		}
 	};
-	
 
 	struct LegionMemberTrace : public Poseidon::EventBase<340710> {
 		AccountUuid account_uuid;
@@ -71,6 +70,48 @@ namespace Events {
 			action_uuid(action_uuid_),
 			action_type(action_type_),
 			created_time(created_time_)
+		{
+		}
+	};
+
+	struct LegionPersonalDonateChanged : public Poseidon::EventBase<340720> {
+		AccountUuid   account_uuid;
+		ItemId        item_id;
+		std::uint64_t old_count;
+		std::uint64_t new_count;
+
+		ReasonId reason;
+		std::int64_t param1;
+		std::int64_t param2;
+		std::int64_t param3;
+
+		LegionPersonalDonateChanged(AccountUuid account_uuid_,
+			ItemId item_id_, std::uint64_t old_count_, std::uint64_t new_count_,
+			ReasonId reason_, std::int64_t param1_, std::int64_t param2_, std::int64_t param3_)
+			: account_uuid(account_uuid_)
+			, item_id(item_id_), old_count(old_count_), new_count(new_count_)
+			, reason(reason_), param1(param1_), param2(param2_), param3(param3_)
+		{
+		}
+	};
+
+	struct LegionMoneyChanged : public Poseidon::EventBase<340721> {
+		LegionUuid    legion_uuid;
+		ItemId        item_id;
+		std::uint64_t old_count;
+		std::uint64_t new_count;
+
+		ReasonId reason;
+		std::int64_t param1;
+		std::int64_t param2;
+		std::int64_t param3;
+
+		LegionMoneyChanged(LegionUuid legion_uuid_,
+			ItemId item_id_, std::uint64_t old_count_, std::uint64_t new_count_,
+			ReasonId reason_, std::int64_t param1_, std::int64_t param2_, std::int64_t param3_)
+			: legion_uuid(legion_uuid_)
+			, item_id(item_id_), old_count(old_count_), new_count(new_count_)
+			, reason(reason_), param1(param1_), param2(param2_), param3(param3_)
 		{
 		}
 	};
