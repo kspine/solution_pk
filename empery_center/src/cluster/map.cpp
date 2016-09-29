@@ -55,6 +55,7 @@
 #include "../singletons/legion_task_box_map.hpp"
 #include "../legion_member.hpp"
 #include "../legion_member_attribute_ids.hpp"
+#include "../legion_log.hpp"
 
 namespace EmperyCenter {
 
@@ -1043,6 +1044,14 @@ _wounded_done:
 							warehouse_building->cancel_mission();
 
 							warehouse_building->create_mission(WarehouseBuilding::MIS_DESTRUCT, UINT64_MAX, {});
+
+							// 日志数据埋点
+							const auto utc_now = Poseidon::get_utc_time();
+							const auto& member = LegionMemberMap::get_by_account_uuid(attacked_object->get_owner_uuid());
+							if(member)
+							{
+								LegionLog::RobWarehouseBuildingTrace(attacking_account_uuid,member->get_legion_uuid(),warehouse_building->get_level(),warehouse_building->get_output_type(), left,utc_now);
+							}
 
 							goto _create_crates;
 						}
