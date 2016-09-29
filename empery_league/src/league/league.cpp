@@ -38,9 +38,8 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 	//new_dungeon->set_dungeon_duration(1000*60*3);
    */
     // 判断军团是否已经加入到联盟中
-	std::vector<boost::shared_ptr<League>> leagues;
-	LeagueMap::get_by_legion_uuid(leagues,legion_uuid);
-	if(!leagues.empty())
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+	if(member)
 	{
 		/*
 		EmperyCenter::Msg::LS_CreateLeagueRes msg;
@@ -53,6 +52,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 	// 判断玩家是否已有联盟
 
 	// 判断名字是否重复
+	std::vector<boost::shared_ptr<League>> leagues;
 	leagues.clear();
 	LeagueMap::get_by_nick(leagues,req.name);
 	if(!leagues.empty())

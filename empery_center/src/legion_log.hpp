@@ -30,6 +30,10 @@ public:
 	static void LeagueLegionTrace(LegionUuid legion_uuid,
 			LeagueUuid league_uuid,LegionUuid action_uuid,
 			std::uint64_t action_type,std::uint64_t created_time);
+
+	static void LegionDisbandTrace(AccountUuid account_uuid,std::string legion_name,std::uint64_t disband_time);
+
+	static void LeagueDisbandTrace(AccountUuid account_uuid,std::string league_name,std::uint64_t disband_time);
 	
 };
 
