@@ -1027,14 +1027,15 @@ _wounded_done:
 				}
 				{
 					// 军团矿井掉落
-					const auto warehouse_building = boost::dynamic_pointer_cast<WarehouseBuilding>(attacked_object);
+					const auto& warehouse_building = boost::dynamic_pointer_cast<WarehouseBuilding>(attacked_object);
 					if (warehouse_building)
 					{
 						// 查看矿井剩余资源数量
 						const auto left = warehouse_building->get_output_amount();
 						if (left > 0)
 						{
-							auto &amount = resources_dropped[ResourceId(warehouse_building->get_output_type())];
+							const auto ntype = warehouse_building->get_output_type();
+							auto &amount = resources_dropped[ResourceId(ntype)];
 							amount = checked_add(amount, left);
 
 							// 矿井不消失，给个击毁标识
@@ -1050,7 +1051,7 @@ _wounded_done:
 							const auto& member = LegionMemberMap::get_by_account_uuid(attacked_object->get_owner_uuid());
 							if(member)
 							{
-								LegionLog::RobWarehouseBuildingTrace(attacking_account_uuid,member->get_legion_uuid(),warehouse_building->get_level(),warehouse_building->get_output_type(), left,utc_now);
+								LegionLog::RobWarehouseBuildingTrace(attacking_account_uuid,member->get_legion_uuid(),warehouse_building->get_level(),ntype, left,utc_now);
 							}
 
 							goto _create_crates;

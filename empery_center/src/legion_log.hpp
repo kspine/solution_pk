@@ -19,6 +19,16 @@ public:
 		 ELEGION_KICK        = 4
 	};
 
+	enum LEAGUE_LEGION_LOG
+	{
+		ELEAGUE_CREATE_JOIN = 0,
+		ELEAGUE_APPLY_JOIN = 1,
+		ELEAGUE_INVITE_JOIN = 2,
+		ELEAGUE_CHECK_JOIN = 3,
+		ELEAGUE_EXIT = 4,
+		ELEAGUE_KICK = 5
+	};
+
 public:
 	LegionLog();
 	~LegionLog();
