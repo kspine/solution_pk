@@ -444,6 +444,7 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_session, req){
 				const auto autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 				if(autojoin == "0")
 				{
+					league->set_controller(league_session);
 					// 不用审核，直接加入
 					league->AddMember(legion_uuid,account_uuid,3,utc_now);
 
@@ -775,6 +776,8 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_session, req){
 						return Response(Msg::ERR_LEAGUE_MEMBER_FULL);
 					else
 					{
+						league->set_controller(league_session);
+						
 						const auto utc_now = Poseidon::get_utc_time();
 						// 加入
 						league->AddMember(legion_uuid,account_uuid,3,utc_now);
