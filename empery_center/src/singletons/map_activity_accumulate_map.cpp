@@ -13,15 +13,18 @@ namespace {
 	struct MapActivityAccumulateElement {
 		boost::shared_ptr<MySql::Center_MapActivityAccumulate> obj;
 		std::pair<AccountUuid, std::pair<MapActivityId, std::uint64_t>> account_activity_recent;
+		std::pair<MapActivityId,std::uint64_t>  activity_recent;
 
 		MapActivityAccumulateElement(boost::shared_ptr<MySql::Center_MapActivityAccumulate> obj_)
 			:obj(std::move(obj_)),account_activity_recent(std::make_pair(AccountUuid(obj->get_account_uuid()),std::make_pair(MapActivityId(obj->get_map_activity_id()),obj->get_avaliable_since())))
+			,activity_recent(std::make_pair(MapActivityId(obj->get_map_activity_id()),obj->get_avaliable_since()))
 		{
 		}
 	};
 
 	MULTI_INDEX_MAP(MapActivityAccumulateContainer, MapActivityAccumulateElement,
 		UNIQUE_MEMBER_INDEX(account_activity_recent)
+		MULTI_MEMBER_INDEX(activity_recent)
 	)
 
 	struct MapActivityRankElement {
@@ -57,8 +60,8 @@ namespace {
 	)
 	
 	struct WorldActivityAccumulateElement {
-		boost::shared_ptr<MySql::Center_MapWorldActivityAccumulate>                      obj;
-		std::pair<std::uint64_t,Coord>                                                      recent_cluster_coord;
+		boost::shared_ptr<MySql::Center_MapWorldActivityAccumulate>                       obj;
+		std::pair<std::uint64_t,Coord>                                                    recent_cluster_coord;
 		std::pair<WorldActivityId,std::pair<std::uint64_t,Coord>>                         recent_cluster_coord_activity;
 		std::pair<std::pair<AccountUuid,WorldActivityId>,std::pair<std::uint64_t,Coord>>  account_recent_cluster_activity;
 		WorldActivityAccumulateElement(boost::shared_ptr<MySql::Center_MapWorldActivityAccumulate> obj_)
@@ -274,6 +277,23 @@ MapActivityAccumulateMap::AccumulateInfo MapActivityAccumulateMap::get(AccountUu
 	return info;
 }
 
+void MapActivityAccumulateMap::get_recent(MapActivityId activity_id,std::uint64_t since,std::vector<AccumulateInfo> &ret){
+	PROFILE_ME;
+
+	const auto map_activity_accumulate_map = g_map_activity_accumulate_map.lock();
+	if(!map_activity_accumulate_map){
+		LOG_EMPERY_CENTER_WARNING("map activity accumulate map is not loaded.");
+		return;
+	}
+	const auto range = map_activity_accumulate_map->equal_range<1>(std::make_pair(activity_id,since));
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		AccumulateInfo info = {};
+		fill_map_activity_accumulate_info(info, *it);
+		ret.emplace_back(std::move(info));
+	}
+}
+
 void MapActivityAccumulateMap::insert(AccumulateInfo info){
 	PROFILE_ME;
 
@@ -442,6 +462,23 @@ WorldActivityAccumulateMap::WorldActivityAccumulateInfo WorldActivityAccumulateM
 	}
 	fill_world_activity_accumluate_info(info, *it);
 	return info;
+}
+
+void WorldActivityAccumulateMap::get_recent_activity_accumulate_info(Coord coord,std::uint64_t since,std::vector<WorldActivityAccumulateInfo> &ret){
+	PROFILE_ME;
+	
+	const auto world_activity_accumulate_map = g_world_activity_accumulate_map.lock();
+	if(!world_activity_accumulate_map){
+		LOG_EMPERY_CENTER_WARNING("world activity accumulate map is not loaded.");
+		return;
+	}
+	const auto range = world_activity_accumulate_map->equal_range<1>(std::make_pair(since,coord));
+	ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+	for(auto it = range.first; it != range.second; ++it){
+		WorldActivityAccumulateInfo info = {};
+		fill_world_activity_accumluate_info(info, *it);
+		ret.emplace_back(std::move(info));
+	}
 }
 
 void WorldActivityAccumulateMap::update(WorldActivityAccumulateInfo info){

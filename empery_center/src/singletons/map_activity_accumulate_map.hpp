@@ -20,6 +20,7 @@ struct MapActivityAccumulateMap {
 	};
 
 	static AccumulateInfo get(AccountUuid account_uuid, MapActivityId activity_id,std::uint64_t since);
+	static void get_recent(MapActivityId activity_id,std::uint64_t since,std::vector<AccumulateInfo> &ret);
 	static void insert(AccumulateInfo info);
 	static void update(AccumulateInfo info,bool throws_if_not_exists);
 private:
@@ -62,12 +63,13 @@ private:
 struct WorldActivityAccumulateMap {
 	struct WorldActivityAccumulateInfo{
 		AccountUuid          account_uuid;
-		WorldActivityId    activity_id;
+		WorldActivityId      activity_id;
 		Coord                cluster_coord;
 		std::uint64_t        since;
 		std::uint64_t        accumulate_value;
 	};
 	static WorldActivityAccumulateInfo get(AccountUuid account_uuid,Coord coord, WorldActivityId activity_id,std::uint64_t since);
+	static void get_recent_activity_accumulate_info(Coord coord,std::uint64_t since,std::vector<WorldActivityAccumulateInfo> &ret);
 	static void update(WorldActivityAccumulateInfo info);
 	static void get_recent_world_activity_account(Coord coord, WorldActivityId activity_id,std::uint64_t since,std::vector<AccountUuid> &ret);
 private:

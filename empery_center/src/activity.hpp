@@ -49,8 +49,11 @@ public:
 };
 
 class WorldActivity : public Activity {
+	typedef std::pair<AccountUuid,std::uint64_t> ACCOUNT_ACCUMULATE_PAIR;
+	typedef std::pair<std::uint64_t,std::vector<std::pair<AccountUuid,std::uint64_t>>> LAST_ACCOUNT_ACCUMULATE_PAIR;
 public:
 	bool m_expired_remove;
+	boost::container::flat_map<Coord,LAST_ACCOUNT_ACCUMULATE_PAIR> m_last_world_accumulates;
 public:
 	WorldActivity(std::uint64_t unique_id,std::uint64_t available_since,std::uint64_t available_until);
 	~WorldActivity();
@@ -62,6 +65,7 @@ public:
 	bool is_world_activity_on(Coord cluster_coord,WorldActivityId world_activity_id);
 	void update_world_activity_schedule(Coord cluster_coord,WorldActivityId world_activity_id,AccountUuid account_uuid,std::uint64_t delta,bool boss_die = false);
 	void synchronize_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const;
+	void account_accmulate_sort(const Coord cluster_coord,std::vector<std::pair<AccountUuid,std::uint64_t> > &ret);
 	bool settle_world_activity(Coord cluster_coord,std::uint64_t utc_now);
 	bool settle_world_activity_in_activity(Coord cluster_coord,std::uint64_t utc_now,std::vector<WorldActivityRankMap::WorldActivityRankInfo> &ret);
 	void synchronize_world_rank_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session);
