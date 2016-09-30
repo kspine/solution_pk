@@ -168,25 +168,6 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 	if(!ret.empty()){
 		return false;
 	}
-	/*
-	const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_MapActivityAccumulate>>>();
-	{
-		std::ostringstream oss;
-		char str[256];
-		Poseidon::format_time(str, sizeof(str), boost::lexical_cast<std::uint64_t>(activity_kill_solider_info.available_since), false);
-		oss <<"SELECT * FROM `Center_MapActivityAccumulate` WHERE `map_activity_id` = " << ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get() << " and `avaliable_since` = " << Poseidon::MySql::StringEscaper(str);
-		const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-			[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-				auto obj = boost::make_shared<MySql::Center_MapActivityAccumulate>();
-				obj->fetch(conn);
-				sink->emplace_back(std::move(obj));
-			}, "Center_MapActivityAccumulate", oss.str());
-		Poseidon::JobDispatcher::yield(promise, true);
-	}
-	if(sink->empty()){
-		return false;
-	}
-	*/
 	std::vector<MapActivityAccumulateMap::AccumulateInfo> accumuate_vec;
 	MapActivityAccumulateMap::get_recent(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER,activity_kill_solider_info.available_since,accumuate_vec);
 	std::sort(accumuate_vec.begin(),accumuate_vec.end(),[](const MapActivityAccumulateMap::AccumulateInfo& left, const MapActivityAccumulateMap::AccumulateInfo& right)
@@ -556,7 +537,7 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 	std::vector<ACCOUNT_ACCUMULATE_PAIR> account_accumulate_vec;
 	account_accmulate_sort(cluster_coord,account_accumulate_vec);
 	std::uint64_t rank = 1;
-	for(auto it = account_accumulate_vec.begin(); it != account_accumulate_vec.end(),rank <= max_rank; ++it,++rank){
+	for(auto it = account_accumulate_vec.begin(); (it != account_accumulate_vec.end())&&(rank <= max_rank); ++it,++rank){
 		WorldActivityRankMap::WorldActivityRankInfo info = {};
 		info.account_uuid     = (*it).first;
 		info.cluster_coord    = cluster_coord;
@@ -618,7 +599,7 @@ bool WorldActivity::settle_world_activity_in_activity(Coord cluster_coord,std::u
 	}
 	const auto rank_threshold = Data::Global::as_unsigned(Data::Global::SLOT_WORLD_ACTIVITY_RANK_THRESHOLD);
 	std::uint64_t rank = 1;
-	for(auto it = account_accumulate_vec.begin(); it != account_accumulate_vec.end(),rank <= rank_threshold; ++it,++rank){
+	for(auto it = account_accumulate_vec.begin(); (it != account_accumulate_vec.end()&&(rank <= rank_threshold); ++it,++rank){
 		WorldActivityRankMap::WorldActivityRankInfo info = {};
 		info.account_uuid     = (*it).first;
 		info.cluster_coord    = cluster_coord;
