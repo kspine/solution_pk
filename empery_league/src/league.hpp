@@ -107,7 +107,7 @@ public:
 	// 初始化属性
 	void InitAttributes(LegionUuid legion_uuid,std::string content, std::string language, std::string icon,unsigned bautojoin);
 	// 增加成员
-	void AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned level,std::uint64_t join_time);
+	void AddMember(LegionUuid legion_uuid,AccountUuid account_uuid,unsigned level,std::uint64_t join_time, std::string eventtypes);
 
 	// 联盟解散的善后操作
 	void disband();
