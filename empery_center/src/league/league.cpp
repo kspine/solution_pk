@@ -622,6 +622,7 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 	}
 	else if(msg.msgtype == 1 || msg.msgtype == 2 || msg.msgtype == 3 )
 	{
+		auto utc_time = Poseidon::get_utc_time();
 		const auto& legion = LegionMap::get(LegionUuid(req.ext1));
 		if(legion)
 		{
@@ -630,9 +631,29 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 			if(msg.msgtype == 1)
 			{
 				legion->set_member_league_uuid(req.league_uuid);
+
+				//军团加入联盟：跟踪：创建，申请，邀请，审核
+				LegionLog::LeagueLegionTrace(legion->get_legion_uuid(),
+					LeagueUuid(req.league_uuid), legion->get_legion_uuid(),
+					boost::lexical_cast<uint64_t>(req.nick), utc_time);
 			}
 			else if( msg.msgtype == 2 || msg.msgtype == 3 )
 			{
+				if (msg.msgtype == 2)
+				{
+					//军团退出联盟：跟踪
+					LegionLog::LeagueLegionTrace(legion->get_legion_uuid(),
+						LeagueUuid(req.league_uuid), legion->get_legion_uuid(),
+						LegionLog::ELEAGUE_EXIT, utc_time);
+				}
+				else if (msg.msgtype == 3)
+				{
+					//联盟踢出军团：跟踪
+					LegionLog::LeagueLegionTrace(legion->get_legion_uuid(),
+						LeagueUuid(req.league_uuid), legion->get_legion_uuid(),
+						LegionLog::ELEAGUE_KICK, utc_time);
+				}
+
 				legion->set_member_league_uuid("");
 			}
 		}

@@ -80,7 +80,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueCreated, league_session, req){
 	league->set_controller(league_session);
 
 	// 增加联盟成员
-	league->AddMember(legion_uuid,account_uuid,1,utc_now);
+	league->AddMember(legion_uuid,account_uuid,1,utc_now, "0");
 
 	EmperyCenter::Msg::LS_LeagueNoticeMsg msg;
 	msg.league_uuid = league->get_league_uuid().str();
@@ -444,8 +444,9 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_session, req){
 				const auto autojoin = league->get_attribute(LeagueAttributeIds::ID_AUTOJOIN);
 				if(autojoin == "0")
 				{
+					league->set_controller(league_session);
 					// 不用审核，直接加入
-					league->AddMember(legion_uuid,account_uuid,3,utc_now);
+					league->AddMember(legion_uuid,account_uuid,3,utc_now, "1");
 
 					league->synchronize_with_player(league_session,account_uuid,legion_uuid);
 
@@ -583,7 +584,7 @@ LEAGUE_SERVLET(Msg::SL_LeagueAuditingRes, league_session, req){
 						// 同意加入,增加联盟成员
 						const auto utc_now = Poseidon::get_utc_time();
 
-						league->AddMember(target_legion_uuid,account_uuid,3,utc_now);
+						league->AddMember(target_legion_uuid,account_uuid,3,utc_now, "3");
 
 						league->synchronize_with_player(league_session,account_uuid,target_legion_uuid);
 
@@ -775,9 +776,11 @@ LEAGUE_SERVLET(Msg::SL_LeagueInviteJoinRes, league_session, req){
 						return Response(Msg::ERR_LEAGUE_MEMBER_FULL);
 					else
 					{
+						league->set_controller(league_session);
+						
 						const auto utc_now = Poseidon::get_utc_time();
 						// 加入
-						league->AddMember(legion_uuid,account_uuid,3,utc_now);
+						league->AddMember(legion_uuid,account_uuid,3,utc_now, "2");
 
 						league->synchronize_with_player(league_session,account_uuid,legion_uuid);
 
