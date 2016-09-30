@@ -553,7 +553,7 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 	}
 
 	std::uint64_t max_rank = Data::ActivityAward::get_max_activity_award_rank(ActivityIds::ID_WORLD_ACTIVITY.get());
-	std::vector<std::pair<AccountUuid,std::uint64_t>> account_accumulate_vec;
+	std::vector<ACCOUNT_ACCUMULATE_PAIR> account_accumulate_vec;
 	account_accmulate_sort(cluster_coord,account_accumulate_vec);
 	std::uint64_t rank = 1;
 	for(auto it = account_accumulate_vec.begin(); it != account_accumulate_vec.end(),rank <= max_rank; ++it,++rank){
@@ -591,13 +591,32 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
-	
+
 	return true;
 }
 bool WorldActivity::settle_world_activity_in_activity(Coord cluster_coord,std::uint64_t now,std::vector<WorldActivityRankMap::WorldActivityRankInfo> &ret){
+	auto it = m_last_world_accumulates.find(cluster_coord);
+	std::vector<ACCOUNT_ACCUMULATE_PAIR> account_accumulate_vec;
+	if(it != m_last_world_accumulates.end())
+	{
+		auto &last_accumulate_pair = it->second;
+		auto &last_processed_time  = last_accumulate_pair.first;
+		auto &last_accumulate_vec  = last_accumulate_pair.second;
+		if(last_processed_time - now < 1*60*1000){
+			account_accumulate_vec = last_accumulate_vec;
+			LOG_EMPERY_CENTER_FATAL("last accumulate info was not expired,last_processed_time:",last_processed_time);
+		}else{
+			account_accmulate_sort(cluster_coord,account_accumulate_vec);
+			last_processed_time      = now;
+			last_accumulate_vec    = account_accumulate_vec;
+			LOG_EMPERY_CENTER_FATAL(" expired,now:",last_processed_time);
+		}
+	}else{
+		LOG_EMPERY_CENTER_FATAL("first process accumulate info, now:",now);
+		account_accmulate_sort(cluster_coord,account_accumulate_vec);
+		m_last_world_accumulates.emplace(cluster_coord,std::make_pair(now,account_accumulate_vec));
+	}
 	const auto rank_threshold = Data::Global::as_unsigned(Data::Global::SLOT_WORLD_ACTIVITY_RANK_THRESHOLD);
-	std::vector<std::pair<AccountUuid,std::uint64_t>> account_accumulate_vec;
-	account_accmulate_sort(cluster_coord,account_accumulate_vec);
 	std::uint64_t rank = 1;
 	for(auto it = account_accumulate_vec.begin(); it != account_accumulate_vec.end(),rank <= rank_threshold; ++it,++rank){
 		WorldActivityRankMap::WorldActivityRankInfo info = {};

@@ -49,8 +49,11 @@ public:
 };
 
 class WorldActivity : public Activity {
+	typedef std::pair<AccountUuid,std::uint64_t> ACCOUNT_ACCUMULATE_PAIR;
+	typedef std::pair<std::uint64_t,std::vector<std::pair<AccountUuid,std::uint64_t>>> LAST_ACCOUNT_ACCUMULATE_PAIR;
 public:
 	bool m_expired_remove;
+	boost::container::flat_map<Coord,LAST_ACCOUNT_ACCUMULATE_PAIR> m_last_world_accumulates;
 public:
 	WorldActivity(std::uint64_t unique_id,std::uint64_t available_since,std::uint64_t available_until);
 	~WorldActivity();
