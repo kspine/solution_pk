@@ -599,7 +599,7 @@ bool WorldActivity::settle_world_activity_in_activity(Coord cluster_coord,std::u
 	}
 	const auto rank_threshold = Data::Global::as_unsigned(Data::Global::SLOT_WORLD_ACTIVITY_RANK_THRESHOLD);
 	std::uint64_t rank = 1;
-	for(auto it = account_accumulate_vec.begin(); (it != account_accumulate_vec.end()&&(rank <= rank_threshold); ++it,++rank){
+	for(auto it = account_accumulate_vec.begin(); it != account_accumulate_vec.end()&&(rank <= rank_threshold); ++it,++rank){
 		WorldActivityRankMap::WorldActivityRankInfo info = {};
 		info.account_uuid     = (*it).first;
 		info.cluster_coord    = cluster_coord;
