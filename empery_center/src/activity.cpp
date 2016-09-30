@@ -602,7 +602,7 @@ bool WorldActivity::settle_world_activity_in_activity(Coord cluster_coord,std::u
 		auto &last_accumulate_pair = it->second;
 		auto &last_processed_time  = last_accumulate_pair.first;
 		auto &last_accumulate_vec  = last_accumulate_pair.second;
-		if(last_processed_time - now < 1*60*1000){
+		if(now - last_processed_time < 1*60*1000){
 			account_accumulate_vec = last_accumulate_vec;
 			LOG_EMPERY_CENTER_FATAL("last accumulate info was not expired,last_processed_time:",last_processed_time);
 		}else{
