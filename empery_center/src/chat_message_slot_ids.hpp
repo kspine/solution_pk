@@ -34,7 +34,11 @@ constexpr ChatMessageSlotId
 
 	ID_LEGEION_NAME                 ( 86421 ),
 	ID_LEGEION_TASK_ID              ( 86422 ),
-	ID_LEGION_STAGE                 ( 86423 );
+	ID_LEGION_STAGE                 ( 86423 ),
+	ID_LEGION_PERSONAL_DONATE_ITEM  ( 86424 ),
+	ID_LEGION_PERSONAL_DONATE_COUNT ( 86425 ),
+	ID_LEGION_DONATE_ITMEM          ( 86426 ),
+	ID_LEGION_DONATE_COUNT          ( 86427 );
 }
 
 }

@@ -74,6 +74,7 @@ public:
 		LEGION_NOTICE_MSG_TYPE_TASK_CHANGE  	= 12,	// 任务进度有改变
 		LEGION_NOTICE_MSG_CREATE_SUCCESS  	    = 13,	// 创建成功
 		LEGION_NOTICE_MSG_MINE_STATUS_CHANGE 	= 14,	// 货仓变动
+		LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE 	= 15,	// 军团成员信息有更新
 	};
 public:
 
@@ -109,7 +110,7 @@ public:
 	// 初始化属性
 	void InitAttributes(AccountUuid accountid,std::string content, std::string language, std::string icon,unsigned bshenhe);
 	// 增加军团成员
-	void AddMember(boost::shared_ptr<Account> account,unsigned level,std::uint64_t join_time);
+	void AddMember(boost::shared_ptr<Account> account,unsigned level,std::uint64_t join_time,bool bnotify = true);
 	// 军团解散的善后操作
 	void disband();
 	// 发送通知消息

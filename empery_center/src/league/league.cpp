@@ -30,6 +30,8 @@
 #include "../chat_box.hpp"
 #include "../chat_message.hpp"
 #include "../singletons/chat_box_map.hpp"
+#include "../events/legion.hpp"
+#include "../legion_log.hpp"
 #include <poseidon/async_job.hpp>
 
 
@@ -277,7 +279,7 @@ LEAGUE_SERVLET(Msg::LS_ApplyJoinList, server, req){
 					elem.icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
 					elem.level = legion->get_attribute(LegionAttributeIds::ID_LEVEL);
 
-					const auto leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+					const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
 					if(leader_account)
 						elem.leader_name = leader_account->get_nick();
 
@@ -459,6 +461,23 @@ LEAGUE_SERVLET(Msg::LS_banChatLeagueReq, server, req){
 		Attributes[AccountAttributeIds::ID_LEAGUE_CAHT_FALG] = boost::lexical_cast<std::string>(req.bban);
 
 		account->set_attributes(std::move(Attributes));
+
+		// 广播通知
+		for(auto it = req.legions.begin(); it != req.legions.end(); ++it )
+		{
+			auto info = *it;
+
+			const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
+			if(legion)
+			{
+				Msg::SC_LeagueNoticeMsg msg;
+				msg.msgtype = 7;      // 联盟禁言
+				msg.nick = account->get_nick();
+				msg.ext1 = boost::lexical_cast<std::string>(req.bban);
+
+				legion->broadcast_to_members(msg);
+			}
+		}
 	}
 	else
 	{
@@ -558,21 +577,52 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 	msg.nick = req.nick;
 	msg.ext1 = req.ext1;
 
-	if(msg.msgtype == 6 || msg.msgtype == 9)
+	if(msg.msgtype == 9)
 	{
 		const auto& legion = LegionMap::get(LegionUuid(msg.nick));
 		if(legion)
 		{
 			msg.nick = legion->get_nick();
 
-			if(msg.msgtype == 9)
+			legion->set_member_league_uuid("");
+		}
+	}
+	else if(msg.msgtype == 6)
+	{
+		const auto& legion = LegionMap::get(LegionUuid(msg.nick));
+		if(legion)
+		{
+			msg.nick = legion->get_nick();
+
+			// 获得对应的军团长名称
+			const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+			if(leader_account)
+				msg.nick = leader_account->get_nick();
+		}
+
+		const auto& target_legion = LegionMap::get(LegionUuid(req.ext1));
+		if(legion)
+		{
+			msg.ext1 = target_legion->get_nick();
+
+			// 获得对应的军团长名称
+			const auto& target_leader_account = AccountMap::get(AccountUuid(target_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+			if(target_leader_account)
 			{
-				legion->set_member_league_uuid("");
+				msg.ext1 = target_leader_account->get_nick();
+
+				// 转让盟主后，去除新盟主的禁言状态
+				boost::container::flat_map<AccountAttributeId, std::string> Attributes;
+
+				Attributes[AccountAttributeIds::ID_LEAGUE_CAHT_FALG] = "0";
+
+				target_leader_account->set_attributes(std::move(Attributes));
 			}
 		}
 	}
-	if(msg.msgtype == 1 || msg.msgtype == 2 || msg.msgtype == 3 || msg.msgtype == 6)
+	else if(msg.msgtype == 1 || msg.msgtype == 2 || msg.msgtype == 3 )
 	{
+		auto utc_time = Poseidon::get_utc_time();
 		const auto& legion = LegionMap::get(LegionUuid(req.ext1));
 		if(legion)
 		{
@@ -581,9 +631,29 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 			if(msg.msgtype == 1)
 			{
 				legion->set_member_league_uuid(req.league_uuid);
+
+				//军团加入联盟：跟踪：创建，申请，邀请，审核
+				LegionLog::LeagueLegionTrace(legion->get_legion_uuid(),
+					LeagueUuid(req.league_uuid), legion->get_legion_uuid(),
+					boost::lexical_cast<uint64_t>(req.nick), utc_time);
 			}
 			else if( msg.msgtype == 2 || msg.msgtype == 3 )
 			{
+				if (msg.msgtype == 2)
+				{
+					//军团退出联盟：跟踪
+					LegionLog::LeagueLegionTrace(legion->get_legion_uuid(),
+						LeagueUuid(req.league_uuid), legion->get_legion_uuid(),
+						LegionLog::ELEAGUE_EXIT, utc_time);
+				}
+				else if (msg.msgtype == 3)
+				{
+					//联盟踢出军团：跟踪
+					LegionLog::LeagueLegionTrace(legion->get_legion_uuid(),
+						LeagueUuid(req.league_uuid), legion->get_legion_uuid(),
+						LegionLog::ELEAGUE_KICK, utc_time);
+				}
+
 				legion->set_member_league_uuid("");
 			}
 		}
@@ -597,12 +667,12 @@ LEAGUE_SERVLET(Msg::LS_LeagueNoticeMsg, server, req){
 
 			if(msg.msgtype == 3)
 			{
-				// 军团别踢出联盟 广播给军团其他成员
-				Msg::SC_LegionNoticeMsg msg;
-				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK;
-				msg.nick = msg.nick;
-				msg.ext1 = "";
-				legion->sendNoticeMsg(msg);
+				// 军团被踢出联盟 广播给军团其他成员
+				Msg::SC_LegionNoticeMsg kmsg;
+				kmsg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_LEAGUE_KICK;
+				kmsg.nick = msg.nick;
+				kmsg.ext1 = "";
+				legion->sendNoticeMsg(kmsg);
 			}
 
 			const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
@@ -759,6 +829,8 @@ LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
 	const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
 	if(legion)
 	{
+		const auto legion_name = legion->get_nick();
+
 		const auto account_uuid = AccountUuid(req.account_uuid);
 
 		const auto account = AccountMap::get(account_uuid);
@@ -771,6 +843,10 @@ LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
 		// 解散军团
 		LegionMap::deletelegion(legion->get_legion_uuid());
 
+		// 记录日志，抛出事件
+		const auto utc_now = Poseidon::get_utc_time();
+		LegionLog::LegionDisbandTrace(account_uuid,legion_name,utc_now);
+
 		return Response(Msg::ST_OK);
 	}
 
@@ -781,12 +857,16 @@ LEAGUE_SERVLET(Msg::LS_disbandLegionRes, server, req){
 LEAGUE_SERVLET(Msg::LS_disbandLeagueRes, server, req){
 	PROFILE_ME;
 
-	LOG_EMPERY_CENTER_DEBUG("LS_disbandLeagueRes=================== ", req.account_uuid);
+	LOG_EMPERY_CENTER_DEBUG("LS_disbandLeagueRes=================== ", req.account_uuid,req.league_name);
 
 	const auto& legion = LegionMap::get(LegionUuid(req.legion_uuid));
 	if(legion)
 	{
 		legion->set_member_league_uuid("");
+
+		// 记录日志，抛出事件
+		const auto utc_now = Poseidon::get_utc_time();
+		LegionLog::LeagueDisbandTrace(AccountUuid(req.account_uuid),req.league_name,utc_now);
 
 		return Response(Msg::ST_OK);
 	}

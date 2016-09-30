@@ -204,6 +204,8 @@ namespace EmperyCenter {
             auto tresult = league->send_and_wait(msg);
 
             LOG_EMPERY_CENTER_DEBUG("LeagueServer response: code =================== ", tresult.first, ", msg = ", tresult.second);
+
+            return Response(std::move(tresult.first));
         }
 
         return Response(Msg::ST_OK);
@@ -253,7 +255,17 @@ namespace EmperyCenter {
                 }
 
                 if(msg.legions.empty())
-                    return Response(Msg::ERR_LEAGUE_SEARCH_BY_LEADNAME_CANNOT_FIND);
+                {
+                    Msg::SC_Leagues msg;
+
+			        msg.leagues.reserve(0);
+
+                    session->send(msg);
+                    
+                    return Response(Msg::ST_OK);
+               //     return Response(Msg::ERR_LEAGUE_SEARCH_BY_LEADNAME_CANNOT_FIND);
+                }
+                    
             }
 
             if( !req.league_name.empty() ||  !msg.legions.empty())
@@ -811,6 +823,7 @@ namespace EmperyCenter {
 			if(titileid != 1)
 			{
                 // 不是军团长，没有权限
+                
 				return Response(Msg::ERR_LEAGUE_NO_POWER_LEGION);
 			}
 

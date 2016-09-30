@@ -77,6 +77,7 @@ std::uint64_t ResourceCrate::harvest(const boost::shared_ptr<MapObject> &harvest
 		return 0;
 	}
 
+	
 	const auto rounded_amount_to_harvest = static_cast<std::uint64_t>(amount_to_harvest);
 	const auto rounded_amount_removable = std::min(rounded_amount_to_harvest, amount_remaining);
 	const auto amount_added = harvester->load_resource(resource_id, rounded_amount_removable, false, true);
@@ -84,6 +85,9 @@ std::uint64_t ResourceCrate::harvest(const boost::shared_ptr<MapObject> &harvest
 	m_obj->set_amount_remaining(saturated_sub(amount_remaining, amount_removed));
 
 	WorldMap::update_resource_crate(virtual_shared_from_this<ResourceCrate>(), false);
+
+	LOG_EMPERY_CENTER_DEBUG("ResourceCrate::amount_to_harvest = ", amount_to_harvest, ", rounded_amount_to_harvest:",rounded_amount_to_harvest,
+				", rounded_amount_removable:",rounded_amount_removable,", amount_removed:",amount_removed);
 
 	return amount_removed;
 }

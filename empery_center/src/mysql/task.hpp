@@ -26,7 +26,9 @@ namespace MySql {
 	FIELD_DATETIME          (created_time)	\
 	FIELD_DATETIME          (expiry_time)	\
 	FIELD_STRING            (progress)	\
-	FIELD_BOOLEAN           (rewarded)
+	FIELD_STRING            (rewarded_progress)\
+	FIELD_BOOLEAN           (rewarded) \
+	FIELD_BOOLEAN           (deleted) 
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_LegionTaskReward

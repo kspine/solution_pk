@@ -82,6 +82,12 @@ namespace {
 		info.time_begin            = obj->get_time_begin();
 		info.time_end              = obj->get_time_end();
 	}
+	void fill_tech_era_info(Castle::TechEraInfo &info, const boost::shared_ptr<MySql::Center_CastleTechEra> &obj){
+		PROFILE_ME;
+
+		info.tech_era              = obj->get_tech_era();
+		info.unlocked              = obj->get_unlocked();
+	}
 
 	void fill_building_message(Msg::SC_CastleBuildingBase &msg,
 		const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now)
@@ -160,6 +166,13 @@ namespace {
 			msg.treatment_duration       = obj->get_duration();
 			msg.treatment_time_remaining = saturated_sub(obj->get_time_end(), utc_now);
 		}
+	}
+	void fill_tech_era_message(Msg::SC_CastleTechEra &msg, const boost::shared_ptr<MySql::Center_CastleTechEra> &obj){
+		PROFILE_ME;
+
+		msg.map_object_uuid       = obj->unlocked_get_map_object_uuid().to_string();
+		msg.tech_era              = obj->get_tech_era();
+		msg.unlocked              = obj->get_unlocked();
 	}
 
 	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now){
@@ -283,7 +296,8 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalion>> &soldiers,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
-	const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment)
+	const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment,
+	const std::vector<boost::shared_ptr<MySql::Center_CastleTechEra>> &tech_eras)
 	: DefenseBuilding(std::move(obj), attributes, buffs, defense_objs)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
@@ -318,6 +332,10 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	for(auto it = treatment.begin(); it != treatment.end(); ++it){
 		const auto &obj = *it;
 		m_treatment.emplace(MapObjectTypeId(obj->get_map_object_type_id()), obj);
+	}
+	for(auto it = tech_eras.begin(); it != tech_eras.end(); ++it){
+		const auto &obj = *it;
+		m_tech_eras.emplace(obj->get_tech_era(), obj);
 	}
 }
 Castle::~Castle(){
@@ -2479,6 +2497,60 @@ void Castle::synchronize_treatment_with_player(const boost::shared_ptr<PlayerSes
 	session->send(msg);
 }
 
+Castle::TechEraInfo Castle::get_tech_era(unsigned tech_era) const {
+	PROFILE_ME;
+
+	TechEraInfo info = { };
+	info.tech_era = tech_era;
+
+	const auto it = m_tech_eras.find(tech_era);
+	if(it == m_tech_eras.end()){
+		return info;
+	}
+	fill_tech_era_info(info, it->second);
+	return info;
+}
+void Castle::get_tech_era_all(std::vector<Castle::TechEraInfo> &ret) const {
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_tech_eras.size());
+	for(auto it = m_tech_eras.begin(); it != m_tech_eras.end(); ++it){
+		TechEraInfo info;
+		fill_tech_era_info(info, it->second);
+		ret.emplace_back(std::move(info));
+	}
+}
+void Castle::unlock_tech_era(unsigned tech_era){
+	PROFILE_ME;
+
+	auto it = m_tech_eras.find(tech_era);
+	if(it == m_tech_eras.end()){
+		auto obj = boost::make_shared<MySql::Center_CastleTechEra>(
+			get_map_object_uuid().get(), tech_era, false);
+		obj->async_save(true);
+		it = m_tech_eras.emplace(tech_era, std::move(obj)).first;
+	}
+	if(it->second->get_unlocked()){
+		LOG_EMPERY_CENTER_DEBUG("TechEra is already unlocked: map_object_uuid = ", get_map_object_uuid().get(),
+			", tech_era = ", tech_era);
+		return;
+	}
+
+	it->second->set_unlocked(true);
+
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			Msg::SC_CastleTechEra msg;
+			fill_tech_era_message(msg, it->second);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
 void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
@@ -2517,6 +2589,11 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 	{
 		Msg::SC_CastleTreatment msg;
 		fill_treatment_message(msg, get_map_object_uuid(), m_treatment, utc_now);
+		session->send(msg);
+	}
+	for(auto it = m_tech_eras.begin(); it != m_tech_eras.end(); ++it){
+		Msg::SC_CastleTechEra msg;
+		fill_tech_era_message(msg, it->second);
 		session->send(msg);
 	}
 }

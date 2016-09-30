@@ -230,7 +230,7 @@ std::uint64_t MapObject::move(std::pair<long, std::string> &result){
 		const auto to_coord = std::accumulate(m_waypoints.begin(), m_waypoints.end(), coord,
 			[](Coord c, std::pair<signed char, signed char> d){ return Coord(c.x() + d.first, c.y() + d.second); });
 		std::deque<std::pair<signed char, signed char>> new_waypoints;
-		if(find_way_points(new_waypoints, coord, to_coord, true)){
+		if(find_way_points(new_waypoints, coord, to_coord,false)){
 			notify_way_points(new_waypoints, m_action, m_action_param);
 			m_waypoints = std::move(new_waypoints);
 			return 0;
@@ -428,7 +428,6 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_action = ACT_GUARD;
 	m_action_param.clear();
 
-	set_coord(from_coord);
 
 	const auto now = Poseidon::get_fast_mono_clock();
 
@@ -446,6 +445,8 @@ void MapObject::set_action(Coord from_coord, std::deque<std::pair<signed char, s
 	m_waypoints    = std::move(waypoints);
 	m_action       = action;
 	m_action_param = std::move(action_param);
+	//set_coord(from_coord);
+	WorldMap::update_map_object(virtual_shared_from_this<MapObject>(), false);
 	notify_way_points(m_waypoints,action,m_action_param);
 	reset_attack_target_own_uuid();
 }
@@ -945,7 +946,9 @@ void MapObject::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
 	}
 
 	std::vector<boost::shared_ptr<MapObject>> friendly_map_objects;
-	if(is_legion_warehouse())
+
+	LOG_EMPERY_CLUSTER_ERROR("troops_attack legion_uuid = ", get_legion_uuid());
+	if(!get_legion_uuid().str().empty())
 	{
 		WorldMap::get_map_objects_by_legion_uuid(friendly_map_objects,get_legion_uuid());
 	}
@@ -1550,9 +1553,15 @@ std::uint64_t MapObject::on_action_harvest_legion_resource(std::pair<long, std::
 	if(!cluster){
 		return UINT64_MAX;
 	}
+	const auto map_object_type_data = get_map_object_type_data();
+	if(!map_object_type_data){
+		return UINT64_MAX;
+	}
+	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
 	Msg::KS_MapHarvestLegionResource sreq;
 	sreq.map_object_uuid = get_map_object_uuid().str();
 	sreq.interval        = harvest_interval;
+	sreq.amount_harvested = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
 	if(forced_attack){
 		sreq.forced_attack   = true;
 	}

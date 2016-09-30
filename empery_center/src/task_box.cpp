@@ -115,7 +115,7 @@ namespace EmperyCenter {
 			}
 			msg.rewarded = obj->get_rewarded();
 
-			LOG_EMPERY_CENTER_ERROR("msg.task_id = ", msg.task_id, "msg.category= ", msg.category);
+	//		LOG_EMPERY_CENTER_ERROR("msg.task_id = ", msg.task_id, "msg.category= ", msg.category);
 		}
 	}
 
@@ -319,12 +319,12 @@ namespace EmperyCenter {
 				info.expiry_time = daily_task_refresh_time;
 				if (nonexistent) {
 					LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-					LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+			//		LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
 					insert(std::move(info));
 				}
 				else {
 					LOG_EMPERY_CENTER_DEBUG("Unrewarded daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
-					LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+			//		LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
 					update(std::move(info));
 				}
 			}
@@ -448,7 +448,7 @@ namespace EmperyCenter {
 							task_id_candidates.erase(it_find);
 						}
 
-						LOG_EMPERY_CENTER_ERROR("task_id_candidates.size", task_id_candidates.size());
+				//		LOG_EMPERY_CENTER_ERROR("task_id_candidates.size", task_id_candidates.size());
 
 						for (auto it = task_id_candidates.begin(); it != task_id_candidates.end(); ++it)
 						{
@@ -461,12 +461,12 @@ namespace EmperyCenter {
 							info.expiry_time = daily_task_refresh_time;
 							if (nonexistent)
 							{
-								LOG_EMPERY_CENTER_ERROR("task_id_candidates insert ", info.task_id, info.category);
+					//			LOG_EMPERY_CENTER_ERROR("task_id_candidates insert ", info.task_id, info.category);
 								insert(std::move(info));
 							}
 							else
 							{
-								LOG_EMPERY_CENTER_ERROR("task_id_candidates update ", info.task_id, info.category);
+					//			LOG_EMPERY_CENTER_ERROR("task_id_candidates update ", info.task_id, info.category);
 								update(std::move(info));
 							}
 						}
@@ -951,7 +951,7 @@ namespace EmperyCenter {
 				continue;
 			}
 
-			LOG_EMPERY_CENTER_ERROR("synchronize_with_player");
+	//		LOG_EMPERY_CENTER_ERROR("synchronize_with_player");
 
 			Msg::SC_TaskChanged msg;
 			fill_task_message(msg, it->second, utc_now);

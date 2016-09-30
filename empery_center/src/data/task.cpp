@@ -136,6 +136,7 @@ namespace EmperyCenter
 				Poseidon::JsonObject object;
 				std::vector<std::pair<ResourceId, std::uint64_t>> rewards;
 				std::vector<std::pair<ResourceId, std::uint64_t>> legion_rewards;
+				std::vector<std::pair<ResourceId, std::uint64_t>> personal_rewards;
 				csv.get(object, "reward_id1");
 				for (auto it = object.begin(); it != object.end(); ++it)
 				{
@@ -156,13 +157,26 @@ namespace EmperyCenter
 					legion_rewards.push_back(std::make_pair(resource_id,count));
 				}
 				if(!elem.stage_legion_reward.emplace(stage1, legion_rewards).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage2 = ", stage2);
+					DEBUG_THROW(Exception, sslit("Duplicate task stage2 legion reward"));
+				}
+				object.clear();
+				csv.get(object, "personal_reward_id1");
+				for (auto it = object.begin(); it != object.end(); ++it)
+				{
+					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+					personal_rewards.push_back(std::make_pair(resource_id,count));
+				}
+				if(!elem.stage_personal_reward.emplace(stage1, personal_rewards).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage1 = ", stage1);
-					DEBUG_THROW(Exception, sslit("Duplicate task stage1 legion reward"));
+					DEBUG_THROW(Exception, sslit("Duplicate task stage1 personal reward"));
 				}
 
 				object.clear();
 				rewards.clear();
 				legion_rewards.clear();
+				personal_rewards.clear();
 				csv.get(object, "reward_id2");
 				for (auto it = object.begin(); it != object.end(); ++it)
 				{
@@ -186,10 +200,23 @@ namespace EmperyCenter
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage2 = ", stage2);
 					DEBUG_THROW(Exception, sslit("Duplicate task stage2 legion reward"));
 				}
+				object.clear();
+				csv.get(object, "personal_reward_id2");
+				for (auto it = object.begin(); it != object.end(); ++it)
+				{
+					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+					personal_rewards.push_back(std::make_pair(resource_id,count));
+				}
+				if(!elem.stage_personal_reward.emplace(stage2, personal_rewards).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage2 = ", stage2);
+					DEBUG_THROW(Exception, sslit("Duplicate task stage2 personal reward"));
+				}
 
 				object.clear();
 				rewards.clear();
 				legion_rewards.clear();
+				personal_rewards.clear();
 				csv.get(object, "reward_id3");
 				for (auto it = object.begin(); it != object.end(); ++it)
 				{
@@ -213,10 +240,23 @@ namespace EmperyCenter
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage3 = ", stage3);
 					DEBUG_THROW(Exception, sslit("Duplicate task stage3 legion reward"));
 				}
+				object.clear();
+				csv.get(object, "personal_reward_id3");
+				for (auto it = object.begin(); it != object.end(); ++it)
+				{
+					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+					personal_rewards.push_back(std::make_pair(resource_id,count));
+				}
+				if(!elem.stage_personal_reward.emplace(stage3, personal_rewards).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage3 = ", stage3);
+					DEBUG_THROW(Exception, sslit("Duplicate task stage3 personal reward"));
+				}
 
 				object.clear();
 				rewards.clear();
 				legion_rewards.clear();
+				personal_rewards.clear();
 				csv.get(object, "reward_id4");
 				for (auto it = object.begin(); it != object.end(); ++it)
 				{
@@ -239,6 +279,18 @@ namespace EmperyCenter
 				if(!elem.stage_legion_reward.emplace(stage4, legion_rewards).second){
 					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage4 = ", stage4);
 					DEBUG_THROW(Exception, sslit("Duplicate task stage4 legion reward"));
+				}
+				object.clear();
+				csv.get(object, "personal_reward_id4");
+				for (auto it = object.begin(); it != object.end(); ++it)
+				{
+					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+					personal_rewards.push_back(std::make_pair(resource_id,count));
+				}
+				if(!elem.stage_personal_reward.emplace(stage4, personal_rewards).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate task reward: stage4 = ", stage4);
+					DEBUG_THROW(Exception, sslit("Duplicate task stage4 personal reward"));
 				}
 
 				if (!task_legion_container->emplace(elem.task_id, std::move(elem)).second)
