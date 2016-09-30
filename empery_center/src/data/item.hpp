@@ -40,6 +40,8 @@ namespace Data {
 			CAT_CASTLE_BUFF           = 17, // 城堡增益
 			CAT_ITEM_BOX              = 18, // 道具木箱
 			CAT_HORN                  = 19, // 小喇叭
+			CAT_RESOURCE_GIFT_BOX     = 20, // 资源礼包
+			CAT_PERSONAL_DONATE_BOX   = 21, // 个人贡献箱
 		};
 
 	public:
@@ -79,6 +81,15 @@ namespace Data {
 		TradeId trade_id;
 		boost::container::flat_map<ItemId, std::uint64_t> items_consumed;
 		boost::container::flat_map<ItemId, std::uint64_t> items_produced;
+	};
+	
+	class ResourceTrade {
+	public:
+		static boost::shared_ptr<const ResourceTrade> get(TradeId trade_id);
+		static boost::shared_ptr<const ResourceTrade> require(TradeId trade_id);
+	public:
+		TradeId trade_id;
+		boost::container::flat_map<ResourceId,std::uint64_t> resource_produced;
 	};
 
 	class ItemRecharge {

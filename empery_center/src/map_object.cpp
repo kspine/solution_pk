@@ -17,6 +17,8 @@
 #include "transaction_element.hpp"
 #include "reason_ids.hpp"
 #include "map_object_type_ids.hpp"
+#include "singletons/legion_member_map.hpp"
+#include "singletons/legion_building_map.hpp"
 
 namespace EmperyCenter {
 
@@ -714,6 +716,23 @@ void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession>
 		msg.map_object_uuid    = get_map_object_uuid().str();
 		msg.stamp              = m_stamp;
 		msg.map_object_type_id = get_map_object_type_id().get();
+		msg.legion_uuid        = "";
+		if(MapObjectTypeId(msg.map_object_type_id) == MapObjectTypeIds::ID_LEGION_WAREHOUSE)
+		{
+			const auto& obj = LegionBuildingMap::find_by_map_object_uuid(get_map_object_uuid());
+			if(obj)
+			{
+				msg.legion_uuid = obj->get_legion_uuid().str();
+			}
+		}
+		else
+		{
+			const auto& member = LegionMemberMap::get_by_account_uuid(get_owner_uuid());
+			if(member)
+			{
+				msg.legion_uuid		   = member->get_legion_uuid().str();
+			}
+		}
 		msg.owner_uuid         = get_owner_uuid().str();
 		msg.parent_object_uuid = get_parent_object_uuid().str();
 		msg.garrisoned         = is_garrisoned();

@@ -29,6 +29,8 @@
 #include "../chat_box.hpp"
 #include <poseidon/async_job.hpp>
 
+#include "../legion_log.hpp"
+
 namespace EmperyCenter {
 
 namespace {
@@ -803,7 +805,21 @@ void LegionMemberMap::check_in_waittime()
 							msg.nick = target_account->get_nick();
 							msg.ext1 = "";
 							legion->sendNoticeMsg(msg);
+
+
+							//军团成员追踪日志：退出，踢出
+							if(!bkick)
+								    LegionLog::LegionMemberTrace(AccountUuid(account_uuid),
+									LegionUuid(member->get_legion_uuid()),AccountUuid(account_uuid),
+								    LegionLog::LEGION_MEMBER_LOG::ELEGION_EXIT,utc_now);
+
+							else
+								LegionLog::LegionMemberTrace(AccountUuid(account_uuid),
+									LegionUuid(member->get_legion_uuid()),AccountUuid(member->get_attribute(LegionMemberAttributeIds::ID_KICK_MANDATOR)),
+									LegionLog::LEGION_MEMBER_LOG::ELEGION_KICK,utc_now);
+
 						}
+
 
 						LegionMemberMap::deletemember(member->get_account_uuid(),false);
 

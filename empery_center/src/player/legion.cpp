@@ -48,6 +48,8 @@
 #include "../msg/sl_league.hpp"
 #include "../singletons/league_client.hpp"
 
+#include "../legion_log.hpp"
+
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_LegionCreateReqMessage, account, session, req){
@@ -457,6 +459,12 @@ PLAYER_SERVLET(Msg::CS_ApplyJoinLegionMessage, account, session, req){
 					msg.ntype = Legion::LEGION_EMAIL_TYPE::LEGION_EMAIL_JOIN;
 					session->send(msg);
 					*/
+
+					//军团成员追踪日志：申请加入
+					LegionLog::LegionMemberTrace(AccountUuid(account_uuid),
+							LegionUuid(req.legion_uuid),AccountUuid(account_uuid),
+							LegionLog::LEGION_MEMBER_LOG::ELEGION_APPLY_JOIN,utc_now);
+
 					return Response(Msg::ST_OK);
 				}
 				else
@@ -582,6 +590,11 @@ PLAYER_SERVLET(Msg::CS_LegionAuditingResMessage, account, session, req)
 				//		legion->AddMember(AccountUuid(req.account_uuid),Data::Global::as_unsigned(Data::Global::SLOT_LEGION_MEMBER_DEFAULT_POWERID),utc_now,join_account->get_attribute(AccountAttributeIds::ID_DONATE),join_account->get_attribute(AccountAttributeIds::ID_WEEKDONATE),//  // //join_account->get_nick());
 
 						legion->AddMember(join_account,Data::Global::as_unsigned(Data::Global::SLOT_LEGION_MEMBER_DEFAULT_POWERID),utc_now);
+
+						//军团成员追踪日志：审核加入
+						LegionLog::LegionMemberTrace(AccountUuid(req.account_uuid),
+									LegionUuid(member->get_legion_uuid()),AccountUuid(account_uuid),
+									LegionLog::LEGION_MEMBER_LOG::ELEGION_CHECK_JOIN,utc_now);
 
 						// 如果还请求加入过其他军团，也需要做善后操作，删除其他所有加入请求
 						LegionApplyJoinMap::deleteInfo(LegionUuid(member->get_legion_uuid()),AccountUuid(req.account_uuid),true);
@@ -955,6 +968,12 @@ PLAYER_SERVLET(Msg::CS_LegionInviteJoinResMessage, account, session, req)
 					bdeleteAll = true;
 
 					legion->sendmail(join_account,ChatMessageTypeIds::ID_LEVEL_LEGION_JOIN,legion->get_nick());
+
+					//军团成员追踪日志：邀请加入
+					LegionLog::LegionMemberTrace(AccountUuid(invite->unlocked_get_invited_uuid()),
+												LegionUuid(req.legion_uuid),AccountUuid(invite->unlocked_get_account_uuid()),
+												LegionLog::LEGION_MEMBER_LOG::ELEGION_INVITE_JOIN,utc_now);
+
 				}
 				else
 				{
@@ -2076,10 +2095,12 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							// 修改军团资金
 							LOG_EMPERY_CENTER_ERROR("军团资金 捐献前  ===========",legion->get_attribute(LegionAttributeIds::ID_MONEY));
 							boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-							const auto money = boost::lexical_cast<std::string>(std::ceil(boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY)) + req.num * 100 / dvalue * lvalue));
+							const auto old_money = boost::lexical_cast<uint64_t>(legion->get_attribute(LegionAttributeIds::ID_MONEY));
+							const auto money = boost::lexical_cast<std::string>(std::ceil(old_money + req.num * 100 / dvalue * lvalue));
 							Attributes[LegionAttributeIds::ID_MONEY] = money;
 							LOG_EMPERY_CENTER_ERROR("军团资金 捐献后  ===========",money);
-							legion->set_attributes(Attributes);
+							legion->set_attributes(Attributes);								
+							LegionLog::LegionMoneyTrace(member->get_legion_uuid(),old_money,boost::lexical_cast<std::uint64_t>(money),ReasonIds::ID_DOANTE_LEGION, 0, 0, static_cast<std::uint64_t>(req.num * 100));
 
 							const auto strweekdonate = member->get_attribute(LegionMemberAttributeIds::ID_WEEKDONATE);
 							double weekdonate= 0;
@@ -2101,14 +2122,16 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 								if(strdotan > Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT) / 100)
 									strdotan = Data::Global::as_double(Data::Global::SLOT_LEGION_WEEK_DONATE_DIAMOND_LIMIT) / 100;
 
-								Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(strdotan);
+								Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(std::ceil(strdotan));
 
 								LOG_EMPERY_CENTER_ERROR("CS_LegionDonateMessage  捐献后个人贡献 ===========",strdotan);
 				//				Attributes1[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE)) + req.num / dvalue * mvalue);
-								Attributes1[LegionMemberAttributeIds::ID_WEEKDONATE] = boost::lexical_cast<std::string>(weekdonate + req.num );
-
+								Attributes1[LegionMemberAttributeIds::ID_WEEKDONATE] = boost::lexical_cast<std::string>(std::ceil(weekdonate + req.num ));
 								LOG_EMPERY_CENTER_INFO("CS_LegionDonateMessage  捐献后个人周贡献 ===========",boost::lexical_cast<std::string>(weekdonate + req.num));
+								const auto old_donate = boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 								member->set_attributes(std::move(Attributes1));
+								const auto new_donate = boost::lexical_cast<uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
+								LegionLog::LegionPersonalDonateTrace(account_uuid,old_donate,new_donate,ReasonIds::ID_DOANTE_LEGION, 0, 0, static_cast<std::uint64_t>(req.num * 100));
 							}
 
 
@@ -2300,8 +2323,13 @@ PLAYER_SERVLET(Msg::CS_LegionExchangeItemMessage, account, session, req)
 
 					const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 					[&]{
+						const auto old_donate = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
 						// 消耗处理
 						member->set_attributes(std::move(Attributes));
+						const auto new_donate = boost::lexical_cast<std::uint64_t>(member->get_attribute(LegionMemberAttributeIds::ID_DONATE));
+						if(old_donate != new_donate){
+							LegionLog::LegionPersonalDonateTrace(account_uuid,old_donate,new_donate,ReasonIds::ID_LEGION_EXCHANGE_ITEM,0,0,0);
+						}
 					});
 
 					if(insuff_item_id)
