@@ -532,6 +532,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+	WorldMap::get_map_cells_by_occupier_object(map_cells, map_object_uuid);
 	if(map_cells.empty()){
 		return Response(Msg::ERR_CASTLE_HAS_NO_MAP_CELL) <<map_object_uuid;
 	}
@@ -585,6 +586,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryMapCells, account, session, req){
 
 	std::vector<boost::shared_ptr<MapCell>> map_cells;
 	WorldMap::get_map_cells_by_parent_object(map_cells, map_object_uuid);
+	WorldMap::get_map_cells_by_occupier_object(map_cells, map_object_uuid);
 	if(map_cells.empty()){
 		return Response(Msg::ERR_CASTLE_HAS_NO_MAP_CELL) <<map_object_uuid;
 	}
