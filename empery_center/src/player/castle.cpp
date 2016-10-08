@@ -68,6 +68,7 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 
 	std::vector<boost::shared_ptr<MapObject>> child_objects;
 	WorldMap::get_map_objects_by_parent_object(child_objects, map_object_uuid);
+	WorldMap::get_map_cells_by_occupier_object(child_objects, map_object_uuid);
 	for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
 		const auto &child = *it;
 		LOG_EMPERY_CENTER_DEBUG("Child object: map_object_uuid = ", map_object_uuid,
