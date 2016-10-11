@@ -628,6 +628,7 @@ namespace {
 		const auto wounded_soldiers   = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>>>();
 		const auto treatment          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>>>();
 		const auto tech_eras          = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleTechEra>>>();
+		const auto resources_unload   = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_CastleResourceBattalionUnload>>>();
 
 #define RELOAD_PART_(sink_, table_)	\
 		{	\
@@ -654,6 +655,7 @@ namespace {
 			RELOAD_PART_(wounded_soldiers,   Center_CastleWoundedSoldier)
 			RELOAD_PART_(treatment,          Center_CastleTreatment)
 			RELOAD_PART_(tech_eras,          Center_CastleTechEra)
+			RELOAD_PART_(resources_unload,   Center_CastleResourceBattalionUnload)
 		case MapObjectTypeIds::ID_DEFENSE_TOWER.get():
 		case MapObjectTypeIds::ID_BATTLE_BUNKER.get():
 			RELOAD_PART_(defense_objs,       Center_DefenseBuilding)
@@ -674,7 +676,7 @@ namespace {
 		switch(obj->get_map_object_type_id()){
 		case MapObjectTypeIds::ID_CASTLE.get():
 			castle = boost::make_shared<Castle>(std::move(obj), *attributes, *buffs, *defense_objs,
-				*buildings, *techs, *resources, *soldiers, *soldier_production, *wounded_soldiers, *treatment, *tech_eras);
+				*buildings, *techs, *resources, *soldiers, *soldier_production, *wounded_soldiers, *treatment, *tech_eras,*resources_unload);
 			castle->check_init_buildings();
 			castle->check_init_resources();
 			return std::move(castle);

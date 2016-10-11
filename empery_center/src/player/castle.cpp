@@ -2142,4 +2142,17 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_CastleResourceBattalionUnloadReset, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+	castle->reset_resource_battalion_unload();
+	return Response();
+}
+
 }
