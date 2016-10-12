@@ -35,7 +35,7 @@ namespace MySql {
 	FIELD_DATETIME          (sub_since)\
 	FIELD_DATETIME          (sub_until)\
 	FIELD_BIGINT_UNSIGNED   (accumulate_value)\
-	FIELD_BOOLEAN           (finish) 
+	FIELD_BOOLEAN           (finish)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapWorldActivityAccumulate
@@ -74,7 +74,7 @@ namespace MySql {
 	FIELD_DATETIME          (create_date) \
 	FIELD_DATETIME          (delete_date) \
 	FIELD_BIGINT_UNSIGNED   (hp_total) \
-	FIELD_BIGINT_UNSIGNED   (hp_die) 
+	FIELD_BIGINT_UNSIGNED   (hp_die)
 #include <poseidon/mysql/object_generator.hpp>
 
 

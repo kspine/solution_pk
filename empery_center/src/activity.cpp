@@ -220,7 +220,6 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
-	
 	return true;
 }
 

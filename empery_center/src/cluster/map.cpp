@@ -352,7 +352,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	} catch (std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
-	
+
 	try {
 		Poseidon::enqueue_async_job([=]{
 			{
@@ -1499,7 +1499,6 @@ _wounded_done:
 			}
 		});
 	}
-	
 		//军团任务杀兵
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try{
@@ -1525,7 +1524,7 @@ _wounded_done:
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
 	}
-	
+
 	//军团任务杀怪
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try{
@@ -1932,14 +1931,12 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 			return Response(Msg::ERR_LEGION_GATHER_IN_LEAVE_TIME);
 	}
 
-	
 	const auto parent_object_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 	if(!castle){
 		return Response(Msg::ERR_MAP_OBJECT_PARENT_GONE) <<parent_object_uuid;
 	}
-	
-	
+
 	const auto coord = map_object->get_coord();
 	/*
 	const auto strategic_resource = WorldMap::get_strategic_resource(coord);
@@ -1952,8 +1949,6 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 		return Response(Msg::ERR_STRATEGIC_RESOURCE_ALREADY_REMOVED) <<coord;
 	}
 
-	
-	
 	const auto resource_id = target_object->get_output_type();
 	const auto resource_data = Data::CastleResource::require(ResourceId(resource_id));
 	const auto unit_weight = resource_data->unit_weight;
@@ -1964,7 +1959,6 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 	if(!carried_attribute_id){
 		return Response(Msg::ERR_RESOURCE_NOT_HARVESTABLE) <<resource_id;
 	}
-	
 	const auto map_object_type_id = map_object->get_map_object_type_id();
 	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
 	const auto harvest_speed = map_object_type_data->harvest_speed;

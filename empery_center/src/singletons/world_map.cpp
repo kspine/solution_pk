@@ -1756,13 +1756,11 @@ void WorldMap::remove_world_activity_event(Coord cluster_coord, unsigned map_eve
 
 void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t since){
 	PROFILE_ME;
-	
 	//先查一下有没有存在的boss，有则直接返回
 	WorldActivityBossMap::WorldActivityBossInfo boss_info = WorldActivityBossMap::get(cluster_coord,since);
 	if(boss_info.since == since){
 		return;
 	}
-	
 	//不存在则直接开刷
 	const auto map_event_block_map = g_map_event_block_map.lock();
 	if(!map_event_block_map){
@@ -1774,7 +1772,6 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 	WorldMap::get_cluster_map_event_blocks(cluster_coord,ret);
 	std::sort(ret.begin(), ret.end(),
 					[](const boost::shared_ptr<MapEventBlock> &lhs, const boost::shared_ptr<MapEventBlock> &rhs){
-						
 						return lhs->get_map_event_cicle_id() < rhs->get_map_event_cicle_id();
 					});
 	for(auto it = ret.begin(); it != ret.end(); ++it){
@@ -1801,7 +1798,7 @@ void WorldMap::refresh_world_activity_boss(Coord cluster_coord,std::uint64_t sin
 
 void WorldMap::remove_world_activity_boss(Coord cluster_coord,std::uint64_t since){
 	PROFILE_ME;
-	
+
 	WorldActivityBossMap::WorldActivityBossInfo boss_info = WorldActivityBossMap::get(cluster_coord,since);
 	if(boss_info.since != since){
 		return;

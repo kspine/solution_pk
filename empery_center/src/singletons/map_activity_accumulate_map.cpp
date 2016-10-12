@@ -53,12 +53,12 @@ namespace {
 		{
 		}
 	};
-	
+
 	MULTI_INDEX_MAP(WorldActivityContainer, WorldActivityElement,
 		UNIQUE_MEMBER_INDEX(recent_cluster_activity)
 		MULTI_MEMBER_INDEX(recent_cluster_coord)
 	)
-	
+
 	struct WorldActivityAccumulateElement {
 		boost::shared_ptr<MySql::Center_MapWorldActivityAccumulate>                       obj;
 		std::pair<std::uint64_t,Coord>                                                    recent_cluster_coord;
@@ -71,13 +71,13 @@ namespace {
 		{
 		}
    };
-	
+
 	MULTI_INDEX_MAP(WorldActivityAccumulateContainer, WorldActivityAccumulateElement,
 		UNIQUE_MEMBER_INDEX(account_recent_cluster_activity)
 		MULTI_MEMBER_INDEX(recent_cluster_coord)
 		MULTI_MEMBER_INDEX(recent_cluster_coord_activity)
 	)
-	
+
 	struct WorldActivityRankElement {
 		boost::shared_ptr<MySql::Center_MapWorldActivityRank>                    obj;
 		std::pair<Coord,std::uint64_t>                                             cluster_recent;
@@ -88,12 +88,12 @@ namespace {
 		{
 		}
 	};
-	
+
 	MULTI_INDEX_MAP(WorldActivityRankContainer, WorldActivityRankElement,
 		UNIQUE_MEMBER_INDEX(account_cluster_recent)
 		MULTI_MEMBER_INDEX(cluster_recent)
 	)
-	
+
 	struct WorldActivityBossElement {
 		boost::shared_ptr<MySql::Center_MapWorldActivityBoss>                    obj;
 		std::pair<Coord,std::uint64_t>                                             cluster_recent;
@@ -102,7 +102,7 @@ namespace {
 		{
 		}
 	};
-	
+
 	MULTI_INDEX_MAP(WorldActivityBossContainer, WorldActivityBossElement,
 		UNIQUE_MEMBER_INDEX(cluster_recent)
 	)
@@ -113,7 +113,7 @@ namespace {
 	boost::weak_ptr<WorldActivityAccumulateContainer>     g_world_activity_accumulate_map;
 	boost::weak_ptr<WorldActivityRankContainer>           g_world_activity_rank_map;
 	boost::weak_ptr<WorldActivityBossContainer>           g_world_activity_boss_map;
-	
+
 	void fill_map_activity_accumulate_info(MapActivityAccumulateMap::AccumulateInfo &info, const MapActivityAccumulateElement &elem){
 		PROFILE_ME;
 
@@ -134,7 +134,7 @@ namespace {
 		info.process_date     = elem.obj->get_process_date();
 		info.accumulate_value = elem.obj->get_accumulate_value();
 	}
-	
+
 	void fill_world_activity_info(WorldActivityMap::WorldActivityInfo &info, const WorldActivityElement &elem){
 		PROFILE_ME;
 
@@ -146,16 +146,16 @@ namespace {
 		info.accumulate_value = elem.obj->get_accumulate_value();
 		info.finish           = elem.obj->get_finish();
 	}
-	
+
 	void fill_world_activity_accumluate_info(WorldActivityAccumulateMap::WorldActivityAccumulateInfo &info, const WorldActivityAccumulateElement &elem){
 		PROFILE_ME;
-		info.account_uuid     = AccountUuid(elem.obj->get_account_uuid()); 
+		info.account_uuid     = AccountUuid(elem.obj->get_account_uuid());
 		info.activity_id      = WorldActivityId(elem.obj->get_activity_id());
 		info.cluster_coord    = Coord(elem.obj->get_cluster_x(), elem.obj->get_cluster_y());
 		info.since            = elem.obj->get_since();
 		info.accumulate_value = elem.obj->get_accumulate_value();
 	}
-	
+
 	void fill_world_activity_rank_info(WorldActivityRankMap::WorldActivityRankInfo &info, const WorldActivityRankElement &elem){
 		PROFILE_ME;
 
@@ -166,7 +166,7 @@ namespace {
 		info.accumulate_value = elem.obj->get_accumulate_value();
 		info.process_date     = elem.obj->get_process_date();
 	}
-	
+
 	void fill_world_activity_boss_info(WorldActivityBossMap::WorldActivityBossInfo &info, const WorldActivityBossElement &elem){
 		PROFILE_ME;
 
@@ -204,8 +204,7 @@ namespace {
 		}
 		g_map_activity_rank_map = map_activity_rank_map;
 		handles.push(map_activity_rank_map);
-		
-		
+
 		const auto world_activity_map = boost::make_shared<WorldActivityContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading map world activity ...");
 		conn->execute_sql("SELECT * FROM `Center_MapWorldActivity` ");
@@ -217,8 +216,7 @@ namespace {
 		}
 		g_world_activity_map = world_activity_map;
 		handles.push(world_activity_map);
-		
-		
+
 		const auto world_activity_accumulate_map = boost::make_shared<WorldActivityAccumulateContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading map world activity accumulate...");
 		conn->execute_sql("SELECT * FROM `Center_MapWorldActivityAccumulate` ");
@@ -230,8 +228,7 @@ namespace {
 		}
 		g_world_activity_accumulate_map = world_activity_accumulate_map;
 		handles.push(world_activity_accumulate_map);
-		
-		
+
 		const auto world_activity_rank_map = boost::make_shared<WorldActivityRankContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading  world activity rank...");
 		conn->execute_sql("SELECT * FROM `Center_MapWorldActivityRank` ");
@@ -243,8 +240,7 @@ namespace {
 		}
 		g_world_activity_rank_map = world_activity_rank_map;
 		handles.push(world_activity_rank_map);
-		
-		
+
 		const auto world_activity_boss_map = boost::make_shared<WorldActivityBossContainer>();
 		LOG_EMPERY_CENTER_INFO("Loading  world activity boss info...");
 		conn->execute_sql("SELECT * FROM `Center_MapWorldActivityBoss` ");
@@ -483,7 +479,6 @@ void WorldActivityAccumulateMap::get_recent_activity_accumulate_info(Coord coord
 
 void WorldActivityAccumulateMap::update(WorldActivityAccumulateInfo info){
 	PROFILE_ME;
-	
 	const auto world_activity_accumulate_map = g_world_activity_accumulate_map.lock();
 	if(!world_activity_accumulate_map){
 		LOG_EMPERY_CENTER_WARNING("world activity accumulate map is not loaded.");
@@ -503,7 +498,7 @@ void WorldActivityAccumulateMap::update(WorldActivityAccumulateInfo info){
 
 void WorldActivityAccumulateMap::get_recent_world_activity_account(Coord coord, WorldActivityId activity_id,std::uint64_t since,std::vector<AccountUuid> &ret){
 	PROFILE_ME;
-	
+
 	const auto world_activity_accumulate_map = g_world_activity_accumulate_map.lock();
 	if(!world_activity_accumulate_map){
 		LOG_EMPERY_CENTER_WARNING("world activity accumulate map is not loaded.");
@@ -518,7 +513,7 @@ void WorldActivityAccumulateMap::get_recent_world_activity_account(Coord coord, 
 
 WorldActivityRankMap::WorldActivityRankInfo WorldActivityRankMap::get_account_rank(AccountUuid account_uuid, Coord coord, std::uint64_t since){
 	PROFILE_ME;
-	
+
 	WorldActivityRankInfo info = { };
 	const auto world_activity_rank_map = g_world_activity_rank_map.lock();
 	if(!world_activity_rank_map){
@@ -535,7 +530,7 @@ WorldActivityRankMap::WorldActivityRankInfo WorldActivityRankMap::get_account_ra
 
 void WorldActivityRankMap::get_recent_rank_list(Coord coord, std::uint64_t since,std::uint64_t rank_threshold,std::vector<WorldActivityRankInfo> &ret){
 	PROFILE_ME;
-	
+
 	const auto world_activity_rank_map = g_world_activity_rank_map.lock();
 	if(!world_activity_rank_map){
 		LOG_EMPERY_CENTER_WARNING("world activity rank map is not loaded.");
@@ -554,7 +549,7 @@ void WorldActivityRankMap::get_recent_rank_list(Coord coord, std::uint64_t since
 }
 void WorldActivityRankMap::insert(WorldActivityRankInfo info){
 	PROFILE_ME;
-	
+
 	const auto world_activity_rank_map = g_world_activity_rank_map.lock();
 	if(!world_activity_rank_map){
 		LOG_EMPERY_CENTER_WARNING("world activity rank map is not loaded.");
@@ -573,13 +568,12 @@ void WorldActivityRankMap::insert(WorldActivityRankInfo info){
 
 std::uint64_t WorldActivityRankMap::get_pro_rank_time(Coord coord, std::uint64_t since){
 	PROFILE_ME;
-	
+
 	const auto world_activity_rank_map = g_world_activity_rank_map.lock();
 	if(!world_activity_rank_map){
 		LOG_EMPERY_CENTER_WARNING("world activity rank map is not loaded.");
 		return 0;
 	}
-	
 	std::uint64_t pro_time = 0;
 	const auto max_it = world_activity_rank_map->upper_bound<1>(std::make_pair(coord, since));
 	for(auto it = world_activity_rank_map->begin<1>(); it != max_it; ++it){
@@ -609,9 +603,10 @@ WorldActivityBossMap::WorldActivityBossInfo WorldActivityBossMap::get(Coord clus
 	fill_world_activity_boss_info(info, *it);
 	return info;
 }
+
 void WorldActivityBossMap::update(WorldActivityBossInfo info){
 	PROFILE_ME;
-	
+
 	const auto world_activity_boss_map = g_world_activity_boss_map.lock();
 	if(!world_activity_boss_map){
 		LOG_EMPERY_CENTER_WARNING("world activity boss map is not loaded.");
