@@ -82,7 +82,7 @@ SYNUSER_SERVLET("createpayment", session, params){
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
-	const auto obj = boost::make_shared<Promotion_SynuserPayment>(source, orderid, username, amount_raw, currency, utc_now, false);
+	const auto obj = boost::make_shared<Promotion_SynuserPayment>(source, orderid, username, amount, currency, utc_now, false);
 	obj->enable_auto_saving();
 	const auto promise = Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
 	try {
