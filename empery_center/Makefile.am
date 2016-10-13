@@ -58,6 +58,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/task.cpp	\
 	src/data/map_event.cpp	\
 	src/data/dungeon.cpp	\
+	src/data/trigger.cpp   \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
