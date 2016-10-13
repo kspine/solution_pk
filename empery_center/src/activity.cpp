@@ -179,7 +179,7 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 	});
 	std::uint64_t rank = 1;
 	std::vector<MapActivityRankMap::MapActivityRankInfo> map_activity_accumulate_vec;
-	for(auto it = accumuate_vec.begin(); it != accumuate_vec.end(),rank <= 50; ++it,++rank){
+	for(auto it = accumuate_vec.begin(); (it != accumuate_vec.end()) && (rank <= 50); ++it,++rank){
 		MapActivityRankMap::MapActivityRankInfo info = {};
 		info.account_uuid     = (*it).account_uuid;
 		info.activity_id      = (*it).activity_id;
@@ -190,7 +190,7 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 		map_activity_accumulate_vec.emplace_back(std::move(info));
 	}
 
-	for(auto it = map_activity_accumulate_vec.begin(); it != map_activity_accumulate_vec.end(),rank <= 50; ++it,++rank){
+	for(auto it = map_activity_accumulate_vec.begin(); (it != map_activity_accumulate_vec.end()) && (rank <= 50); ++it,++rank){
 		auto info = *it;
 		info.rank = rank;
 		MapActivityRankMap::insert(std::move(info));
