@@ -158,6 +158,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 	astar_coords.emplace(from_coord, init_elem);
 	coords_open.emplace_back(init_elem);
 
+	Coord coord;
 	bool success = false;
 
 	std::vector<Coord> surrounding;
@@ -174,7 +175,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 			surrounding.clear();
 			get_surrounding_coords(surrounding, elem_popped.coord, 1);
 			for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
-				const auto coord = *it;
+				coord = *it;
 
 				auto cit = astar_coords.find(coord);
 				if(cit == astar_coords.end()){
