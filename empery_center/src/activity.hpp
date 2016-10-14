@@ -42,6 +42,7 @@ public:
 	void on_activity_change(MapActivityId old_ativity,MapActivityId new_activity);
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	bool settle_kill_soliders_activity(std::uint64_t now);
+	void synchronize_kill_soliders_rank_with_player(const boost::shared_ptr<PlayerSession> &session);
 public:
 	void set_current_activity(MapActivityId);
 	MapActivityId get_current_activity();
@@ -70,6 +71,8 @@ public:
 	bool settle_world_activity_in_activity(Coord cluster_coord,std::uint64_t utc_now,std::vector<WorldActivityRankMap::WorldActivityRankInfo> &ret);
 	void synchronize_world_rank_with_player(const Coord cluster_coord,AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session);
 	void synchronize_world_boss_with_player(const Coord cluster_coord,const boost::shared_ptr<PlayerSession> &session);
+	void reward_activity(Coord cluster_coord,WorldActivityId world_activity_id,AccountUuid account_uuid);
+	void reward_rank(Coord cluster_coord,AccountUuid account_uuid);
 };
 
 }

@@ -150,14 +150,14 @@ namespace Data {
 		//活动1
 		Poseidon::JsonArray activity1;
 		activity1.emplace_back(3500001);
-		activity1.emplace_back("2016-10-12 9:30:00");
-		activity1.emplace_back("2016-10-12 23:30:00");
+		activity1.emplace_back("2016-10-14 2:40:00");
+		activity1.emplace_back("2016-10-14 23:30:00");
 		activitys.emplace_back(activity1);
 		//活动2
 		Poseidon::JsonArray activity2;
 		activity2.emplace_back(3500002);
-		activity2.emplace_back("2016-10-12 5:40:00");
-		activity2.emplace_back("2016-10-12 23:30:00");
+		activity2.emplace_back("2016-10-14 2:40:00");
+		activity2.emplace_back("2016-10-14 23:30:00");
 		activitys.emplace_back(activity2);
 		std::string test_activity = activitys.dump();
 		LOG_EMPERY_CENTER_FATAL("test activity data:",test_activity);
@@ -250,7 +250,7 @@ namespace Data {
 		Poseidon::JsonArray activity1;
 		activity1.emplace_back(3501001);
 		activity1.emplace_back(1);
-		activity1.emplace_back(20);
+		activity1.emplace_back(0);
 		Poseidon::JsonObject objective1;
 		activity1.emplace_back(objective1);
 		activitys.emplace_back(activity1);
@@ -258,7 +258,7 @@ namespace Data {
 		Poseidon::JsonArray activity2;
 		activity2.emplace_back(3502001);
 		activity2.emplace_back(2);
-		activity2.emplace_back(20);
+		activity2.emplace_back(0);
 		Poseidon::JsonObject objective2;
 		activity2.emplace_back(objective2);
 		activitys.emplace_back(activity2);
@@ -266,7 +266,7 @@ namespace Data {
 		Poseidon::JsonArray activity3;
 		activity3.emplace_back(3503001);
 		activity3.emplace_back(3);
-		activity3.emplace_back(20);
+		activity3.emplace_back(0);
 		Poseidon::JsonObject objective3;
 		activity3.emplace_back(objective3);
 		activitys.emplace_back(activity3);
@@ -274,7 +274,7 @@ namespace Data {
 		Poseidon::JsonArray activity4;
 		activity4.emplace_back(3504001);
 		activity4.emplace_back(4);
-		activity4.emplace_back(20);
+		activity4.emplace_back(0);
 		Poseidon::JsonObject objective4;
 		activity4.emplace_back(objective4);
 		activitys.emplace_back(activity4);
@@ -296,7 +296,7 @@ namespace Data {
 		Poseidon::JsonArray activity6;
 		activity6.emplace_back(3506001);
 		activity6.emplace_back(6);
-		activity6.emplace_back(20);
+		activity6.emplace_back(10);
 		Poseidon::JsonObject objective6;
 		Poseidon::JsonObject objective61;
 		objective61[FormatSharedNts(2100034)] = 5;
