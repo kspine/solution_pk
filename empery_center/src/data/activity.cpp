@@ -151,13 +151,13 @@ namespace Data {
 		Poseidon::JsonArray activity1;
 		activity1.emplace_back(3500001);
 		activity1.emplace_back("2016-10-14 9:10:00");
-		activity1.emplace_back("2016-10-14 23:30:00");
+		activity1.emplace_back("2016-10-14 11:00:00");
 		activitys.emplace_back(activity1);
 		//活动2
 		Poseidon::JsonArray activity2;
 		activity2.emplace_back(3500002);
 		activity2.emplace_back("2016-10-14 9:10:00");
-		activity2.emplace_back("2016-10-14 23:30:00");
+		activity2.emplace_back("2016-10-14 11:00:00");
 		activitys.emplace_back(activity2);
 		std::string test_activity = activitys.dump();
 		LOG_EMPERY_CENTER_FATAL("test activity data:",test_activity);
@@ -282,7 +282,7 @@ namespace Data {
 		Poseidon::JsonArray activity5;
 		activity5.emplace_back(3505001);
 		activity5.emplace_back(5);
-		activity5.emplace_back(45);
+		activity5.emplace_back(88);
 		Poseidon::JsonObject objective5;
 		Poseidon::JsonObject objective51;
 		objective51[FormatSharedNts(2100034)] = 5;
