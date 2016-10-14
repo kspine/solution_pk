@@ -158,6 +158,8 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 	astar_coords.emplace(from_coord, init_elem);
 	coords_open.emplace_back(init_elem);
 
+	bool success = false;
+
 	std::vector<Coord> surrounding;
 	for(;;){
 		// 获得距离总和最小的一点，然后把它从队列中删除。注意维护优先级。
@@ -198,21 +200,8 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 
 				if(new_elem.distance_to_hint <= distance_close_enough){
 					// 寻路成功。
-					std::deque<Coord> coord_queue;
-					auto current_coord = coord;
-					for(;;){
-						coord_queue.emplace_front(current_coord);
-						if(current_coord == from_coord){
-							break;
-						}
-						current_coord = astar_coords.at(current_coord).parent_coord;
-					}
-					assert(!coord_queue.empty());
-					path.reserve(path.size() + coord_queue.size() - 1);
-					for(auto qit = coord_queue.begin(), qprev = qit; ++qit != coord_queue.end(); qprev = qit){
-						path.emplace_back(qit->x() - qprev->x(), qit->y() - qprev->y());
-					}
-					return true;
+					success = true;
+					break;
 				}
 				if(new_distance_from < distance_limit){
 					coords_open.emplace_back(new_elem);
@@ -222,11 +211,27 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 		}
 
 		if(coords_open.empty()){
-		LOG_EMPERY_CLUSTER_DEBUG("Pathfinding failed: from_coord = ", from_coord, ", to_coord = ", to_coord,
-		", distance_limit = ", distance_limit, ", distance_close_enough = ", distance_close_enough);
-			return false;
+			LOG_EMPERY_CLUSTER_DEBUG("Pathfinding failed: from_coord = ", from_coord, ", to_coord = ", to_coord,
+				", distance_limit = ", distance_limit, ", distance_close_enough = ", distance_close_enough);
+			break;
 		}
 	}
+
+	std::deque<Coord> coord_queue;
+	auto current_coord = coord;
+	for(;;){
+		coord_queue.emplace_front(current_coord);
+		if(current_coord == from_coord){
+			break;
+		}
+		current_coord = astar_coords.at(current_coord).parent_coord;
+	}
+	assert(!coord_queue.empty());
+	path.reserve(path.size() + coord_queue.size() - 1);
+	for(auto qit = coord_queue.begin(), qprev = qit; ++qit != coord_queue.end(); qprev = qit){
+		path.emplace_back(qit->x() - qprev->x(), qit->y() - qprev->y());
+	}
+	return success;
 }
 
 std::pair<long, std::string> is_under_protection(const boost::shared_ptr<MapObject> &attacking_object,
