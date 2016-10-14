@@ -159,7 +159,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 	coords_open.emplace_back(init_elem);
 
 	Coord coord;
-	bool success = false;
+	bool success;
 
 	std::vector<Coord> surrounding;
 	for(;;){
@@ -202,7 +202,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 				if(new_elem.distance_to_hint <= distance_close_enough){
 					// 寻路成功。
 					success = true;
-					break;
+					goto _done;
 				}
 				if(new_distance_from < distance_limit){
 					coords_open.emplace_back(new_elem);
@@ -214,10 +214,12 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 		if(coords_open.empty()){
 			LOG_EMPERY_CLUSTER_DEBUG("Pathfinding failed: from_coord = ", from_coord, ", to_coord = ", to_coord,
 				", distance_limit = ", distance_limit, ", distance_close_enough = ", distance_close_enough);
-			break;
+			goto _done;
 		}
 	}
 
+_done:
+	;
 	std::deque<Coord> coord_queue;
 	auto current_coord = coord;
 	for(;;){
