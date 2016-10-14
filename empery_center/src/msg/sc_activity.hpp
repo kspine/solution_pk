@@ -46,6 +46,7 @@ namespace Msg {
 		FIELD_VUINT         (schedule)	\
 		FIELD_VUINT         (contribute)\
 		FIELD_VUINT         (finish)\
+		FIELD_VUINT         (rewarded) \
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
@@ -55,6 +56,7 @@ namespace Msg {
 	FIELD_VUINT         (since)	\
 	FIELD_VUINT         (rank)  \
 	FIELD_VUINT         (accumulate_value)  \
+	FIELD_VUINT         (rewarded) \
 	FIELD_ARRAY         (rank_list,	\
 		FIELD_STRING        (account_uuid)      \
 		FIELD_STRING        (nick)	            \
@@ -71,8 +73,6 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
-
-
 }
 
 }

@@ -67,6 +67,7 @@ struct WorldActivityAccumulateMap {
 		Coord                cluster_coord;
 		std::uint64_t        since;
 		std::uint64_t        accumulate_value;
+		bool                 rewarded;
 	};
 	static WorldActivityAccumulateInfo get(AccountUuid account_uuid,Coord coord, WorldActivityId activity_id,std::uint64_t since);
 	static void get_recent_activity_accumulate_info(Coord coord,std::uint64_t since,std::vector<WorldActivityAccumulateInfo> &ret);
@@ -84,6 +85,7 @@ struct WorldActivityRankMap {
 		std::uint64_t        rank;
 		std::uint64_t        accumulate_value;
 		std::uint64_t        process_date;
+		bool                 rewarded;
 	};
 	static WorldActivityRankInfo get_account_rank(AccountUuid account_uuid, Coord coord, std::uint64_t since);
 	static void get_recent_rank_list(Coord coord, std::uint64_t since,std::uint64_t rank_threshold,std::vector<WorldActivityRankInfo> &ret);

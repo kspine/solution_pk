@@ -37,6 +37,18 @@ namespace Msg {
         //
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ClaimWorldActivity
+#define MESSAGE_ID      1405
+#define MESSAGE_FIELDS  \
+        FIELD_VUINT         (unique_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ClaimWorldActivityRank
+#define MESSAGE_ID      1406
+#define MESSAGE_FIELDS  \
+       //
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 
 
