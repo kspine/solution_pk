@@ -509,45 +509,6 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 		return std::move(result);
 	}
 
-	// 通知客户端。
-	try {
-		PROFILE_ME;
-
-		Msg::SC_MapObjectAttackResult msg;
-		msg.attacking_object_uuid    = attacking_object_uuid.str();
-		msg.attacking_coord_x        = attacking_coord.x();
-		msg.attacking_coord_y        = attacking_coord.y();
-		msg.attacked_object_uuid     = attacked_object_uuid.str();
-		msg.attacked_coord_x         = attacked_coord.x();
-		msg.attacked_coord_y         = attacked_coord.y();
-		msg.result_type              = result_type;
-		msg.soldiers_wounded         = soldiers_wounded;
-		msg.soldiers_wounded_added   = soldiers_wounded_added;
-		msg.soldiers_damaged         = hp_damaged;
-		msg.soldiers_remaining       = hp_remaining;
-		msg.attacking_object_type_id = attacking_object_type_id.get();
-		msg.attacked_object_type_id  = attacked_object_type_id.get();
-		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
-
-		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
-		const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
-		const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
-		const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
-		std::vector<boost::shared_ptr<PlayerSession>> sessions;
-		WorldMap::get_players_viewing_rectangle(sessions,
-			Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
-		for(auto it = sessions.begin(); it != sessions.end(); ++it){
-			const auto &session = *it;
-			try {
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			}
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-	}
-
 	const auto utc_now = Poseidon::get_utc_time();
 
 	update_attributes_single(attacking_object, [&]{ return attacking_object_type_id != MapObjectTypeIds::ID_CASTLE; });
@@ -680,6 +641,45 @@ _wounded_done:
 
 	const auto should_send_battle_notifications = !attacked_object->is_buff_in_effect(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT);
 	attacked_object->set_buff(BuffIds::ID_BATTLE_NOTIFICATION_TIMEOUT, utc_now, battle_status_timeout);
+
+	// 通知客户端。
+	try {
+		PROFILE_ME;
+
+		Msg::SC_MapObjectAttackResult msg;
+		msg.attacking_object_uuid    = attacking_object_uuid.str();
+		msg.attacking_coord_x        = attacking_coord.x();
+		msg.attacking_coord_y        = attacking_coord.y();
+		msg.attacked_object_uuid     = attacked_object_uuid.str();
+		msg.attacked_coord_x         = attacked_coord.x();
+		msg.attacked_coord_y         = attacked_coord.y();
+		msg.result_type              = result_type;
+		msg.soldiers_wounded         = soldiers_wounded;
+		msg.soldiers_wounded_added   = soldiers_wounded_added;
+		msg.soldiers_damaged         = hp_damaged;
+		msg.soldiers_remaining       = hp_remaining;
+		msg.attacking_object_type_id = attacking_object_type_id.get();
+		msg.attacked_object_type_id  = attacked_object_type_id.get();
+		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
+
+		const auto range_left   = std::min(attacking_coord.x(), attacked_coord.x());
+		const auto range_right  = std::max(attacking_coord.x(), attacked_coord.x());
+		const auto range_bottom = std::min(attacking_coord.y(), attacked_coord.y());
+		const auto range_top    = std::max(attacking_coord.y(), attacked_coord.y());
+		std::vector<boost::shared_ptr<PlayerSession>> sessions;
+		WorldMap::get_players_viewing_rectangle(sessions,
+			Rectangle(Coord(range_left, range_bottom), Coord(range_right + 1, range_top + 1)));
+		for(auto it = sessions.begin(); it != sessions.end(); ++it){
+			const auto &session = *it;
+			try {
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
 
 	// 战斗通知。
 	if(should_send_battle_notifications){

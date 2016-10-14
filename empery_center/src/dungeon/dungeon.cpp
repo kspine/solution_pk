@@ -97,42 +97,6 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 		return Response(Msg::ERR_CANNOT_ATTACK_FRIENDLY_OBJECTS);
 	}
 
-	// 通知客户端。
-	try {
-		PROFILE_ME;
-
-		Msg::SC_DungeonObjectAttackResult msg;
-		msg.dungeon_uuid             = dungeon->get_dungeon_uuid().str();
-		msg.attacking_object_uuid    = attacking_object_uuid.str();
-		msg.attacking_coord_x        = attacking_coord.x();
-		msg.attacking_coord_y        = attacking_coord.y();
-		msg.attacked_object_uuid     = attacked_object_uuid.str();
-		msg.attacked_coord_x         = attacked_coord.x();
-		msg.attacked_coord_y         = attacked_coord.y();
-		msg.result_type              = result_type;
-		msg.soldiers_resuscitated    = soldiers_resuscitated;
-		msg.soldiers_wounded         = soldiers_wounded;
-		msg.soldiers_wounded_added   = soldiers_wounded_added;
-		msg.soldiers_damaged         = hp_damaged;
-		msg.soldiers_remaining       = hp_remaining;
-		msg.attacking_object_type_id = attacking_object_type_id.get();
-		msg.attacked_object_type_id  = attacked_object_type_id.get();
-		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
-
-		std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> observers_all;
-		dungeon->get_observers_all(observers_all);
-		for(auto it = observers_all.begin(); it != observers_all.end(); ++it){
-			const auto &session = it->second;
-			try {
-				session->send(msg);
-			} catch(std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			}
-		}
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-	}
-
 	const auto dungeon_type_id = dungeon->get_dungeon_type_id();
 	const auto dungeon_data = Data::Dungeon::require(dungeon_type_id);
 	const auto utc_now = Poseidon::get_utc_time();
@@ -263,6 +227,42 @@ _wounded_done:
 		attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 	}
 	attacked_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
+
+	// 通知客户端。
+	try {
+		PROFILE_ME;
+
+		Msg::SC_DungeonObjectAttackResult msg;
+		msg.dungeon_uuid             = dungeon->get_dungeon_uuid().str();
+		msg.attacking_object_uuid    = attacking_object_uuid.str();
+		msg.attacking_coord_x        = attacking_coord.x();
+		msg.attacking_coord_y        = attacking_coord.y();
+		msg.attacked_object_uuid     = attacked_object_uuid.str();
+		msg.attacked_coord_x         = attacked_coord.x();
+		msg.attacked_coord_y         = attacked_coord.y();
+		msg.result_type              = result_type;
+		msg.soldiers_resuscitated    = soldiers_resuscitated;
+		msg.soldiers_wounded         = soldiers_wounded;
+		msg.soldiers_wounded_added   = soldiers_wounded_added;
+		msg.soldiers_damaged         = hp_damaged;
+		msg.soldiers_remaining       = hp_remaining;
+		msg.attacking_object_type_id = attacking_object_type_id.get();
+		msg.attacked_object_type_id  = attacked_object_type_id.get();
+		LOG_EMPERY_CENTER_TRACE("Broadcasting attack result message: msg = ", msg);
+
+		std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> observers_all;
+		dungeon->get_observers_all(observers_all);
+		for(auto it = observers_all.begin(); it != observers_all.end(); ++it){
+			const auto &session = it->second;
+			try {
+				session->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+	}
 
 	// 更新交战状态。
 	try {
