@@ -45,7 +45,8 @@ namespace MySql {
 	FIELD_BIGINT            (cluster_x)	\
 	FIELD_BIGINT            (cluster_y)	\
 	FIELD_DATETIME          (since) \
-	FIELD_BIGINT_UNSIGNED   (accumulate_value)
+	FIELD_BIGINT_UNSIGNED   (accumulate_value) \
+	FIELD_BOOLEAN           (rewarded)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapWorldActivityRank
@@ -56,7 +57,8 @@ namespace MySql {
 	FIELD_DATETIME          (since) \
 	FIELD_INTEGER_UNSIGNED  (rank) \
 	FIELD_BIGINT_UNSIGNED   (accumulate_value)\
-	FIELD_DATETIME          (process_date)
+	FIELD_DATETIME          (process_date) \
+	FIELD_BOOLEAN           (rewarded)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapCountryStatics

@@ -154,6 +154,7 @@ namespace {
 		info.cluster_coord    = Coord(elem.obj->get_cluster_x(), elem.obj->get_cluster_y());
 		info.since            = elem.obj->get_since();
 		info.accumulate_value = elem.obj->get_accumulate_value();
+		info.rewarded         = elem.obj->get_rewarded();
 	}
 
 	void fill_world_activity_rank_info(WorldActivityRankMap::WorldActivityRankInfo &info, const WorldActivityRankElement &elem){
@@ -165,6 +166,7 @@ namespace {
 		info.rank             = elem.obj->get_rank();
 		info.accumulate_value = elem.obj->get_accumulate_value();
 		info.process_date     = elem.obj->get_process_date();
+		info.rewarded         = elem.obj->get_rewarded();
 	}
 
 	void fill_world_activity_boss_info(WorldActivityBossMap::WorldActivityBossInfo &info, const WorldActivityBossElement &elem){
@@ -487,13 +489,14 @@ void WorldActivityAccumulateMap::update(WorldActivityAccumulateInfo info){
 	const auto it = world_activity_accumulate_map->find<0>(std::make_pair(std::make_pair(info.account_uuid,info.activity_id),std::make_pair(info.since,info.cluster_coord)));
 	if(it == world_activity_accumulate_map->end<0>()){
 		const auto obj = boost::make_shared<MySql::Center_MapWorldActivityAccumulate>(info.account_uuid.get(),info.activity_id.get(),info.cluster_coord.x(),info.cluster_coord.y(),
-		info.since, info.accumulate_value);
+		info.since, info.accumulate_value,info.rewarded);
 		obj->async_save(true);
 		world_activity_accumulate_map->insert(WorldActivityAccumulateElement(std::move(obj)));
 		return;
 	}
 	auto &obj = (*it).obj;
 	obj->set_accumulate_value(info.accumulate_value);
+	obj->set_rewarded(info.rewarded);
 }
 
 void WorldActivityAccumulateMap::get_recent_world_activity_account(Coord coord, WorldActivityId activity_id,std::uint64_t since,std::vector<AccountUuid> &ret){
@@ -561,7 +564,7 @@ void WorldActivityRankMap::insert(WorldActivityRankInfo info){
 		return;
 	}
 	const auto obj = boost::make_shared<MySql::Center_MapWorldActivityRank>(info.account_uuid.get(),info.cluster_coord.x(),info.cluster_coord.y(),
-		info.since, info.rank, info.accumulate_value,info.process_date);
+		info.since, info.rank, info.accumulate_value,info.process_date,info.rewarded);
 	obj->async_save(true);
 	world_activity_rank_map->insert(WorldActivityRankElement(std::move(obj)));
 }

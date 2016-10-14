@@ -21,6 +21,10 @@
 #include "map_object_type_ids.hpp"
 #include "attribute_ids.hpp"
 #include "cluster_session.hpp"
+#include "legion_member.hpp"
+#include "singletons/legion_member_map.hpp"
+#include "legion.hpp"
+#include "singletons/legion_map.hpp"
 
 
 namespace EmperyCenter {
@@ -223,6 +227,47 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 	return true;
 }
 
+void MapActivity::synchronize_kill_soliders_rank_with_player(const boost::shared_ptr<PlayerSession> &session){
+	PROFILE_ME;
+
+	std::vector<MapActivityRankMap::MapActivityRankInfo> ret;
+	const auto utc_now = Poseidon::get_utc_time();
+	MapActivity::MapActivityDetailInfo activity_kill_solider_info =  get_activity_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER));
+	if(activity_kill_solider_info.unique_id != ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get()|| utc_now < activity_kill_solider_info.available_until){
+		return;
+	}
+	MapActivityRankMap::get_recent_rank_list(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solider_info.available_until,ret);
+	if(ret.empty()){
+		settle_kill_soliders_activity(utc_now);
+		MapActivityRankMap::get_recent_rank_list(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solider_info.available_until,ret);
+	}
+	if(session){
+		try {
+			Msg::SC_MapActivityKillSolidersRank msgRankList;
+			for(auto it = ret.begin(); it != ret.end(); ++it){
+				auto &rank_item = *msgRankList.rank_list.emplace(msgRankList.rank_list.end());
+				const auto &account = AccountMap::require(it->account_uuid);
+				const auto &castle = WorldMap::require_primary_castle(it->account_uuid);
+				const auto legion_member =  LegionMemberMap::get_by_account_uuid(it->account_uuid);
+				rank_item.account_uuid      = it->account_uuid.str();
+				rank_item.nick              = account->get_nick();
+				rank_item.castle_name       = castle->get_name();
+				rank_item.leagues           = "";
+				if(legion_member){
+					const auto legion =  LegionMap::get(legion_member->get_legion_uuid());
+					rank_item.leagues =  legion->get_nick();
+				}
+				rank_item.rank              = it->rank;
+				rank_item.accumulate_value  = it->accumulate_value;
+			}
+			LOG_EMPERY_CENTER_FATAL("SC_MapActivityKillSolidersRank:",msgRankList);
+			session->send(msgRankList);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
+}
+
 WorldActivity::WorldActivity(std::uint64_t unique_id_,std::uint64_t available_since_,std::uint64_t available_until_)
 	: Activity(unique_id_,available_since_,available_until_),m_expired_remove(false){
 	}
@@ -363,47 +408,13 @@ void WorldActivity::update_world_activity_schedule(Coord cluster_coord,WorldActi
 		account_info.cluster_coord = cluster_coord;
 		account_info.since = m_available_since;
 		account_info.accumulate_value = real_delta;
+		account_info.rewarded  = 0;
 	}else{
 		account_info.accumulate_value += real_delta;
 	}
 	WorldActivityAccumulateMap::update(account_info);
 
 	if(finish){
-		//给参与的玩家发送阶段奖励
-		std::vector<AccountUuid> ret;
-		WorldActivityAccumulateMap::get_recent_world_activity_account(cluster_coord,world_activity_id,m_available_since,ret);
-		for(auto it = ret.begin(); it != ret.end(); ++it){
-			try{
-				const auto item_box = ItemBoxMap::get(*it);
-				if(!item_box){
-					LOG_EMPERY_CENTER_WARNING("world activity award cann't find item box, account_uuid:",account_uuid, ", cluster_coord = ", cluster_coord, ", world_activity_id = ", world_activity_id);
-					continue;
-				}
-				std::vector<ItemTransactionElement> transaction;
-				for(auto rit = world_activity_data->rewards.begin(); rit != world_activity_data->rewards.end(); ++rit){
-					const auto &collection_name = rit->first;
-					auto repeat_count = rit->second;
-					for(std::size_t i = 0; i < repeat_count; ++i){
-						const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
-						if(!reward_data){
-							LOG_EMPERY_CENTER_WARNING("Error getting random reward: account_uuid:",account_uuid, ", cluster_coord = ", cluster_coord, ", world_activity_id = ", world_activity_id,
-								", collection_name = ", collection_name);
-							continue;
-						}
-						for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
-							const auto item_id = it->first;
-							const auto count = it->second;
-							transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-								ReasonIds::ID_WORLD_ACTIVITY, world_activity_id.get(),
-								cluster_coord.x(), cluster_coord.y());
-						}
-					}
-				}
-			}  catch (std::exception &e){
-				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-			}
-		}
-
 		//如果有下一阶段，则进行下一阶段
 		std::vector<boost::shared_ptr<const Data::WorldActivity>> world_activity_vec;
 		Data::WorldActivity::get_all(world_activity_vec);
@@ -481,11 +492,13 @@ void WorldActivity::synchronize_with_player(const Coord cluster_coord,AccountUui
 			}else{
 				activity.contribute   =  account_accumulate_info.accumulate_value;
 			}
+			activity.rewarded = account_accumulate_info.rewarded;
 			if(!((*it).finish)){
 				curr_activity_id = (*it).activity_id.get();
 			}
 		}
 		msg.curr_activity_id = curr_activity_id;
+		LOG_EMPERY_CENTER_FATAL("WorldActivity:",msg);
 		session->send(msg);
 	} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -544,32 +557,8 @@ bool WorldActivity::settle_world_activity(Coord cluster_coord,std::uint64_t now)
 		info.rank             = rank;
 		info.accumulate_value = (*it).second;
 		info.process_date     = now;
+		info.rewarded         = 0;
 		WorldActivityRankMap::insert(std::move(info));
-		//发送奖励
-		try{
-			std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
-			bool is_award_data = Data::ActivityAward::get_activity_rank_award(ActivityIds::ID_WORLD_ACTIVITY.get(),rank,rewards);
-			if(!is_award_data){
-				LOG_EMPERY_CENTER_WARNING("COUNTRY ACTIVITY has no award data, rank:",rank);
-				continue;
-			}
-			const auto item_box = ItemBoxMap::get(info.account_uuid);
-			if(!item_box){
-				LOG_EMPERY_CENTER_WARNING("COUNTRY ACTIVITY award cann't find item box, account_uuid:",info.account_uuid);
-				continue;
-			}
-			std::vector<ItemTransactionElement> transaction;
-			for(auto it = rewards.begin(); it != rewards.end(); ++it){
-				const auto item_id = ItemId(it->first);
-				const auto count = it->second;
-				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-								ReasonIds::ID_WORLD_ACTIVITY_RANK,ActivityIds::ID_WORLD_ACTIVITY.get(),
-								rank,m_available_since);
-			}
-			item_box->commit_transaction(transaction, false);
-		} catch (std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		}
 	}
 
 	return true;
@@ -618,18 +607,8 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 	WorldActivityRankMap::WorldActivityRankInfo self_info = {};
 	Msg::SC_WorldActivityRank msgRankList;
 	msgRankList.since = m_available_since;
-	//当前时间小于活动时间发送上次排行榜
-	if(utc_now < m_available_since){
-		//获取最近一次的时间
-		std::uint64_t pro_time = WorldActivityRankMap::get_pro_rank_time(cluster_coord,m_available_since);
-		if(pro_time != 0){
-			msgRankList.since = pro_time;
-			WorldActivityRankMap::get_recent_rank_list(cluster_coord, pro_time,rank_threshold,ret);
-			self_info = WorldActivityRankMap::get_account_rank(account_uuid,cluster_coord,pro_time);
-		}
-	}
 	//活动结束，如果排行榜为空，则进行结算，然后发送
-	else if(m_available_until < utc_now)
+	if(m_available_until < utc_now)
 	{
 		WorldActivityRankMap::get_recent_rank_list(cluster_coord, m_available_since,rank_threshold,ret);
 		if(ret.empty()){
@@ -650,16 +629,22 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 			});
 	msgRankList.rank = self_info.rank;
 	msgRankList.accumulate_value = self_info.accumulate_value;
+	msgRankList.rewarded         = self_info.rewarded;
 	if(session){
 		for(auto it = ret.begin(); it != ret.end(); ++it){
 			try {
 				auto &rank_item = *msgRankList.rank_list.emplace(msgRankList.rank_list.end());
 				const auto &account = AccountMap::require(it->account_uuid);
 				const auto &castle = WorldMap::require_primary_castle(it->account_uuid);
+				const auto legion_member =  LegionMemberMap::get_by_account_uuid(it->account_uuid);
 				rank_item.account_uuid      = it->account_uuid.str();
 				rank_item.nick              = account->get_nick();
 				rank_item.castle_name       = castle->get_name();
 				rank_item.leagues           = "";
+				if(legion_member){
+					const auto legion =  LegionMap::get(legion_member->get_legion_uuid());
+					rank_item.leagues =  legion->get_nick();
+				}
 				rank_item.rank              = it->rank;
 				rank_item.accumulate_value  = it->accumulate_value;
 				//实时结算时，需要自己更新数据
@@ -671,6 +656,7 @@ void WorldActivity::synchronize_world_rank_with_player(const Coord cluster_coord
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
 		}
+		LOG_EMPERY_CENTER_FATAL("WorldActivity rank:",msgRankList);
 		session->send(msgRankList);
 	}
 }
@@ -699,6 +685,103 @@ void WorldActivity::on_activity_expired(){
 		WorldMap::remove_world_activity_event(cluster_coord,MapEventBlock::MAP_EVENT_WORLD_ACTIVITY_MONSTER);
 		WorldMap::remove_world_activity_event(cluster_coord,MapEventBlock::MAP_EVENT_COUNTRY_ACTIVIYT_RESOURCE);
 		WorldMap::remove_world_activity_boss(cluster_coord,m_available_since);
+	}
+}
+
+void WorldActivity::reward_activity(Coord cluster_coord,WorldActivityId sub_world_activity_id,AccountUuid account_uuid){
+	WorldActivityMap::WorldActivityInfo world_activity_info = WorldActivityMap::get(cluster_coord,sub_world_activity_id,m_available_since);
+	if(world_activity_info.activity_id != sub_world_activity_id){
+		return ;
+	}
+	if(!world_activity_info.finish){
+		return ;
+	}
+	WorldActivityAccumulateMap::WorldActivityAccumulateInfo account_accumulate_info = WorldActivityAccumulateMap::get(account_uuid,cluster_coord, sub_world_activity_id,m_available_since);
+	if(account_accumulate_info.rewarded){
+		return;
+	}
+	if(account_accumulate_info.activity_id != sub_world_activity_id){
+		//没有参与活动不会发送奖励
+		return;
+	}
+	boost::shared_ptr<const Data::WorldActivity> world_activity_data = Data::WorldActivity::get(sub_world_activity_id.get());
+	if(!world_activity_data){
+		LOG_EMPERY_CENTER_WARNING("no world activity data, world_activity_id = ",sub_world_activity_id.get());
+		return;
+	}
+	try{
+		const auto item_box = ItemBoxMap::get(account_uuid);
+		if(!item_box){
+			LOG_EMPERY_CENTER_WARNING("world activity award cann't find item box, account_uuid:",account_uuid, ", cluster_coord = ", cluster_coord, ", world_activity_id = ", sub_world_activity_id);
+			return;
+		}
+		std::vector<ItemTransactionElement> transaction;
+		for(auto rit = world_activity_data->rewards.begin(); rit != world_activity_data->rewards.end(); ++rit){
+			const auto &collection_name = rit->first;
+			auto repeat_count = rit->second;
+			for(std::size_t i = 0; i < repeat_count; ++i){
+				const auto reward_data = Data::MapObjectTypeMonsterReward::random_by_collection_name(collection_name);
+				if(!reward_data){
+					LOG_EMPERY_CENTER_WARNING("Error getting random reward: account_uuid:",account_uuid, ", cluster_coord = ", cluster_coord, ", world_activity_id = ", sub_world_activity_id,
+						", collection_name = ", collection_name);
+					continue;
+				}
+				for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
+					const auto item_id = it->first;
+					const auto count = it->second;
+					LOG_EMPERY_CENTER_FATAL("REWARD ACTIVITY, item_id:",item_id, " count:",count);
+					transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+						ReasonIds::ID_WORLD_ACTIVITY, sub_world_activity_id.get(),
+						cluster_coord.x(), cluster_coord.y());
+				}
+			}
+		}
+		item_box->commit_transaction(transaction, false);
+	}  catch (std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+	account_accumulate_info.rewarded  = true;
+	WorldActivityAccumulateMap::update(account_accumulate_info);
+}
+
+void WorldActivity::reward_rank(Coord cluster_coord,AccountUuid account_uuid){
+	const auto utc_now = Poseidon::get_utc_time();
+	if(utc_now < m_available_until){
+		return;
+	}
+	WorldActivityRankMap::WorldActivityRankInfo self_info = {};
+	self_info = WorldActivityRankMap::get_account_rank(account_uuid,cluster_coord,m_available_since);
+	if(self_info.rank == 0){
+		return;
+	}
+	if(self_info.rewarded){
+		return;
+	}
+	//发送奖励
+	try{
+		std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
+		bool is_award_data = Data::ActivityAward::get_activity_rank_award(ActivityIds::ID_WORLD_ACTIVITY.get(),self_info.rank,rewards);
+		if(!is_award_data){
+			LOG_EMPERY_CENTER_WARNING("COUNTRY ACTIVITY has no award data, rank:",self_info.rank);
+			return;
+		}
+		const auto item_box = ItemBoxMap::get(account_uuid);
+		if(!item_box){
+			LOG_EMPERY_CENTER_WARNING("COUNTRY ACTIVITY award cann't find item box, account_uuid:",account_uuid);
+			return;
+		}
+		std::vector<ItemTransactionElement> transaction;
+		for(auto it = rewards.begin(); it != rewards.end(); ++it){
+			const auto item_id = ItemId(it->first);
+			const auto count = it->second;
+			LOG_EMPERY_CENTER_FATAL("REWARD RANK WORLD ACTIVITY, item_id:",item_id, " count:",count);
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+							ReasonIds::ID_WORLD_ACTIVITY_RANK,ActivityIds::ID_WORLD_ACTIVITY.get(),
+							self_info.rank,m_available_since);
+		}
+		item_box->commit_transaction(transaction, false);
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
 }
 
