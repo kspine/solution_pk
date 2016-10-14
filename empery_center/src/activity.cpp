@@ -182,7 +182,6 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 		return false;
 	});
 	std::uint64_t rank = 1;
-	std::vector<MapActivityRankMap::MapActivityRankInfo> map_activity_accumulate_vec;
 	for(auto it = accumuate_vec.begin(); (it != accumuate_vec.end()) && (rank <= 50); ++it,++rank){
 		MapActivityRankMap::MapActivityRankInfo info = {};
 		info.account_uuid     = (*it).account_uuid;
@@ -191,13 +190,7 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 		info.rank             = rank;
 		info.accumulate_value = (*it).accumulate_value;
 		info.process_date     = now;
-		map_activity_accumulate_vec.emplace_back(std::move(info));
-	}
-
-	for(auto it = map_activity_accumulate_vec.begin(); (it != map_activity_accumulate_vec.end()) && (rank <= 50); ++it,++rank){
-		auto info = *it;
-		info.rank = rank;
-		MapActivityRankMap::insert(std::move(info));
+		MapActivityRankMap::insert(info);
 		//发送奖励
 		try{
 			std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
@@ -215,6 +208,7 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 			for(auto it = rewards.begin(); it != rewards.end(); ++it){
 				const auto item_id = ItemId(it->first);
 				const auto count = it->second;
+				LOG_EMPERY_CENTER_FATAL("map activity reward,rank = ",rank," item_id = ",item_id," count = ",count);
 				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
 								ReasonIds::ID_SOLDIER_KILL_RANK,ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),
 								rank,activity_kill_solider_info.available_until);
