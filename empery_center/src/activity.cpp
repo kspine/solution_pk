@@ -749,6 +749,8 @@ void WorldActivity::reward_rank(Coord cluster_coord,AccountUuid account_uuid){
 	if(self_info.rewarded){
 		return;
 	}
+	self_info.rewarded = 1;
+	WorldActivityRankMap::update(self_info);
 	//发送奖励
 	try{
 		std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
