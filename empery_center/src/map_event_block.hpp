@@ -16,6 +16,7 @@ namespace MySql {
 	class Center_MapEvent;
 }
 
+class MapObject;
 class PlayerSession;
 
 class MapEventBlock : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
@@ -23,6 +24,14 @@ public:
 	enum : unsigned {
 		BLOCK_WIDTH  = 30,
 		BLOCK_HEIGHT = 32,
+	};
+
+	enum : unsigned {
+		MAP_EVENT_COMMON = 1,
+		MAP_EVENT_ACTIVITY_RESOUCE = 2,
+		MAP_EVENT_ACTIVITY_GOBLIN = 3,
+		MAP_EVENT_WORLD_ACTIVITY_MONSTER = 4,
+		MAP_EVENT_COUNTRY_ACTIVIYT_RESOURCE = 5,
 	};
 
 	struct EventInfo {
@@ -47,12 +56,15 @@ public:
 public:
 	virtual void pump_status();
 
-	void refresh_events(bool first_time);
+	void refresh_events(bool first_time,unsigned event_type = MAP_EVENT_COMMON);
+	void remove_expired_events(boost::uint64_t utc_now,unsigned event_type = MAP_EVENT_COMMON,bool force = false);
+	boost::shared_ptr<MapObject> refresh_boss(boost::uint64_t utc_now);
 
 	Coord get_block_coord() const;
 	Rectangle get_block_scope() const {
 		return Rectangle(get_block_coord(), BLOCK_WIDTH, BLOCK_HEIGHT);
 	}
+	MapEventCircleId get_map_event_cicle_id() const;
 	std::uint64_t get_next_refresh_time() const;
 
 	EventInfo get(Coord coord) const;

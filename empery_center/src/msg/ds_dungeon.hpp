@@ -137,6 +137,27 @@ namespace Msg {
 	FIELD_VUINT         (position_type)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonTriggerEffectForcast
+#define MESSAGE_ID      50011
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (trigger_id) \
+	FIELD_VUINT         (executive_time) \
+	FIELD_ARRAY         (effects,	\
+		FIELD_VUINT        (effect_type)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonTriggerEffectExecutive
+#define MESSAGE_ID      50012
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (trigger_id) \
+	FIELD_ARRAY         (effects,	\
+		FIELD_VUINT        (effect_type)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

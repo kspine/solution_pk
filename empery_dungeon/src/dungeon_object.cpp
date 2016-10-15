@@ -577,7 +577,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 		const auto to_coord = std::accumulate(m_waypoints.begin(), m_waypoints.end(), coord,
 			[](Coord c, std::pair<signed char, signed char> d){ return Coord(c.x() + d.first, c.y() + d.second); });
 		std::deque<std::pair<signed char, signed char>> new_waypoints;
-		if(find_way_points(new_waypoints, coord, to_coord, false)){
+		if(find_way_points(new_waypoints, coord, to_coord, true)|| !new_waypoints.empty()){
 			notify_way_points(new_waypoints, m_action, m_action_param);
 			m_waypoints = std::move(new_waypoints);
 			return 0;
@@ -846,15 +846,11 @@ bool DungeonObject::find_way_points(std::deque<std::pair<signed char, signed cha
 		distance_close_enough = get_shoot_range();
 	}
 	const auto distance_limit = get_config<unsigned>("path_recalculation_radius", 20);
-	if(find_path(path,from_coord, target_coord,get_dungeon_uuid(),get_owner_uuid(), distance_limit, distance_close_enough)){
-		for(auto it = path.begin(); it != path.end(); ++it){
-			waypoints.emplace_back(it->first, it->second);
-		}
-		LOG_EMPERY_DUNGEON_DEBUG("find way points sucess, from coord = ", from_coord, " target_coord = ",target_coord);
-		return true;
+	bool result = find_path(path,from_coord, target_coord,get_dungeon_uuid(),get_owner_uuid(), distance_limit, distance_close_enough);
+	for(auto it = path.begin(); it != path.end(); ++it){
+		waypoints.emplace_back(it->first, it->second);
 	}
-	LOG_EMPERY_DUNGEON_DEBUG("find way points fail , from coord = ", from_coord, " target_coord = ",target_coord);
-	return false;
+	return result;
 }
 
 void DungeonObject::monster_regress(){
