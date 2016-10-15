@@ -17,7 +17,6 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	auto founder_uuid = AccountUuid(req.founder_uuid);
 	const auto utc_now = Poseidon::get_utc_time();
 	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid,utc_now);
-	//new_dungeon->set_dungeon_duration(1000*60*3);
 	new_dungeon->init_triggers();
 	new_dungeon->check_triggers_enter_dungeon();
 	LOG_EMPERY_DUNGEON_DEBUG("create dungeon ,msg = ",req);
@@ -69,7 +68,9 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 		//副本中的怪物创建的时候设置下action,
 		if(dungeon_object->is_monster()){
 			DungeonObject::Action act = DungeonObject::ACT_GUARD;
-			switch(dungeon_object->require_ai_control()->get_ai_id()){
+			const auto ai_id = dungeon_object->require_ai_control()->get_ai_id();
+			const auto ai_data = Data::DungeonObjectAi::require(ai_id);
+			switch(ai_data->ai_type){
 				case DungeonObject::AI_MONSTER_AUTO_SEARCH_TARGET:
 					act = DungeonObject::ACT_MONSTER_SEARCH_TARGET;
 					break;
