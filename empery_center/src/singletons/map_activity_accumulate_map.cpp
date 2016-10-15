@@ -568,6 +568,22 @@ void WorldActivityRankMap::insert(WorldActivityRankInfo info){
 	obj->async_save(true);
 	world_activity_rank_map->insert(WorldActivityRankElement(std::move(obj)));
 }
+void WorldActivityRankMap::update(WorldActivityRankInfo info){
+	PROFILE_ME;
+
+	const auto world_activity_rank_map = g_world_activity_rank_map.lock();
+	if(!world_activity_rank_map){
+		LOG_EMPERY_CENTER_WARNING("world activity rank map is not loaded.");
+		return;
+	}
+	const auto it = world_activity_rank_map->find<0>(std::make_pair(info.account_uuid,std::make_pair(info.cluster_coord,info.since)));
+	if(it == world_activity_rank_map->end<0>()){
+		LOG_EMPERY_CENTER_TRACE("world activity rank not exist: account_uuid = ",info.account_uuid," cluster coord = ", info.cluster_coord, ", since = ", info.since);
+		return;
+	}
+	auto &obj = (*it).obj;
+	obj->set_rewarded(info.rewarded);
+}
 
 std::uint64_t WorldActivityRankMap::get_pro_rank_time(Coord coord, std::uint64_t since){
 	PROFILE_ME;
