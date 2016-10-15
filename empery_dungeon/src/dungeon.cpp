@@ -72,6 +72,7 @@ void Dungeon::pump_triggers(){
 	}
 	for(auto it = triggers_activated.begin(); it != triggers_activated.end(); ++it){
 		const auto &trigger = *it;
+		notify_triggers_executive(trigger);
 		try {
 			// 根据行为选择操作
 			std::deque<TriggerAction> &actions = trigger->actions;
@@ -373,6 +374,31 @@ void Dungeon::init_triggers(){
 
 }
 
+void Dungeon::forcast_triggers(const boost::shared_ptr<Trigger> &trigger,std::uint64_t now){
+	if(!trigger){
+		return;
+	}
+	const auto dungeon_client = get_dungeon_client();
+	if(dungeon_client){
+		try{
+			const auto executive_time = now + trigger->delay;
+			Msg::DS_DungeonTriggerEffectForcast msg;
+			msg.dungeon_uuid    = get_dungeon_uuid().str();
+			msg.trigger_id      = trigger->trigger_id;
+			msg.executive_time  = executive_time;
+			for(auto it = trigger->actions.begin(); it != trigger->actions.end(); ++it){
+				auto &effects = *msg.effects.emplace(msg.effects.end());
+				effects.effect_type = it->type;
+			}
+			dungeon_client->send(msg);
+		}
+		catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+	}
+}
+
 void Dungeon::parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param){
 	PROFILE_ME;
 
@@ -406,6 +432,7 @@ void Dungeon::check_triggers_enter_dungeon(){
 		if(!trigger->activated && trigger->condition.type == TriggerCondition::C_ENTER_DUNGEON){
 			trigger->activated = true;
 			trigger->activated_time = utc_now;
+			forcast_triggers(trigger,utc_now);
 		}
 	}
 	pump_triggers();
@@ -444,6 +471,7 @@ void Dungeon::check_triggers_move_pass(Coord coord,bool isMonster){
 				}
 				trigger->activated = true;
 				trigger->activated_time = utc_now;
+				forcast_triggers(trigger,utc_now);
 			}
 		}
 		pump_triggers();
@@ -477,6 +505,7 @@ void Dungeon::check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint
 				}
 				trigger->activated = true;
 				trigger->activated_time = utc_now;
+				forcast_triggers(trigger,utc_now);
 			}
 		}
 		pump_triggers();
@@ -518,6 +547,7 @@ void Dungeon::check_triggers_dungeon_finish(){
 				}
 				trigger->activated = true;
 				trigger->activated_time = utc_now;
+				forcast_triggers(trigger,utc_now);
 			}
 		}
 		pump_triggers();
@@ -552,6 +582,7 @@ void Dungeon::check_triggers_all_die(){
 				}
 				trigger->activated = true;
 				trigger->activated_time = utc_now;
+				forcast_triggers(trigger,utc_now);
 			}
 		}
 		pump_triggers();
@@ -775,6 +806,9 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 				trigger->activated_time = utc_now;
 			}
 			trigger->activated = open;
+			if(open){
+				forcast_triggers(trigger,utc_now);
+			}
 		}
 	} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
@@ -1015,6 +1049,7 @@ void Dungeon::on_triggers_dungeon_player_confirmation(std::string context){
 			}else{
 				trigger->activated_time = utc_now;
 				trigger->activated = true;
+				forcast_triggers(trigger,utc_now);
 			}
 		}else{
 			LOG_EMPERY_DUNGEON_WARNING("can't find the trigger, trigger_id = ", trigger_id);
@@ -1022,6 +1057,29 @@ void Dungeon::on_triggers_dungeon_player_confirmation(std::string context){
 		m_triggers_confirmation.erase(it);
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger){
+	if(!trigger){
+		return;
+	}
+	const auto dungeon_client = get_dungeon_client();
+	if(dungeon_client){
+		try{
+			Msg::DS_DungeonTriggerEffectExecutive msg;
+			msg.dungeon_uuid    = get_dungeon_uuid().str();
+			msg.trigger_id      = trigger->trigger_id;
+			for(auto it = trigger->actions.begin(); it != trigger->actions.end(); ++it){
+				auto &effects = *msg.effects.emplace(msg.effects.end());
+				effects.effect_type = it->type;
+			}
+			dungeon_client->send(msg);
+		}
+		catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
 	}
 }
 

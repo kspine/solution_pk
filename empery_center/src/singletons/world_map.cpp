@@ -391,8 +391,13 @@ namespace {
 			return;
 		}
 
+		std::vector<boost::shared_ptr<MapEventBlock>> map_event_blocks;
+		map_event_blocks.reserve(map_event_block_map->size());
 		for(auto it = map_event_block_map->begin<0>(); it != map_event_block_map->end<0>(); ++it){
-			const auto &map_event_block = it->map_event_block;
+			map_event_blocks.emplace_back(it->map_event_block);
+		}
+		for(auto it = map_event_blocks.begin(); it != map_event_blocks.end(); ++it){
+			const auto &map_event_block = *it;
 			try {
 				map_event_block->pump_status();
 			} catch(std::exception &e){
