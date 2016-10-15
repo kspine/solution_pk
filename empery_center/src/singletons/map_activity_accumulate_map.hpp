@@ -90,6 +90,7 @@ struct WorldActivityRankMap {
 	static WorldActivityRankInfo get_account_rank(AccountUuid account_uuid, Coord coord, std::uint64_t since);
 	static void get_recent_rank_list(Coord coord, std::uint64_t since,std::uint64_t rank_threshold,std::vector<WorldActivityRankInfo> &ret);
 	static void insert(WorldActivityRankInfo info);
+	static void update(WorldActivityRankInfo info);
 	static std::uint64_t get_pro_rank_time(Coord coord, std::uint64_t since);
 private:
 	WorldActivityRankMap() = delete;
