@@ -677,7 +677,6 @@ DUNGEON_SERVLET(Msg::DS_DungeonTriggerEffectForcast, dungeon, server, req){
 		auto &effects = *msg.effects.emplace(msg.effects.end());
 		effects.effect_type = it->effect_type;
 	}
-	LOG_EMPERY_CENTER_FATAL("DS_DungeonTriggerEffectForcast",msg);
 	dungeon->broadcast_to_observers(msg);
 
 	return Response();
@@ -691,7 +690,6 @@ DUNGEON_SERVLET(Msg::DS_DungeonTriggerEffectExecutive, dungeon, server, req){
 		auto &effects = *msg.effects.emplace(msg.effects.end());
 		effects.effect_type = it->effect_type;
 	}
-	LOG_EMPERY_CENTER_FATAL("DS_DungeonTriggerEffectExecutive",msg);
 	dungeon->broadcast_to_observers(msg);
 
 	return Response();
