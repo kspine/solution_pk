@@ -521,18 +521,21 @@ boost::shared_ptr<AiControl>  DungeonObject::require_ai_control(){
 
 	if(!m_ai_control){
 		const auto dungeon_object_type_data = get_dungeon_object_type_data();
-		switch(dungeon_object_type_data->ai_id){
+		const auto ai_id   = dungeon_object_type_data->ai_id;
+		const auto ai_data = get_dungeon_ai_data();
+		const auto ai_type = ai_data->ai_type;
+		switch(ai_type){
 			case AI_SOLIDER:
-				m_ai_control = boost::make_shared<AiControl>(AI_SOLIDER,virtual_weak_from_this<DungeonObject>());
+				m_ai_control = boost::make_shared<AiControl>(ai_id,virtual_weak_from_this<DungeonObject>());
 				break;
 			case AI_MONSTER_AUTO_SEARCH_TARGET:
-				m_ai_control = boost::make_shared<AiControlMonsterAutoSearch>(AI_MONSTER_AUTO_SEARCH_TARGET,virtual_weak_from_this<DungeonObject>());
+				m_ai_control = boost::make_shared<AiControlMonsterAutoSearch>(ai_id,virtual_weak_from_this<DungeonObject>());
 				break;
 			case AI_MONSTER_PATROL:
-				m_ai_control = boost::make_shared<AiControlMonsterPatrol>(AI_MONSTER_PATROL,virtual_weak_from_this<DungeonObject>());
+				m_ai_control = boost::make_shared<AiControlMonsterPatrol>(ai_id,virtual_weak_from_this<DungeonObject>());
 				break;
 			default:
-				LOG_EMPERY_DUNGEON_FATAL("invalid ai type:",dungeon_object_type_data->ai_id);
+				LOG_EMPERY_DUNGEON_FATAL("invalid ai type:",ai_data->ai_type," ai_id:",ai_id);
 				break;
 		}
 	}
@@ -723,9 +726,11 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool passive){
 	PROFILE_ME;
 
+	/*
 	if(is_monster()){
 		return;
 	}
+	*/
 	const auto dungeon = DungeonMap::get(get_dungeon_uuid());
 	if(!dungeon){
 		LOG_EMPERY_DUNGEON_DEBUG("no find the parent dungeon, dengeon_uuid = ", get_dungeon_uuid());
@@ -733,6 +738,9 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 	}
 	std::vector<boost::shared_ptr<DungeonObject>> friendly_dungeon_objects;
 	dungeon->get_dungeon_objects_by_account(friendly_dungeon_objects,get_owner_uuid());
+	if(is_monster()){
+		LOG_EMPERY_DUNGEON_FATAL("Monster friendly dungeon_objects size:",friendly_dungeon_objects.size());
+	}
 	if(friendly_dungeon_objects.empty()){
 		return;
 	}
@@ -745,6 +753,13 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 		std::pair<long, std::string> reason;
 		if(!dungeon_object || !dungeon_object->is_idle() || !is_in_group_view_scope(dungeon_object) || !dungeon_object->attacking_able(reason)){
 			continue;
+		}
+		//野怪之间的联动
+		if(dungeon_object->is_monster()){
+			const auto ai_data = dungeon_object->get_dungeon_ai_data();
+			if(!ai_data->ai_linkage){
+				continue;
+			}
 		}
 		boost::shared_ptr<DungeonObject> near_enemy_object;
 		if(passive&&dungeon_object->get_new_enemy(target->get_owner_uuid(),near_enemy_object)){
@@ -983,7 +998,16 @@ bool DungeonObject::move_able(){
 }
 
 boost::shared_ptr<const Data::DungeonObjectType> DungeonObject::get_dungeon_object_type_data(){
+	PROFILE_ME;
+
 	return Data::DungeonObjectType::get(get_dungeon_object_type_id());
+}
+
+boost::shared_ptr<const Data::DungeonObjectAi>   DungeonObject::get_dungeon_ai_data(){
+	PROFILE_ME;
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	const auto ai_id   = dungeon_object_type_data->ai_id;
+	return	Data::DungeonObjectAi::require(ai_id);	
 }
 
 void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const DungeonObject::Action &action, const std::string &action_param){
@@ -1029,10 +1053,10 @@ void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, 
 std::uint64_t DungeonObject::on_monster_regress(){
 	//to ACT_MONSTER_SEARCH_TARGET
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
-	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_AUTO_SEARCH_TARGET);
+	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
-std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::string> &result,AI ai){
+std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::string> &result){
 	boost::shared_ptr<DungeonObject> new_enemy_dungeon_object;
 	bool is_get_new_enemy = get_monster_new_enemy(new_enemy_dungeon_object);
 	if(is_get_new_enemy && new_enemy_dungeon_object){
@@ -1040,12 +1064,12 @@ std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::s
 	}else{
 		result = CbppResponse(Msg::ERR_FAIL_SEARCH_TARGE) << get_dungeon_object_uuid();
 	}
-	const auto ai_data = Data::DungeonObjectAi::require(ai);
+	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
-std::uint64_t DungeonObject::on_monster_guard(AI ai){
+std::uint64_t DungeonObject::on_monster_guard(){
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
-	const auto ai_data = Data::DungeonObjectAi::require(ai);
+	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 
@@ -1066,7 +1090,7 @@ std::uint64_t DungeonObject::on_monster_patrol(){
 	}else{
 		set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	}
-	const auto ai_data = Data::DungeonObjectAi::require(AI_MONSTER_PATROL);
+	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 

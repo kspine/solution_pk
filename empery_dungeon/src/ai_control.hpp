@@ -20,7 +20,7 @@ public:
 	virtual std::uint64_t on_action_guard(std::pair<long, std::string> &result, std::uint64_t now);
 	virtual std::uint64_t on_action_patrol(std::pair<long, std::string> &result, std::uint64_t now);
 public:
-	std::uint64_t          get_ai_id();
+	std::uint64_t            get_ai_id();
 public:
 	std::uint64_t              m_unique_id;
 	boost::weak_ptr<DungeonObject> m_parent_object;
