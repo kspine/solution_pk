@@ -12,6 +12,7 @@
 #include "../singletons/tax_record_box_map.hpp"
 #include "../player_session.hpp"
 #include "../singletons/player_session_map.hpp"
+#include "../account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -39,6 +40,10 @@ CONTROLLER_SERVLET(Msg::TS_AccountSendPromotionBonus, controller, req){
 		ReasonId(reason), param1, param2, param3);
 	item_box->commit_transaction(transaction, false,
 		[&]{ tax_record_box->push(utc_now, taxer_uuid, reason, old_amount, new_amount); });
+
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers[AccountAttributeIds::ID_TAX_RECORDS_UNREAD] = "1";
+	account->set_attributes(std::move(modifiers));
 
 	return Response();
 }

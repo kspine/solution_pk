@@ -61,6 +61,8 @@
 #include "../legion_member.hpp"
 #include "../legion_member_attribute_ids.hpp"
 #include "../legion_log.hpp"
+#include "../account.hpp"
+#include "../account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -760,6 +762,12 @@ _wounded_done:
 				battle_record_box->push(utc_now, attacking_object_type_id, attacking_coord,
 					attacked_account_uuid, attacked_object_type_id, attacked_coord,
 					result_type, soldiers_wounded, soldiers_wounded_added, soldiers_damaged, soldiers_remaining);
+
+				const auto account = AccountMap::require(attacking_account_uuid);
+
+				boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+				modifiers[AccountAttributeIds::ID_BATTLE_RECORDS_UNREAD] = "1";
+				account->set_attributes(std::move(modifiers));
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
@@ -779,6 +787,12 @@ _wounded_done:
 				battle_record_box->push(utc_now, attacked_object_type_id, attacked_coord,
 					attacking_account_uuid, attacking_object_type_id, attacking_coord,
 					-result_type, soldiers_wounded, soldiers_wounded_added,soldiers_damaged, soldiers_remaining);
+
+				const auto account = AccountMap::require(attacked_account_uuid);
+
+				boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+				modifiers[AccountAttributeIds::ID_BATTLE_RECORDS_UNREAD] = "1";
+				account->set_attributes(std::move(modifiers));
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
@@ -1684,6 +1698,12 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 
 				crate_record_box->push(utc_now, attacking_object_type_id, attacking_coord, attacked_coord,
 					resource_id, amount_to_harvest, amount_harvested, amount_remaining);
+
+				const auto account = AccountMap::require(attacking_account_uuid);
+
+				boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+				modifiers[AccountAttributeIds::ID_CRATE_RECORDS_UNREAD] = "1";
+				account->set_attributes(std::move(modifiers));
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
