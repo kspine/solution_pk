@@ -587,6 +587,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 
 	set_coord(new_coord);
 	dungeon->check_triggers_move_pass(new_coord,is_monster());
+	dungeon->check_trap_move_pass(new_coord);
 
 	m_waypoints.pop_front();
 	m_blocked_retry_count = 0;
@@ -1088,6 +1089,16 @@ std::uint64_t DungeonObject::on_monster_patrol(){
 	}
 	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
+}
+
+double DungeonObject::get_total_defense(){
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
+		return 0;
+	}
+	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	return total_defense;
 }
 
 

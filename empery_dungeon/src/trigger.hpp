@@ -31,9 +31,13 @@ public:
 		A_DUNGEON_FAILED         = 6,//通关失败
 		A_SET_TASK_FINISHED      = 7,//指定任务完成
 		A_SET_TASK_FAIL          = 8,//指定任务失败
-		A_MOVE_CAREMA             = 9,//镜头移动
+		A_MOVE_CAREMA            = 9,//镜头移动
 		A_SET_SCOPE              = 10,//锁定视野
 		A_WAIT_CONFIRMATION      = 11,//等待验证
+		A_TRAP                   = 12,//陷阱
+		A_PASS_DUNGONE_POINT     = 13,//通关点
+		A_PORTAL                 = 14,//传送门
+		A_RIVAL_OBJECT           = 15,//物件
 	};
 
 	Type                     type;

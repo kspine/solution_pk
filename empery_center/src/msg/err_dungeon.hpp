@@ -32,6 +32,8 @@ namespace Msg {
 		ERR_DUNGEON_SUSPENDED                   = 71521,
 		ERR_DUNGEON_NOT_SUSPENDED               = 72522,
 		ERR_NO_DUNGEON_CELL                     = 72523,
+		ERR_NO_DUNGEON_TRAP_DATA                = 72424,
+		ERR_NO_DUNGEON_TRAP_IN_POS              = 72425,
 	};
 }
 

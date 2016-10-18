@@ -39,6 +39,17 @@ namespace Data {
 		DungeonTaskId dungeon_task_id;
 		boost::container::flat_map<ItemId, std::uint64_t> rewards;
 	};
+
+	class DungeonTrap {
+	public:
+		static boost::shared_ptr<const DungeonTrap> get(DungeonTrapTypeId dungeon_trap_type_id);
+		static boost::shared_ptr<const DungeonTrap> require(DungeonTrapTypeId dungeon_trap_type_id);
+	public:
+		DungeonTrapTypeId trap_type_id;
+		unsigned          attack_type;
+		boost::uint64_t   attack_range;
+		boost::uint64_t   attack;
+	};
 }
 
 }

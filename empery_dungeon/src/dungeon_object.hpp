@@ -160,10 +160,12 @@ private:
 	bool          is_lost_attacked_target();
 	void          reset_attack_target_own_uuid();
     AccountUuid   get_attack_target_own_uuid();
-	unsigned      get_arm_attack_type();
-	unsigned      get_arm_defence_type();
 	int           get_attacked_prority();
 	bool          move_able();
+public:
+	double get_total_defense();
+	unsigned      get_arm_attack_type();
+	unsigned      get_arm_defence_type();
 };
 
 }

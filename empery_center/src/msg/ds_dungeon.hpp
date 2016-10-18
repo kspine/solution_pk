@@ -158,6 +158,22 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonCreateTrap
+#define MESSAGE_ID      50013
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (trap_type_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonDeleteTrap
+#define MESSAGE_ID      50014
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

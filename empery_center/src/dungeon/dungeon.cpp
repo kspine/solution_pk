@@ -32,6 +32,7 @@
 #include "../item_box.hpp"
 #include "../reason_ids.hpp"
 #include "../transaction_element.hpp"
+#include "../dungeon_trap.hpp"
 
 namespace EmperyCenter {
 
@@ -692,6 +693,31 @@ DUNGEON_SERVLET(Msg::DS_DungeonTriggerEffectExecutive, dungeon, server, req){
 	}
 	dungeon->broadcast_to_observers(msg);
 
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonCreateTrap, dungeon, server, req){
+	const auto trap_type_id = DungeonTrapTypeId(req.trap_type_id);
+	const auto trap_data = Data::DungeonTrap::get(trap_type_id);
+	if(!trap_data){
+		return Response(Msg::ERR_NO_DUNGEON_TRAP_DATA) <<trap_type_id;
+	}
+	const auto coord = Coord(req.x, req.y);
+	auto dungeon_trap = boost::make_shared<DungeonTrap>(dungeon->get_dungeon_uuid(), trap_type_id,coord);
+	dungeon_trap->pump_status();
+
+	dungeon->insert_trap(std::move(dungeon_trap));
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonDeleteTrap, dungeon, server, req){
+	const auto coord = Coord(req.x, req.y);
+	auto dungeon_trap = dungeon->get_trap(coord);
+	if(!dungeon_trap){
+		return Response(Msg::ERR_NO_DUNGEON_TRAP_IN_POS) <<coord;
+	}
+	dungeon_trap->delete_from_game();
 	return Response();
 }
 
