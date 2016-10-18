@@ -222,6 +222,23 @@ namespace Msg {
 		FIELD_VUINT        (effect_type)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonTrapInfo
+#define MESSAGE_ID      1582
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y) \
+	FIELD_VUINT         (trap_type_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonTrapRemoved
+#define MESSAGE_ID      1581
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

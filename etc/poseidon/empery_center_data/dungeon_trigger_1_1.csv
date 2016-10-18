@@ -4,3 +4,4 @@ id,name,trigger_type,delay,condition,effect_type,effect_params
 600001,dungeon_solider_all_die,6,0,[0],[6],[[0]]
 600002,dungeon_monster_all_die,6,0,"[1,4]",[5],[[0]]
 400003,dungeon_finish_task,4,0,[2],[7],[[3401001]]
+100004,dungeon_create_trap,1,0,,[12],"[[[3311002,[6,6]],[3311002,[3,4]]]]"
