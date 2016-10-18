@@ -31,9 +31,9 @@ public:
 	};
 
 	enum AI {
-		AI_SOLIDER                           = 5000101,
-		AI_MONSTER_AUTO_SEARCH_TARGET        = 5000401,
-		AI_MONSTER_PATROL                    = 5000501,
+		AI_SOLIDER                           = 1,
+		AI_MONSTER_AUTO_SEARCH_TARGET        = 4,
+		AI_MONSTER_PATROL                    = 5,
 	};
 public:
 	struct BuffInfo {
@@ -138,6 +138,7 @@ public:
 	bool          attacking_able(std::pair<long, std::string> &reason);
 	std::uint64_t search_attack();
 	boost::shared_ptr<const Data::DungeonObjectType> get_dungeon_object_type_data();
+	boost::shared_ptr<const Data::DungeonObjectAi>   get_dungeon_ai_data();
 
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
@@ -148,8 +149,8 @@ public:
 	std::uint64_t lost_target_common();
 	std::uint64_t lost_target_monster();
 	std::uint64_t on_monster_regress();
-	std::uint64_t monster_search_attack_target(std::pair<long, std::string> &result,AI ai = AI_MONSTER_AUTO_SEARCH_TARGET);
-	std::uint64_t on_monster_guard(AI ai = AI_MONSTER_AUTO_SEARCH_TARGET);
+	std::uint64_t monster_search_attack_target(std::pair<long, std::string> &result);
+	std::uint64_t on_monster_guard();
 	std::uint64_t on_monster_patrol();
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const DungeonObject::Action &action, const std::string &action_param);

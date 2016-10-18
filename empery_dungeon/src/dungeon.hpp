@@ -99,6 +99,7 @@ public:
 	void check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint64_t old_hp, std::uint64_t new_hp);
 	void check_triggers_dungeon_finish();
 	void check_triggers_all_die();
+	void forcast_triggers(const boost::shared_ptr<Trigger> &trigger,std::uint64_t now);
 	void parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param);
 	void on_triggers_action(const TriggerAction &action);
 	void on_triggers_create_dungeon_object(const TriggerAction &action);
@@ -114,6 +115,7 @@ public:
 	void on_triggers_dungeon_set_scope(const TriggerAction &action);
 	void on_triggers_dungeon_wait_for_confirmation(const TriggerAction &action);
 	void on_triggers_dungeon_player_confirmation(std::string context);
+	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 };
 
 }
