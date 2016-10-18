@@ -7,6 +7,7 @@
 #include "player_session.hpp"
 #include "msg/sc_dungeon.hpp"
 #include "src/dungeon_object.hpp"
+#include "src/dungeon_trap.hpp"
 
 namespace EmperyCenter {
 
@@ -64,6 +65,7 @@ Dungeon::~Dungeon(){
 	clear_observers(Q_DUNGEON_EXPIRED, "");
 }
 
+/*
 void Dungeon::synchronize_with_all_observers(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept {
 	PROFILE_ME;
 
@@ -92,6 +94,7 @@ void Dungeon::synchronize_with_dungeon_server(const boost::shared_ptr<DungeonObj
 		}
 	}
 }
+*/
 
 void Dungeon::pump_status(){
 	PROFILE_ME;
@@ -377,6 +380,76 @@ void Dungeon::update_object(const boost::shared_ptr<DungeonObject> &dungeon_obje
 	synchronize_with_dungeon_server(dungeon_object);
 }
 
+boost::shared_ptr<DungeonTrap> Dungeon::get_trap(Coord coord){
+	PROFILE_ME;
+
+	const auto it = m_traps.find(coord);
+	if(it == m_traps.end()){
+		LOG_EMPERY_CENTER_DEBUG("Dungeon trap not found: coord = ", coord);
+		return { };
+	}
+	return it->second;
+}
+
+void Dungeon::insert_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap){
+	PROFILE_ME;
+
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_trap->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_CENTER_WARNING("This dungeon trap does not belong to this dungeon!");
+		DEBUG_THROW(Exception, sslit("This dungeon trap does not belong to this dungeon"));
+	}
+
+	const auto coord = dungeon_trap->get_coord();
+
+	if(dungeon_trap->is_virtually_removed()){
+		LOG_EMPERY_CENTER_WARNING("Dungeon trap has been marked as deleted: coord = ", coord);
+		DEBUG_THROW(Exception, sslit("Dongeon trap has been marked as deleted"));
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Inserting dungeon trap: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+	const auto result = m_traps.emplace(coord, dungeon_trap);
+	if(!result.second){
+		LOG_EMPERY_CENTER_WARNING("Dungeon trap already exists: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+		DEBUG_THROW(Exception, sslit("Dungeon trap already exists"));
+	}
+
+	synchronize_with_all_observers(dungeon_trap);
+	synchronize_with_dungeon_server(dungeon_trap);
+}
+void Dungeon::update_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_trap->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_CENTER_WARNING("This dungeon trap does not belong to this dungeon!");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("This dungeon trap does not belong to this dungeon"));
+		}
+		return;
+	}
+
+	const auto coord = dungeon_trap->get_coord();
+
+	const auto it = m_traps.find(coord);
+	if(it == m_traps.end()){
+		LOG_EMPERY_CENTER_TRACE("Dungeon trap not found: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Dungeon trap not found"));
+		}
+		return;
+	}
+
+	LOG_EMPERY_CENTER_TRACE("Updating dungeon trap: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+	if(dungeon_trap->is_virtually_removed()){
+		m_traps.erase(it);
+	} else {
+		//
+	}
+
+	synchronize_with_all_observers(dungeon_trap);
+	synchronize_with_dungeon_server(dungeon_trap);
+}
 bool Dungeon::is_virtually_removed() const {
 	return get_expiry_time() == 0;
 }

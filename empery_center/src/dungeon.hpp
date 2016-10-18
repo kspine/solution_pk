@@ -8,12 +8,15 @@
 #include "id_types.hpp"
 #include "coord.hpp"
 #include "rectangle.hpp"
+#include "player_session.hpp"
+#include "dungeon_session.hpp"
 
 namespace EmperyCenter {
 
 class DungeonObject;
 class PlayerSession;
 class DungeonSession;
+class DungeonTrap;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -53,6 +56,7 @@ private:
 	};
 	boost::container::flat_map<AccountUuid, Observer> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
+	boost::container::flat_map<Coord, boost::shared_ptr<DungeonTrap>> m_traps;
 
 	Rectangle m_scope;
 	Suspension m_suspension = { };
@@ -63,8 +67,37 @@ public:
 	~Dungeon();
 
 private:
-	void synchronize_with_all_observers(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept;
-	void synchronize_with_dungeon_server(const boost::shared_ptr<DungeonObject> &dungeon_object) const noexcept;
+	template<typename T>
+	void synchronize_with_all_observers(const boost::shared_ptr<T> &dungeon_object) const noexcept{
+			PROFILE_ME;
+
+			for(auto it = m_observers.begin(); it != m_observers.end(); ++it){
+				const auto session = it->second.session.lock();
+				if(session){
+					try {
+						dungeon_object->synchronize_with_player(session);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						session->shutdown(e.what());
+					}
+				}
+			}
+	}
+
+	template<typename T>
+	void synchronize_with_dungeon_server(const boost::shared_ptr<T> &dungeon_object) const noexcept{
+		PROFILE_ME;
+
+		const auto server = m_server.lock();
+		if(server){
+			try {
+				dungeon_object->synchronize_with_dungeon_server(server);
+			} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				server->shutdown(e.what());
+			}
+		}
+	}
 
 public:
 	virtual void pump_status();
@@ -119,6 +152,9 @@ public:
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
+	boost::shared_ptr<DungeonTrap> get_trap(Coord coord);
+	void insert_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap);
+	void update_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap, bool throws_if_not_exists = true);
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

@@ -30,4 +30,5 @@ lib_libposeidon_empery_dungeon_la_SOURCES = \
 	src/dungeon_utilities.cpp \
 	src/ai_control.cpp \
 	src/trigger.cpp \
+	src/dungeon_trap.cpp \
 	src/mmain.cpp

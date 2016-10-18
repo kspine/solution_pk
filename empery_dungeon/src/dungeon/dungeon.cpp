@@ -5,6 +5,7 @@
 #include "../singletons/dungeon_map.hpp"
 #include "../dungeon.hpp"
 #include "../dungeon_object.hpp"
+#include "../dungeon_trap.hpp"
 #include "../trigger.hpp"
 #include "../../../empery_center/src/attribute_ids.hpp"
 #include "../checked_arithmetic.hpp"
@@ -120,7 +121,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectRemoved, dungeon, req){
 	const auto dungeon_object_type_data = dungeon_object->get_dungeon_object_type_data();
 	const auto hp_total = checked_mul(dungeon_object_type_data->max_soldier_count, dungeon_object_type_data->hp);
 	expect_dungeon->check_triggers_hp(dungeon_object->get_tag(),hp_total,old_hp,0);
-	expect_dungeon->reove_dungeon_object_no_synchronize(dungeon_object_uuid);
+	expect_dungeon->remove_dungeon_object_no_synchronize(dungeon_object_uuid);
 	expect_dungeon->check_triggers_all_die();
 	return Response();
 }
@@ -157,4 +158,37 @@ DUNGEON_SERVLET(Msg::SD_DungeonPlayerConfirmation, dengeon, req){
 	expect_dungeon->on_triggers_dungeon_player_confirmation(context);
 	return Response();
 }
+
+DUNGEON_SERVLET(Msg::SD_DungeonTrapInfo, dungeon, req){
+	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
+	if(!expect_dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
+	}
+	auto coord = Coord(req.x, req.y);
+	auto trap_type_id = DungeonTrapTypeId(req.trap_type_id);
+	auto dungeon_trap = expect_dungeon->get_trap(coord);
+
+	if(!dungeon_trap){
+		dungeon_trap = boost::make_shared<DungeonTrap>(dungeon_uuid,trap_type_id,coord);
+	}
+	expect_dungeon->replace_dungeon_trap_no_synchronize(dungeon_trap);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::SD_DungeonTrapRemoved, dungeon, req){
+	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	auto coord = Coord(req.x, req.y);
+	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
+	if(!expect_dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
+	}
+	auto dungeon_trap = expect_dungeon->get_trap(coord);
+	if(!dungeon_trap){
+		return Response(Msg::ERR_NO_DUNGEON_TRAP_IN_POS) << coord;
+	}
+	expect_dungeon->remove_dungeon_trap_no_synchronize(coord);
+	return Response();
+}
+
 }

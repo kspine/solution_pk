@@ -18,6 +18,7 @@ class TriggerCondition;
 class TriggerAction;
 class TriggerDamage;
 class TriggerConfirmation;
+class DungeonTrap;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -49,6 +50,7 @@ private:
 	boost::shared_ptr<Poseidon::TimerItem>                                          m_trigger_timer;
 	DungeonState                                                                    m_dungeon_state;
 	std::uint64_t                                                                   m_monster_removed_count;
+	boost::container::flat_map<Coord, boost::shared_ptr<DungeonTrap>>               m_traps;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
@@ -88,10 +90,18 @@ public:
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
 	void replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object);
-	void reove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_object_uuid);
+	void remove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_object_uuid);
 	bool check_all_die(bool is_monster);
 	bool check_valid_coord_for_birth(const Coord &src_coord);
 	bool get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord);
+
+	boost::shared_ptr<DungeonTrap> get_trap(const Coord src_coord) const;
+	void insert_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap);
+	void update_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap, bool throws_if_not_exists = true);
+	void replace_dungeon_trap_no_synchronize(const boost::shared_ptr<DungeonTrap> &dungeon_trap);
+	void remove_dungeon_trap_no_synchronize(Coord coord);
+	void check_trap_move_pass(Coord coord);
+	void do_trap_damage(const boost::shared_ptr<DungeonTrap>& dungeon_trap);
 
 	void init_triggers();
 	void check_triggers_enter_dungeon();
@@ -115,6 +125,7 @@ public:
 	void on_triggers_dungeon_set_scope(const TriggerAction &action);
 	void on_triggers_dungeon_wait_for_confirmation(const TriggerAction &action);
 	void on_triggers_dungeon_player_confirmation(std::string context);
+	void on_triggers_create_dungeon_trap(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 };
 
