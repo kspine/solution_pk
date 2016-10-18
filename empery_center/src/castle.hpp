@@ -19,6 +19,7 @@ namespace MySql {
 	class Center_CastleWoundedSoldier;
 	class Center_CastleTreatment;
 	class Center_CastleTechEra;
+	class Center_CastleResourceBattalionUnload;
 }
 
 class Castle : public DefenseBuilding {
@@ -109,6 +110,9 @@ private:
 	boost::container::flat_map<unsigned,
 		boost::shared_ptr<MySql::Center_CastleTechEra>> m_tech_eras;
 
+	boost::container::flat_map<ResourceId,
+		boost::shared_ptr<MySql::Center_CastleResourceBattalionUnload>> m_resources_battalion_unload;
+
 	// 非持久化数据。
 	double m_population_production_remainder = 0;
 	double m_population_production_rate = 0;
@@ -128,7 +132,8 @@ public:
 		const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
 		const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment,
-		const std::vector<boost::shared_ptr<MySql::Center_CastleTechEra>> &tech_eras);
+		const std::vector<boost::shared_ptr<MySql::Center_CastleTechEra>> &tech_eras,
+		const std::vector<boost::shared_ptr<MySql::Center_CastleResourceBattalionUnload>> &resources_battalion_unload);
 	~Castle();
 
 public:
@@ -243,6 +248,8 @@ public:
 	TechEraInfo get_tech_era(unsigned tech_era) const;
 	void get_tech_era_all(std::vector<TechEraInfo> &ret) const;
 	void unlock_tech_era(unsigned tech_era);
+
+	void reset_resource_battalion_unload();
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

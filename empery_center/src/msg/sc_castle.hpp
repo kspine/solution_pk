@@ -90,6 +90,13 @@ namespace Msg {
 	FIELD_VUINT         (unlocked)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_CastleResourceBattalionUnload
+#define MESSAGE_ID      491
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (resource_id)	\
+	FIELD_VUINT         (count)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

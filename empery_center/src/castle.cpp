@@ -174,6 +174,13 @@ namespace {
 		msg.tech_era              = obj->get_tech_era();
 		msg.unlocked              = obj->get_unlocked();
 	}
+	void fill_resource_battalion_unload_message(Msg::SC_CastleResourceBattalionUnload &msg, const boost::shared_ptr<MySql::Center_CastleResourceBattalionUnload> &obj){
+		PROFILE_ME;
+
+		msg.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
+		msg.resource_id            = obj->get_resource_id();
+		msg.count                  = obj->get_delta();
+	}
 
 	bool check_building_mission(const boost::shared_ptr<MySql::Center_CastleBuildingBase> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
@@ -297,7 +304,8 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleBattalionProduction>> &soldier_production,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleWoundedSoldier>> &wounded_soldiers,
 	const std::vector<boost::shared_ptr<MySql::Center_CastleTreatment>> &treatment,
-	const std::vector<boost::shared_ptr<MySql::Center_CastleTechEra>> &tech_eras)
+	const std::vector<boost::shared_ptr<MySql::Center_CastleTechEra>> &tech_eras,
+	const std::vector<boost::shared_ptr<MySql::Center_CastleResourceBattalionUnload>> &resources_battalion_unload)
 	: DefenseBuilding(std::move(obj), attributes, buffs, defense_objs)
 {
 	for(auto it = buildings.begin(); it != buildings.end(); ++it){
@@ -336,6 +344,10 @@ Castle::Castle(boost::shared_ptr<MySql::Center_MapObject> obj,
 	for(auto it = tech_eras.begin(); it != tech_eras.end(); ++it){
 		const auto &obj = *it;
 		m_tech_eras.emplace(obj->get_tech_era(), obj);
+	}
+	for(auto it = resources_battalion_unload.begin(); it != resources_battalion_unload.end(); ++it){
+		const auto &obj = *it;
+		m_resources_battalion_unload.emplace(ResourceId(obj->get_resource_id()), obj);
 	}
 }
 Castle::~Castle(){
@@ -1544,11 +1556,14 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 	events.reserve(transaction.size());
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t /* new_amount */> temp_result_map;
 	temp_result_map.reserve(transaction.size());
+	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResourceBattalionUnload>, std::uint64_t /* new_amount */> temp_unload_map;
+	temp_unload_map.reserve(transaction.size());
 
 	const FlagGuard transaction_guard(m_locked_by_resource_transaction);
 
 	const auto map_object_uuid = get_map_object_uuid();
 	const auto owner_uuid = get_owner_uuid();
+	const auto utc_now = Poseidon::get_utc_time();
 
     for(auto tit = transaction.begin(); tit != transaction.end(); ++tit){
 		const auto operation    = tit->m_operation;
@@ -1595,6 +1610,24 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 					", reason = ", reason, ", param1 = ", param1, ", param2 = ", param2, ", param3 = ", param3);
 				events.emplace_back(boost::make_shared<Events::CastleResourceChanged>(
 					map_object_uuid, owner_uuid, resource_id, old_amount, new_amount, reason, param1, param2, param3));
+				//累计部队卸载资源用于回城提示
+				if(reason == ReasonIds::ID_BATTALION_UNLOAD || reason == ReasonIds::ID_BATTALION_UNLOAD_CRATE){
+					boost::shared_ptr<MySql::Center_CastleResourceBattalionUnload> obj_battalion_unload;
+					const auto it_unload = m_resources_battalion_unload.find(resource_id);
+					if(it_unload == m_resources_battalion_unload.end()){
+						obj_battalion_unload = boost::make_shared<MySql::Center_CastleResourceBattalionUnload>(get_map_object_uuid().get(), resource_id.get(), 0, 0);
+						obj_battalion_unload->async_save(true);
+						m_resources_battalion_unload.emplace(resource_id, obj_battalion_unload);
+					} else {
+						obj_battalion_unload = it_unload->second;
+					}
+					auto temp_it_unload = temp_unload_map.find(obj_battalion_unload);
+					if(temp_it_unload == temp_unload_map.end()){
+						temp_it_unload = temp_unload_map.emplace_hint(temp_it_unload, obj_battalion_unload, obj_battalion_unload->get_delta());
+					}
+					const auto old_amount = temp_it_unload->second;
+					temp_it_unload->second = checked_add(old_amount, delta_amount);
+				}
 			}
 			break;
 
@@ -1652,6 +1685,10 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 	for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 		it->first->set_amount(it->second);
 	}
+	for(auto it = temp_unload_map.begin(); it != temp_unload_map.end(); ++it){
+		it->first->set_delta(it->second);
+		it->first->set_updated_time(utc_now);
+	}
 	*withdrawn = false;
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -1660,6 +1697,11 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 			for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
 				Msg::SC_CastleResource msg;
 				fill_resource_message(msg, it->first);
+				session->send(msg);
+			}
+			for(auto it = temp_unload_map.begin(); it != temp_unload_map.end(); ++it){
+				Msg::SC_CastleResourceBattalionUnload msg;
+				fill_resource_battalion_unload_message(msg, it->first);
 				session->send(msg);
 			}
 		} catch(std::exception &e){
@@ -2551,6 +2593,27 @@ void Castle::unlock_tech_era(unsigned tech_era){
 	}
 }
 
+void Castle::reset_resource_battalion_unload(){
+	PROFILE_ME;
+
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto session = PlayerSessionMap::get(get_owner_uuid());
+	if(session){
+		try {
+			for(auto it = m_resources_battalion_unload.begin(); it != m_resources_battalion_unload.end(); ++it){
+				Msg::SC_CastleResourceBattalionUnload msg;
+				it->second->set_delta(0);
+				it->second->set_updated_time(utc_now);
+				fill_resource_battalion_unload_message(msg, it->second);
+				session->send(msg);
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
 void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
@@ -2594,6 +2657,11 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 	for(auto it = m_tech_eras.begin(); it != m_tech_eras.end(); ++it){
 		Msg::SC_CastleTechEra msg;
 		fill_tech_era_message(msg, it->second);
+		session->send(msg);
+	}
+	for(auto it = m_resources_battalion_unload.begin(); it != m_resources_battalion_unload.end(); ++it){
+		Msg::SC_CastleResourceBattalionUnload msg;
+		fill_resource_battalion_unload_message(msg, it->second);
 		session->send(msg);
 	}
 }
