@@ -113,7 +113,7 @@ std::uint64_t AiControlMonsterAutoSearch::on_action_monster_search_target(std::p
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->monster_search_attack_target(result,static_cast<DungeonObject::AI>(get_ai_id()));
+	return parent_object->monster_search_attack_target(result);
 }
 
 std::uint64_t AiControlMonsterAutoSearch::on_action_guard(std::pair<long, std::string> &result, std::uint64_t now){
@@ -123,7 +123,7 @@ std::uint64_t AiControlMonsterAutoSearch::on_action_guard(std::pair<long, std::s
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->on_monster_guard(static_cast<DungeonObject::AI>(get_ai_id()));
+	return parent_object->on_monster_guard();
 }
 
 AiControlMonsterPatrol::AiControlMonsterPatrol(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
@@ -140,7 +140,7 @@ std::uint64_t AiControlMonsterPatrol::move(std::pair<long, std::string> &result)
 	}
 	if(DungeonObject::ACT_MONSTER_PATROL == parent_object->get_action()){
 		std::pair<long, std::string> search_result;
-		std::uint64_t search_delay = parent_object->monster_search_attack_target(search_result,static_cast<DungeonObject::AI>(get_ai_id()));
+		std::uint64_t search_delay = parent_object->monster_search_attack_target(search_result);
 		if(search_result.first == Poseidon::Cbpp::ST_OK){
 			LOG_EMPERY_DUNGEON_DEBUG("patrol search target sucess");
 			return search_delay;
@@ -156,7 +156,7 @@ std::uint64_t AiControlMonsterPatrol::on_lose_target(){
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->on_monster_guard(static_cast<DungeonObject::AI>(get_ai_id()));
+	return parent_object->on_monster_guard();
 }
 
 std::uint64_t AiControlMonsterPatrol::on_action_monster_search_target(std::pair<long, std::string> &result, std::uint64_t now){
@@ -166,7 +166,7 @@ std::uint64_t AiControlMonsterPatrol::on_action_monster_search_target(std::pair<
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->monster_search_attack_target(result,static_cast<DungeonObject::AI>(get_ai_id()));
+	return parent_object->monster_search_attack_target(result);
 }
 
 std::uint64_t AiControlMonsterPatrol::on_action_guard(std::pair<long, std::string> &result, std::uint64_t now){
@@ -176,7 +176,7 @@ std::uint64_t AiControlMonsterPatrol::on_action_guard(std::pair<long, std::strin
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->on_monster_guard(static_cast<DungeonObject::AI>(get_ai_id()));
+	return parent_object->on_monster_guard();
 }
 
 std::uint64_t AiControlMonsterPatrol::on_action_patrol(std::pair<long, std::string> &result, std::uint64_t now){

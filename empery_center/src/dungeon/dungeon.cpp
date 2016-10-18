@@ -668,4 +668,32 @@ DUNGEON_SERVLET(Msg::DS_DungeonMoveCamera, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonTriggerEffectForcast, dungeon, server, req){
+	Msg::SC_DungeonTriggerEffectForcast msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	msg.trigger_id        = req.trigger_id;
+	msg.executive_time    = req.executive_time;
+	for(auto it = req.effects.begin(); it != req.effects.end(); ++it){
+		auto &effects = *msg.effects.emplace(msg.effects.end());
+		effects.effect_type = it->effect_type;
+	}
+	dungeon->broadcast_to_observers(msg);
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonTriggerEffectExecutive, dungeon, server, req){
+	Msg::SC_DungeonTriggerEffectExecutive msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	msg.trigger_id        = req.trigger_id;
+	for(auto it = req.effects.begin(); it != req.effects.end(); ++it){
+		auto &effects = *msg.effects.emplace(msg.effects.end());
+		effects.effect_type = it->effect_type;
+	}
+	dungeon->broadcast_to_observers(msg);
+
+	return Response();
+}
+
+
 }

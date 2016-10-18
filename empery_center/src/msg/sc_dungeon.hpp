@@ -201,6 +201,27 @@ namespace Msg {
 		FIELD_VUINT         (soldiers_wounded)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonTriggerEffectForcast
+#define MESSAGE_ID      1584
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (trigger_id) \
+	FIELD_VUINT         (executive_time) \
+	FIELD_ARRAY         (effects,	\
+		FIELD_VUINT        (effect_type)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonTriggerEffectExecutive
+#define MESSAGE_ID      1583
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (trigger_id) \
+	FIELD_ARRAY         (effects,	\
+		FIELD_VUINT        (effect_type)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }
