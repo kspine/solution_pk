@@ -14,7 +14,7 @@
 #include "dungeon_utilities.hpp"
 #include "src/data/global.hpp"
 #include "src/data/dungeon_object.hpp"
-#include "src/dungeon_trap.hpp"
+#include "src/dungeon_play.hpp"
 
 namespace EmperyDungeon {
 namespace Msg = ::EmperyCenter::Msg;
@@ -143,6 +143,14 @@ std::uint64_t Dungeon::get_total_damage_solider(){
 		total_damage_solider += it->second;
 	}
 	return total_damage_solider;
+}
+
+void Dungeon::check_move_pass(Coord coord,bool is_monster){
+	check_triggers_move_pass(coord,is_monster);
+	check_trap_move_pass(coord);
+	if(!is_monster){
+		check_pass_point_move_pass(coord);
+	}
 }
 
 boost::shared_ptr<DungeonObject> Dungeon::get_object(DungeonObjectUuid dungeon_object_uuid) const {
@@ -501,6 +509,59 @@ void Dungeon::do_trap_damage(const boost::shared_ptr<DungeonTrap>& dungeon_trap)
 		}
 	}
 }
+boost::shared_ptr<DungeonPassPoint> Dungeon::get_pass_point(const Coord coord) const{
+	PROFILE_ME;
+
+	const auto it = m_pass_points.find(coord);
+	if(it == m_pass_points.end()){
+		LOG_EMPERY_DUNGEON_DEBUG("Dungeon pass point not found: coord = ", coord);
+		return { };
+	}
+	return it->second;
+}
+void Dungeon::insert_block_point(Coord coord){
+	m_block_points.push_back(std::move(coord));
+}
+void Dungeon::get_block_points(std::vector<Coord> &ret){
+	ret.reserve(m_block_points.size());
+	for(auto it = m_block_points.begin(); it != m_block_points.end(); ++it){
+		ret.push_back(*it);
+	}
+}
+
+void Dungeon::replace_dungeon_pass_point_no_synchronize(const boost::shared_ptr<DungeonPassPoint> &dungeon_pass_point){
+	PROFILE_ME;
+
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_pass_point->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_DUNGEON_WARNING("This dungeon pass point does not belong to this dungeon!");
+		return;
+	}
+	const auto coord = dungeon_pass_point->get_coord();
+	const auto it = m_pass_points.find(coord);
+	if(it == m_pass_points.end()){
+		m_pass_points.emplace(coord, dungeon_pass_point);
+		return;
+	}else{
+		m_pass_points.at(it->first) = dungeon_pass_point;
+	}
+}
+
+void Dungeon::check_pass_point_move_pass(Coord coord){
+	PROFILE_ME;
+
+	const auto pass_point = get_pass_point(coord);
+	if(!pass_point)
+		return;
+	LOG_EMPERY_DUNGEON_FATAL("find a pass point in ",coord);
+	if(!pass_point->get_state()){
+		return;
+	}
+	//通过通关点
+	TriggerAction action;
+	action.type = TriggerAction::A_DUNGEON_FINISHED;
+	on_triggers_action(action);
+}
 
 void Dungeon::init_triggers(){
 	PROFILE_ME;
@@ -830,6 +891,10 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 	ON_TRIGGER_ACTION(TriggerAction::A_TRAP){
 		//TODO
 		on_triggers_create_dungeon_trap(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_PASS_DUNGONE_POINT){
+		//TODO
+		on_triggers_create_dungeon_pass_point(action);
 	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
@@ -1302,6 +1367,56 @@ void Dungeon::on_triggers_create_dungeon_trap(const TriggerAction &action){
 					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 					dungeon_client->shutdown(e.what());
 				}
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_create_dungeon_pass_point(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_PASS_DUNGONE_POINT){
+			return;
+		}
+		std::istringstream iss_effect_param(action.params);
+		auto effect_param_array = Poseidon::JsonParser::parse_array(iss_effect_param);
+		if(effect_param_array.size() != 2){
+			LOG_EMPERY_DUNGEON_WARNING("create dungeon pass point params error = ",action.params);
+			return;
+		}
+		const auto dungeon_client = get_dungeon_client();
+		if(dungeon_client){
+			try {
+				auto &pass_point                         = effect_param_array.at(0).get<Poseidon::JsonArray>();
+				auto pass_point_x                        = static_cast<int>(pass_point.at(0).get<double>());
+				auto pass_point_y                        = static_cast<int>(pass_point.at(1).get<double>());
+				auto &block_points                       = effect_param_array.at(1).get<Poseidon::JsonArray>();
+				Msg::DS_DungeonCreatePassPoint  msg;
+				msg.dungeon_uuid       = get_dungeon_uuid().str();
+				msg.x                  = pass_point_x;
+				msg.y                  = pass_point_y;
+				for(auto it = block_points.begin(); it != block_points.end(); ++it){
+					auto &block_point_info = (*it).get<Poseidon::JsonArray>();
+					auto &block_point      = block_point_info.at(0).get<Poseidon::JsonArray>();
+					auto block_point_x     = static_cast<int>(block_point.at(0).get<double>());
+					auto block_point_y     = static_cast<int>(block_point.at(1).get<double>());
+					auto &relate_monster   = block_point_info.at(1).get<Poseidon::JsonArray>();
+					auto &block = *msg.blocks.emplace(msg.blocks.end());
+					block.x = block_point_x;
+					block.y = block_point_y;
+					for(auto itm = relate_monster.begin(); itm != relate_monster.end(); ++itm){
+						auto &relate_monster = *block.relate_monster.emplace(block.relate_monster.end());
+						relate_monster.tag = boost::lexical_cast<std::string>((*itm).get<double>());
+					}
+				}
+				dungeon_client->send(msg);
+				LOG_EMPERY_DUNGEON_DEBUG("msg create pass point:",msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+				dungeon_client->shutdown(e.what());
 			}
 		}
 	} catch(std::exception &e){

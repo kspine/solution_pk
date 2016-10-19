@@ -19,6 +19,7 @@ class TriggerAction;
 class TriggerDamage;
 class TriggerConfirmation;
 class DungeonTrap;
+class DungeonPassPoint;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -51,6 +52,8 @@ private:
 	DungeonState                                                                    m_dungeon_state;
 	std::uint64_t                                                                   m_monster_removed_count;
 	boost::container::flat_map<Coord, boost::shared_ptr<DungeonTrap>>               m_traps;
+	boost::container::flat_map<Coord, boost::shared_ptr<DungeonPassPoint>>          m_pass_points;
+	std::vector<Coord>                                                              m_block_points;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
@@ -83,6 +86,7 @@ public:
 	boost::shared_ptr<DungeonClient> get_dungeon_client() const {
 		return m_dungeon_client.lock();
 	}
+	void check_move_pass(Coord coord,bool is_monster);
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const;
@@ -102,6 +106,13 @@ public:
 	void remove_dungeon_trap_no_synchronize(Coord coord);
 	void check_trap_move_pass(Coord coord);
 	void do_trap_damage(const boost::shared_ptr<DungeonTrap>& dungeon_trap);
+
+	boost::shared_ptr<DungeonPassPoint> get_pass_point(const Coord src_coord) const;
+	void insert_block_point(Coord coord);
+	void get_block_points(std::vector<Coord> &ret);
+	void replace_dungeon_pass_point_no_synchronize(const boost::shared_ptr<DungeonPassPoint> &dungeon_pass_point);
+	//只在部队通过时检测
+	void check_pass_point_move_pass(Coord coord);
 
 	void init_triggers();
 	void check_triggers_enter_dungeon();
@@ -126,6 +137,7 @@ public:
 	void on_triggers_dungeon_wait_for_confirmation(const TriggerAction &action);
 	void on_triggers_dungeon_player_confirmation(std::string context);
 	void on_triggers_create_dungeon_trap(const TriggerAction &action);
+	void on_triggers_create_dungeon_pass_point(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 };
 
