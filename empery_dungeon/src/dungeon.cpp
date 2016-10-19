@@ -450,7 +450,7 @@ void Dungeon::do_trap_damage(const boost::shared_ptr<DungeonTrap>& dungeon_trap)
 		LOG_EMPERY_DUNGEON_ERROR("DO TRAP DAMAGE ERROR,CAN'T GET DUNGEON CLIENT");
 		return;
 	}
-	double k = 0.35;
+	double k = 0.06;
 	const auto trap_data = Data::DungeonTrap::require(dungeon_trap->get_dungeon_trap_type_id());
 	std::vector<Coord> surrounding;
 	for(unsigned i = 0; i <= trap_data->attack_range;++i){
