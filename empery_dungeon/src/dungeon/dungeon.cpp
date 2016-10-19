@@ -5,7 +5,7 @@
 #include "../singletons/dungeon_map.hpp"
 #include "../dungeon.hpp"
 #include "../dungeon_object.hpp"
-#include "../dungeon_trap.hpp"
+#include "../dungeon_play.hpp"
 #include "../trigger.hpp"
 #include "../../../empery_center/src/attribute_ids.hpp"
 #include "../checked_arithmetic.hpp"
@@ -190,5 +190,38 @@ DUNGEON_SERVLET(Msg::SD_DungeonTrapRemoved, dungeon, req){
 	expect_dungeon->remove_dungeon_trap_no_synchronize(coord);
 	return Response();
 }
+
+DUNGEON_SERVLET(Msg::SD_DungeonPassPointInfo, dungeon, req){
+	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
+	if(!expect_dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
+	}
+	auto coord = Coord(req.x, req.y);
+	auto dungeon_pass_point = expect_dungeon->get_pass_point(coord);
+
+	if(!dungeon_pass_point){
+		boost::container::flat_map<Coord,DungeonPassPoint::BLOCK_STATE> blocks;
+		for(auto it = req.blocks.begin();it != req.blocks.end(); ++it){
+			auto block_x = it->x;
+			auto block_y = it->y;
+			auto relate_monster = it->relate_monster;
+			std::vector<std::pair<std::string,unsigned>> monster_state;
+			for(auto itt = relate_monster.begin(); itt != relate_monster.end(); ++itt){
+				monster_state.push_back(std::make_pair(itt->tag,0));
+			}
+			auto result = blocks.emplace(Coord(block_x,block_y),std::make_pair(0,std::move(monster_state)));
+			if(!result.second){
+				LOG_EMPERY_DUNGEON_WARNING("Dungeon pass point already exists: coord = ", coord);
+			}
+		}
+		dungeon_pass_point = boost::make_shared<DungeonPassPoint>(dungeon_uuid,coord,std::move(blocks));
+	}
+	//如果已经存在只维护整体通行点有效状态即可（所有解锁点解锁则有效）
+	dungeon_pass_point->set_state(req.state);
+	expect_dungeon->replace_dungeon_pass_point_no_synchronize(dungeon_pass_point);
+	return Response();
+}
+
 
 }

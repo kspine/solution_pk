@@ -35,6 +35,35 @@ public:
 	}
 };
 
+class DungeonPassPoint : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+public:
+typedef std::pair<std::string,unsigned> MONSTER_STATE;
+typedef std::pair<unsigned,std::vector<MONSTER_STATE>> BLOCK_STATE;
+private:
+	const DungeonUuid m_dungeon_uuid;
+	Coord m_coord;
+	bool m_deleted = false;
+	bool m_state   = false;
+	boost::container::flat_map<Coord,BLOCK_STATE> m_blocks;
+public:
+	DungeonPassPoint(DungeonUuid dungeon_uuid,Coord coord,boost::container::flat_map<Coord,BLOCK_STATE> blocks);
+	~DungeonPassPoint();
+public:
+	DungeonUuid get_dungeon_uuid() const {
+		return m_dungeon_uuid;
+	}
+
+	Coord get_coord() const {
+		return m_coord;
+	}
+	void set_state(bool state){
+		m_state = state;
+	}
+	bool get_state(){
+		return m_state;
+	}
+};
+
 }
 
 #endif

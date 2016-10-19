@@ -239,6 +239,23 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonPassPointInfo
+#define MESSAGE_ID      1580
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_VUINT         (state)	\
+	FIELD_ARRAY         (blocks,	\
+		FIELD_VINT          (x)	\
+		FIELD_VINT          (y)	\
+		FIELD_VINT          (state) \
+		FIELD_ARRAY     (relate_monster,	\
+			FIELD_STRING        (tag) \
+		)\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }
