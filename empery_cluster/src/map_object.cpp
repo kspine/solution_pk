@@ -532,7 +532,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	bool bCritical = false;
 	int result_type = IMPACT_NORMAL;
 	std::uint64_t damage = 0;
-	double k = 0.35;
+	double k = 0.06;
 	double attack_rate = map_object_type_data->attack_speed + get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0;
 	double doge_rate = emempy_type_data->doge_rate + get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0;
 	double critical_rate = map_object_type_data->critical_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0;
