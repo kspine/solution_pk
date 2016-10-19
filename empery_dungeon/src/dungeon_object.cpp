@@ -586,8 +586,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	}
 
 	set_coord(new_coord);
-	dungeon->check_triggers_move_pass(new_coord,is_monster());
-	dungeon->check_trap_move_pass(new_coord);
+	dungeon->check_move_pass(new_coord,is_monster());
 
 	m_waypoints.pop_front();
 	m_blocked_retry_count = 0;

@@ -7,7 +7,7 @@
 #include "player_session.hpp"
 #include "msg/sc_dungeon.hpp"
 #include "src/dungeon_object.hpp"
-#include "src/dungeon_trap.hpp"
+#include "src/dungeon_play.hpp"
 
 namespace EmperyCenter {
 
@@ -450,6 +450,77 @@ void Dungeon::update_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap, bo
 	synchronize_with_all_observers(dungeon_trap);
 	synchronize_with_dungeon_server(dungeon_trap);
 }
+
+void Dungeon::insert_pass_point(const boost::shared_ptr<DungeonPassPoint> &dungeon_pass_point){
+	PROFILE_ME;
+
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_pass_point->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_CENTER_WARNING("This dungeon pass point does not belong to this dungeon!");
+		DEBUG_THROW(Exception, sslit("This dungeon pass point does not belong to this dungeon"));
+	}
+
+	const auto coord = dungeon_pass_point->get_coord();
+
+	if(dungeon_pass_point->is_virtually_removed()){
+		LOG_EMPERY_CENTER_WARNING("Dungeon trap has been marked as deleted: coord = ", coord);
+		DEBUG_THROW(Exception, sslit("Dongeon trap has been marked as deleted"));
+	}
+
+	LOG_EMPERY_CENTER_DEBUG("Inserting dungeon trap: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+	const auto result = m_pass_points.emplace(coord, dungeon_pass_point);
+	if(!result.second){
+		LOG_EMPERY_CENTER_WARNING("Dungeon pass point already exists: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+		DEBUG_THROW(Exception, sslit("Dungeon pass point already exists"));
+	}
+
+	synchronize_with_all_observers(dungeon_pass_point);
+	synchronize_with_dungeon_server(dungeon_pass_point);
+}
+
+void Dungeon::update_pass_point(const boost::shared_ptr<DungeonPassPoint> &dungeon_pass_point, bool throws_if_not_exists){
+	PROFILE_ME;
+
+	const auto dungeon_uuid = get_dungeon_uuid();
+	if(dungeon_pass_point->get_dungeon_uuid() != dungeon_uuid){
+		LOG_EMPERY_CENTER_WARNING("This dungeon pass point does not belong to this dungeon!");
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("This dungeon pass point does not belong to this dungeon"));
+		}
+		return;
+	}
+
+	const auto coord = dungeon_pass_point->get_coord();
+
+	auto it = m_pass_points.find(coord);
+	if(it == m_pass_points.end()){
+		LOG_EMPERY_CENTER_TRACE("Dungeon pass point not found: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+		if(throws_if_not_exists){
+			DEBUG_THROW(Exception, sslit("Dungeon pass point not found"));
+		}
+		return;
+	}
+
+	LOG_EMPERY_CENTER_TRACE("Updating dungeon pass point: coord = ", coord, ", dungeon_uuid = ", dungeon_uuid);
+	if(dungeon_pass_point->is_virtually_removed()){
+		m_pass_points.erase(it);
+	} else {
+		//
+		it->second = dungeon_pass_point;
+	}
+
+	synchronize_with_all_observers(dungeon_pass_point);
+	synchronize_with_dungeon_server(dungeon_pass_point);
+}
+
+void Dungeon::update_pass_point_block_monster(std::string tag){
+	for(auto it = m_pass_points.begin(); it != m_pass_points.end(); ++it){
+		auto &pass_point = it->second;
+		if(pass_point->update_block_monster(tag)){
+			update_pass_point(pass_point,false);
+		}
+	}
+}
 bool Dungeon::is_virtually_removed() const {
 	return get_expiry_time() == 0;
 }
@@ -460,6 +531,7 @@ void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		const auto &dungeon_object = it->second;
 		dungeon_object->synchronize_with_player(session);
 	}
+	
 }
 
 }

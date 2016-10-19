@@ -32,7 +32,7 @@
 #include "../item_box.hpp"
 #include "../reason_ids.hpp"
 #include "../transaction_element.hpp"
-#include "../dungeon_trap.hpp"
+#include "../dungeon_play.hpp"
 
 namespace EmperyCenter {
 
@@ -402,6 +402,17 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
+	//触发器解锁点解锁
+	if(soldiers_remaining == 0){
+		try {
+			const auto monster_type_data = Data::MapObjectTypeDungeonMonster::require(attacked_object_type_id);
+			std::string monster_tag = attacked_object->get_tag();
+			LOG_EMPERY_CENTER_FATAL("MONSTER DIE,TAG:",monster_tag);
+			dungeon->update_pass_point_block_monster(std::move(monster_tag));
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+		} 
+	}
 
 	return Response();
 }
@@ -718,6 +729,28 @@ DUNGEON_SERVLET(Msg::DS_DungeonDeleteTrap, dungeon, server, req){
 		return Response(Msg::ERR_NO_DUNGEON_TRAP_IN_POS) <<coord;
 	}
 	dungeon_trap->delete_from_game();
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonCreatePassPoint, dungeon, server, req){
+	const auto coord = Coord(req.x, req.y);
+	boost::container::flat_map<Coord,DungeonPassPoint::BLOCK_STATE> blocks;
+	for(auto it = req.blocks.begin();it != req.blocks.end(); ++it){
+		auto block_x = it->x;
+		auto block_y = it->y;
+		auto relate_monster = it->relate_monster;
+		std::vector<std::pair<std::string,unsigned>> monster_state;
+		for(auto itt = relate_monster.begin(); itt != relate_monster.end(); ++itt){
+			monster_state.push_back(std::make_pair(itt->tag,0));
+		}
+		auto result = blocks.emplace(Coord(block_x,block_y),std::make_pair(0,std::move(monster_state)));
+		if(!result.second){
+			LOG_EMPERY_CENTER_WARNING("Dungeon pass point already exists: coord = ", coord);
+		}
+	}
+	auto dungeon_pass_point = boost::make_shared<DungeonPassPoint>(dungeon->get_dungeon_uuid(),coord,std::move(blocks));
+	dungeon_pass_point->pump_status();
+	dungeon->insert_pass_point(std::move(dungeon_pass_point));
 	return Response();
 }
 

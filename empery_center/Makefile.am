@@ -181,5 +181,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/legion_log.cpp \
 	src/activity.cpp \
 	src/activity_session.cpp \
-	src/dungeon_trap.cpp \
+	src/dungeon_play.cpp \
 	src/mmain.cpp

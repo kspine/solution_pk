@@ -34,6 +34,7 @@ namespace Msg {
 		ERR_NO_DUNGEON_CELL                     = 72523,
 		ERR_NO_DUNGEON_TRAP_DATA                = 72424,
 		ERR_NO_DUNGEON_TRAP_IN_POS              = 72425,
+		ERR_BLOCKED_BY_TRIGGER_BLOCK_POINT      = 72426,
 	};
 }
 
