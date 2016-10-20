@@ -9,10 +9,11 @@
 namespace EmperyCenter {
 
 namespace {
-	const auto MAX_DUNGE_TRIGGER_COUNT = 12;
+	const auto MAX_DUNGE_TRIGGER_COUNT = 13;
 	const std::string  DUNGEON_TRIGGER_FILES[MAX_DUNGE_TRIGGER_COUNT] = {
 		"dungeon_trigger_1_1","dungeon_trigger_1_2","dungeon_trigger_1_3","dungeon_trigger_1_4","dungeon_trigger_1_5","dungeon_trigger_1_6",
-		"dungeon_trigger_2_1","dungeon_trigger_2_2","dungeon_trigger_2_3","dungeon_trigger_2_4","dungeon_trigger_2_5","dungeon_trigger_2_6"};
+		"dungeon_trigger_2_1","dungeon_trigger_2_2","dungeon_trigger_2_3","dungeon_trigger_2_4","dungeon_trigger_2_5","dungeon_trigger_2_6",
+		"dungeon_trigger_3_1"};
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		for(auto i = 0; i < MAX_DUNGE_TRIGGER_COUNT;i++){
