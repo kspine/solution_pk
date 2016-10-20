@@ -35,7 +35,7 @@ SYNUSER_SERVLET("buycards", session, params){
 	}
 
 	constexpr std::uint64_t unit_price = 50000;
-	sell_acceleration_cards(info.account_id, unit_price, cards);
+	sell_acceleration_cards_mojinpai(info.account_id, unit_price, cards);
 
 	root[sslit("state")] = "success";
 	return root;
