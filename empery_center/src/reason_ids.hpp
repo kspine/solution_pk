@@ -103,7 +103,8 @@ constexpr ReasonId
 	ID_LEGION_UPGRADE                ( 675005 ),//  军团UUID 高位        等级               0
 	ID_LEGION_REPAIR_GRUBE           ( 675006 ),//  矿井UUID 高位        0                  0
 	ID_LEGION_USE_DONATE_ITEM        ( 675007 ),//  道具 ID              道具数量           0
-	ID_LEGION_EXCHANGE_ITEM          ( 675008 );//  0                    0                  0
+	ID_LEGION_EXCHANGE_ITEM          ( 675008 ),//  0                    0                  0
+	ID_NEW_GUIDE_CREATE_SOLIDER      ( 675009 );//  0                    0                  0
 }
 
 }
