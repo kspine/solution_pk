@@ -4,5 +4,3 @@ id,name,trigger_type,delay,condition,effect_type,effect_params,times,open
 600001,dungeon_solider_all_die,6,0,[0],[6],[[0]],1,1
 600002,dungeon_monster_all_die,6,0,"[1,4]",[5],[[0]],1,1
 400003,dungeon_finish_task,4,0,[2],[7],[[3401001]],1,1
-30000001,buff_show_picture,1,0,,[12],"[[""picture_trap_url"",30001,[6,6]]]",1,1
-30000002,pass_point_arm_move_pass,2,0,"[1,[6,6]]","[3,13]","[[6400001,[6,6]],[30001]]",1,1
