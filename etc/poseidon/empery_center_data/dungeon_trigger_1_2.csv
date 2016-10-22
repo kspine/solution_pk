@@ -1,6 +1,9 @@
-id,name,trigger_type,delay,condition,effect_type,effect_params
-100001,dungeon_create_solider,1,0,,[1],"[[[3307101,[5,11],[0,0],50],[3305201,[6,10],[0,0],51],[3305201,[5,10],[0,0],52],[3305202,[4,19],[0,0],53],[3305202,[6,19],[0,0],54],[3307102,[5,21],[0,0],55]]]"
-100003,dungeon_plot_begin,1,0,,[10],"[[[0,0],1025,1870]]"
-600001,dungeon_solider_all_die,6,0,[0],[6],[[0]]
-600002,dungeon_monster_all_die,6,0,"[1,6]",[5],[[0]]
-400003,dungeon_finish_task,4,0,[2],[7],[[3401002]]
+id,name,trigger_type,delay,condition,effect_type,effect_params,times,open
+100001,dungeon_create_solider,1,0,,[1],"[[[3307101,[5,11],[0,0],50],[3305201,[6,10],[0,0],51],[3305201,[5,10],[0,0],52],[3305202,[4,19],[0,0],53],[3305202,[6,19],[0,0],54],[3307102,[5,21],[0,0],55]]]",1,1
+100003,dungeon_plot_begin,1,0,,[10],"[[[0,0],1025,1870]]",1,1
+600001,dungeon_solider_all_die,6,0,[0],[6],[[0]],1,1
+600002,dungeon_monster_all_die,6,0,"[1,6]",[5],[[0]],1,1
+400003,dungeon_finish_task,4,0,[2],[7],[[3401002]],1,1
+40000001,portal_show_picture,1,0,,[12],"[[""picture_portal_url"",40001,[3,7]]]",1,1
+40000002,portal_show_picture,1,0,,[12],"[[""picture_portal_url"",40002,[7,6]]]",1,1
+40000003,pass_point_arm_move_pass,2,0,"[1,[3,7]]",[15],"[[7,6]]",-1,1

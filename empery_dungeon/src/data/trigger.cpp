@@ -22,6 +22,8 @@ namespace {
 			csv.get(elem.condition,         "condition");
 			csv.get(elem.effect,           "effect_type");
 			csv.get(elem.effect_params,    "effect_params");
+			csv.get(elem.times,            "times");
+			csv.get(elem.open,             "open");
 			std::uint64_t trigger_id = elem.trigger_id;
 			if(!container->insert(std::move(elem)).second){
 				LOG_EMPERY_DUNGEON_ERROR("Duplicate dungeon trigger  dungeon_trigger = ", dungeon_trigger," trigger_id = ",trigger_id);

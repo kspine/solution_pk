@@ -163,7 +163,8 @@ private:
 	int           get_attacked_prority();
 	bool          move_able();
 public:
-	double get_total_defense();
+	double         get_total_defense();
+	double         get_total_attack();
 	unsigned      get_arm_attack_type();
 	unsigned      get_arm_defence_type();
 };

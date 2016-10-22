@@ -586,10 +586,9 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	}
 
 	set_coord(new_coord);
-	dungeon->check_move_pass(new_coord,is_monster());
-
 	m_waypoints.pop_front();
 	m_blocked_retry_count = 0;
+	dungeon->check_move_pass(new_coord,get_dungeon_object_uuid().str(),is_monster());
 	return delay;
 }
 
@@ -663,8 +662,10 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	double doge_rate = emempy_type_data->doge_rate + get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0;
 	double critical_rate = dungeon_object_type_data->critical_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0;
 	double critical_demage_plus_rate = dungeon_object_type_data->critical_damage_plus_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0;
-	double total_attack  = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
-	double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	//double total_attack  = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
+	//double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	double total_attack  = get_total_attack();
+	double total_defense = target_object->get_total_defense();
 	double relative_rate = Data::DungeonObjectRelative::get_relative(get_arm_attack_type(),target_object->get_arm_defence_type());
 //	std::uint32_t hp =  dungeon_object_type_data->hp ;
 //	hp = (hp == 0 )? 1:hp;
@@ -1096,9 +1097,37 @@ double DungeonObject::get_total_defense(){
 		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
 		return 0;
 	}
-	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
+		return 0;
+	}
+	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + 
+	get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0 + 
+	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute defense_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD),
+	" defense_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS));
 	return total_defense;
 }
-
+double  DungeonObject::get_total_attack(){
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
+		return 0;
+	}
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
+		return 0;
+	}
+	double total_attack = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 ) + 
+	get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0 +
+	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
+	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute attack_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD),
+	" attack_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS));
+	return total_attack;
+}
 
 }

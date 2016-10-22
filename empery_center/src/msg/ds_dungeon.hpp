@@ -158,37 +158,34 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    DS_DungeonCreateTrap
+#define MESSAGE_NAME    DS_DungeonShowPicture
 #define MESSAGE_ID      50013
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
-	FIELD_VINT          (x)	\
-	FIELD_VINT          (y)	\
-	FIELD_VUINT         (trap_type_id)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    DS_DungeonDeleteTrap
-#define MESSAGE_ID      50014
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (picture_url)	\
+	FIELD_VUINT         (picture_id)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    DS_DungeonCreatePassPoint
+#define MESSAGE_NAME    DS_DungeonRemovePicture
+#define MESSAGE_ID      50014
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (picture_id)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonCreateBuff
 #define MESSAGE_ID      50015
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (buff_type_id)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
-	FIELD_ARRAY         (blocks,	\
-		FIELD_VINT          (x)	\
-		FIELD_VINT          (y)	\
-		FIELD_ARRAY     (relate_monster,	\
-			FIELD_STRING        (tag) \
-		)\
-	)
+	FIELD_STRING        (create_uuid) \
+	FIELD_STRING        (create_owner_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
