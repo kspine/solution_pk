@@ -1019,7 +1019,7 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 		if(action.type != TriggerAction::A_SET_TRIGGER){
 			return;
 		}
-		const auto utc_now = Poseidon::get_utc_time();
+		//const auto utc_now = Poseidon::get_utc_time();
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		std::uint64_t trigger_id = static_cast<std::uint64_t>(param_array.at(0).get<double>());
@@ -1027,6 +1027,8 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 		auto it = m_triggers.find(trigger_id);
 		if(it != m_triggers.end()){
 			const auto &trigger = it->second;
+			trigger->open = open;
+			/*
 			if(!trigger->activated&&open&&(trigger->times != 0)){
 				trigger->activated_time = utc_now;
 				trigger->open = true;
@@ -1036,6 +1038,7 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 				trigger->times -= 1;
 				forcast_triggers(trigger,utc_now);
 			}
+			*/
 		}
 	} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
