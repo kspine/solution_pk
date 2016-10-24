@@ -14,6 +14,7 @@ public:
 		C_DUNGEON_FINISH              = 4, // 通关触发(通关之后需要立即执行)
 		C_TRIGGER                     = 5, // 触发器触发
 		C_ALL_DIE                     = 6, // 团灭触发
+		C_TAG_DIE                     = 7, // 指定tag触发
 	};
 
 	Type                     type;
@@ -34,14 +35,15 @@ public:
 		A_MOVE_CAREMA            = 9,//镜头移动
 		A_SET_SCOPE              = 10,//锁定视野
 		A_WAIT_CONFIRMATION      = 11,//等待验证
-		A_TRAP                   = 12,//陷阱
-		A_PASS_DUNGONE_POINT     = 13,//通关点
-		A_PORTAL                 = 14,//传送门
-		A_RIVAL_OBJECT           = 15,//物件
+		A_SHOW_PICTURE           = 12,//显示图片
+		A_REMOVE_PICTURE         = 13,//移除图片
+		A_RANGE_DAMAGE           = 14,//范围伤害
+		A_TRANSMIT               = 15,//传送
 	};
 
 	Type                     type;
 	std::string              params;
+	std::string              dungeon_params;
 };
 
 struct TriggerDamage {
@@ -80,8 +82,11 @@ public:
 	std::deque<TriggerAction>  actions;
 	bool                       activated = false;
 	std::uint64_t              activated_time;
+	int                        times;
+	bool                       open     = true;
+	std::string                params;
 public:
-	Trigger(DungeonUuid dungeon_uuid_,std::uint64_t trigger_id_ ,std::uint64_t delay_,TriggerCondition condition,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_);
+	Trigger(DungeonUuid dungeon_uuid_,std::uint64_t trigger_id_ ,std::uint64_t delay_,TriggerCondition condition,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_,int times_,bool open_);
 	~Trigger();
 };
 

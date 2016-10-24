@@ -5,10 +5,10 @@
 #include "../singletons/dungeon_map.hpp"
 #include "../dungeon.hpp"
 #include "../dungeon_object.hpp"
-#include "../dungeon_play.hpp"
 #include "../trigger.hpp"
 #include "../../../empery_center/src/attribute_ids.hpp"
 #include "../checked_arithmetic.hpp"
+#include "../dungeon_buff.hpp"
 
 namespace EmperyDungeon {
 
@@ -96,6 +96,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 		const auto dungeon_object_type_data = dungeon_object->get_dungeon_object_type_data();
 		const auto hp_total = checked_mul(dungeon_object_type_data->max_soldier_count, dungeon_object_type_data->hp);
 		expect_dungeon->check_triggers_hp(dungeon_object->get_tag(),hp_total,old_hp,new_hp);
+		expect_dungeon->check_triggers_tag_die();
 	}
 	if(old_solider_count > new_solider_count){
 		const auto damaged_solider_count = old_solider_count - new_solider_count;
@@ -123,6 +124,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectRemoved, dungeon, req){
 	expect_dungeon->check_triggers_hp(dungeon_object->get_tag(),hp_total,old_hp,0);
 	expect_dungeon->remove_dungeon_object_no_synchronize(dungeon_object_uuid);
 	expect_dungeon->check_triggers_all_die();
+	expect_dungeon->check_triggers_tag_die();
 	return Response();
 }
 
@@ -159,67 +161,38 @@ DUNGEON_SERVLET(Msg::SD_DungeonPlayerConfirmation, dengeon, req){
 	return Response();
 }
 
-DUNGEON_SERVLET(Msg::SD_DungeonTrapInfo, dungeon, req){
+DUNGEON_SERVLET(Msg::SD_DungeonBuffInfo, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
 	if(!expect_dungeon){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
 	}
 	auto coord = Coord(req.x, req.y);
-	auto trap_type_id = DungeonTrapTypeId(req.trap_type_id);
-	auto dungeon_trap = expect_dungeon->get_trap(coord);
+	auto buff_type_id = DungeonBuffTypeId(req.buff_type_id);
+	auto dungeon_buff = expect_dungeon->get_dungeon_buff(coord);
+	auto expired_time = req.expired_time;
+	auto create_uuid  = DungeonObjectUuid(req.create_uuid);
+	auto create_owner_uuid = AccountUuid(req.create_owner_uuid);
 
-	if(!dungeon_trap){
-		dungeon_trap = boost::make_shared<DungeonTrap>(dungeon_uuid,trap_type_id,coord);
+	if(!dungeon_buff){
+		dungeon_buff = boost::make_shared<DungeonBuff>(dungeon_uuid,buff_type_id,create_uuid,create_owner_uuid,coord,expired_time);
 	}
-	expect_dungeon->replace_dungeon_trap_no_synchronize(dungeon_trap);
+	expect_dungeon->replace_dungeon_buff_no_synchronize(dungeon_buff);
 	return Response();
 }
 
-DUNGEON_SERVLET(Msg::SD_DungeonTrapRemoved, dungeon, req){
+DUNGEON_SERVLET(Msg::SD_DungeonBuffRemoved, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	auto coord = Coord(req.x, req.y);
 	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
 	if(!expect_dungeon){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
 	}
-	auto dungeon_trap = expect_dungeon->get_trap(coord);
-	if(!dungeon_trap){
-		return Response(Msg::ERR_NO_DUNGEON_TRAP_IN_POS) << coord;
+	auto dungeon_buff = expect_dungeon->get_dungeon_buff(coord);
+	if(!dungeon_buff){
+		return Response(Msg::ERR_NO_DUNGEON_BUFF_IN_POS) << coord;
 	}
-	expect_dungeon->remove_dungeon_trap_no_synchronize(coord);
-	return Response();
-}
-
-DUNGEON_SERVLET(Msg::SD_DungeonPassPointInfo, dungeon, req){
-	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
-	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
-	if(!expect_dungeon){
-		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
-	}
-	auto coord = Coord(req.x, req.y);
-	auto dungeon_pass_point = expect_dungeon->get_pass_point(coord);
-
-	if(!dungeon_pass_point){
-		boost::container::flat_map<Coord,DungeonPassPoint::BLOCK_STATE> blocks;
-		for(auto it = req.blocks.begin();it != req.blocks.end(); ++it){
-			auto block_x = it->x;
-			auto block_y = it->y;
-			auto relate_monster = it->relate_monster;
-			std::vector<std::pair<std::string,unsigned>> monster_state;
-			for(auto itt = relate_monster.begin(); itt != relate_monster.end(); ++itt){
-				monster_state.push_back(std::make_pair(itt->tag,0));
-			}
-			auto result = blocks.emplace(Coord(block_x,block_y),std::make_pair(0,std::move(monster_state)));
-			if(!result.second){
-				LOG_EMPERY_DUNGEON_WARNING("Dungeon pass point already exists: coord = ", coord);
-			}
-		}
-		dungeon_pass_point = boost::make_shared<DungeonPassPoint>(dungeon_uuid,coord,std::move(blocks));
-	}
-	//如果已经存在只维护整体通行点有效状态即可（所有解锁点解锁则有效）
-	dungeon_pass_point->set_state(req.state);
-	expect_dungeon->replace_dungeon_pass_point_no_synchronize(dungeon_pass_point);
+	expect_dungeon->remove_dungeon_buff_no_synchronize(coord);
 	return Response();
 }
 

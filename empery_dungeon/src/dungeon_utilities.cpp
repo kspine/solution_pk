@@ -32,15 +32,7 @@ std::pair<long, std::string> get_move_result(DungeonUuid dungeon_uuid,Coord coor
 		LOG_EMPERY_DUNGEON_TRACE("Blocked by terrain: terrain_id = ", terrain_id);
 		return CbppResponse(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
 	}
-	
-	//如果副本中触发器有通关点，解锁点不通行
-	std::vector<Coord> trigger_block_coords;
-	dungeon->get_block_points(trigger_block_coords);
-	auto it = std::find(trigger_block_coords.begin(),trigger_block_coords.end(),coord);
-	if(it != trigger_block_coords.end()){
-		LOG_EMPERY_DUNGEON_TRACE("Blocked by trigger block");
-		return CbppResponse(Msg::ERR_BLOCKED_BY_TRIGGER_BLOCK_POINT) << dungeon->get_dungeon_type_id();
-	}
+
 	/*
 	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);
 	if((map_x < border_thickness) || (map_y < border_thickness))

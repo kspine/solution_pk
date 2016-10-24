@@ -18,8 +18,7 @@ class TriggerCondition;
 class TriggerAction;
 class TriggerDamage;
 class TriggerConfirmation;
-class DungeonTrap;
-class DungeonPassPoint;
+class DungeonBuff;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -51,9 +50,8 @@ private:
 	boost::shared_ptr<Poseidon::TimerItem>                                          m_trigger_timer;
 	DungeonState                                                                    m_dungeon_state;
 	std::uint64_t                                                                   m_monster_removed_count;
-	boost::container::flat_map<Coord, boost::shared_ptr<DungeonTrap>>               m_traps;
-	boost::container::flat_map<Coord, boost::shared_ptr<DungeonPassPoint>>          m_pass_points;
-	std::vector<Coord>                                                              m_block_points;
+	std::vector<std::string>                                                        m_die_objects;
+	boost::container::flat_map<Coord, boost::shared_ptr<DungeonBuff>>               m_dungeon_buffs;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
@@ -86,7 +84,7 @@ public:
 	boost::shared_ptr<DungeonClient> get_dungeon_client() const {
 		return m_dungeon_client.lock();
 	}
-	void check_move_pass(Coord coord,bool is_monster);
+	void check_move_pass(Coord coord,std::string params,bool is_monster);
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const;
@@ -98,28 +96,21 @@ public:
 	bool check_all_die(bool is_monster);
 	bool check_valid_coord_for_birth(const Coord &src_coord);
 	bool get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord);
-
-	boost::shared_ptr<DungeonTrap> get_trap(const Coord src_coord) const;
-	void insert_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap);
-	void update_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap, bool throws_if_not_exists = true);
-	void replace_dungeon_trap_no_synchronize(const boost::shared_ptr<DungeonTrap> &dungeon_trap);
-	void remove_dungeon_trap_no_synchronize(Coord coord);
-	void check_trap_move_pass(Coord coord);
-	void do_trap_damage(const boost::shared_ptr<DungeonTrap>& dungeon_trap);
-
-	boost::shared_ptr<DungeonPassPoint> get_pass_point(const Coord src_coord) const;
-	void insert_block_point(Coord coord);
-	void get_block_points(std::vector<Coord> &ret);
-	void replace_dungeon_pass_point_no_synchronize(const boost::shared_ptr<DungeonPassPoint> &dungeon_pass_point);
-	//只在部队通过时检测
-	void check_pass_point_move_pass(Coord coord);
+	
+	boost::shared_ptr<DungeonBuff> get_dungeon_buff(const Coord coord) const;
+	void insert_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
+	void update_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff, bool throws_if_not_exists = true);
+	void replace_dungeon_buff_no_synchronize(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
+	void remove_dungeon_buff_no_synchronize(Coord coord);
+	std::uint64_t get_dungeon_attribute(DungeonObjectUuid create_uuid,AccountUuid owner_uuid,AttributeId attribute_id);
 
 	void init_triggers();
 	void check_triggers_enter_dungeon();
-	void check_triggers_move_pass(Coord coord,bool isMonster = false);
+	void check_triggers_move_pass(Coord coord,std::string params,bool isMonster = false);
 	void check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint64_t old_hp, std::uint64_t new_hp);
 	void check_triggers_dungeon_finish();
 	void check_triggers_all_die();
+	void check_triggers_tag_die();
 	void forcast_triggers(const boost::shared_ptr<Trigger> &trigger,std::uint64_t now);
 	void parse_triggers_action(std::deque<TriggerAction> &actions,std::string effect,std::string effect_param);
 	void on_triggers_action(const TriggerAction &action);
@@ -136,8 +127,10 @@ public:
 	void on_triggers_dungeon_set_scope(const TriggerAction &action);
 	void on_triggers_dungeon_wait_for_confirmation(const TriggerAction &action);
 	void on_triggers_dungeon_player_confirmation(std::string context);
-	void on_triggers_create_dungeon_trap(const TriggerAction &action);
-	void on_triggers_create_dungeon_pass_point(const TriggerAction &action);
+	void on_triggers_dungeon_show_pictures(const TriggerAction &action);
+	void on_triggers_dungeon_remove_pictures(const TriggerAction &action);
+	void on_triggers_dungeon_range_damage(const TriggerAction &action);
+	void on_triggers_dungeon_transmit(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 };
 

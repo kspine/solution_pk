@@ -32,7 +32,9 @@
 #include "../item_box.hpp"
 #include "../reason_ids.hpp"
 #include "../transaction_element.hpp"
-#include "../dungeon_play.hpp"
+#include "../dungeon_buff.hpp"
+#include "../data/dungeon_buff.hpp"
+
 
 namespace EmperyCenter {
 
@@ -402,18 +404,6 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
-	//触发器解锁点解锁
-	if(soldiers_remaining == 0){
-		try {
-			const auto monster_type_data = Data::MapObjectTypeDungeonMonster::require(attacked_object_type_id);
-			std::string monster_tag = attacked_object->get_tag();
-			LOG_EMPERY_CENTER_FATAL("MONSTER DIE,TAG:",monster_tag);
-			dungeon->update_pass_point_block_monster(std::move(monster_tag));
-		} catch(std::exception &e){
-			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-		} 
-	}
-
 	return Response();
 }
 
@@ -707,52 +697,55 @@ DUNGEON_SERVLET(Msg::DS_DungeonTriggerEffectExecutive, dungeon, server, req){
 	return Response();
 }
 
-DUNGEON_SERVLET(Msg::DS_DungeonCreateTrap, dungeon, server, req){
-	const auto trap_type_id = DungeonTrapTypeId(req.trap_type_id);
-	const auto trap_data = Data::DungeonTrap::get(trap_type_id);
-	if(!trap_data){
-		return Response(Msg::ERR_NO_DUNGEON_TRAP_DATA) <<trap_type_id;
-	}
-	const auto coord = Coord(req.x, req.y);
-	auto dungeon_trap = boost::make_shared<DungeonTrap>(dungeon->get_dungeon_uuid(), trap_type_id,coord);
-	dungeon_trap->pump_status();
-
-	dungeon->insert_trap(std::move(dungeon_trap));
+DUNGEON_SERVLET(Msg::DS_DungeonShowPicture, dungeon, server, req){
+	Msg::SC_DungeonShowPicture msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	msg.picture_url       = req.picture_url;
+	msg.picture_id        = req.picture_id;
+	msg.x                 = req.x;
+	msg.y                 = req.y;
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
 
 	return Response();
 }
 
-DUNGEON_SERVLET(Msg::DS_DungeonDeleteTrap, dungeon, server, req){
-	const auto coord = Coord(req.x, req.y);
-	auto dungeon_trap = dungeon->get_trap(coord);
-	if(!dungeon_trap){
-		return Response(Msg::ERR_NO_DUNGEON_TRAP_IN_POS) <<coord;
-	}
-	dungeon_trap->delete_from_game();
+DUNGEON_SERVLET(Msg::DS_DungeonRemovePicture, dungeon, server, req){
+	Msg::SC_DungeonRemovePicture msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	msg.picture_id        = req.picture_id;
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+
 	return Response();
 }
 
-DUNGEON_SERVLET(Msg::DS_DungeonCreatePassPoint, dungeon, server, req){
+DUNGEON_SERVLET(Msg::DS_DungeonCreateBuff, dungeon, server, req){
+	const auto dungeon_buff_type_id = DungeonBuffTypeId(req.buff_type_id);
+	const auto buff_data = Data::DungeonBuff::get(dungeon_buff_type_id);
+	if(!buff_data){
+		return Response(Msg::ERR_NO_DUNGEON_BUFF_DATA) <<dungeon_buff_type_id;
+	}
 	const auto coord = Coord(req.x, req.y);
-	boost::container::flat_map<Coord,DungeonPassPoint::BLOCK_STATE> blocks;
-	for(auto it = req.blocks.begin();it != req.blocks.end(); ++it){
-		auto block_x = it->x;
-		auto block_y = it->y;
-		auto relate_monster = it->relate_monster;
-		std::vector<std::pair<std::string,unsigned>> monster_state;
-		for(auto itt = relate_monster.begin(); itt != relate_monster.end(); ++itt){
-			monster_state.push_back(std::make_pair(itt->tag,0));
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto create_uuid = DungeonObjectUuid(req.create_uuid); 
+	const auto create_owner_uuid = AccountUuid(req.create_owner_uuid);
+	auto dungeon_buff = dungeon->get_dungeon_buff(coord);
+	auto expired_time = utc_now + buff_data->continue_time*1000;
+	auto new_dungeon_buff = boost::make_shared<DungeonBuff>(dungeon->get_dungeon_uuid(), dungeon_buff_type_id,create_uuid,create_owner_uuid,coord,expired_time);
+	if(dungeon_buff){
+		if(dungeon_buff->get_expired_time() < utc_now){
+			LOG_EMPERY_CENTER_FATAL("insert a dungeon buff while old buff not expired at coord",coord);
+		}else{
+			dungeon->update_dungeon_buff(std::move(new_dungeon_buff));
 		}
-		auto result = blocks.emplace(Coord(block_x,block_y),std::make_pair(0,std::move(monster_state)));
-		if(!result.second){
-			LOG_EMPERY_CENTER_WARNING("Dungeon pass point already exists: coord = ", coord);
-		}
+	}else{
+		dungeon->insert_dungeon_buff(std::move(new_dungeon_buff));
 	}
-	auto dungeon_pass_point = boost::make_shared<DungeonPassPoint>(dungeon->get_dungeon_uuid(),coord,std::move(blocks));
-	dungeon_pass_point->pump_status();
-	dungeon->insert_pass_point(std::move(dungeon_pass_point));
+
 	return Response();
 }
+
 
 
 }

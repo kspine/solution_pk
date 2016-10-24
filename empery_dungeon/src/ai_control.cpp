@@ -189,6 +189,25 @@ std::uint64_t AiControlMonsterPatrol::on_action_patrol(std::pair<long, std::stri
 	return parent_object->on_monster_patrol();
 }
 
+AiControlMonsterObject::AiControlMonsterObject(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
+}
+
+AiControlMonsterObject::~AiControlMonsterObject(){}
+
+std::uint64_t AiControlMonsterObject::move(std::pair<long, std::string> &result){
+	PROFILE_ME;
+
+	return UINT64_MAX;
+}
+
+std::uint64_t AiControlMonsterObject::on_attack(boost::shared_ptr<DungeonObject> attacker,std::uint64_t demage){
+	return UINT64_MAX;
+}
+
+void          AiControlMonsterObject::troops_attack(boost::shared_ptr<DungeonObject> target,bool passive){
+	return ;
+}
+
 
 
 }

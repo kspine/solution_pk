@@ -19,6 +19,8 @@ namespace Data {
 		std::string                                       effect;
 		std::string                                       effect_params;
 		bool                                              activated = false;
+		int                                               times;
+		bool                                              open;
 	public:
 		static boost::shared_ptr<const Trigger> get(std::string dungeon_trigger,std::uint64_t trigger_id);
 		static boost::shared_ptr<const Trigger> require(std::string dungeon_trigger,std::uint64_t  trigger_id);
