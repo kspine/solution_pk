@@ -16,8 +16,7 @@ namespace EmperyCenter {
 class DungeonObject;
 class PlayerSession;
 class DungeonSession;
-class DungeonTrap;
-class DungeonPassPoint;
+class DungeonBuff;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -57,8 +56,7 @@ private:
 	};
 	boost::container::flat_map<AccountUuid, Observer> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
-	boost::container::flat_map<Coord, boost::shared_ptr<DungeonTrap>>      m_traps;
-	boost::container::flat_map<Coord, boost::shared_ptr<DungeonPassPoint>> m_pass_points;
+	boost::container::flat_map<Coord, boost::shared_ptr<DungeonBuff>>               m_dungeon_buffs;
 	Rectangle m_scope;
 	Suspension m_suspension = { };
 
@@ -148,17 +146,14 @@ public:
 	void broadcast_to_observers(const MessageT &msg){
 		broadcast_to_observers(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
-
+	
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
-	boost::shared_ptr<DungeonTrap> get_trap(Coord coord);
-	void insert_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap);
-	void update_trap(const boost::shared_ptr<DungeonTrap> &dungeon_trap, bool throws_if_not_exists = true);
-	void insert_pass_point(const boost::shared_ptr<DungeonPassPoint> &dungeon_pass_point);
-	void update_pass_point(const boost::shared_ptr<DungeonPassPoint> &dungeon_pass_point, bool throws_if_not_exists = true);
-	void update_pass_point_block_monster(std::string tag);
+	boost::shared_ptr<DungeonBuff> get_dungeon_buff(Coord coord);
+	void insert_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
+	void update_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff, bool throws_if_not_exists = true);
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

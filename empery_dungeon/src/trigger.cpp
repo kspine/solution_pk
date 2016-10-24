@@ -3,8 +3,8 @@
 #include <poseidon/cbpp/status_codes.hpp>
 
 namespace EmperyDungeon {
-	Trigger::Trigger(DungeonUuid dungeon_uuid_,std::uint64_t trigger_id_,std::uint64_t delay_,TriggerCondition condition_,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_)
-	:dungeon_uuid(dungeon_uuid_),trigger_id(trigger_id_),delay(delay_),condition(condition_),actions(std::move(actions_)),activated(activited_),activated_time(activated_time_){
+	Trigger::Trigger(DungeonUuid dungeon_uuid_,std::uint64_t trigger_id_,std::uint64_t delay_,TriggerCondition condition_,std::deque<TriggerAction> actions_,bool activited_,std::uint64_t activated_time_,int times_,bool open_)
+	:dungeon_uuid(dungeon_uuid_),trigger_id(trigger_id_),delay(delay_),condition(condition_),actions(std::move(actions_)),activated(activited_),activated_time(activated_time_),times(times_),open(open_){
 	}
 	Trigger::~Trigger(){
 	}

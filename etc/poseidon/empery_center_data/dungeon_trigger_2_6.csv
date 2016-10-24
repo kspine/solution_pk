@@ -1,7 +1,7 @@
-id,name,trigger_type,delay,condition,effect_type,effect_params
-4,name,1,0,,[1],"[[[3305209,[13,10],[13,10],1]]]"
-100006,dungeon_plot_begin,1,0,,[10],"[[[67,117],1806,1755]]"
-100007,dungeon_plot_begin,1,0,,[9],"[[[0,1815],0,1]]"
-100008,dungeon_solider_all_die,6,0,[0],[6],[[0]]
-100009,dungeon_monster_all_die,6,0,"[1,1]",[5],[[0]]
-100010,dungeon_finish_task,4,0,[2],[7],[[3401012]]
+id,name,trigger_type,delay,condition,effect_type,effect_params,times,open
+4,name,1,0,,[1],"[[[3305209,[13,10],[13,10],1]]]",1,1
+100006,dungeon_plot_begin,1,0,,[10],"[[[67,117],1806,1755]]",1,1
+100007,dungeon_plot_begin,1,0,,[9],"[[[0,1815],0,1]]",1,1
+100008,dungeon_solider_all_die,6,0,[0],[6],[[0]],1,1
+100009,dungeon_monster_all_die,6,0,"[1,1]",[5],[[0]],1,1
+100010,dungeon_finish_task,4,0,[2],[7],[[3401012]],1,1

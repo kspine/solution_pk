@@ -79,6 +79,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/activity.cpp   \
 	src/data/trigger.cpp   \
 	src/data/random_name.cpp \
+	src/data/dungeon_buff.cpp \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
@@ -182,5 +183,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/legion_log.cpp \
 	src/activity.cpp \
 	src/activity_session.cpp \
-	src/dungeon_play.cpp \
+	src/dungeon_buff.cpp \
 	src/mmain.cpp

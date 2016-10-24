@@ -17,6 +17,7 @@
 #include "../../empery_center/src/attribute_ids.hpp"
 namespace EmperyDungeon {
 
+
 namespace Msg = ::EmperyCenter::Msg;
 
 DungeonObject::DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
@@ -358,6 +359,7 @@ bool DungeonObject::is_in_group_view_scope(boost::shared_ptr<DungeonObject>& tar
 	const auto coord    = get_coord();
 	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
 	if(distance <= troops_view_range){
+		LOG_EMPERY_DUNGEON_FATAL("coord :",coord," target_coord:",target_object->get_coord()," distance:",distance," in group view");
 		return true;
 	}
 
@@ -402,9 +404,6 @@ bool DungeonObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<Dunge
 		const auto &dungeon_object = *it;
 		std::pair<long, std::string> reason;
 		if(!dungeon_object->attacked_able(reason)){
-			continue;
-		}
-		if(dungeon_object->is_monster()){
 			continue;
 		}
 		auto distance = get_distance_of_coords(get_coord(),dungeon_object->get_coord());
@@ -502,6 +501,12 @@ bool DungeonObject::attacking_able(std::pair<long, std::string> &reason){
 		reason = CbppResponse(Msg::ERR_ZERO_SOLDIER_COUNT);
 		return false;
 	}
+	//攻击力为0不可以攻击(副本中物件)
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(dungeon_object_type_data->attack == 0){
+		reason = CbppResponse(Msg::ERR_ZERO_DUNGEON_OBJECT_ATTACK);
+		return false;
+	}
 	return true;
 }
 std::uint64_t DungeonObject::search_attack(){
@@ -533,6 +538,9 @@ boost::shared_ptr<AiControl>  DungeonObject::require_ai_control(){
 				break;
 			case AI_MONSTER_PATROL:
 				m_ai_control = boost::make_shared<AiControlMonsterPatrol>(ai_id,virtual_weak_from_this<DungeonObject>());
+				break;
+			case AI_MONSTER_OBJECT:
+				m_ai_control = boost::make_shared<AiControlMonsterObject>(ai_id,virtual_weak_from_this<DungeonObject>());
 				break;
 			default:
 				LOG_EMPERY_DUNGEON_FATAL("invalid ai type:",ai_data->ai_type," ai_id:",ai_id);
@@ -586,10 +594,9 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	}
 
 	set_coord(new_coord);
-	dungeon->check_move_pass(new_coord,is_monster());
-
 	m_waypoints.pop_front();
 	m_blocked_retry_count = 0;
+	dungeon->check_move_pass(new_coord,get_dungeon_object_uuid().str(),is_monster());
 	return delay;
 }
 
@@ -663,8 +670,10 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	double doge_rate = emempy_type_data->doge_rate + get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0;
 	double critical_rate = dungeon_object_type_data->critical_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0;
 	double critical_demage_plus_rate = dungeon_object_type_data->critical_damage_plus_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0;
-	double total_attack  = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
-	double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	//double total_attack  = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
+	//double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	double total_attack  = get_total_attack();
+	double total_defense = target_object->get_total_defense();
 	double relative_rate = Data::DungeonObjectRelative::get_relative(get_arm_attack_type(),target_object->get_arm_defence_type());
 //	std::uint32_t hp =  dungeon_object_type_data->hp ;
 //	hp = (hp == 0 )? 1:hp;
@@ -723,14 +732,14 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	return attack_delay;
 }
 
+/*
+1:玩家部队均可联动
+2：野怪配置可以联动接受联动
+3：副本中物件攻击力为0，ai配置成不可以联动 
+*/
 void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool passive){
 	PROFILE_ME;
 
-	/*
-	if(is_monster()){
-		return;
-	}
-	*/
 	const auto dungeon = DungeonMap::get(get_dungeon_uuid());
 	if(!dungeon){
 		LOG_EMPERY_DUNGEON_DEBUG("no find the parent dungeon, dengeon_uuid = ", get_dungeon_uuid());
@@ -751,10 +760,10 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 	for(auto it = friendly_dungeon_objects.begin(); it != friendly_dungeon_objects.end(); ++it){
 		auto dungeon_object = *it;
 		std::pair<long, std::string> reason;
-		if(!dungeon_object || !dungeon_object->is_idle() || !is_in_group_view_scope(dungeon_object) || !dungeon_object->attacking_able(reason)){
+		if(!dungeon_object || !dungeon_object->is_idle() || !is_in_group_view_scope(dungeon_object) || !dungeon_object->attacking_able(reason) 
+			|| (dungeon_object->get_dungeon_object_uuid() == get_dungeon_object_uuid())){
 			continue;
 		}
-		//野怪之间的联动
 		if(dungeon_object->is_monster()){
 			const auto ai_data = dungeon_object->get_dungeon_ai_data();
 			if(!ai_data->ai_linkage){
@@ -763,8 +772,10 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 		}
 		boost::shared_ptr<DungeonObject> near_enemy_object;
 		if(passive&&dungeon_object->get_new_enemy(target->get_owner_uuid(),near_enemy_object)){
+			LOG_EMPERY_DUNGEON_FATAL("troops attack passive");
 			dungeon_object->attack_new_target(near_enemy_object);
 		}else{
+			LOG_EMPERY_DUNGEON_FATAL("troops attack ");
 			dungeon_object->attack_new_target(target);
 		}
 	}
@@ -818,6 +829,24 @@ bool DungeonObject::fix_attack_action(std::pair<long, std::string> &result){
 	if(in_attack_scope&&!m_waypoints.empty()){
 		m_waypoints.clear();
 		notify_way_points(m_waypoints,m_action,m_action_param);
+	}
+	//如果野怪设置了就近攻击，则寻找视野范围内的敌军
+	//有则直接攻击
+	if(!in_attack_scope){
+		const auto ai_data = get_dungeon_ai_data();
+		if(ai_data->ai_Intelligence){
+			boost::shared_ptr<DungeonObject> near_enemy_object;
+			bool is_get_new_enemy = get_new_enemy(target_object->get_owner_uuid(),near_enemy_object);
+			if(is_get_new_enemy && near_enemy_object){
+				std::deque<std::pair<signed char, signed char>> waypoints;
+				bool is_find_way = find_way_points(waypoints,get_coord(),near_enemy_object->get_coord());
+				if(is_find_way && waypoints.size() < m_waypoints.size()){
+					LOG_EMPERY_DUNGEON_ERROR("ATTACK NERAR ATTACK NEAR !!!!");
+					attack_new_target(near_enemy_object);
+					return true;
+				}
+			}
+		}
 	}
 	if(!in_attack_scope&&m_waypoints.empty()){
 		if(find_way_points(m_waypoints,get_coord(),target_coord)){
@@ -1096,9 +1125,37 @@ double DungeonObject::get_total_defense(){
 		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
 		return 0;
 	}
-	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
+		return 0;
+	}
+	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + 
+	get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0 + 
+	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
+	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute defense_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD),
+	" defense_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS));
 	return total_defense;
 }
-
+double  DungeonObject::get_total_attack(){
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
+		return 0;
+	}
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
+		return 0;
+	}
+	double total_attack = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 ) + 
+	get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0 +
+	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
+	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute attack_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD),
+	" attack_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS));
+	return total_attack;
+}
 
 }

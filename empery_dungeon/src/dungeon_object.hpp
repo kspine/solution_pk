@@ -34,6 +34,7 @@ public:
 		AI_SOLIDER                           = 1,
 		AI_MONSTER_AUTO_SEARCH_TARGET        = 4,
 		AI_MONSTER_PATROL                    = 5,
+		AI_MONSTER_OBJECT                    = 9,
 	};
 public:
 	struct BuffInfo {
@@ -112,7 +113,7 @@ public:
 		return !m_waypoints.empty();
 	}
 	bool is_idle() const {
-			return ((m_action == ACT_GUARD)&&(m_waypoints.empty()));
+			return m_waypoints.empty();
 	}
 
 	Action get_action() const {
@@ -131,7 +132,9 @@ public:
 	bool          is_monster();
 	std::uint64_t get_view_range();
 	std::uint64_t get_shoot_range();
+	//视野联动查找目标
 	bool          get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<DungeonObject> &new_enemy_dungeon_object);
+	//野怪待机自动搜索目标
 	bool          get_monster_new_enemy(boost::shared_ptr<DungeonObject> &new_enemy_dungeon_object);
 	void          attack_new_target(boost::shared_ptr<DungeonObject> enemy_dungeon_object);
 	bool          attacked_able(std::pair<long, std::string> &reason);
@@ -163,7 +166,8 @@ private:
 	int           get_attacked_prority();
 	bool          move_able();
 public:
-	double get_total_defense();
+	double         get_total_defense();
+	double         get_total_attack();
 	unsigned      get_arm_attack_type();
 	unsigned      get_arm_defence_type();
 };

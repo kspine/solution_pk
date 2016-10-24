@@ -71,38 +71,24 @@ namespace Msg {
 	FIELD_STRING        (context)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SD_DungeonTrapInfo
+#define MESSAGE_NAME    SD_DungeonBuffInfo
 #define MESSAGE_ID      50093
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
-	FIELD_VUINT         (trap_type_id)
+	FIELD_VUINT         (buff_type_id)\
+	FIELD_STRING        (create_uuid)\
+	FIELD_STRING        (create_owner_uuid)\
+	FIELD_VUINT         (expired_time)
 #include <poseidon/cbpp/message_generator.hpp>
 
-#define MESSAGE_NAME    SD_DungeonTrapRemoved
+#define MESSAGE_NAME    SD_DungeonBuffRemoved
 #define MESSAGE_ID      50092
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
-#include <poseidon/cbpp/message_generator.hpp>
-
-#define MESSAGE_NAME    SD_DungeonPassPointInfo
-#define MESSAGE_ID      50091
-#define MESSAGE_FIELDS  \
-	FIELD_STRING        (dungeon_uuid)	\
-	FIELD_VINT          (x)	\
-	FIELD_VINT          (y)	\
-	FIELD_VUINT         (state)	\
-	FIELD_ARRAY         (blocks,	\
-		FIELD_VINT          (x)	\
-		FIELD_VINT          (y)	\
-		FIELD_VINT          (state) \
-		FIELD_ARRAY     (relate_monster,	\
-			FIELD_STRING        (tag) \
-		)\
-	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
