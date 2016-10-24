@@ -2155,4 +2155,26 @@ PLAYER_SERVLET(Msg::CS_CastleResourceBattalionUnloadReset, account, session, req
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_CastleNewGuideCreateSolider, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+	const auto map_object_type_id = MapObjectTypeId(req.map_object_type_id);
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::get(map_object_type_id);
+	if(!map_object_type_data){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) <<map_object_type_id;
+	}
+	const auto count = req.count;
+	std::vector<SoldierTransactionElement> res_transaction;
+	res_transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, count,
+		ReasonIds::ID_NEW_GUIDE_CREATE_SOLIDER,map_object_type_id.get(), count, 0);
+	castle->commit_soldier_transaction(res_transaction);
+	return Response();
+}
+
 }
