@@ -37,6 +37,7 @@ namespace Msg {
 		ERR_BLOCKED_BY_TRIGGER_BLOCK_POINT      = 72426,
 		ERR_NO_DUNGEON_BUFF_DATA                = 72427,
 		ERR_NO_DUNGEON_BUFF_IN_POS              = 72428,
+		ERR_ZERO_DUNGEON_OBJECT_ATTACK          = 72429,
 	};
 }
 

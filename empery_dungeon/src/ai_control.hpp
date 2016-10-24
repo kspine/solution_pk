@@ -49,6 +49,16 @@ public:
 	std::uint64_t on_action_patrol(std::pair<long, std::string> &result, std::uint64_t now) override;
 };
 
+class AiControlMonsterObject : public AiControl {
+public:
+	AiControlMonsterObject(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent);
+	~AiControlMonsterObject();
+public:
+	std::uint64_t move(std::pair<long, std::string> &result) override;
+	std::uint64_t on_attack(boost::shared_ptr<DungeonObject> attacker,std::uint64_t demage) override;
+	void          troops_attack(boost::shared_ptr<DungeonObject> target,bool passive = false) override;
+};
+
 }
 
 #endif
