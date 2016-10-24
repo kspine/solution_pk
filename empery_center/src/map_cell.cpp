@@ -239,9 +239,11 @@ void MapCell::pump_production(){
 		}
 		tech_turbo += castle->get_attribute(AttributeIds::ID_PRODUCTION_TURBO_ALL) / 1000.0;
 		production_rate *= (1 + tech_turbo);
+		capacity        *= (1 + tech_turbo);
 
 		const auto vip_data = Data::Vip::require(account->get_promotion_level());
 		production_rate *= (1 + vip_data->production_turbo);
+		capacity        *= (1 + vip_data->production_turbo);
 
 		capacity = std::round(capacity);
 
