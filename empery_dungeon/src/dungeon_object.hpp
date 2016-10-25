@@ -94,7 +94,7 @@ public:
 		return m_coord;
 	}
 	void set_coord(Coord coord);
-	
+
 	std::string get_tag() const {
 		return m_tag;
 	}
@@ -168,6 +168,7 @@ private:
 public:
 	double         get_total_defense();
 	double         get_total_attack();
+	double         get_move_speed();
 	unsigned      get_arm_attack_type();
 	unsigned      get_arm_defence_type();
 };

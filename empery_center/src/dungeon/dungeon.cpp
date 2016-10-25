@@ -746,6 +746,31 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateBuff, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonCreateBlocks, dungeon, server, req){
+	Msg::SC_DungeonCreateBlocks msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	for(auto it = req.blocks.begin(); it != req.blocks.end(); ++it){
+		auto &blocks = *msg.blocks.emplace(msg.blocks.end());
+		blocks.x = it->x;
+		blocks.y = it->y;
+	}
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+	return Response();
+}
 
+DUNGEON_SERVLET(Msg::DS_DungeonRemoveBlocks, dungeon, server, req){
+	Msg::SC_DungeonRemoveBlocks msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	for(auto it = req.blocks.begin(); it != req.blocks.end(); ++it){
+		auto &blocks = *msg.blocks.emplace(msg.blocks.end());
+		blocks.x = it->x;
+		blocks.y = it->y;
+	}
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+
+	return Response();
+}
 
 }
