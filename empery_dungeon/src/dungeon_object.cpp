@@ -18,6 +18,7 @@
 namespace EmperyDungeon {
 
 
+
 namespace Msg = ::EmperyCenter::Msg;
 
 DungeonObject::DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
@@ -558,10 +559,11 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 
 	const auto waypoint  = m_waypoints.front();
 	const auto new_coord = Coord(coord.x() + waypoint.first, coord.y() + waypoint.second);
+	const auto dungeon = DungeonMap::require(get_dungeon_uuid());
 
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	std::uint64_t delay;
-	const auto speed = dungeon_object_type_data->speed * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0;
+	const auto speed = get_move_speed();
 	if(speed <= 0){
 		LOG_EMPERY_DUNGEON_FATAL("speed <= 0,",speed, " dungeon_object_type_data->speed:",dungeon_object_type_data->speed," get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0,
 		" get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD):",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0);
@@ -569,7 +571,6 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	} else {
 		delay = static_cast<std::uint64_t>(std::round(1000 / speed));
 	}
-	const auto dungeon = DungeonMap::require(get_dungeon_uuid());
 	const auto retry_max_count = get_config<unsigned>("blocked_path_retry_max_count", 10);
 	const auto wait_for_moving_objects = (m_blocked_retry_count < retry_max_count);
 	result = get_move_result(dungeon->get_dungeon_uuid(),new_coord, owner_uuid, wait_for_moving_objects);
@@ -611,6 +612,14 @@ void DungeonObject::set_coord(Coord coord){
 	dungeon->update_object(virtual_shared_from_this<DungeonObject>(),false);
 }
 
+/*
+攻击：
+1.用户发起攻击（部队）
+2.由于主动被动联动导致攻击
+3.丢失目标重新寻找攻击
+4.野怪主动攻击（野怪）
+5.攻击时重新选择就近目标
+*/
 std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::uint64_t now){
 	PROFILE_ME;
 
@@ -666,10 +675,10 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	int result_type = IMPACT_NORMAL;
 	std::uint64_t damage = 0;
 	double k = 0.06;
-	double attack_rate = dungeon_object_type_data->attack_speed + get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0;
-	double doge_rate = emempy_type_data->doge_rate + get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0;
-	double critical_rate = dungeon_object_type_data->critical_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0;
-	double critical_demage_plus_rate = dungeon_object_type_data->critical_damage_plus_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0;
+	double attack_rate = dungeon_object_type_data->attack_speed + get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0;
+	double doge_rate = emempy_type_data->doge_rate + get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD) / 1000.0;
+	double critical_rate = dungeon_object_type_data->critical_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0;
+	double critical_demage_plus_rate = dungeon_object_type_data->critical_damage_plus_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0;
 	//double total_attack  = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
 	//double total_defense = emempy_type_data->defence * (1.0 + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + target_object->get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
 	double total_attack  = get_total_attack();
@@ -735,7 +744,7 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 /*
 1:玩家部队均可联动
 2：野怪配置可以联动接受联动
-3：副本中物件攻击力为0，ai配置成不可以联动 
+3：副本中物件攻击力为0，ai配置成不可以联动
 */
 void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool passive){
 	PROFILE_ME;
@@ -760,7 +769,7 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 	for(auto it = friendly_dungeon_objects.begin(); it != friendly_dungeon_objects.end(); ++it){
 		auto dungeon_object = *it;
 		std::pair<long, std::string> reason;
-		if(!dungeon_object || !dungeon_object->is_idle() || !is_in_group_view_scope(dungeon_object) || !dungeon_object->attacking_able(reason) 
+		if(!dungeon_object || !dungeon_object->is_idle() || !is_in_group_view_scope(dungeon_object) || !dungeon_object->attacking_able(reason)
 			|| (dungeon_object->get_dungeon_object_uuid() == get_dungeon_object_uuid())){
 			continue;
 		}
@@ -1131,8 +1140,8 @@ double DungeonObject::get_total_defense(){
 		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
 		return 0;
 	}
-	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) + 
-	get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0 + 
+	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) +
+	get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0 +
 	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
 	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute defense_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD),
 	" defense_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS));
@@ -1150,12 +1159,30 @@ double  DungeonObject::get_total_attack(){
 		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
 		return 0;
 	}
-	double total_attack = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 ) + 
+	double total_attack = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 ) +
 	get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0 +
 	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
 	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute attack_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD),
 	" attack_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS));
 	return total_attack;
+}
+
+double  DungeonObject::get_move_speed(){
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
+		return 0;
+	}
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
+		return 0;
+	}
+	auto speed = dungeon_object_type_data->speed * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0) +
+	get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0 +
+	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0;
+	return speed;
 }
 
 }

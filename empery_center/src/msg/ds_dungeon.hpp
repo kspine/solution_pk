@@ -186,6 +186,26 @@ namespace Msg {
 	FIELD_STRING        (create_owner_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonCreateBlocks
+#define MESSAGE_ID      50016
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_ARRAY         (blocks,	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonRemoveBlocks
+#define MESSAGE_ID      50017
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_ARRAY         (blocks,	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
