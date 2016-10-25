@@ -39,6 +39,8 @@ public:
 		A_REMOVE_PICTURE         = 13,//移除图片
 		A_RANGE_DAMAGE           = 14,//范围伤害
 		A_TRANSMIT               = 15,//传送
+		A_SET_BLOCK              = 16,//增加阻塞点
+		A_REMOVE_BLOCK           = 17,//删除阻塞点
 	};
 
 	Type                     type;

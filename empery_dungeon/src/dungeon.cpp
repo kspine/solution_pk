@@ -295,6 +295,7 @@ bool Dungeon::check_all_die(bool is_monster){
 bool Dungeon::check_valid_coord_for_birth(const Coord &src_coord){
 	bool pos_occuried = false;
 	bool pos_passable = false;
+	bool pos_blocks = false;
 	//判断src_coord上是否有对象
 	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
 		auto &dungeon_object = it->second;
@@ -305,7 +306,10 @@ bool Dungeon::check_valid_coord_for_birth(const Coord &src_coord){
 	}
 	//判断相应点是否可通行
 	pos_passable = get_dungeon_coord_passable(get_dungeon_type_id(),src_coord);
-	if(!pos_occuried && pos_passable){
+
+	//判断是否是触发器器设置的阻塞点
+	pos_blocks = is_dungeon_blocks_coord(src_coord);
+	if(!pos_occuried && pos_passable && !pos_blocks){
 		return true;
 	}
 	return false;
@@ -422,7 +426,6 @@ std::uint64_t Dungeon::get_dungeon_attribute(DungeonObjectUuid create_uuid,Accou
 	for(auto it = m_dungeon_buffs.begin();it != m_dungeon_buffs.end(); ++it){
 		auto &dungeon_buff = it->second;
 		if(dungeon_buff->get_expired_time() < utc_now){
-			LOG_EMPERY_DUNGEON_FATAL("buff is expired");
 			continue;
 		}
 		try{
@@ -439,6 +442,14 @@ std::uint64_t Dungeon::get_dungeon_attribute(DungeonObjectUuid create_uuid,Accou
 		}
 	}
 	return total_attribute;
+}
+
+bool Dungeon::is_dungeon_blocks_coord(const Coord coord){
+	auto it = m_dungeon_blocks.find(coord);
+	if(it == m_dungeon_blocks.end()){
+		return false;
+	}
+	return true;
 }
 
 void Dungeon::init_triggers(){
@@ -827,6 +838,14 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 		//TODO
 		on_triggers_dungeon_transmit(action);
 	}
+	ON_TRIGGER_ACTION(TriggerAction::A_SET_BLOCK){
+		//TODO
+		on_triggers_dungeon_set_block(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_REMOVE_BLOCK){
+		//TODO
+		on_triggers_dungeon_remove_block(action);
+	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
 		}
@@ -1002,7 +1021,6 @@ void Dungeon::on_triggers_buff(const TriggerAction &action){
 				msg.create_uuid        = create_uuid.str();
 				msg.create_owner_uuid  = create_owner_uuid.str();
 				dungeon_client->send(msg);
-				LOG_EMPERY_DUNGEON_FATAL("msg create:",msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 				dungeon_client->shutdown(e.what());
@@ -1413,7 +1431,6 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 			auto &coord = *it;
 			for(auto itt = ret.begin(); itt != ret.end(); ++itt){
 				const auto target_object = *itt;
-				LOG_EMPERY_DUNGEON_FATAL("surrounding coord:",coord ," target_coord:",target_object->get_coord());
 				if(coord == target_object->get_coord()){
 					try {
 						//伤害计算
@@ -1514,5 +1531,59 @@ void Dungeon::on_triggers_dungeon_transmit(const TriggerAction &action){
 		dungeon_client->shutdown(e.what());
 	}
 }
+
+void Dungeon::on_triggers_dungeon_set_block(const TriggerAction &action){
+	const auto dungeon_client = get_dungeon_client();
+	try{
+		if(action.type != TriggerAction::A_SET_BLOCK){
+			return;
+		}
+		std::istringstream iss_param(action.params);
+		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+		Msg::DS_DungeonCreateBlocks msg;
+		msg.dungeon_uuid = get_dungeon_uuid().str();
+		for(unsigned i = 0; i < param_array.size(); ++i){
+			auto block_coord  = param_array.at(i).get<Poseidon::JsonArray>();
+			auto x = static_cast<int>(block_coord.at(0).get<double>());
+			auto y = static_cast<int>(block_coord.at(1).get<double>());
+			Coord temp_coord = Coord(x,y);
+			auto it = m_dungeon_blocks.insert(std::move(temp_coord));
+			auto &blocks = *msg.blocks.emplace(msg.blocks.end());
+			blocks.x = x;
+			blocks.y = y;
+		}
+		dungeon_client->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+		dungeon_client->shutdown(e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_remove_block(const TriggerAction &action){
+	const auto dungeon_client = get_dungeon_client();
+	try{
+		if(action.type != TriggerAction::A_REMOVE_BLOCK){
+			return;
+		}
+		std::istringstream iss_param(action.params);
+		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+		Msg::DS_DungeonRemoveBlocks msg;
+		msg.dungeon_uuid = get_dungeon_uuid().str();
+		for(unsigned i = 0; i < param_array.size(); ++i){
+			auto block_coord  = param_array.at(i).get<Poseidon::JsonArray>();
+			auto x = static_cast<int>(block_coord.at(0).get<double>());
+			auto y = static_cast<int>(block_coord.at(1).get<double>());
+			m_dungeon_blocks.erase(Coord(x,y));
+			auto &blocks = *msg.blocks.emplace(msg.blocks.end());
+			blocks.x = x;
+			blocks.y = y;
+		}
+		dungeon_client->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+		dungeon_client->shutdown(e.what());
+	}
+}
+
 
 }

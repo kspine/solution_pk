@@ -32,6 +32,10 @@ std::pair<long, std::string> get_move_result(DungeonUuid dungeon_uuid,Coord coor
 		LOG_EMPERY_DUNGEON_TRACE("Blocked by terrain: terrain_id = ", terrain_id);
 		return CbppResponse(Msg::ERR_BLOCKED_BY_IMPASSABLE_MAP_CELL) <<terrain_id;
 	}
+	if(dungeon->is_dungeon_blocks_coord(coord)){
+		LOG_EMPERY_DUNGEON_FATAL("dungeon triggter  blocks,coord = ",coord);
+		return CbppResponse(Msg::ERR_BLOCKED_BY_TRIGGER_BLOCKS);
+	}
 
 	/*
 	const unsigned border_thickness = Data::Global::as_unsigned(Data::Global::SLOT_MAP_BORDER_THICKNESS);

@@ -52,6 +52,7 @@ private:
 	std::uint64_t                                                                   m_monster_removed_count;
 	std::vector<std::string>                                                        m_die_objects;
 	boost::container::flat_map<Coord, boost::shared_ptr<DungeonBuff>>               m_dungeon_buffs;
+	std::set<Coord>                                                                 m_dungeon_blocks;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
@@ -96,13 +97,15 @@ public:
 	bool check_all_die(bool is_monster);
 	bool check_valid_coord_for_birth(const Coord &src_coord);
 	bool get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord);
-	
+
 	boost::shared_ptr<DungeonBuff> get_dungeon_buff(const Coord coord) const;
 	void insert_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
 	void update_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff, bool throws_if_not_exists = true);
 	void replace_dungeon_buff_no_synchronize(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
 	void remove_dungeon_buff_no_synchronize(Coord coord);
 	std::uint64_t get_dungeon_attribute(DungeonObjectUuid create_uuid,AccountUuid owner_uuid,AttributeId attribute_id);
+
+	bool is_dungeon_blocks_coord(const Coord coord);
 
 	void init_triggers();
 	void check_triggers_enter_dungeon();
@@ -131,6 +134,8 @@ public:
 	void on_triggers_dungeon_remove_pictures(const TriggerAction &action);
 	void on_triggers_dungeon_range_damage(const TriggerAction &action);
 	void on_triggers_dungeon_transmit(const TriggerAction &action);
+	void on_triggers_dungeon_set_block(const TriggerAction &action);
+	void on_triggers_dungeon_remove_block(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 };
 
