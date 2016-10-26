@@ -44,6 +44,7 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const b
 	, m_create_dungeon_time(create_time)
 	, m_dungeon_state(S_INIT)
 	, m_monster_removed_count(0)
+	, m_fight_state(FIGHT_START)
 {
 }
 
@@ -131,6 +132,8 @@ void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
 }
 
 void Dungeon::update_damage_solider(DungeonObjectTypeId dungeon_object_type_id,std::uint64_t damage_solider){
+	PROFILE_ME;
+
 	auto it = m_damage_solider.find(dungeon_object_type_id);
 	if(it == m_damage_solider.end()){
 		m_damage_solider.emplace(dungeon_object_type_id, damage_solider);
@@ -141,11 +144,19 @@ void Dungeon::update_damage_solider(DungeonObjectTypeId dungeon_object_type_id,s
 }
 
 std::uint64_t Dungeon::get_total_damage_solider(){
+	PROFILE_ME;
+
 	std::uint64_t total_damage_solider = 0;
 	for(auto it = m_damage_solider.begin(); it != m_damage_solider.end(); ++it){
 		total_damage_solider += it->second;
 	}
 	return total_damage_solider;
+}
+
+void Dungeon::set_fight_state(FightState fight_state){
+	PROFILE_ME;
+
+	m_fight_state = fight_state;
 }
 
 void Dungeon::check_move_pass(Coord coord,std::string params,bool is_monster){
@@ -846,6 +857,22 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 		//TODO
 		on_triggers_dungeon_remove_block(action);
 	}
+	ON_TRIGGER_ACTION(TriggerAction::A_PAUSE){
+		//TODO
+		on_triggers_dungeon_pause_fight(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_RESTART){
+		//TODO
+		on_triggers_dungeon_restart_fight(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_HIDE){
+		//TODO
+		on_triggers_dungeon_hide_solider(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_UNHIDE){
+		//TODO
+		on_triggers_dungeon_unhide_solider(action);
+	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
 		}
@@ -1037,7 +1064,7 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 		if(action.type != TriggerAction::A_SET_TRIGGER){
 			return;
 		}
-		//const auto utc_now = Poseidon::get_utc_time();
+		const auto utc_now = Poseidon::get_utc_time();
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		std::uint64_t trigger_id = static_cast<std::uint64_t>(param_array.at(0).get<double>());
@@ -1046,17 +1073,16 @@ void Dungeon::on_triggers_set_trigger(const TriggerAction &action){
 		if(it != m_triggers.end()){
 			const auto &trigger = it->second;
 			trigger->open = open;
-			/*
-			if(!trigger->activated&&open&&(trigger->times != 0)){
-				trigger->activated_time = utc_now;
-				trigger->open = true;
+			//触发器触发器直接激活1次
+			if(open && trigger->condition.type == TriggerCondition::C_TRIGGER){
+				if(!trigger->activated&&(trigger->times != 0)){
+					trigger->activated_time = utc_now;
+					trigger->open = true;
+					trigger->activated = open;
+					trigger->times -= 1;
+					forcast_triggers(trigger,utc_now);
+				}
 			}
-			trigger->activated = open;
-			if(open){
-				trigger->times -= 1;
-				forcast_triggers(trigger,utc_now);
-			}
-			*/
 		}
 	} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
@@ -1346,8 +1372,8 @@ void Dungeon::on_triggers_dungeon_show_pictures(const TriggerAction &action){
 		auto picture_url =  param_array.at(0).get<std::string>();
 		auto id  =  static_cast<std::uint64_t>(param_array.at(1).get<double>());
 		auto &picture_coord  =  param_array.at(2).get<Poseidon::JsonArray>();
-		auto x = static_cast<int>(picture_coord.at(0).get<double>());  
-		auto y = static_cast<int>(picture_coord.at(1).get<double>()); 
+		auto x = static_cast<int>(picture_coord.at(0).get<double>());
+		auto y = static_cast<int>(picture_coord.at(1).get<double>());
 
 		const auto dungeon_client = get_dungeon_client();
 		if(dungeon_client){
@@ -1474,6 +1500,8 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 }
 
 void Dungeon::on_triggers_dungeon_transmit(const TriggerAction &action){
+	PROFILE_ME;
+
 	const auto dungeon_client = get_dungeon_client();
 	try{
 		if(action.type != TriggerAction::A_TRANSMIT){
@@ -1533,6 +1561,8 @@ void Dungeon::on_triggers_dungeon_transmit(const TriggerAction &action){
 }
 
 void Dungeon::on_triggers_dungeon_set_block(const TriggerAction &action){
+	PROFILE_ME;
+
 	const auto dungeon_client = get_dungeon_client();
 	try{
 		if(action.type != TriggerAction::A_SET_BLOCK){
@@ -1560,6 +1590,8 @@ void Dungeon::on_triggers_dungeon_set_block(const TriggerAction &action){
 }
 
 void Dungeon::on_triggers_dungeon_remove_block(const TriggerAction &action){
+	PROFILE_ME;
+
 	const auto dungeon_client = get_dungeon_client();
 	try{
 		if(action.type != TriggerAction::A_REMOVE_BLOCK){
@@ -1582,6 +1614,63 @@ void Dungeon::on_triggers_dungeon_remove_block(const TriggerAction &action){
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 		dungeon_client->shutdown(e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_pause_fight(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_PAUSE){
+			return;
+		}
+		set_fight_state(FIGHT_PAUSE);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+void Dungeon::on_triggers_dungeon_restart_fight(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_RESTART){
+			return;
+		}
+		set_fight_state(FIGHT_START);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_hide_solider(const TriggerAction &action){
+	PROFILE_ME;
+
+	const auto dungeon_client = get_dungeon_client();
+	try{
+		if(action.type != TriggerAction::A_HIDE){
+			return;
+		}
+		Msg::DS_DungeonHideSolider msg;
+		msg.dungeon_uuid = get_dungeon_uuid().str();
+		dungeon_client->send(msg);
+		LOG_EMPERY_DUNGEON_FATAL(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_unhide_solider(const TriggerAction &action){
+	const auto dungeon_client = get_dungeon_client();
+	try{
+		if(action.type != TriggerAction::A_UNHIDE){
+			return;
+		}
+		Msg::DS_DungeonUnhideSolider msg;
+		msg.dungeon_uuid = get_dungeon_uuid().str();
+		dungeon_client->send(msg);
+		LOG_EMPERY_DUNGEON_FATAL(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}
 }
 

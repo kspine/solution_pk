@@ -41,6 +41,10 @@ public:
 		A_TRANSMIT               = 15,//传送
 		A_SET_BLOCK              = 16,//增加阻塞点
 		A_REMOVE_BLOCK           = 17,//删除阻塞点
+		A_PAUSE                  = 18,//暂停
+		A_RESTART                = 19,//重启
+		A_HIDE                   = 20,//隐藏部队
+		A_UNHIDE                 = 21,//解除隐藏
 	};
 
 	Type                     type;

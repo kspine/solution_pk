@@ -773,4 +773,20 @@ DUNGEON_SERVLET(Msg::DS_DungeonRemoveBlocks, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonHideSolider, dungeon, server, req){
+	Msg::SC_DungeonHideSolider msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonUnhideSolider, dungeon, server, req){
+	Msg::SC_DungeonUnhideSolider msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+	return Response();
+}
+
 }

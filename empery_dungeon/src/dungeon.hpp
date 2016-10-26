@@ -33,6 +33,11 @@ public:
 		S_FAIL           = 2,
 	};
 
+	enum FightState {
+		FIGHT_START          = 0,
+		FIGHT_PAUSE          = 1,
+	};
+
 private:
 	const DungeonUuid m_dungeon_uuid;
 	const DungeonTypeId m_dungeon_type_id;
@@ -53,6 +58,7 @@ private:
 	std::vector<std::string>                                                        m_die_objects;
 	boost::container::flat_map<Coord, boost::shared_ptr<DungeonBuff>>               m_dungeon_buffs;
 	std::set<Coord>                                                                 m_dungeon_blocks;
+	FightState                                                                      m_fight_state;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time);
@@ -85,6 +91,11 @@ public:
 	boost::shared_ptr<DungeonClient> get_dungeon_client() const {
 		return m_dungeon_client.lock();
 	}
+	FightState get_fight_state(){
+		return m_fight_state;
+	}
+	void set_fight_state(FightState fight_state);
+
 	void check_move_pass(Coord coord,std::string params,bool is_monster);
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
@@ -136,6 +147,10 @@ public:
 	void on_triggers_dungeon_transmit(const TriggerAction &action);
 	void on_triggers_dungeon_set_block(const TriggerAction &action);
 	void on_triggers_dungeon_remove_block(const TriggerAction &action);
+	void on_triggers_dungeon_pause_fight(const TriggerAction &action);
+	void on_triggers_dungeon_restart_fight(const TriggerAction &action);
+	void on_triggers_dungeon_hide_solider(const TriggerAction &action);
+	void on_triggers_dungeon_unhide_solider(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 };
 
