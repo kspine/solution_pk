@@ -280,6 +280,20 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_DungeonHideSolider
+#define MESSAGE_ID      1576
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid) \
+	FIELD_VUINT         (type)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonUnhideSolider
+#define MESSAGE_ID      1575
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid) \
+	FIELD_VUINT         (type)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

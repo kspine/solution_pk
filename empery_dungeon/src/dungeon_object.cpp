@@ -35,6 +35,14 @@ DungeonObject::~DungeonObject(){
 std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, std::uint64_t now){
 	PROFILE_ME;
 
+	//判断副本中暂停状态
+	const auto dungeon = DungeonMap::require(m_dungeon_uuid);
+	if(dungeon->get_fight_state() == Dungeon::FIGHT_PAUSE){
+		const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+		LOG_EMPERY_DUNGEON_ERROR("dungeon in fight pause");
+		return stand_by_interval;
+	}
+
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(!dungeon_object_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_DUNGEON_OBJECT_TYPE) << get_dungeon_object_type_id();
