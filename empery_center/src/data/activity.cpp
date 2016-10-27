@@ -150,14 +150,14 @@ namespace Data {
 		//活动1
 		Poseidon::JsonArray activity1;
 		activity1.emplace_back(3500001);
-		activity1.emplace_back("2016-10-17 8:00:00");
-		activity1.emplace_back("2016-10-17 9:00:00");
+		activity1.emplace_back("2016-10-27 2:20:00");
+		activity1.emplace_back("2016-10-27 5:20:00");
 		activitys.emplace_back(activity1);
 		//活动2
 		Poseidon::JsonArray activity2;
 		activity2.emplace_back(3500002);
-		activity2.emplace_back("2016-10-17 8:00:00");
-		activity2.emplace_back("2016-10-17 9:00:00");
+		activity2.emplace_back("2016-10-27 2:20:00");
+		activity2.emplace_back("2016-10-27 5:20:00");
 		activitys.emplace_back(activity2);
 		std::string test_activity = activitys.dump();
 		LOG_EMPERY_CENTER_FATAL("test activity data:",test_activity);

@@ -814,20 +814,21 @@ _wounded_done:
 			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
 
-				if(attacked_object_type_id == MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS){
-					return;
-				}
-
 				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
 				if(!monster_type_data){
 					return;
 				}
 
 				bool goblin_award = false;
+				bool world_boss_award = false;
 				static constexpr auto GOBLIN_WEAPON_ID = MapObjectWeaponId(2605001);
 				if(monster_type_data->map_object_weapon_id == GOBLIN_WEAPON_ID){
 					goblin_award = true;
 				}
+				if(attacked_object_type_id == MapObjectTypeIds::ID_WORLD_ACTIVITY_BOSS){
+					world_boss_award = true;
+				}
+
 
 				const auto item_box = ItemBoxMap::get(attacking_account_uuid);
 				if(!item_box){
@@ -860,7 +861,7 @@ _wounded_done:
 				const auto reward_counter = castle->get_resource(ResourceIds::ID_MONSTER_REWARD_COUNT).amount;
 				if(reward_counter > 0){
 					std::vector<ResourceTransactionElement> resource_transaction;
-					if(!goblin_award){
+					if(!goblin_award && !world_boss_award){
 						resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_MONSTER_REWARD_COUNT, 1,
 							ReasonIds::ID_MONSTER_REWARD_COUNT, attacked_object_type_id.get(), 0, 0);
 					}
