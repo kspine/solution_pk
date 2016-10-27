@@ -46,6 +46,8 @@
 #include "../legion_member_attribute_ids.hpp"
 #include <poseidon/async_job.hpp>
 #include "../legion_log.hpp"
+#include "../singletons/activity_map.hpp"
+#include "../activity.hpp"
 
 namespace EmperyCenter {
 
@@ -1568,6 +1570,15 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 	if(!new_cluster){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
 	}
+	const auto world_activity = ActivityMap::get_world_activity();
+	if(world_activity && world_activity->is_on()){
+		const auto old_cluster_coord = WorldMap::get_cluster_scope(castle->get_coord()).bottom_left();
+		const auto new_cluster_coord = WorldMap::get_cluster_scope(new_castle_coord).bottom_left();
+		if(old_cluster_coord != new_cluster_coord){
+			return Response(Msg::ERR_CANNOT_DEPLOY_IN_WORLD_ACTIVITY);
+		}
+	}
+
 	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid);
 	if(result.first != Msg::ST_OK){
 		return std::move(result);
