@@ -34,15 +34,17 @@ namespace {
 }
 
 Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
-	AccountUuid founder_uuid, std::uint64_t expiry_time)
+	AccountUuid founder_uuid, std::uint64_t expiry_time,std::uint64_t finish_count)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_server(server)
 	, m_founder_uuid(founder_uuid), m_expiry_time(expiry_time)
+	, m_finish_count(finish_count)
 {
 	try {
 		Msg::SD_DungeonCreate msg;
 		msg.dungeon_uuid    = get_dungeon_uuid().str();
 		msg.dungeon_type_id = get_dungeon_type_id().get();
 		msg.founder_uuid    = get_founder_uuid().str();
+		msg.finish_count    = m_finish_count;
 		server->send(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

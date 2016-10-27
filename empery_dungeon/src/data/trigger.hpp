@@ -21,6 +21,7 @@ namespace Data {
 		bool                                              activated = false;
 		int                                               times;
 		bool                                              open;
+		int                                               status;
 	public:
 		static boost::shared_ptr<const Trigger> get(std::string dungeon_trigger,std::uint64_t trigger_id);
 		static boost::shared_ptr<const Trigger> require(std::string dungeon_trigger,std::uint64_t  trigger_id);

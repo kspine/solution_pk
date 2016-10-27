@@ -16,8 +16,9 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	auto dungeon_type_id = DungeonTypeId(req.dungeon_type_id);
 	auto founder_uuid = AccountUuid(req.founder_uuid);
+	auto finish_count = req.finish_count;
 	const auto utc_now = Poseidon::get_utc_time();
-	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid,utc_now);
+	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid,utc_now,finish_count);
 	new_dungeon->init_triggers();
 	new_dungeon->check_triggers_enter_dungeon();
 	LOG_EMPERY_DUNGEON_DEBUG("create dungeon ,msg = ",req);
