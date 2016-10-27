@@ -702,6 +702,10 @@ DUNGEON_SERVLET(Msg::DS_DungeonShowPicture, dungeon, server, req){
 	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
 	msg.picture_url       = req.picture_url;
 	msg.picture_id        = req.picture_id;
+	msg.type              = req.type;
+	msg.layer             = req.layer;
+	msg.tween             = req.tween;
+	msg.time              = req.time;
 	msg.x                 = req.x;
 	msg.y                 = req.y;
 	LOG_EMPERY_CENTER_FATAL(msg);

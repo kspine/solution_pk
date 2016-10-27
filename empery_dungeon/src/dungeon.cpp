@@ -1380,15 +1380,17 @@ void Dungeon::on_triggers_dungeon_show_pictures(const TriggerAction &action){
 		}
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
-		if(param_array.size() != 5){
+		if(param_array.size() != 7){
 			LOG_EMPERY_DUNGEON_FATAL("dungeon show pictures param error,size != 3",action.params);
 			return;
 		}
 		auto picture_url =  param_array.at(0).get<std::string>();
-		auto id  =  static_cast<std::uint64_t>(param_array.at(1).get<double>());
-		auto type  =  static_cast<int>(param_array.at(2).get<double>());
+		auto id     =  static_cast<std::uint64_t>(param_array.at(1).get<double>());
+		auto type   =  static_cast<int>(param_array.at(2).get<double>());
 		auto layer  =  static_cast<int>(param_array.at(3).get<double>());
-		auto &picture_coord  =  param_array.at(4).get<Poseidon::JsonArray>();
+		auto tween  =  static_cast<int>(param_array.at(4).get<double>());
+		auto time   =  static_cast<int>(param_array.at(5).get<double>());
+		auto &picture_coord  =  param_array.at(6).get<Poseidon::JsonArray>();
 		auto x = static_cast<int>(picture_coord.at(0).get<double>());  
 		auto y = static_cast<int>(picture_coord.at(1).get<double>()); 
 
@@ -1401,6 +1403,8 @@ void Dungeon::on_triggers_dungeon_show_pictures(const TriggerAction &action){
 				msg.picture_id      = id;
 				msg.type            = type;
 				msg.layer           = layer;
+				msg.tween           = tween;
+				msg.time            = time;
 				msg.x               = x;
 				msg.y               = y;
 				dungeon_client->send(msg);
