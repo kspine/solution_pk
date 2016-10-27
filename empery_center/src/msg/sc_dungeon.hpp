@@ -231,6 +231,8 @@ namespace Msg {
 	FIELD_VUINT         (picture_id)	\
 	FIELD_VINT          (type)	\
 	FIELD_VINT          (layer)	\
+	FIELD_VINT          (tween)	\
+	FIELD_VINT          (time)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
