@@ -164,6 +164,8 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_STRING        (picture_url)	\
 	FIELD_VUINT         (picture_id)	\
+	FIELD_VINT          (type)	\
+	FIELD_VINT          (layer)	\
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
@@ -220,6 +222,25 @@ namespace Msg {
 	FIELD_VUINT         (type)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonHideCoords
+#define MESSAGE_ID      50020
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid) \
+	FIELD_ARRAY         (hide_coord,	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonUnhideCoords
+#define MESSAGE_ID      50021
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid) \
+	FIELD_ARRAY         (unhide_coord,	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

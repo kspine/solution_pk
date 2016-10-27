@@ -170,7 +170,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
-			const auto dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id, server, account_uuid, expiry_time);
+			const auto dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id, server, account_uuid, expiry_time,info.finish_count);
 			dungeon->insert_observer(account_uuid, session);
 			for(std::size_t i = 0; i < battalions.size(); ++i){
 				const auto &map_object = battalions.at(i);

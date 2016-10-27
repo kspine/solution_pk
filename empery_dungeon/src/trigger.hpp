@@ -43,8 +43,10 @@ public:
 		A_REMOVE_BLOCK           = 17,//删除阻塞点
 		A_PAUSE                  = 18,//暂停
 		A_RESTART                = 19,//重启
-		A_HIDE                   = 20,//隐藏部队
-		A_UNHIDE                 = 21,//解除隐藏
+		A_HIDE_ALL               = 20,//隐藏所有
+		A_UNHIDE_ALL             = 21,//解除隐藏所有  
+		A_HIDE_COORDS            = 22,//隐藏指定位置
+		A_UNHIDE_COORDS          = 23,//解除隐藏指定位置
 	};
 
 	Type                     type;

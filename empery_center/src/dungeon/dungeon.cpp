@@ -776,6 +776,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonRemoveBlocks, dungeon, server, req){
 DUNGEON_SERVLET(Msg::DS_DungeonHideSolider, dungeon, server, req){
 	Msg::SC_DungeonHideSolider msg;
 	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	msg.type              = req.type;
 	LOG_EMPERY_CENTER_FATAL(msg);
 	dungeon->broadcast_to_observers(msg);
 	return Response();
@@ -784,8 +785,37 @@ DUNGEON_SERVLET(Msg::DS_DungeonHideSolider, dungeon, server, req){
 DUNGEON_SERVLET(Msg::DS_DungeonUnhideSolider, dungeon, server, req){
 	Msg::SC_DungeonUnhideSolider msg;
 	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	msg.type              = req.type;
 	LOG_EMPERY_CENTER_FATAL(msg);
 	dungeon->broadcast_to_observers(msg);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonHideCoords, dungeon, server, req){
+	Msg::SC_DungeonHideCoords msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	for(auto it = req.hide_coord.begin(); it != req.hide_coord.end(); ++it){
+		auto &hide_coord = *msg.hide_coord.emplace(msg.hide_coord.end());
+		hide_coord.x = it->x;
+		hide_coord.y = it->y;
+	}
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonUnhideCoords, dungeon, server, req){
+	Msg::SC_DungeonUnhideCoords msg;
+	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
+	for(auto it = req.unhide_coord.begin(); it != req.unhide_coord.end(); ++it){
+		auto &unhide_coord = *msg.unhide_coord.emplace(msg.unhide_coord.end());
+		unhide_coord.x = it->x;
+		unhide_coord.y = it->y;
+	}
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+
 	return Response();
 }
 

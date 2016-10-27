@@ -49,6 +49,7 @@ private:
 
 	AccountUuid m_founder_uuid;
 	std::uint64_t m_expiry_time;
+	std::uint64_t m_finish_count;
 
 	struct Observer {
 		boost::weak_ptr<PlayerSession> session;
@@ -62,7 +63,7 @@ private:
 
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
-		AccountUuid founder_uuid, std::uint64_t expiry_time);
+		AccountUuid founder_uuid, std::uint64_t expiry_time,std::uint64_t finish_count);
 	~Dungeon();
 
 private:
