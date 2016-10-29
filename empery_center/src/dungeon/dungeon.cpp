@@ -718,6 +718,8 @@ DUNGEON_SERVLET(Msg::DS_DungeonRemovePicture, dungeon, server, req){
 	Msg::SC_DungeonRemovePicture msg;
 	msg.dungeon_uuid      = dungeon->get_dungeon_uuid().str();
 	msg.picture_id        = req.picture_id;
+	msg.tween             = req.tween;
+	msg.time              = req.time;
 	LOG_EMPERY_CENTER_FATAL(msg);
 	dungeon->broadcast_to_observers(msg);
 

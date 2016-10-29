@@ -7,7 +7,6 @@
 #include <poseidon/shared_nts.hpp>
 #include <poseidon/module_raii.hpp>
 #include <poseidon/cbpp/exception.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include "../singletons/controller_client.hpp"
 #include "../log.hpp"
 #include "../cbpp_response.hpp"

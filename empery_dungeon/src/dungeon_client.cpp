@@ -6,7 +6,6 @@
 #include <poseidon/job_base.hpp>
 #include <poseidon/job_promise.hpp>
 #include <poseidon/sock_addr.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
 #include <poseidon/singletons/timer_daemon.hpp>
 #include "../../empery_center/src/msg/g_packed.hpp"

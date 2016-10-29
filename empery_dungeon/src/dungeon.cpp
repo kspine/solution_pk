@@ -1427,18 +1427,21 @@ void Dungeon::on_triggers_dungeon_remove_pictures(const TriggerAction &action){
 		}
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
-		if(param_array.size() != 1){
+		if(param_array.size() != 3){
 			LOG_EMPERY_DUNGEON_FATAL("dungeon remove pictures param error,size != 1",action.params);
 			return;
 		}
-		auto id  =  static_cast<std::uint64_t>(param_array.at(0).get<double>());
-
+		auto id     =  static_cast<std::uint64_t>(param_array.at(0).get<double>());
+		auto tween  =  static_cast<int>(param_array.at(1).get<double>());
+		auto time   =  static_cast<int>(param_array.at(2).get<double>());
 		const auto dungeon_client = get_dungeon_client();
 		if(dungeon_client){
 			try {
 				Msg::DS_DungeonRemovePicture msg;
 				msg.dungeon_uuid    = get_dungeon_uuid().str();
 				msg.picture_id      = id;
+				msg.tween           = tween;
+				msg.time            = time;
 				dungeon_client->send(msg);
 				LOG_EMPERY_DUNGEON_FATAL(msg);
 			} catch(std::exception &e){

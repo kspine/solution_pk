@@ -7,7 +7,6 @@
 #include <poseidon/shared_nts.hpp>
 #include <poseidon/module_raii.hpp>
 #include <poseidon/cbpp/exception.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include <sstream>
 #include "../singletons/account_map.hpp"
 #include "../singletons/player_session_map.hpp"
