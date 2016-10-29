@@ -241,7 +241,9 @@ namespace Msg {
 #define MESSAGE_ID      1581
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
-	FIELD_VUINT         (picture_id)
+	FIELD_VUINT         (picture_id)	\
+	FIELD_VINT          (tween)	\
+	FIELD_VINT          (time)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_DungeonBuffInfo
