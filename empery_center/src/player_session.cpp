@@ -2,7 +2,6 @@
 #include "player_session.hpp"
 #include <boost/container/flat_map.hpp>
 #include <poseidon/job_base.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/cbpp/control_codes.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
 #include <poseidon/cbpp/exception.hpp>
@@ -24,6 +23,15 @@ namespace EmperyCenter {
 using ServletCallback = PlayerSession::ServletCallback;
 
 namespace {
+
+#define MESSAGE_NAME    ControlMessage
+#define MESSAGE_ID      0
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (control_code)	\
+	FIELD_VINT          (vint_param)	\
+	FIELD_STRING        (string_param)
+#include <poseidon/cbpp/message_generator.hpp>
+
 	boost::container::flat_map<unsigned, boost::weak_ptr<const ServletCallback>> g_servlet_map;
 }
 
@@ -91,8 +99,8 @@ protected:
 				DEBUG_THROW(Poseidon::Cbpp::Exception, Poseidon::Cbpp::ST_NOT_FOUND);
 			}
 
-			if(message_id == Poseidon::Cbpp::ControlMessage::ID){
-				const auto req = Poseidon::Cbpp::ControlMessage(std::move(payload));
+			if(message_id == ControlMessage::ID){
+				const auto req = ControlMessage(std::move(payload));
 				LOG_EMPERY_CENTER_TRACE("Received ping from ", parent->get_remote_info(), ": req = ", req);
 				result.first = Poseidon::Cbpp::ST_PONG;
 				result.second = std::move(req.string_param);
@@ -123,7 +131,7 @@ protected:
 		} else {
 			parent->send_control(message_id, result.first, std::move(result.second));
 
-			if((message_id != Poseidon::Cbpp::ControlMessage::ID) && (result.first != 0)){
+			if((message_id != ControlMessage::ID) && (result.first != 0)){
 				record_an_error();
 			}
 		}
@@ -331,7 +339,7 @@ bool PlayerSession::send(std::uint16_t message_id, Poseidon::StreamBuffer payloa
 bool PlayerSession::send_control(std::uint16_t message_id, int status_code, std::string reason){
 	PROFILE_ME;
 
-	return send(Poseidon::Cbpp::ControlMessage(message_id, static_cast<int>(status_code), std::move(reason)));
+	return send(ControlMessage(message_id, static_cast<int>(status_code), std::move(reason)));
 }
 
 void PlayerSession::shutdown(const char *message) noexcept {
@@ -353,8 +361,8 @@ void PlayerSession::shutdown(int reason, const char *message) noexcept {
 				boost::make_shared<QueueImpl>(virtual_shared_from_this<PlayerSession>()),
 				{ });
 		}
-		constexpr auto msg_id = Poseidon::Cbpp::ControlMessage::ID;
-		m_send_queue.emplace_back(msg_id, Poseidon::Cbpp::ControlMessage(msg_id, reason, message), true);
+		constexpr auto msg_id = ControlMessage::ID;
+		m_send_queue.emplace_back(msg_id, ControlMessage(msg_id, reason, message), true);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		force_shutdown();
