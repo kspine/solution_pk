@@ -318,6 +318,54 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_DungeonObjectSkillSingAction
+#define MESSAGE_ID      1572
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VUINT         (skill_type_id)	\
+	FIELD_VUINT          (sing_delay)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonObjectSkillCastAction
+#define MESSAGE_ID      1571
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VUINT         (skill_type_id)	\
+	FIELD_VUINT          (cast_delay)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonObjectSkillEffect
+#define MESSAGE_ID      1570
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VUINT         (skill_type_id)	\
+	FIELD_ARRAY         (effect_range,	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

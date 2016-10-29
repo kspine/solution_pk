@@ -10,6 +10,7 @@
 #include "coord.hpp"
 #include "dungeon.hpp"
 #include "ai_control.hpp"
+#include "skill.hpp"
 
 namespace EmperyDungeon {
 class DungeonClient;
@@ -22,6 +23,8 @@ public:
 		ACT_MONTER_REGRESS                    = 2,
 		ACT_MONSTER_SEARCH_TARGET             = 3,
 		ACT_MONSTER_PATROL                    = 4,
+		ACT_SKILL_SING                        = 5,//吟唱
+		ACT_SKILL_CAST                        = 6,//施法
 	};
 
 	enum AttackImpact {
@@ -35,6 +38,12 @@ public:
 		AI_MONSTER_AUTO_SEARCH_TARGET        = 4,
 		AI_MONSTER_PATROL                    = 5,
 		AI_MONSTER_OBJECT                    = 9,
+	};
+
+	enum SkillTarget {
+		SKILL_TARGET_FRIEND                  = 1,
+		SKILL_TARGET_ENEMY                   = 2,
+		SKILL_TARGET_GRID                    = 3,
 	};
 public:
 	struct BuffInfo {
@@ -66,7 +75,10 @@ private:
 	std::string m_action_param;
 	AccountUuid m_target_own_uuid;
 	boost::shared_ptr<AiControl> m_ai_control;
-
+	boost::container::flat_map<DungeonMonsterSkillId, boost::shared_ptr<Skill>> m_skills;
+	DungeonMonsterSkillId          m_current_skill_id;
+	Coord                          m_skill_target_coord;
+	std::string                    m_skill_param;
 public:
 	DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon_object_uuid,
 		DungeonObjectTypeId dungeon_object_type_id, AccountUuid owner_uuid,Coord coord,std::string tag);
@@ -98,7 +110,17 @@ public:
 	std::string get_tag() const {
 		return m_tag;
 	}
-
+	void set_current_skill(DungeonMonsterSkillId skill_id,Coord target_coord,std::string param);
+	DungeonMonsterSkillId get_current_skill_id(){
+		return m_current_skill_id;
+	}
+	Coord       get_skill_target_coord(){
+		return m_skill_target_coord;
+	}
+	std::string get_skill_param(){
+		return m_skill_param;
+	}
+	
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
@@ -123,6 +145,8 @@ public:
 		return m_action_param;
 	}
 	void set_action(Coord from_coord, std::deque<std::pair<signed char, signed char>> waypoints,DungeonObject::Action action, std::string action_param);
+	
+	
 
 
 public:
@@ -142,7 +166,6 @@ public:
 	std::uint64_t search_attack();
 	boost::shared_ptr<const Data::DungeonObjectType> get_dungeon_object_type_data();
 	boost::shared_ptr<const Data::DungeonObjectAi>   get_dungeon_ai_data();
-
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
@@ -155,6 +178,8 @@ public:
 	std::uint64_t monster_search_attack_target(std::pair<long, std::string> &result);
 	std::uint64_t on_monster_guard();
 	std::uint64_t on_monster_patrol();
+	std::uint64_t on_skill_singing_finish(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t on_skilling_casting_finish(std::pair<long, std::string> &result, std::uint64_t now);
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const DungeonObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);
@@ -169,8 +194,16 @@ public:
 	double         get_total_defense();
 	double         get_total_attack();
 	double         get_move_speed();
-	unsigned      get_arm_attack_type();
-	unsigned      get_arm_defence_type();
+	std::uint64_t  get_attack_delay();
+	unsigned       get_arm_attack_type();
+	unsigned       get_arm_defence_type();
+public:
+	bool           can_use_skill(DungeonMonsterSkillId &skill_id,std::uint64_t now);
+	std::uint64_t  use_skill(DungeonMonsterSkillId skill_id,std::pair<long, std::string> &result, std::uint64_t now);
+	void           check_current_skill(std::uint64_t now);
+	std::uint64_t  calculate_next_skill_time(DungeonMonsterSkillId skill_id, std::uint64_t now);
+	bool           choice_skill_target(DungeonMonsterSkillId skill_id,Coord &coord);
+	std::uint64_t  do_finish_skill(DungeonMonsterSkillId skill_id,std::uint64_t now);
 };
 
 }

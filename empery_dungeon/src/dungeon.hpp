@@ -99,6 +99,7 @@ public:
 
 	void check_move_pass(Coord coord,std::string params,bool is_monster);
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
+	boost::shared_ptr<DungeonObject> get_object(Coord coord) const ;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const;
 	void get_dungeon_objects_by_account(std::vector<boost::shared_ptr<DungeonObject>> &ret,AccountUuid account_uuid);

@@ -823,4 +823,80 @@ DUNGEON_SERVLET(Msg::DS_DungeonUnhideCoords, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonObjectSkillSingAction, dungeon, server, req){
+	const auto attacking_object_uuid = DungeonObjectUuid(req.attacking_object_uuid);
+
+	auto attacking_object = dungeon->get_object(attacking_object_uuid);
+	if(!attacking_object || attacking_object->is_virtually_removed()){
+		attacking_object.reset();
+	}
+
+	Msg::SC_DungeonObjectSkillSingAction msg;
+	msg.dungeon_uuid               = req.dungeon_uuid;
+	msg.attacking_account_uuid     = req.attacking_account_uuid;
+	msg.attacking_object_uuid      = req.attacking_object_uuid;
+	msg.attacking_object_type_id   = req.attacking_object_type_id;
+	msg.attacking_coord_x          = req.attacking_coord_x;
+	msg.attacking_coord_y          = req.attacking_coord_y;
+    msg.attacked_coord_x           = req.attacked_coord_x;
+	msg.attacked_coord_y           = req.attacked_coord_y;
+	msg.skill_type_id              = req.skill_type_id;
+	msg.sing_delay                 = req.sing_delay;
+
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonObjectSkillCastAction, dungeon, server, req){
+	const auto attacking_object_uuid = DungeonObjectUuid(req.attacking_object_uuid);
+
+	auto attacking_object = dungeon->get_object(attacking_object_uuid);
+	if(!attacking_object || attacking_object->is_virtually_removed()){
+		attacking_object.reset();
+	}
+
+	Msg::SC_DungeonObjectSkillCastAction msg;
+	msg.dungeon_uuid               = req.dungeon_uuid;
+	msg.attacking_account_uuid     = req.attacking_account_uuid;
+	msg.attacking_object_uuid      = req.attacking_object_uuid;
+	msg.attacking_object_type_id   = req.attacking_object_type_id;
+	msg.attacking_coord_x          = req.attacking_coord_x;
+	msg.attacking_coord_y          = req.attacking_coord_y;
+    msg.attacked_coord_x           = req.attacked_coord_x;
+	msg.attacked_coord_y           = req.attacked_coord_y;
+	msg.skill_type_id              = req.skill_type_id;
+	msg.cast_delay                 = req.cast_delay;
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonObjectSkillEffect, dungeon, server, req){
+	const auto attacking_object_uuid = DungeonObjectUuid(req.attacking_object_uuid);
+
+	auto attacking_object = dungeon->get_object(attacking_object_uuid);
+	if(!attacking_object || attacking_object->is_virtually_removed()){
+		attacking_object.reset();
+	}
+	Msg::SC_DungeonObjectSkillEffect msg;
+	msg.dungeon_uuid               = req.dungeon_uuid;
+	msg.attacking_account_uuid     = req.attacking_account_uuid;
+	msg.attacking_object_uuid      = req.attacking_object_uuid;
+	msg.attacking_object_type_id   = req.attacking_object_type_id;
+	msg.attacking_coord_x          = req.attacking_coord_x;
+	msg.attacking_coord_y          = req.attacking_coord_y;
+    msg.attacked_coord_x           = req.attacked_coord_x;
+	msg.attacked_coord_y           = req.attacked_coord_y;
+	msg.skill_type_id              = req.skill_type_id;
+	for(unsigned i = 0; i < req.effect_range.size(); ++i){
+		auto &effect_coord = req.effect_range.at(i);
+		auto &range_coord   = *msg.effect_range.emplace(msg.effect_range.end());
+		range_coord.x = effect_coord.x;
+		range_coord.y = effect_coord.y;
+	}
+	LOG_EMPERY_CENTER_FATAL(msg);
+	dungeon->broadcast_to_observers(msg);
+	return Response();
+}
 }

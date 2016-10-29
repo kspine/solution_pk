@@ -174,6 +174,17 @@ boost::shared_ptr<DungeonObject> Dungeon::get_object(DungeonObjectUuid dungeon_o
 	}
 	return it->second;
 }
+
+boost::shared_ptr<DungeonObject> Dungeon::get_object(Coord coord) const{
+	PROFILE_ME;
+
+	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+		if(it->second->get_coord() == coord){
+			return it->second;
+		}
+	}
+	return {};
+}
 void Dungeon::get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const {
 	PROFILE_ME;
 
