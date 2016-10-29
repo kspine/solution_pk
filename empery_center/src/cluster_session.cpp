@@ -4,7 +4,6 @@
 #include <boost/container/flat_map.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include "msg/g_packed.hpp"
 
 namespace EmperyCenter {
@@ -195,7 +194,7 @@ void ClusterSession::shutdown(int code, const char *message) noexcept {
 		message = "";
 	}
 	try {
-		Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, code, message);
+		Poseidon::Cbpp::Session::send_error(0, code, message);
 		shutdown_read();
 		shutdown_write();
 	} catch(std::exception &e){

@@ -5,7 +5,7 @@
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_base.hpp>
 #include <poseidon/job_promise.hpp>
-#include <poseidon/cbpp/control_message.hpp>
+#include <poseidon/cbpp/exception.hpp>
 
 namespace EmperyCenterLog {
 
@@ -91,7 +91,7 @@ void LogSession::on_sync_data_message(std::uint16_t message_id, Poseidon::Stream
 			", code = ", result.first, ", message = ", result.second);
 	}
 
-	Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, result.first, result.second.c_str());
+	Poseidon::Cbpp::Session::send_error(0, result.first, result.second.c_str());
 }
 void LogSession::on_sync_control_message(Poseidon::Cbpp::ControlCode control_code, std::int64_t vint_param, std::string string_param){
 	PROFILE_ME;
@@ -113,7 +113,7 @@ void LogSession::shutdown(int code, const char *message) noexcept {
 		message = "";
 	}
 	try {
-		Poseidon::Cbpp::Session::send_error(Poseidon::Cbpp::ControlMessage::ID, code, message);
+		Poseidon::Cbpp::Session::send_error(0, code, message);
 		shutdown_read();
 		shutdown_write();
 	} catch(std::exception &e){
