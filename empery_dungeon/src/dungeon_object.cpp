@@ -743,7 +743,7 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	msg.attacked_coord_x = target_object->get_coord().x();
 	msg.attacked_coord_y = target_object->get_coord().y();
 	msg.result_type = result_type;
-	msg.soldiers_damaged = 100;
+	msg.soldiers_damaged = damage;
 	auto sresult = dungeon_client->send_and_wait(msg);
 	if(sresult.first != Msg::ST_OK){
 		LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
