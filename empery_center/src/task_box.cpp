@@ -170,6 +170,8 @@ namespace EmperyCenter {
 		reset_legion_package_tasks();
 
 		check_legion_package_tasks();
+
+        access_task_dungeon_clearance();
 	}
 
 	void TaskBox::check_primary_tasks() {
@@ -939,6 +941,197 @@ namespace EmperyCenter {
 
 		check(type, key, count, (castle == primary_castle) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2);
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void TaskBox::check_task_dungeon_clearance(std::uint64_t key_dungeon_id)
+{
+ PROFILE_ME;
+ const auto utc_now = Poseidon::get_utc_time(); 
+ for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
+ {
+   const auto task_id = it->first; 
+   auto &pair = it->second;
+   const auto &obj = pair.first;
+   if(obj->get_rewarded()){
+      continue;
+   }
+   const auto task_data = Data::TaskAbstract::require(task_id);
+   if(task_data->type != TaskTypeIds::ID_DUNGEON_CLEARANCE){
+      continue;
+   }
+   const auto oit = task_data->objective.find(key_dungeon_id);
+   if(oit == task_data->objective.end()){
+      continue;
+   }
+
+   const auto old_progress = pair.second;
+   std::uint64_t count_old,count_new;
+   const auto cit = old_progress->find(key_dungeon_id);
+   if(cit != old_progress->end()){
+      count_old = cit->second;
+   }
+   else
+   {
+      count_old = 0;
+   }
+   count_new = std::max(count_old,uint64_t(1));
+   const auto count_finish = static_cast<std::uint64_t>(oit->second.at(0));
+   if(count_new >= count_finish && count_new == 1){
+      count_new = count_finish;
+   }
+   if(count_new == count_old && count_old == 0){
+      continue;
+   }
+   auto new_progress =  boost::make_shared<Progress>(*old_progress);
+   (*new_progress)[key_dungeon_id] = count_new; 
+   auto new_progress_str = encode_progress(*new_progress);
+   pair.second = std::move(new_progress);
+   obj->set_progress(std::move(new_progress_str));
+   const auto session = PlayerSessionMap::get(get_account_uuid());	
+   if (session)
+   {
+      try {
+
+      		Msg::SC_TaskChanged msg;
+      		fill_task_message(msg, pair, utc_now);
+      		session->send(msg);
+      }
+      catch (std::exception &e) {
+      		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+      		session->shutdown(e.what());
+      }
+    }
+  }
+}
+
+
+void TaskBox::access_task_dungeon_clearance()
+{
+  PROFILE_ME;
+  const auto dungeon_box = DungeonBoxMap::get(get_account_uuid());
+  if(!dungeon_box){
+     return;
+  }
+  for(auto it = m_tasks.begin();it != m_tasks.end(); ++it)
+  {
+   const auto task_id = it->first;
+   const auto task_data = Data::TaskAbstract::require(task_id);
+   if(task_data->type != TaskTypeIds::ID_DUNGEON_CLEARANCE)
+   {
+    continue;
+   }
+   for(auto oit = task_data->objective.begin();oit != task_data->objective.end();++oit)
+   {
+     const auto key_dungeon_id = boost::lexical_cast<std::uint64_t>(oit->first);
+     auto info = dungeon_box->get((DungeonTypeId)key_dungeon_id);
+     if(info.finish_count >= 1)
+     {
+       check_task_dungeon_clearance(key_dungeon_id);
+     }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 		PROFILE_ME;

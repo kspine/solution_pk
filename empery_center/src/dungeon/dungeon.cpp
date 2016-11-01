@@ -620,6 +620,10 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 		}
 	}
 
+	//副本通关任务
+	const auto task_box = TaskBoxMap::require(account_uuid);
+    task_box->check_task_dungeon_clearance(boost::lexical_cast<uint64_t>(dungeon_type_id));
+
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_WINS, "");
 
 	return Response();
