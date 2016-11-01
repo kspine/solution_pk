@@ -1392,7 +1392,7 @@ void Dungeon::on_triggers_dungeon_show_pictures(const TriggerAction &action){
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.size() != 7){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon show pictures param error,size != 3",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon show pictures param error,size != 3",action.params);
 			return;
 		}
 		auto picture_url =  param_array.at(0).get<std::string>();
@@ -1419,7 +1419,6 @@ void Dungeon::on_triggers_dungeon_show_pictures(const TriggerAction &action){
 				msg.x               = x;
 				msg.y               = y;
 				dungeon_client->send(msg);
-				LOG_EMPERY_DUNGEON_FATAL(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 				dungeon_client->shutdown(e.what());
@@ -1439,7 +1438,7 @@ void Dungeon::on_triggers_dungeon_remove_pictures(const TriggerAction &action){
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.size() != 1){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon remove pictures param error,size != 1",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon remove pictures param error,size != 1",action.params);
 			return;
 		}
 		auto id  =  static_cast<std::uint64_t>(param_array.at(0).get<double>());
@@ -1451,7 +1450,6 @@ void Dungeon::on_triggers_dungeon_remove_pictures(const TriggerAction &action){
 				msg.dungeon_uuid    = get_dungeon_uuid().str();
 				msg.picture_id      = id;
 				dungeon_client->send(msg);
-				LOG_EMPERY_DUNGEON_FATAL(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 				dungeon_client->shutdown(e.what());
@@ -1473,7 +1471,7 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.size() != 2){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon range damage error,size != 1",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon range damage error,size != 1",action.params);
 			return;
 		}
 		auto trap_coord = param_array.at(0).get<Poseidon::JsonArray>();
@@ -1488,7 +1486,6 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 		}
 		std::vector<boost::shared_ptr<DungeonObject>> ret;
 		get_objects_all(ret);
-		LOG_EMPERY_DUNGEON_FATAL("surrounding coord size:",surrounding.size()," attack_range:",trap_data->attack_range," dungeon_object_size:",ret.size());
 		for(auto it = surrounding.begin(); it != surrounding.end();++it){
 			auto &coord = *it;
 			for(auto itt = ret.begin(); itt != ret.end(); ++itt){
@@ -1515,7 +1512,6 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 						msg.attacked_coord_y = target_object->get_coord().y();
 						msg.result_type = 1;
 						msg.soldiers_damaged = damage;
-						LOG_EMPERY_DUNGEON_FATAL(msg);
 						auto sresult = dungeon_client->send_and_wait(msg);
 						if(sresult.first != Poseidon::Cbpp::ST_OK){
 							LOG_EMPERY_DUNGEON_DEBUG("trap damge fail", sresult.first, ", msg = ", sresult.second);
@@ -1546,13 +1542,13 @@ void Dungeon::on_triggers_dungeon_transmit(const TriggerAction &action){
 		const auto create_uuid = DungeonObjectUuid(action.dungeon_params);
 		auto dungeon_object = get_object(create_uuid);
 		if(!dungeon_object){
-			LOG_EMPERY_DUNGEON_FATAL("on triggers dungeon transmit no dungeon object");
+			LOG_EMPERY_DUNGEON_WARNING("on triggers dungeon transmit no dungeon object");
 			return;
 		}
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.size() != 2){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon range damage error,size != 1",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon range damage error,size != 1",action.params);
 			return;
 		}
 		auto x = static_cast<int>(param_array.at(0).get<double>());
@@ -1569,6 +1565,20 @@ void Dungeon::on_triggers_dungeon_transmit(const TriggerAction &action){
 		}
 		std::vector<boost::shared_ptr<DungeonObject>> ret;
 		get_dungeon_objects_by_account(ret,dungeon_object->get_owner_uuid());
+		//通知传送
+		Msg::DS_DungeonObjectPrepareTransmit msg;
+		msg.dungeon_uuid    = get_dungeon_uuid().str();
+		for(auto it = ret.begin(); it != ret.end(); ++it){
+			auto &friend_dungeon_object = *it;
+			auto &transmit_info = *msg.transmit_objects.emplace(msg.transmit_objects.end());
+			transmit_info.object_uuid = friend_dungeon_object->get_dungeon_object_uuid().str();
+			transmit_info.x           = friend_dungeon_object->get_coord().x();
+			transmit_info.y           = friend_dungeon_object->get_coord().y();
+		}
+		if(dungeon_client){
+			dungeon_client->send(msg);
+		}
+		//执行传送
 		unsigned i = 0;
 		for(auto it = ret.begin(); it != ret.end(); ++it){
 			auto &friend_dungeon_object = *it;
@@ -1690,7 +1700,7 @@ void Dungeon::on_triggers_dungeon_hide_all_solider(const TriggerAction &action){
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.size() != 1){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon hide all solider params error,size != 1",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon hide all solider params error,size != 1",action.params);
 			return;
 		}
 		auto type = static_cast<std::uint64_t>(param_array.at(0).get<double>());
@@ -1698,7 +1708,6 @@ void Dungeon::on_triggers_dungeon_hide_all_solider(const TriggerAction &action){
 		msg.dungeon_uuid = get_dungeon_uuid().str();
 		msg.type         = type;
 		dungeon_client->send(msg);
-		LOG_EMPERY_DUNGEON_FATAL(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}
@@ -1715,7 +1724,7 @@ void Dungeon::on_triggers_dungeon_unhide_all_solider(const TriggerAction &action
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.size() != 1){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon unhide all params error,size != 1",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon unhide all params error,size != 1",action.params);
 			return;
 		}
 		auto type = static_cast<std::uint64_t>(param_array.at(0).get<double>());
@@ -1723,7 +1732,6 @@ void Dungeon::on_triggers_dungeon_unhide_all_solider(const TriggerAction &action
 		msg.dungeon_uuid = get_dungeon_uuid().str();
 		msg.type         = type;
 		dungeon_client->send(msg);
-		LOG_EMPERY_DUNGEON_FATAL(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}
@@ -1740,7 +1748,7 @@ void Dungeon::on_triggers_dungeon_hide_coords(const TriggerAction &action){
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.empty()){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon hide coord empty,error params",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon hide coord empty,error params",action.params);
 			return;
 		}
 		Msg::DS_DungeonHideCoords msg;
@@ -1752,7 +1760,6 @@ void Dungeon::on_triggers_dungeon_hide_coords(const TriggerAction &action){
 			hide_coord.y = static_cast<int>(temp_coord.at(1).get<double>());
 		}
 		dungeon_client->send(msg);
-		LOG_EMPERY_DUNGEON_FATAL(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}
@@ -1769,7 +1776,7 @@ void Dungeon::on_triggers_dungeon_unhide_coords(const TriggerAction &action){
 		std::istringstream iss_param(action.params);
 		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
 		if(param_array.empty()){
-			LOG_EMPERY_DUNGEON_FATAL("dungeon unhide coord empty,error params",action.params);
+			LOG_EMPERY_DUNGEON_WARNING("dungeon unhide coord empty,error params",action.params);
 			return;
 		}
 		Msg::DS_DungeonUnhideCoords msg;
@@ -1781,7 +1788,6 @@ void Dungeon::on_triggers_dungeon_unhide_coords(const TriggerAction &action){
 			unhide_coord.y = static_cast<int>(temp_coord.at(1).get<double>());
 		}
 		dungeon_client->send(msg);
-		LOG_EMPERY_DUNGEON_FATAL(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}

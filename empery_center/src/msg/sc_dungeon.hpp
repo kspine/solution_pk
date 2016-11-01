@@ -366,6 +366,17 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_DungeonObjectPrepareTransmit
+#define MESSAGE_ID      1569
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_ARRAY         (transmit_objects,	\
+		FIELD_STRING      (object_uuid)	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

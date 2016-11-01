@@ -571,7 +571,7 @@ boost::shared_ptr<AiControl>  DungeonObject::require_ai_control(){
 				m_ai_control = boost::make_shared<AiControlMonsterObject>(ai_id,virtual_weak_from_this<DungeonObject>());
 				break;
 			default:
-				LOG_EMPERY_DUNGEON_FATAL("invalid ai type:",ai_data->ai_type," ai_id:",ai_id);
+				LOG_EMPERY_DUNGEON_WARNING("invalid ai type:",ai_data->ai_type," ai_id:",ai_id);
 				break;
 		}
 	}
@@ -592,7 +592,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	std::uint64_t delay;
 	const auto speed = get_move_speed();
 	if(speed <= 0){
-		LOG_EMPERY_DUNGEON_FATAL("speed <= 0,",speed, " dungeon_object_type_data->speed:",dungeon_object_type_data->speed," get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0,
+		LOG_EMPERY_DUNGEON_WARNING("speed <= 0,",speed, " dungeon_object_type_data->speed:",dungeon_object_type_data->speed," get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0,
 		" get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD):",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0);
 		delay = UINT64_MAX;
 	} else {
@@ -748,7 +748,7 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	msg.attacked_coord_x = target_object->get_coord().x();
 	msg.attacked_coord_y = target_object->get_coord().y();
 	msg.result_type = result_type;
-	msg.soldiers_damaged = 100;
+	msg.soldiers_damaged = damage;
 	auto sresult = dungeon_client->send_and_wait(msg);
 	if(sresult.first != Msg::ST_OK){
 		LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
@@ -801,10 +801,8 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 		}
 		boost::shared_ptr<DungeonObject> near_enemy_object;
 		if(passive&&dungeon_object->get_new_enemy(target->get_owner_uuid(),near_enemy_object)){
-			LOG_EMPERY_DUNGEON_FATAL("troops attack passive");
 			dungeon_object->attack_new_target(near_enemy_object);
 		}else{
-			LOG_EMPERY_DUNGEON_FATAL("troops attack ");
 			dungeon_object->attack_new_target(target);
 		}
 	}
@@ -1256,7 +1254,7 @@ bool          DungeonObject::can_use_skill(DungeonMonsterSkillId &skill_id,std::
 }
 std::uint64_t DungeonObject::use_skill(DungeonMonsterSkillId skill_id,std::pair<long, std::string> &result, std::uint64_t now){
 	PROFILE_ME;
-	LOG_EMPERY_DUNGEON_FATAL("MONSTER PREPARE USE SKILL,skill_id = ",skill_id);
+
 	const auto dungeon_uuid = get_dungeon_uuid();
 	const auto dungeon = DungeonMap::require(dungeon_uuid);
 	const auto dungeon_client = dungeon->get_dungeon_client();
@@ -1413,6 +1411,11 @@ bool          DungeonObject::choice_skill_target(DungeonMonsterSkillId skill_id,
 	PROFILE_ME;
 
 	auto skill_data = Data::Skill::require(skill_id);
+	//不需要施法对象的直接返回
+	if(skill_data->cast_object == SKILL_TARGET_NONE){
+		coord = Coord(0,0);
+		return true;
+	}
 	auto cast_range = skill_data->cast_range;
 	std::vector<Coord> surrounding;
 	for(unsigned i = 1; i <= cast_range; ++i){
@@ -1485,6 +1488,9 @@ boost::shared_ptr<Skill> DungeonObject::create_skill(DungeonMonsterSkillId skill
 	switch(skill_id.get()){
 		case ID_SKILL_CLEAVE.get():
 			skill = boost::make_shared<SkillCleave>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_CYCLONE.get():
+			skill = boost::make_shared<SkillCyclone>(skill_id,virtual_weak_from_this<DungeonObject>());
 			break;
 		default:
 			LOG_EMPERY_DUNGEON_ERROR("unknown skill id = ",skill_id);

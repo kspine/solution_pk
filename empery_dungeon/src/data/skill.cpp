@@ -46,6 +46,8 @@ namespace {
 				elem.attack_fix  = 0.0;
 			}
 			csv.get(elem.attack_type,               "attack_type");
+			csv.get(elem.skill_range,               "skill_range");
+
 			auto skill_id = elem.skill_id;
 			if(!monster_skill_container->insert(std::move(elem)).second){
 				LOG_EMPERY_DUNGEON_ERROR("Duplicate dungeon monster skill, skill_id = ", skill_id);

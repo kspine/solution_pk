@@ -61,8 +61,10 @@ public:
 		return m_cast_coord;
 	}
 	void set_cast_coord(Coord coord);
-	Skill_Direct get_cast_direct();
+	virtual Skill_Direct   get_cast_direct();
 	virtual void   do_effects();
+	virtual void   notify_effects(const std::vector<Coord> &coords);
+	virtual void   do_damage(const std::vector<Coord> &coords);
 };
 
 //顺劈斩
@@ -70,6 +72,17 @@ class SkillCleave : public Skill{
 public:
 	SkillCleave(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
 	~SkillCleave();
+
+public:
+	Skill_Direct   get_cast_direct() override;
+	void   do_effects() override;
+};
+
+//旋风
+class SkillCyclone : public Skill {
+public:
+	SkillCyclone(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillCyclone();
 
 public:
 	void   do_effects() override;

@@ -41,6 +41,7 @@ public:
 	};
 
 	enum SkillTarget {
+		SKILL_TARGET_NONE                    = 0,
 		SKILL_TARGET_FRIEND                  = 1,
 		SKILL_TARGET_ENEMY                   = 2,
 		SKILL_TARGET_GRID                    = 3,
