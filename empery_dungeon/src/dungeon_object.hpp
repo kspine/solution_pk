@@ -120,7 +120,7 @@ public:
 	std::string get_skill_param(){
 		return m_skill_param;
 	}
-	
+
 	std::int64_t get_attribute(AttributeId attribute_id) const;
 	void get_attributes(boost::container::flat_map<AttributeId, std::int64_t> &ret) const;
 	void set_attributes(boost::container::flat_map<AttributeId, std::int64_t> modifiers);
@@ -145,9 +145,6 @@ public:
 		return m_action_param;
 	}
 	void set_action(Coord from_coord, std::deque<std::pair<signed char, signed char>> waypoints,DungeonObject::Action action, std::string action_param);
-	
-	
-
 
 public:
 	bool is_die();
@@ -198,12 +195,14 @@ public:
 	unsigned       get_arm_attack_type();
 	unsigned       get_arm_defence_type();
 public:
+	boost::shared_ptr<Skill> create_skill(DungeonMonsterSkillId skill_id);
 	bool           can_use_skill(DungeonMonsterSkillId &skill_id,std::uint64_t now);
 	std::uint64_t  use_skill(DungeonMonsterSkillId skill_id,std::pair<long, std::string> &result, std::uint64_t now);
 	void           check_current_skill(std::uint64_t now);
 	std::uint64_t  calculate_next_skill_time(DungeonMonsterSkillId skill_id, std::uint64_t now);
 	bool           choice_skill_target(DungeonMonsterSkillId skill_id,Coord &coord);
 	std::uint64_t  do_finish_skill(DungeonMonsterSkillId skill_id,std::uint64_t now);
+	void           do_skill_effects(DungeonMonsterSkillId skill_ids);
 };
 
 }

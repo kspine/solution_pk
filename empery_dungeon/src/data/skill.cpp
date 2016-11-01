@@ -16,7 +16,7 @@ namespace {
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		const auto monster_skill_container = boost::make_shared<MonsterSkillContainer>();
-		
+
 		auto csv = Data::sync_load_data(MONSTER_SKILL_FILE);
 		while(csv.fetch_row()){
 			Data::Skill elem = { };
@@ -35,13 +35,23 @@ namespace {
 			csv.get(elem.cast_range,              "caster_range");
 			csv.get(elem.sing_time,               "sing_time");
 			csv.get(elem.cast_time,               "cast_time");
+
+			array.clear();
+			csv.get(array,                       "damage_coefficient");
+			if(array.size() == 2){
+				elem.attack_rate = array.at(0).get<double>();
+				elem.attack_fix  = array.at(1).get<double>();
+			}else{
+				elem.attack_rate = 0.0;
+				elem.attack_fix  = 0.0;
+			}
+			csv.get(elem.attack_type,               "attack_type");
 			auto skill_id = elem.skill_id;
 			if(!monster_skill_container->insert(std::move(elem)).second){
 				LOG_EMPERY_DUNGEON_ERROR("Duplicate dungeon monster skill, skill_id = ", skill_id);
 				DEBUG_THROW(Exception, sslit("Duplicate dungeon monster skill"));
 			}
 		}
-		
 		g_monster_skill_container = monster_skill_container;
 		handles.push(monster_skill_container);
 	}
