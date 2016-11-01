@@ -19,7 +19,8 @@
 #include "singletons/legion_member_map.hpp"
 #include "singletons/legion_map.hpp"
 #include "singletons/world_map.hpp"
-
+#include "dungeon_box.hpp"
+#include "singletons/dungeon_box_map.hpp"
 #include "legion.hpp"
 #include "legion_member.hpp"
 
