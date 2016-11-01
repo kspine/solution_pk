@@ -6,7 +6,6 @@
 #include <poseidon/async_job.hpp>
 #include <poseidon/job_promise.hpp>
 #include <poseidon/sock_addr.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
 #include "../msg/g_packed.hpp"
 #include "../msg/kill.hpp"

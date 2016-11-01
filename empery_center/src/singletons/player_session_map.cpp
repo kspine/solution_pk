@@ -3,7 +3,6 @@
 #include "../mmain.hpp"
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/multi_index_map.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/ip_port.hpp>
 #include "account_map.hpp"
 #include "../account.hpp"

@@ -4,7 +4,6 @@
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include <poseidon/job_promise.hpp>
 #include <poseidon/sock_addr.hpp>
-#include <poseidon/cbpp/control_message.hpp>
 #include <poseidon/singletons/dns_daemon.hpp>
 #include "../msg/kill.hpp"
 
