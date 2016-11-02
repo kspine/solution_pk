@@ -1103,10 +1103,9 @@ void TaskBox::finish_task_dungeon_clearance()
            auto new_progress_str = encode_progress(*new_progress);
            pair.second = std::move(new_progress);
            obj->set_progress(std::move(new_progress_str));
-           const auto session = PlayerSessionMap::get(get_account_uuid());	
          }
       }
-
+       const auto session = PlayerSessionMap::get(get_account_uuid());	
        if (session)
        {
           try
