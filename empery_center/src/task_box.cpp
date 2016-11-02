@@ -1104,22 +1104,24 @@ void TaskBox::finish_task_dungeon_clearance()
            pair.second = std::move(new_progress);
            obj->set_progress(std::move(new_progress_str));
            const auto session = PlayerSessionMap::get(get_account_uuid());	
-           if (session)
-           {
-              try
-              {
-      		    Msg::SC_TaskChanged msg;
-      	        fill_task_message(msg, pair, utc_now);
-      	    	session->send(msg);
-
-      	    	LOG_EMPERY_CENTER_FATAL("____Dungeon Clearance Task FinishNotice____");
-              }
-              catch (std::exception &e) {
-      		      LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-      	          session->shutdown(e.what());
-              }
-            }
          }
+      }
+
+       if (session)
+       {
+          try
+          {
+      		 Msg::SC_TaskChanged msg;
+      	     fill_task_message(msg, pair, utc_now);
+      	     session->send(msg);
+
+      	     LOG_EMPERY_CENTER_FATAL("____Dungeon Clearance Task FinishNotice____");
+          }
+          catch (std::exception &e) 
+          {
+      		 LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+      	     session->shutdown(e.what());
+          }
       }
    }
 }
