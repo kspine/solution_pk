@@ -171,9 +171,9 @@ namespace EmperyCenter {
 
 		check_legion_package_tasks();
 
-       // access_task_dungeon_clearance();
+        access_task_dungeon_clearance();
 
-        finish_task_dungeon_clearance();
+       // finish_task_dungeon_clearance();
 	}
 
 	void TaskBox::check_primary_tasks() {
@@ -945,38 +945,6 @@ namespace EmperyCenter {
 	}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void TaskBox::check_task_dungeon_clearance(std::uint64_t key_dungeon_id)
 {
  PROFILE_ME;
@@ -1048,20 +1016,27 @@ void TaskBox::access_task_dungeon_clearance()
   }
   for(auto it = m_tasks.begin();it != m_tasks.end(); ++it)
   {
-   const auto task_id = it->first;
-   const auto task_data = Data::TaskAbstract::require(task_id);
-   if(task_data->type != TaskTypeIds::ID_DUNGEON_CLEARANCE)
-   {
-    continue;
-   }
-   for(auto oit = task_data->objective.begin();oit != task_data->objective.end();++oit)
-   {
-     const auto key_dungeon_id = boost::lexical_cast<std::uint64_t>(oit->first);
-     auto info = dungeon_box->get((DungeonTypeId)key_dungeon_id);
-     if(info.finish_count >= 1)
-     {
-       check_task_dungeon_clearance(key_dungeon_id);
-     }
+    const auto task_id = it->first;
+    auto &pair = it->second;
+    const auto &obj = pair.first;
+    const auto task_data = Data::TaskAbstract::require(task_id);
+    if(obj->get_rewarded()){
+        continue;
+    }
+    if(task_data->type != TaskTypeIds::ID_DUNGEON_CLEARANCE)
+    {
+        continue;
+    }
+
+    for(auto oit = task_data->objective.begin();oit != task_data->objective.end();++oit)
+    {
+      const auto key_dungeon_id = boost::lexical_cast<std::uint64_t>(oit->first);
+      auto info = dungeon_box->get((DungeonTypeId)key_dungeon_id);
+      if(info.finish_count >= 1)
+      {
+        check_task_dungeon_clearance(key_dungeon_id);
+        break;
+      }
     }
   }
 }
