@@ -171,7 +171,7 @@ namespace EmperyCenter {
 
 		check_legion_package_tasks();
 
-       // access_task_dungeon_clearance();
+        access_task_dungeon_clearance();
 
         finish_task_dungeon_clearance();
 	}
@@ -1103,24 +1103,24 @@ void TaskBox::finish_task_dungeon_clearance()
            auto new_progress_str = encode_progress(*new_progress);
            pair.second = std::move(new_progress);
            obj->set_progress(std::move(new_progress_str));
-         }
-      }
-       const auto session = PlayerSessionMap::get(get_account_uuid());	
-       if (session)
-       {
-          try
-          {
-      		 Msg::SC_TaskChanged msg;
-      	     fill_task_message(msg, pair, utc_now);
-      	     session->send(msg);
-
-      	     LOG_EMPERY_CENTER_FATAL("____Dungeon Clearance Task FinishNotice____");
+            const auto session = PlayerSessionMap::get(get_account_uuid());	
+           if (session)
+           {
+             try
+             {
+      		   Msg::SC_TaskChanged msg;
+      	       fill_task_message(msg, pair, utc_now);
+      	       session->send(msg);
+   
+      	       LOG_EMPERY_CENTER_FATAL("____Dungeon Clearance Task FinishNotice____");
+             }
+             catch (std::exception &e) 
+             {
+      		   LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+      	       session->shutdown(e.what());
+             }
           }
-          catch (std::exception &e) 
-          {
-      		 LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-      	     session->shutdown(e.what());
-          }
+        }
       }
    }
 }
