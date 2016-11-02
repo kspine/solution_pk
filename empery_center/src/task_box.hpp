@@ -74,7 +74,6 @@ namespace EmperyCenter {
 
 		void check_task_dungeon_clearance(std::uint64_t key_dungeon_id);
 		void access_task_dungeon_clearance();
-	    void finish_task_dungeon_clearance();
 
 
 		//建筑升级刷新任务

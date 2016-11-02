@@ -172,8 +172,6 @@ namespace EmperyCenter {
 		check_legion_package_tasks();
 
         access_task_dungeon_clearance();
-
-       // finish_task_dungeon_clearance();
 	}
 
 	void TaskBox::check_primary_tasks() {
@@ -733,6 +731,10 @@ namespace EmperyCenter {
 			async_recheck_building_level_tasks(get_account_uuid());
 		}
 
+		if(task_data->type == TaskTypeIds::ID_DUNGEON_CLEARANCE){
+            access_task_dungeon_clearance();
+        }
+
 		const auto session = PlayerSessionMap::get(get_account_uuid());
 		if (session) {
 			try {
@@ -789,6 +791,10 @@ namespace EmperyCenter {
 		if (task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL) {
 			async_recheck_building_level_tasks(get_account_uuid());
 		}
+
+        if(task_data->type == TaskTypeIds::ID_DUNGEON_CLEARANCE){
+            access_task_dungeon_clearance();
+        }
 
 		const auto session = PlayerSessionMap::get(get_account_uuid());
 		if (session) {
@@ -1039,66 +1045,6 @@ void TaskBox::access_task_dungeon_clearance()
       }
     }
   }
-}
-
-
-void TaskBox::finish_task_dungeon_clearance()
-{
-  PROFILE_ME;
-  const auto utc_now = Poseidon::get_utc_time(); 
-  const auto dungeon_box = DungeonBoxMap::get(get_account_uuid());
-  if(!dungeon_box){
-     return;
-  }
-  for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
-  {
-     const auto task_id = it->first; 
-     auto &pair = it->second;
-     const auto &obj = pair.first;
-     const auto old_progress = pair.second;
-     if(obj->get_rewarded()){
-        continue;
-     }
-     const auto task_data = Data::TaskAbstract::require(task_id);
-     if(task_data->type != TaskTypeIds::ID_DUNGEON_CLEARANCE){
-        continue;
-     }
-
-     LOG_EMPERY_CENTER_FATAL("____ Dungeon Clearance Task:_",task_id);
-     for(auto oit = task_data->objective.begin();oit != task_data->objective.end();++oit)
-     {
-        const auto key_dungeon_id = boost::lexical_cast<std::uint64_t>(oit->first);
-        LOG_EMPERY_CENTER_FATAL("____current DungeonID:",key_dungeon_id);
-        auto info = dungeon_box->get((DungeonTypeId)key_dungeon_id);
-        if(info.finish_count >= 1)
-        {
-          LOG_EMPERY_CENTER_FATAL("____ Dungeon Clearance___DungeonID:_",key_dungeon_id);
-          auto new_progress =  boost::make_shared<Progress>(*old_progress);
-          (*new_progress)[key_dungeon_id] = (uint64_t)1; 
-           auto new_progress_str = encode_progress(*new_progress);
-           pair.second = std::move(new_progress);
-           obj->set_progress(std::move(new_progress_str));
-           const auto session = PlayerSessionMap::get(get_account_uuid());	
-           if (session)
-           {
-             try
-             {
-      		   Msg::SC_TaskChanged msg;
-      	       fill_task_message(msg, pair, utc_now);
-      	       session->send(msg);
-   
-      	       LOG_EMPERY_CENTER_FATAL("____Dungeon Clearance Task FinishNotice____");
-             }
-             catch (std::exception &e) 
-             {
-      		   LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-      	       session->shutdown(e.what());
-             }
-          }
-          break;
-        }
-      }
-   }
 }
 
 void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const 
