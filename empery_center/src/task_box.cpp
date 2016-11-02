@@ -1070,6 +1070,7 @@ void TaskBox::access_task_dungeon_clearance()
 void TaskBox::finish_task_dungeon_clearance()
 {
   PROFILE_ME;
+  const auto utc_now = Poseidon::get_utc_time(); 
   const auto dungeon_box = DungeonBoxMap::get(get_account_uuid());
   if(!dungeon_box){
      return;
