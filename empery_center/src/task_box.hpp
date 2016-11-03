@@ -72,7 +72,7 @@ namespace EmperyCenter {
 		void update_reward_status(TaskId task_id);
 		bool check_reward_status(TaskId task_id);
 
-		void check_task_dungeon_clearance(std::uint64_t key_dungeon_id);
+		void check_task_dungeon_clearance(std::uint64_t key_dungeon_id,std::uint64_t finish_count);
 		void access_task_dungeon_clearance();
 
 
