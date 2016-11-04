@@ -56,7 +56,10 @@ constexpr AttributeId
 	ID_CARRIAGE_ADD                     ( 2500163 ),
 	ID_HARVEST_SPEED_ADD                ( 2500164 ),
 	ID_MONSTER_PATROL_DEST_POINT_X      ( 2500165 ),
-	ID_MONSTER_PATROL_DEST_POINT_Y      ( 2500166 );
+	ID_MONSTER_PATROL_DEST_POINT_Y      ( 2500166 ),
+	ID_CORROSION                        ( 2500167 ),
+	ID_REFLEX_INJURY                    ( 2500168 ),
+	ID_RAGE                             ( 2500169 );
 }
 
 }

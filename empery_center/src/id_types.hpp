@@ -239,6 +239,7 @@ namespace IdTypes {
 	using DungeonTrapTypeId         = GenericId<std::uint32_t, 120039>;
 	using DungeonBuffTypeId         = GenericId<std::uint32_t, 120040>;
 	using NoviceGuideStepId         = GenericId<std::uint32_t, 120041>;
+	using DungeonMonsterSkillId     = GenericId<std::uint32_t, 120042>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;
