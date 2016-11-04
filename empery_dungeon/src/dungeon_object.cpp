@@ -8,6 +8,7 @@
 #include "mmain.hpp"
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
+#include <poseidon/random.hpp>
 #include "../../empery_center/src/msg/sc_dungeon.hpp"
 #include "../../empery_center/src/msg/sd_dungeon.hpp"
 #include "../../empery_center/src/msg/ds_dungeon.hpp"
@@ -15,6 +16,8 @@
 #include "../../empery_center/src/msg/err_map.hpp"
 #include "../../empery_center/src/msg/err_castle.hpp"
 #include "../../empery_center/src/attribute_ids.hpp"
+#include "src/data/skill.hpp"
+#include "src/data/dungeon.hpp"
 namespace EmperyDungeon {
 
 
@@ -29,6 +32,20 @@ DungeonObject::DungeonObject(DungeonUuid dungeon_uuid, DungeonObjectUuid dungeon
 {
 }
 DungeonObject::~DungeonObject(){
+}
+
+void DungeonObject::set_current_skill(DungeonMonsterSkillId skill_id,Coord coord,std::string param){
+	PROFILE_ME;
+
+	m_current_skill_id = skill_id;
+	m_skill_target_coord = coord;
+	m_skill_param = param;
+	auto it = m_skills.find(skill_id);
+	if(it != m_skills.end()){
+		auto &skill = it->second;
+		skill->set_cast_coord(coord);
+		skill->set_cast_params(param);
+	}
 }
 
 
@@ -86,12 +103,16 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 		return require_ai_control()->on_action_monster_regress(result,now);
 	}
 	ON_ACTION(ACT_MONSTER_SEARCH_TARGET){
-		// 无事可做。
 		return require_ai_control()->on_action_monster_search_target(result,now);
 	}
 	ON_ACTION(ACT_MONSTER_PATROL){
-		// 无事可做。
 		return require_ai_control()->on_action_patrol(result,now);
+	}
+	ON_ACTION(ACT_SKILL_SING){
+		return require_ai_control()->on_action_skill_singing(result,now);
+	}
+	ON_ACTION(ACT_SKILL_CAST){
+		return require_ai_control()->on_action_skill_casting(result,now);
 	}
 //=============================================================================
 #undef ON_ACTION
@@ -242,8 +263,8 @@ void DungeonObject::set_action(Coord from_coord, std::deque<std::pair<signed cha
 		}
 		const auto dungeon_object_uuid = shared->get_dungeon_object_uuid();
 		LOG_EMPERY_DUNGEON_TRACE("Dungeon object action timer: dungeon_object_uuid = ", dungeon_object_uuid);
-	const auto dungeon_uuid = shared->get_dungeon_uuid();
-	const auto dungeon = DungeonMap::require(dungeon_uuid);
+		const auto dungeon_uuid = shared->get_dungeon_uuid();
+		const auto dungeon = DungeonMap::require(dungeon_uuid);
 
 		for(;;){
 			if(now < m_next_action_time){
@@ -368,7 +389,6 @@ bool DungeonObject::is_in_group_view_scope(boost::shared_ptr<DungeonObject>& tar
 	const auto coord    = get_coord();
 	const auto distance = get_distance_of_coords(coord, target_object->get_coord());
 	if(distance <= troops_view_range){
-		LOG_EMPERY_DUNGEON_FATAL("coord :",coord," target_coord:",target_object->get_coord()," distance:",distance," in group view");
 		return true;
 	}
 
@@ -552,7 +572,7 @@ boost::shared_ptr<AiControl>  DungeonObject::require_ai_control(){
 				m_ai_control = boost::make_shared<AiControlMonsterObject>(ai_id,virtual_weak_from_this<DungeonObject>());
 				break;
 			default:
-				LOG_EMPERY_DUNGEON_FATAL("invalid ai type:",ai_data->ai_type," ai_id:",ai_id);
+				LOG_EMPERY_DUNGEON_WARNING("invalid ai type:",ai_data->ai_type," ai_id:",ai_id);
 				break;
 		}
 	}
@@ -573,7 +593,7 @@ std::uint64_t DungeonObject::move(std::pair<long, std::string> &result){
 	std::uint64_t delay;
 	const auto speed = get_move_speed();
 	if(speed <= 0){
-		LOG_EMPERY_DUNGEON_FATAL("speed <= 0,",speed, " dungeon_object_type_data->speed:",dungeon_object_type_data->speed," get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0,
+		LOG_EMPERY_DUNGEON_WARNING("speed <= 0,",speed, " dungeon_object_type_data->speed:",dungeon_object_type_data->speed," get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_BONUS) / 1000.0,
 		" get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD):",get_attribute(EmperyCenter::AttributeIds::ID_SPEED_ADD) / 1000.0);
 		delay = UINT64_MAX;
 	} else {
@@ -683,7 +703,6 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	int result_type = IMPACT_NORMAL;
 	std::uint64_t damage = 0;
 	double k = 0.06;
-	double attack_rate = dungeon_object_type_data->attack_speed + get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0;
 	double doge_rate = emempy_type_data->doge_rate + get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD) / 1000.0;
 	double critical_rate = dungeon_object_type_data->critical_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0;
 	double critical_demage_plus_rate = dungeon_object_type_data->critical_damage_plus_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0;
@@ -699,9 +718,6 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 //		soldier_count = (soldier_count/hp + 1)*hp;
 //	}
 	//auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-	if(attack_rate < 0.0001 && attack_rate > -0.0001){
-		return UINT64_MAX;
-	}
 	//计算闪避，闪避成功，
 	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 
@@ -718,6 +734,13 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 			result_type = IMPACT_CRITICAL;
 			damage = damage*(1.0+critical_demage_plus_rate);
 		}
+	}
+	//腐蚀buff
+	double corrosion = dungeon->get_dungeon_attribute(target_object->get_dungeon_object_uuid(),target_object->get_owner_uuid(),EmperyCenter::AttributeIds::ID_CORROSION) / 1000.0;
+	if(corrosion > 0.0){
+		LOG_EMPERY_DUNGEON_FATAL("attacked have a corrosion buff ,damge before:",damage," corrosion = ",corrosion);
+		damage = damage*( 1.0 + corrosion);
+		LOG_EMPERY_DUNGEON_FATAL("attacked have a corrosion buff ,damge end :",damage);
 	}
 
 	Msg::DS_DungeonObjectAttackAction msg;
@@ -740,12 +763,18 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 		result = std::move(sresult);
 		return UINT64_MAX;
 	}
+	//反伤
+	if(target_object->can_reflex_injury()){
+		target_object->do_reflex_injury(damage,virtual_shared_from_this<DungeonObject>());
+	}
+
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<DungeonObject>(),damage);
 		require_ai_control()->troops_attack(target_object);
 	}
-	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
+
+	std::uint64_t attack_delay = get_attack_delay();
 	return attack_delay;
 }
 
@@ -764,9 +793,6 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 	}
 	std::vector<boost::shared_ptr<DungeonObject>> friendly_dungeon_objects;
 	dungeon->get_dungeon_objects_by_account(friendly_dungeon_objects,get_owner_uuid());
-	if(is_monster()){
-		LOG_EMPERY_DUNGEON_FATAL("Monster friendly dungeon_objects size:",friendly_dungeon_objects.size());
-	}
 	if(friendly_dungeon_objects.empty()){
 		return;
 	}
@@ -789,10 +815,8 @@ void DungeonObject::troops_attack(boost::shared_ptr<DungeonObject> target, bool 
 		}
 		boost::shared_ptr<DungeonObject> near_enemy_object;
 		if(passive&&dungeon_object->get_new_enemy(target->get_owner_uuid(),near_enemy_object)){
-			LOG_EMPERY_DUNGEON_FATAL("troops attack passive");
 			dungeon_object->attack_new_target(near_enemy_object);
 		}else{
-			LOG_EMPERY_DUNGEON_FATAL("troops attack ");
 			dungeon_object->attack_new_target(target);
 		}
 	}
@@ -803,7 +827,7 @@ std::uint64_t DungeonObject::on_attack_common(boost::shared_ptr<DungeonObject> a
 	if(!attacker){
 		return UINT64_MAX;
 	}
-	if(m_action != ACT_ATTACK && m_waypoints.empty()){
+	if(m_action != ACT_ATTACK && m_waypoints.empty() && m_action != ACT_SKILL_SING && m_action != ACT_SKILL_CAST){
 		attack_new_target(attacker);
 	}
 	require_ai_control()->troops_attack(attacker,true);
@@ -1049,7 +1073,7 @@ boost::shared_ptr<const Data::DungeonObjectAi>   DungeonObject::get_dungeon_ai_d
 	PROFILE_ME;
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	const auto ai_id   = dungeon_object_type_data->ai_id;
-	return	Data::DungeonObjectAi::require(ai_id);	
+	return	Data::DungeonObjectAi::require(ai_id);
 }
 
 void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const DungeonObject::Action &action, const std::string &action_param){
@@ -1093,12 +1117,16 @@ void   DungeonObject::notify_way_points(const std::deque<std::pair<signed char, 
 }
 
 std::uint64_t DungeonObject::on_monster_regress(){
+	PROFILE_ME;
+
 	//to ACT_MONSTER_SEARCH_TARGET
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::string> &result){
+	PROFILE_ME;
+
 	boost::shared_ptr<DungeonObject> new_enemy_dungeon_object;
 	bool is_get_new_enemy = get_monster_new_enemy(new_enemy_dungeon_object);
 	if(is_get_new_enemy && new_enemy_dungeon_object){
@@ -1110,12 +1138,16 @@ std::uint64_t DungeonObject::monster_search_attack_target(std::pair<long, std::s
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 std::uint64_t DungeonObject::on_monster_guard(){
+	PROFILE_ME;
+
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 
 std::uint64_t DungeonObject::on_monster_patrol(){
+	PROFILE_ME;
+
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
 	auto birth_y = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_Y);
 	auto dest_x  = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_PATROL_DEST_POINT_X);
@@ -1137,6 +1169,8 @@ std::uint64_t DungeonObject::on_monster_patrol(){
 }
 
 double DungeonObject::get_total_defense(){
+	PROFILE_ME;
+
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(!dungeon_object_type_data){
 		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
@@ -1151,11 +1185,11 @@ double DungeonObject::get_total_defense(){
 	double total_defense = dungeon_object_type_data->defence * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS) / 1000.0) +
 	get_attribute(EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0 +
 	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD) / 1000.0;
-	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute defense_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_ADD),
-	" defense_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_BONUS));
 	return total_defense;
 }
 double  DungeonObject::get_total_attack(){
+	PROFILE_ME;
+
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(!dungeon_object_type_data){
 		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
@@ -1170,12 +1204,19 @@ double  DungeonObject::get_total_attack(){
 	double total_attack = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 ) +
 	get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0 +
 	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
-	LOG_EMPERY_DUNGEON_FATAL("dungeon attribute attack_add:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD),
-	" attack_bonus:",dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS));
+	//狂暴buff
+	double rage = dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_RAGE) / 1000.0;
+	if(rage > 0.0){
+		LOG_EMPERY_DUNGEON_FATAL("RAGE BUFF, RAGE = ",rage," before total_attack = ",total_attack);
+		total_attack  = total_attack * (1.0 + rage/100.0);
+		LOG_EMPERY_DUNGEON_FATAL("REGE BUFF end,total_attack = ",total_attack);
+	}
 	return total_attack;
 }
 
 double  DungeonObject::get_move_speed(){
+	PROFILE_ME;
+
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(!dungeon_object_type_data){
 		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
@@ -1193,4 +1234,369 @@ double  DungeonObject::get_move_speed(){
 	return speed;
 }
 
+std::uint64_t  DungeonObject::get_attack_delay(){
+	PROFILE_ME;
+	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
+		return stand_by_interval;
+	}
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon");
+		return stand_by_interval;
+	}
+	double attack_rate = dungeon_object_type_data->attack_speed + get_attribute(EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0 +
+	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_RATE_OF_FIRE_ADD) / 1000.0;
+
+	if(attack_rate < 0.0001 && attack_rate > -0.0001){
+		return stand_by_interval;
+	}else{
+		std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
+		return attack_delay;
+	}
+}
+
+bool          DungeonObject::can_use_skill(DungeonMonsterSkillId &skill_id,std::uint64_t now){
+	PROFILE_ME;
+
+	for(auto it = m_skills.begin(); it != m_skills.end(); ++it){
+		auto &skill = it->second;
+		if(skill->get_next_execute_time() < now){
+			skill_id = skill->get_skill_id();
+			LOG_EMPERY_DUNGEON_FATAL("MONSTER CAN USE SKILL,skill_id = ",skill_id);
+			return true;
+		}
+	}
+	return false;
+}
+std::uint64_t DungeonObject::use_skill(DungeonMonsterSkillId skill_id,std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	const auto dungeon_client = dungeon->get_dungeon_client();
+	Coord coord;
+	DungeonObjectUuid target_uuid;
+	auto choice_a_target = choice_skill_target(skill_id,coord,target_uuid);
+	if(choice_a_target){
+		std::string action_param = get_action_param();
+		set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_SKILL_SING),action_param);
+		set_current_skill(skill_id,coord,target_uuid.str());
+		auto skill_data = Data::Skill::require(skill_id);
+		auto sing_delay = static_cast<std::uint64_t>(skill_data->sing_time * 1000);
+		if(dungeon_client){
+			try{
+				Msg::DS_DungeonObjectSkillSingAction msg;
+				msg.dungeon_uuid = get_dungeon_uuid().str();
+				msg.attacking_account_uuid   = get_owner_uuid().str();
+				msg.attacking_object_uuid    = get_dungeon_object_uuid().str();
+				msg.attacking_object_type_id = get_dungeon_object_type_id().get();
+				msg.attacking_coord_x        = get_coord().x();
+				msg.attacking_coord_y        = get_coord().y();
+				msg.attacked_coord_x         = coord.x();
+				msg.attacked_coord_y         = coord.y();
+				msg.skill_type_id            = skill_id.get();
+				msg.sing_delay               = sing_delay;
+				auto sresult = dungeon_client->send_and_wait(msg);
+				if(sresult.first != Msg::ST_OK){
+					LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+					result = std::move(sresult);
+					return do_finish_skill(skill_id,now);
+				}
+			} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+			}
+		}
+		return sing_delay;
+	}
+	//失败则直接取消
+	auto delay = do_finish_skill(skill_id,now);
+	return delay;
+}
+
+std::uint64_t DungeonObject::on_skill_singing_finish(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	LOG_EMPERY_DUNGEON_FATAL("MONSTER USE SKILL SING FINISH");
+	const auto dungeon_uuid = get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	const auto dungeon_client = dungeon->get_dungeon_client();
+	std::string action_param = get_action_param();
+	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_SKILL_CAST),action_param);
+	auto skill_id = get_current_skill_id();
+	auto coord    = get_skill_target_coord();
+	auto skill_data = Data::Skill::require(skill_id);
+	auto cast_delay = static_cast<std::uint64_t>(skill_data->cast_time * 1000);
+	if(dungeon_client){
+		try{
+			Msg::DS_DungeonObjectSkillCastAction msg;
+			msg.dungeon_uuid = get_dungeon_uuid().str();
+			msg.attacking_account_uuid   = get_owner_uuid().str();
+			msg.attacking_object_uuid    = get_dungeon_object_uuid().str();
+			msg.attacking_object_type_id = get_dungeon_object_type_id().get();
+			msg.attacking_coord_x        = get_coord().x();
+			msg.attacking_coord_y        = get_coord().y();
+			msg.attacked_coord_x         = coord.x();
+			msg.attacked_coord_y         = coord.y();
+			msg.skill_type_id            = skill_id.get();
+			msg.cast_delay               = cast_delay;
+			auto sresult = dungeon_client->send_and_wait(msg);
+			if(sresult.first != Msg::ST_OK){
+				LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+				result = std::move(sresult);
+				return do_finish_skill(skill_id,now);
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+	}
+	return cast_delay;
+}
+
+std::uint64_t DungeonObject::on_skilling_casting_finish(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	LOG_EMPERY_DUNGEON_FATAL("MONSTER USE SKILL CAST FINISH");
+	auto skill_id = get_current_skill_id();
+	//执行各个技能的效果
+	do_skill_effects(skill_id);
+	auto delay = do_finish_skill(skill_id,now);
+	return delay;
+}
+
+void          DungeonObject::check_current_skill(std::uint64_t now){
+	PROFILE_ME;
+
+	const auto dungeon_object_type_data = get_dungeon_object_type_data();
+	if(!dungeon_object_type_data){
+		LOG_EMPERY_DUNGEON_WARNING("NO dungeon object data");
+		return;
+	}
+	const auto hp_total   = checked_mul(dungeon_object_type_data->max_soldier_count, dungeon_object_type_data->hp);
+	const auto current_hp = static_cast<std::uint64_t>(get_attribute(EmperyCenter::AttributeIds::ID_HP_TOTAL));
+	std::uint32_t percent = current_hp * 100 / hp_total;
+	std::vector<DungeonMonsterSkillId> skill_candidates;
+	for(unsigned i = 0; i < dungeon_object_type_data->skill_trigger.size(); ++i){
+		auto percent_pair = dungeon_object_type_data->skill_trigger.at(i);
+		if(percent_pair.first >= percent && percent_pair.second <= percent){
+			skill_candidates = dungeon_object_type_data->skills.at(i);
+			break;
+		}
+	}
+	//删除不符合的技能
+	auto it = m_skills.begin();
+	while(it != m_skills.end()) {
+		const auto skill_id = it->first;
+		const auto cit = std::find(skill_candidates.begin(), skill_candidates.end(), skill_id);
+		if (cit == skill_candidates.end()) {
+			LOG_EMPERY_DUNGEON_FATAL("REMOVE NOT IN HP SKILL,SKILL_ID:",skill_id);
+			it = m_skills.erase(it);
+		}else{
+			it++;
+		}
+	}
+	//增加新增的技能
+	for (auto it = skill_candidates.begin();  it != skill_candidates.end(); ++it){
+		const auto skill_id = *it;
+		auto sit = m_skills.find(skill_id);
+		if(sit == m_skills.end()){
+			auto skill = create_skill(skill_id);
+			if(skill){
+				auto next_skill_time = calculate_next_skill_time(skill_id,now);
+				skill->set_next_execute_time(next_skill_time);
+				LOG_EMPERY_DUNGEON_FATAL("this is a before a common attack ,and check inset new skill,skill_id = ",skill_id," execute_time = ",next_skill_time, " current_percent = ",percent);
+				m_skills.emplace(skill_id,std::move(skill));
+			}else{
+				LOG_EMPERY_DUNGEON_ERROR("create skill fail, skill_id = ",skill_id);
+			}
+		}
+	}
+}
+
+std::uint64_t  DungeonObject::calculate_next_skill_time(DungeonMonsterSkillId skill_id, std::uint64_t now){
+	PROFILE_ME;
+
+	auto skill_data = Data::Skill::require(skill_id);
+	auto low = skill_data->cast_interval.first;
+	auto high = skill_data->cast_interval.second;
+	auto delay = Poseidon::rand32(low,high);
+	return now + delay * 1000;
+}
+
+bool          DungeonObject::choice_skill_target(DungeonMonsterSkillId skill_id,Coord &coord,DungeonObjectUuid &dungeon_object_uuid){
+	PROFILE_ME;
+
+	auto skill_data = Data::Skill::require(skill_id);
+	//施法对象是自己的返回
+	if(skill_id == ID_SKILL_REFLEX_INJURY ||
+		skill_id == ID_SKILL_RAGE){
+			coord = get_coord();
+			dungeon_object_uuid = get_dungeon_object_uuid();
+		return true;
+	}
+	//不需要施法对象的直接返回
+	if(skill_data->cast_object == SKILL_TARGET_NONE){
+		coord = Coord(0,0);
+		return true;
+	}
+	auto cast_range = skill_data->cast_range;
+	std::vector<Coord> surrounding;
+	for(unsigned i = 1; i <= cast_range; ++i){
+		get_surrounding_coords(surrounding,get_coord(), i);
+	}
+	if(surrounding.empty()){
+		return false;
+	}
+	const auto dungeon = DungeonMap::require(m_dungeon_uuid);
+	for(auto it = surrounding.begin(); it != surrounding.end(); ++it){
+		auto &temp_coord = *it;
+		auto pass_able = get_dungeon_coord_passable(dungeon->get_dungeon_type_id(),temp_coord);
+		if(!pass_able){
+			continue;
+		}
+		if(skill_data->cast_object == SKILL_TARGET_GRID){
+			coord = temp_coord;
+			return true;
+		}
+		auto target_object = dungeon->get_object(temp_coord);
+		if(!target_object){
+			continue;
+		}
+		if(skill_data->cast_object == SKILL_TARGET_FRIEND){
+			if(target_object->get_owner_uuid() == get_owner_uuid()){
+				coord = target_object->get_coord();
+				dungeon_object_uuid = target_object->get_dungeon_object_uuid();
+				return true;
+			}
+		}else if(skill_data->cast_object == SKILL_TARGET_ENEMY){
+			if(target_object->get_owner_uuid() != get_owner_uuid()){
+				dungeon_object_uuid = target_object->get_dungeon_object_uuid();
+				coord = target_object->get_coord();
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+std::uint64_t  DungeonObject::do_finish_skill(DungeonMonsterSkillId skill_id,std::uint64_t now){
+	PROFILE_ME;
+
+	auto it = m_skills.find(skill_id);
+	if(it != m_skills.end()){
+		auto &skill = it->second;
+		auto next_skill_time = calculate_next_skill_time(skill_id,now);
+		LOG_EMPERY_DUNGEON_FATAL("reset next skill time,skill_id = ",skill_id, " next_execute_time = ",next_skill_time);
+		skill->set_next_execute_time(next_skill_time);
+	}
+	set_current_skill(DungeonMonsterSkillId(),Coord(0,0),"");
+	std::string action_param = get_action_param();
+	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_ATTACK),action_param);
+	std::uint64_t attack_delay = get_attack_delay();
+	return attack_delay;
+}
+
+void           DungeonObject::do_skill_effects(DungeonMonsterSkillId skill_id){
+	PROFILE_ME;
+
+	auto it = m_skills.find(skill_id);
+	if(it != m_skills.end()){
+		auto &skill = it->second;
+		skill->do_effects();
+	}
+}
+
+boost::shared_ptr<Skill> DungeonObject::create_skill(DungeonMonsterSkillId skill_id){
+	PROFILE_ME;
+
+	boost::shared_ptr<Skill> skill = {};
+	switch(skill_id.get()){
+		case ID_SKILL_CLEAVE.get():
+			skill = boost::make_shared<SkillCleave>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_CYCLONE.get():
+			skill = boost::make_shared<SkillCyclone>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_FIRE_BRAND.get():
+			skill = boost::make_shared<SkillFireBrand>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_CORROSION.get():
+			skill = boost::make_shared<SkillCorrosion>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_REFLEX_INJURY.get():
+			skill = boost::make_shared<SkillReflexInjury>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_RAGE.get():
+			skill = boost::make_shared<SkillRage>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		default:
+			LOG_EMPERY_DUNGEON_ERROR("unknown skill id = ",skill_id);
+			skill = boost::make_shared<Skill>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+	}
+	return skill;
+}
+
+bool           DungeonObject::can_reflex_injury(){
+	PROFILE_ME;
+
+	const auto dungeon = DungeonMap::require(m_dungeon_uuid);
+	double reflex_injury = dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_REFLEX_INJURY) / 1000.0;
+	if(reflex_injury > 0.0){
+		return true;
+	}
+	return false;
+}
+void         DungeonObject::do_reflex_injury(std::uint64_t total_damage,boost::shared_ptr<DungeonObject> attacker){
+	PROFILE_ME;
+	if(!attacker){
+		LOG_EMPERY_DUNGEON_WARNING("reflex injury attacker is null ?");
+		return;
+	}
+	const auto dungeon = DungeonMap::require(m_dungeon_uuid);
+	const auto dungeon_client = dungeon->get_dungeon_client();
+	if(!dungeon_client){
+		return;
+	}
+	double reflex_injury = dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_REFLEX_INJURY) / 1000.0;
+	if(reflex_injury <= 0.0){
+		return;
+	}
+	double k = 0.06;
+	double total_attack = total_damage * reflex_injury/100.0;
+	double total_defense = attacker->get_total_defense();
+	double relative_rate = Data::DungeonObjectRelative::get_relative(attacker->get_arm_attack_type(),attacker->get_arm_defence_type());
+	std::uint64_t damage = total_attack * relative_rate * (1 - k *total_defense/(1 + k*total_defense));
+	try{
+		Msg::DS_DungeonObjectAttackAction msg;
+		msg.dungeon_uuid = get_dungeon_uuid().str();
+		msg.attacking_account_uuid = get_owner_uuid().str();
+		msg.attacking_object_uuid = get_dungeon_object_uuid().str();
+		msg.attacking_object_type_id = get_dungeon_object_type_id().get();
+		msg.attacking_coord_x = get_coord().x();
+		msg.attacking_coord_y = get_coord().y();
+		msg.attacked_account_uuid = attacker->get_owner_uuid().str();
+		msg.attacked_object_uuid = attacker->get_dungeon_object_uuid().str();
+		msg.attacked_object_type_id = attacker->get_dungeon_object_type_id().get();
+		msg.attacked_coord_x = attacker->get_coord().x();
+		msg.attacked_coord_y = attacker->get_coord().y();
+		msg.result_type = IMPACT_NORMAL;
+		msg.soldiers_damaged = damage;
+		auto sresult = dungeon_client->send_and_wait(msg);
+		if(sresult.first != Msg::ST_OK){
+			LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+			return ;
+		}
+		LOG_EMPERY_DUNGEON_ERROR("do reflex injury total_damage = ",total_damage, " reflex_injury = ",reflex_injury);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+		dungeon_client->shutdown(e.what());
+	}
+}
 }

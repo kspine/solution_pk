@@ -19,6 +19,7 @@ class TriggerAction;
 class TriggerDamage;
 class TriggerConfirmation;
 class DungeonBuff;
+class SkillRecycleDamage;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -32,7 +33,7 @@ public:
 		S_PASS           = 1,
 		S_FAIL           = 2,
 	};
-	
+
 	enum FightState {
 		FIGHT_START          = 0,
 		FIGHT_PAUSE          = 1,
@@ -60,6 +61,8 @@ private:
 	boost::container::flat_map<Coord, boost::shared_ptr<DungeonBuff>>               m_dungeon_buffs;
 	std::set<Coord>                                                                 m_dungeon_blocks;
 	FightState                                                                      m_fight_state;
+	boost::container::flat_map<Coord,std::vector<boost::shared_ptr<SkillRecycleDamage>>>  m_skill_damages;
+	boost::container::flat_map<std::pair<DungeonObjectUuid,DungeonBuffTypeId>,boost::shared_ptr<DungeonBuff>>   m_skill_buffs;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time,std::uint64_t finish_count);
@@ -99,6 +102,7 @@ public:
 
 	void check_move_pass(Coord coord,std::string params,bool is_monster);
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
+	boost::shared_ptr<DungeonObject> get_object(Coord coord) const ;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const;
 	void get_dungeon_objects_by_account(std::vector<boost::shared_ptr<DungeonObject>> &ret,AccountUuid account_uuid);
@@ -110,6 +114,7 @@ public:
 	bool check_valid_coord_for_birth(const Coord &src_coord);
 	bool get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord);
 
+	//副本中触发器buff相关操作
 	boost::shared_ptr<DungeonBuff> get_dungeon_buff(const Coord coord) const;
 	void insert_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
 	void update_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff, bool throws_if_not_exists = true);
@@ -155,6 +160,14 @@ public:
 	void on_triggers_dungeon_hide_coords(const TriggerAction &action);
 	void on_triggers_dungeon_unhide_coords(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
+
+	//
+	virtual void pump_skill_damage();
+	void do_skill_damage(const boost::shared_ptr<SkillRecycleDamage>& damage);
+	void insert_skill_damage(const boost::shared_ptr<SkillRecycleDamage>& damage);
+	void check_skill_damage_move_pass(Coord coord,std::string params,bool isMonster = false);
+	//副本中技能产生的buff
+	void insert_skill_buff(DungeonObjectUuid dungeon_object_uuid,DungeonBuffTypeId buff_id,const boost::shared_ptr<DungeonBuff> dungeon_buff);
 };
 
 }

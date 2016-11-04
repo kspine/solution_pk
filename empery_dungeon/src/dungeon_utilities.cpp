@@ -23,7 +23,6 @@ std::pair<long, std::string> get_move_result(DungeonUuid dungeon_uuid,Coord coor
 	const auto map_y = coord.y();
 	const auto cell_data = Data::MapCellBasic::get(dungeon_data->dungeon_map,map_x, map_y);
 	if(!cell_data){
-		LOG_EMPERY_DUNGEON_FATAL("no dungeon cell,dungeon_map = ",dungeon_data->dungeon_map);
 		return CbppResponse(Msg::ERR_NO_DUNGEON_CELL) << dungeon_data->dungeon_map << map_x << map_y;
 	}
 	const auto terrain_id = cell_data->terrain_id;

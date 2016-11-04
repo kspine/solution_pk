@@ -245,6 +245,73 @@ namespace Msg {
 		FIELD_VINT        (y)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonObjectSkillSingAction
+#define MESSAGE_ID      50022
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VUINT         (skill_type_id)	\
+	FIELD_VUINT          (sing_delay)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonObjectSkillCastAction
+#define MESSAGE_ID      50023
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VUINT         (skill_type_id)	\
+	FIELD_VUINT          (cast_delay)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonObjectSkillEffect
+#define MESSAGE_ID      50024
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (attacking_account_uuid)	\
+	FIELD_STRING        (attacking_object_uuid)	\
+	FIELD_VUINT         (attacking_object_type_id)	\
+	FIELD_VINT          (attacking_coord_x)	\
+	FIELD_VINT          (attacking_coord_y)	\
+	FIELD_VINT          (attacked_coord_x)	\
+	FIELD_VINT          (attacked_coord_y)	\
+	FIELD_VUINT         (skill_type_id)	\
+	FIELD_ARRAY         (effect_range,	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonObjectPrepareTransmit
+#define MESSAGE_ID      50025
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_ARRAY         (transmit_objects,	\
+		FIELD_STRING      (object_uuid)	\
+		FIELD_VINT        (x)	\
+		FIELD_VINT        (y)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonObjectAddBuff
+#define MESSAGE_ID      50026
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (dungeon_object_uuid)	\
+	FIELD_VUINT         (buff_type_id)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }
