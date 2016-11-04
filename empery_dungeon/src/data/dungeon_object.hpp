@@ -30,6 +30,8 @@ namespace Data {
 		std::uint64_t       hp;
 		std::uint32_t       ai_id;
 		std::uint32_t       view;
+		std::vector<std::pair<std::uint32_t,std::uint32_t>> skill_trigger;
+		std::vector<std::vector<DungeonMonsterSkillId>> skills;
 	};
 
 	class DungeonObjectRelative {

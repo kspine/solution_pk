@@ -25,6 +25,7 @@ lib_libposeidon_empery_dungeon_la_SOURCES = \
 	src/data/trigger.cpp \
 	src/data/global.cpp \
 	src/data/dungeon_buff.cpp \
+	src/data/skill.cpp \
 	src/dungeon_client.cpp \
 	src/dungeon.cpp \
 	src/dungeon_object.cpp \
@@ -32,4 +33,5 @@ lib_libposeidon_empery_dungeon_la_SOURCES = \
 	src/ai_control.cpp \
 	src/trigger.cpp \
 	src/dungeon_buff.cpp \
+	src/skill.cpp \
 	src/mmain.cpp

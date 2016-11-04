@@ -2,6 +2,7 @@
 #include "ai_control.hpp"
 #include "dungeon_object.hpp"
 #include <poseidon/cbpp/status_codes.hpp>
+#include "id_types.hpp"
 
 namespace EmperyDungeon {
 
@@ -55,7 +56,15 @@ std::uint64_t AiControl::on_action_attack(std::pair<long, std::string> &result, 
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	return parent_object->attack(result,now);
+	parent_object->check_current_skill(now);
+	
+	DungeonMonsterSkillId skill_id;
+	if(parent_object->can_use_skill(skill_id,now)){
+		return parent_object->use_skill(skill_id,result,now);
+	}else{
+		return parent_object->attack(result,now);
+	}
+	return UINT64_MAX;
 }
 
 std::uint64_t AiControl::on_action_monster_regress(std::pair<long, std::string> &result, std::uint64_t now){
@@ -80,6 +89,26 @@ std::uint64_t AiControl::on_lose_target(){
 		return UINT64_MAX;
 	}
 	return parent_object->lost_target_common();
+}
+
+std::uint64_t AiControl::on_action_skill_singing(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->on_skill_singing_finish(result,now);
+}
+
+std::uint64_t AiControl::on_action_skill_casting(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->on_skilling_casting_finish(result,now);
 }
 
 AiControlMonsterAutoSearch::AiControlMonsterAutoSearch(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
