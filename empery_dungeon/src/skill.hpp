@@ -19,7 +19,27 @@ namespace {
 	ID_SKILL_CYCLONE                   (1007), //旋风
 	ID_SKILL_FIRE_BRAND                (1008), //火印
 	ID_SKILL_SUMMON_MONSTER            (1009); //召唤怪物
+
+	constexpr DungeonBuffTypeId
+	ID_BUFF_CORROSION                   (6404001),//腐蚀
+	ID_BUFF_REFLEX_INJURY               (6405001),//反伤
+	ID_BUFF_RAGE                        (6406001);//狂暴
 }
+class SkillRecycleDamage : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
+public:
+	Coord                   origin_coord;
+	DungeonObjectUuid       dungon_objec_uuid;
+	AccountUuid             owner_account_uuid;
+	std::uint64_t           attack;
+	DungeonMonsterSkillId   skill_id;
+	std::uint64_t           next_damage_time;
+	std::uint64_t           interval;
+	std::uint64_t           times;
+	std::vector<Coord>      damage_range;
+public:
+	SkillRecycleDamage(Coord coord_, DungeonObjectUuid dungon_objec_uuid_,AccountUuid owner_account_uuid_,std::uint64_t attack_,DungeonMonsterSkillId skill_id_, std::uint64_t next_damage_time_,std::uint64_t interval_,std::uint64_t times_,std::vector<Coord> damage_range_);
+	~SkillRecycleDamage();
+};
 
 class DungeonClient;
 class Dungeon;
@@ -43,6 +63,7 @@ public:
 	boost::weak_ptr<DungeonObject>  m_owner;
 	std::uint64_t         m_next_execute_time;
 	Coord                 m_cast_coord;
+	std::string           m_cast_params;
 public:
 	DungeonMonsterSkillId  get_skill_id(){
 		return m_skill_id;
@@ -61,11 +82,17 @@ public:
 		return m_cast_coord;
 	}
 	void set_cast_coord(Coord coord);
+
+	std::string get_cast_params(){
+		return m_cast_params;
+	}
+	void set_cast_params(std::string params);
 	virtual Skill_Direct   get_cast_direct();
 	virtual void   do_effects();
 	virtual void   notify_effects(const std::vector<Coord> &coords);
 	virtual void   do_damage(const std::vector<Coord> &coords);
 };
+
 
 //顺劈斩
 class SkillCleave : public Skill{
@@ -86,6 +113,44 @@ public:
 
 public:
 	void   do_effects() override;
+};
+
+//火印
+class SkillFireBrand : public Skill {
+public:
+	SkillFireBrand(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillFireBrand();
+
+public:
+	void do_effects() override;
+	void do_damage(const std::vector<Coord> &coords) override;
+};
+
+//腐蚀术
+class SkillCorrosion : public Skill {
+public:
+	SkillCorrosion(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillCorrosion();
+public:
+	void do_effects() override;
+};
+
+//反伤术
+class SkillReflexInjury : public Skill {
+public:
+	SkillReflexInjury(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillReflexInjury();
+public:
+	void do_effects() override;
+};
+
+//狂暴
+class SkillRage : public Skill {
+public:
+	SkillRage(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillRage();
+public:
+	void do_effects() override;
 };
 
 }

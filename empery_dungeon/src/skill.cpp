@@ -9,6 +9,8 @@
 #include "../../empery_center/src/msg/ds_dungeon.hpp"
 #include "../../empery_center/src/msg/err_dungeon.hpp"
 #include "dungeon_utilities.hpp"
+#include "data/dungeon_buff.hpp"
+#include "dungeon_buff.hpp"
 
 namespace EmperyDungeon {
 
@@ -116,6 +118,15 @@ namespace {
 	}
 }
 
+
+SkillRecycleDamage::SkillRecycleDamage(Coord coord_, DungeonObjectUuid dungon_objec_uuid_, AccountUuid owner_account_uuid_,std::uint64_t attack_,DungeonMonsterSkillId skill_id_, std::uint64_t next_damage_time_,std::uint64_t interval_,std::uint64_t times_,std::vector<Coord> damage_range_)
+:origin_coord(coord_),dungon_objec_uuid(dungon_objec_uuid_),owner_account_uuid(owner_account_uuid_),attack(attack_),skill_id(skill_id_),next_damage_time(next_damage_time_),interval(interval_),times(times_),damage_range(damage_range_)
+{
+}
+
+SkillRecycleDamage::~SkillRecycleDamage(){
+}
+
 Skill::Skill(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
 	: m_skill_id(skill_id),m_owner(owner),m_next_execute_time(0),m_cast_coord(Coord(0,0))
 {
@@ -129,6 +140,10 @@ void Skill::set_next_execute_time(std::uint64_t next_execute_time){
 
 void Skill::set_cast_coord(Coord coord){
 	m_cast_coord  = coord;
+}
+
+void Skill::set_cast_params(std::string params){
+	m_cast_params = params;
 }
 
 Skill::Skill_Direct Skill::get_cast_direct(){
@@ -182,62 +197,29 @@ void   Skill::notify_effects(const std::vector<Coord> &coords){
 }
 
 void Skill::do_damage(const std::vector<Coord> &coords){
-	auto owner_object  = get_owner();
-	if(!owner_object){
-		LOG_EMPERY_DUNGEON_WARNING("skill do damge,owner object is null");
+	PROFILE_ME;
+
+	auto cast_coord = get_cast_coord();
+	if(cast_coord == Coord(0,0)){
+		LOG_EMPERY_DUNGEON_WARNING("skill fire can't get a valid cast target ,cast target in dungeon monster skill is 0 ?");
+	}
+	auto owner = get_owner();
+	if(!owner){
+		LOG_EMPERY_DUNGEON_WARNING("skill owner is null ?");
 		return;
 	}
-	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon_uuid = owner->get_dungeon_uuid();
 	const auto dungeon = DungeonMap::require(dungeon_uuid);
-	const auto dungeon_client = dungeon->get_dungeon_client();
-	if(!dungeon_client){
-		LOG_EMPERY_DUNGEON_WARNING("skill do damge, dungeon client is null");
-		return;
-	}
-	auto skill_data  = Data::Skill::require(get_skill_id());
-	auto attack_rate = skill_data->attack_rate;
-	auto attack_fix  = skill_data->attack_fix;
-	auto attack_type = skill_data->attack_type;
-	double k = 0.06;
-	auto total_attack = owner_object->get_total_attack()*attack_rate + attack_fix;
-	for(auto it = coords.begin(); it != coords.end(); ++it){
-		auto &coord = *it;
-		auto target_object = dungeon->get_object(coord);
-		if(target_object){
-			if(target_object->get_owner_uuid() != owner_object->get_owner_uuid()){
-				try {
-						//伤害计算
-						double relative_rate = Data::DungeonObjectRelative::get_relative(attack_type,target_object->get_arm_defence_type());
-						double total_defense = target_object->get_total_defense();
-						double damage = total_attack * 1 * relative_rate * (1 - k *total_defense/(1 + k*total_defense));
-						Msg::DS_DungeonObjectAttackAction msg;
-						msg.dungeon_uuid           = owner_object->get_dungeon_uuid().str();
-						/*
-						msg.attacking_account_uuid = get_owner_uuid().str();
-						msg.attacking_object_uuid = get_dungeon_object_uuid().str();
-						msg.attacking_object_type_id = get_dungeon_object_type_id().get();
-						msg.attacking_coord_x = coord.x();
-						msg.attacking_coord_y = coord.y();
-						*/
-						msg.attacked_account_uuid = target_object->get_owner_uuid().str();
-						msg.attacked_object_uuid  = target_object->get_dungeon_object_uuid().str();
-						msg.attacked_object_type_id = target_object->get_dungeon_object_type_id().get();
-						msg.attacked_coord_x = target_object->get_coord().x();
-						msg.attacked_coord_y = target_object->get_coord().y();
-						msg.result_type = 1;
-						msg.soldiers_damaged = damage;
-						LOG_EMPERY_DUNGEON_FATAL(msg);
-						auto sresult = dungeon_client->send_and_wait(msg);
-						if(sresult.first != Poseidon::Cbpp::ST_OK){
-							LOG_EMPERY_DUNGEON_DEBUG("skill cleave damge fail", sresult.first, ", msg = ", sresult.second);
-							continue;
-						}
-					} catch(std::exception &e){
-						LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
-						dungeon_client->shutdown(e.what());
-					}
-			}
-		}
+	auto dungon_objec_uuid = owner->get_dungeon_object_uuid();
+	auto account_uuid      = owner->get_owner_uuid();
+	auto attack            = owner->get_total_attack();
+	auto skill_id          = get_skill_id();
+	auto utc_now           = Poseidon::get_utc_time();
+	auto range_coords      = coords;
+	auto skill_recycle_damage = boost::make_shared<SkillRecycleDamage>(cast_coord,dungon_objec_uuid,account_uuid,attack,skill_id,utc_now,0,1,std::move(range_coords));;
+	if(skill_recycle_damage){
+		dungeon->insert_skill_damage(skill_recycle_damage);
+		dungeon->pump_skill_damage();
 	}
 }
 
@@ -330,6 +312,8 @@ SkillCyclone::~SkillCyclone(){
 }
 
 void  SkillCyclone::do_effects(){
+	PROFILE_ME;
+
 	auto owner_object  = get_owner();
 	if(!owner_object){
 		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
@@ -345,5 +329,171 @@ void  SkillCyclone::do_effects(){
 	Skill::notify_effects(coords);
 	Skill::do_damage(coords);
 }
+
+SkillFireBrand::SkillFireBrand(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillFireBrand::~SkillFireBrand(){
+}
+
+void  SkillFireBrand::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	auto cast_coord = get_cast_coord();
+	if(cast_coord == Coord(0,0)){
+		LOG_EMPERY_DUNGEON_WARNING("Fire brand cast coord is (0,0)");
+		return;
+	}
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	std::vector<Coord> coords;
+	coords.push_back(cast_coord);
+	Skill::notify_effects(coords);
+	do_damage(coords);
+}
+
+void   SkillFireBrand::do_damage(const std::vector<Coord> &coords){
+	auto cast_coord = get_cast_coord();
+	if(cast_coord == Coord(0,0)){
+		LOG_EMPERY_DUNGEON_WARNING("skill fire can't get a valid cast target ,cast target in dungeon monster skill is 0 ?");
+	}
+	auto owner_object = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("skill owner_object is null ?");
+		return;
+	}
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	auto dungon_objec_uuid = owner_object->get_dungeon_object_uuid();
+	auto account_uuid      = owner_object->get_owner_uuid();
+	auto attack            = owner_object->get_total_attack();
+	auto skill_id          = get_skill_id();
+	auto utc_now           = Poseidon::get_utc_time();
+	auto range_coords      = coords;
+	auto skill_recycle_damage = boost::make_shared<SkillRecycleDamage>(cast_coord,dungon_objec_uuid,account_uuid,attack,skill_id,utc_now,2*1000,-1,std::move(range_coords));;
+	if(skill_recycle_damage){
+		dungeon->insert_skill_damage(skill_recycle_damage);
+		dungeon->pump_skill_damage();
+	}
+}
+
+SkillCorrosion::SkillCorrosion(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillCorrosion::~SkillCorrosion(){
+}
+
+void  SkillCorrosion::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	auto cast_coord = get_cast_coord();
+	if(cast_coord == Coord(0,0)){
+		LOG_EMPERY_DUNGEON_WARNING("skill corrosion cast coord is (0,0)");
+		return;
+	}
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	std::vector<Coord> coords;
+	coords.push_back(cast_coord);
+	Skill::notify_effects(coords);
+	auto cast_params = get_cast_params();
+	auto cast_object = dungeon->get_object(DungeonObjectUuid(cast_params));
+	if(!cast_object){
+		LOG_EMPERY_DUNGEON_WARNING("Skill Corrosion cast object lost, cast_params = ",cast_params," cast_coord = ", cast_coord);
+		return;
+	}
+	auto dungeon_object_uuid = cast_object->get_dungeon_object_uuid();
+	auto dungeon_object_owner_account = cast_object->get_owner_uuid();
+	const auto buff_data = Data::DungeonBuff::require(ID_BUFF_CORROSION);
+	auto utc_now           = Poseidon::get_utc_time();
+	auto expired_time      = utc_now + buff_data->continue_time*1000;
+	auto dungeon_buff = boost::make_shared<DungeonBuff>(dungeon_uuid,ID_BUFF_CORROSION,dungeon_object_uuid,dungeon_object_owner_account,cast_coord,expired_time);
+	LOG_EMPERY_DUNGEON_ERROR("insert skill buff, dungeon_object_uuid = ",dungeon_object_uuid," BUFF ID = ",ID_BUFF_CORROSION);
+	dungeon->insert_skill_buff(dungeon_object_uuid,ID_BUFF_CORROSION,std::move(dungeon_buff));
+}
+
+SkillReflexInjury::SkillReflexInjury(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillReflexInjury::~SkillReflexInjury(){
+}
+
+void  SkillReflexInjury::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	auto cast_coord = owner_object->get_coord();
+	if(cast_coord == Coord(0,0)){
+		LOG_EMPERY_DUNGEON_WARNING("skill injury cast coord is (0,0)");
+		return;
+	}
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	std::vector<Coord> coords;
+	coords.push_back(cast_coord);
+	Skill::notify_effects(coords);
+	auto dungeon_object_uuid = owner_object->get_dungeon_object_uuid();
+	auto dungeon_object_owner_account = owner_object->get_owner_uuid();
+	const auto buff_data = Data::DungeonBuff::require(ID_BUFF_REFLEX_INJURY);
+	auto utc_now           = Poseidon::get_utc_time();
+	auto expired_time      = utc_now + buff_data->continue_time*1000;
+	auto dungeon_buff = boost::make_shared<DungeonBuff>(dungeon_uuid,ID_BUFF_REFLEX_INJURY,dungeon_object_uuid,dungeon_object_owner_account,cast_coord,expired_time);
+	dungeon->insert_skill_buff(dungeon_object_uuid,ID_BUFF_REFLEX_INJURY,std::move(dungeon_buff));
+}
+
+SkillRage::SkillRage(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillRage::~SkillRage(){
+}
+
+void  SkillRage::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	auto cast_coord = owner_object->get_coord();
+	if(cast_coord == Coord(0,0)){
+		LOG_EMPERY_DUNGEON_WARNING("skill rage cast coord is (0,0)");
+		return;
+	}
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	std::vector<Coord> coords;
+	coords.push_back(cast_coord);
+	Skill::notify_effects(coords);
+	auto dungeon_object_uuid = owner_object->get_dungeon_object_uuid();
+	auto dungeon_object_owner_account = owner_object->get_owner_uuid();
+	const auto buff_data = Data::DungeonBuff::require(ID_BUFF_RAGE);
+	auto utc_now           = Poseidon::get_utc_time();
+	auto expired_time      = utc_now + buff_data->continue_time*1000;
+	auto dungeon_buff = boost::make_shared<DungeonBuff>(dungeon_uuid,ID_BUFF_RAGE,dungeon_object_uuid,dungeon_object_owner_account,cast_coord,expired_time);
+	dungeon->insert_skill_buff(dungeon_object_uuid,ID_BUFF_RAGE,std::move(dungeon_buff));
+}
+
+
+
+
 
 }

@@ -201,9 +201,11 @@ public:
 	std::uint64_t  use_skill(DungeonMonsterSkillId skill_id,std::pair<long, std::string> &result, std::uint64_t now);
 	void           check_current_skill(std::uint64_t now);
 	std::uint64_t  calculate_next_skill_time(DungeonMonsterSkillId skill_id, std::uint64_t now);
-	bool           choice_skill_target(DungeonMonsterSkillId skill_id,Coord &coord);
+	bool           choice_skill_target(DungeonMonsterSkillId skill_id,Coord &coord,DungeonObjectUuid &dungeon_object_uuid);
 	std::uint64_t  do_finish_skill(DungeonMonsterSkillId skill_id,std::uint64_t now);
 	void           do_skill_effects(DungeonMonsterSkillId skill_ids);
+	bool           can_reflex_injury();
+	void           do_reflex_injury(std::uint64_t total_damage,boost::shared_ptr<DungeonObject> attacker);
 };
 
 }

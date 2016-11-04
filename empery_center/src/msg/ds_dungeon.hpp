@@ -303,6 +303,13 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    DS_DungeonObjectAddBuff
+#define MESSAGE_ID      50026
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_STRING        (dungeon_object_uuid)	\
+	FIELD_VUINT         (buff_type_id)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

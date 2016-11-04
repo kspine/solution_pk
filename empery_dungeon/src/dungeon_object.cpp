@@ -44,6 +44,7 @@ void DungeonObject::set_current_skill(DungeonMonsterSkillId skill_id,Coord coord
 	if(it != m_skills.end()){
 		auto &skill = it->second;
 		skill->set_cast_coord(coord);
+		skill->set_cast_params(param);
 	}
 }
 
@@ -734,6 +735,13 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 			damage = damage*(1.0+critical_demage_plus_rate);
 		}
 	}
+	//腐蚀buff
+	double corrosion = dungeon->get_dungeon_attribute(target_object->get_dungeon_object_uuid(),target_object->get_owner_uuid(),EmperyCenter::AttributeIds::ID_CORROSION) / 1000.0;
+	if(corrosion > 0.0){
+		LOG_EMPERY_DUNGEON_FATAL("attacked have a corrosion buff ,damge before:",damage," corrosion = ",corrosion);
+		damage = damage*( 1.0 + corrosion);
+		LOG_EMPERY_DUNGEON_FATAL("attacked have a corrosion buff ,damge end :",damage);
+	}
 
 	Msg::DS_DungeonObjectAttackAction msg;
 	msg.dungeon_uuid = get_dungeon_uuid().str();
@@ -755,11 +763,17 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 		result = std::move(sresult);
 		return UINT64_MAX;
 	}
+	//反伤
+	if(target_object->can_reflex_injury()){
+		target_object->do_reflex_injury(damage,virtual_shared_from_this<DungeonObject>());
+	}
+
 	//判断受攻击者是否死亡
 	if(!target_object->is_die()){
 		target_object->require_ai_control()->on_attack(virtual_shared_from_this<DungeonObject>(),damage);
 		require_ai_control()->troops_attack(target_object);
 	}
+
 	std::uint64_t attack_delay = get_attack_delay();
 	return attack_delay;
 }
@@ -1190,6 +1204,13 @@ double  DungeonObject::get_total_attack(){
 	double total_attack = dungeon_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0 ) +
 	get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0 +
 	dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
+	//狂暴buff
+	double rage = dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_RAGE) / 1000.0;
+	if(rage > 0.0){
+		LOG_EMPERY_DUNGEON_FATAL("RAGE BUFF, RAGE = ",rage," before total_attack = ",total_attack);
+		total_attack  = total_attack * (1.0 + rage/100.0);
+		LOG_EMPERY_DUNGEON_FATAL("REGE BUFF end,total_attack = ",total_attack);
+	}
 	return total_attack;
 }
 
@@ -1259,11 +1280,12 @@ std::uint64_t DungeonObject::use_skill(DungeonMonsterSkillId skill_id,std::pair<
 	const auto dungeon = DungeonMap::require(dungeon_uuid);
 	const auto dungeon_client = dungeon->get_dungeon_client();
 	Coord coord;
-	auto choice_a_target = choice_skill_target(skill_id,coord);
+	DungeonObjectUuid target_uuid;
+	auto choice_a_target = choice_skill_target(skill_id,coord,target_uuid);
 	if(choice_a_target){
 		std::string action_param = get_action_param();
 		set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_SKILL_SING),action_param);
-		set_current_skill(skill_id,coord,"");
+		set_current_skill(skill_id,coord,target_uuid.str());
 		auto skill_data = Data::Skill::require(skill_id);
 		auto sing_delay = static_cast<std::uint64_t>(skill_data->sing_time * 1000);
 		if(dungeon_client){
@@ -1407,10 +1429,17 @@ std::uint64_t  DungeonObject::calculate_next_skill_time(DungeonMonsterSkillId sk
 	return now + delay * 1000;
 }
 
-bool          DungeonObject::choice_skill_target(DungeonMonsterSkillId skill_id,Coord &coord){
+bool          DungeonObject::choice_skill_target(DungeonMonsterSkillId skill_id,Coord &coord,DungeonObjectUuid &dungeon_object_uuid){
 	PROFILE_ME;
 
 	auto skill_data = Data::Skill::require(skill_id);
+	//施法对象是自己的返回
+	if(skill_id == ID_SKILL_REFLEX_INJURY ||
+		skill_id == ID_SKILL_RAGE){
+			coord = get_coord();
+			dungeon_object_uuid = get_dungeon_object_uuid();
+		return true;
+	}
 	//不需要施法对象的直接返回
 	if(skill_data->cast_object == SKILL_TARGET_NONE){
 		coord = Coord(0,0);
@@ -1442,10 +1471,12 @@ bool          DungeonObject::choice_skill_target(DungeonMonsterSkillId skill_id,
 		if(skill_data->cast_object == SKILL_TARGET_FRIEND){
 			if(target_object->get_owner_uuid() == get_owner_uuid()){
 				coord = target_object->get_coord();
+				dungeon_object_uuid = target_object->get_dungeon_object_uuid();
 				return true;
 			}
 		}else if(skill_data->cast_object == SKILL_TARGET_ENEMY){
 			if(target_object->get_owner_uuid() != get_owner_uuid()){
+				dungeon_object_uuid = target_object->get_dungeon_object_uuid();
 				coord = target_object->get_coord();
 				return true;
 			}
@@ -1492,6 +1523,18 @@ boost::shared_ptr<Skill> DungeonObject::create_skill(DungeonMonsterSkillId skill
 		case ID_SKILL_CYCLONE.get():
 			skill = boost::make_shared<SkillCyclone>(skill_id,virtual_weak_from_this<DungeonObject>());
 			break;
+		case ID_SKILL_FIRE_BRAND.get():
+			skill = boost::make_shared<SkillFireBrand>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_CORROSION.get():
+			skill = boost::make_shared<SkillCorrosion>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_REFLEX_INJURY.get():
+			skill = boost::make_shared<SkillReflexInjury>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_RAGE.get():
+			skill = boost::make_shared<SkillRage>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
 		default:
 			LOG_EMPERY_DUNGEON_ERROR("unknown skill id = ",skill_id);
 			skill = boost::make_shared<Skill>(skill_id,virtual_weak_from_this<DungeonObject>());
@@ -1500,4 +1543,60 @@ boost::shared_ptr<Skill> DungeonObject::create_skill(DungeonMonsterSkillId skill
 	return skill;
 }
 
+bool           DungeonObject::can_reflex_injury(){
+	PROFILE_ME;
+
+	const auto dungeon = DungeonMap::require(m_dungeon_uuid);
+	double reflex_injury = dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_REFLEX_INJURY) / 1000.0;
+	if(reflex_injury > 0.0){
+		return true;
+	}
+	return false;
+}
+void         DungeonObject::do_reflex_injury(std::uint64_t total_damage,boost::shared_ptr<DungeonObject> attacker){
+	PROFILE_ME;
+	if(!attacker){
+		LOG_EMPERY_DUNGEON_WARNING("reflex injury attacker is null ?");
+		return;
+	}
+	const auto dungeon = DungeonMap::require(m_dungeon_uuid);
+	const auto dungeon_client = dungeon->get_dungeon_client();
+	if(!dungeon_client){
+		return;
+	}
+	double reflex_injury = dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_REFLEX_INJURY) / 1000.0;
+	if(reflex_injury <= 0.0){
+		return;
+	}
+	double k = 0.06;
+	double total_attack = total_damage * reflex_injury/100.0;
+	double total_defense = attacker->get_total_defense();
+	double relative_rate = Data::DungeonObjectRelative::get_relative(attacker->get_arm_attack_type(),attacker->get_arm_defence_type());
+	std::uint64_t damage = total_attack * relative_rate * (1 - k *total_defense/(1 + k*total_defense));
+	try{
+		Msg::DS_DungeonObjectAttackAction msg;
+		msg.dungeon_uuid = get_dungeon_uuid().str();
+		msg.attacking_account_uuid = get_owner_uuid().str();
+		msg.attacking_object_uuid = get_dungeon_object_uuid().str();
+		msg.attacking_object_type_id = get_dungeon_object_type_id().get();
+		msg.attacking_coord_x = get_coord().x();
+		msg.attacking_coord_y = get_coord().y();
+		msg.attacked_account_uuid = attacker->get_owner_uuid().str();
+		msg.attacked_object_uuid = attacker->get_dungeon_object_uuid().str();
+		msg.attacked_object_type_id = attacker->get_dungeon_object_type_id().get();
+		msg.attacked_coord_x = attacker->get_coord().x();
+		msg.attacked_coord_y = attacker->get_coord().y();
+		msg.result_type = IMPACT_NORMAL;
+		msg.soldiers_damaged = damage;
+		auto sresult = dungeon_client->send_and_wait(msg);
+		if(sresult.first != Msg::ST_OK){
+			LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+			return ;
+		}
+		LOG_EMPERY_DUNGEON_ERROR("do reflex injury total_damage = ",total_damage, " reflex_injury = ",reflex_injury);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+		dungeon_client->shutdown(e.what());
+	}
+}
 }
