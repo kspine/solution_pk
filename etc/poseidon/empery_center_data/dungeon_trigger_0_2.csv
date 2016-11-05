@@ -4,4 +4,4 @@ id,name,trigger_type,delay,condition,effect_type,effect_params,times,open,status
 100007,dungeon_plot_begin,1,0,,[9],"[[[0,0],0,7]]",1,1,0
 100008,dungeon_solider_all_die,6,0,[0],[6],[[0]],1,1,0
 100009,dungeon_monster_all_die,6,0,"[1,7]",[5],[[0]],1,1,0
-100010,dungeon_finish_task,4,0,[2],[7],[[3401008]],1,1,0
+100010,dungeon_finish_task,4,0,[2],[7],[[3401014]],1,1,0
