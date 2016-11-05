@@ -1,0 +1,4 @@
+equipment_id,equipment_type,equipment_level,equipment_resolve
+6300001,1,1,"{""2102001"":100}"
+6301002,2,2,"{""2102001"":200}"
+6302003,3,3,"{""2102001"":300}"

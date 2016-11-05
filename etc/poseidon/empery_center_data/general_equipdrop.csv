@@ -1,0 +1,9 @@
+id,drop_id,drop_model,probability
+1,whitedrop1,6300002,10
+2,whitedrop1,0,5
+3,whitedrop1,6300003,100
+4,greendrop1,6300002,10
+5,greendrop1,6300003,100
+6,greendrop1,0,50
+7,purpledrop1,6300004,10
+8,purpledrop1,6300005,50
