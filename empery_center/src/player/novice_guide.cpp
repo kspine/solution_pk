@@ -74,21 +74,52 @@ namespace EmperyCenter
        Poseidon::MySqlDaemon::enqueue_for_saving(obj_novice_guide, false, true);
        NoviceGuideMap::insert(obj_novice_guide);
 
-       //item_rewards
+
        auto pshare = Data::NoviceGuideSetup::require(NoviceGuideStepId(step_id));
-       auto item_reward_map = pshare->item_rewards;
 
-       std::vector<ItemTransactionElement> transaction;
-
-       for(auto it = item_reward_map.begin();it != item_reward_map.end();++it)
+       //item_rewards
        {
-         transaction.emplace_back(ItemTransactionElement::OP_ADD,it->first, it->second,
-       								ReasonIds::ID_LEGION_PACKAGE_TASK_PACKAGE_ITEM, 0, 0, 0);
+         auto item_reward_map = pshare->item_rewards;
+
+         const auto item_box = ItemBoxMap::require(account_uuid);
+
+         std::vector<ItemTransactionElement> transaction;
+
+         for(auto it = item_reward_map.begin();it != item_reward_map.end();++it)
+         {
+            transaction.emplace_back(ItemTransactionElement::OP_ADD,it->first, it->second,
+       								ReasonIds::ID_NOVICE_GUIDE_ADD_ITEM, 0, 0, 0);
+         }
+         item_box->commit_transaction(transaction, false);
        }
-       const auto item_box = ItemBoxMap::require(account_uuid);
-       item_box->commit_transaction(transaction, false);
 
        //resource_rewards;
+       {
+         auto resource_reward_map = pshare->resource_rewards;
+         std::vector<ResourceTransactionElement> transaction;
+         transaction.reserve(resource_reward_map.size());
+
+         const auto castle = WorldMap::require_primary_castle(account->get_account_uuid());
+
+         for(auto it = resource_rewards.begin(); it != resource_rewards.end(); ++it)
+         {
+           transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, it->second,
+                                    ReasonIds::ID_NOVICE_GUIDE_ADD_RESOURCE, 0, 0, 0);
+         }
+         castle->commit_resource_transaction(transaction,false);
+       }
+
        //arm_rewards
+       {
+         auto arm_reward_map = pshare->arm_rewards;
+         std::vector<SoldierTransactionElement> transaction;
+
+         for(auto it = arm_rewards.begin(); it != arm_rewards.end(); ++it)
+         {
+       	   transaction.emplace_back(SoldierTransactionElement::OP_ADD, it->first, it->second,
+       			ReasonIds::ID_NOVICE_GUIDE_ADD_ARM,map_object_type_id.get(), count, 0);
+         }
+       	 castle->commit_soldier_transaction(transaction);
+       }
     }
 }

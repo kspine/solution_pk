@@ -104,7 +104,10 @@ constexpr ReasonId
 	ID_LEGION_REPAIR_GRUBE           ( 675006 ),//  矿井UUID 高位        0                  0
 	ID_LEGION_USE_DONATE_ITEM        ( 675007 ),//  道具 ID              道具数量           0
 	ID_LEGION_EXCHANGE_ITEM          ( 675008 ),//  0                    0                  0
-	ID_NEW_GUIDE_CREATE_SOLIDER      ( 675009 );//  0                    0                  0
+	ID_NEW_GUIDE_CREATE_SOLIDER      ( 675009 ),//  0                    0                  0
+	ID_NOVICE_GUIDE_ADD_ITEM         ( 675010 ),
+	ID_NOVICE_GUIDE_ADD_RESOURCE     ( 675011 ),
+	ID_NOVICE_GUIDE_ADD_ARM          ( 675012 );
 }
 
 }
