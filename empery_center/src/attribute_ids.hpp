@@ -59,7 +59,8 @@ constexpr AttributeId
 	ID_MONSTER_PATROL_DEST_POINT_Y      ( 2500166 ),
 	ID_CORROSION                        ( 2500167 ),
 	ID_REFLEX_INJURY                    ( 2500168 ),
-	ID_RAGE                             ( 2500169 );
+	ID_RAGE                             ( 2500169 ),
+	ID_DEFENSE_MATRIX                   ( 2500170 );
 }
 
 }

@@ -41,13 +41,20 @@ namespace {
 			if(array.size() == 2){
 				elem.attack_rate = array.at(0).get<double>();
 				elem.attack_fix  = array.at(1).get<double>();
-			}else{
+			}else if(array.size() == 1){
+				elem.attack_rate = array.at(0).get<double>();
+				elem.attack_fix  = 0.0;
+			}
+			else{
 				elem.attack_rate = 0.0;
 				elem.attack_fix  = 0.0;
 			}
 			csv.get(elem.attack_type,               "attack_type");
 			csv.get(elem.skill_range,               "skill_range");
-
+			csv.get(elem.buff_id,                   "buff_id");
+			csv.get(elem.pet_id,                    "pet_id");
+			csv.get(elem.random_lattice,            "random_lattice");
+			csv.get(elem.warning_time,              "warning_time");
 			auto skill_id = elem.skill_id;
 			if(!monster_skill_container->insert(std::move(elem)).second){
 				LOG_EMPERY_DUNGEON_ERROR("Duplicate dungeon monster skill, skill_id = ", skill_id);

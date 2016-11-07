@@ -370,13 +370,15 @@ void   SkillFireBrand::do_damage(const std::vector<Coord> &coords){
 	}
 	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
 	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	auto skill_data  = Data::Skill::require(get_skill_id());
 	auto dungon_objec_uuid = owner_object->get_dungeon_object_uuid();
 	auto account_uuid      = owner_object->get_owner_uuid();
 	auto attack            = owner_object->get_total_attack();
 	auto skill_id          = get_skill_id();
 	auto utc_now           = Poseidon::get_utc_time();
 	auto range_coords      = coords;
-	auto skill_recycle_damage = boost::make_shared<SkillRecycleDamage>(cast_coord,dungon_objec_uuid,account_uuid,attack,skill_id,utc_now,2*1000,-1,std::move(range_coords));;
+	auto warning_time      = skill_data->warning_time;
+	auto skill_recycle_damage = boost::make_shared<SkillRecycleDamage>(cast_coord,dungon_objec_uuid,account_uuid,attack,skill_id,utc_now,warning_time*1000,-1,std::move(range_coords));;
 	if(skill_recycle_damage){
 		dungeon->insert_skill_damage(skill_recycle_damage);
 		dungeon->pump_skill_damage();
@@ -491,6 +493,247 @@ void  SkillRage::do_effects(){
 	auto dungeon_buff = boost::make_shared<DungeonBuff>(dungeon_uuid,ID_BUFF_RAGE,dungeon_object_uuid,dungeon_object_owner_account,cast_coord,expired_time);
 	dungeon->insert_skill_buff(dungeon_object_uuid,ID_BUFF_RAGE,std::move(dungeon_buff));
 }
+
+SkillSummonSkulls::SkillSummonSkulls(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillSummonSkulls::~SkillSummonSkulls(){
+}
+
+void  SkillSummonSkulls::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	const auto dungeon_client = dungeon->get_dungeon_client();
+	if(!dungeon_client){
+		LOG_EMPERY_DUNGEON_WARNING("skill do damge, dungeon client is null");
+		return;
+	}
+	auto origin_coord = owner_object->get_coord();
+	auto skill_data  = Data::Skill::require(get_skill_id());
+	auto range = skill_data->cast_range;
+	std::vector<Coord> coords;
+	for(unsigned i = 1; i <= range; i++){
+		get_surrounding_coords(coords,origin_coord,i);
+	}
+	std::vector<Coord> valid_birth_coords;
+	for(auto it = coords.begin(); it != coords.end(); ++it){
+		auto coord = *it;
+		bool valid_coord = dungeon->check_valid_coord_for_birth(coord);
+		if(valid_coord){
+			valid_birth_coords.push_back(std::move(coord));
+		}
+	}
+	if(valid_birth_coords.size() < 1){
+		LOG_EMPERY_DUNGEON_WARNING("server can not get enough valid coords for skulls birth");
+		return;
+	}
+	
+	std::vector<Coord> cast_coords;
+	std::random_shuffle(valid_birth_coords.begin(),valid_birth_coords.end());
+	auto random_lattice = skill_data->random_lattice;
+	for(unsigned i = 0; i < valid_birth_coords.size(); ++ i){
+		if(i < random_lattice){
+			cast_coords.push_back(coords.at(i));
+		}
+	}
+	Skill::notify_effects(cast_coords);
+	for(unsigned i = 0; i < cast_coords.size(); ++i){
+		try{
+			auto &coord = cast_coords.at(i);
+			Msg::DS_DungeonCreateMonster msgCreateMonster;
+			msgCreateMonster.dungeon_uuid       = dungeon_uuid.str();
+			msgCreateMonster.map_object_type_id = skill_data->pet_id.get();
+			msgCreateMonster.x                  = coord.x();
+			msgCreateMonster.y                  = coord.y();
+			msgCreateMonster.dest_x             = coord.x();
+			msgCreateMonster.dest_y             = coord.y();
+			msgCreateMonster.tag                = "0";
+			dungeon_client->send(msgCreateMonster);
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+		
+	}
+}
+
+
+SkillSummonMonster::SkillSummonMonster(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillSummonMonster::~SkillSummonMonster(){
+}
+
+void  SkillSummonMonster::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	const auto dungeon_client = dungeon->get_dungeon_client();
+	if(!dungeon_client){
+		LOG_EMPERY_DUNGEON_WARNING("skill do damge, dungeon client is null");
+		return;
+	}
+	auto origin_coord = owner_object->get_coord();
+	auto skill_data  = Data::Skill::require(get_skill_id());
+	auto range = skill_data->cast_range;
+	std::vector<Coord> coords;
+	for(unsigned i = 1; i <= range; i++){
+		get_surrounding_coords(coords,origin_coord,i);
+	}
+	std::vector<Coord> valid_birth_coords;
+	for(auto it = coords.begin(); it != coords.end(); ++it){
+		auto coord = *it;
+		bool valid_coord = dungeon->check_valid_coord_for_birth(coord);
+		if(valid_coord){
+			valid_birth_coords.push_back(std::move(coord));
+		}
+	}
+	if(valid_birth_coords.size() < 1){
+		LOG_EMPERY_DUNGEON_WARNING("server can not get enough valid coords for skulls birth");
+		return;
+	}
+	
+	std::vector<Coord> cast_coords;
+	std::random_shuffle(valid_birth_coords.begin(),valid_birth_coords.end());
+	auto random_lattice = skill_data->random_lattice;
+	for(unsigned i = 0; i < valid_birth_coords.size(); ++ i){
+		if(i < random_lattice){
+			cast_coords.push_back(coords.at(i));
+		}
+	}
+	Skill::notify_effects(cast_coords);
+	for(unsigned i = 0; i < cast_coords.size(); ++i){
+		try{
+			auto &coord = cast_coords.at(i);
+			Msg::DS_DungeonCreateMonster msgCreateMonster;
+			msgCreateMonster.dungeon_uuid       = dungeon_uuid.str();
+			msgCreateMonster.map_object_type_id = skill_data->pet_id.get();
+			msgCreateMonster.x                  = coord.x();
+			msgCreateMonster.y                  = coord.y();
+			msgCreateMonster.dest_x             = coord.x();
+			msgCreateMonster.dest_y             = coord.y();
+			msgCreateMonster.tag                = "0";
+			dungeon_client->send(msgCreateMonster);
+		} catch(std::exception &e){
+			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			dungeon_client->shutdown(e.what());
+		}
+		
+	}
+}
+
+
+SkillSoulAttack::SkillSoulAttack(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillSoulAttack::~SkillSoulAttack(){
+}
+
+void  SkillSoulAttack::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	auto origin_coord = owner_object->get_coord();
+	auto skill_data  = Data::Skill::require(get_skill_id());
+	auto range = skill_data->skill_range;
+	std::vector<Coord> coords;
+	for(unsigned i = 1; i <= range; i++){
+		get_surrounding_coords(coords,origin_coord,i);
+	}
+	std::vector<Coord> cast_coords;
+	auto random_lattice = skill_data->random_lattice;
+	std::random_shuffle(coords.begin(),coords.end());
+	for(unsigned i = 0; i < coords.size(); ++ i){
+		if(i < random_lattice){
+			cast_coords.push_back(coords.at(i));
+		}
+	}
+	Skill::notify_effects(cast_coords);
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	auto dungon_objec_uuid = owner_object->get_dungeon_object_uuid();
+	auto account_uuid      = owner_object->get_owner_uuid();
+	auto attack            = owner_object->get_total_attack();
+	auto skill_id          = get_skill_id();
+	auto utc_now           = Poseidon::get_utc_time();
+	auto range_coords      = cast_coords;
+	auto warning_time      = skill_data->warning_time;
+	auto skill_recycle_damage = boost::make_shared<SkillRecycleDamage>(origin_coord,dungon_objec_uuid,account_uuid,attack,skill_id,utc_now + warning_time*1000,warning_time*1000,1,std::move(range_coords));;
+	if(skill_recycle_damage){
+		dungeon->insert_skill_damage(skill_recycle_damage);
+		dungeon->pump_skill_damage();
+	}
+}
+
+SkillEnergySphere::SkillEnergySphere(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner)
+	:Skill(skill_id,owner){
+}
+
+SkillEnergySphere::~SkillEnergySphere(){
+}
+
+void  SkillEnergySphere::do_effects(){
+	PROFILE_ME;
+
+	auto owner_object  = get_owner();
+	if(!owner_object){
+		LOG_EMPERY_DUNGEON_WARNING("CANNT GET SKILL OWNER, skill_id = ",get_skill_id());
+		return;
+	}
+	auto origin_coord = owner_object->get_coord();
+	auto skill_data  = Data::Skill::require(get_skill_id());
+	auto range = skill_data->skill_range;
+	std::vector<Coord> coords;
+	for(unsigned i = 0; i <= range; i++){
+		get_surrounding_coords(coords,origin_coord,i);
+	}
+	if(coords.empty()){
+		LOG_EMPERY_DUNGEON_WARNING("energy sphere range is empty ? skill_range = ",range);
+		return;
+	}
+	Skill::notify_effects(coords);
+	const auto dungeon_uuid = owner_object->get_dungeon_uuid();
+	const auto dungeon = DungeonMap::require(dungeon_uuid);
+	auto dungon_objec_uuid = owner_object->get_dungeon_object_uuid();
+	auto account_uuid      = owner_object->get_owner_uuid();
+	auto attack            = owner_object->get_total_attack();
+	auto skill_id          = get_skill_id();
+	auto utc_now           = Poseidon::get_utc_time();
+	auto range_coords      = coords;
+	auto warning_time      = skill_data->warning_time;
+	auto skill_recycle_damage = boost::make_shared<SkillRecycleDamage>(origin_coord,dungon_objec_uuid,account_uuid,attack,skill_id,utc_now + warning_time*1000,warning_time*1000,1,std::move(range_coords));;
+	if(skill_recycle_damage){
+		LOG_EMPERY_DUNGEON_FATAL("ADD SKILL ENERGY SPHERE DAMAGE,warning_time = ",warning_time);
+		dungeon->insert_skill_damage(skill_recycle_damage);
+		dungeon->pump_skill_damage();
+	}
+}
+
+
+
+
+
+
 
 
 
