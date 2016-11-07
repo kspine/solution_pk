@@ -47,6 +47,8 @@ public:
 		A_UNHIDE_ALL             = 21,//解除隐藏所有  
 		A_HIDE_COORDS            = 22,//隐藏指定位置
 		A_UNHIDE_COORDS          = 23,//解除隐藏指定位置
+		A_DEFENSE_MATRIX         = 24,//防御矩阵
+		A_SET_FOOT_ANNIMATION    = 25,//野怪脚底动画
 	};
 
 	Type                     type;

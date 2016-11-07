@@ -20,6 +20,7 @@ class TriggerDamage;
 class TriggerConfirmation;
 class DungeonBuff;
 class SkillRecycleDamage;
+class DefenseMatrix;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -63,6 +64,7 @@ private:
 	FightState                                                                      m_fight_state;
 	boost::container::flat_map<Coord,std::vector<boost::shared_ptr<SkillRecycleDamage>>>  m_skill_damages;
 	boost::container::flat_map<std::pair<DungeonObjectUuid,DungeonBuffTypeId>,boost::shared_ptr<DungeonBuff>>   m_skill_buffs;
+	std::vector<boost::shared_ptr<DefenseMatrix>>                                   m_defense_matrixs;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
 		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time,std::uint64_t finish_count);
@@ -159,6 +161,8 @@ public:
 	void on_triggers_dungeon_unhide_all_solider(const TriggerAction &action);
 	void on_triggers_dungeon_hide_coords(const TriggerAction &action);
 	void on_triggers_dungeon_unhide_coords(const TriggerAction &action);
+	void on_triggers_dungeon_defense_matrix(const TriggerAction &action);
+	void on_triggers_dungeon_set_foot_annimation(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 
 	//
@@ -168,6 +172,9 @@ public:
 	void check_skill_damage_move_pass(Coord coord,std::string params,bool isMonster = false);
 	//副本中技能产生的buff
 	void insert_skill_buff(DungeonObjectUuid dungeon_object_uuid,DungeonBuffTypeId buff_id,const boost::shared_ptr<DungeonBuff> dungeon_buff);
+	
+	//
+	virtual void pump_defense_matrix();
 };
 
 }

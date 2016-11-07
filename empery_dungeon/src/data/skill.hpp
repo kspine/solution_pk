@@ -20,6 +20,10 @@ namespace Data {
 		double                                            attack_fix ;   //
 		unsigned                                          attack_type;
 		std::uint32_t                                     skill_range;   //施法范围
+		DungeonBuffTypeId                                 buff_id;       //buff
+		DungeonObjectTypeId                               pet_id;        //野怪
+		std::uint32_t                                     random_lattice; //随机格子数
+		std::uint32_t                                     warning_time;   //预警时间
 	public:
 		static boost::shared_ptr<const Skill> get(DungeonMonsterSkillId skill_id);
 		static boost::shared_ptr<const Skill> require(DungeonMonsterSkillId skill_id);

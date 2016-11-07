@@ -743,6 +743,13 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 		LOG_EMPERY_DUNGEON_FATAL("attacked have a corrosion buff ,damge end :",damage);
 	}
 
+	//防御矩阵buff
+	double defense_matrix = dungeon->get_dungeon_attribute(target_object->get_dungeon_object_uuid(),target_object->get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_MATRIX) / 1000.0;
+	if(defense_matrix > 0.0){
+		damage = damage*(1 - defense_matrix);
+		LOG_EMPERY_DUNGEON_FATAL("matrix damage");
+	}
+
 	Msg::DS_DungeonObjectAttackAction msg;
 	msg.dungeon_uuid = get_dungeon_uuid().str();
 	msg.attacking_account_uuid = get_owner_uuid().str();
@@ -1265,6 +1272,10 @@ bool          DungeonObject::can_use_skill(DungeonMonsterSkillId &skill_id,std::
 
 	for(auto it = m_skills.begin(); it != m_skills.end(); ++it){
 		auto &skill = it->second;
+		//技能能量球仅在死亡时触发
+		if(skill->get_skill_id() == ID_SKILL_ENERGY_SPHERE){
+			continue;
+		}
 		if(skill->get_next_execute_time() < now){
 			skill_id = skill->get_skill_id();
 			LOG_EMPERY_DUNGEON_FATAL("MONSTER CAN USE SKILL,skill_id = ",skill_id);
@@ -1535,6 +1546,18 @@ boost::shared_ptr<Skill> DungeonObject::create_skill(DungeonMonsterSkillId skill
 		case ID_SKILL_RAGE.get():
 			skill = boost::make_shared<SkillRage>(skill_id,virtual_weak_from_this<DungeonObject>());
 			break;
+		case ID_SKILL_SUMMON_SKULLS.get():
+			skill = boost::make_shared<SkillSummonSkulls>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_SUMMON_MONSTER.get():
+			skill = boost::make_shared<SkillSummonMonster>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_SOUL_ATTACK.get():
+			skill = boost::make_shared<SkillSoulAttack>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
+		case ID_SKILL_ENERGY_SPHERE.get():
+			skill = boost::make_shared<SkillEnergySphere>(skill_id,virtual_weak_from_this<DungeonObject>());
+			break;
 		default:
 			LOG_EMPERY_DUNGEON_ERROR("unknown skill id = ",skill_id);
 			skill = boost::make_shared<Skill>(skill_id,virtual_weak_from_this<DungeonObject>());
@@ -1597,6 +1620,16 @@ void         DungeonObject::do_reflex_injury(std::uint64_t total_damage,boost::s
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 		dungeon_client->shutdown(e.what());
+	}
+}
+
+void           DungeonObject::do_die_skill(){
+	PROFILE_ME;
+
+	auto it = m_skills.find(ID_SKILL_ENERGY_SPHERE);
+	if(it != m_skills.end()){
+		auto &skill = it->second;
+		skill->do_effects();
 	}
 }
 }

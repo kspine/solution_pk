@@ -19,6 +19,7 @@
 #include "../../empery_center/src/attribute_ids.hpp"
 #include "skill.hpp"
 #include "src/data/skill.hpp"
+#include "defense_matrix.hpp"
 
 namespace EmperyDungeon {
 namespace Msg = ::EmperyCenter::Msg;
@@ -298,6 +299,8 @@ void Dungeon::remove_dungeon_object_no_synchronize(DungeonObjectUuid dungeon_obj
 		if(dungeon_object->is_monster()){
 			m_monster_removed_count += 1;
 		}
+		LOG_EMPERY_DUNGEON_ERROR("check die skill");
+		dungeon_object->do_die_skill();
 		m_die_objects.push_back(dungeon_object->get_tag());
 		m_objects.erase(it);
 	}
@@ -510,8 +513,13 @@ void Dungeon::init_triggers(){
 		auto trigger_id   = (*it)->trigger_id;
 		std::uint64_t delay = (*it)->delay;
 		auto status   = (*it)->status;
-		if(m_finish_count > 0 && status == 1){
+		//第一次进只读status == 1
+		if(m_finish_count == 0 && status == 0){
 			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 1 and finish_count = ",m_finish_count);
+			continue;
+		//第二次进只读status == 0
+		}else if( m_finish_count > 0 && status == 1){
+			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 0 and finish_count = ",m_finish_count);
 			continue;
 		}
 		TriggerCondition trigger_conditon;
@@ -546,6 +554,7 @@ void Dungeon::init_triggers(){
 		shared->pump_triggers();
 		shared->pump_triggers_damage();
 		shared->pump_skill_damage();
+		shared->pump_defense_matrix();
 	};
 	if(!m_trigger_timer){
 		//const auto now = Poseidon::get_fast_mono_clock();
@@ -919,6 +928,14 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 		//TODO
 		on_triggers_dungeon_unhide_coords(action);
 	}
+	ON_TRIGGER_ACTION(TriggerAction::A_DEFENSE_MATRIX){
+		//TODO
+		on_triggers_dungeon_defense_matrix(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_SET_FOOT_ANNIMATION){
+		//TODO
+		on_triggers_dungeon_set_foot_annimation(action);
+	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
 		}
@@ -1086,6 +1103,7 @@ void Dungeon::on_triggers_buff(const TriggerAction &action){
 		auto birth_y                        = static_cast<int>(birth_coord.at(1).get<double>());
 		if(dungeon_client){
 			try {
+				//副本buff
 				Msg::DS_DungeonCreateBuff msg;
 				msg.dungeon_uuid       = get_dungeon_uuid().str();
 				msg.buff_type_id       = buff_type_id;
@@ -1094,6 +1112,31 @@ void Dungeon::on_triggers_buff(const TriggerAction &action){
 				msg.create_uuid        = create_uuid.str();
 				msg.create_owner_uuid  = create_owner_uuid.str();
 				dungeon_client->send(msg);
+				
+				//将buff直接加到野怪或者兵身上
+				const auto data_buff = Data::DungeonBuff::require(DungeonBuffTypeId(buff_type_id));
+				if(data_buff->target == 1){
+					Msg::DS_DungeonObjectAddBuff msg;
+					msg.dungeon_uuid        = get_dungeon_uuid().str();
+					msg.dungeon_object_uuid = create_uuid.str();
+					msg.buff_type_id        = buff_type_id;
+					dungeon_client->send(msg);
+				}else if(data_buff->target == 2){
+					std::vector<boost::shared_ptr<DungeonObject>> ret;
+					get_dungeon_objects_by_account(ret,create_owner_uuid);
+					for(auto it = ret.begin(); it != ret.end();++it){
+						auto &friend_object = *it;
+						try{
+							Msg::DS_DungeonObjectAddBuff msg;
+							msg.dungeon_uuid        = get_dungeon_uuid().str();
+							msg.dungeon_object_uuid = friend_object->get_dungeon_object_uuid().str();
+							msg.buff_type_id        = buff_type_id;
+							dungeon_client->send(msg);
+						} catch(std::exception &e){
+							LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+						}
+					}
+				}
 			} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 				dungeon_client->shutdown(e.what());
@@ -1517,6 +1560,11 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 						double relative_rate = Data::DungeonObjectRelative::get_relative(trap_data->attack_type,target_object->get_arm_defence_type());
 						double total_defense = target_object->get_total_defense();
 						double damage = trap_data->attack * 1 * relative_rate * (1 - k *total_defense/(1 + k*total_defense));
+						double defense_matrix = get_dungeon_attribute(target_object->get_dungeon_object_uuid(),target_object->get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_MATRIX) / 1000.0;
+						if(defense_matrix > 0.0){
+							damage = damage*(1 - defense_matrix);
+							LOG_EMPERY_DUNGEON_FATAL("defense matrix damage:",damage);
+						}
 						Msg::DS_DungeonObjectAttackAction msg;
 						msg.dungeon_uuid = get_dungeon_uuid().str();
 						/*
@@ -1814,7 +1862,97 @@ void Dungeon::on_triggers_dungeon_unhide_coords(const TriggerAction &action){
 	}
 }
 
+void Dungeon::on_triggers_dungeon_defense_matrix(const TriggerAction &action){
+	PROFILE_ME;
+
+	const auto dungeon_client = get_dungeon_client();
+	try{
+		if(action.type != TriggerAction::A_DEFENSE_MATRIX){
+			return;
+		}
+		std::istringstream iss_param(action.params);
+		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+		if(param_array.size() != 2){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon defend matrix size != 2,error params",action.params);
+			return;
+		}
+		auto tags  = param_array.at(0).get<Poseidon::JsonArray>();
+		std::vector<std::string> defense_matrix_vec;
+		for(unsigned i = 0; i < tags.size(); ++i){
+			std::string tag = boost::lexical_cast<std::string>(tags.at(i).get<double>());
+			defense_matrix_vec.push_back(std::move(tag));
+		}
+		if(defense_matrix_vec.empty()){
+			LOG_EMPERY_DUNGEON_WARNING("emptry defense matrix tag");
+			return;
+		}
+		auto interval = boost::lexical_cast<std::uint64_t>(param_array.at(1).get<double>());
+		auto utc_now =  Poseidon::get_utc_time();
+		auto defense_matrix = boost::make_shared<DefenseMatrix>(virtual_shared_from_this<Dungeon>(),std::move(defense_matrix_vec),utc_now,interval);
+		m_defense_matrixs.push_back(std::move(defense_matrix));
+		pump_defense_matrix();
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_set_foot_annimation(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_SET_FOOT_ANNIMATION){
+			return;
+		}
+		std::istringstream iss_param(action.params);
+		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+		if(param_array.size() != 6){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon set foot annimation  param error,size != 3",action.params);
+			return;
+		}
+		std::vector<std::string> tags;
+		auto picture_url =  param_array.at(0).get<std::string>();
+		auto type   =  static_cast<int>(param_array.at(1).get<double>());
+		auto x      =  static_cast<int>(param_array.at(3).get<double>());
+		auto y      =  static_cast<int>(param_array.at(4).get<double>());
+		auto layer  =  static_cast<int>(param_array.at(5).get<double>());
+		auto &monster_array  =  param_array.at(2).get<Poseidon::JsonArray>();
+		for(unsigned i = 0; i < monster_array.size(); ++i){
+			auto monster_tag = boost::lexical_cast<std::string>(monster_array.at(i).get<double>());
+			tags.push_back(std::move(monster_tag));
+		}
+		if(tags.empty()){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon set foot annimation monster tag empty");
+			return;
+		}
+
+		const auto dungeon_client = get_dungeon_client();
+		if(dungeon_client){
+			try {
+				Msg::DS_DungeonSetFootAnnimation msg;
+				msg.dungeon_uuid    = get_dungeon_uuid().str();
+				msg.picture_url     = picture_url;
+				msg.type            = type;
+				msg.x               = x;
+				msg.y               = y;
+				msg.layer           = layer;
+				for(unsigned i = 0; i < tags.size(); ++i){
+					auto &monster_tag = *msg.monster_tags.emplace(msg.monster_tags.end());
+					monster_tag.tag = tags.at(i);
+				}
+				dungeon_client->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+				dungeon_client->shutdown(e.what());
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
 void Dungeon::pump_skill_damage(){
+	PROFILE_ME;
+
 	std::vector<boost::shared_ptr<SkillRecycleDamage>>   skill_damage;
 	skill_damage.reserve(m_skill_damages.size()*5);
 	const auto utc_now = Poseidon::get_utc_time();
@@ -1865,6 +2003,10 @@ void Dungeon::do_skill_damage(const boost::shared_ptr<SkillRecycleDamage>& skill
 		auto attack_type = skill_data->attack_type;
 		double k = 0.06;
 		auto total_attack = skill_damage->attack*attack_rate + attack_fix;
+		if(skill_damage->skill_id == ID_SKILL_ENERGY_SPHERE){
+			total_attack = attack_rate;
+			LOG_EMPERY_DUNGEON_ERROR("SKILL ENERGY SPHERE,total_attack ",total_attack);
+		}
 		for(auto it = coords.begin(); it != coords.end(); ++it){
 			auto &coord = *it;
 			auto target_object = get_object(coord);
@@ -1875,6 +2017,11 @@ void Dungeon::do_skill_damage(const boost::shared_ptr<SkillRecycleDamage>& skill
 							double relative_rate = Data::DungeonObjectRelative::get_relative(attack_type,target_object->get_arm_defence_type());
 							double total_defense = target_object->get_total_defense();
 							double damage = total_attack * 1 * relative_rate * (1 - k *total_defense/(1 + k*total_defense));
+							double defense_matrix = get_dungeon_attribute(target_object->get_dungeon_object_uuid(),target_object->get_owner_uuid(),EmperyCenter::AttributeIds::ID_DEFENSE_MATRIX) / 1000.0;
+							if(defense_matrix > 0.0){
+								damage = damage*(1 - defense_matrix);
+								LOG_EMPERY_DUNGEON_FATAL("defense matrix damage:",damage);
+							}
 							Msg::DS_DungeonObjectAttackAction msg;
 							msg.dungeon_uuid           = get_dungeon_uuid().str();
 							/*
@@ -1971,6 +2118,29 @@ void Dungeon::insert_skill_buff(DungeonObjectUuid dungeon_object_uuid,DungeonBuf
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 		dungeon_client->shutdown(e.what());
+	}
+}
+
+void Dungeon::pump_defense_matrix(){
+	PROFILE_ME;
+
+	std::vector<boost::shared_ptr<DefenseMatrix>> defense_matrixs;
+	defense_matrixs.reserve(m_defense_matrixs.size());
+	const auto utc_now = Poseidon::get_utc_time();
+	for(auto it = m_defense_matrixs.begin(); it != m_defense_matrixs.end(); ++it){
+		auto &defense_matrix = *it;
+		if(defense_matrix->get_next_change_time() < utc_now){
+			defense_matrixs.push_back(defense_matrix);
+		}
+	}
+
+	for(auto it = defense_matrixs.begin(); it != defense_matrixs.end(); ++it){
+		const auto &defense_matrix = *it;
+		try {
+			defense_matrix->change_defense_matrix(utc_now);
+		} catch(std::exception &e){
+			// log
+		}
 	}
 }
 
