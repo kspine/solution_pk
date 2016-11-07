@@ -13,7 +13,8 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VUINT         (dungeon_type_id)	\
 	FIELD_STRING        (founder_uuid)	\
-	FIELD_VUINT         (finish_count)
+	FIELD_VUINT         (finish_count)	\
+	FIELD_VUINT         (expiry_time)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SD_DungeonDestroy
