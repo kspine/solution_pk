@@ -1693,7 +1693,7 @@ void Dungeon::on_triggers_dungeon_set_block(const TriggerAction &action){
 			auto x = static_cast<int>(block_coord.at(0).get<double>());
 			auto y = static_cast<int>(block_coord.at(1).get<double>());
 			Coord temp_coord = Coord(x,y);
-			auto it = m_dungeon_blocks.insert(std::move(temp_coord));
+			m_dungeon_blocks.insert(std::move(temp_coord));
 			auto &blocks = *msg.blocks.emplace(msg.blocks.end());
 			blocks.x = x;
 			blocks.y = y;
@@ -1920,8 +1920,17 @@ void Dungeon::on_triggers_dungeon_set_foot_annimation(const TriggerAction &actio
 			auto monster_tag = boost::lexical_cast<std::string>(monster_array.at(i).get<double>());
 			tags.push_back(std::move(monster_tag));
 		}
-		if(tags.empty()){
-			LOG_EMPERY_DUNGEON_WARNING("dungeon set foot annimation monster tag empty");
+		std::vector<boost::shared_ptr<DungeonObject>> valid_monsters;
+		for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+			auto &monster = it->second;
+			std::string tag = monster->get_tag();
+			auto itv = std::find(tags.begin(),tags.end(),tag);
+			if(itv != tags.end()){
+				valid_monsters.push_back(monster);
+			}
+		}
+		if(valid_monsters.empty()){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon set foot annimation monster  empty");
 			return;
 		}
 
@@ -1935,9 +1944,9 @@ void Dungeon::on_triggers_dungeon_set_foot_annimation(const TriggerAction &actio
 				msg.x               = x;
 				msg.y               = y;
 				msg.layer           = layer;
-				for(unsigned i = 0; i < tags.size(); ++i){
-					auto &monster_tag = *msg.monster_tags.emplace(msg.monster_tags.end());
-					monster_tag.tag = tags.at(i);
+				for(unsigned i = 0; i < valid_monsters.size(); ++i){
+					auto &monsters = *msg.monsters.emplace(msg.monsters.end());
+					monsters.monster_uuid = valid_monsters.at(i)->get_dungeon_object_uuid().str();
 				}
 				dungeon_client->send(msg);
 			} catch(std::exception &e){

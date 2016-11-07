@@ -927,10 +927,10 @@ DUNGEON_SERVLET(Msg::DS_DungeonSetFootAnnimation, dungeon, server, req){
 	msg.x                 = req.x;
 	msg.y                 = req.y;
 	msg.layer             = req.layer;
-	for(unsigned i = 0; i < req.monster_tags.size(); ++i){
-		auto &req_monster_tag = req.monster_tags.at(i);
-		auto &monster_tag = *msg.monster_tags.emplace(msg.monster_tags.end());
-		monster_tag.tag = req_monster_tag.tag;
+	for(unsigned i = 0; i < req.monsters.size(); ++i){
+		auto &req_monster = req.monsters.at(i);
+		auto &monster = *msg.monsters.emplace(msg.monsters.end());
+		monster.monster_uuid = req_monster.monster_uuid;
 	}
 	LOG_EMPERY_CENTER_FATAL(msg);
 	dungeon->broadcast_to_observers(msg);
