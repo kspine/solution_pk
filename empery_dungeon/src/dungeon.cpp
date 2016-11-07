@@ -5,7 +5,6 @@
 #include "src/dungeon_client.hpp"
 #include "src/data/dungeon.hpp"
 #include "src/data/trigger.hpp"
-#include <poseidon/singletons/timer_daemon.hpp>
 #include "../../empery_center/src/msg/ds_dungeon.hpp"
 #include "trigger.hpp"
 #include <poseidon/json.hpp>
@@ -40,12 +39,13 @@ namespace {
 }
 
 
-Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const boost::shared_ptr<DungeonClient> &dungeon,AccountUuid founder_uuid,std::uint64_t create_time,std::uint64_t finish_count)
+Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,const boost::shared_ptr<DungeonClient> &dungeon,AccountUuid founder_uuid,std::uint64_t create_time,std::uint64_t finish_count,std::uint64_t expiry_time)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id)
 	, m_dungeon_client(dungeon)
 	, m_founder_uuid(founder_uuid)
 	, m_create_dungeon_time(create_time)
 	, m_finish_count(finish_count)
+	, m_expiry_time(expiry_time)
 	, m_dungeon_state(S_INIT)
 	, m_monster_removed_count(0)
 	, m_fight_state(FIGHT_START)
@@ -58,7 +58,10 @@ Dungeon::~Dungeon(){
 void Dungeon::pump_status(){
 	PROFILE_ME;
 
-	//
+	pump_triggers();
+	pump_triggers_damage();
+	pump_skill_damage();
+	pump_defense_matrix();
 }
 
 void Dungeon::pump_triggers(){
@@ -133,6 +136,11 @@ void Dungeon::set_founder_uuid(AccountUuid founder_uuid){
 	m_founder_uuid = founder_uuid;
 
 	DungeonMap::update(virtual_shared_from_this<Dungeon>(), false);
+}
+void Dungeon::set_expiry_time(std::uint64_t expiry_time){
+	PROFILE_ME;
+
+	m_expiry_time = expiry_time;
 }
 
 void Dungeon::update_damage_solider(DungeonObjectTypeId dungeon_object_type_id,std::uint64_t damage_solider){
@@ -513,11 +521,11 @@ void Dungeon::init_triggers(){
 		auto trigger_id   = (*it)->trigger_id;
 		std::uint64_t delay = (*it)->delay;
 		auto status   = (*it)->status;
-		//第一次进只读status == 1
-		if(m_finish_count == 0 && status == 0){
+		//第一次进只读status == 0,1
+		if(m_finish_count == 0 && status == 2){
 			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 1 and finish_count = ",m_finish_count);
 			continue;
-		//第二次进只读status == 0
+		//第二次进只读status == 0,2
 		}else if( m_finish_count > 0 && status == 1){
 			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 0 and finish_count = ",m_finish_count);
 			continue;
@@ -543,27 +551,6 @@ void Dungeon::init_triggers(){
 			DEBUG_THROW(Exception, sslit("Dungeon trigger already exists"));
 		}
 	}
-
-	const auto timer_proc = [this](const boost::weak_ptr<Dungeon> &weak, std::uint64_t now){
-		PROFILE_ME;
-
-		const auto shared = weak.lock();
-		if(!shared){
-			return;
-		}
-		shared->pump_triggers();
-		shared->pump_triggers_damage();
-		shared->pump_skill_damage();
-		shared->pump_defense_matrix();
-	};
-	if(!m_trigger_timer){
-		//const auto now = Poseidon::get_fast_mono_clock();
-		const auto trigger_interval = get_config<std::uint64_t>("trigger_check_interval", 1000);
-		auto timer = Poseidon::TimerDaemon::register_timer(0, trigger_interval,
-			std::bind(timer_proc,virtual_weak_from_this<Dungeon>(), std::placeholders::_2));
-		m_trigger_timer = std::move(timer);
-	}
-
 }
 
 void Dungeon::forcast_triggers(const boost::shared_ptr<Trigger> &trigger,std::uint64_t now){

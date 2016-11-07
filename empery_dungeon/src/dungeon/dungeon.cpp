@@ -17,8 +17,9 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	auto dungeon_type_id = DungeonTypeId(req.dungeon_type_id);
 	auto founder_uuid = AccountUuid(req.founder_uuid);
 	auto finish_count = req.finish_count;
+	auto expiry_time  = req.expiry_time;
 	const auto utc_now = Poseidon::get_utc_time();
-	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid,utc_now,finish_count);
+	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid,utc_now,finish_count,expiry_time);
 	new_dungeon->init_triggers();
 	new_dungeon->check_triggers_enter_dungeon();
 	LOG_EMPERY_DUNGEON_DEBUG("create dungeon ,msg = ",req);
@@ -28,7 +29,7 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 
 DUNGEON_SERVLET(Msg::SD_DungeonDestroy, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
-	LOG_EMPERY_DUNGEON_DEBUG("destory dungeon ,msg = ",req);
+	LOG_EMPERY_DUNGEON_FATAL("destory dungeon ,msg = ",req);
 	DungeonMap::remove_dungeon_no_synchronize(dungeon_uuid);
 	return Response();
 }
