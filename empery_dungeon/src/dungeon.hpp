@@ -49,13 +49,13 @@ private:
 	AccountUuid m_founder_uuid;
 	std::uint64_t                                                                   m_create_dungeon_time;
 	std::uint64_t                                                                   m_finish_count;
+	std::uint64_t                                                                   m_expiry_time;
 	boost::container::flat_map<DungeonObjectTypeId,std::uint64_t>                   m_damage_solider;
 	std::vector<std::uint64_t>                                                      m_finish_tasks;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 	boost::container::flat_map<std::uint64_t, boost::shared_ptr<Trigger>>           m_triggers;
 	boost::container::flat_map<std::string, boost::shared_ptr<TriggerConfirmation>> m_triggers_confirmation;
 	std::vector<boost::shared_ptr<TriggerDamage>>                                   m_triggers_damages;
-	boost::shared_ptr<Poseidon::TimerItem>                                          m_trigger_timer;
 	DungeonState                                                                    m_dungeon_state;
 	std::uint64_t                                                                   m_monster_removed_count;
 	std::vector<std::string>                                                        m_die_objects;
@@ -67,7 +67,7 @@ private:
 	std::vector<boost::shared_ptr<DefenseMatrix>>                                   m_defense_matrixs;
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id,
-		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time,std::uint64_t finish_count);
+		const boost::shared_ptr<DungeonClient> &dungeon_client,AccountUuid founder_uuid,std::uint64_t create_time,std::uint64_t finish_count,std::uint64_t expiry_time);
 	~Dungeon();
 
 public:
@@ -85,6 +85,10 @@ public:
 		return m_founder_uuid;
 	}
 	void set_founder_uuid(AccountUuid founder_uuid);
+	std::uint64_t get_expiry_time(){
+		return m_expiry_time;
+	}
+	void set_expiry_time(std::uint64_t expiry_time);
 
 	void update_damage_solider(DungeonObjectTypeId dungeon_object_type_id,std::uint64_t damage_solider);
 

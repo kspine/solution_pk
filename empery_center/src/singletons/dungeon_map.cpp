@@ -70,6 +70,8 @@ namespace {
 			const auto &dungeon = *it;
 			LOG_EMPERY_CENTER_DEBUG("Reclaiming dungeon: dungeon_uuid = ", dungeon->get_dungeon_uuid());
 			dungeon->clear_observers(Dungeon::Q_DUNGEON_EXPIRED, "");
+			const auto itd = dungeon_map->find<0>(dungeon->get_dungeon_uuid());
+			dungeon_map->erase(itd);
 		}
 	}
 
