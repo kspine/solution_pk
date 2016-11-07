@@ -34,4 +34,5 @@ lib_libposeidon_empery_dungeon_la_SOURCES = \
 	src/trigger.cpp \
 	src/dungeon_buff.cpp \
 	src/skill.cpp \
+	src/defense_matrix.cpp \
 	src/mmain.cpp

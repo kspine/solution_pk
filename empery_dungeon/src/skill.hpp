@@ -18,7 +18,8 @@ namespace {
     ID_SKILL_CLEAVE                    (1006), //顺劈斩
 	ID_SKILL_CYCLONE                   (1007), //旋风
 	ID_SKILL_FIRE_BRAND                (1008), //火印
-	ID_SKILL_SUMMON_MONSTER            (1009); //召唤怪物
+	ID_SKILL_SUMMON_MONSTER            (1009), //召唤怪物
+	ID_SKILL_ENERGY_SPHERE             (1010); //能量球
 
 	constexpr DungeonBuffTypeId
 	ID_BUFF_CORROSION                   (6404001),//腐蚀
@@ -152,6 +153,46 @@ public:
 public:
 	void do_effects() override;
 };
+
+//召唤骷髅
+class SkillSummonSkulls  : public Skill {
+public:
+	SkillSummonSkulls(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillSummonSkulls();
+public:
+	void do_effects() override;
+};
+//召唤野怪
+class SkillSummonMonster  : public Skill {
+public:
+	SkillSummonMonster(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillSummonMonster();
+public:
+	void do_effects() override;
+};
+
+//灵魂攻击
+class SkillSoulAttack  : public Skill {
+public:
+	SkillSoulAttack(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillSoulAttack();
+public:
+	void do_effects() override;
+};
+
+//能量球
+class SkillEnergySphere  : public Skill {
+public:
+	SkillEnergySphere(DungeonMonsterSkillId skill_id,const boost::weak_ptr<DungeonObject> owner);
+	~SkillEnergySphere();
+public:
+	void do_effects() override;
+};
+
+
+
+
+
 
 }
 

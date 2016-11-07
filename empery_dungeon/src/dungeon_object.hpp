@@ -206,6 +206,7 @@ public:
 	void           do_skill_effects(DungeonMonsterSkillId skill_ids);
 	bool           can_reflex_injury();
 	void           do_reflex_injury(std::uint64_t total_damage,boost::shared_ptr<DungeonObject> attacker);
+	void           do_die_skill();
 };
 
 }
