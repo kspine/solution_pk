@@ -322,8 +322,8 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)	\
 	FIELD_VINT          (layer)	\
-	FIELD_ARRAY         (monster_tags,	\
-		FIELD_STRING      (tag)	\
+	FIELD_ARRAY         (monsters,	\
+		FIELD_STRING      (monster_uuid)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 }
