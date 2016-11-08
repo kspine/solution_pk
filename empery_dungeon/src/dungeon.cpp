@@ -523,11 +523,11 @@ void Dungeon::init_triggers(){
 		auto status   = (*it)->status;
 		//第一次进只读status == 0,1
 		if(m_finish_count == 0 && status == 2){
-			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 1 and finish_count = ",m_finish_count);
+			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 2 and finish_count = ",m_finish_count);
 			continue;
 		//第二次进只读status == 0,2
 		}else if( m_finish_count > 0 && status == 1){
-			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 0 and finish_count = ",m_finish_count);
+			LOG_EMPERY_DUNGEON_WARNING("trigger was pass,because status = 1 and finish_count = ",m_finish_count);
 			continue;
 		}
 		TriggerCondition trigger_conditon;
