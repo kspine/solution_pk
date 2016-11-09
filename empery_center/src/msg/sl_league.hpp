@@ -198,6 +198,15 @@ namespace Msg {
 
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SL_OtherLeagueInfo
+#define MESSAGE_ID      58822
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_STRING        (league_uuid)	\
+	FIELD_STRING        (to_account_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

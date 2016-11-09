@@ -149,6 +149,23 @@ namespace Msg {
 
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_OtherLegionInfo
+#define MESSAGE_ID      1664
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_STRING        (legion_name)	\
+	FIELD_STRING        (legion_leadername)	\
+	FIELD_STRING        (legion_icon)	\
+	FIELD_STRING        (legion_notice)	\
+	FIELD_STRING        (legion_level)	\
+	FIELD_STRING        (legion_rank)	\
+	FIELD_STRING        (legion_money)	\
+	FIELD_STRING        (legion_titleid)	\
+	FIELD_STRING        (legion_donate)	\
+	FIELD_STRING        (legion_member_count)\
+	FIELD_STRING        (other_account_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

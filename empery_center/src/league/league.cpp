@@ -874,6 +874,64 @@ LEAGUE_SERVLET(Msg::LS_disbandLeagueRes, server, req){
 	return Response();
 }
 
+LEAGUE_SERVLET(Msg::LS_OtherLeagueInfo, server, req){
+	PROFILE_ME;
+
+	const auto to_account_uuid = AccountUuid(req.to_account_uuid);
+
+	const auto target_session = PlayerSessionMap::get(to_account_uuid);
+	if(target_session)
+	{
+		Msg::SC_OtherLeagueInfo msg;
+		msg.league_uuid = req.league_uuid;
+		msg.league_name = req.league_name;
+		msg.league_icon = req.league_icon;
+		msg.league_notice = req.league_notice;
+		msg.league_level = req.league_level;
+		msg.league_max_member = req.league_max_member;
+		msg.leader_uuid = req.leader_legion_uuid;
+		msg.leader_name = "";
+		const auto& leader_legion = LegionMap::get(LegionUuid(req.leader_legion_uuid));
+		if(leader_legion)
+		{
+			const auto& leader_account = AccountMap::get(AccountUuid(leader_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+			if(leader_account)
+				msg.leader_name = leader_account->get_nick();
+		}
+
+		msg.members.reserve(req.members.size());
+		for(auto it = req.members.begin(); it != req.members.end(); ++it )
+		{
+			auto &elem = *msg.members.emplace(msg.members.end());
+			auto info = *it;
+
+			elem.legion_uuid = info.legion_uuid;
+
+			const auto& legion = LegionMap::get(LegionUuid(info.legion_uuid));
+			if(legion)
+			{
+				elem.legion_name = legion->get_nick();
+				elem.legion_icon = legion->get_attribute(LegionAttributeIds::ID_ICON);
+
+				const auto& leader_account = AccountMap::get(AccountUuid(legion->get_attribute(LegionAttributeIds::ID_LEADER)));
+				if(leader_account)
+					elem.legion_leader_name = leader_account->get_nick();
+
+			}
+
+			elem.titleid = info.titleid;
+			elem.quit_time = info.quit_time;
+			elem.kick_time = info.kick_time;
+			elem.attorn_time = info.attorn_time;
+		}
+		msg.other_account_uuid = req.account_uuid;
+		LOG_EMPERY_CENTER_FATAL(msg);
+		target_session->send(msg);
+	}
+
+	return Response();
+}
+
 
 
 

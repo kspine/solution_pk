@@ -938,7 +938,6 @@ DUNGEON_SERVLET(Msg::DS_DungeonSetFootAnnimation, dungeon, server, req){
 		auto &monster = *msg.monsters.emplace(msg.monsters.end());
 		monster.monster_uuid = req_monster.monster_uuid;
 	}
-	LOG_EMPERY_CENTER_FATAL(msg);
 	dungeon->broadcast_to_observers(msg);
 
 	return Response();

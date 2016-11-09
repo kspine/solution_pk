@@ -42,6 +42,9 @@ struct AccountMap {
 	static void cached_synchronize_account_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 	
 	static bool is_friendly(AccountUuid account_uuid,AccountUuid other_uuid);
+	
+	static void synchronize_account_legion_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
+	static void synchronize_account_league_with_player_all(AccountUuid account_uuid,AccountUuid to_account_uuid);
 
 private:
 	AccountMap() = delete;
