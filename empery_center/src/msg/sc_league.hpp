@@ -228,6 +228,30 @@ namespace Msg {
 #include <poseidon/cbpp/message_generator.hpp>
 
 */
+
+#define MESSAGE_NAME    SC_OtherLeagueInfo
+#define MESSAGE_ID      1858
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (league_uuid)	\
+	FIELD_STRING        (league_name)	\
+	FIELD_STRING        (league_icon)	\
+	FIELD_STRING        (league_notice)	\
+	FIELD_VUINT         (league_level)	\
+	FIELD_VUINT         (league_max_member)	\
+	FIELD_STRING        (leader_uuid)	\
+	FIELD_STRING        (leader_name)	\
+	FIELD_ARRAY         (members,	\
+		FIELD_STRING        (legion_uuid)	\
+		FIELD_STRING        (legion_name)	\
+		FIELD_STRING        (legion_icon)	\
+		FIELD_STRING        (legion_leader_name)	\
+		FIELD_VUINT         (titleid)	\
+		FIELD_STRING        (quit_time)	\
+		FIELD_STRING        (kick_time)	\
+		FIELD_STRING        (attorn_time) \
+	)\
+	FIELD_STRING        (other_account_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

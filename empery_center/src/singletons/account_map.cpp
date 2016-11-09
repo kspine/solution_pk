@@ -22,6 +22,13 @@
 #include "../msg/st_account.hpp"
 #include "../msg/err_account.hpp"
 #include "legion_member_map.hpp"
+#include "legion_member_map.hpp"
+#include "../legion_member.hpp"
+#include "legion_map.hpp"
+#include "../legion.hpp"
+#include "league_client.hpp"
+#include "../msg/sl_league.hpp"
+
 
 namespace EmperyCenter {
 
@@ -259,7 +266,6 @@ namespace {
 		// 其他。
 		msg.promotion_level = account->get_promotion_level();
 		msg.activated       = account->has_been_activated();
-
 		session->send(msg);
 
 		const auto info_cache_map = g_info_cache_map.lock();
@@ -725,6 +731,46 @@ bool AccountMap::is_friendly(AccountUuid account_uuid,AccountUuid other_uuid)
 	}
 
 	return false;
+}
+
+void AccountMap::synchronize_account_legion_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
+	PROFILE_ME;
+
+		try {
+			const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
+			if(legion_member){
+				const auto legion_uuid = legion_member->get_legion_uuid();
+				const auto legion = LegionMap::require(legion_uuid);
+				if(legion){
+					legion->synchronize_with_other_player(account_uuid,session);
+				}
+			}
+		}catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+}
+void AccountMap::synchronize_account_league_with_player_all(AccountUuid account_uuid,AccountUuid to_account_uuid){
+	PROFILE_ME;
+
+	try {
+		const auto account = AccountMap::require(account_uuid);
+		const auto str_league_uuid = account->get_attribute(AccountAttributeIds::ID_LEAGUE_UUID);
+		if(str_league_uuid.empty()){
+			return;
+		}
+		const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
+		if(legion_member){
+			Msg::SL_OtherLeagueInfo msg;
+			msg.account_uuid = account_uuid.str();
+			msg.legion_uuid = legion_member->get_legion_uuid().str();
+			msg.league_uuid = str_league_uuid;
+			msg.to_account_uuid = to_account_uuid.str();
+			const auto league = LeagueClient::require();
+			auto tresult = league->send_and_wait(msg);
+		}
+	}catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
 }
 
 

@@ -309,7 +309,52 @@ void League::sendemail(EmperyCenter::ChatMessageTypeId ntype,LegionUuid legion_u
 	{
 
 	}
+}
 
+void League::synchronize_with_other_player(const boost::shared_ptr<LeagueSession>& league_client, AccountUuid account_uuid,AccountUuid to_account_uuid,LegionUuid legion_uuid, std::string str_league_uuid) const{
+	PROFILE_ME;
+	
+	EmperyCenter::Msg::LS_OtherLeagueInfo msg;
+	msg.res = 0;
+	msg.rewrite = 0;
+	if(get_league_uuid().str() != str_league_uuid)
+		msg.rewrite = 1;
+	msg.account_uuid 			= 	account_uuid.str();
+	msg.league_uuid     		= 	get_league_uuid().str();
+	msg.league_name     		= 	get_nick();
+	msg.league_icon     		= 	get_attribute(LeagueAttributeIds::ID_ICON);
+	msg.league_notice     		= 	get_attribute(LeagueAttributeIds::ID_CONTENT);
+	msg.league_level     		= 	boost::lexical_cast<std::uint64_t>(get_attribute(LeagueAttributeIds::ID_LEVEL));
+	msg.league_max_member		=   boost::lexical_cast<std::uint64_t>(get_attribute(LeagueAttributeIds::ID_MEMBER_MAX));
+	msg.leader_legion_uuid		=   get_attribute(LeagueAttributeIds::ID_LEADER);
+//	msg.create_account_uuid		=   get_create_uuid().str();
+
+	// 找到联盟成员
+	std::vector<boost::shared_ptr<LeagueMember>> members;
+	LeagueMemberMap::get_by_league_uuid(members, get_league_uuid());
+
+	LOG_EMPERY_LEAGUE_INFO("get_by_league_uuid league members size*******************",members.size());
+
+	msg.members.reserve(members.size());
+	for(auto it = members.begin(); it != members.end(); ++it )
+	{
+		auto &elem = *msg.members.emplace(msg.members.end());
+		auto info = *it;
+
+		elem.legion_uuid = info->get_legion_uuid().str();
+		elem.titleid = boost::lexical_cast<std::uint64_t>(info->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+
+		elem.quit_time = info->get_attribute(LeagueMemberAttributeIds::ID_QUITWAITTIME);
+		elem.kick_time = info->get_attribute(LeagueMemberAttributeIds::ID_KICKWAITTIME);
+		if(info->get_legion_uuid().str() == get_attribute(LeagueAttributeIds::ID_ATTORNLEADER))
+			elem.attorn_time = get_attribute(LeagueAttributeIds::ID_ATTORNTIME);
+		else
+			elem.attorn_time = "";
+
+	}
+	msg.to_account_uuid = to_account_uuid.str();
+	LOG_EMPERY_LEAGUE_FATAL(msg);
+	league_client->send(msg);
 
 }
 
