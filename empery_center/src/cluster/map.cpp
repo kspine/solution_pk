@@ -452,6 +452,8 @@ namespace {
 
 			if(other_account_uuid){
 				AccountMap::cached_synchronize_account_with_player_all(other_account_uuid, session);
+				AccountMap::synchronize_account_legion_with_player_all(other_account_uuid,session);
+				AccountMap::synchronize_account_league_with_player_all(other_account_uuid,account_uuid);
 			}
 
 			Msg::SC_BattleRecordNotification msg;
@@ -462,9 +464,21 @@ namespace {
 			msg.coord_y            = coord.y();
 			msg.params.reserve(sizeof...(params));
 			std::string param_strs[] = { boost::lexical_cast<std::string>(params)... };
+			std::string other_parent_uuid_str;
 			for(std::size_t i = 0; i < sizeof...(params); ++i){
 				auto &param = *msg.params.emplace(msg.params.end());
 				param.str = std::move(param_strs[i]);
+				if(i == sizeof...(params)-1){
+					other_parent_uuid_str = param.str;
+				}
+			}
+			//发送对方城堡信息
+			auto other_parent_uuid = MapObjectUuid(other_parent_uuid_str);
+			if(other_account_uuid && other_parent_uuid){
+				auto other_parent_object = WorldMap::get_map_object(other_parent_uuid);
+				if(other_parent_object){
+					other_parent_object->synchronize_with_player(session);
+				}
 			}
 			session->send(msg);
 		} catch(std::exception &e){
@@ -694,7 +708,7 @@ _wounded_done:
 					PROFILE_ME;
 
 					send_battle_notification(attacking_account_uuid, type, attacked_account_uuid, attacking_coord,
-						attacking_object_type_id, attacked_castle->get_name(), attacked_castle->get_level());
+						attacking_object_type_id, attacked_castle->get_name(), attacked_castle->get_level(),attacked_castle->get_map_object_uuid());
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 				}
@@ -704,7 +718,7 @@ _wounded_done:
 					PROFILE_ME;
 
 					send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
-						attacking_object_type_id, attacked_object_type_id);
+						attacking_object_type_id, attacked_object_type_id,attacking_object->get_parent_object_uuid());
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 				}
@@ -717,7 +731,7 @@ _wounded_done:
 					PROFILE_ME;
 
 					send_battle_notification(attacking_account_uuid, type, attacked_account_uuid, attacking_coord,
-						attacking_object_type_id, attacked_object_type_id);
+						attacking_object_type_id, attacked_object_type_id,attacked_object->get_parent_object_uuid());
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 				}
@@ -727,7 +741,7 @@ _wounded_done:
 					PROFILE_ME;
 
 					send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
-						attacking_object_type_id, attacked_object_type_id);
+						attacking_object_type_id, attacked_object_type_id,attacking_object->get_parent_object_uuid());
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 				}
@@ -1888,7 +1902,7 @@ _occupation_done:
 				PROFILE_ME;
 
 				send_battle_notification(attacking_account_uuid, type, attacked_account_uuid, attacking_coord,
-					attacking_object_type_id, attacked_ticket_item_id);
+					attacking_object_type_id, attacked_ticket_item_id,attacked_cell->get_parent_object_uuid());
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}
@@ -1898,7 +1912,7 @@ _occupation_done:
 				PROFILE_ME;
 
 				send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
-					attacking_object_type_id, attacked_ticket_item_id);
+					attacking_object_type_id, attacked_ticket_item_id,attacking_object->get_parent_object_uuid());
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 			}

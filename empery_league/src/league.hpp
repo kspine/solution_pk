@@ -123,6 +123,7 @@ public:
 	void set_attributes(boost::container::flat_map<LeagueAttributeId, std::string> modifiers);
 
 	void synchronize_with_player(const boost::shared_ptr<LeagueSession>& league_client, AccountUuid account_uuid,LegionUuid legion_uuid, std::string str_league_uuid = "") const;
+	void synchronize_with_other_player(const boost::shared_ptr<LeagueSession>& league_client, AccountUuid account_uuid,AccountUuid to_account_uuid,LegionUuid legion_uuid, std::string str_league_uuid = "") const;
 
 	/*
 	boost::shared_ptr<LeagueClient> get_league_client() const {

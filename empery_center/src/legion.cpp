@@ -274,6 +274,38 @@ void Legion::synchronize_with_player(AccountUuid account_uuid,const boost::share
 	*/
 }
 
+void Legion::synchronize_with_other_player(AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session) const{
+	PROFILE_ME;
+
+	Msg::SC_OtherLegionInfo msg;
+	msg.legion_uuid     		= 	get_legion_uuid().str();
+	msg.legion_name     		= 	get_nick();
+	// 要根据军团长id 获得军团长信息
+	const auto leader_account = AccountMap::require(AccountUuid(get_attribute(LegionAttributeIds::ID_LEADER)));
+	msg.legion_leadername    	= 	leader_account->get_nick();
+	msg.legion_icon     		= 	get_attribute(LegionAttributeIds::ID_ICON);
+	msg.legion_notice     		= 	get_attribute(LegionAttributeIds::ID_CONTENT);
+	msg.legion_level     		= 	get_attribute(LegionAttributeIds::ID_LEVEL);
+	msg.legion_rank     		= 	get_attribute(LegionAttributeIds::ID_RANK);
+	msg.legion_money     		= 	get_attribute(LegionAttributeIds::ID_MONEY);
+
+	// 获得军团成员个人信息
+	const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+	if(member)
+	{
+		// 个人信息
+		msg.legion_titleid     		= 	member->get_attribute(LegionMemberAttributeIds::ID_TITLEID);
+		msg.legion_donate     		= 	member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
+	}
+
+	// 军团成员数量
+	msg.legion_member_count     = 	boost::lexical_cast<std::string>(LegionMemberMap::get_legion_member_count(get_legion_uuid()));
+	msg.other_account_uuid      = 	account_uuid.str();
+	LOG_EMPERY_CENTER_FATAL(msg);
+
+	session->send(msg);
+}
+
 void Legion::disband()
 {
 	// 清除军团属性
