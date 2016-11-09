@@ -360,7 +360,9 @@ bool Dungeon::get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord){
 		return true;
 	}
 	std::vector<Coord> surrounding;
-	get_surrounding_coords(surrounding,src_coord, 3);
+	for(unsigned i = 1; i <= 3; i++){
+		get_surrounding_coords(surrounding,src_coord, i);
+	}
 	for(auto it = surrounding.begin(); it != surrounding.end();++it){
 		src_valid =  check_valid_coord_for_birth(*it);
 		if(src_valid){
