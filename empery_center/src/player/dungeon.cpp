@@ -25,6 +25,8 @@
 #include "../msg/kill.hpp"
 #include "../dungeon_session.hpp"
 #include "../map_utilities.hpp"
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include "../events/dungeon.hpp"
 
 namespace EmperyCenter {
 
@@ -170,7 +172,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
 		[&]{
-			const auto dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id, server, account_uuid, expiry_time,info.finish_count);
+			const auto dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id, server, account_uuid,utc_now, expiry_time,info.finish_count);
 			dungeon->insert_observer(account_uuid, session);
 			for(std::size_t i = 0; i < battalions.size(); ++i){
 				const auto &map_object = battalions.at(i);
@@ -192,6 +194,9 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 
 			info.entry_count += 1;
 			dungeon_box->set(std::move(info));
+			auto  event = boost::make_shared<Events::DungeonCreated>(
+					account_uuid, dungeon_type_id);
+			Poseidon::async_raise_event(event);
 		});
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;

@@ -8,6 +8,8 @@
 #include "msg/sc_dungeon.hpp"
 #include "src/dungeon_object.hpp"
 #include "dungeon_buff.hpp"
+#include <poseidon/singletons/job_dispatcher.hpp>
+#include "events/dungeon.hpp"
 
 namespace EmperyCenter {
 
@@ -34,9 +36,9 @@ namespace {
 }
 
 Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
-	AccountUuid founder_uuid, std::uint64_t expiry_time,std::uint64_t finish_count)
+	AccountUuid founder_uuid, std::uint64_t create_time, std::uint64_t expiry_time,std::uint64_t finish_count)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_server(server)
-	, m_founder_uuid(founder_uuid), m_expiry_time(expiry_time)
+	, m_founder_uuid(founder_uuid), m_create_time(create_time), m_expiry_time(expiry_time)
 	, m_finish_count(finish_count)
 {
 	try {
@@ -64,8 +66,9 @@ Dungeon::~Dungeon(){
 			server->shutdown(e.what());
 		}
 	}
-
 	clear_observers(Q_DUNGEON_EXPIRED, "");
+	auto event = boost::make_shared<Events::DungeonDeleted>(get_founder_uuid(),get_dungeon_type_id());
+	Poseidon::async_raise_event(event);
 }
 
 /*

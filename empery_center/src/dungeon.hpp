@@ -48,6 +48,7 @@ private:
 	const boost::weak_ptr<DungeonSession> m_server;
 
 	AccountUuid m_founder_uuid;
+	std::uint64_t m_create_time;
 	std::uint64_t m_expiry_time;
 	std::uint64_t m_finish_count;
 
@@ -63,7 +64,7 @@ private:
 
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
-		AccountUuid founder_uuid, std::uint64_t expiry_time,std::uint64_t finish_count);
+		AccountUuid founder_uuid,std::uint64_t create_time, std::uint64_t expiry_time,std::uint64_t finish_count);
 	~Dungeon();
 
 private:
@@ -121,6 +122,10 @@ public:
 		return m_expiry_time;
 	}
 	void set_expiry_time(std::uint64_t expiry_time) noexcept;
+	
+	std::uint64_t get_create_time() const {
+		return m_create_time;
+	}
 
 	Rectangle get_scope() const {
 		return m_scope;
