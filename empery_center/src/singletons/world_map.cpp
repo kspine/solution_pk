@@ -2414,7 +2414,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random_restricted(
 			if(point_count == 0){
 				break;
 			}
-			const auto index = static_cast<std::size_t>(Poseidon::random_uint64() % point_count);
+			const auto index = static_cast<std::size_t>(Poseidon::rand64() % point_count);
 			const auto coord = cached_start_points.at(index);
 			LOG_EMPERY_CENTER_DEBUG("Try placing castle: coord = ", coord);
 
@@ -2552,7 +2552,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 	LOG_EMPERY_CENTER_DEBUG("Number of cluster servers: ", clusters.size());
 
 	while(!clusters.empty()){
-		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::random_uint32() % clusters.size());
+		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, clusters.size()));
 _use_hint:
 		const auto cluster_coord = it->first;
 		LOG_EMPERY_CENTER_DEBUG("Trying cluster server: cluster_coord = ", cluster_coord);

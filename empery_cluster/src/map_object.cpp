@@ -551,7 +551,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		return UINT64_MAX;
 	}
 	//计算闪避，闪避成功，
-	bDodge = Poseidon::random_uint32()%100 < doge_rate*100;
+	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 
 	if(bDodge){
 		result_type = IMPACT_MISS;
@@ -561,7 +561,7 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 		result_type = IMPACT_NORMAL;
 		damage = damage < 1 ? 1 : damage ;
 		//暴击计算
-		bCritical = Poseidon::random_uint32()%100 < critical_rate*100;
+		bCritical = Poseidon::rand32()%100 < critical_rate*100;
 		if(bCritical){
 			result_type = IMPACT_CRITICAL;
 			damage = damage*(1.0+critical_demage_plus_rate);
@@ -627,12 +627,12 @@ std::uint64_t MapObject::on_attack_goblin(boost::shared_ptr<MapObject> attacker,
 			const auto ai_data = Data::MapObjectAi::get(ai_id);
 			std::istringstream iss(ai_data->params);
 			auto temp_array = Poseidon::JsonParser::parse_array(iss);
-			auto random_left = static_cast<std::uint32_t>(temp_array.at(0).get<double>());
-			auto random_right = static_cast<std::uint32_t>(temp_array.at(1).get<double>());
-			const auto rand_x = Poseidon::random_uint32() % (saturated_sub(random_right, random_left) + 1) + random_left;
-			const auto rand_y = Poseidon::random_uint32() % (saturated_sub(random_right, random_left) + 1) + random_left;
-			auto direct_x = Poseidon::random_uint32() % 2 ? 1 : -1;
-			auto direct_y = Poseidon::random_uint32() % 2 ? 1 : -1;
+			auto random_left = temp_array.at(0).get<double>();
+			auto random_right = temp_array.at(1).get<double>();
+			const auto rand_x = Poseidon::rand32(random_left, random_right);
+			const auto rand_y = Poseidon::rand32(random_left, random_right);
+			auto direct_x = Poseidon::rand32(0, 2) ? 1 : -1;
+			auto direct_y = Poseidon::rand32(0, 2) ? 1 : -1;
 			std::int64_t  target_x = get_coord().x() + static_cast<std::int64_t>(rand_x)*direct_x;
 			std::int64_t  target_y = get_coord().y() + static_cast<std::int64_t>(rand_y)*direct_y;
 			const auto cluster_scope = WorldMap::get_cluster_scope(get_coord());

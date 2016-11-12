@@ -34,8 +34,6 @@
 #include "../transaction_element.hpp"
 #include "../dungeon_buff.hpp"
 #include "../data/dungeon_buff.hpp"
-#include <poseidon/singletons/job_dispatcher.hpp>
-#include "../events/dungeon.hpp"
 
 
 namespace EmperyCenter {
@@ -627,10 +625,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
     task_box->check_task_dungeon_clearance(boost::lexical_cast<uint64_t>(dungeon_type_id),info.finish_count);
 
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_WINS, "");
-	const auto utc_now = Poseidon::get_utc_time();
-	LOG_EMPERY_CENTER_FATAL(req);
-	auto event = boost::make_shared<Events::DungeonFinish>(account_uuid,dungeon->get_dungeon_type_id(),dungeon->get_create_time(),utc_now,true);
-	Poseidon::async_raise_event(event);
+
 	return Response();
 }
 
@@ -661,11 +656,9 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerLoses, dungeon, server, req){
 			session->shutdown(e.what());
 		}
 	}
+
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_LOSES, "");
-	const auto utc_now = Poseidon::get_utc_time();
-	auto event = boost::make_shared<Events::DungeonFinish>(account_uuid,dungeon->get_dungeon_type_id(),dungeon->get_create_time(),utc_now,false);
-	Poseidon::async_raise_event(event);
-	LOG_EMPERY_CENTER_FATAL(req);
+
 	return Response();
 }
 

@@ -689,7 +689,7 @@ void Castle::check_init_buildings(){
 				}
 			}
 			if(!random_buildings.empty()){
-				const auto index = static_cast<std::ptrdiff_t>(Poseidon::random_uint32() % random_buildings.size());
+				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
 				init_building_id = (random_buildings.begin() + index)->first;
 			}
 		}

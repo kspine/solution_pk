@@ -396,7 +396,7 @@ ACCOUNT_SERVLET("promotion/regain", root, session, params){
 	}
 
 	char str[64];
-	unsigned len = (unsigned)std::sprintf(str, "%06u", (unsigned)(Poseidon::random_uint64() % 1000000));
+	unsigned len = (unsigned)std::sprintf(str, "%06u", (unsigned)(Poseidon::rand64() % 1000000));
 	auto verification_code = std::string(str + len - 6, str + len);
 	LOG_EMPERY_CENTER_DEBUG("Generated verification code: login_name = ", login_name, ", verification_code = ", verification_code);
 
