@@ -1436,7 +1436,7 @@ std::uint64_t  DungeonObject::calculate_next_skill_time(DungeonMonsterSkillId sk
 	auto skill_data = Data::Skill::require(skill_id);
 	auto low = skill_data->cast_interval.first;
 	auto high = skill_data->cast_interval.second;
-	auto delay = Poseidon::rand32(low,high);
+	auto delay = Poseidon::rand32() % (saturated_sub(high, low) + 1) + low;
 	return now + delay * 1000;
 }
 
