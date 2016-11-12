@@ -51,6 +51,7 @@ private:
 	std::uint64_t m_create_time;
 	std::uint64_t m_expiry_time;
 	std::uint64_t m_finish_count;
+	bool          m_begin;
 
 	struct Observer {
 		boost::weak_ptr<PlayerSession> session;
@@ -126,6 +127,12 @@ public:
 	std::uint64_t get_create_time() const {
 		return m_create_time;
 	}
+	
+	bool is_begin() const {
+		return m_begin;
+	}
+
+	void set_begin(bool begin) noexcept;
 
 	Rectangle get_scope() const {
 		return m_scope;

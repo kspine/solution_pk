@@ -217,6 +217,7 @@ PLAYER_SERVLET(Msg::CS_DungeonQuit, account, session, req){
 	if(observer_session != session){
 		return Response(Msg::ERR_NOT_IN_DUNGEON) <<dungeon_uuid;
 	}
+	const auto utc_now = Poseidon::get_utc_time();
 	try {
 		Msg::SC_DungeonFailed msg;
 		msg.dungeon_uuid    = dungeon->get_dungeon_uuid().str();
@@ -236,6 +237,8 @@ PLAYER_SERVLET(Msg::CS_DungeonQuit, account, session, req){
 		session->shutdown(e.what());
 	}
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_REQUEST, { });
+	auto event = boost::make_shared<Events::DungeonFinish>(account_uuid,dungeon->get_dungeon_type_id(),dungeon->get_create_time(),utc_now,false);
+	Poseidon::async_raise_event(event);
 	DungeonMap::remove(dungeon);
 	return Response();
 }
@@ -384,6 +387,37 @@ PLAYER_SERVLET(Msg::CS_DungeonPlayerConfirmation, account, session, req){
 		return std::move(dresult);
 	}
 
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_DungeonBegin, account, session, req){
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+	}
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto observer_session = dungeon->get_observer(account_uuid);
+	if(observer_session != session){
+		return Response(Msg::ERR_NOT_IN_DUNGEON) <<dungeon_uuid;
+	}
+	if(dungeon->is_begin()){
+		LOG_EMPERY_CENTER_WARNING("dungeon already begin .... ");
+		return Response(Msg::ERR_DUNGEON_ALREADY_BEGIN) <<dungeon_uuid;
+	}
+	const auto server = dungeon->get_server();
+	if(!server){
+		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
+	}
+	Msg::SD_DungeonBegin dreq;
+	dreq.dungeon_uuid        = dungeon_uuid.str();
+	const auto dresult = server->send_and_wait(dreq);
+	if(dresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_WARNING("Dungeon server returned an error: code = ", dresult.first, ", msg = ", dresult.second);
+		return std::move(dresult);
+	}
+	dungeon->set_begin(true);
 	return Response();
 }
 
