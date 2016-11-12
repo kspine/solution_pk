@@ -57,6 +57,12 @@ namespace Msg {
 	FIELD_STRING        (context)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_DungeonBegin
+#define MESSAGE_ID      1506
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
