@@ -241,7 +241,7 @@ void FriendBoxMap::random(std::vector<AccountUuid> &ret, std::size_t max_count, 
 		std::vector<boost::shared_ptr<Account>> accounts;
 		AccountMap::get_all(accounts, 0, SIZE_MAX);
 		std::random_shuffle(accounts.begin(), accounts.end(),
-			[](std::uint32_t offset){ return Poseidon::random_uint32() % offset; });
+			[](std::uint32_t offset){ return Poseidon::rand32() % offset; });
 
 		random_pool->clear();
 		random_pool->reserve(accounts.size());
