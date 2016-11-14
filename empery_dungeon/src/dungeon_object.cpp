@@ -1160,18 +1160,29 @@ std::uint64_t DungeonObject::on_monster_patrol(){
 	auto dest_x  = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_PATROL_DEST_POINT_X);
 	auto dest_y  = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_PATROL_DEST_POINT_Y);
 	Coord coord_birth(birth_x,birth_y);
+	Coord coord_dest(dest_x,dest_y);
+	const auto ai_data = get_dungeon_ai_data();
 	if(m_waypoints.empty() && (coord_birth == get_coord())){
 		//TODO goto the dest
-		if(find_way_points(m_waypoints,get_coord(),Coord(dest_x,dest_y),true)){
+		if(find_way_points(m_waypoints,get_coord(),coord_dest,true)){
 			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_PATROL),"");
+			return boost::lexical_cast<std::uint64_t>(ai_data->params2)*1000;
 		}else{
 			LOG_EMPERY_DUNGEON_WARNING("find the way point to patrol dest fail，dungeon_uuid = ",get_dungeon_uuid());
+			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
+		}
+	}else if(m_waypoints.empty() && (coord_dest == get_coord())){
+		//TODO goto the birth
+		if(find_way_points(m_waypoints,get_coord(),coord_birth,true)){
+			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_PATROL),"");
+			return boost::lexical_cast<std::uint64_t>(ai_data->params2)*1000;
+		}else{
+			LOG_EMPERY_DUNGEON_WARNING("find the way point to patrol src fail，dungeon_uuid = ",get_dungeon_uuid());
 			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 		}
 	}else{
 		set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_MONSTER_SEARCH_TARGET),"");
 	}
-	const auto ai_data = get_dungeon_ai_data();
 	return boost::lexical_cast<std::uint64_t>(ai_data->params)*1000;
 }
 
@@ -1300,27 +1311,31 @@ std::uint64_t DungeonObject::use_skill(DungeonMonsterSkillId skill_id,std::pair<
 		auto skill_data = Data::Skill::require(skill_id);
 		auto sing_delay = static_cast<std::uint64_t>(skill_data->sing_time * 1000);
 		if(dungeon_client){
-			try{
-				Msg::DS_DungeonObjectSkillSingAction msg;
-				msg.dungeon_uuid = get_dungeon_uuid().str();
-				msg.attacking_account_uuid   = get_owner_uuid().str();
-				msg.attacking_object_uuid    = get_dungeon_object_uuid().str();
-				msg.attacking_object_type_id = get_dungeon_object_type_id().get();
-				msg.attacking_coord_x        = get_coord().x();
-				msg.attacking_coord_y        = get_coord().y();
-				msg.attacked_coord_x         = coord.x();
-				msg.attacked_coord_y         = coord.y();
-				msg.skill_type_id            = skill_id.get();
-				msg.sing_delay               = sing_delay;
-				auto sresult = dungeon_client->send_and_wait(msg);
-				if(sresult.first != Msg::ST_OK){
-					LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
-					result = std::move(sresult);
-					return do_finish_skill(skill_id,now);
+			if(sing_delay == 0){
+				LOG_EMPERY_DUNGEON_WARNING("skill id ",skill_id.get(), " sing delay 0");
+			}else{
+				try{
+					Msg::DS_DungeonObjectSkillSingAction msg;
+					msg.dungeon_uuid = get_dungeon_uuid().str();
+					msg.attacking_account_uuid   = get_owner_uuid().str();
+					msg.attacking_object_uuid    = get_dungeon_object_uuid().str();
+					msg.attacking_object_type_id = get_dungeon_object_type_id().get();
+					msg.attacking_coord_x        = get_coord().x();
+					msg.attacking_coord_y        = get_coord().y();
+					msg.attacked_coord_x         = coord.x();
+					msg.attacked_coord_y         = coord.y();
+					msg.skill_type_id            = skill_id.get();
+					msg.sing_delay               = sing_delay;
+					auto sresult = dungeon_client->send_and_wait(msg);
+					if(sresult.first != Msg::ST_OK){
+						LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+						result = std::move(sresult);
+						return do_finish_skill(skill_id,now);
+					}
+				} catch(std::exception &e){
+					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+					dungeon_client->shutdown(e.what());
 				}
-			} catch(std::exception &e){
-			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
-			dungeon_client->shutdown(e.what());
 			}
 		}
 		return sing_delay;
@@ -1344,27 +1359,31 @@ std::uint64_t DungeonObject::on_skill_singing_finish(std::pair<long, std::string
 	auto skill_data = Data::Skill::require(skill_id);
 	auto cast_delay = static_cast<std::uint64_t>(skill_data->cast_time * 1000);
 	if(dungeon_client){
-		try{
-			Msg::DS_DungeonObjectSkillCastAction msg;
-			msg.dungeon_uuid = get_dungeon_uuid().str();
-			msg.attacking_account_uuid   = get_owner_uuid().str();
-			msg.attacking_object_uuid    = get_dungeon_object_uuid().str();
-			msg.attacking_object_type_id = get_dungeon_object_type_id().get();
-			msg.attacking_coord_x        = get_coord().x();
-			msg.attacking_coord_y        = get_coord().y();
-			msg.attacked_coord_x         = coord.x();
-			msg.attacked_coord_y         = coord.y();
-			msg.skill_type_id            = skill_id.get();
-			msg.cast_delay               = cast_delay;
-			auto sresult = dungeon_client->send_and_wait(msg);
-			if(sresult.first != Msg::ST_OK){
-				LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
-				result = std::move(sresult);
-				return do_finish_skill(skill_id,now);
+		if(cast_delay == 0){
+			LOG_EMPERY_DUNGEON_WARNING("skill id ",skill_id.get(), " cast delay 0");
+		}else{
+			try{
+				Msg::DS_DungeonObjectSkillCastAction msg;
+				msg.dungeon_uuid = get_dungeon_uuid().str();
+				msg.attacking_account_uuid   = get_owner_uuid().str();
+				msg.attacking_object_uuid    = get_dungeon_object_uuid().str();
+				msg.attacking_object_type_id = get_dungeon_object_type_id().get();
+				msg.attacking_coord_x        = get_coord().x();
+				msg.attacking_coord_y        = get_coord().y();
+				msg.attacked_coord_x         = coord.x();
+				msg.attacked_coord_y         = coord.y();
+				msg.skill_type_id            = skill_id.get();
+				msg.cast_delay               = cast_delay;
+				auto sresult = dungeon_client->send_and_wait(msg);
+				if(sresult.first != Msg::ST_OK){
+					LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
+					result = std::move(sresult);
+					return do_finish_skill(skill_id,now);
+				}
+			} catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+				dungeon_client->shutdown(e.what());
 			}
-		} catch(std::exception &e){
-			LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
-			dungeon_client->shutdown(e.what());
 		}
 	}
 	return cast_delay;
