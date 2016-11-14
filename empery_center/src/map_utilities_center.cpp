@@ -226,7 +226,7 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		}
 		unsigned crate_count = 1;
 		if(amount_remaining >= separation_amount_threshold){
-			crate_count = Poseidon::random_uint32() % number_limit + 1;
+			crate_count += Poseidon::rand32(1, number_limit);
 		}
 		LOG_EMPERY_CENTER_DEBUG("> amount_remaining = ", amount_remaining, ", crate_count = ", crate_count, ", number_limit = ", number_limit);
 		if(crate_count == 0){
@@ -311,7 +311,7 @@ void create_resource_crates(Coord origin, ResourceId resource_id, std::uint64_t 
 		for(unsigned i = 0; i < crate_count; ++i){
 			try {
 				const auto resource_crate_uuid = ResourceCrateUuid(Poseidon::Uuid::random());
-				const auto coord = coords.at(Poseidon::random_uint32() % coords.size());
+				const auto coord = coords.at(Poseidon::rand32(0, coords.size()));
 				const auto expiry_time = saturated_add(utc_now, static_cast<std::uint64_t>(expiry_duration * 60000));
 
 				auto resource_crate = boost::make_shared<ResourceCrate>(resource_crate_uuid,
