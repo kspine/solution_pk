@@ -627,12 +627,12 @@ std::uint64_t MapObject::on_attack_goblin(boost::shared_ptr<MapObject> attacker,
 			const auto ai_data = Data::MapObjectAi::get(ai_id);
 			std::istringstream iss(ai_data->params);
 			auto temp_array = Poseidon::JsonParser::parse_array(iss);
-			auto random_left = temp_array.at(0).get<double>();
-			auto random_right = temp_array.at(1).get<double>();
-			const auto rand_x = Poseidon::rand32(random_left, random_right);
-			const auto rand_y = Poseidon::rand32(random_left, random_right);
-			auto direct_x = Poseidon::rand32(0, 2) ? 1 : -1;
-			auto direct_y = Poseidon::rand32(0, 2) ? 1 : -1;
+			auto random_left = static_cast<std::uint32_t>(temp_array.at(0).get<double>());
+			auto random_right = static_cast<std::uint32_t>(temp_array.at(1).get<double>());
+			const auto rand_x = Poseidon::rand32() % (saturated_sub(random_right, random_left) + 1) + random_left;
+			const auto rand_y = Poseidon::rand32() % (saturated_sub(random_right, random_left) + 1) + random_left;
+			auto direct_x = Poseidon::rand32() % 2 ? 1 : -1;
+			auto direct_y = Poseidon::rand32() % 2 ? 1 : -1;
 			std::int64_t  target_x = get_coord().x() + static_cast<std::int64_t>(rand_x)*direct_x;
 			std::int64_t  target_y = get_coord().y() + static_cast<std::int64_t>(rand_y)*direct_y;
 			const auto cluster_scope = WorldMap::get_cluster_scope(get_coord());
