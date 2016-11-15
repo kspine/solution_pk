@@ -80,6 +80,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/trigger.cpp   \
 	src/data/random_name.cpp \
 	src/data/dungeon_buff.cpp \
+	src/data/skill.cpp \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
