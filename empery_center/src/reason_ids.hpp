@@ -40,6 +40,7 @@ constexpr ReasonId
 	ID_CASTLE_CAPTURED               ( 672028 ), // 0                   0                   0
 	ID_BATTALION_UNLOAD_CRATE        ( 672029 ), // 部队 UUID 高位      0                   0
 	ID_SOLDIER_HEALED                ( 672030 ), // 0                   0                   0
+	ID_LAYOFFS_BATTALION             ( 672031 ), // 城堡 UUID 高位      部队 UUID 高位      0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0

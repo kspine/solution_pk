@@ -1252,4 +1252,49 @@ PLAYER_SERVLET(Msg::CS_MapRefreshMapObject, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_MapLayoffsBattalion, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto map_object = WorldMap::get_map_object(map_object_uuid);
+	if(!map_object){
+		return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) <<map_object_uuid;
+	}
+	if(map_object->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_YOUR_MAP_OBJECT) <<map_object->get_owner_uuid();
+	}
+	const auto map_object_type_id = map_object->get_map_object_type_id();
+	const auto map_object_type_data = Data::MapObjectTypeBattalion::require(map_object_type_id);
+
+	const auto castle_uuid = map_object->get_parent_object_uuid();
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(castle_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<castle_uuid;
+	}
+	if(!map_object->is_garrisoned()){
+		return Response(Msg::ERR_MAP_OBJECT_IS_NOT_GARRISONED);
+	}
+
+	const auto layoffs_soldier_count = req.soldier_count;
+	if(layoffs_soldier_count == 0){
+		return Response(Msg::ERR_ZERO_SOLDIER_COUNT);
+	}
+	const auto soldier_count = static_cast<std::uint64_t>(map_object->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto new_soldier_count = checked_sub(soldier_count, layoffs_soldier_count);
+	if(new_soldier_count < 1){
+		return Response(Msg::ERR_TOO_MANY_SOLDIERS_FOR_LAYOFFS);
+	}
+	const auto new_hp_total = checked_mul(new_soldier_count, map_object_type_data->hp_per_soldier);
+	boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+	modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(new_soldier_count);
+	modifiers[AttributeIds::ID_HP_TOTAL]          = static_cast<std::int64_t>(new_hp_total);
+	const auto castle_uuid_head    = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(castle_uuid.get()[0]));
+	const auto battalion_uuid_head = Poseidon::load_be(reinterpret_cast<const std::uint64_t &>(map_object_uuid.get()[0]));
+	std::vector<SoldierTransactionElement> transaction;
+	transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, layoffs_soldier_count,
+		ReasonIds::ID_LAYOFFS_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
+	castle->commit_soldier_transaction(transaction,
+		[&]{map_object->set_attributes(std::move(modifiers));});
+
+	return Response();
+}
+
 }

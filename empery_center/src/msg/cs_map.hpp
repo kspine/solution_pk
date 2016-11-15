@@ -186,6 +186,13 @@ namespace Msg {
 	FIELD_STRING        (map_object_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapLayoffsBattalion
+#define MESSAGE_ID      324
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (soldier_count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
