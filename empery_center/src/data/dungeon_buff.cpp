@@ -4,7 +4,7 @@
 #include <string.h>
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
-
+#include "../data_session.hpp"
 namespace EmperyCenter {
 
 namespace {
@@ -32,6 +32,8 @@ namespace {
 		}
 		g_dungeon_buff_container = dungeon_buff_container;
 		handles.push(dungeon_buff_container);
+		auto servlet = DataSession::create_servlet(DUNGEON_BUFF_FILE, Data::encode_csv_as_json(csv, "buff_id"));
+		handles.push(std::move(servlet));
 	}
 }
 
