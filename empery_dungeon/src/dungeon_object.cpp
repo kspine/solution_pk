@@ -55,8 +55,8 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 	//判断副本中暂停状态
 	const auto dungeon = DungeonMap::require(m_dungeon_uuid);
 	if(dungeon->get_fight_state() == Dungeon::FIGHT_PAUSE){
+		LOG_EMPERY_DUNGEON_DEBUG("dungeon in fight pause...");
 		const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
-		LOG_EMPERY_DUNGEON_ERROR("dungeon in fight pause");
 		return stand_by_interval;
 	}
 
