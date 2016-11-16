@@ -107,7 +107,10 @@ constexpr ReasonId
 	ID_NEW_GUIDE_CREATE_SOLIDER      ( 675009 ),//  0                    0                  0
 	ID_NOVICE_GUIDE_ADD_ITEM         ( 675010 ),
 	ID_NOVICE_GUIDE_ADD_RESOURCE     ( 675011 ),
-	ID_NOVICE_GUIDE_ADD_ARM          ( 675012 );
+	ID_NOVICE_GUIDE_ADD_ARM          ( 675012 ),
+	ID_MODIFY_LEGION                 ( 675013 ),
+	ID_MODIFY_LEAGUE                 ( 675014 ),
+	ID_LEGION_BUILDING_HARVESTED_COUNTS_ITEM(675015);
 }
 
 }

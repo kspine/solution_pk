@@ -38,6 +38,8 @@
 #include "legion_log.hpp"
 #include "reason_ids.hpp"
 
+#include "singletons/legion_financial_map.hpp"
+
 namespace EmperyCenter {
 	namespace {
 		uint64_t CaculateWeekDay(unsigned y, unsigned m, unsigned d)
@@ -496,9 +498,16 @@ namespace EmperyCenter {
 						if(donate.empty()){
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(legion_donate);
 							LegionLog::LegionMoneyTrace(get_legion_uuid(),0,legion_donate,ReasonIds::ID_LEGION_TASK_STAGE_REWARD,task_id.get(),its->first,0);
+
+							//军团资金账本
+							LegionFinancialMap::make_insert(LegionUuid(get_legion_uuid()),AccountUuid(0), ItemId(5500001),(uint64_t)0,legion_donate,(int64_t)legion_donate,1,0,Poseidon::get_utc_time());
 						}else{
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + legion_donate);
 							LegionLog::LegionMoneyTrace(get_legion_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + legion_donate,ReasonIds::ID_LEGION_TASK_STAGE_REWARD,task_id.get(),its->first,0);
+						
+						//军团自己账本
+						    LegionFinancialMap::make_insert(LegionUuid(get_legion_uuid()),AccountUuid(0), ItemId(5500001),
+						    boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate)+legion_donate,(int64_t)legion_donate,1,0,Poseidon::get_utc_time());
 						}
 						legion->set_attributes(Attributes);
 					}
@@ -714,9 +723,16 @@ namespace EmperyCenter {
 						if(donate.empty()){
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(legion_contribution);
 							LegionLog::LegionMoneyTrace(get_legion_uuid(),0,legion_contribution,ReasonIds::ID_LEGION_TASK_PROCESS_REWARD,task_id.get(),delta,0);
+
+							//军团资金账本
+							 LegionFinancialMap::make_insert(LegionUuid(get_legion_uuid()),AccountUuid(0), ItemId(5500001),0,legion_contribution,(int64_t)legion_contribution,1,0,Poseidon::get_utc_time());
 						}else{
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + legion_contribution);
 							LegionLog::LegionMoneyTrace(get_legion_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + legion_contribution,ReasonIds::ID_LEGION_TASK_PROCESS_REWARD,task_id.get(),delta,0);
+
+                            //军团资金账本
+						    LegionFinancialMap::make_insert(LegionUuid(get_legion_uuid()),AccountUuid(0), ItemId(5500001),
+						    boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate)+legion_contribution,boost::lexical_cast<int64_t>(legion_contribution),1,0,Poseidon::get_utc_time());
 						}
 						legion->set_attributes(Attributes);
 						// 广播通知

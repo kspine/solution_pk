@@ -255,6 +255,7 @@ namespace IdTypes {
 	using LegionBuildingUuid  		= GenericUuid<210012>;
 	using LegionPackageShareUuid    = GenericUuid<210013>;
 	using LeagueUuid                = GenericUuid<210014>;
+	using LegionFinancialUuid       = GenericUuid<210015>;
 }
 
 using namespace IdTypes;

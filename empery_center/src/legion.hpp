@@ -56,6 +56,7 @@ public:
 		LEGION_POWER_GRADEDOWN 		= 22,	// 可被降级
 		LEGION_POWER_LEAGUE_INVITE 	= 23,	// 可以处理邀请加入军团
 		LEGION_POWER_DEMOLISH_MINE 	= 24,	// 拆除军团矿井
+		LEGION_POWER_MODIFY         = 25,   //军团修改
 	};
 
 	enum LEGION_NOTICE_MSG_TYPE
@@ -75,6 +76,7 @@ public:
 		LEGION_NOTICE_MSG_CREATE_SUCCESS  	    = 13,	// 创建成功
 		LEGION_NOTICE_MSG_MINE_STATUS_CHANGE 	= 14,	// 货仓变动
 		LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE 	= 15,	// 军团成员信息有更新
+		LEGION_NOTICE_MSG_TYPE_MODIFY           = 16,   // 军团修改通知
 	};
 public:
 

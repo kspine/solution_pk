@@ -933,4 +933,107 @@ namespace EmperyCenter {
 
     }
 
+    PLAYER_SERVLET(Msg::CS_ModifyLeagueNoticeReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+        const auto content = req.content;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+
+        Msg::SL_ModifyLeagueNoticeReq msg;
+        msg.account_uuid = account_uuid.str();
+        msg.legion_uuid = member->get_legion_uuid().str();
+        msg.content = req.content;
+
+        const auto league = LeagueClient::require();
+        auto tresult = league->send_and_wait(msg);
+        return Response(std::move(tresult.first));
+    }
+
+   
+    PLAYER_SERVLET(Msg::CS_ModifyLeagueNameReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+        const auto name = req.name;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+        const auto  item_box = ItemBoxMap::require(account_uuid);
+        std::vector<ItemTransactionElement> transaction;
+		const auto& info = Data::Global::as_object(Data::Global::SLOT_LEGION_MODIFY_NAME);
+        for(auto it = info.begin(); it != info.end(); ++it)
+        {
+            if(std::string(it->first.get()) != boost::lexical_cast<std::string>(ItemIds::ID_DIAMONDS))
+            {
+                return Response(Msg::ERR_LEAGUE_CREATE_NOTENOUGH_MONEY);
+            }
+            const auto  curDiamonds = item_box->get(ItemIds::ID_DIAMONDS).count;
+            const auto creatediamond = boost::lexical_cast<std::uint64_t>(it->second.get<double>());
+            if(curDiamonds < creatediamond)
+            {
+               return Response(Msg::ERR_LEAGUE_CREATE_NOTENOUGH_MONEY);
+            }
+
+            transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_DIAMONDS, 
+                                     creatediamond,ReasonIds::ID_MODIFY_LEAGUE, 0, 0, creatediamond);
+        }
+
+        const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+        [&]{
+             Msg::SL_ModifyLeagueNameReq msg;
+             msg.account_uuid = account_uuid.str();
+             msg.legion_uuid = member->get_legion_uuid().str();
+             msg.name = name;
+
+            const auto league = LeagueClient::require();
+
+            auto tresult = league->send_and_wait(msg);
+
+             if(tresult.first != Msg::ST_OK)
+                PLAYER_THROW(tresult.first);
+        });
+
+        if(insuff_item_id)
+        {
+            return Response(Msg::ERR_LEAGUE_CREATE_NOTENOUGH_MONEY);
+        }
+
+        return Response(Msg::ST_OK);
+    }
+
+    PLAYER_SERVLET(Msg::CS_ModifyLeagueSwitchStatusReqMessage, account, session, req)
+    {
+	    PROFILE_ME;
+        const auto switchstatus = req.switchstatus;
+
+        const auto account_uuid = account->get_account_uuid();
+
+        const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+        if(!member)
+        {
+            return Response(Msg::ERR_LEAGUE_NOT_JOIN_LEGION);
+        }
+
+        Msg::SL_ModifyLeagueSwitchStatusReq msg;
+        msg.account_uuid = account_uuid.str();
+        msg.legion_uuid = member->get_legion_uuid().str();
+        msg.switchstatus = switchstatus;
+
+        const auto league = LeagueClient::require();
+
+        auto tresult = league->send_and_wait(msg);
+
+        return Response(std::move(tresult.first));
+    }
 }
