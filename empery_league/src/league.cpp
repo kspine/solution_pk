@@ -52,6 +52,12 @@ void League::pump_status(){
 	//
 }
 
+void League::set_nick(std::string nick){
+    PROFILE_ME;
+    m_obj->set_name(std::move(nick));
+
+    LeagueMap::update(virtual_shared_from_this<League>(), false);
+}
 void League::set_founder_uuid(AccountUuid founder_uuid){
 	PROFILE_ME;
 

@@ -207,6 +207,30 @@ namespace Msg {
 	FIELD_STRING        (to_account_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SL_ModifyLeagueNoticeReq
+#define MESSAGE_ID      58823
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)   \
+	FIELD_STRING        (content)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SL_ModifyLeagueNameReq
+#define MESSAGE_ID      58824
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)   \
+	FIELD_STRING        (name)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SL_ModifyLeagueSwitchStatusReq
+#define MESSAGE_ID      58825
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (legion_uuid)   \
+	FIELD_VUINT         (switchstatus)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
