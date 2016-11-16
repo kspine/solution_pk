@@ -2552,7 +2552,7 @@ boost::shared_ptr<Castle> WorldMap::place_castle_random(
 	LOG_EMPERY_CENTER_DEBUG("Number of cluster servers: ", clusters.size());
 
 	while(!clusters.empty()){
-		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, clusters.size()));
+		it = clusters.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32() % clusters.size());
 _use_hint:
 		const auto cluster_coord = it->first;
 		LOG_EMPERY_CENTER_DEBUG("Trying cluster server: cluster_coord = ", cluster_coord);

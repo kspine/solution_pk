@@ -85,6 +85,7 @@ namespace Msg {
 		ERR_PROTECTION_PREPARATION_IN_PROGRESS    = 71474,
 		ERR_TECH_ERA_NOT_FOUND                    = 71475,
 		ERR_TECH_ERA_UNLOCKED                     = 71476,
+		ERR_TOO_MANY_SOLDIERS_FOR_LAYOFFS         = 71477,
 	};
 }
 

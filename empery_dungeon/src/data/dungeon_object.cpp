@@ -161,6 +161,7 @@ namespace {
 			csvAi.get(elem.unique_id,         "ai_id");
 			csvAi.get(elem.ai_type,           "ai_type");
 			csvAi.get(elem.params,            "ai_numerical");
+			csvAi.get(elem.params2,           "ai_numerical_2");
 			csvAi.get(elem.ai_linkage,        "ai_linkage");
 			csvAi.get(elem.ai_Intelligence,   "ai_Intelligence");
 			if(!dungeon_object_ai_map->insert(std::move(elem)).second){

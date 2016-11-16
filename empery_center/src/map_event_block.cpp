@@ -367,7 +367,7 @@ void MapEventBlock::refresh_events(bool first_time,unsigned event_type){
 					break;
 				}
 				try {
-					const auto coord_it = coords_avail.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32(0, coords_avail.size()));
+					const auto coord_it = coords_avail.begin() + static_cast<std::ptrdiff_t>(Poseidon::rand32() % coords_avail.size());
 					const auto coord = *coord_it;
 
 					assert(m_events.find(coord) == m_events.end());

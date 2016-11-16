@@ -93,6 +93,12 @@ namespace Msg {
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SD_DungeonBegin
+#define MESSAGE_ID      50091
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

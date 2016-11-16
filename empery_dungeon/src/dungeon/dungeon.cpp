@@ -20,8 +20,6 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 	auto expiry_time  = req.expiry_time;
 	const auto utc_now = Poseidon::get_utc_time();
 	boost::shared_ptr<Dungeon> new_dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id,dungeon,founder_uuid,utc_now,finish_count,expiry_time);
-	new_dungeon->init_triggers();
-	new_dungeon->check_triggers_enter_dungeon();
 	LOG_EMPERY_DUNGEON_DEBUG("create dungeon ,msg = ",req);
 	DungeonMap::replace_dungeon_no_synchronize(new_dungeon);
 	return Response();
@@ -29,7 +27,6 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 
 DUNGEON_SERVLET(Msg::SD_DungeonDestroy, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
-	LOG_EMPERY_DUNGEON_FATAL("destory dungeon ,msg = ",req);
 	DungeonMap::remove_dungeon_no_synchronize(dungeon_uuid);
 	return Response();
 }
@@ -195,6 +192,17 @@ DUNGEON_SERVLET(Msg::SD_DungeonBuffRemoved, dungeon, req){
 		return Response(Msg::ERR_NO_DUNGEON_BUFF_IN_POS) << coord;
 	}
 	expect_dungeon->remove_dungeon_buff_no_synchronize(coord);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::SD_DungeonBegin, dengeon, req){
+	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
+	if(!expect_dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
+	}
+	expect_dungeon->init_triggers();
+	expect_dungeon->check_triggers_enter_dungeon();
 	return Response();
 }
 
