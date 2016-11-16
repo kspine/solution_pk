@@ -674,7 +674,7 @@ void Dungeon::check_triggers_hp(std::string tag,std::uint64_t total_hp,std::uint
 		}
 		for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
 			const auto &trigger = it->second;
-			if((trigger->open) && !trigger->activated && trigger->condition.type == TriggerCondition::C_DUNGEON_OBJECT_HP){
+			if((trigger->open) && !trigger->activated && (trigger->condition.type == TriggerCondition::C_DUNGEON_OBJECT_HP) &&(trigger->times != 0)){
 				try{
 					LOG_EMPERY_DUNGEON_DEBUG("check_triggers_hp,conditon params = ", trigger->condition.params);
 					std::istringstream iss_params(trigger->condition.params);
@@ -706,7 +706,7 @@ void Dungeon::check_triggers_dungeon_finish(){
 		const auto utc_now = Poseidon::get_utc_time();
 		for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
 			const auto &trigger = it->second;
-			if(trigger->open && !trigger->activated && trigger->condition.type == TriggerCondition::C_DUNGEON_FINISH){
+			if(trigger->open && !trigger->activated && (trigger->condition.type == TriggerCondition::C_DUNGEON_FINISH)&&(trigger->times != 0)){
 				try{
 					std::istringstream iss_params(trigger->condition.params);
 					auto params_array = Poseidon::JsonParser::parse_array(iss_params);
@@ -749,7 +749,7 @@ void Dungeon::check_triggers_all_die(){
 		const auto utc_now = Poseidon::get_utc_time();
 		for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
 			const auto &trigger = it->second;
-			if(trigger->open && !trigger->activated && trigger->condition.type == TriggerCondition::C_ALL_DIE){
+			if(trigger->open && !trigger->activated && (trigger->condition.type == TriggerCondition::C_ALL_DIE) && (trigger->times != 0)){
 				try{
 					std::istringstream iss_params(trigger->condition.params);
 					auto params_array = Poseidon::JsonParser::parse_array(iss_params);
@@ -785,7 +785,7 @@ void Dungeon::check_triggers_tag_die(){
 		const auto utc_now = Poseidon::get_utc_time();
 		for(auto it = m_triggers.begin(); it != m_triggers.end(); ++it){
 			const auto &trigger = it->second;
-			if(trigger->open && !trigger->activated && trigger->condition.type == TriggerCondition::C_TAG_DIE){
+			if(trigger->open && !trigger->activated && (trigger->condition.type == TriggerCondition::C_TAG_DIE) && (trigger->times != 0)){
 				try{
 					std::istringstream iss_params(trigger->condition.params);
 					auto params_array = Poseidon::JsonParser::parse_array(iss_params);
