@@ -1,4 +1,7 @@
 #include "../precompiled.hpp"
+
+#include "castle_offline_upgrade_building_base_map.hpp"
+
 #include "../mmain.hpp"
 #include <poseidon/multi_index_map.hpp>
 #include <poseidon/singletons/mysql_daemon.hpp>
@@ -12,6 +15,9 @@
 #include "../mysql/castle.hpp"
 #include "account_map.hpp"
 #include "../castle.hpp"
+
+#include "../singletons/world_map.hpp"
+
 
 namespace EmperyCenter{
 
@@ -27,11 +33,13 @@ namespace EmperyCenter{
 
           explicit CastleOfflineUpgradeBuildingBaseElement(boost::shared_ptr<MySql::Center_CastleOfflineUpgradeBuildingBase> castles_)
               : castles(std::move(castles_))
-              , auto_uuid(castles->get_auto_uuid)
+              ,auto_uuid(castles->get_auto_uuid())
               , account_uuid(castles->get_account_uuid())
               , map_object_uuid(castles->get_map_object_uuid())
               , building_base_ids(castles->get_building_base_ids())
+
           {
+
           }
        };
 
@@ -47,7 +55,7 @@ namespace EmperyCenter{
        const auto conn = Poseidon::MySqlDaemon::create_connection();
 
          struct TempCastlesElement {
-          boost::shared_ptr<MySql::Center_CastleOfflineUpgradeBuildingBase> obj
+          boost::shared_ptr<MySql::Center_CastleOfflineUpgradeBuildingBase> obj;
          };
 
          std::map<std::string,TempCastlesElement> temp_castles_map;
@@ -95,12 +103,13 @@ namespace EmperyCenter{
 	    return;
 	 }
 
+      auto account_uuid = map_object->get_owner_uuid();
       std::string building_base_ids = boost::lexical_cast<std::string>(building_base_id);
-      std::string str_auto_uuid = (map_object->get_owner_uuid()).str() + "," + map_object_uuid.str();
+      std::string str_auto_uuid = (account_uuid.str() + "," + map_object_uuid.str());
       auto  ptr_castles = find(account_uuid,map_object_uuid);
       if(ptr_castles)
       {
-         building_base_ids += ("," + ptr_castle->unlocked_get_building_base_ids());
+         building_base_ids += ("," + ptr_castles->unlocked_get_building_base_ids());
       }
       auto obj = boost::make_shared<MySql::Center_CastleOfflineUpgradeBuildingBase>(str_auto_uuid,(map_object->get_owner_uuid()).get(),map_object_uuid.get(),building_base_ids); 
       obj->enable_auto_saving();
@@ -119,7 +128,7 @@ namespace EmperyCenter{
       }
       const auto range = castles_map->equal_range<1>(account_uuid);
       for(auto it = range.first; it != range.second; ++it){
-         if(AccountUuid(it->account->unlocked_get_account_uuid()) == account_uuid && 
+         if(AccountUuid(it->castles->unlocked_get_account_uuid()) == account_uuid && 
              MapObjectUuid(it->castles->unlocked_get_map_object_uuid()) == map_object_uuid)
          {
             return it->castles;
@@ -134,11 +143,11 @@ namespace EmperyCenter{
       const auto &castles_map = g_castles_map;
       if(!castles_map){
             LOG_EMPERY_CENTER_WARNING("Center_CastleOfflineUpgradeBuildingBase  not loaded.");
-            return { };
+            return;
       }
       const auto range = castles_map->equal_range<1>(account_uuid);
       for(auto it = range.first; it != range.second;){
-         if(AccountUuid(it->account->unlocked_get_account_uuid()) == account_uuid && 
+         if(AccountUuid(it->castles->unlocked_get_account_uuid()) == account_uuid && 
              MapObjectUuid(it->castles->unlocked_get_map_object_uuid()) == map_object_uuid)
          {
             it = castles_map->erase<1>(it);
@@ -147,7 +156,6 @@ namespace EmperyCenter{
          else
          {
            ++it;
-           continue;
          }
       }
 
@@ -174,7 +182,7 @@ namespace EmperyCenter{
             return;
       }
       msg.map_object_uuid =  map_object_uuid.str();
-      msg.building_base_ids =  ptr_castle->unlocked_get_building_base_ids();
+      msg.building_base_ids =  ptr_castles->unlocked_get_building_base_ids();
 
       session->send(msg);
 
