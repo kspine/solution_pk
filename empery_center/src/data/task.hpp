@@ -69,6 +69,7 @@ namespace EmperyCenter
 			std::uint64_t task_class_1;
 			unsigned level_limit_min;
 			unsigned level_limit_max;
+			unsigned task_level;
 		};
 
 		class TaskLegion : public TaskAbstract
