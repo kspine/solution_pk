@@ -97,6 +97,13 @@ namespace Msg {
 	FIELD_VUINT         (resource_id)	\
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_CastleOfflineUpgradeBuildingBase
+#define MESSAGE_ID      480
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_STRING        (building_base_ids)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }
