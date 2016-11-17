@@ -203,7 +203,7 @@ PLAYER_SERVLET(Msg::CS_CreateLegionBuildingMessage, account, session,  req )
 
 									//军团资金账本
 									 LegionFinancialMap::make_insert(member->get_legion_uuid(),account_uuid, ItemId(5500001),
-									                           old_money,new_money,boost::lexical_cast<int64_t>(new_money - old_money),
+									                           old_money,new_money,static_cast<std::int64_t>(new_money - old_money),
 									                           2,0,Poseidon::get_utc_time());
 								}
 
@@ -399,7 +399,7 @@ PLAYER_SERVLET(Msg::CS_UpgradeLegionBuildingMessage, account, session,  req )
 								
 									 //军团资金账本
 									 LegionFinancialMap::make_insert(member->get_legion_uuid(),account_uuid, ItemId(5500001),
-									                           old_money,new_money,boost::lexical_cast<int64_t>(new_money - old_money),
+									                           old_money,new_money,static_cast<int64_t>(new_money - old_money),
 									                           3,0,Poseidon::get_utc_time());
 
 									}
@@ -676,7 +676,7 @@ PLAYER_SERVLET(Msg::CS_OpenLegionGrubeMessage, account, session,  req )
 
 						//军团资金账本
 						LegionFinancialMap::make_insert(member->get_legion_uuid(),account_uuid, ItemId(5500001),
-									                           old_money,new_money,boost::lexical_cast<int64_t>(new_money - old_money),
+									                           old_money,new_money,static_cast<int64_t>(new_money - old_money),
 									                           4,0,Poseidon::get_utc_time());
 						}
                         // 更新建筑物属性
@@ -826,7 +826,7 @@ PLAYER_SERVLET(Msg::CS_RepairLegionGrubeMessage, account, session,  req )
 
 					//军团资金账本
 					LegionFinancialMap::make_insert(member->get_legion_uuid(),account_uuid, ItemId(5500001),
-									                           old_money,new_money,boost::lexical_cast<int64_t>(new_money - old_money),
+									                           old_money,new_money,static_cast<int64_t>(new_money - old_money),
 									                           5,0,Poseidon::get_utc_time());
 					}
 
@@ -958,7 +958,7 @@ PLAYER_SERVLET(Msg::CS_GradeLegionMessage, account, session, req)
 
                     //军团资金账本
 					LegionFinancialMap::make_insert(member->get_legion_uuid(),account_uuid, ItemId(5500001),
-									                           old_money,new_money,boost::lexical_cast<int64_t>(new_money - old_money),
+									                           old_money,new_money,static_cast<int64_t>(new_money - old_money),
 									                           6,0,Poseidon::get_utc_time());
                     // 广播给军团成员
                     Msg::SC_LegionNoticeMsg msg;

@@ -22,10 +22,10 @@ namespace EmperyCenter{
 namespace{
 struct LegionFinancialElement{
 boost::shared_ptr<MySql::Center_LegionFinancial> legionfinancials;
-LegionFinancialUuid  financial_uuid;
-LegionUuid  legion_uuid;
-AccountUuid account_uuid;
-ItemId item_id;
+  LegionFinancialUuid  financial_uuid;
+  LegionUuid  legion_uuid;
+  AccountUuid account_uuid;
+  ItemId item_id;  
 std::uint64_t  old_count;
 std::uint64_t  new_count;
 std::int64_t   delta_count;
@@ -103,10 +103,7 @@ MODULE_RAII_PRIORITY(handles,5000)
                              std::int64_t delta_count,std::uint64_t action_id,
                              std::uint64_t action_count,std::uint64_t  created_time)
 {
-
-    auto obj = boost::make_shared<MySql::Center_LegionFinancial>((LegionFinancialUuid(Poseidon::Uuid::random())).get(),legion_uuid.get(),account_uuid.get(),item_id.get(),
-    old_count, new_count, delta_count,action_id,action_count, created_time);
-
+    auto obj = boost::make_shared<MySql::Center_LegionFinancial>((LegionFinancialUuid(Poseidon::Uuid::random())).get(),legion_uuid.get(),account_uuid.get(),item_id.get(), old_count, new_count, delta_count,action_id,action_count, created_time);
     obj->enable_auto_saving();
 
     Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
