@@ -111,6 +111,7 @@ namespace EmperyCenter {
 				SLOT_LEGAUE_CREATE_DEFAULT_MEMBERCOUNT                 = 100136,
 				SLOT_LEGAUE_EXPAND_CONSUME                 			   = 100137,
 				SLOT_LEGION_TASK_PERSONAL_CONTRIBUTE_THRESHOLD = 100140,
+				SLOT_DAILY_TASK_MAX_LEVEL                              = 100145,
 			};
 
 		public:

@@ -65,6 +65,8 @@ namespace EmperyCenter {
 
 		void check_primary_tasks();
 		void check_daily_tasks();
+		void check_daily_tasks_init();
+		void check_daily_tasks_next(TaskId task_id);
 		/*************************************************************************************************/
 		void reset_legion_package_tasks();
 		void check_legion_package_tasks();

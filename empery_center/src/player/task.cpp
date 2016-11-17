@@ -72,6 +72,7 @@ PLAYER_SERVLET(Msg::CS_ItemFetchTaskReward, account, session, req){
 		});
 
 	task_box->check_primary_tasks();
+	task_box->check_daily_tasks_next(task_id);
 
 	return Response();
 }
