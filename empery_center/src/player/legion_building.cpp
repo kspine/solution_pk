@@ -959,7 +959,7 @@ PLAYER_SERVLET(Msg::CS_GradeLegionMessage, account, session, req)
                     //军团资金账本
 					LegionFinancialMap::make_insert(member->get_legion_uuid(),account_uuid, ItemId(5500001),
 									                           old_money,new_money,static_cast<int64_t>(new_money - old_money),
-									                           6,0,Poseidon::get_utc_time());
+									                           6,level,Poseidon::get_utc_time());
                     // 广播给军团成员
                     Msg::SC_LegionNoticeMsg msg;
 					msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_LEGION_GRADE;
