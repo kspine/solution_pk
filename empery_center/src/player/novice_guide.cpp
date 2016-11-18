@@ -10,14 +10,16 @@
 
 #include "../singletons/item_box_map.hpp"
 #include "../singletons/task_box_map.hpp"
-
+#include "../singletons/novice_guide_map.hpp"
+#include "../singletons/world_map.hpp"
 
 #include "../item_box.hpp"
 #include "../item_ids.hpp"
+#include "../reason_ids.hpp"
 
 #include "../task_box.hpp"
 #include "../transaction_element.hpp"
-
+#include "../castle.hpp"
 
 #include "../data/novice_guide_setup.hpp"
 
@@ -34,8 +36,8 @@ namespace EmperyCenter
        PROFILE_ME;
        const auto account_uuid = account->get_account_uuid();
        const auto task_id = req.task_id;
-       auto step_id = 0;
-       NoviceGuideMap::get_step_id(account_uuid,TaskId(task_id),step_id);
+       std::uint64_t  step_id = 0;
+       NoviceGuideMap::get_step_id(AccountUuid(account_uuid),TaskId(task_id),step_id);
        if(step_id == 0)
        {
           return Response(Msg::ERR_CHECK_NOVICE_GUIDE_TASK_STEPID_NOTEXIST);
@@ -59,23 +61,23 @@ namespace EmperyCenter
        	  return Response(Msg::ERR_CHECK_NOVICE_GUIDE_TASK_FINISHED);
        }
 
-       if(!NoviceGuideMap::check_step_id(account_uuid,TaskId(task_id),NoviceGuideStepId(step_id))
+       if(!NoviceGuideMap::check_step_id(account_uuid,TaskId(task_id),step_id))
        {
           return Response(Msg::ERR_CHECK_NOVICE_GUIDE_TASK_STEPID);
        }
        return Response(Msg::ST_OK);
 
-       NoviceGuideLog::NoviceGuideTrace(account_uuid,TaskId(task_id),NoviceGuideStepId(step_id),Poseidon::get_utc_time());
+       NoviceGuideLog::NoviceGuideTrace(account_uuid,TaskId(task_id),step_id,Poseidon::get_utc_time());
 
-       auto obj_novice_guide = boost::make_shared<MySql::Center_NoviceGuide>(
-       	account_uuid.get(),TaskId(task_id),NoviceGuideStepId(step_id));
+       TaskId task_ids = TaskId(task_id);
+       auto obj = boost::make_shared<MySql::Center_NoviceGuide>(
+       account_uuid.get(),task_ids.get(),step_id);
 
-       obj_novice_guide->enable_auto_saving();
-       Poseidon::MySqlDaemon::enqueue_for_saving(obj_novice_guide, false, true);
-       NoviceGuideMap::insert(obj_novice_guide);
-
-
-       auto pshare = Data::NoviceGuideSetup::require(NoviceGuideStepId(step_id));
+       obj->enable_auto_saving();
+       Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
+       NoviceGuideMap::insert(obj);
+       
+       auto pshare = Data::NoviceGuideSetup::require(step_id);
 
        //item_rewards
        {
@@ -93,31 +95,32 @@ namespace EmperyCenter
          item_box->commit_transaction(transaction, false);
        }
 
+       auto castle = WorldMap::require_primary_castle(account->get_account_uuid());
+
        //resource_rewards;
        {
-         auto resource_reward_map = pshare->resource_rewards;
+         auto resource_rewards = pshare->resource_rewards;
          std::vector<ResourceTransactionElement> transaction;
-         transaction.reserve(resource_reward_map.size());
+         transaction.reserve(resource_rewards.size());
 
-         const auto castle = WorldMap::require_primary_castle(account->get_account_uuid());
 
          for(auto it = resource_rewards.begin(); it != resource_rewards.end(); ++it)
          {
            transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, it->second,
                                     ReasonIds::ID_NOVICE_GUIDE_ADD_RESOURCE, 0, 0, 0);
          }
-         castle->commit_resource_transaction(transaction,false);
+         castle->commit_resource_transaction(transaction);
        }
 
        //arm_rewards
        {
-         auto arm_reward_map = pshare->arm_rewards;
+         auto arm_rewards = pshare->arm_rewards;
          std::vector<SoldierTransactionElement> transaction;
-
+         transaction.reserve(arm_rewards.size());
          for(auto it = arm_rewards.begin(); it != arm_rewards.end(); ++it)
          {
        	   transaction.emplace_back(SoldierTransactionElement::OP_ADD, it->first, it->second,
-       			ReasonIds::ID_NOVICE_GUIDE_ADD_ARM,map_object_type_id.get(), count, 0);
+       			ReasonIds::ID_NOVICE_GUIDE_ADD_ARM,0, 0, 0);
          }
        	 castle->commit_soldier_transaction(transaction);
        }

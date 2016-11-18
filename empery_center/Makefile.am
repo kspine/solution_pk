@@ -102,6 +102,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/legion_financial.cpp \
 	src/player/league.cpp \
 	src/player/activity.cpp \
+	src/player/novice_guide.cpp \
 	src/admin/account.cpp	\
 	src/admin/item.cpp	\
 	src/admin/castle.cpp	\

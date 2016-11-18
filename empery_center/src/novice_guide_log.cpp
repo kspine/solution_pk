@@ -11,7 +11,7 @@ NoviceGuideLog::NoviceGuideLog(){}
 NoviceGuideLog::~NovioeGuideLog(){}
 
 void NoviceGuideLog::NoviceGuideTrace(AccountUuid account_uuid, TaskId task_id,
-                    NoviceGuideStepId step_id,std::uint64_t created_time)
+                    std::uint64_t step_id,std::uint64_t created_time)
 {
    const auto event = boost::make_shared<Events::NoviceGuideTrace>(
              account_uuid,task_id,step_id,created_time);

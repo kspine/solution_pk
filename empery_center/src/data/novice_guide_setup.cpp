@@ -77,7 +77,7 @@ namespace EmperyCenter
 
 	namespace Data
 	{
-		boost::shared_ptr<const NoviceGuideSetup> NoviceGuideSetup::get(NoviceGuideStepId step_id)
+		boost::shared_ptr<const NoviceGuideSetup> NoviceGuideSetup::get(std::uint64_t step_id)
 		{
 			PROFILE_ME;
 
@@ -97,7 +97,7 @@ namespace EmperyCenter
 			return boost::shared_ptr<const NoviceGuideSetup>(noviceGuideSetup_container, &*it);
 		}
 
-		boost::shared_ptr<const NoviceGuideSetup> NoviceGuideSetup::require(NoviceGuideStepId step_id)
+		boost::shared_ptr<const NoviceGuideSetup> NoviceGuideSetup::require(std::uint64_t step_id)
 		{
 			PROFILE_ME;
 			auto ret = get(task_id);

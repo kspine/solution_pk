@@ -15,6 +15,7 @@
 #include "../string_utilities.hpp"
 
 #include "../mysql/novice_guide.hpp"
+
 #include "account_map.hpp"
 #include "../account_attribute_ids.hpp"
 
@@ -25,7 +26,7 @@ namespace EmperyCenter{
 			boost::shared_ptr<MySql::Center_NoviceGuide> novice_guide;
 			AccountUuid account_uuid;
 			TaskId task_id;
-			NoviceGuideStepId step_id;
+			std::uint64_t step_id;
 		    explicit NoviceGuideElement(boost::shared_ptr<MySql::Center_NoviceGuide> novice_guide_)
 		    : novice_guide(std::move(novice_guide_))
 			, account_uuid(novice_guide->get_account_uuid())
@@ -107,18 +108,18 @@ namespace EmperyCenter{
 	 }
 
 
-    void NoviceGuideMap::get_step_id(AccountUuid account_uuid,TaskId task_id,NoviceGuideStepId& step_id)
+    void NoviceGuideMap::get_step_id(AccountUuid account_uuid,TaskId task_id,std::uint64_t& step_id)
     {
 	   PROFILE_ME;
 	   const auto  pNoviceGuide = find(account_uuid,task_id);
 	   if (NULL != pNoviceGuide)
 	   {
-		  step_id = NoviceGuideStepId(pNoviceGuide->unlocked_get_step_id());
+		  step_id = static_cast<std::uint64_t>(pNoviceGuide->unlocked_get_step_id());
 	   }
 	   return;
     }
 
-    bool NoviceGuideMap::check_step_id(AccountUuid account_uuid,TaskId task_id,NoviceGuideStepId step_id)
+    bool NoviceGuideMap::check_step_id(AccountUuid account_uuid,TaskId task_id,std::uint64_t step_id)
     {
        NoviceGuideStepId current_step_id;
        get_step_id(account_uuid,task_id,&current_step_id);

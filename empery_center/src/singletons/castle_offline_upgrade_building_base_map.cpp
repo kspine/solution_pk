@@ -17,7 +17,7 @@
 #include "../castle.hpp"
 
 #include "../singletons/world_map.hpp"
-
+#include "../singletons/player_session_map.hpp"
 
 namespace EmperyCenter{
 
@@ -104,6 +104,12 @@ namespace EmperyCenter{
 	 }
 
       auto account_uuid = map_object->get_owner_uuid();
+      
+      const auto session = PlayerSessionMap::get(account_uuid);
+      if(!session)
+      {
+         return;
+      }
       std::string building_base_ids = boost::lexical_cast<std::string>(building_base_id);
       std::string str_auto_uuid = (account_uuid.str() + "," + map_object_uuid.str());
       auto  ptr_castles = find(account_uuid,map_object_uuid);
