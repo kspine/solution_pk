@@ -73,3 +73,6 @@ sounds_id,sounds_name
 72,1203001_instructions
 73,1203002_instructions
 74,1204001_instructions
+75,land_click.mp3
+76,add_sub.mp3
+77,tips_open.mp3

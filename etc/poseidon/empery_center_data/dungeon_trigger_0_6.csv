@@ -1,0 +1,7 @@
+id,name,trigger_type,delay,condition,effect_type,effect_params,times,open,status
+4,name,1,0,,[1],"[[[3301103,[9,9],[0,0],50],[3301103,[10,10],[0,0],51],[3301103,[16,9],[0,0],52],[3301103,[16,8],[0,0],53]]]",1,1,0
+100006,dungeon_plot_begin,1,0,,[10],"[[[67,117],1806,1755]]",1,1,0
+100007,dungeon_plot_begin,1,0,,[9],"[[[0,1815],0,1]]",1,1,0
+100008,dungeon_solider_all_die,6,0,[0],[6],[[0]],1,1,0
+100009,dungeon_monster_all_die,6,0,"[1,4]",[5],[[0]],1,1,0
+100010,dungeon_finish_task,4,0,[2],[7],[[3401018]],1,1,0

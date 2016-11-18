@@ -89,6 +89,14 @@ namespace MySql {
 	FIELD_DATETIME          (updated_time)
 #include <poseidon/mysql/object_generator.hpp>
 
+#define MYSQL_OBJECT_NAME   Center_CastleOfflineUpgradeBuildingBase
+#define MYSQL_OBJECT_FIELDS \
+    FIELD_STRING            (auto_uuid) \
+	FIELD_UUID              (account_uuid)	\
+	FIELD_UUID              (map_object_uuid)	\
+	FIELD_STRING            (building_base_ids)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 
 }

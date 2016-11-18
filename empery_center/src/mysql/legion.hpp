@@ -59,7 +59,6 @@ namespace EmperyCenter {
     FIELD_INTEGER_UNSIGNED  (share_package_item_id)	\
     FIELD_DATETIME          (share_package_time) \
     FIELD_DATETIME          (share_package_expire_time)
-
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_Legion_Package_Pick_Share
@@ -84,7 +83,21 @@ namespace EmperyCenter {
     FIELD_INTEGER_UNSIGNED  (legion_building_attribute_id)	\
     FIELD_STRING            (value)
 #include <poseidon/mysql/object_generator.hpp>
-	}
+
+#define MYSQL_OBJECT_NAME   Center_LegionFinancial
+#define MYSQL_OBJECT_FIELDS \
+    FIELD_UUID               (financial_uuid)  \
+    FIELD_UUID               (legion_uuid)  \
+    FIELD_UUID               (account_uuid)  \
+    FIELD_INTEGER_UNSIGNED   (item_id) \
+    FIELD_BIGINT_UNSIGNED    (old_count) \
+    FIELD_BIGINT_UNSIGNED    (new_count) \
+    FIELD_BIGINT             (delta_count) \
+    FIELD_INTEGER_UNSIGNED   (action_id)   \
+    FIELD_INTEGER_UNSIGNED   (action_count) \
+    FIELD_DATETIME           (created_time)
+#include <poseidon/mysql/object_generator.hpp>
+}
 }
 
 #endif
