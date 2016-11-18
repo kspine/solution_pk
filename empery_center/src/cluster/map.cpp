@@ -1318,7 +1318,7 @@ _wounded_done:
 				;
 
 				while(!resources_dropped.empty()){
-					const auto rand = Poseidon::rand32() % resources_dropped.size();
+					const auto rand = Poseidon::random_uint32() % resources_dropped.size();
 					const auto it = resources_dropped.begin() + static_cast<std::ptrdiff_t>(rand);
 					const auto resource_id = it->first;
 					const auto amount = it->second;

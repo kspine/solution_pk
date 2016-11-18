@@ -294,7 +294,7 @@ namespace EmperyCenter {
 			}
 			// 2. 将剩余的任务打乱，未领奖的任务不在其中。
 			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
-				const auto j = Poseidon::rand32() % task_candidates.size();
+				const auto j = Poseidon::random_uint32() % task_candidates.size();
 				std::swap(task_candidates.at(i), task_candidates.at(j));
 			}
 			// 3. 把刚才删掉的任务排在其他任务前面。
@@ -405,7 +405,7 @@ namespace EmperyCenter {
 	
 			// 将任务打乱
 			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
-				const auto j = Poseidon::rand32() % task_candidates.size();
+				const auto j = Poseidon::random_uint32() % task_candidates.size();
 				std::swap(task_candidates.at(i), task_candidates.at(j));
 			}
 			// 4. 列表生成完成。
@@ -526,7 +526,7 @@ namespace EmperyCenter {
 
 			// 将任务打乱
 			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
-				const auto j = Poseidon::rand32() % task_candidates.size();
+				const auto j = Poseidon::random_uint32() % task_candidates.size();
 				std::swap(task_candidates.at(i), task_candidates.at(j));
 			}
 			

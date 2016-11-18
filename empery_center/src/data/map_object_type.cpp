@@ -485,7 +485,7 @@ namespace EmperyCenter {
 					return{};
 				}
 
- 				auto random_weight = Poseidon::rand_double(0, weight_total);
+ 				auto random_weight = (Poseidon::random_double()) * weight_total;
 				LOG_EMPERY_CENTER_DEBUG("> Generated a random weight: random_weight = ", random_weight, ", weight_total = ", weight_total);
 				for (auto it = range.first; it != range.second; ++it) {
 					random_weight -= it->weight;
