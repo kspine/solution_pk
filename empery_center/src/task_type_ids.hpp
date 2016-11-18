@@ -18,7 +18,8 @@ namespace EmperyCenter {
 			ID_DESTROY_MONSTERS(9), // 消灭野怪战斗力ID
 			ID_DESTROY_SOLDIERS(10), //消灭士兵战斗力ID
 			ID_CHARGE_DIAMOND(11), //充值钻石ID
-			ID_LEGION_DONATE(12); // 军团捐献 单位数      -               -
+			ID_LEGION_DONATE(12), // 军团捐献 单位数
+			ID_DUNGEON_CLEARANCE(13);
 	}
 
 	namespace TaskLegionPackageKeyIds {

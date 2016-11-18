@@ -65,12 +65,18 @@ namespace EmperyCenter {
 
 		void check_primary_tasks();
 		void check_daily_tasks();
+		void check_daily_tasks_init();
+		void check_daily_tasks_next(TaskId task_id);
 		/*************************************************************************************************/
 		void reset_legion_package_tasks();
 		void check_legion_package_tasks();
 
 		void update_reward_status(TaskId task_id);
 		bool check_reward_status(TaskId task_id);
+
+		void check_task_dungeon_clearance(std::uint64_t key_dungeon_id,std::uint64_t finish_count);
+		void access_task_dungeon_clearance();
+
 
 		//建筑升级刷新任务
 		//void check_caster_legion_package_task();

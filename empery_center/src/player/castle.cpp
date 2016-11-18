@@ -49,6 +49,9 @@
 #include "../singletons/activity_map.hpp"
 #include "../activity.hpp"
 
+
+#include "../singletons/castle_offline_upgrade_building_base_map.hpp"
+
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
@@ -77,6 +80,9 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 		child->pump_status();
 		child->synchronize_with_player(session);
 	}
+	
+	//同步离线升级建筑基础信息
+	CastleOfflineUpgradeBuildingBaseMap::Synchronize_with_player(castle->get_owner_uuid(),map_object_uuid,session);
 
 	return Response();
 }

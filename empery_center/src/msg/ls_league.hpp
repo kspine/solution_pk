@@ -209,6 +209,17 @@ namespace Msg {
 	FIELD_STRING        (to_account_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    LS_ModifyLeagueNoticeRes
+#define MESSAGE_ID      51016
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (content)\
+	FIELD_ARRAY         (legions,	\
+	FIELD_STRING        (legion_uuid)	\
+	)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -20,6 +20,8 @@
 #include "singletons/world_map.hpp"
 #include "buff_ids.hpp"
 
+#include "singletons/castle_offline_upgrade_building_base_map.hpp"
+
 namespace EmperyCenter {
 
 namespace {
@@ -206,6 +208,7 @@ namespace {
 		case Castle::MIS_UPGRADE:
 			level = obj->get_building_level();
 			obj->set_building_level(level + 1);
+            CastleOfflineUpgradeBuildingBaseMap::make_insert(MapObjectUuid(obj->get_map_object_uuid()),obj->get_building_base_id());
 			break;
 
 		case Castle::MIS_DESTRUCT:
@@ -226,6 +229,7 @@ namespace {
 
 		return true;
 	}
+
 	bool check_tech_mission(const boost::shared_ptr<MySql::Center_CastleTech> &obj, std::uint64_t utc_now){
 		PROFILE_ME;
 
@@ -689,7 +693,7 @@ void Castle::check_init_buildings(){
 				}
 			}
 			if(!random_buildings.empty()){
-				const auto index = static_cast<std::ptrdiff_t>(Poseidon::random_uint32() % random_buildings.size());
+				const auto index = static_cast<std::ptrdiff_t>(Poseidon::rand32() % random_buildings.size());
 				init_building_id = (random_buildings.begin() + index)->first;
 			}
 		}

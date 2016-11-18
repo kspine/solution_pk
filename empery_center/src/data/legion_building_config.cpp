@@ -32,7 +32,7 @@ namespace EmperyCenter
                     csv.get(elem.effect_time, "effect_time");
                     csv.get(elem.demolition, "demolition");
                     csv.get(elem.building_combat_attributes, "building_combat_attributes");
-
+                    csv.get(elem.max_resource,"max_resource");
                     Poseidon::JsonObject object;
 
                     // 消耗资源
@@ -221,5 +221,17 @@ namespace EmperyCenter
 		   }
 		   return ret;
         }
+
+        std::uint64_t LegionBuilding::get_max_resource(std::uint64_t house_level)
+        {
+          auto obj_ptr  = require(house_level);
+          return obj_ptr->max_resource;
+        }
+
+        std::uint64_t LegionBuilding::get_open_time(std::uint64_t house_level)
+        {
+          auto obj_ptr  = require(house_level);
+          return obj_ptr->open_time;
+        } 
 	}
 }

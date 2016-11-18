@@ -40,6 +40,7 @@ constexpr ReasonId
 	ID_CASTLE_CAPTURED               ( 672028 ), // 0                   0                   0
 	ID_BATTALION_UNLOAD_CRATE        ( 672029 ), // 部队 UUID 高位      0                   0
 	ID_SOLDIER_HEALED                ( 672030 ), // 0                   0                   0
+	ID_LAYOFFS_BATTALION             ( 672031 ), // 城堡 UUID 高位      部队 UUID 高位      0
 
 	ID_INIT_ITEMS                    ( 673001 ), // 初始数量            0                   0
 	ID_AUTO_INCREMENT                ( 673002 ), // 自增长类型          自增长偏移          0
@@ -104,7 +105,13 @@ constexpr ReasonId
 	ID_LEGION_REPAIR_GRUBE           ( 675006 ),//  矿井UUID 高位        0                  0
 	ID_LEGION_USE_DONATE_ITEM        ( 675007 ),//  道具 ID              道具数量           0
 	ID_LEGION_EXCHANGE_ITEM          ( 675008 ),//  0                    0                  0
-	ID_NEW_GUIDE_CREATE_SOLIDER      ( 675009 );//  0                    0                  0
+	ID_NEW_GUIDE_CREATE_SOLIDER      ( 675009 ),//  0                    0                  0
+	ID_NOVICE_GUIDE_ADD_ITEM         ( 675010 ),
+	ID_NOVICE_GUIDE_ADD_RESOURCE     ( 675011 ),
+	ID_NOVICE_GUIDE_ADD_ARM          ( 675012 ),
+	ID_MODIFY_LEGION                 ( 675013 ),
+	ID_MODIFY_LEAGUE                 ( 675014 ),
+	ID_LEGION_BUILDING_HARVESTED_COUNTS_ITEM(675015);
 }
 
 }

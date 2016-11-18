@@ -316,7 +316,7 @@ boost::shared_ptr<HornMessage> ChatBoxMap::forced_reload_horn_message(HornMessag
 		horn_map->replace(result.first, elem);
 	}
 
-	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded horn message: horn_message_uuid = ", horn_message_uuid);
+	LOG_EMPERY_CENTER_DEBUG("Successfully reloaded horn message not found: horn_message_uuid = ", horn_message_uuid);
 	return std::move(horn_message);
 }
 

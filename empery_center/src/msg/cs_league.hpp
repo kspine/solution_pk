@@ -154,6 +154,27 @@ namespace Msg {
 
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ModifyLeagueNoticeReqMessage
+#define MESSAGE_ID      1820
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (content)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ModifyLeagueNameReqMessage
+#define MESSAGE_ID      1821
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (name)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ModifyLeagueSwitchStatusReqMessage
+#define MESSAGE_ID      1822
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (switchstatus)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

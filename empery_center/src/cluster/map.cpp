@@ -64,6 +64,16 @@
 #include "../account.hpp"
 #include "../account_attribute_ids.hpp"
 
+#include "../singletons/legion_map.hpp"
+
+#include "../data/legion_building_config.hpp"
+
+
+#include "../data/legion_package_corps_box.hpp"
+#include "../data/legion_corps_level.hpp"
+#include "../legion.hpp"
+#include "../legion_attribute_ids.hpp"
+#include "../item_ids.hpp"
 namespace EmperyCenter {
 
 CLUSTER_SERVLET(Msg::KS_MapRegisterCluster, cluster, req){
@@ -1249,6 +1259,10 @@ _wounded_done:
 						{
 							const auto ntype = warehouse_building->get_output_type();
 							auto &amount = resources_dropped[ResourceId(ntype)];
+
+							//折损比例
+	                        amount = amount *  Data::Global::as_double(Data::Global::SLOT_LEGION_BUILDING_IMPAIRMENT_RATIO);
+
 							amount = checked_add(amount, left);
 
 							// 矿井不消失，给个击毁标识
@@ -1304,7 +1318,7 @@ _wounded_done:
 				;
 
 				while(!resources_dropped.empty()){
-					const auto rand = Poseidon::random_uint32() % resources_dropped.size();
+					const auto rand = Poseidon::rand32() % resources_dropped.size();
 					const auto it = resources_dropped.begin() + static_cast<std::ptrdiff_t>(rand);
 					const auto resource_id = it->first;
 					const auto amount = it->second;
@@ -1966,6 +1980,41 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 			return Response(Msg::ERR_LEGION_GATHER_IN_LEAVE_TIME);
 	}
 
+
+	const auto unique_legion_uuid = member->get_legion_uuid();
+    const auto legion = LegionMap::get(unique_legion_uuid);
+    if (!legion)
+    {
+        LOG_EMPERY_CENTER_FATAL("军团不存在 ERR_LEGION_CANNOT_FIND;");
+        //军团不存在
+    	return Response(Msg::ERR_LEGION_CANNOT_FIND);
+    }
+
+	const auto levelinfo = Data::LegionCorpsLevel::require(LegionCorpsLevelId(boost::lexical_cast<uint32_t>(legion->get_attribute(LegionAttributeIds::ID_LEVEL))));
+    const auto legion_member_max = levelinfo->legion_member_max;
+
+    auto H_interval_min = 24 * 60;
+      auto CD_open_time = Data::LegionBuilding::get_open_time(target_object->get_level());
+      auto max_resource = Data::LegionBuilding::get_max_resource(target_object->get_level());
+      const auto K_cofficient = Data::Global::as_unsigned(Data::Global::SLOT_LEGION_BUILDING_HARVEST_COEFFICIENT);
+
+      auto daily_harvest_limit = boost::lexical_cast<std::int64_t>((boost::lexical_cast<uint64_t>(max_resource) / boost::lexical_cast<uint64_t>(legion_member_max)) * 
+       (boost::lexical_cast<uint64_t>(H_interval_min) / boost::lexical_cast<uint64_t>(CD_open_time)) *  boost::lexical_cast<uint64_t>(K_cofficient));
+
+      const auto item_box = ItemBoxMap::require(account_uuid);
+	  auto harvested_count = item_box->get(ItemIds::ID_LEGION_BUILDING_HARVESTED_COUNTS).count;
+	  if(harvested_count >= boost::lexical_cast<std::uint64_t>(daily_harvest_limit))
+	  {
+		return Response(Msg::ERR_LEGION_BUILDING_HARVEST_LIMITED);
+      }
+
+	  std::vector<ItemTransactionElement> transaction;
+
+	  transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_LEGION_BUILDING_HARVESTED_COUNTS,
+	                         1, ReasonIds::ID_LEGION_BUILDING_HARVESTED_COUNTS_ITEM,
+							 0, 0, 0);
+
+	item_box->commit_transaction(transaction, false);
 	const auto parent_object_uuid = map_object->get_parent_object_uuid();
 	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 	if(!castle){
@@ -2103,3 +2152,12 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 	return Response();
 }
 }
+
+
+
+
+
+
+
+
+

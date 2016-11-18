@@ -201,6 +201,31 @@ namespace Msg {
 	FIELD_STRING         (legion_uuid)
 
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ModifyLegionNameReqMessage
+#define MESSAGE_ID      1639
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (name)	
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ModifyLegionIconReqMessage
+#define MESSAGE_ID      1640
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (icon)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ModifyLegionLanguageReqMessage
+#define MESSAGE_ID      1641
+#define MESSAGE_FIELDS  \
+	FIELD_STRING		 (language)	
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_ModifyLegionSwitchStatusReqMessage
+#define MESSAGE_ID      1642
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT          (switchstatus)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

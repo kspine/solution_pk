@@ -72,6 +72,7 @@ namespace Data {
 		std::uint64_t unique_id;
 		unsigned      ai_type;
 		std::string   params;
+		std::string   params2;
 		unsigned      ai_linkage;
 		unsigned      ai_Intelligence;
 	};

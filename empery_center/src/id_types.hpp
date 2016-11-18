@@ -238,7 +238,8 @@ namespace IdTypes {
 	using TaskLegionPackageKeyId    = GenericId<std::uint32_t, 120038>;
 	using DungeonTrapTypeId         = GenericId<std::uint32_t, 120039>;
 	using DungeonBuffTypeId         = GenericId<std::uint32_t, 120040>;
-	using DungeonMonsterSkillId     = GenericId<std::uint32_t, 120041>;
+	using NoviceGuideStepId         = GenericId<std::uint32_t, 120041>;
+	using DungeonMonsterSkillId     = GenericId<std::uint32_t, 120042>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;
@@ -254,6 +255,7 @@ namespace IdTypes {
 	using LegionBuildingUuid  		= GenericUuid<210012>;
 	using LegionPackageShareUuid    = GenericUuid<210013>;
 	using LeagueUuid                = GenericUuid<210014>;
+	using LegionFinancialUuid       = GenericUuid<210015>;
 }
 
 using namespace IdTypes;

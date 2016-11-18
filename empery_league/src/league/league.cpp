@@ -1662,6 +1662,114 @@ LEAGUE_SERVLET(Msg::SL_OtherLeagueInfo, league_session, req){
 	return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
 }
 
+LEAGUE_SERVLET(Msg::SL_ModifyLeagueNoticeReq, league_session, req){
+	PROFILE_ME;
 
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+	const auto content =  req.content;
 
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		EmperyCenter::Msg::LS_ModifyLeagueNoticeRes msg;
+        msg.account_uuid = req.account_uuid;
+	    msg.content = req.content;
+		league_session->send(msg);
+
+        return Response(Msg::ERR_ACCOUNT_HAVE_LEAGUE);
+	}
+
+	const auto &league = LeagueMap::get(member->get_league_uuid());
+	if(!league)
+	{
+	   return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+	}
+
+	const auto own_titleid = boost::lexical_cast<uint>(member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+	if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(own_titleid),League::LEAGUE_POWER::LEAGUE_POWER_CHANGENOTICE))
+	{
+	   return Response(Msg::ERR_LEAGUE_NO_POWER);
+	}
+
+    boost::container::flat_map<LeagueAttributeId, std::string> Attributes;
+    Attributes[LeagueAttributeIds::ID_CONTENT] = content;
+    league->set_attributes(Attributes);
+
+    league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_MODIFY_NOTICE,req.legion_uuid,league->get_nick());
+
+    EmperyCenter::Msg::LS_ModifyLeagueNoticeRes msg;
+    msg.account_uuid = req.account_uuid;
+	msg.content = req.content;
+
+	league_session->send(msg);
+
+	return Response(Msg::ST_OK);
+}
+
+LEAGUE_SERVLET(Msg::SL_ModifyLeagueNameReq, league_session, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+	const auto name =  req.name;
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+        return Response(Msg::ERR_ACCOUNT_HAVE_LEAGUE);
+	}
+
+	const auto &league = LeagueMap::get(member->get_league_uuid());
+	if(!league)
+	{
+	   return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+	}
+
+	const auto titleid = boost::lexical_cast<uint>(member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+	if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titleid),League::LEAGUE_POWER::LEAGUE_POWER_MODIFY))
+	{
+	   return Response(Msg::ERR_LEAGUE_NO_POWER);
+	}
+
+    league->set_nick(name);
+
+    league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_MODIFY,req.legion_uuid,league->get_nick());
+
+	return Response(Msg::ST_OK);
+}
+
+LEAGUE_SERVLET(Msg::SL_ModifyLeagueSwitchStatusReq, league_session, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+	const auto switchstatus =  req.switchstatus;
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+        return Response(Msg::ERR_ACCOUNT_HAVE_LEAGUE);
+	}
+
+	const auto &league = LeagueMap::get(member->get_league_uuid());
+	if(!league)
+	{
+	   return Response(Msg::ERR_LEAGUE_CANNOT_FIND);
+	}
+
+	const auto titleid = boost::lexical_cast<uint>(member->get_attribute(LeagueMemberAttributeIds::ID_TITLEID));
+	if(!Data::LeaguePower::is_have_power(boost::lexical_cast<std::uint64_t>(titleid),League::LEAGUE_POWER::LEAGUE_POWER_MODIFY))
+	{
+	   return Response(Msg::ERR_LEAGUE_NO_POWER);
+	}
+
+    boost::container::flat_map<LeagueAttributeId, std::string> Attributes;
+    Attributes[LeagueAttributeIds::ID_AUTOJOIN] = switchstatus;
+    league->set_attributes(Attributes);
+
+    league->sendNoticeMsg(League::LEAGUE_NOTICE_MSG_TYPE::LEAGUE_NOTICE_MSG_TYPE_MODIFY,req.legion_uuid,league->get_nick());
+
+	return Response(Msg::ST_OK);
+}
 }

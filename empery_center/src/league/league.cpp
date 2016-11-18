@@ -932,7 +932,18 @@ LEAGUE_SERVLET(Msg::LS_OtherLeagueInfo, server, req){
 	return Response();
 }
 
+LEAGUE_SERVLET(Msg::LS_ModifyLeagueNoticeRes, server, req){
+	PROFILE_ME;
 
+	const auto account_uuid = AccountUuid(req.account_uuid);
+
+	const auto account = AccountMap::get(account_uuid);
+	if(!account)
+	{
+		return Response(Msg::ERR_LEGION_CANNOT_FIND);
+	}
+	return Response();
+}
 
 
 }

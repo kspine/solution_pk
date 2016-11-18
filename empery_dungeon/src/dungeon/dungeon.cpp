@@ -27,7 +27,6 @@ DUNGEON_SERVLET(Msg::SD_DungeonCreate, dungeon, req){
 
 DUNGEON_SERVLET(Msg::SD_DungeonDestroy, dungeon, req){
 	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
-	LOG_EMPERY_DUNGEON_FATAL("destory dungeon ,msg = ",req);
 	DungeonMap::remove_dungeon_no_synchronize(dungeon_uuid);
 	return Response();
 }

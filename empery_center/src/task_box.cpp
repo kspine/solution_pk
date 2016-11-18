@@ -19,7 +19,8 @@
 #include "singletons/legion_member_map.hpp"
 #include "singletons/legion_map.hpp"
 #include "singletons/world_map.hpp"
-
+#include "dungeon_box.hpp"
+#include "singletons/dungeon_box_map.hpp"
 #include "legion.hpp"
 #include "legion_member.hpp"
 
@@ -164,11 +165,14 @@ namespace EmperyCenter {
 			it = m_tasks.erase(it);
 		}
 
-		check_daily_tasks();
+		//check_daily_tasks();
+		check_daily_tasks_init();
 
 		reset_legion_package_tasks();
 
 		check_legion_package_tasks();
+
+        access_task_dungeon_clearance();
 	}
 
 	void TaskBox::check_primary_tasks() {
@@ -290,7 +294,7 @@ namespace EmperyCenter {
 			}
 			// 2. 将剩余的任务打乱，未领奖的任务不在其中。
 			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
-				const auto j = Poseidon::random_uint32() % task_candidates.size();
+				const auto j = Poseidon::rand32() % task_candidates.size();
 				std::swap(task_candidates.at(i), task_candidates.at(j));
 			}
 			// 3. 把刚才删掉的任务排在其他任务前面。
@@ -330,6 +334,253 @@ namespace EmperyCenter {
 			}
 
 			m_stamps->set_created_time(utc_now);
+		}
+	}
+	void TaskBox::check_daily_tasks_init(){
+		PROFILE_ME;
+
+		const auto item_data = Data::Item::require(ItemIds::ID_TASK_DAILY_RESET);
+		if (item_data->auto_inc_type != Data::Item::AIT_DAILY)
+		{
+			DEBUG_THROW(Exception, sslit("Task daily reset item is not daily-reset"));
+		}
+		const auto auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
+		const auto account_uuid = get_account_uuid();
+		const auto utc_now = Poseidon::get_utc_time();
+
+		if (!m_stamps)
+		{
+			auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, std::string(), false);
+			obj->async_save(true);
+			m_stamps = std::move(obj);
+		}
+		// 特殊：
+		// created_time 是上次每日任务刷新时间。
+
+		const auto last_refreshed_time = m_stamps->get_created_time();
+		const auto last_refreshed_day = saturated_sub(last_refreshed_time, auto_inc_offset) / 86400000;
+		const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
+
+		if (last_refreshed_day < today) {
+			const auto daily_task_refresh_time = (today + 1) * 86400000 + auto_inc_offset;
+
+			unsigned account_level = 0;
+			std::vector<boost::shared_ptr<MapObject>> map_objects;
+			WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
+			for (auto it = map_objects.begin(); it != map_objects.end(); ++it) {
+				const auto &map_object = *it;
+				if (map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE) {
+					continue;
+				}
+				const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+				if (!castle) {
+					continue;
+				}
+				const auto current_level = castle->get_level();
+				LOG_EMPERY_CENTER_DEBUG("> Found castle: account_uuid = ", account_uuid, ", current_level = ", current_level);
+				if (account_level < current_level) {
+					account_level = current_level;
+				}
+			}
+
+			const auto max_daily_task_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_DAILY_TASK_COUNT);
+			std::vector<TaskId> task_candidates;
+			task_candidates.reserve(max_daily_task_count);
+
+			std::vector<boost::shared_ptr<const Data::TaskDaily>> task_data_daily;
+			Data::TaskDaily::get_all(task_data_daily);
+			for (auto it = task_data_daily.begin(); it != task_data_daily.end(); ++it) {
+				const auto &task_data = *it;
+				if (task_data->task_class_1 == Data::TaskDaily::ETaskLegionPackage_Class) {
+					continue;
+				}
+				if ((account_level < task_data->level_limit_min) || (task_data->level_limit_max < account_level)) {
+					continue;
+				}
+				if(task_data->task_level != 1){
+					continue;
+				}
+				task_candidates.emplace_back(task_data->task_id);
+			}
+	
+			// 将任务打乱
+			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
+				const auto j = Poseidon::rand32() % task_candidates.size();
+				std::swap(task_candidates.at(i), task_candidates.at(j));
+			}
+			// 4. 列表生成完成。
+			if (task_candidates.size() > max_daily_task_count) {
+				task_candidates.resize(max_daily_task_count);
+			}
+
+			for (auto it = task_candidates.begin(); it != task_candidates.end(); ++it) {
+				const auto task_id = *it;
+				auto info = get(task_id);
+				const bool nonexistent = (info.created_time == 0);
+				info.task_id = task_id;
+				info.category = CAT_DAILY;
+				info.created_time = utc_now;
+				info.expiry_time = daily_task_refresh_time;
+				if (nonexistent) {
+					LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+			//		LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+					insert(std::move(info));
+				}
+				else {
+					LOG_EMPERY_CENTER_DEBUG("Unrewarded daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+			//		LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+					update(std::move(info));
+				}
+			}
+
+			m_stamps->set_created_time(utc_now);
+		}
+	}
+	void TaskBox::check_daily_tasks_next(TaskId task_id){
+		PROFILE_ME;
+
+		const auto item_data = Data::Item::require(ItemIds::ID_TASK_DAILY_RESET);
+		if (item_data->auto_inc_type != Data::Item::AIT_DAILY)
+		{
+			DEBUG_THROW(Exception, sslit("Task daily reset item is not daily-reset"));
+		}
+		const auto auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
+		const auto account_uuid = get_account_uuid();
+		const auto utc_now = Poseidon::get_utc_time();
+
+		if (!m_stamps)
+		{
+			LOG_EMPERY_CENTER_WARNING("check_daily_tasks_next,null m_stamps");
+			DEBUG_THROW(Exception, sslit("Task daily reset item is not daily-reset"));
+		}
+		// 特殊：
+		// created_time 是上次每日任务刷新时间。
+		const auto last_refreshed_time = m_stamps->get_created_time();
+		const auto last_refreshed_day = saturated_sub(last_refreshed_time, auto_inc_offset) / 86400000;
+		const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
+		const auto it = m_tasks.find(task_id);
+		if(it == m_tasks.end()){
+			LOG_EMPERY_CENTER_WARNING("check daily tasks next,but no this task_id ,task_id = ",task_id);
+			DEBUG_THROW(Exception, sslit("check daily tasks next,but no this task_id "));
+		}
+		const auto &obj = it->second.first;
+		if(obj->get_category() != CAT_DAILY){
+			LOG_EMPERY_CENTER_DEBUG("this is not a daily task, task_id = ",task_id, " category = ",obj->get_category());
+			return;
+		}
+		if(!obj->get_rewarded()){
+			LOG_EMPERY_CENTER_WARNING("check daily tasks next,but this task have no award,task_id = ",task_id);
+			DEBUG_THROW(Exception, sslit("check daily tasks next,but this task have not award"));
+		}
+		const auto max_daily_task_level = Data::Global::as_unsigned(Data::Global::SLOT_DAILY_TASK_MAX_LEVEL);
+		const auto task_data = Data::TaskDaily::require(task_id);
+		if(task_data->task_level == max_daily_task_level){
+			LOG_EMPERY_CENTER_DEBUG("daily task max level,task_id = ",task_id);
+			return;
+		}
+		const auto expect_level = task_data->task_level + 1;
+		const auto max_daily_task_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_DAILY_TASK_COUNT);
+		std::vector<TaskTypeId> task_type_candidates;
+		task_type_candidates.reserve(max_daily_task_count);
+		task_type_candidates.emplace_back(TaskTypeId(task_data->type));
+		if (last_refreshed_day == today) {
+			const auto daily_task_refresh_time = (today + 1) * 86400000 + auto_inc_offset;
+
+			unsigned account_level = 0;
+			std::vector<boost::shared_ptr<MapObject>> map_objects;
+			WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
+			for (auto it = map_objects.begin(); it != map_objects.end(); ++it) {
+				const auto &map_object = *it;
+				if (map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE) {
+					continue;
+				}
+				const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+				if (!castle) {
+					continue;
+				}
+				const auto current_level = castle->get_level();
+				LOG_EMPERY_CENTER_DEBUG("> Found castle: account_uuid = ", account_uuid, ", current_level = ", current_level);
+				if (account_level < current_level) {
+					account_level = current_level;
+				}
+			}
+
+			std::vector<TaskId> task_candidates;
+			task_candidates.reserve(max_daily_task_count);
+
+			std::vector<boost::shared_ptr<const Data::TaskDaily>> task_data_daily;
+			Data::TaskDaily::get_all(task_data_daily);
+			for (auto it = task_data_daily.begin(); it != task_data_daily.end(); ++it) {
+				const auto &task_data = *it;
+				if (task_data->task_class_1 == Data::TaskDaily::ETaskLegionPackage_Class) {
+					continue;
+				}
+				if ((account_level < task_data->level_limit_min) || (task_data->level_limit_max < account_level)) {
+					continue;
+				}
+				if(task_data->task_level == 1){
+					continue;
+				}
+				task_candidates.emplace_back(task_data->task_id);
+			}
+
+			// 将任务打乱
+			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
+				const auto j = Poseidon::rand32() % task_candidates.size();
+				std::swap(task_candidates.at(i), task_candidates.at(j));
+			}
+			
+			//找出今天任务中未领取和已领取并且等级为最高等级的任务类型
+			for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
+				const auto &obj = it->second.first;
+				if(obj->get_category() != CAT_DAILY){
+					continue;
+				}
+				const auto last_refreshed_time = obj->get_created_time();
+				const auto last_refreshed_day = saturated_sub(last_refreshed_time, auto_inc_offset) / 86400000;
+				if(last_refreshed_day != today){
+					LOG_EMPERY_CENTER_DEBUG("daily old task,task_id = ",it->first," last_refreshed_day = ",last_refreshed_day, " today = ",today);
+					continue;
+				}
+				const auto task_data = Data::TaskDaily::require(it->first);
+				if(!obj->get_rewarded() || task_data->task_level == max_daily_task_level){
+					task_type_candidates.emplace_back(TaskTypeId(task_data->type));
+				}
+			}
+			if(task_type_candidates.size() != 4){
+				LOG_EMPERY_CENTER_WARNING("SOME LOGIC ERROR");
+			}
+
+
+			for (auto it = task_candidates.begin(); it != task_candidates.end(); ++it) {
+				const auto task_id = *it;
+				const auto task_data = Data::TaskDaily::require(task_id);
+				const auto task_type = TaskTypeId(task_data->type);
+				auto itt = std::find(task_type_candidates.begin(), task_type_candidates.end(),task_type);
+				if(itt != task_type_candidates.end()){
+					continue;
+				}
+				if(expect_level == task_data->task_level){
+					auto info = get(task_id);
+					const bool nonexistent = (info.created_time == 0);
+					info.task_id = task_id;
+					info.category = CAT_DAILY;
+					info.created_time = utc_now;
+					info.expiry_time = daily_task_refresh_time;
+					if (nonexistent) {
+						LOG_EMPERY_CENTER_DEBUG("New daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+			//			LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+						insert(std::move(info));
+					}
+					else {
+						LOG_EMPERY_CENTER_DEBUG("Unrewarded daily task: account_uuid = ", account_uuid, ", task_id = ", task_id);
+			//			LOG_EMPERY_CENTER_ERROR("Daily m_tasks.find(task_id) != m_tasks.end()");
+						update(std::move(info));
+					}
+					LOG_EMPERY_CENTER_FATAL("check_daily_tasks_next get a next task,task_id = ",task_id);
+					break;
+				}
+			}
 		}
 	}
 
@@ -477,186 +728,6 @@ namespace EmperyCenter {
 		}
 	}
 
-	/*
-		void TaskBox::check_caster_legion_package_task()
-		{
-			PROFILE_ME;
-
-			const auto item_data = Data::Item::require(ItemIds::ID_LEGION_PACKAGE_TASK_RESET);
-			if (!item_data)
-			{
-				LOG_EMPERY_CENTER_ERROR("check_caster_legion_package_task():Reset Item ");
-				return;
-			}
-			if (item_data->auto_inc_type != Data::Item::AIT_DAILY)
-			{
-				DEBUG_THROW(Exception, sslit("check_caster_legion_package_task daily reset item is not daily-reset"));
-			}
-			const auto auto_inc_offset = checked_mul<std::uint64_t>(item_data->auto_inc_offset, 60000);
-			const auto utc_now = Poseidon::get_utc_time();
-
-			if (!m_stamps)
-			{
-				auto obj = boost::make_shared<MySql::Center_Task>(get_account_uuid().get(), 0, 0, 0, 0, "", false);
-				obj->async_save(true);
-				m_stamps = std::move(obj);
-			}
-
-			const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
-
-			{
-				const auto daily_task_refresh_time = (today + 1) * 86400000 + auto_inc_offset;
-
-				const auto member = LegionMemberMap::get_by_account_uuid(get_account_uuid());
-				if (member)
-				{
-					const auto legion_uuid = member->get_legion_uuid();
-					const auto legion = LegionMap::get(LegionUuid(legion_uuid));
-					if (legion)
-					{
-						const auto primary_castle = WorldMap::get_primary_castle(get_account_uuid());
-						if (primary_castle)
-						{
-							auto primary_castle_level = primary_castle->get_level();
-
-							std::vector<TaskId> task_id_candidates;
-							std::vector<boost::shared_ptr<const Data::TaskDaily>> task_legion_package;
-							Data::TaskDaily::get_all_legion_package_task(task_legion_package);
-							for (auto it = task_legion_package.begin(); it != task_legion_package.end(); ++it)
-							{
-								const auto &task_data = *it;
-								if ((primary_castle_level < task_data->level_limit_min) || (task_data->level_limit_max < primary_castle_level))
-								{
-									continue;
-								}
-
-								const auto task_id = task_data->task_id;
-								if (m_tasks.find(task_id) != m_tasks.end())
-								{
-									continue;
-								}
-
-								task_id_candidates.emplace_back(task_id);
-							}
-
-							std::vector<TaskTypeId> task_type_candidates;
-							for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
-							{
-								const auto task_id = it->first;
-								const auto &obj = it->second.first;
-								const auto category = Category(obj->get_category());
-								if (category != CAT_LEGION_PACKAGE) {
-									continue;
-								}
-
-								if (!has_been_accomplished(TaskId(task_id))) {
-									continue;
-								}
-
-								const auto task_data = Data::TaskAbstract::require(TaskId(task_id));
-								const auto task_type = task_data->type;
-
-								task_type_candidates.emplace_back(task_type);
-							}
-
-							for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
-							{
-								const auto task_id = it->first;
-								const auto &obj = it->second.first;
-								const auto category = Category(obj->get_category());
-								if (category != CAT_LEGION_PACKAGE) {
-									continue;
-								}
-
-								const auto it_find = std::find(task_id_candidates.begin(), task_id_candidates.end(), task_id);
-								if (it_find == task_id_candidates.end())
-								{
-									continue;
-								}
-
-								task_id_candidates.erase(it_find);
-							}
-
-							LOG_EMPERY_CENTER_ERROR("task_id_candidates.size", task_id_candidates.size());
-
-							for (auto it = task_id_candidates.begin(); it != task_id_candidates.end(); ++it)
-							{
-								const auto task_id = *it;
-
-								const auto task_data = Data::TaskAbstract::require(TaskId(task_id));
-								const auto task_type = task_data->type;
-								std::vector<TaskTypeId>::iterator it_find = std::find(task_type_candidates.begin(), task_type_candidates.end(), task_type);
-								if (it_find != task_type_candidates.end())
-								{
-									continue;
-								}
-
-								auto info = get(task_id);
-								const bool nonexistent = (info.created_time == 0);
-								info.task_id = task_id;
-								info.category = CAT_LEGION_PACKAGE;
-								info.created_time = utc_now;
-								info.expiry_time = daily_task_refresh_time;
-								if (nonexistent)
-								{
-									LOG_EMPERY_CENTER_ERROR("task_id_candidates insert ", info.task_id, info.category);
-									insert(std::move(info));
-								}
-								else
-								{
-									LOG_EMPERY_CENTER_ERROR("task_id_candidates update ", info.task_id, info.category);
-									update(std::move(info));
-								}
-							}
-							task_type_candidates.clear();
-
-							m_stamps->set_expiry_time(utc_now);
-						}
-					}
-				}
-			}
-		}
-		*/
-
-		/*
-			void TaskBox::sync_legion_package_finished_task()
-			{
-				PROFILE_ME;
-				const auto session = PlayerSessionMap::get(get_account_uuid());
-				if (session)
-				{
-					try
-					{
-						const auto utc_now = Poseidon::get_utc_time();
-						for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
-						{
-						   const auto &obj = it->second.first;
-						   const auto category = Category(obj->get_category());
-						   if (category != CAT_LEGION_PACKAGE)
-						   {
-							   continue;
-						   }
-						   if (!has_been_accomplished(TaskId(task_id)))
-						   {
-							  continue;
-						   }
-
-						   LOG_EMPERY_CENTER_ERROR("sync_legion_package_finished_task");
-
-						   Msg::SC_TaskChanged msg;
-						   fill_task_message(msg, it->second, utc_now);
-						   session->send(msg);
-						}
-					}
-					catch (std::exception &e)
-					{
-						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-						session->shutdown(e.what());
-					}
-				}
-			}
-		*/
-
 	void TaskBox::update_reward_status(TaskId task_id)
 	{
 		PROFILE_ME;
@@ -728,6 +799,10 @@ namespace EmperyCenter {
 			async_recheck_building_level_tasks(get_account_uuid());
 		}
 
+		if(task_data->type == TaskTypeIds::ID_DUNGEON_CLEARANCE){
+            access_task_dungeon_clearance();
+        }
+
 		const auto session = PlayerSessionMap::get(get_account_uuid());
 		if (session) {
 			try {
@@ -753,9 +828,6 @@ namespace EmperyCenter {
 			}
 			return;
 		}
-
-		LOG_EMPERY_CENTER_ERROR("TaskBox::update task_id = ", task_id);
-
 		const auto &pair = it->second;
 		const auto &obj = pair.first;
 
@@ -784,6 +856,10 @@ namespace EmperyCenter {
 		if (task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL) {
 			async_recheck_building_level_tasks(get_account_uuid());
 		}
+
+        if(task_data->type == TaskTypeIds::ID_DUNGEON_CLEARANCE){
+            access_task_dungeon_clearance();
+        }
 
 		const auto session = PlayerSessionMap::get(get_account_uuid());
 		if (session) {
@@ -929,33 +1005,129 @@ namespace EmperyCenter {
 			}
 		}
 	}
-	void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+void TaskBox::check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
 		const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2)
-	{
+{
 		PROFILE_ME;
 
 		const auto primary_castle = WorldMap::require_primary_castle(castle->get_owner_uuid());
 
 		check(type, key, count, (castle == primary_castle) ? TCC_PRIMARY : TCC_NON_PRIMARY, param1, param2);
-	}
+}
 
-	void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
-		PROFILE_ME;
 
-		const auto utc_now = Poseidon::get_utc_time();
+void TaskBox::check_task_dungeon_clearance(std::uint64_t key_dungeon_id,std::uint64_t finish_count)
+{
+ PROFILE_ME;
+ const auto utc_now = Poseidon::get_utc_time();
+ for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
+ {
+   const auto task_id = it->first;
+   auto &pair = it->second;
+   const auto &obj = pair.first;
+   if(obj->get_rewarded()){
+      continue;
+   }
+   const auto task_data = Data::TaskAbstract::require(task_id);
+   if(task_data->type != TaskTypeIds::ID_DUNGEON_CLEARANCE){
+      continue;
+   }
+   const auto oit = task_data->objective.find(key_dungeon_id);
+   if(oit == task_data->objective.end()){
+      continue;
+   }
 
-		for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
-			const auto &obj = it->second.first;
-			const auto category = Category(obj->get_category());
-			if ((category == CAT_PRIMARY) && obj->get_rewarded()) {
-				continue;
-			}
+   const auto old_progress = pair.second;
+   std::uint64_t count_old,count_new;
+   const auto cit = old_progress->find(key_dungeon_id);
+   if(cit != old_progress->end()){
+      count_old = cit->second;
+   }
+   else
+   {
+      count_old = 0;
+   }
+   count_new = std::max(count_old,finish_count);
+   const auto count_finish = static_cast<std::uint64_t>(oit->second.at(0));
+   if(count_new >= count_finish){
+      count_new = count_finish;
+   }
+   if(count_new == count_old && count_old == 0){
+      continue;
+   }
+   auto new_progress =  boost::make_shared<Progress>(*old_progress);
+   (*new_progress)[key_dungeon_id] = count_new;
+   auto new_progress_str = encode_progress(*new_progress);
+   pair.second = std::move(new_progress);
+   obj->set_progress(std::move(new_progress_str));
+   const auto session = PlayerSessionMap::get(get_account_uuid());
+   if (session)
+   {
+      try {
 
-	//		LOG_EMPERY_CENTER_ERROR("synchronize_with_player");
+      		Msg::SC_TaskChanged msg;
+      		fill_task_message(msg, pair, utc_now);
+      		session->send(msg);
+      }
+      catch (std::exception &e) {
+      		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+      		session->shutdown(e.what());
+      }
+    }
+  }
+}
 
-			Msg::SC_TaskChanged msg;
-			fill_task_message(msg, it->second, utc_now);
-			session->send(msg);
-		}
-	}
+void TaskBox::access_task_dungeon_clearance()
+{
+  PROFILE_ME;
+  const auto dungeon_box = DungeonBoxMap::get(get_account_uuid());
+  if(!dungeon_box){
+     return;
+  }
+  for(auto it = m_tasks.begin();it != m_tasks.end(); ++it)
+  {
+    const auto task_id = it->first;
+    auto &pair = it->second;
+    const auto &obj = pair.first;
+    const auto task_data = Data::TaskAbstract::require(task_id);
+    if(obj->get_rewarded()){
+        continue;
+    }
+    if(task_data->type != TaskTypeIds::ID_DUNGEON_CLEARANCE){
+        continue;
+    }
+
+    for(auto oit = task_data->objective.begin();oit != task_data->objective.end();++oit)
+    {
+      const auto key_dungeon_id = boost::lexical_cast<std::uint64_t>(oit->first);
+      const auto need_count     = boost::lexical_cast<std::uint64_t>(oit->second.at(0));
+      auto info = dungeon_box->get((DungeonTypeId)key_dungeon_id);
+      if(info.finish_count >= need_count)
+      {
+        check_task_dungeon_clearance(key_dungeon_id,info.finish_count);
+        break;
+      }
+    }
+  }
+}
+
+void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const
+{
+  PROFILE_ME;
+  const auto utc_now = Poseidon::get_utc_time();
+
+  for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it)
+  {
+     const auto &obj = it->second.first;
+     const auto category = Category(obj->get_category());
+	 if ((category == CAT_PRIMARY) && obj->get_rewarded())
+	 {
+		 continue;
+	 }
+
+	 Msg::SC_TaskChanged msg;
+	 fill_task_message(msg, it->second, utc_now);
+	 session->send(msg);
+  }
+}
 }

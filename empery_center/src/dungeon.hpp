@@ -159,11 +159,11 @@ public:
 	void broadcast_to_observers(const MessageT &msg){
 		broadcast_to_observers(MessageT::ID, Poseidon::StreamBuffer(msg));
 	}
-	
 	boost::shared_ptr<DungeonObject> get_object(DungeonObjectUuid dungeon_object_uuid) const;
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
+
 	boost::shared_ptr<DungeonBuff> get_dungeon_buff(Coord coord);
 	void insert_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
 	void update_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff, bool throws_if_not_exists = true);
