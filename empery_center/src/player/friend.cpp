@@ -314,4 +314,23 @@ PLAYER_SERVLET(Msg::CS_FriendPrivateMessage, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_FriendSearchByNick, account, session, req){
+	auto &nick = req.nick;
+
+	std::vector<boost::shared_ptr<Account>> accounts;
+	AccountMap::get_by_nick(accounts, nick);
+	Msg::SC_FriendSearchByNickResult msg;
+	msg.results.reserve(accounts.size());
+	for(auto it = accounts.begin(); it != accounts.end(); ++it){
+		const auto &other_account = *it;
+		const auto other_account_uuid = other_account->get_account_uuid();
+		AccountMap::cached_synchronize_account_with_player_all(other_account_uuid, session);
+		auto &elem = *msg.results.emplace(msg.results.end());
+		elem.other_uuid = other_account_uuid.str();
+	}
+	session->send(msg);
+	return Response();
+}
+
+
 }
