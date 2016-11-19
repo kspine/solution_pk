@@ -5,34 +5,25 @@
 #include <poseidon/csv_parser.hpp>
 #include <poseidon/json.hpp>
 #include "../data_session.hpp"
-#include "../singletons/simple_http_client_daemon.hpp"
 #include "../activity_session.hpp"
 #include "../mmain.hpp"
+#include <poseidon/singletons/mysql_daemon.hpp>
+#include "../mysql/activity_config.hpp"
+#include "../singletons/activity_map.hpp"
 
 namespace EmperyCenter {
 
 namespace {
-	/*
-	template<typename ElementT>
-	void read_activiy_type(ElementT &elem, const Poseidon::CsvParser &csv){
-		csv.get(elem.unique_id,     "activity_ID");
-		std::string str;
-		csv.get(str, "start_time");
-		elem.available_since = Poseidon::scan_time(str.c_str());
-		csv.get(str, "end_time");
-		elem.available_until = Poseidon::scan_time(str.c_str());
-	}
-	*/
     SharedNts FormatSharedNts(std::uint64_t key){
 		char str[256];
 		unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)key);
 		return SharedNts(str, len);
 	}
-	MULTI_INDEX_MAP(ActivityMap, Data::Activity,
+	MULTI_INDEX_MAP(ActivityDataMap, Data::Activity,
 		UNIQUE_MEMBER_INDEX(unique_id)
 		MULTI_MEMBER_INDEX(available_since)
 	)
-	boost::weak_ptr<ActivityMap> g_activity_map;
+	boost::weak_ptr<ActivityDataMap> g_activity_map;
 	const char ACTIVITY_FILE[] = "activity";
 
 	MULTI_INDEX_MAP(MapActivityMap, Data::MapActivity,
@@ -62,7 +53,7 @@ namespace {
 
 
 	MODULE_RAII_PRIORITY(handles, 1000){
-		const auto activity_map = boost::make_shared<ActivityMap>();
+		const auto activity_map = boost::make_shared<ActivityDataMap>();
 		g_activity_map = activity_map;
 		handles.push(activity_map);
 
@@ -77,33 +68,6 @@ namespace {
 		const auto activity_award_map = boost::make_shared<ActivityAwardMap>();
 		g_activity_award_map = activity_award_map;
 		handles.push(activity_award_map);
-		/*
-		auto csv = Data::sync_load_data(ACTIVITY_AWARD_FILE);
-		const auto activity_award_map = boost::make_shared<ActivityAwardMap>();
-		while(csv.fetch_row()){
-			Data::ActivityAward elem = { };
-			csv.get(elem.unique_id,                "id");
-			csv.get(elem.activity_id,                "type");
-			Poseidon::JsonArray rank_array;
-			csv.get(rank_array,                "rank");
-			elem.rank_begin = boost::lexical_cast<std::uint64_t>(rank_array.at(0));
-			elem.rank_end =  boost::lexical_cast<std::uint64_t>(rank_array.at(1));
-			Poseidon::JsonObject object;
-			csv.get(object, "reward");
-			for(auto it = object.begin(); it != object.end(); ++it){
-				auto item_id = boost::lexical_cast<std::uint64_t>(std::string(it->first));
-				auto num = boost::lexical_cast<std::uint64_t>(it->second.get<double>());
-				elem.rewards.push_back(std::make_pair(item_id,num));
-			}
-
-			if(!activity_award_map->insert(std::move(elem)).second){
-				LOG_EMPERY_CENTER_ERROR("Duplicate Activity award: unique_id = ", elem.unique_id);
-				DEBUG_THROW(Exception, sslit("Duplicate Activity award"));
-			}
-		}
-		g_activity_award_map = activity_award_map;
-		handles.push(activity_award_map);
-		*/
 
 		auto csv = Data::sync_load_data(ACTIVITY_CONTRIBUTE_FILE);
 		const auto activity_contribute_map = boost::make_shared<ActivityContributeMap>();
@@ -130,35 +94,16 @@ namespace Data {
 		PROFILE_ME;
 		auto activity_map = g_activity_map.lock();
 		if(!activity_map){
-			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			LOG_EMPERY_CENTER_WARNING("ActivityDataMap has not been loaded.");
 			return;
 		}
 		activity_map->clear();
-		/*
-		Poseidon::OptionalMap get_params;
-		get_params.set(sslit("server"), "102");
-		get_params.set(sslit("channel"), "1000");
-		auto entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
-		Poseidon::Http::V_GET, g_server_activity_path + "/get_activity_info", std::move(get_params), g_server_activity_auth);
-		std::istringstream iss(entity.dump());
-		*/
 		/*
 		[[3500001,"2016-9-18 7:40:00","2016-9-18 23:30"],
 		[3500002,"2016-9-18 7:40:00","2016-9-18 23:30"]]
 		*/
 		Poseidon::JsonArray activitys;
-		//活动1
-		Poseidon::JsonArray activity1;
-		activity1.emplace_back(3500001);
-		activity1.emplace_back("2016-11-4 8:00:00");
-		activity1.emplace_back("2016-11-4 18:00:00");
-		activitys.emplace_back(activity1);
-		//活动2
-		Poseidon::JsonArray activity2;
-		activity2.emplace_back(3500002);
-		activity2.emplace_back("2016-11-4 8:00:00");
-		activity2.emplace_back("2016-11-4 18:00:00");
-		activitys.emplace_back(activity2);
+		ActivityMap::force_load_activitys(activitys);
 		std::string test_activity = activitys.dump();
 		LOG_EMPERY_CENTER_FATAL("test activity data:",test_activity);
 		std::istringstream iss(test_activity);
@@ -171,8 +116,8 @@ namespace Data {
 			}
 			Data::Activity elem = { };
 			elem.unique_id       = static_cast<std::uint64_t>(activity_array.at(0).get<double>());
-			elem.available_since = Poseidon::scan_time(activity_array.at(1).get<std::string>().c_str());
-			elem.available_until = Poseidon::scan_time(activity_array.at(2).get<std::string>().c_str());
+			elem.available_since = static_cast<std::uint64_t>(activity_array.at(1).get<double>());
+			elem.available_until = static_cast<std::uint64_t>(activity_array.at(2).get<double>());
 			if(!activity_map->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate Activity: unique_id = ", elem.unique_id);
 				DEBUG_THROW(Exception, sslit("Duplicate Activity"));
@@ -184,7 +129,7 @@ namespace Data {
 		PROFILE_ME;
 		const auto activity_map = g_activity_map.lock();
 		if(!activity_map){
-			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			LOG_EMPERY_CENTER_WARNING("ActivityDataMap has not been loaded.");
 			return { };
 		}
 
@@ -201,8 +146,8 @@ namespace Data {
 
 		auto ret = get(unique_id);
 		if(!ret){
-			LOG_EMPERY_CENTER_WARNING("ActivityMap not found: unique_id = ", unique_id);;
-			DEBUG_THROW(Exception, sslit("ActivityMap not found"));
+			LOG_EMPERY_CENTER_WARNING("ActivityDataMap not found: unique_id = ", unique_id);;
+			DEBUG_THROW(Exception, sslit("ActivityDataMap not found"));
 		}
 		return ret;
 	}
@@ -211,7 +156,7 @@ namespace Data {
 		PROFILE_ME;
 		const auto activity_map = g_activity_map.lock();
 		if(!activity_map){
-			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			LOG_EMPERY_CENTER_WARNING("ActivityDataMap has not been loaded.");
 			return ;
 		}
 		ret.reserve(activity_map->size());
@@ -225,18 +170,10 @@ namespace Data {
 
 		auto map_activity_map = g_map_activity_map.lock();
 		if(!map_activity_map){
-			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			LOG_EMPERY_CENTER_WARNING("map activity data has not been loaded.");
 			return;
 		}
 		map_activity_map->clear();
-		/*
-		Poseidon::OptionalMap get_params;
-		get_params.set(sslit("server"), "102");
-		get_params.set(sslit("channel"), "1000");
-		auto map_activity_entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
-		Poseidon::Http::V_GET, g_server_activity_path + "/get_map_activity_info", std::move(get_params), g_server_activity_auth);
-		std::istringstream map_activity_iss(map_activity_entity.dump());
-		*/
 		/*
 		[[3501001,1,10,{}],
 		[3502001,2,10,{}],
@@ -246,66 +183,7 @@ namespace Data {
 		[3506001,6,0,{"5000":{"2100034":5},"10000":{"2100034":10}}]];
 		*/
 		Poseidon::JsonArray activitys;
-		// 活动1
-		Poseidon::JsonArray activity1;
-		activity1.emplace_back(3501001);
-		activity1.emplace_back(1);
-		activity1.emplace_back(0);
-		Poseidon::JsonObject objective1;
-		activity1.emplace_back(objective1);
-		activitys.emplace_back(activity1);
-		//活动2
-		Poseidon::JsonArray activity2;
-		activity2.emplace_back(3502001);
-		activity2.emplace_back(2);
-		activity2.emplace_back(0);
-		Poseidon::JsonObject objective2;
-		activity2.emplace_back(objective2);
-		activitys.emplace_back(activity2);
-		//活动3
-		Poseidon::JsonArray activity3;
-		activity3.emplace_back(3503001);
-		activity3.emplace_back(3);
-		activity3.emplace_back(0);
-		Poseidon::JsonObject objective3;
-		activity3.emplace_back(objective3);
-		activitys.emplace_back(activity3);
-		//活动4
-		Poseidon::JsonArray activity4;
-		activity4.emplace_back(3504001);
-		activity4.emplace_back(4);
-		activity4.emplace_back(0);
-		Poseidon::JsonObject objective4;
-		activity4.emplace_back(objective4);
-		activitys.emplace_back(activity4);
-		//活动5
-		Poseidon::JsonArray activity5;
-		activity5.emplace_back(3505001);
-		activity5.emplace_back(5);
-		activity5.emplace_back(10);
-		Poseidon::JsonObject objective5;
-		Poseidon::JsonObject objective51;
-		objective51[FormatSharedNts(2100034)] = 5;
-		objective5[FormatSharedNts(5000)] = objective51;
-		Poseidon::JsonObject objective52;
-		objective52[FormatSharedNts(2100034)] = 10;
-		objective5[FormatSharedNts(10000)] = objective52;
-		activity5.emplace_back(objective5);
-		activitys.emplace_back(activity5);
-		//活动6
-		Poseidon::JsonArray activity6;
-		activity6.emplace_back(3506001);
-		activity6.emplace_back(6);
-		activity6.emplace_back(5);
-		Poseidon::JsonObject objective6;
-		Poseidon::JsonObject objective61;
-		objective61[FormatSharedNts(2100034)] = 5;
-		objective6[FormatSharedNts(5000)] = objective61;
-		Poseidon::JsonObject objective62;
-		objective62[FormatSharedNts(2100034)] = 10;
-		objective6[FormatSharedNts(10000)] = objective62;
-		activity6.emplace_back(objective6);
-		activitys.emplace_back(activity6);
+		ActivityMap::force_load_activitys_map(activitys);
 		std::string test_data = activitys.dump();
 		LOG_EMPERY_CENTER_FATAL("test map activity data:",test_data);
 		std::istringstream map_activity_iss(test_data);
@@ -320,7 +198,9 @@ namespace Data {
 			elem.unique_id       = static_cast<std::uint64_t>(activity_array.at(0).get<double>());
 			elem.activity_type   = static_cast<unsigned>(activity_array.at(1).get<double>());
 			elem.continued_time  = static_cast<std::uint64_t>(activity_array.at(2).get<double>());
-			auto object = activity_array.at(3).get<Poseidon::JsonObject>();
+			auto target_str = activity_array.at(3).get<std::string>();
+			std::istringstream target_iss(target_str);
+			auto object = Poseidon::JsonParser::parse_object(target_iss);
 			elem.rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto condition = boost::lexical_cast<std::uint64_t>(std::string(it->first));
@@ -390,23 +270,15 @@ namespace Data {
 		PROFILE_ME;
 		auto activity_award_map = g_activity_award_map.lock();
 		if(!activity_award_map){
-			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			LOG_EMPERY_CENTER_WARNING("activity award has not been loaded.");
 			return;
 		}
 		activity_award_map->clear();
 		/*
-		Poseidon::OptionalMap get_params;
-		get_params.set(sslit("server"), "102");
-		get_params.set(sslit("channel"), "1000");
-		auto entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
-		Poseidon::Http::V_GET, g_server_activity_path + "/get_activity_reward_info", std::move(get_params), g_server_activity_auth);
-		std::istringstream iss(entity.dump());
-		*/
-		/*
 		[[3600001,3505001,[1,1],{"2100034":5}],
 		 [3600002,3505001,[2,2],{"2100034":4}],
 		 [3600003,3505001,[3,3],{"2100034":3}],
-		 [3600004,3500001,[4,50],{"2100034":2}],
+		 [3600004,3505001,[4,50],{"2100034":2}],
 		 [3600005,3500002,[1,1],{"2204004":100}],
 		 [3600006,3500002,[2,2],{"2204004":50}],
 		 [3600007,3500002,[3,3],{"2204004":20}],
@@ -416,55 +288,7 @@ namespace Data {
 		 ]
 		*/
 		Poseidon::JsonArray rewards;
-		//奖励1
-		Poseidon::JsonArray reward1;
-		reward1.emplace_back(3600001);
-		reward1.emplace_back(3505001);
-		Poseidon::JsonArray rank1;
-		rank1.emplace_back(1);
-		rank1.emplace_back(1);
-		reward1.emplace_back(rank1);
-		Poseidon::JsonObject object1;
-		object1[FormatSharedNts(2100034)] = 5;
-		reward1.emplace_back(object1);
-		rewards.emplace_back(reward1);
-		//奖励2
-		Poseidon::JsonArray reward2;
-		reward2.emplace_back(3600002);
-		reward2.emplace_back(3505001);
-		Poseidon::JsonArray rank2;
-		rank2.emplace_back(2);
-		rank2.emplace_back(50);
-		reward2.emplace_back(rank2);
-		Poseidon::JsonObject object2;
-		object2[FormatSharedNts(2100034)] = 5;
-		reward2.emplace_back(object2);
-		rewards.emplace_back(reward2);
-		//3
-		Poseidon::JsonArray reward3;
-		reward3.emplace_back(3600003);
-		reward3.emplace_back(3500002);
-		Poseidon::JsonArray rank3;
-		rank3.emplace_back(1);
-		rank3.emplace_back(1);
-		reward3.emplace_back(rank3);
-		Poseidon::JsonObject object3;
-		object3[FormatSharedNts(2204004)] = 5;
-		reward3.emplace_back(object3);
-		rewards.emplace_back(reward3);
-		//4
-		Poseidon::JsonArray reward4;
-		reward4.emplace_back(3600004);
-		reward4.emplace_back(3500002);
-		Poseidon::JsonArray rank4;
-		rank4.emplace_back(2);
-		rank4.emplace_back(100);
-		reward4.emplace_back(rank4);
-		Poseidon::JsonObject object4;
-		object4[FormatSharedNts(2204004)] = 5;
-		reward4.emplace_back(object4);
-		rewards.emplace_back(reward4);
-
+		ActivityMap::force_load_activitys_rank_award(rewards);
 		std::string test_rewards = rewards.dump();
 		LOG_EMPERY_CENTER_FATAL("test activity reward data:",test_rewards);
 		std::istringstream iss(test_rewards);
@@ -485,7 +309,10 @@ namespace Data {
 			}
 			elem.rank_begin = boost::lexical_cast<std::uint64_t>(rank_array.at(0));
 			elem.rank_end =  boost::lexical_cast<std::uint64_t>(rank_array.at(1));
-			auto object = reward_array.at(3).get<Poseidon::JsonObject>();
+			auto reward_str = reward_array.at(3).get<std::string>();
+			std::istringstream reward_iss(reward_str);
+			auto object = Poseidon::JsonParser::parse_object(reward_iss);
+
 			elem.rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto item_id = boost::lexical_cast<std::uint64_t>(std::string(it->first));
@@ -542,73 +369,17 @@ namespace Data {
 		PROFILE_ME;
 		auto world_activity_map = g_world_activity_map.lock();
 		if(!world_activity_map){
-			LOG_EMPERY_CENTER_WARNING("ActivityMap has not been loaded.");
+			LOG_EMPERY_CENTER_WARNING("world activity map has not been loaded.");
 			return;
 		}
 		world_activity_map->clear();
-		/*
-		Poseidon::OptionalMap get_params;
-		get_params.set(sslit("server"), "102");
-		get_params.set(sslit("channel"), "1000");
-		auto world_activity_entity = SimpleHttpClientDaemon::sync_request(g_server_activity_host, g_server_activity_port, g_server_activity_use_ssl,
-		Poseidon::Http::V_GET, g_server_activity_path + "/get_world_activity_info", std::move(get_params), g_server_activity_auth);
-		std::istringstream world_activity_iss(world_activity_entity.dump());
-		*/
 		/*
 		[[3510001,0,3500002,{"0":500000},1,{"guaibag10":1,"liangbag10":1,"mubag10":1,"shibag10":1}],
 		[3511001,3510001,3500002,{"0":1000000},2,{"guaibag20":1,"liangbag20":1,"mubag20":1,"shibag20":1}],
 		[3512001,3511001,3500002,{"2605102":1},3,{"guaibag30":1,"liangbag30":1,"mubag30":1,"shibag30":1}]]
 		*/
 		Poseidon::JsonArray activitys;
-		// 活动1
-		Poseidon::JsonArray activity1;
-		activity1.emplace_back(3510001);
-		activity1.emplace_back(0);
-		activity1.emplace_back(3500002);
-		Poseidon::JsonObject objective1;
-		objective1[FormatSharedNts(0)] = 500;
-		activity1.emplace_back(objective1);
-		activity1.emplace_back(1);
-		Poseidon::JsonObject award1;
-		award1[SharedNts("guaibag10")]  = 1;
-		award1[SharedNts("liangbag10")] = 1;
-		award1[SharedNts("mubag10")]    = 1;
-		award1[SharedNts("shibag10")]   = 1;
-		activity1.emplace_back(award1);
-		activitys.emplace_back(activity1);
-		// 活动2
-		Poseidon::JsonArray activity2;
-		activity2.emplace_back(3511001);
-		activity2.emplace_back(3510001);
-		activity2.emplace_back(3500002);
-		Poseidon::JsonObject objective2;
-		objective2[FormatSharedNts(0)] = 100;
-		activity2.emplace_back(objective2);
-		activity2.emplace_back(2);
-		Poseidon::JsonObject award2;
-		award2[SharedNts("guaibag20")]  = 1;
-		award2[SharedNts("liangbag20")] = 1;
-		award2[SharedNts("mubag20")]    = 1;
-		award2[SharedNts("shibag20")]   = 1;
-		activity2.emplace_back(award2);
-		activitys.emplace_back(activity2);
-		// 活动3
-		Poseidon::JsonArray activity3;
-		activity3.emplace_back(3512001);
-		activity3.emplace_back(3511001);
-		activity3.emplace_back(3500002);
-		Poseidon::JsonObject objective3;
-		objective3[FormatSharedNts(2605102)] = 1;
-		activity3.emplace_back(objective3);
-		activity3.emplace_back(3);
-		Poseidon::JsonObject award3;
-		award3[SharedNts("guaibag20")]  = 1;
-		award3[SharedNts("liangbag20")] = 1;
-		award3[SharedNts("mubag20")]    = 1;
-		award3[SharedNts("shibag20")]   = 1;
-		activity3.emplace_back(award3);
-		activitys.emplace_back(activity3);
-
+		ActivityMap::force_load_activitys_world(activitys);
 		std::string test_data = activitys.dump();
 		LOG_EMPERY_CENTER_FATAL("test world activity:",test_data);
 		std::istringstream world_activity_iss(test_data);
@@ -622,7 +393,10 @@ namespace Data {
 			Data::WorldActivity elem = { };
 			elem.unique_id       = static_cast<std::uint64_t>(activity_array.at(0).get<double>());
 			elem.pre_unique_id   = static_cast<unsigned>(activity_array.at(1).get<double>());
-			auto object = activity_array.at(3).get<Poseidon::JsonObject>();
+
+			auto target_str = activity_array.at(3).get<std::string>();
+			std::istringstream target_iss(target_str);
+			auto object = Poseidon::JsonParser::parse_object(target_iss);
 			elem.objective.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto id = boost::lexical_cast<std::uint64_t>(it->first.get());
@@ -633,7 +407,9 @@ namespace Data {
 				}
 			}
 			object.clear();
-			object = activity_array.at(5).get<Poseidon::JsonObject>();
+			auto drop_str = activity_array.at(5).get<std::string>();
+			std::istringstream drop_iss(drop_str);
+			object = Poseidon::JsonParser::parse_object(drop_iss);
 			elem.rewards.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto collection_name = std::string(it->first.get());
