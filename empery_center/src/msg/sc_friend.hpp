@@ -35,6 +35,14 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_FriendSearchByNickResult
+#define MESSAGE_ID      796
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (results,	\
+		FIELD_STRING        (other_uuid)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
