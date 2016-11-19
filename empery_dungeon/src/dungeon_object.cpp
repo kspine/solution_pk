@@ -719,7 +719,7 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 //	}
 	//auto ememy_solider_count = target_object->get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
 	//计算闪避，闪避成功，
-	bDodge = Poseidon::random_uint32()%100 < doge_rate*100;
+	bDodge = Poseidon::rand32()%100 < doge_rate*100;
 
 	if(bDodge){
 		result_type = IMPACT_MISS;
@@ -729,7 +729,7 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 		result_type = IMPACT_NORMAL;
 		damage = damage < 1 ? 1 : damage ;
 		//暴击计算
-		bCritical = Poseidon::random_uint32()%100 < critical_rate*100;
+		bCritical = Poseidon::rand32()%100 < critical_rate*100;
 		if(bCritical){
 			result_type = IMPACT_CRITICAL;
 			damage = damage*(1.0+critical_demage_plus_rate);
@@ -1455,7 +1455,7 @@ std::uint64_t  DungeonObject::calculate_next_skill_time(DungeonMonsterSkillId sk
 	auto skill_data = Data::Skill::require(skill_id);
 	auto low = skill_data->cast_interval.first;
 	auto high = skill_data->cast_interval.second;
-	auto delay = Poseidon::random_uint32() % (saturated_sub(high, low) + 1) + low;
+	auto delay = Poseidon::rand32() % (saturated_sub(high, low) + 1) + low;
 	return now + delay * 1000;
 }
 
