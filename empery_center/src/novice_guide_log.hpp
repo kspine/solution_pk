@@ -11,9 +11,9 @@ namespace EmperyCenter{
 
      class NoviceGuideLog{
 
-      public:
-        NoviceGuideLog(){};
-        ~NoviceGuideLog(){};
+      public: 
+        NoviceGuideLog();
+        ~NoviceGuideLog();
       public:
             static void NoviceGuideTrace(AccountUuid account_uuid, TaskId task_id,std::uint64_t step_id,std::uint64_t created_time);
     };

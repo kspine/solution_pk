@@ -1052,7 +1052,7 @@ void TaskBox::check_task_dungeon_clearance(std::uint64_t key_dungeon_id,std::uin
    if(count_new >= count_finish){
       count_new = count_finish;
    }
-   if(count_new == count_old && count_old == 0){
+   if(count_new == count_old || count_new == 0){
       continue;
    }
    auto new_progress =  boost::make_shared<Progress>(*old_progress);

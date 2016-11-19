@@ -113,7 +113,8 @@ namespace EmperyCenter
        	 castle->commit_soldier_transaction(transaction);
        }
 
-       NoviceGuideLog::NoviceGuideTrace(account_uuid,task_ids,stepid,Poseidon::get_utc_time());
+       LOG_EMPERY_CENTER_ERROR("NoviceGuideLog::NoviceGuideTrace!!!");
+       NoviceGuideLog::NoviceGuideTrace(AccountUuid(account_uuid),task_ids,stepid,Poseidon::get_utc_time());
 
        return Response(Msg::ST_OK);
 

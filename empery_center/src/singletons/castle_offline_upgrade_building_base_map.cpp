@@ -44,7 +44,7 @@ namespace EmperyCenter{
        };
 
        MULTI_INDEX_MAP(CastleOfflineUpgradeBuildingBaseContainer,CastleOfflineUpgradeBuildingBaseElement,
-          UNIQUE_MEMBER_INDEX(auto_uuid)
+          MULTI_MEMBER_INDEX(auto_uuid)
           MULTI_MEMBER_INDEX(account_uuid) 
           MULTI_MEMBER_INDEX(map_object_uuid)
        )
@@ -106,7 +106,7 @@ namespace EmperyCenter{
       auto account_uuid = map_object->get_owner_uuid();
       
       const auto session = PlayerSessionMap::get(account_uuid);
-      if(!session)
+      if(session)
       {
          return;
       }
