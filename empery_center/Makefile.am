@@ -59,6 +59,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/map_activity_accumulate_map.cpp \
 	src/singletons/activity_http_server.cpp \
 	src/singletons/castle_offline_upgrade_building_base_map.cpp \
+	src/singletons/novice_guide_map.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -83,6 +84,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/random_name.cpp \
 	src/data/dungeon_buff.cpp \
 	src/data/skill.cpp \
+	src/data/novice_guide_setup.cpp \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
@@ -189,4 +191,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/activity.cpp \
 	src/activity_session.cpp \
 	src/dungeon_buff.cpp \
+	src/novice_guide_log.cpp \
 	src/mmain.cpp

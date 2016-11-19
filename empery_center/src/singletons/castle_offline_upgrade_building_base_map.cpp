@@ -119,7 +119,7 @@ namespace EmperyCenter{
       }
       auto obj = boost::make_shared<MySql::Center_CastleOfflineUpgradeBuildingBase>(str_auto_uuid,(map_object->get_owner_uuid()).get(),map_object_uuid.get(),building_base_ids); 
       obj->enable_auto_saving();
-      Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true); 
+      Poseidon::MySqlDaemon::enqueue_for_saving(obj, true, true); 
 
       insert(obj);
   }

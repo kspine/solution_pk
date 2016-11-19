@@ -44,11 +44,11 @@ namespace EmperyCenter{
 		{
 		  const auto conn = Poseidon::MySqlDaemon::create_connection();
 
-		  struct NoviceGuideElement
+		  struct TempNoviceGuideElement
 		  {
 		     boost::shared_ptr<MySql::Center_NoviceGuide> obj;
 	      };
-	      std::map<AccountUuid, NoviceGuideElement> temp_map;
+	      std::map<AccountUuid, TempNoviceGuideElement> temp_map;
 
 		  LOG_EMPERY_CENTER_INFO("Loading Center_NoviceGuide...");
 
@@ -96,7 +96,7 @@ namespace EmperyCenter{
 	 	{
 	 	   return {};
 	 	}
-	 	const auto range = novice_guide_map->equal_range<1>(account_uuid);
+	 	const auto range = novice_guide_map->equal_range<0>(account_uuid);
 	 	for(auto it = range.first; it != range.second; ++it){
 	 	     if(AccountUuid(it->novice_guide->unlocked_get_account_uuid()) == account_uuid 
 	 	          && TaskId(it->novice_guide->unlocked_get_task_id()) == task_id){
@@ -108,24 +108,14 @@ namespace EmperyCenter{
 	 }
 
 
-    void NoviceGuideMap::get_step_id(AccountUuid account_uuid,TaskId task_id,std::uint64_t& step_id)
+    std::uint64_t  NoviceGuideMap::get_step_id(AccountUuid account_uuid,TaskId task_id)
     {
 	   PROFILE_ME;
 	   const auto  pNoviceGuide = find(account_uuid,task_id);
 	   if (NULL != pNoviceGuide)
 	   {
-		  step_id = static_cast<std::uint64_t>(pNoviceGuide->unlocked_get_step_id());
+		  return pNoviceGuide->unlocked_get_step_id();
 	   }
-	   return;
-    }
-
-    bool NoviceGuideMap::check_step_id(AccountUuid account_uuid,TaskId task_id,std::uint64_t step_id)
-    {
-       NoviceGuideStepId current_step_id;
-       get_step_id(account_uuid,task_id,&current_step_id);
-       if(current_step_id >= 0 && step_id == current_step_id){
-         return true;
-       }
-       return false;
+	   return 0;
     }
 }
