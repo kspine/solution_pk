@@ -106,7 +106,7 @@ MODULE_RAII_PRIORITY(handles,5000)
     auto obj = boost::make_shared<MySql::Center_LegionFinancial>((LegionFinancialUuid(Poseidon::Uuid::random())).get(),legion_uuid.get(),account_uuid.get(),item_id.get(), old_count, new_count, delta_count,action_id,action_count, created_time);
     obj->enable_auto_saving();
 
-    Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
+    Poseidon::MySqlDaemon::enqueue_for_saving(obj, true, true);
 
     insert(obj);
 }

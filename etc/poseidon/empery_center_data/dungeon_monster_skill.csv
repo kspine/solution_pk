@@ -1,4 +1,4 @@
-id,caster_releas,caster_interval,caster_object,caster_range,sing_time,cast_time,skill_range,skill_effect,damage_coefficient,attack_type,buff_id,pet_id,random_lattice,warning_time,aimeffect,action,aimeffect,aimEffectLayer,aimEffect,aimEffectLayer
+id,caster_releas,caster_interval,caster_object,caster_range,sing_time,cast_time,skill_range,skill_effect,damage_coefficient,attack_type,buff_id,pet_id,random_lattice,warning_time,aimeffect,action,aimeffect1,aimEffectLayer1,aimEffect2,aimEffectLayer2
 1001,1,"[7,12]",2,3,3,0.5,0,1,[],1,6404001,0,0,0,fushishu,magic,fushishu,1,,
 1002,1,"[15,15]",0,4,4,0.5,0,2,[],1,0,3323002,2,0,zhaohuankulou,magic,zhaohuankulou,3,,
 1003,1,"[1,20]",1,0,3,0.5,0,1,[],1,6405001,0,0,0,,magic,fanshang,1,,

@@ -91,7 +91,7 @@ namespace EmperyCenter
 			const auto it = noviceGuideSetup_container->find<0>(step_id);
 			if (it == noviceGuideSetup_container->end<0>())
 			{
-				LOG_EMPERY_CENTER_TRACE("noviceGuideSetup not found: task_id = ", task_id);
+				LOG_EMPERY_CENTER_TRACE("noviceGuideSetup not found: step_id = ", step_id);
 				return{};
 			}
 			return boost::shared_ptr<const NoviceGuideSetup>(noviceGuideSetup_container, &*it);
@@ -100,11 +100,12 @@ namespace EmperyCenter
 		boost::shared_ptr<const NoviceGuideSetup> NoviceGuideSetup::require(std::uint64_t step_id)
 		{
 			PROFILE_ME;
-			auto ret = get(task_id);
+			auto ret = get(step_id);
 			if (!ret)
 			{
 				LOG_EMPERY_CENTER_WARNING("NoviceGuideSetup not found: step_id = ", step_id);
 				DEBUG_THROW(Exception, sslit("NoviceGuideSetup not found"));
+				return {};
 			}
 			return ret;
 		}

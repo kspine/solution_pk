@@ -3,7 +3,6 @@
 
 #include "../msg/cs_novice_guide.hpp"
 #include "../msg/sc_novice_guide.hpp"
-#include "../msg/err_novice_guide.hpp"
 
 #include "../id_types.hpp"
 
@@ -36,11 +35,10 @@ namespace EmperyCenter
        PROFILE_ME;
        const auto account_uuid = account->get_account_uuid();
        const auto task_id = req.task_id;
-       std::uint64_t  step_id = 0;
-       NoviceGuideMap::get_step_id(AccountUuid(account_uuid),TaskId(task_id),step_id);
-       if(step_id == 0)
+       std::uint64_t  step_id = NoviceGuideMap::get_step_id(account_uuid,TaskId(task_id));
+       if(step_id == (std::uint64_t)0)
        {
-          return Response(Msg::ERR_CHECK_NOVICE_GUIDE_TASK_STEPID_NOTEXIST);
+         step_id = 1;
        }
        Msg::SC_GetTaskStepInfoResMessage msg;
        msg.task_id = task_id;
@@ -56,28 +54,18 @@ namespace EmperyCenter
        const auto task_id = req.task_id;
        const auto step_id = req.step_id;
        const auto task_box = TaskBoxMap::require(account_uuid);
-       if (task_box->has_been_accomplished(TaskId(task_id)))
-       {
-       	  return Response(Msg::ERR_CHECK_NOVICE_GUIDE_TASK_FINISHED);
-       }
-
-       if(!NoviceGuideMap::check_step_id(account_uuid,TaskId(task_id),step_id))
-       {
-          return Response(Msg::ERR_CHECK_NOVICE_GUIDE_TASK_STEPID);
-       }
-       return Response(Msg::ST_OK);
-
-       NoviceGuideLog::NoviceGuideTrace(account_uuid,TaskId(task_id),step_id,Poseidon::get_utc_time());
-
+       
        TaskId task_ids = TaskId(task_id);
+       std::uint64_t stepid = (std::uint64_t)step_id;
+
        auto obj = boost::make_shared<MySql::Center_NoviceGuide>(
        account_uuid.get(),task_ids.get(),step_id);
 
        obj->enable_auto_saving();
-       Poseidon::MySqlDaemon::enqueue_for_saving(obj, false, true);
+       Poseidon::MySqlDaemon::enqueue_for_saving(obj,true, true);
        NoviceGuideMap::insert(obj);
        
-       auto pshare = Data::NoviceGuideSetup::require(step_id);
+       auto pshare = Data::NoviceGuideSetup::require(stepid);
 
        //item_rewards
        {
@@ -124,5 +112,10 @@ namespace EmperyCenter
          }
        	 castle->commit_soldier_transaction(transaction);
        }
+
+       NoviceGuideLog::NoviceGuideTrace(account_uuid,task_ids,stepid,Poseidon::get_utc_time());
+
+       return Response(Msg::ST_OK);
+
     }
 }
