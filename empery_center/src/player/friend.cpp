@@ -332,5 +332,99 @@ PLAYER_SERVLET(Msg::CS_FriendSearchByNick, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_FriendBlackListAdd, account, session, req){
+	const auto friend_uuid = AccountUuid(req.friend_uuid);
+
+	const auto controller = ControllerClient::require();
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto friend_box = FriendBoxMap::require(account_uuid);
+	friend_box->pump_status();
+
+	auto info = friend_box->get(friend_uuid);
+	if(info.category == FriendBox::CAT_BLACKLIST){
+		return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+	}
+
+	/*
+	const auto max_number_of_friends_requesting = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTING);
+	const auto max_number_of_friends_requested  = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTED);
+
+	std::vector<FriendBox::FriendInfo> friends;
+	friend_box->get_by_category(friends, FriendBox::CAT_REQUESTING);
+	if(friends.size() >= max_number_of_friends_requesting){
+		return Response(Msg::ERR_FRIEND_REQUESTING_LIST_FULL) <<max_number_of_friends_requesting;
+	}
+
+	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
+		{ FriendBox::CAT_DELETED, FriendBox::CAT_REQUESTING }, FriendBox::CAT_REQUESTED, max_number_of_friends_requested);
+	if(tresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
+		if(tresult.first == Msg::ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL){
+			return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+		}
+		if(tresult.first == Msg::ERR_FRIEND_LIST_FULL_INTERNAL){
+			return Response(Msg::ERR_FRIEND_REQUESTED_LIST_FULL_PEER) <<max_number_of_friends_requested;
+		}
+		return std::move(tresult);
+	}
+	*/
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	info.category     = FriendBox::CAT_BLACKLIST;
+	info.updated_time = utc_now;
+	friend_box->set(std::move(info));
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_FriendBlackListDelete, account, session, req){
+	const auto friend_uuid = AccountUuid(req.friend_uuid);
+
+	const auto controller = ControllerClient::require();
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto friend_box = FriendBoxMap::require(account_uuid);
+	friend_box->pump_status();
+
+	auto info = friend_box->get(friend_uuid);
+	if(info.category != FriendBox::CAT_BLACKLIST){
+		return Response(Msg::ERR_FRIEND_NOT_BLACKLISTED) <<friend_uuid;
+	}
+
+	/*
+	const auto max_number_of_friends_requesting = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTING);
+	const auto max_number_of_friends_requested  = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTED);
+
+	std::vector<FriendBox::FriendInfo> friends;
+	friend_box->get_by_category(friends, FriendBox::CAT_REQUESTING);
+	if(friends.size() >= max_number_of_friends_requesting){
+		return Response(Msg::ERR_FRIEND_REQUESTING_LIST_FULL) <<max_number_of_friends_requesting;
+	}
+
+	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
+		{ FriendBox::CAT_DELETED, FriendBox::CAT_REQUESTING }, FriendBox::CAT_REQUESTED, max_number_of_friends_requested);
+	if(tresult.first != Msg::ST_OK){
+		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult.first, ", msg = ", tresult.second);
+		if(tresult.first == Msg::ERR_FRIEND_CMP_XCHG_FAILURE_INTERNAL){
+			return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+		}
+		if(tresult.first == Msg::ERR_FRIEND_LIST_FULL_INTERNAL){
+			return Response(Msg::ERR_FRIEND_REQUESTED_LIST_FULL_PEER) <<max_number_of_friends_requested;
+		}
+		return std::move(tresult);
+	}
+	*/
+
+	const auto utc_now = Poseidon::get_utc_time();
+
+	info.category     = FriendBox::CAT_DELETED;
+	info.updated_time = utc_now;
+	friend_box->set(std::move(info));
+
+	return Response();
+}
+
 
 }
