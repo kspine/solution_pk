@@ -26,7 +26,8 @@ constexpr BuildingTypeId
 	ID_MEDICAL_TENT         ( 22 ), // 医疗帐篷
 	ID_HARVEST_WORKSHOP     ( 23 ), // 采集工坊
 	ID_WAR_WORKSHOP         ( 24 ), // 战争工坊
-	ID_TREE                 ( 25 ); // 未解锁
+	ID_TREE                 ( 25 ), // 未解锁
+	ID_FORGE                ( 30 ); // 铁匠铺
 
 }
 

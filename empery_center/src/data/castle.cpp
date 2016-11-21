@@ -87,6 +87,10 @@ namespace {
 	boost::weak_ptr<const CastleUpgradeTreeContainer> g_upgrade_tree_container;
 	const char UPGRADE_TREE_FILE[] = "City_Tree";
 
+	using CastleUpgradeForgeContainer = boost::container::flat_map<unsigned, Data::CastleUpgradeForge>;
+	boost::weak_ptr<const CastleUpgradeForgeContainer> g_upgrade_forge_container;
+	const char UPGRADE_FORGE_FILE[] = "City_forge";
+
 	MULTI_INDEX_MAP(CastleTechContainer, Data::CastleTech,
 		UNIQUE_MEMBER_INDEX(tech_id_level)
 		MULTI_MEMBER_INDEX(tech_era)
@@ -572,6 +576,26 @@ namespace {
 		servlet = DataSession::create_servlet(UPGRADE_TREE_FILE, Data::encode_csv_as_json(csv, "tree_level"));
 		handles.push(std::move(servlet));
 
+		csv = Data::sync_load_data(UPGRADE_FORGE_FILE);
+		const auto upgrade_forge_container = boost::make_shared<CastleUpgradeForgeContainer>();
+		while(csv.fetch_row()){
+			Data::CastleUpgradeForge elem = { };
+
+			csv.get(elem.building_level, "forge_level");
+			read_upgrade_abstract(elem, csv);
+
+			//
+
+			if(!upgrade_forge_container->emplace(elem.building_level, std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate CastleUpgradeForge: building_level = ", elem.building_level);
+				DEBUG_THROW(Exception, sslit("Duplicate CastleUpgradeForge"));
+			}
+		}
+		g_upgrade_forge_container = upgrade_forge_container;
+		handles.push(upgrade_forge_container);
+		servlet = DataSession::create_servlet(UPGRADE_FORGE_FILE, Data::encode_csv_as_json(csv, "forge_level"));
+		handles.push(std::move(servlet));
+
 		csv = Data::sync_load_data(TECH_FILE);
 		const auto tech_container = boost::make_shared<CastleTechContainer>();
 		while(csv.fetch_row()){
@@ -816,6 +840,8 @@ namespace Data {
 			return CastleUpgradeWarWorkshop::get(building_level);
 		case BuildingTypeIds::ID_TREE.get():
 			return CastleUpgradeTree::get(building_level);
+		case BuildingTypeIds::ID_FORGE.get():
+			return CastleUpgradeForge::get(building_level);
 		default:
 			LOG_EMPERY_CENTER_TRACE("Unhandled building type: type = ", type);
 			return { };
@@ -1292,6 +1318,33 @@ namespace Data {
 		if(!ret){
 			LOG_EMPERY_CENTER_WARNING("CastleUpgradeTree not found: building_level = ", building_level);
 			DEBUG_THROW(Exception, sslit("CastleUpgradeTree not found"));
+		}
+		return ret;
+	}
+
+	boost::shared_ptr<const CastleUpgradeForge> CastleUpgradeForge::get(unsigned building_level){
+		PROFILE_ME;
+
+		const auto upgrade_forge_container = g_upgrade_forge_container.lock();
+		if(!upgrade_forge_container){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeForgeContainer has not been loaded.");
+			return { };
+		}
+
+		const auto it = upgrade_forge_container->find(building_level);
+		if(it == upgrade_forge_container->end()){
+			LOG_EMPERY_CENTER_TRACE("CastleUpgradeForge not found: building_level = ", building_level);
+			return { };
+		}
+		return boost::shared_ptr<const CastleUpgradeForge>(upgrade_forge_container, &(it->second));
+	}
+	boost::shared_ptr<const CastleUpgradeForge> CastleUpgradeForge::require(unsigned building_level){
+		PROFILE_ME;
+
+		auto ret = get(building_level);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("CastleUpgradeForge not found: building_level = ", building_level);
+			DEBUG_THROW(Exception, sslit("CastleUpgradeForge not found"));
 		}
 		return ret;
 	}

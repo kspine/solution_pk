@@ -209,6 +209,15 @@ namespace Data {
 	public:
 		//
 	};
+	
+	class CastleUpgradeForge : public CastleUpgradeAbstract {
+	public:
+		static boost::shared_ptr<const CastleUpgradeForge> get(unsigned building_level);
+		static boost::shared_ptr<const CastleUpgradeForge> require(unsigned building_level);
+
+	public:
+		//
+	};
 
 	class CastleTech {
 	public:
