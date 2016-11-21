@@ -10,8 +10,43 @@
 #include "../data/global.hpp"
 #include <poseidon/job_promise.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
+#include "../singletons/friend_record_box_map.hpp"
+#include "../friend_record_box.hpp"
 
 namespace EmperyCenter {
+namespace {
+
+	void send_friend_notification(AccountUuid account_uuid, AccountUuid friend_account_uuid,std::uint64_t utc_now,int type)
+	{
+		PROFILE_ME;
+
+		const auto session = PlayerSessionMap::get(account_uuid);
+		if(!session){
+			return;
+		}
+
+		try {
+			const auto utc_now = Poseidon::get_utc_time();
+
+			if(friend_account_uuid){
+				AccountMap::cached_synchronize_account_with_player_all(friend_account_uuid, session);
+				AccountMap::synchronize_account_legion_with_player_all(friend_account_uuid,session);
+				AccountMap::synchronize_account_league_with_player_all(friend_account_uuid,account_uuid);
+				
+				Msg::SC_FriendRecords msg;
+				auto &record = *msg.records.emplace(msg.records.end());
+				record.timestamp              = utc_now;
+				record.friend_uuid            = friend_account_uuid.str();
+				record.result_type            = type;
+				session->send(msg);
+			}
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
+
 
 PLAYER_SERVLET(Msg::CS_FriendGetAll, account, session, /* req */){
 	const auto friend_box = FriendBoxMap::require(account->get_account_uuid());
@@ -151,7 +186,13 @@ PLAYER_SERVLET(Msg::CS_FriendAccept, account, session, req){
 	info.category     = FriendBox::CAT_FRIEND;
 	info.updated_time = utc_now;
 	friend_box->set(std::move(info));
-
+	if(account_uuid){
+		send_friend_notification(account_uuid,friend_uuid,utc_now,FriendRecordBox::RT_FRIEND);
+	}
+	if(friend_uuid){
+		send_friend_notification(friend_uuid,account_uuid,utc_now,-FriendRecordBox::RT_FRIEND);
+	}
+	FriendRecordBoxMap::insert(account_uuid,friend_uuid,utc_now,FriendRecordBox::RT_FRIEND);
 	return Response();
 }
 
@@ -180,7 +221,14 @@ PLAYER_SERVLET(Msg::CS_FriendDecline, account, session, req){
 	}
 
 	friend_box->remove(friend_uuid);
-
+	const auto utc_now = Poseidon::get_utc_time();
+	if(account_uuid){
+		send_friend_notification(account_uuid,friend_uuid,utc_now,FriendRecordBox::RT_DECLINE);
+	}
+	if(friend_uuid){
+		send_friend_notification(friend_uuid,account_uuid,utc_now,-FriendRecordBox::RT_DECLINE);
+	}
+	FriendRecordBoxMap::insert(account_uuid,friend_uuid,utc_now,FriendRecordBox::RT_DECLINE);
 	return Response();
 }
 
@@ -422,6 +470,31 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListDelete, account, session, req){
 	info.category     = FriendBox::CAT_DELETED;
 	info.updated_time = utc_now;
 	friend_box->set(std::move(info));
+
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_FriendRecords, account, session, req){
+	const auto friend_record_box = FriendRecordBoxMap::require(account->get_account_uuid());
+	friend_record_box->pump_status();
+
+	std::vector<FriendRecordBox::RecordInfo> records;
+	friend_record_box->get_all(records);
+
+	Msg::SC_FriendRecords msg;
+	msg.records.reserve(records.size());
+	for(auto it = records.begin(); it != records.begin(); ++it){
+		if(it->friend_account_uuid){
+			AccountMap::cached_synchronize_account_with_player_all(it->friend_account_uuid, session);
+		}
+
+		auto &record = *msg.records.emplace(msg.records.end());
+		record.timestamp              = it->timestamp;
+		record.friend_uuid            = it->friend_account_uuid.str();
+		record.result_type            = it->result_type;
+	}
+	LOG_EMPERY_CENTER_FATAL(msg);
+	session->send(msg);
 
 	return Response();
 }
