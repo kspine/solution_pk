@@ -12,7 +12,9 @@ namespace Msg {
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (friend_uuid)	\
 	FIELD_VUINT         (category)	\
-	FIELD_STRING        (metadata)
+	FIELD_STRING        (metadata)	\
+	FIELD_VUINT         (updated_time)	\
+	FIELD_VUINT         (online)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_FriendRandomList

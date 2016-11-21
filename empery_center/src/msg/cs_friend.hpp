@@ -67,6 +67,18 @@ namespace Msg {
 	FIELD_STRING        (nick)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_FriendBlackListAdd
+#define MESSAGE_ID      709
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (friend_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_FriendBlackListDelete
+#define MESSAGE_ID      710
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (friend_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
