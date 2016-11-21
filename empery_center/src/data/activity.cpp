@@ -397,6 +397,7 @@ namespace Data {
 			auto target_str = activity_array.at(3).get<std::string>();
 			std::istringstream target_iss(target_str);
 			auto object = Poseidon::JsonParser::parse_object(target_iss);
+
 			elem.objective.reserve(object.size());
 			for(auto it = object.begin(); it != object.end(); ++it){
 				auto id = boost::lexical_cast<std::uint64_t>(it->first.get());
