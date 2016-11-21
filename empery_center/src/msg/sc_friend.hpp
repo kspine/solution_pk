@@ -45,6 +45,16 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_FriendRecords
+#define MESSAGE_ID      795
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (records,	\
+		FIELD_STRING        (friend_uuid)	\
+		FIELD_VUINT         (timestamp)     \
+		FIELD_VINT          (result_type)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
