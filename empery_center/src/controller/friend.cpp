@@ -104,28 +104,25 @@ CONTROLLER_SERVLET(Msg::TS_FriendPrivateMessage, controller, req){
 	}else{
 		//记录成已读
 		FriendPrivateMsgBoxMap::insert(friend_uuid,account_uuid,utc_now,msg_uuid,false,true,false);
-	}
+		try {
 
-	try {
-		
-
-		Msg::SC_FriendPrivateMessage msg;
-		msg.friend_uuid  = account_uuid.str();
-		msg.language_id  = req.language_id;
-		msg.created_time = utc_now;
-		msg.segments.reserve(req.segments.size());
-		for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
-			auto &elem = *msg.segments.emplace(msg.segments.end());
-			elem.slot  = it->slot;
-			elem.value = std::move(it->value);
+			Msg::SC_FriendPrivateMessage msg;
+			msg.friend_uuid  = account_uuid.str();
+			msg.language_id  = req.language_id;
+			msg.created_time = utc_now;
+			msg.segments.reserve(req.segments.size());
+			for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
+				auto &elem = *msg.segments.emplace(msg.segments.end());
+				elem.slot  = it->slot;
+				elem.value = std::move(it->value);
+			}
+			
+			friend_session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			friend_session->shutdown(e.what());
 		}
-		
-		friend_session->send(msg);
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		friend_session->shutdown(e.what());
 	}
-
 	return Response();
 }
 
