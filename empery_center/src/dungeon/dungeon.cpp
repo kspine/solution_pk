@@ -554,28 +554,30 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 	info.finish_count += 1;
 
 	const auto dungeon_data = Data::Dungeon::require(dungeon_type_id);
-	for(auto it = dungeon_data->rewards.begin(); it != dungeon_data->rewards.end(); ++it){
-		const auto item_id = it->first;
-		const auto count = it->second;
-		transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-			ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), 0, 0);
-		rewards[item_id] += count;
-	}
-
-	for(auto tit = req.tasks_finished.begin(); tit != req.tasks_finished.end(); ++tit){
-		const auto dungeon_task_id = DungeonTaskId(tit->dungeon_task_id);
-		if(dungeon_data->tasks.find(dungeon_task_id) == dungeon_data->tasks.end()){
-			LOG_EMPERY_CENTER_WARNING("Dungeon task ignored: dungeon_task_id = ", dungeon_task_id, ", dungeon_type_id = ", dungeon_type_id);
-			continue;
+	if(info.finish_count > 1){
+		for(auto it = dungeon_data->rewards.begin(); it != dungeon_data->rewards.end(); ++it){
+			const auto item_id = it->first;
+			const auto count = it->second;
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+				ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), 0, 0);
+			rewards[item_id] += count;
 		}
-		if(info.tasks_finished.insert(dungeon_task_id).second){
-			const auto task_data = Data::DungeonTask::require(dungeon_task_id);
-			for(auto it = task_data->rewards.begin(); it != task_data->rewards.end(); ++it){
-				const auto item_id = it->first;
-				const auto count = it->second;
-				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-					ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), dungeon_task_id.get(), 0);
-				tasks_new[dungeon_task_id][item_id] += count;
+	}else{
+		for(auto tit = req.tasks_finished.begin(); tit != req.tasks_finished.end(); ++tit){
+			const auto dungeon_task_id = DungeonTaskId(tit->dungeon_task_id);
+			if(dungeon_data->tasks.find(dungeon_task_id) == dungeon_data->tasks.end()){
+				LOG_EMPERY_CENTER_WARNING("Dungeon task ignored: dungeon_task_id = ", dungeon_task_id, ", dungeon_type_id = ", dungeon_type_id);
+				continue;
+			}
+			if(info.tasks_finished.insert(dungeon_task_id).second){
+				const auto task_data = Data::DungeonTask::require(dungeon_task_id);
+				for(auto it = task_data->rewards.begin(); it != task_data->rewards.end(); ++it){
+					const auto item_id = it->first;
+					const auto count = it->second;
+					transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+						ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), dungeon_task_id.get(), 0);
+					tasks_new[dungeon_task_id][item_id] += count;
+				}
 			}
 		}
 	}
