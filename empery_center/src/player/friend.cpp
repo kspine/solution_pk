@@ -480,10 +480,9 @@ PLAYER_SERVLET(Msg::CS_FriendRecords, account, session, req){
 
 	std::vector<FriendRecordBox::RecordInfo> records;
 	friend_record_box->get_all(records);
-
 	Msg::SC_FriendRecords msg;
 	msg.records.reserve(records.size());
-	for(auto it = records.begin(); it != records.begin(); ++it){
+	for(auto it = records.begin(); it != records.end(); ++it){
 		if(it->friend_account_uuid){
 			AccountMap::cached_synchronize_account_with_player_all(it->friend_account_uuid, session);
 		}
