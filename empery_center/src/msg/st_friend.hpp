@@ -31,7 +31,8 @@ namespace Msg {
 	FIELD_ARRAY         (segments,	\
 		FIELD_VUINT         (slot)	\
 		FIELD_STRING        (value)	\
-	)
+	)\
+	FIELD_STRING        (msg_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

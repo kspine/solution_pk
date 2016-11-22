@@ -12,6 +12,10 @@
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "../singletons/friend_record_box_map.hpp"
 #include "../friend_record_box.hpp"
+#include "../singletons/friend_private_msg_box_map.hpp"
+#include "../friend_private_msg_data.hpp"
+#include "../friend_private_msg_box.hpp"
+
 
 namespace EmperyCenter {
 namespace {
@@ -327,7 +331,9 @@ PLAYER_SERVLET(Msg::CS_FriendPrivateMessage, account, session, req){
 	if(info.category != FriendBox::CAT_FRIEND){
 		return Response(Msg::ERR_NO_SUCH_FRIEND) <<friend_uuid;
 	}
-
+	const auto msg_uuid = FriendPrivateMsgUuid(Poseidon::Uuid::random());
+	const auto utc_now = Poseidon::get_utc_time();
+	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
 	const auto promise = boost::make_shared<Poseidon::JobPromise>();
 	const auto tresult = boost::make_shared<std::pair<long, std::string>>(12345678, std::string());
 	const auto transaction_uuid = friend_box->create_async_request(promise, tresult);
@@ -339,10 +345,12 @@ PLAYER_SERVLET(Msg::CS_FriendPrivateMessage, account, session, req){
 		treq.friend_uuid       = friend_uuid.str();
 		treq.language_id       = req.language_id;
 		treq.segments.reserve(req.segments.size());
+		treq.msg_uuid          = msg_uuid.str();
 		for(auto it = req.segments.begin(); it != req.segments.end(); ++it){
 			auto &elem = *treq.segments.emplace(treq.segments.end());
 			elem.slot  = it->slot;
 			elem.value = std::move(it->value);
+			segments.push_back(std::make_pair(ChatMessageSlotId(elem.slot),elem.value));
 		}
 		if(!controller->send(treq)){
 			LOG_EMPERY_CENTER_WARNING("Lost connection to center server.");
@@ -358,6 +366,9 @@ PLAYER_SERVLET(Msg::CS_FriendPrivateMessage, account, session, req){
 		LOG_EMPERY_CENTER_DEBUG("Controller server response: code = ", tresult->first, ", msg = ", tresult->second);
 		return std::move(*tresult);
 	}
+	auto private_msg_data = boost::make_shared<FriendPrivateMsgData>(msg_uuid, LanguageId(req.language_id), utc_now,account_uuid,segments);
+	FriendPrivateMsgBoxMap::insert(account_uuid,friend_uuid,utc_now,msg_uuid,true,true,false);
+	FriendPrivateMsgBoxMap::insert_private_msg_data(std::move(private_msg_data));
 
 	return Response();
 }
@@ -475,25 +486,92 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListDelete, account, session, req){
 }
 
 PLAYER_SERVLET(Msg::CS_FriendRecords, account, session, req){
-	const auto friend_record_box = FriendRecordBoxMap::require(account->get_account_uuid());
-	friend_record_box->pump_status();
+	PROFILE_ME;
 
-	std::vector<FriendRecordBox::RecordInfo> records;
-	friend_record_box->get_all(records);
-	Msg::SC_FriendRecords msg;
-	msg.records.reserve(records.size());
-	for(auto it = records.begin(); it != records.end(); ++it){
-		if(it->friend_account_uuid){
-			AccountMap::cached_synchronize_account_with_player_all(it->friend_account_uuid, session);
+	try{
+		const auto friend_record_box = FriendRecordBoxMap::require(account->get_account_uuid());
+		friend_record_box->pump_status();
+	
+		std::vector<FriendRecordBox::RecordInfo> records;
+		friend_record_box->get_all(records);
+		Msg::SC_FriendRecords msg;
+		msg.records.reserve(records.size());
+		for(auto it = records.begin(); it != records.end(); ++it){
+			if(it->friend_account_uuid){
+				AccountMap::cached_synchronize_account_with_player_all(it->friend_account_uuid, session);
+			}
+	
+			auto &record = *msg.records.emplace(msg.records.end());
+			record.timestamp              = it->timestamp;
+			record.friend_uuid            = it->friend_account_uuid.str();
+			record.result_type            = it->result_type;
 		}
-
-		auto &record = *msg.records.emplace(msg.records.end());
-		record.timestamp              = it->timestamp;
-		record.friend_uuid            = it->friend_account_uuid.str();
-		record.result_type            = it->result_type;
+		session->send(msg);
+	} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 	}
-	LOG_EMPERY_CENTER_FATAL(msg);
-	session->send(msg);
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_FriendGetOfflineMsg, account, session, req){
+	PROFILE_ME;
+
+	try{
+		const auto friend_private_msg_box = FriendPrivateMsgBoxMap::require(account->get_account_uuid());
+		friend_private_msg_box->pump_status();
+	
+		std::vector<FriendPrivateMsgBox::PrivateMsgInfo> offline_msgs;
+		friend_private_msg_box->get_offline(offline_msgs);
+		for(auto it = offline_msgs.begin(); it != offline_msgs.end(); ++it){
+			auto &offline_msg = *it;
+				try {
+					auto msg_data = FriendPrivateMsgBoxMap::require_msg_data(offline_msg.msg_uuid,LanguageId(0));
+					std::vector<std::pair<ChatMessageSlotId, std::string>> segments = msg_data->get_segments();
+					AccountMap::cached_synchronize_account_with_player_all(offline_msg.friend_account_uuid, session);
+					Msg::SC_FriendPrivateMessage msg;
+					msg.friend_uuid  = offline_msg.friend_account_uuid.str();
+					msg.language_id  = 0;
+					msg.created_time = offline_msg.timestamp;
+					msg.segments.reserve(segments.size());
+					for(auto it = segments.begin(); it != segments.end(); ++it){
+						auto &elem = *msg.segments.emplace(msg.segments.end());
+						elem.slot  = it->first.get();
+						elem.value = it->second;
+					}
+					session->send(msg);
+					LOG_EMPERY_CENTER_FATAL("OFFLEIN MSG",msg);
+				} catch(std::exception &e){
+					LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+				}
+		}
+	} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_FriendGetRecent, account, session, req){
+	PROFILE_ME;
+
+	try{
+		const auto friend_private_msg_box = FriendPrivateMsgBoxMap::require(account->get_account_uuid());
+		friend_private_msg_box->pump_status();
+	
+		boost::container::flat_map<AccountUuid, std::uint64_t> recent_contact;
+		friend_private_msg_box->get_recent_contact(recent_contact);
+		Msg::SC_FriendRecentContact msg;
+		msg.recentContact.reserve(recent_contact.size());
+		for(auto it = recent_contact.begin(); it != recent_contact.end(); ++it)
+		{
+			auto &elem = *msg.recentContact.emplace(msg.recentContact.end());
+			elem.friend_uuid     = it->first.str();
+			elem.timestamp       = it->second;
+		}
+		session->send(msg);
+		LOG_EMPERY_CENTER_FATAL(msg);
+	} catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
 
 	return Response();
 }

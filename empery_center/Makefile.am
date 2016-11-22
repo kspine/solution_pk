@@ -60,6 +60,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/activity_http_server.cpp \
 	src/singletons/castle_offline_upgrade_building_base_map.cpp \
 	src/singletons/friend_record_box_map.cpp \
+	src/singletons/friend_private_msg_box_map.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -190,4 +191,6 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/activity_session.cpp \
 	src/dungeon_buff.cpp \
 	src/friend_record_box.cpp \
+	src/friend_private_msg_data.cpp \
+	src/friend_private_msg_box.cpp \
 	src/mmain.cpp
