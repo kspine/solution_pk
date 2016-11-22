@@ -1271,7 +1271,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
 		return Response(Msg::ERR_ACCOUNT_MAX_IMMIGRANT_GROUPS) <<vip_data->max_castle_count;
 	}
 
-	auto deploy_result = can_deploy_castle_at(coord, { });
+	auto deploy_result = can_deploy_castle_at(coord, { }, false);
 	if(deploy_result.first != Msg::ST_OK){
 		return std::move(deploy_result);
 	}
@@ -1585,7 +1585,7 @@ PLAYER_SERVLET(Msg::CS_CastleRelocate, account, session, req){
 		}
 	}
 
-	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid);
+	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid, false);
 	if(result.first != Msg::ST_OK){
 		return std::move(result);
 	}
@@ -1746,7 +1746,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastle, account, session, req){
 	if(!new_cluster){
 		return Response(Msg::ERR_CLUSTER_CONNECTION_LOST) <<new_castle_coord;
 	}
-	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid);
+	auto result = can_deploy_castle_at(new_castle_coord, map_object_uuid, false);
 	if(result.first != Msg::ST_OK){
 		return std::move(result);
 	}
@@ -1972,7 +1972,7 @@ PLAYER_SERVLET(Msg::CS_CastleReactivateCastleRandom, account, session, req){
 		                                     castle->get_attribute(AttributeIds::ID_CASTLE_LAST_COORD_Y));
 		const auto last_cluster = WorldMap::get_cluster(last_castle_coord);
 		if(last_cluster){
-			auto result = can_deploy_castle_at(last_castle_coord, map_object_uuid);
+			auto result = can_deploy_castle_at(last_castle_coord, map_object_uuid, false);
 			if(result.first == Msg::ST_OK){
 				castle->set_coord(last_castle_coord);
 				goto _reactivated;
