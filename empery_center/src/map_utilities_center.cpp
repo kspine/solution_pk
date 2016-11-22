@@ -103,7 +103,7 @@ std::pair<long, std::string> can_place_defense_building_at(Coord coord){
 	return CbppResponse();
 }
 
-std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid excluding_map_object_uuid){
+std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid excluding_map_object_uuid, bool force_placing){
 	PROFILE_ME;
 
 	using Response = CbppResponse;
@@ -146,7 +146,10 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 				continue;
 			}
 			if(!other_object->is_virtually_removed()){
-				return Response(Msg::ERR_CANNOT_DEPLOY_ON_TROOPS) <<foundation_coord;
+				if(other_object->get_owner_uuid() || !force_placing){
+					return Response(Msg::ERR_CANNOT_DEPLOY_ON_TROOPS) <<foundation_coord;
+				}
+				other_object->delete_from_game();
 			}
 		}
 
@@ -155,7 +158,10 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 		for(auto it = strategic_resources.begin(); it != strategic_resources.end(); ++it){
 			const auto &strategic_resource = *it;
 			if(!strategic_resource->is_virtually_removed()){
-				return Response(Msg::ERR_CANNOT_DEPLOY_ON_STRATEGIC_RESOURCE) <<foundation_coord;
+				if(!force_placing){
+					return Response(Msg::ERR_CANNOT_DEPLOY_ON_STRATEGIC_RESOURCE) <<foundation_coord;
+				}
+				strategic_resource->delete_from_game();
 			}
 		}
 	}
@@ -169,7 +175,10 @@ std::pair<long, std::string> can_deploy_castle_at(Coord coord, MapObjectUuid exc
 		for(auto it = resource_crates.begin(); it != resource_crates.end(); ++it){
 			const auto &resource_crate = *it;
 			if(!resource_crate->is_virtually_removed()){
-				return Response(Msg::ERR_CANNOT_DEPLOY_ON_RESOURCE_CRATES) <<resource_crate->get_resource_crate_uuid();
+				if(!force_placing){
+					return Response(Msg::ERR_CANNOT_DEPLOY_ON_RESOURCE_CRATES) <<resource_crate->get_resource_crate_uuid();
+				}
+				resource_crate->delete_from_game();
 			}
 		}
 	}
