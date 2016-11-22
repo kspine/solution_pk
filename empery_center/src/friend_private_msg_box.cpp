@@ -77,6 +77,7 @@ void FriendPrivateMsgBox::get_offline(std::vector<PrivateMsgInfo> &ret) const{
 		if(obj->get_read()){
 			continue;
 		}
+		obj->set_read(true);
 		fill_friend_private_msg_info(info, *it);
 		ret.emplace_back(std::move(info));
 	}
@@ -100,6 +101,7 @@ void FriendPrivateMsgBox::get_recent_contact(boost::container::flat_map<AccountU
 		}
 	}
 }
+
 void FriendPrivateMsgBox::push(std::uint64_t timestamp,AccountUuid friend_account_uuid,FriendPrivateMsgUuid msg_uuid,bool sender,bool read,bool deleted)
 {
 	PROFILE_ME;
