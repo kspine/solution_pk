@@ -7,6 +7,7 @@
 #include "../friend_box.hpp"
 #include "../singletons/player_session_map.hpp"
 #include "../player_session.hpp"
+#include "../singletons/friend_private_msg_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -93,14 +94,20 @@ CONTROLLER_SERVLET(Msg::TS_FriendPrivateMessage, controller, req){
 	if(!friend_account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<friend_uuid;
 	}
-
+	const auto utc_now = Poseidon::get_utc_time();
+	const auto msg_uuid = FriendPrivateMsgUuid(req.msg_uuid);
 	const auto friend_session = PlayerSessionMap::get(friend_uuid);
 	if(!friend_session){
-		return Response(Msg::ERR_FRIEND_OFFLINE) <<friend_uuid;
+		//记录成未读
+		FriendPrivateMsgBoxMap::insert(friend_uuid,account_uuid,utc_now,msg_uuid,false,false,false);
+		
+	}else{
+		//记录成已读
+		FriendPrivateMsgBoxMap::insert(friend_uuid,account_uuid,utc_now,msg_uuid,false,true,false);
 	}
 
 	try {
-		const auto utc_now = Poseidon::get_utc_time();
+		
 
 		Msg::SC_FriendPrivateMessage msg;
 		msg.friend_uuid  = account_uuid.str();
@@ -112,6 +119,7 @@ CONTROLLER_SERVLET(Msg::TS_FriendPrivateMessage, controller, req){
 			elem.slot  = it->slot;
 			elem.value = std::move(it->value);
 		}
+		
 		friend_session->send(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

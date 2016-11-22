@@ -85,6 +85,18 @@ namespace Msg {
 	//
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_FriendGetOfflineMsg
+#define MESSAGE_ID      712
+#define MESSAGE_FIELDS  \
+	//
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_FriendGetRecent
+#define MESSAGE_ID      713
+#define MESSAGE_FIELDS  \
+	//
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

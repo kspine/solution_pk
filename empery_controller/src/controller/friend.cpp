@@ -83,6 +83,7 @@ CONTROLLER_SERVLET(Msg::ST_FriendPrivateMessage, controller, req){
 					elem.slot  = it->slot;
 					elem.value = std::move(it->value);
 				}
+				sreq.msg_uuid         = req.msg_uuid;
 				auto result = using_controller->send_and_wait(sreq);
 
 				Msg::TS_FriendTransactionResult sres;
