@@ -116,9 +116,9 @@ namespace EmperyCenter {
 				SLOT_LEGION_BUILDING_HARVEST_COEFFICIENT = 100143,
 				SLOT_LEGION_BUILDING_IMPAIRMENT_RATIO    = 100144,
 				SLOT_DAILY_TASK_MAX_LEVEL                              = 100145,
-				SLOT_MAX_FRIEND_RECORD_COUNT                           = 100046,
-				SLOT_FRIEND_RECORD_EXPIRY_DAYS                         = 100047,
-				SLOT_FRIEND_RECENT_EXPIRY_DAYS                         = 100048,
+				SLOT_MAX_FRIEND_RECORD_COUNT                           = 100146,
+				SLOT_FRIEND_RECORD_EXPIRY_DAYS                         = 100147,
+				SLOT_FRIEND_RECENT_EXPIRY_DAYS                         = 100148,
 			};
 
 		public:
