@@ -66,6 +66,12 @@ namespace EmperyCenter
 						DEBUG_THROW(Exception, sslit("Duplicate item  reward"));
 					}
 				}
+
+				if(!noviceGuideSetup_container->insert(std::move(elem)).second)
+				{
+				    LOG_EMPERY_CENTER_ERROR("Duplicate noviceGuideSetup: stepid = ", elem.step_id);
+				    DEBUG_THROW(Exception, sslit("Duplicate noviceGuideSetup"));
+				}
 			}
 
 			g_noviceGuideSetup_container = noviceGuideSetup_container;

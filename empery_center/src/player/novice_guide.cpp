@@ -105,15 +105,17 @@ namespace EmperyCenter
          auto arm_rewards = pshare->arm_rewards;
          std::vector<SoldierTransactionElement> transaction;
          transaction.reserve(arm_rewards.size());
+        // LOG_EMPERY_CENTER_ERROR("add arm_rewaeds size:",arm_rewards.size());
          for(auto it = arm_rewards.begin(); it != arm_rewards.end(); ++it)
          {
+        // 	LOG_EMPERY_CENTER_ERROR("add arm_rewaeds arm_id:",it->first," count:", it->second);
        	   transaction.emplace_back(SoldierTransactionElement::OP_ADD, it->first, it->second,
        			ReasonIds::ID_NOVICE_GUIDE_ADD_ARM,0, 0, 0);
          }
        	 castle->commit_soldier_transaction(transaction);
        }
 
-       LOG_EMPERY_CENTER_ERROR("NoviceGuideLog::NoviceGuideTrace!!!");
+      // LOG_EMPERY_CENTER_ERROR("NoviceGuideLog::NoviceGuideTrace!!!");
        NoviceGuideLog::NoviceGuideTrace(AccountUuid(account_uuid),task_ids,stepid,Poseidon::get_utc_time());
 
        return Response(Msg::ST_OK);
