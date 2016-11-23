@@ -1480,6 +1480,7 @@ bool          DungeonObject::choice_skill_target(DungeonMonsterSkillId skill_id,
 	for(unsigned i = 1; i <= cast_range; ++i){
 		get_surrounding_coords(surrounding,get_coord(), i);
 	}
+	std::random_shuffle(surrounding.begin(),surrounding.end());
 	if(surrounding.empty()){
 		return false;
 	}
