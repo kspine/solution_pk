@@ -109,6 +109,9 @@ PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
 	friend_box->pump_status();
 
 	auto info = friend_box->get(friend_uuid);
+	if(account_uuid == friend_uuid){
+		return Response(Msg::ERR_FRIEND_CANNOT_REQUESTING_SELF) << friend_uuid;
+	}
 	if(info.category == FriendBox::CAT_FRIEND){
 		return Response(Msg::ERR_ALREADY_A_FRIEND) <<friend_uuid;
 	}
@@ -328,6 +331,9 @@ PLAYER_SERVLET(Msg::CS_FriendPrivateMessage, account, session, req){
 	friend_box->pump_status();
 
 	const auto info = friend_box->get(friend_uuid);
+	if(info.category == FriendBox::CAT_BLACKLIST){
+		return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+	}
 	if(info.category != FriendBox::CAT_FRIEND){
 		return Response(Msg::ERR_NO_SUCH_FRIEND) <<friend_uuid;
 	}
