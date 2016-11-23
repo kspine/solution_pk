@@ -67,8 +67,10 @@ Dungeon::~Dungeon(){
 		}
 	}
 	clear_observers(Q_DUNGEON_EXPIRED, "");
+	/*
 	auto event = boost::make_shared<Events::DungeonDeleted>(get_founder_uuid(),get_dungeon_type_id());
 	Poseidon::async_raise_event(event);
+	*/
 }
 
 /*
