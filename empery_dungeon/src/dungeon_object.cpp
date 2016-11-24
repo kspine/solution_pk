@@ -538,12 +538,12 @@ bool DungeonObject::attacking_able(std::pair<long, std::string> &reason){
 	//攻击力为0不可以攻击(副本中物件)
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(dungeon_object_type_data->attack == 0){
-		reason = CbppResponse(Msg::ERR_ZERO_DUNGEON_OBJECT_ATTACK);
+		reason = CbppResponse(Msg::ERR_ZERO_DUNGEON_OBJECT_ATTACK)<< get_dungeon_object_type_id();
 		return false;
 	}
 	const auto ai_control = boost::dynamic_pointer_cast<AiControlMonsterDecorate>(require_ai_control());
 	if(ai_control){
-		reason = CbppResponse(Msg::ERR_DUNGEON_MONSTER_DECORATE_AI);
+		reason = CbppResponse(Msg::ERR_DUNGEON_MONSTER_DECORATE_AI) << get_dungeon_object_type_id();
 		return false;
 	}
 	return true;
