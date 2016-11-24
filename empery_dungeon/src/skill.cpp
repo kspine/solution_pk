@@ -595,6 +595,7 @@ void  SkillSummonMonster::do_effects(){
 	for(unsigned i = 1; i <= range; i++){
 		get_surrounding_coords(coords,origin_coord,i);
 	}
+	std::random_shuffle(coords.begin(),coords.end());
 	std::vector<Coord> valid_birth_coords;
 	for(auto it = coords.begin(); it != coords.end(); ++it){
 		auto coord = *it;
