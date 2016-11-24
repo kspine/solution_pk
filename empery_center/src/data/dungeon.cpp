@@ -106,7 +106,17 @@ namespace {
 			}
 
 			csv.get(elem.resuscitation_ratio, "resurrection");
-
+			
+			array.clear();
+			csv.get(array, "dungeon_need_task");
+			elem.need_tasks.reserve(array.size());
+			for(auto it = array.begin(); it != array.end(); ++it){
+				const auto task_id = DungeonTaskId(it->get<double>());
+				if(!elem.need_tasks.insert(task_id).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate dungeon need task: task_id = ", task_id);
+					DEBUG_THROW(Exception, sslit("Duplicate dungeon need task"));
+				}
+			}
 			if(!dungeon_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate Dungeon: dungeon_type_id = ", elem.dungeon_type_id);
 				DEBUG_THROW(Exception, sslit("Duplicate Dungeon"));

@@ -27,7 +27,8 @@
 #include "../map_utilities.hpp"
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "../events/dungeon.hpp"
-
+#include "../task_box.hpp"
+#include "../singletons/task_box_map.hpp"
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_DungeonGetAll, account, session, /* req */){
@@ -49,6 +50,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 
 	const auto dungeon_box = DungeonBoxMap::require(account_uuid);
 	const auto item_box = ItemBoxMap::require(account_uuid);
+	const auto task_box = TaskBoxMap::require(account_uuid);
 
 	dungeon_box->pump_status();
 
@@ -57,6 +59,12 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 		const auto prerequisite_info = dungeon_box->get(prerequisite_dungeon_type_id);
 		if(prerequisite_info.finish_count == 0){
 			return Response(Msg::ERR_DUNGEON_PREREQUISITE_NOT_MET) <<prerequisite_dungeon_type_id;
+		}
+	}
+	for(auto it = dungeon_data->need_tasks.begin(); it != dungeon_data->need_tasks.end(); ++it){
+		auto task_id = *it;
+		if(!task_box->check_reward_status(TaskId(task_id.get()))){
+			return Response(Msg::ERR_DUNGEON_NEED_TASK_NOT_REWARD) << task_id;
 		}
 	}
 
