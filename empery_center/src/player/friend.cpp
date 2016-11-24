@@ -411,7 +411,7 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListAdd, account, session, req){
 
 	auto info = friend_box->get(friend_uuid);
 	if(info.category == FriendBox::CAT_BLACKLIST){
-		return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+		return Response(Msg::ERR_FRIEND_IN_BLACKLIST) <<friend_uuid;
 	}
 
 	/*
@@ -458,7 +458,7 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListDelete, account, session, req){
 
 	auto info = friend_box->get(friend_uuid);
 	if(info.category != FriendBox::CAT_BLACKLIST){
-		return Response(Msg::ERR_FRIEND_NOT_BLACKLISTED) <<friend_uuid;
+		return Response(Msg::ERR_FRIEND_IN_BLACKLIST) <<friend_uuid;
 	}
 
 	/*
