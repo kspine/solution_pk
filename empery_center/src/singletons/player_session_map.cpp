@@ -46,6 +46,7 @@ namespace {
 
 		try {
 			LOG_EMPERY_CENTER_DEBUG("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
+			AccountMap::synchronize_account_online_state_with_relate_player_all(account_uuid,false);
 			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
