@@ -26,12 +26,18 @@ public:
 		CAT_REQUESTED   = 3,
 		CAT_BLACKLIST   = 4,
 	};
+	
+	enum RelationType {
+		RT_NORMAL       = 0,
+		RT_BLACKLIST    = 1,
+	};
 
 	struct FriendInfo {
 		AccountUuid friend_uuid;
 		Category category;
 		std::string metadata;
 		std::uint64_t updated_time;
+		RelationType  relation;
 	};
 
 	struct AsyncRequestResultControl {

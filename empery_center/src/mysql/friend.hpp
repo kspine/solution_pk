@@ -13,7 +13,8 @@ namespace MySql {
 	FIELD_UUID              (friend_uuid)	\
 	FIELD_INTEGER_UNSIGNED  (category)	\
 	FIELD_STRING            (metadata)	\
-	FIELD_DATETIME          (updated_time)
+	FIELD_DATETIME          (updated_time) \
+	FIELD_INTEGER_UNSIGNED  (relation)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_FriendRecord
