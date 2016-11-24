@@ -28,6 +28,11 @@
 #include "../legion.hpp"
 #include "league_client.hpp"
 #include "../msg/sl_league.hpp"
+#include "friend_box_map.hpp"
+#include "../friend_box.hpp"
+#include "../msg/sc_friend.hpp"
+#include "player_session_map.hpp"
+#include "../player_session.hpp"
 
 
 namespace EmperyCenter {
@@ -767,6 +772,34 @@ void AccountMap::synchronize_account_league_with_player_all(AccountUuid account_
 			msg.to_account_uuid = to_account_uuid.str();
 			const auto league = LeagueClient::require();
 			auto tresult = league->send_and_wait(msg);
+		}
+	}catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void AccountMap::synchronize_account_online_state_with_relate_player_all(AccountUuid account_uuid,bool online){
+	PROFILE_ME;
+
+	try {
+		const auto friend_box = FriendBoxMap::require(account_uuid);
+		std::vector<FriendBox::FriendInfo> ret;
+		friend_box->get_all(ret);
+		Msg::SC_FriendOnlineStateChanged msg;
+		msg.friend_uuid = account_uuid.str();
+		msg.online      = online;
+		for(auto it = ret.begin(); it != ret.end(); ++it){
+			try {
+				auto &info = *it;
+				auto friend_uuid = info.friend_uuid;
+				auto session = PlayerSessionMap::get(friend_uuid);
+				if(session){
+					session->send(msg);
+					LOG_EMPERY_CENTER_FATAL("send online state change to friend_uuid = ",friend_uuid," ",msg);
+				}
+			}catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
 		}
 	}catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

@@ -64,6 +64,13 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_FriendOnlineStateChanged
+#define MESSAGE_ID      793
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (friend_uuid)	\
+	FIELD_VUINT         (online)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
