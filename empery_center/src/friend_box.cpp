@@ -17,16 +17,21 @@ namespace {
 		info.category     = FriendBox::Category(obj->get_category());
 		info.metadata     = obj->unlocked_get_metadata();
 		info.updated_time = obj->get_updated_time();
+		info.relation     = FriendBox::RelationType(obj->get_relation());
 	}
 
 	void fill_friend_message(Msg::SC_FriendChanged &msg, const boost::shared_ptr<MySql::Center_Friend> &obj,bool online){
 		PROFILE_ME;
 
 		msg.friend_uuid = obj->unlocked_get_friend_uuid().to_string();
+		
 		msg.category    = obj->get_category();
 		msg.metadata    = obj->unlocked_get_metadata();
 		msg.updated_time = obj->get_updated_time();
 		msg.online       = online;
+		if(FriendBox::RelationType(obj->get_relation()) == FriendBox::RT_BLACKLIST){
+			msg.category = FriendBox::CAT_BLACKLIST;
+		}
 	}
 }
 
@@ -121,7 +126,7 @@ void FriendBox::set(FriendBox::FriendInfo info){
 		}
 		if(!obj){
 			obj = boost::make_shared<MySql::Center_Friend>(get_account_uuid().get(), friend_uuid.get(),
-				0, std::string(), 0);
+				0, std::string(), 0,0);
 			obj->async_save(true);
 		}
 		it = map.emplace(friend_uuid, obj).first;
@@ -131,6 +136,7 @@ void FriendBox::set(FriendBox::FriendInfo info){
 	obj->set_category(static_cast<unsigned>(category));
 	obj->set_metadata(std::move(info.metadata));
 	obj->set_updated_time(info.updated_time);
+	obj->set_relation(info.relation);
 
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
