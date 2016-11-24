@@ -46,7 +46,7 @@ struct AccountMap {
 	static void synchronize_account_legion_with_player_all(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 	static void synchronize_account_league_with_player_all(AccountUuid account_uuid,AccountUuid to_account_uuid);
 
-	static void synchronize_account_online_state_with_relate_player_all(AccountUuid account_uuid,bool online);
+	static void synchronize_account_online_state_with_relate_player_all(AccountUuid account_uuid,bool online,std::uint64_t utc_now);
 
 private:
 	AccountMap() = delete;

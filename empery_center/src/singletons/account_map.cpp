@@ -778,16 +778,18 @@ void AccountMap::synchronize_account_league_with_player_all(AccountUuid account_
 	}
 }
 
-void AccountMap::synchronize_account_online_state_with_relate_player_all(AccountUuid account_uuid,bool online){
+void AccountMap::synchronize_account_online_state_with_relate_player_all(AccountUuid account_uuid,bool online,std::uint64_t utc_now){
 	PROFILE_ME;
 
 	try {
+		
 		const auto friend_box = FriendBoxMap::require(account_uuid);
 		std::vector<FriendBox::FriendInfo> ret;
 		friend_box->get_all(ret);
 		Msg::SC_FriendOnlineStateChanged msg;
 		msg.friend_uuid = account_uuid.str();
 		msg.online      = online;
+		msg.timestamp   = utc_now;
 		for(auto it = ret.begin(); it != ret.end(); ++it){
 			try {
 				auto &info = *it;
