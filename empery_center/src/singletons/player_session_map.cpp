@@ -46,7 +46,7 @@ namespace {
 
 		try {
 			LOG_EMPERY_CENTER_DEBUG("Player goes offline: account_uuid = ", account_uuid, ", online_duration = ", online_duration);
-			AccountMap::synchronize_account_online_state_with_relate_player_all(account_uuid,false);
+			AccountMap::synchronize_account_online_state_with_relate_player_all(account_uuid,false,utc_now);
 			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedOut>(account_uuid, online_duration));
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
@@ -164,6 +164,7 @@ void PlayerSessionMap::add(AccountUuid account_uuid, const boost::shared_ptr<Pla
 
 			const auto remote_ip = std::string(session->get_remote_info().ip.get());
 			LOG_EMPERY_CENTER_DEBUG("Player goes online: account_uuid = ", account_uuid, ", remote_ip = ", remote_ip);
+			
 			Poseidon::async_raise_event(boost::make_shared<Events::AccountLoggedIn>(account_uuid, remote_ip));
 			break;
 		}

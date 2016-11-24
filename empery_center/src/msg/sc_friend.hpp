@@ -68,7 +68,8 @@ namespace Msg {
 #define MESSAGE_ID      793
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (friend_uuid)	\
-	FIELD_VUINT         (online)
+	FIELD_VUINT         (online)	\
+	FIELD_VUINT         (timestamp)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
