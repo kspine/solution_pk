@@ -571,6 +571,9 @@ boost::shared_ptr<AiControl>  DungeonObject::require_ai_control(){
 			case AI_MONSTER_OBJECT:
 				m_ai_control = boost::make_shared<AiControlMonsterObject>(ai_id,virtual_weak_from_this<DungeonObject>());
 				break;
+			case AI_MONSTER_DECORATE:
+				m_ai_control = boost::make_shared<AiControlMonsterDecorate>(ai_id,virtual_weak_from_this<DungeonObject>());
+				break;
 			default:
 				LOG_EMPERY_DUNGEON_WARNING("invalid ai type:",ai_data->ai_type," ai_id:",ai_id);
 				break;
