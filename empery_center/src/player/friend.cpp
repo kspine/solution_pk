@@ -109,6 +109,12 @@ PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
 	friend_box->pump_status();
 
 	auto info = friend_box->get(friend_uuid);
+	if(account_uuid == friend_uuid){
+		return Response(Msg::ERR_FRIEND_CANNOT_REQUESTING_SELF) << friend_uuid;
+	}
+	if(info.relation == FriendBox::RT_BLACKLIST){
+		return Response(Msg::ERR_FRIEND_IN_BLACKLIST) <<friend_uuid;
+	}
 	if(info.category == FriendBox::CAT_FRIEND){
 		return Response(Msg::ERR_ALREADY_A_FRIEND) <<friend_uuid;
 	}
@@ -328,9 +334,6 @@ PLAYER_SERVLET(Msg::CS_FriendPrivateMessage, account, session, req){
 	friend_box->pump_status();
 
 	const auto info = friend_box->get(friend_uuid);
-	if(info.category != FriendBox::CAT_FRIEND){
-		return Response(Msg::ERR_NO_SUCH_FRIEND) <<friend_uuid;
-	}
 	const auto msg_uuid = FriendPrivateMsgUuid(Poseidon::Uuid::random());
 	const auto utc_now = Poseidon::get_utc_time();
 	std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
@@ -401,8 +404,8 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListAdd, account, session, req){
 	friend_box->pump_status();
 
 	auto info = friend_box->get(friend_uuid);
-	if(info.category == FriendBox::CAT_BLACKLIST){
-		return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+	if(info.relation == FriendBox::RT_BLACKLIST){
+		return Response(Msg::ERR_FRIEND_IN_BLACKLIST) <<friend_uuid;
 	}
 
 	/*
@@ -431,7 +434,7 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListAdd, account, session, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	info.category     = FriendBox::CAT_BLACKLIST;
+	info.relation     = FriendBox::RT_BLACKLIST;
 	info.updated_time = utc_now;
 	friend_box->set(std::move(info));
 
@@ -448,8 +451,8 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListDelete, account, session, req){
 	friend_box->pump_status();
 
 	auto info = friend_box->get(friend_uuid);
-	if(info.category != FriendBox::CAT_BLACKLIST){
-		return Response(Msg::ERR_FRIEND_NOT_BLACKLISTED) <<friend_uuid;
+	if(info.relation != FriendBox::RT_BLACKLIST){
+		return Response(Msg::ERR_FRIEND_NOT_IN_BLACKLIST) <<friend_uuid;
 	}
 
 	/*
@@ -478,7 +481,7 @@ PLAYER_SERVLET(Msg::CS_FriendBlackListDelete, account, session, req){
 
 	const auto utc_now = Poseidon::get_utc_time();
 
-	info.category     = FriendBox::CAT_DELETED;
+	info.relation     = FriendBox::RT_NORMAL;
 	info.updated_time = utc_now;
 	friend_box->set(std::move(info));
 

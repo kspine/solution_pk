@@ -38,6 +38,7 @@ public:
 		AI_MONSTER_AUTO_SEARCH_TARGET        = 4,
 		AI_MONSTER_PATROL                    = 5,
 		AI_MONSTER_OBJECT                    = 9,
+		AI_MONSTER_DECORATE                  = 10,
 	};
 
 	enum SkillTarget {

@@ -94,6 +94,13 @@ CONTROLLER_SERVLET(Msg::TS_FriendPrivateMessage, controller, req){
 	if(!friend_account){
 		return Response(Msg::ERR_NO_SUCH_ACCOUNT) <<friend_uuid;
 	}
+	const auto friend_box = FriendBoxMap::require(friend_uuid);
+	friend_box->pump_status();
+
+	const auto info = friend_box->get(account_uuid);
+	if(info.relation == FriendBox::RT_BLACKLIST){
+		return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+	}
 	const auto utc_now = Poseidon::get_utc_time();
 	const auto msg_uuid = FriendPrivateMsgUuid(req.msg_uuid);
 	const auto friend_session = PlayerSessionMap::get(friend_uuid);

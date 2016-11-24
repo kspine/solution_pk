@@ -237,6 +237,32 @@ void          AiControlMonsterObject::troops_attack(boost::shared_ptr<DungeonObj
 	return ;
 }
 
+AiControlMonsterDecorate::AiControlMonsterDecorate(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
+}
+
+AiControlMonsterDecorate::~AiControlMonsterDecorate(){}
+
+std::uint64_t AiControlMonsterDecorate::on_action_attack(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+	LOG_EMPERY_DUNGEON_WARNING("AiControlMonsterDecorate attack ????");
+	return UINT64_MAX;
+}
+
+std::uint64_t AiControlMonsterDecorate::move(std::pair<long, std::string> &result){
+	PROFILE_ME;
+
+	return UINT64_MAX;
+}
+
+std::uint64_t AiControlMonsterDecorate::on_attack(boost::shared_ptr<DungeonObject> attacker,std::uint64_t demage){
+	return UINT64_MAX;
+}
+
+void          AiControlMonsterDecorate::troops_attack(boost::shared_ptr<DungeonObject> target,bool passive){
+	return ;
+}
+
+
 
 
 }
