@@ -523,6 +523,11 @@ bool DungeonObject::attacked_able(std::pair<long, std::string> &reason){
 		reason = CbppResponse(Msg::ERR_TEMPORARILY_INVULNERABLE);
 		return false;
 	}
+	const auto ai_control = boost::dynamic_pointer_cast<AiControlMonsterDecorate>(require_ai_control());
+	if(ai_control){
+		reason = CbppResponse(Msg::ERR_DUNGEON_MONSTER_DECORATE_AI);
+		return false;
+	}
 	return true;
 }
 bool DungeonObject::attacking_able(std::pair<long, std::string> &reason){
@@ -534,6 +539,11 @@ bool DungeonObject::attacking_able(std::pair<long, std::string> &reason){
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(dungeon_object_type_data->attack == 0){
 		reason = CbppResponse(Msg::ERR_ZERO_DUNGEON_OBJECT_ATTACK);
+		return false;
+	}
+	const auto ai_control = boost::dynamic_pointer_cast<AiControlMonsterDecorate>(require_ai_control());
+	if(ai_control){
+		reason = CbppResponse(Msg::ERR_DUNGEON_MONSTER_DECORATE_AI);
 		return false;
 	}
 	return true;
