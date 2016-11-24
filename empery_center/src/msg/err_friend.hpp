@@ -23,8 +23,9 @@ namespace Msg {
 		ERR_FRIEND_NOT_REQUESTED                = 71712,
 		ERR_FRIEND_BLACKLISTED                  = 71713,
 		ERR_FRIEND_OFFLINE                      = 71714,
-		ERR_FRIEND_NOT_BLACKLISTED              = 71715,
+		ERR_FRIEND_NOT_IN_BLACKLIST             = 71715,
 		ERR_FRIEND_CANNOT_REQUESTING_SELF       = 71716,
+		ERR_FRIEND_IN_BLACKLIST                 = 71717,
 	};
 }
 
