@@ -543,10 +543,13 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 	const auto item_box = ItemBoxMap::require(account_uuid);
 
 	boost::container::flat_map<ItemId, std::uint64_t> rewards;
+	boost::container::flat_map<ResourceId, std::uint64_t> rewards_resources;
 	boost::container::flat_map<DungeonTaskId, boost::container::flat_map<ItemId, std::uint64_t>> tasks_new;
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.reserve(32);
+	std::vector<ResourceTransactionElement> res_transaction;
+	res_transaction.reserve(32);
 
 	const auto dungeon_type_id = dungeon->get_dungeon_type_id();
 
@@ -561,6 +564,13 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
 				ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), 0, 0);
 			rewards[item_id] += count;
+		}
+		for(auto it = dungeon_data->rewards_resources.begin(); it != dungeon_data->rewards_resources.end(); ++it){
+			const auto resource_id = it->first;
+			const auto count = it->second;
+			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, count,
+				ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), 0, 0);
+			rewards_resources[resource_id] += count;
 		}
 	}else{
 		for(auto tit = req.tasks_finished.begin(); tit != req.tasks_finished.end(); ++tit){
@@ -584,6 +594,8 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 
 	item_box->commit_transaction(transaction, false,
 		[&]{ dungeon_box->set(std::move(info)); });
+	const auto castle =  WorldMap::require_primary_castle(dungeon->get_founder_uuid());
+	castle->commit_resource_transaction(res_transaction);
 
 	const auto session = PlayerSessionMap::get(account_uuid);
 	if(session){
@@ -595,6 +607,11 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 			for(auto it = rewards.begin(); it != rewards.end(); ++it){
 				auto &elem = *msg.rewards.emplace(msg.rewards.end());
 				elem.item_id = it->first.get();
+				elem.count   = it->second;
+			}
+			for(auto it = rewards_resources.begin(); it != rewards_resources.end(); ++it){
+				auto &elem = *msg.rewards_resources.emplace(msg.rewards_resources.end());
+				elem.resource_id = it->first.get();
 				elem.count   = it->second;
 			}
 			msg.tasks_finished_new.reserve(tasks_new.size());
@@ -617,6 +634,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 				soldier_elem.soldiers_resuscitated = it->second.resuscitated;
 				soldier_elem.soldiers_wounded = it->second.wounded;
 			}
+			LOG_EMPERY_CENTER_FATAL(msg);
 			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());

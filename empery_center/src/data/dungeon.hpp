@@ -27,6 +27,7 @@ namespace Data {
 
 		boost::container::flat_set<DungeonTaskId> tasks;
 		boost::container::flat_map<ItemId, std::uint64_t> rewards;
+		boost::container::flat_map<ResourceId, std::uint64_t> rewards_resources;
 		double resuscitation_ratio;
 		boost::container::flat_set<DungeonTaskId> need_tasks;
 	};

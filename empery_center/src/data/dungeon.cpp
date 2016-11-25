@@ -104,6 +104,18 @@ namespace {
 					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
 				}
 			}
+			
+			object.clear();
+			csv.get(object, "dungeon_reward_material");
+			elem.rewards_resources.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.rewards_resources.emplace(resource_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate reward set: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate reward set"));
+				}
+			}
 
 			csv.get(elem.resuscitation_ratio, "resurrection");
 			
