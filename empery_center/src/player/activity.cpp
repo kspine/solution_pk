@@ -11,6 +11,7 @@
 #include "../activity.hpp"
 #include "../activity_ids.hpp"
 #include "../castle.hpp"
+#include "../data/activity.hpp"
 
 
 namespace EmperyCenter {
@@ -143,6 +144,56 @@ PLAYER_SERVLET(Msg::CS_ClaimWorldActivityRank, account, session, req){
 		return Response(Msg::ERR_WORLD_ACTIVITY_RANK_HAVE_REWARDED);
 	}
 	world_activity->reward_rank(cluster_coord,account_uuid);
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_WorldActivityDropData, account, session, req){
+	try{
+		const auto world_activity_data =  Data::WorldActivity::get(req.unique_id);
+		if(!world_activity_data){
+			LOG_EMPERY_CENTER_WARNING("no world activity data ",req.unique_id);
+			return Response(Msg::ERR_NO_WORLD_ACTIVITY) << req.unique_id;
+		}
+		auto rewards = world_activity_data->rewards;
+		Msg::SC_WorldActivityDropData msg;
+		msg.unique_id = req.unique_id;
+		for(auto it = rewards.begin(); it != rewards.end(); ++it){
+			auto &drop = *msg.drop.emplace(msg.drop.end());
+			drop.collection_name = it->first;
+			drop.count           = it->second;
+		}
+		LOG_EMPERY_CENTER_FATAL(msg);
+		session->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_ActivityRankAwardData, account, session, req){
+	try{
+		std::vector<boost::shared_ptr<const Data::ActivityAward>> ret;
+		Data::ActivityAward::get_activity_award_all(req.unique_id,ret);
+		if(ret.empty()){
+			LOG_EMPERY_CENTER_WARNING("activity award empty???,activity_id = ",req.unique_id);
+		}
+		Msg::SC_ActivityRankAwardData msg;
+		for(auto it = ret.begin(); it != ret.end(); ++it){
+			auto &rank_award_data = *it;
+			auto &rank_list = *msg.rank_list.emplace(msg.rank_list.end());
+			rank_list.begin = rank_award_data->rank_begin;
+			rank_list.end   = rank_award_data->rank_end;
+			for(auto itr = rank_award_data->rewards.begin(); itr != rank_award_data->rewards.end(); ++itr){
+				auto &rank_reward = *rank_list.reward.emplace(rank_list.reward.end());
+				rank_reward.item_id = (*itr).first;
+				rank_reward.count = (*itr).second;
+			}
+		}
+		LOG_EMPERY_CENTER_FATAL(msg);
+		session->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
 	return Response();
 }
 

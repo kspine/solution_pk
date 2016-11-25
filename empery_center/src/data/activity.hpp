@@ -38,6 +38,7 @@ namespace Data {
 		static void reload();
 		static bool get_activity_rank_award(std::uint64_t activity_id,const std::uint64_t rank,std::vector<std::pair<std::uint64_t,std::uint64_t>> &rewards);
 		static std::uint64_t get_max_activity_award_rank(std::uint64_t activity_id);
+		static void get_activity_award_all(std::uint64_t activity_id,std::vector<boost::shared_ptr<const ActivityAward>> &ret);
 	public:
 		std::uint64_t unique_id;
 		std::uint64_t activity_id;
