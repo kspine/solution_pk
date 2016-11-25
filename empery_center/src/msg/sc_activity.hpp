@@ -73,6 +73,30 @@ namespace Msg {
 	FIELD_VINT          (x)	\
 	FIELD_VINT          (y)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_WorldActivityDropData
+#define MESSAGE_ID      1494
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (unique_id) \
+	FIELD_ARRAY         (drop,	\
+		FIELD_STRING        (collection_name)      \
+		FIELD_VUINT         (count)	            \
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_ActivityRankAwardData
+#define MESSAGE_ID      1493
+#define MESSAGE_FIELDS  \
+	FIELD_ARRAY         (rank_list,	\
+		FIELD_VUINT         (begin)	\
+		FIELD_VUINT         (end)	\
+		FIELD_ARRAY         (reward,	\
+			FIELD_VUINT         (item_id) \
+			FIELD_VUINT         (count)	\
+		)\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

@@ -346,6 +346,22 @@ namespace Data {
 		return false;
 	}
 
+void ActivityAward::get_activity_award_all(std::uint64_t activity_id,std::vector<boost::shared_ptr<const ActivityAward>> &ret){
+		PROFILE_ME;
+
+		const auto activity_award_map = g_activity_award_map.lock();
+		if(!activity_award_map){
+			LOG_EMPERY_CENTER_WARNING("activity award map has not been loaded.");
+			return;
+		}
+
+		const auto range = activity_award_map->equal_range<1>(activity_id);
+		ret.reserve(ret.size() + static_cast<std::size_t>(std::distance(range.first, range.second)));
+		for(auto it = range.first; it != range.second; ++it){
+			ret.emplace_back(activity_award_map, &*it);
+		}
+}
+
 	std::uint64_t ActivityAward::get_max_activity_award_rank(std::uint64_t activity_id){
 		PROFILE_ME;
 
