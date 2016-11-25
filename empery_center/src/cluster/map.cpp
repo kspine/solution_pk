@@ -938,32 +938,32 @@ _wounded_done:
 
 					castle->commit_resource_transaction(resource_transaction,
 						[&]{ item_box->commit_transaction(transaction, false); });
-					const auto session = PlayerSessionMap::get(attacking_account_uuid);
-					if(session){
-						try {
-							Msg::SC_MapMonsterRewardGot msg;
-							msg.x                  = attacked_coord.x();
-							msg.y                  = attacked_coord.y();
-							msg.map_object_type_id = attacked_object_type_id.get();
-							msg.items_basic.reserve(items_basic.size());
-							for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
-								auto &elem = *msg.items_basic.emplace(msg.items_basic.end());
-								elem.item_id = it->first.get();
-								elem.count   = it->second;
-							}
-							msg.items_extra.reserve(items_extra.size());
-							for(auto it = items_extra.begin(); it != items_extra.end(); ++it){
-								auto &elem = *msg.items_extra.emplace(msg.items_extra.end());
-								elem.item_id = it->first.get();
-								elem.count   = it->second;
-							}
-							msg.castle_uuid        = castle->get_map_object_uuid().str();
-							msg.reward_counter     = reward_counter;
-							session->send(msg);
-						} catch(std::exception &e){
-							LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-							session->shutdown(e.what());
+				}
+				const auto session = PlayerSessionMap::get(attacking_account_uuid);
+				if(session){
+					try {
+						Msg::SC_MapMonsterRewardGot msg;
+						msg.x                  = attacked_coord.x();
+						msg.y                  = attacked_coord.y();
+						msg.map_object_type_id = attacked_object_type_id.get();
+						msg.items_basic.reserve(items_basic.size());
+						for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
+							auto &elem = *msg.items_basic.emplace(msg.items_basic.end());
+							elem.item_id = it->first.get();
+							elem.count   = it->second;
 						}
+						msg.items_extra.reserve(items_extra.size());
+						for(auto it = items_extra.begin(); it != items_extra.end(); ++it){
+							auto &elem = *msg.items_extra.emplace(msg.items_extra.end());
+							elem.item_id = it->first.get();
+							elem.count   = it->second;
+						}
+						msg.castle_uuid        = castle->get_map_object_uuid().str();
+						msg.reward_counter     = reward_counter;
+						session->send(msg);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						session->shutdown(e.what());
 					}
 				}
 			});

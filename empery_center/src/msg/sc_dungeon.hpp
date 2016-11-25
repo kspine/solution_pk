@@ -176,6 +176,10 @@ namespace Msg {
 		FIELD_VUINT         (soldiers_damaged)	\
 		FIELD_VUINT         (soldiers_resuscitated)	\
 		FIELD_VUINT         (soldiers_wounded)	\
+	)\
+	FIELD_ARRAY         (rewards_resources,	\
+		FIELD_VUINT         (resource_id)	\
+		FIELD_VUINT         (count)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
