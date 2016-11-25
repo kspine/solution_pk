@@ -48,8 +48,9 @@
 #include "../legion_log.hpp"
 #include "../singletons/activity_map.hpp"
 #include "../activity.hpp"
-
-
+#include "../legion.hpp"
+#include "../msg/sc_legion.hpp"
+#include "../singletons/legion_map.hpp"
 #include "../singletons/castle_offline_upgrade_building_base_map.hpp"
 
 namespace EmperyCenter {
@@ -2139,6 +2140,13 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}
 				member->set_attributes(std::move(legion_attributes_modifer));
+				auto legion = LegionMap::require(member->get_legion_uuid());
+				// 广播通知
+				Msg::SC_LegionNoticeMsg msg;
+				msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_USE_PERSONAL_DONATE_ITEM;
+				msg.nick = "";
+				msg.ext1 = "";
+				legion->sendNoticeMsg(msg);
 			}else{
 				std::string donate = account->get_attribute(AccountAttributeIds::ID_DONATE);
 				boost::container::flat_map<AccountAttributeId, std::string> account_attributes_modifer;

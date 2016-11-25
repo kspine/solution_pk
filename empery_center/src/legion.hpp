@@ -77,6 +77,7 @@ public:
 		LEGION_NOTICE_MSG_MINE_STATUS_CHANGE 	= 14,	// 货仓变动
 		LEGION_NOTICE_MSG_MEMBER_STATUS_CHANGE 	= 15,	// 军团成员信息有更新
 		LEGION_NOTICE_MSG_TYPE_MODIFY           = 16,   // 军团修改通知
+		LEGION_NOTICE_MSG_TYPE_USE_PERSONAL_DONATE_ITEM  = 17, //使用跟人贡献道具
 	};
 public:
 
