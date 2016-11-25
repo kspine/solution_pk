@@ -175,7 +175,13 @@ void MapCell::pump_production(){
 	const bool acc_card_applied = m_obj->get_acceleration_card_applied();
 
 	if(ticket_item_id && production_resource_id){
-		const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(get_parent_object_uuid()));
+		const auto occupier_object_uuid = get_occupier_object_uuid();
+		auto parent_object_uuid = get_parent_object_uuid();
+		if(occupier_object_uuid){
+			auto occupier_object = WorldMap::get_map_object(occupier_object_uuid);
+			parent_object_uuid = occupier_object->get_parent_object_uuid();
+		}
+		auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 		if(!castle){
 			LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
 			DEBUG_THROW(Exception, sslit("No parent castle"));
