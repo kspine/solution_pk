@@ -29,6 +29,8 @@ CONTROLLER_SERVLET(Msg::TS_FriendPeerCompareExchange, controller, req){
 	}
 
 	auto info = friend_box->get(account_uuid);
+
+	
 	if(std::find_if(req.categories_expected.begin(), req.categories_expected.end(),
 		[&](decltype(req.categories_expected.front()) &elem){
 			return info.category == static_cast<FriendBox::Category>(elem.category_expected);
@@ -40,6 +42,11 @@ CONTROLLER_SERVLET(Msg::TS_FriendPeerCompareExchange, controller, req){
 	}
 
 	const auto category = static_cast<FriendBox::Category>(req.category);
+	if(category == FriendBox::CAT_REQUESTED){
+		if(info.relation == FriendBox::RT_BLACKLIST){
+			return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
+		}
+	}
 	if(info.category != category){
 		if(category != FriendBox::CAT_DELETED){
 			std::vector<FriendBox::FriendInfo> friends;
