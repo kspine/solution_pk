@@ -61,6 +61,7 @@ namespace Msg {
 	FIELD_ARRAY         (recentContact,	\
 		FIELD_STRING        (friend_uuid)	\
 		FIELD_VUINT         (timestamp)     \
+		FIELD_VUINT         (online)        \
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 

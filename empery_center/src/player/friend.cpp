@@ -569,6 +569,7 @@ PLAYER_SERVLET(Msg::CS_FriendGetRecent, account, session, req){
 			auto &elem = *msg.recentContact.emplace(msg.recentContact.end());
 			elem.friend_uuid     = it->first.str();
 			elem.timestamp       = it->second;
+			elem.online          = (PlayerSessionMap::get(it->first) != NULL);
 			AccountMap::cached_synchronize_account_with_player_all(it->first, session);
 		}
 		session->send(msg);
