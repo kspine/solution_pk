@@ -112,6 +112,10 @@ CONTROLLER_SERVLET(Msg::TS_FriendPrivateMessage, controller, req){
 		//记录成已读
 		FriendPrivateMsgBoxMap::insert(friend_uuid,account_uuid,utc_now,msg_uuid,false,true,false);
 		try {
+			//如果不是好友，先发送帐号信息
+			if(info.category == CAT_DELETED){
+				AccountMap::cached_synchronize_account_with_player_all(account_uuid, friend_session);
+			}
 
 			Msg::SC_FriendPrivateMessage msg;
 			msg.friend_uuid  = account_uuid.str();
