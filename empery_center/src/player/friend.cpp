@@ -127,11 +127,17 @@ PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
 
 	const auto max_number_of_friends_requesting = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTING);
 	const auto max_number_of_friends_requested  = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS_REQUESTED);
+	const auto max_number_of_friends = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS);
 
 	std::vector<FriendBox::FriendInfo> friends;
 	friend_box->get_by_category(friends, FriendBox::CAT_REQUESTING);
 	if(friends.size() >= max_number_of_friends_requesting){
 		return Response(Msg::ERR_FRIEND_REQUESTING_LIST_FULL) <<max_number_of_friends_requesting;
+	}
+	friends.clear();
+	friend_box->get_by_category(friends, FriendBox::CAT_REQUESTING);
+	if(friends.size() >= max_number_of_friends){
+		return Response(Msg::ERR_FRIEND_LIST_FULL) <<max_number_of_friends;
 	}
 
 	auto tresult = interserver_compare_exchange_and_wait(controller, friend_box, friend_uuid,
