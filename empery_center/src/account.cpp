@@ -6,6 +6,8 @@
 #include "msg/sc_account.hpp"
 #include "player_session.hpp"
 #include <poseidon/singletons/mysql_daemon.hpp>
+#include "singletons/player_session_map.hpp"
+#include "player_session.hpp"
 
 namespace EmperyCenter {
 
@@ -153,6 +155,7 @@ void Account::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	}
 	msg.promotion_level = get_promotion_level();
 	msg.activated       = has_been_activated();
+	msg.online          = (PlayerSessionMap::get(get_account_uuid()) != NULL);
 	session->send(msg);
 }
 
