@@ -271,6 +271,7 @@ namespace {
 		// 其他。
 		msg.promotion_level = account->get_promotion_level();
 		msg.activated       = account->has_been_activated();
+		msg.online          = (PlayerSessionMap::get(account_uuid) != NULL);
 		session->send(msg);
 
 		const auto info_cache_map = g_info_cache_map.lock();

@@ -27,7 +27,8 @@ namespace Msg {
 		FIELD_VUINT         (item_count)	\
 	)	\
 	FIELD_VUINT         (promotion_level)	\
-	FIELD_VUINT         (activated)
+	FIELD_VUINT         (activated) \
+	FIELD_VUINT         (online)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_AccountQueryAttributesRet
