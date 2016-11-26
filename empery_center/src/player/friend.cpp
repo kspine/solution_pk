@@ -135,7 +135,7 @@ PLAYER_SERVLET(Msg::CS_FriendRequest, account, session, req){
 		return Response(Msg::ERR_FRIEND_REQUESTING_LIST_FULL) <<max_number_of_friends_requesting;
 	}
 	friends.clear();
-	friend_box->get_by_category(friends, FriendBox::CAT_REQUESTING);
+	friend_box->get_by_category(friends, FriendBox::CAT_FRIEND);
 	if(friends.size() >= max_number_of_friends){
 		return Response(Msg::ERR_FRIEND_LIST_FULL) <<max_number_of_friends;
 	}
