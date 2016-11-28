@@ -5,16 +5,16 @@
 
 namespace EmperyCenter {
 
-   namespace Msg {
+namespace Msg {
 
-          #define MESSAGE_NAME    SL_NoviceGuideTrace
-          #define MESSAGE_ID      58722
-          #define MESSAGE_FIELDS  \
-               FIELD_STRING        (account_uuid)	\
-		       FIELD_VUINT         (task_id)   \
-		       FIELD_VUINT         (step_id)   \
- 		       FIELD_VUINT         (created_time)
-          #include <poseidon/cbpp/message_generator.hpp>
+#define MESSAGE_NAME    SL_NoviceGuideTrace
+#define MESSAGE_ID      58722
+#define MESSAGE_FIELDS  \
+    FIELD_STRING        (account_uuid)	\
+    FIELD_VUINT         (task_id)       \
+    FIELD_VUINT         (step_id)       \
+    FIELD_VUINT         (created_time)
+#include <poseidon/cbpp/message_generator.hpp>
    }
 }
 #endif
