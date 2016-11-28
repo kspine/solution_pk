@@ -54,9 +54,23 @@ namespace EmperyCenter
 				elem.rewards.reserve(object.size());
 				for (auto it = object.begin(); it != object.end(); ++it)
 				{
+					const auto item_id = boost::lexical_cast<ItemId>(it->first);
+					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+					if (!elem.rewards.emplace(item_id, count).second)
+					{
+						LOG_EMPERY_CENTER_ERROR("Duplicate task reward: item_id = ", item_id);
+						DEBUG_THROW(Exception, sslit("Duplicate task reward"));
+					}
+				}
+
+				object.clear();
+				csv.get(object, "task_reward_resource");
+				elem.rewards_resources.reserve(object.size());
+				for (auto it = object.begin(); it != object.end(); ++it)
+				{
 					const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
 					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
-					if (!elem.rewards.emplace(resource_id, count).second)
+					if (!elem.rewards_resources.emplace(resource_id, count).second)
 					{
 						LOG_EMPERY_CENTER_ERROR("Duplicate task reward: resource_id = ", resource_id);
 						DEBUG_THROW(Exception, sslit("Duplicate task reward"));
