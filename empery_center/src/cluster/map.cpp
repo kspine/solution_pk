@@ -462,8 +462,6 @@ namespace {
 
 			if(other_account_uuid){
 				AccountMap::cached_synchronize_account_with_player_all(other_account_uuid, session);
-				AccountMap::synchronize_account_legion_with_player_all(other_account_uuid,session);
-				AccountMap::synchronize_account_league_with_player_all(other_account_uuid,account_uuid);
 			}
 
 			Msg::SC_BattleRecordNotification msg;
