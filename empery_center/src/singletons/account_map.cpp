@@ -274,6 +274,11 @@ namespace {
 		msg.online          = (PlayerSessionMap::get(account_uuid) != NULL);
 		session->send(msg);
 
+		//军团联盟信息
+		AccountMap::synchronize_account_legion_with_player_all(account_uuid,session);
+		const auto to_account_uuid = PlayerSessionMap::get_account_uuid(session);
+		AccountMap::synchronize_account_league_with_player_all(account_uuid,to_account_uuid);
+
 		const auto info_cache_map = g_info_cache_map.lock();
 		if(info_cache_map){
 			const auto update_cache = [&](CacheType type){
