@@ -1601,7 +1601,7 @@ _wounded_done:
 					return;
 				}
 				const auto account = AccountMap::require(attacking_account_uuid);
-				std::string max_attack_monster_level_str =  account->get_attribute[AccountAttributeIds::ID_MAX_ATTACK_MONSTER_LEVEL];
+				std::string max_attack_monster_level_str =  account->get_attribute(AccountAttributeIds::ID_MAX_ATTACK_MONSTER_LEVEL);
 				std::uint64_t max_attack_monster_level_expect = 2;
 				bool update_max_attack_level = false;
 				if(max_attack_monster_level_str.empty()){
@@ -1619,10 +1619,11 @@ _wounded_done:
 					modifiers[AccountAttributeIds::ID_MAX_ATTACK_MONSTER_LEVEL] = boost::lexical_cast<std::string>(max_attack_monster_level_expect);
 					account->set_attributes(std::move(modifiers));
 				}
-			}
+			});
 		} catch (std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
+	}
 
 	return Response();
 }
