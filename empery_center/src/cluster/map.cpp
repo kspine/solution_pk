@@ -840,7 +840,6 @@ _wounded_done:
 				if(!monster_type_data){
 					return;
 				}
-
 				bool goblin_award = false;
 				bool world_boss_award = false;
 				static constexpr auto GOBLIN_WEAPON_ID = MapObjectWeaponId(2605001);
@@ -1591,6 +1590,40 @@ _wounded_done:
 		}
 	}
 
+	// 设置最大攻击野怪等级
+	if(attacking_account_uuid && (soldiers_remaining == 0)){
+		try {
+			Poseidon::enqueue_async_job([=]() mutable {
+				PROFILE_ME;
+
+				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
+				if(!monster_type_data){
+					return;
+				}
+				const auto account = AccountMap::require(attacking_account_uuid);
+				std::string max_attack_monster_level_str =  account->get_attribute[AccountAttributeIds::ID_MAX_ATTACK_MONSTER_LEVEL];
+				std::uint64_t max_attack_monster_level_expect = 2;
+				bool update_max_attack_level = false;
+				if(max_attack_monster_level_str.empty()){
+					LOG_EMPERY_CENTER_WARNING("account max_attack_monster level is empty,attacking_account_uuid = ",attacking_account_uuid);
+					update_max_attack_level = true;
+				}else{
+					std::uint64_t current_level = boost::lexical_cast<std::uint64_t>(max_attack_monster_level_str);
+					if(monster_type_data->level == current_level){
+						max_attack_monster_level_expect = monster_type_data->level + 1;
+						update_max_attack_level = true;
+					}
+				}
+				if(update_max_attack_level){
+					boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+					modifiers[AccountAttributeIds::ID_MAX_ATTACK_MONSTER_LEVEL] = boost::lexical_cast<std::string>(max_attack_monster_level_expect);
+					account->set_attributes(std::move(modifiers));
+				}
+			}
+		} catch (std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+
 	return Response();
 }
 
@@ -2148,6 +2181,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 	*/
 	return Response();
 }
+
 }
 
 

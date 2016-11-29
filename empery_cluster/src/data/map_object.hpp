@@ -59,6 +59,7 @@ namespace Data {
 	public:
 		MapObjectTypeId     map_object_type_id;
 		MapObjectWeaponId   arm_relative_id;
+		std::int64_t       level;
 	};
 
 	class MapObjectTypeBuilding{

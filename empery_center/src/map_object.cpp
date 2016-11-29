@@ -19,6 +19,8 @@
 #include "map_object_type_ids.hpp"
 #include "singletons/legion_member_map.hpp"
 #include "singletons/legion_building_map.hpp"
+#include "account.hpp"
+#include "account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -738,11 +740,24 @@ void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession>
 		msg.garrisoned         = is_garrisoned();
 		msg.x                  = get_coord().x();
 		msg.y                  = get_coord().y();
-		msg.attributes.reserve(m_attributes.size());
+		msg.attributes.reserve(m_attributes.size()+1);
 		for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
 			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
 			attribute.attribute_id = it->first.get();
 			attribute.value        = it->second->get_value();
+		}
+		std::int64_t max_attack_own_max_attack_monster_level = 1;
+		if(get_owner_uuid()){
+			const auto account = AccountMap::require(get_owner_uuid());
+			std::string max_attack_monster_level_str = account->get_attribute(AccountAttributeIds::ID_MAX_ATTACK_MONSTER_LEVEL);
+			if(!max_attack_monster_level_str.empty()){
+				max_attack_own_max_attack_monster_level = boost::lexical_cast<std::int64_t>(max_attack_monster_level_str);
+				auto &attribute = *msg.attributes.emplace(msg.attributes.end());
+				attribute.attribute_id = AttributeIds::ID_OWNER_MAX_ATTACK_MONSTER_LEVEL.get();
+				attribute.value        = max_attack_own_max_attack_monster_level;
+			}else{
+				LOG_EMPERY_CENTER_WARNING("ACCOUNT ATTRIBUTE ID_MAX_ATTACK_MONSTER_LEVEL is empty()");
+			}
 		}
 		msg.buffs.reserve(m_buffs.size());
 		for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
