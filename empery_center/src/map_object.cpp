@@ -747,17 +747,15 @@ void MapObject::synchronize_with_cluster(const boost::shared_ptr<ClusterSession>
 			attribute.value        = it->second->get_value();
 		}
 		std::int64_t max_attack_own_max_attack_monster_level = 1;
-		if(get_owner_uuid()){
-			const auto account = AccountMap::require(get_owner_uuid());
+		const auto account = AccountMap::get(get_owner_uuid());
+		if(account){
 			std::string max_attack_monster_level_str = account->get_attribute(AccountAttributeIds::ID_MAX_ATTACK_MONSTER_LEVEL);
 			if(!max_attack_monster_level_str.empty()){
 				max_attack_own_max_attack_monster_level = boost::lexical_cast<std::int64_t>(max_attack_monster_level_str);
-				auto &attribute = *msg.attributes.emplace(msg.attributes.end());
-				attribute.attribute_id = AttributeIds::ID_OWNER_MAX_ATTACK_MONSTER_LEVEL.get();
-				attribute.value        = max_attack_own_max_attack_monster_level;
-			}else{
-				LOG_EMPERY_CENTER_WARNING("ACCOUNT ATTRIBUTE ID_MAX_ATTACK_MONSTER_LEVEL is empty()");
 			}
+			auto &attribute = *msg.attributes.emplace(msg.attributes.end());
+			attribute.attribute_id = AttributeIds::ID_OWNER_MAX_ATTACK_MONSTER_LEVEL.get();
+			attribute.value        = max_attack_own_max_attack_monster_level;
 		}
 		msg.buffs.reserve(m_buffs.size());
 		for(auto it = m_buffs.begin(); it != m_buffs.end(); ++it){
