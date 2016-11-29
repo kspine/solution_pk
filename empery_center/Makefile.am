@@ -87,6 +87,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/data/dungeon_buff.cpp \
 	src/data/skill.cpp \
 	src/data/novice_guide_setup.cpp \
+	src/data/map_country.cpp \
 	src/player/account.cpp	\
 	src/player/map.cpp	\
 	src/player/castle.cpp	\
@@ -107,6 +108,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/player/league.cpp \
 	src/player/activity.cpp \
 	src/player/novice_guide.cpp \
+	src/player/map_country.cpp \
 	src/admin/account.cpp	\
 	src/admin/item.cpp	\
 	src/admin/castle.cpp	\

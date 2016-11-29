@@ -49,7 +49,8 @@ constexpr AccountAttributeId
 	ID_SAVED_THIRD_TOKEN              ( 506 ),
 	ID_FIRST_CASTLE_NAME_SET          ( 507 ),
 	ID_NOVICIATE_PROTECTION_EXPIRED   ( 508 ),
-	ID_LEGION_PERSONAL_CONTRIBUTION   ( 509 );
+	ID_LEGION_PERSONAL_CONTRIBUTION   ( 509 ),
+	ID_MAP_COUNTRY                    ( 510 );
 }
 
 }
