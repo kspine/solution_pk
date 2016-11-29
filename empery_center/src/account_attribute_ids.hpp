@@ -25,6 +25,7 @@ constexpr AccountAttributeId
 	ID_LAST_LOGGED_IN_TIME            ( 200 ),
 	ID_LAST_LOGGED_OUT_TIME           ( 201 ),
 	ID_AVATAR                         ( 202 ),
+	ID_MAX_ATTACK_MONSTER_LEVEL       ( 203 ),
 
 	ID_LAST_SIGNED_IN_TIME            ( 302 ),
 	ID_SEQUENTIAL_SIGNED_IN_DAYS      ( 303 ),

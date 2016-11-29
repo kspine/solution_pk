@@ -511,6 +511,10 @@ std::uint64_t MapObject::attack(std::pair<long, std::string> &result, std::uint6
 	if(result.first != Msg::ST_OK){
 		return UINT64_MAX;
 	}
+	if(is_level_limit(target_object)){
+		result = CbppResponse(Msg::ERR_CANNOT_ATTACK_MONSTER_LEVEL_EXCEPT) << get_owner_uuid();
+		return UINT64_MAX;
+	}
 	const auto cluster = get_cluster();
 	if(!cluster){
 		result = CbppResponse(Msg::ERR_CLUSTER_CONNECTION_LOST) <<get_coord();
@@ -1120,6 +1124,9 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 		if(result.first != Msg::ST_OK){
 			continue;
 		}
+		if(is_level_limit(map_object)){
+			continue;
+		}
 		if(is_castle() && map_object->is_castle()){
 			continue;
 		}
@@ -1159,6 +1166,10 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 		return;
 	const auto result = is_under_protection(virtual_shared_from_this<MapObject>(),enemy_map_object);
 	if(result.first != Msg::ST_OK){
+		return;
+	}
+	if(is_level_limit(enemy_map_object)){
+		LOG_EMPERY_CLUSTER_WARNING("attack target in level limit");
 		return;
 	}
 	if(is_castle() && enemy_map_object->is_castle()){
@@ -1275,6 +1286,27 @@ bool  MapObject::is_protectable(){
 	}else{
 		return false;
 	}
+}
+
+bool MapObject::is_level_limit(boost::shared_ptr<MapObject> enemy_map_object){
+	if(!is_monster() && enemy_map_object->is_monster()){
+		const auto max_account_attack_level  = get_attribute(EmperyCenter::AttributeIds::ID_OWNER_MAX_ATTACK_MONSTER_LEVEL);
+		const auto monster_level = enemy_map_object->get_monster_level();
+		if(max_account_attack_level < monster_level){
+			LOG_EMPERY_CLUSTER_DEBUG("account max attack level than monster level,max_account_attack_level = ",max_account_attack_level," monster_level = ",monster_level,
+			" map_object_uuid = ",get_map_object_uuid(), " enemy_object_uuid = ",enemy_map_object->get_map_object_uuid());
+			return true;
+		}
+	}
+	return false;
+}
+
+std::int64_t MapObject::get_monster_level(){
+	const auto map_object_type_monster_data = Data::MapObjectTypeMonster::get(get_map_object_type_id());
+	if(!map_object_type_monster_data){
+		return 0;
+	}
+	return map_object_type_monster_data->level;
 }
 
 bool  MapObject::is_lost_attacked_target(){

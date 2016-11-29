@@ -110,6 +110,8 @@ public:
 	bool          attacking_able(std::pair<long, std::string> &reason);
 	std::uint64_t search_attack();
 	bool          is_protectable();
+	bool          is_level_limit(boost::shared_ptr<MapObject> enemy_map_object);
+	std::int64_t get_monster_level();
 public:
 	boost::shared_ptr<AiControl> require_ai_control();
 	std::uint64_t move(std::pair<long, std::string> &result);
@@ -136,7 +138,7 @@ private:
 	bool          is_castle();
 	bool          is_bunker();
 	bool          is_defense_tower();
-	bool  		  is_legion_warehouse();
+	bool          is_legion_warehouse();
 	bool          is_lost_attacked_target();
 	void          reset_attack_target_own_uuid();
     AccountUuid   get_attack_target_own_uuid();
