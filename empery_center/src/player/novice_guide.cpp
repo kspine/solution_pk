@@ -115,7 +115,7 @@ namespace EmperyCenter
        	 castle->commit_soldier_transaction(transaction);
        }
 
-      // LOG_EMPERY_CENTER_ERROR("NoviceGuideLog::NoviceGuideTrace!!!");
+       LOG_EMPERY_CENTER_FATAL("NoviceGuideLog::NoviceGuideTrace!!!");
        NoviceGuideLog::NoviceGuideTrace(AccountUuid(account_uuid),task_ids,stepid,Poseidon::get_utc_time());
 
        return Response(Msg::ST_OK);
