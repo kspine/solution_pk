@@ -57,6 +57,7 @@ namespace EmperyCenter {
 		public:
 			std::uint64_t return_range;
 			std::uint64_t warfare;
+			std::uint64_t level;
 
 			boost::container::flat_map<std::string, std::uint64_t> monster_rewards;
 		};

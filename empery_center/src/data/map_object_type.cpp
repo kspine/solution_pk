@@ -149,6 +149,7 @@ namespace EmperyCenter {
 
 				csv.get(elem.return_range, "return_range");
 				csv.get(elem.warfare, "warfare");
+				csv.get(elem.level,   "arm_level");
 
 				Poseidon::JsonObject object;
 				csv.get(object, "drop");

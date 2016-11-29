@@ -60,7 +60,8 @@ constexpr AttributeId
 	ID_CORROSION                        ( 2500167 ),
 	ID_REFLEX_INJURY                    ( 2500168 ),
 	ID_RAGE                             ( 2500169 ),
-	ID_DEFENSE_MATRIX                   ( 2500170 );
+	ID_DEFENSE_MATRIX                   ( 2500170 ),
+	ID_OWNER_MAX_ATTACK_MONSTER_LEVEL   ( 2500171 );
 }
 
 }
