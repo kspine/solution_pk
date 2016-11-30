@@ -18,7 +18,8 @@ namespace Msg {
 		FIELD_VUINT         (key)	\
 		FIELD_VUINT         (count)	\
 	)	\
-	FIELD_VUINT         (rewarded)
+	FIELD_VUINT         (rewarded)	\
+	FIELD_VUINT         (finish_show)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_TaskLegionRewardChanged

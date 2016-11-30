@@ -98,7 +98,7 @@ namespace EmperyCenter {
 			info.rewarded = obj->get_rewarded();
 		}
 
-		void fill_task_message(Msg::SC_TaskChanged &msg, const TaskObjectPair &pair, std::uint64_t utc_now) {
+		void fill_task_message(Msg::SC_TaskChanged &msg, const TaskObjectPair &pair, std::uint64_t utc_now,bool finish_show) {
 			PROFILE_ME;
 
 			const auto &obj = pair.first;
@@ -402,7 +402,6 @@ namespace EmperyCenter {
 				}
 				task_candidates.emplace_back(task_data->task_id);
 			}
-	
 			// 将任务打乱
 			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
 				const auto j = Poseidon::rand32() % task_candidates.size();
@@ -529,7 +528,6 @@ namespace EmperyCenter {
 				const auto j = Poseidon::rand32() % task_candidates.size();
 				std::swap(task_candidates.at(i), task_candidates.at(j));
 			}
-			
 			//找出今天任务中未领取和已领取并且等级为最高等级的任务类型
 			for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 				const auto &obj = it->second.first;
@@ -807,7 +805,7 @@ namespace EmperyCenter {
 		if (session) {
 			try {
 				Msg::SC_TaskChanged msg;
-				fill_task_message(msg, it->second, utc_now);
+				fill_task_message(msg, it->second, utc_now,false);
 				session->send(msg);
 			}
 			catch (std::exception &e) {
@@ -865,7 +863,7 @@ namespace EmperyCenter {
 		if (session) {
 			try {
 				Msg::SC_TaskChanged msg;
-				fill_task_message(msg, pair, utc_now);
+				fill_task_message(msg, pair, utc_now,false);
 				session->send(msg);
 			}
 			catch (std::exception &e) {
@@ -893,7 +891,7 @@ namespace EmperyCenter {
 		if (session) {
 			try {
 				Msg::SC_TaskChanged msg;
-				fill_task_message(msg, pair, utc_now);
+				fill_task_message(msg, pair, utc_now,false);
 				session->send(msg);
 			}
 			catch (std::exception &e) {
@@ -990,12 +988,12 @@ namespace EmperyCenter {
 
 			pair.second = std::move(new_progress);
 			obj->set_progress(std::move(new_progress_str));
-
+			bool finish = has_been_accomplished(task_id);
 			const auto session = PlayerSessionMap::get(get_account_uuid());
 			if (session) {
 				try {
 					Msg::SC_TaskChanged msg;
-					fill_task_message(msg, pair, utc_now);
+					fill_task_message(msg, pair, utc_now,finish);
 					session->send(msg);
 				}
 				catch (std::exception &e) {
@@ -1060,13 +1058,14 @@ void TaskBox::check_task_dungeon_clearance(std::uint64_t key_dungeon_id,std::uin
    auto new_progress_str = encode_progress(*new_progress);
    pair.second = std::move(new_progress);
    obj->set_progress(std::move(new_progress_str));
+   bool finish = has_been_accomplished(task_id);
    const auto session = PlayerSessionMap::get(get_account_uuid());
    if (session)
    {
       try {
 
       		Msg::SC_TaskChanged msg;
-      		fill_task_message(msg, pair, utc_now);
+      		fill_task_message(msg, pair, utc_now,finish);
       		session->send(msg);
       }
       catch (std::exception &e) {
@@ -1128,7 +1127,7 @@ void TaskBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 	 */
 
 	 Msg::SC_TaskChanged msg;
-	 fill_task_message(msg, it->second, utc_now);
+	 fill_task_message(msg, it->second, utc_now,false);
 	 session->send(msg);
   }
 }
