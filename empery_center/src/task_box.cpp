@@ -115,6 +115,7 @@ namespace EmperyCenter {
 				elem.count = it->second;
 			}
 			msg.rewarded = obj->get_rewarded();
+			msg.finish_show = finish_show;
 
 	//		LOG_EMPERY_CENTER_ERROR("msg.task_id = ", msg.task_id, "msg.category= ", msg.category);
 		}
@@ -402,6 +403,7 @@ namespace EmperyCenter {
 				}
 				task_candidates.emplace_back(task_data->task_id);
 			}
+	
 			// 将任务打乱
 			for (std::size_t i = 0; i < task_candidates.size(); ++i) {
 				const auto j = Poseidon::rand32() % task_candidates.size();
@@ -528,6 +530,7 @@ namespace EmperyCenter {
 				const auto j = Poseidon::rand32() % task_candidates.size();
 				std::swap(task_candidates.at(i), task_candidates.at(j));
 			}
+			
 			//找出今天任务中未领取和已领取并且等级为最高等级的任务类型
 			for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 				const auto &obj = it->second.first;
