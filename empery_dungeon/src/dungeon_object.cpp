@@ -715,7 +715,7 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	bool bCritical = false;
 	int result_type = IMPACT_NORMAL;
 	std::uint64_t damage = 0;
-	double k = 0.06;
+	double k = 0.03;
 	double doge_rate = emempy_type_data->doge_rate + get_attribute(EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD)/ 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_DODGING_RATIO_ADD) / 1000.0;
 	double critical_rate = dungeon_object_type_data->critical_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_RATIO_ADD) / 1000.0;
 	double critical_demage_plus_rate = dungeon_object_type_data->critical_damage_plus_rate + get_attribute(EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0 + dungeon->get_dungeon_attribute(get_dungeon_object_uuid(),get_owner_uuid(),EmperyCenter::AttributeIds::ID_CRITICAL_DAMAGE_MULTIPLIER_ADD) / 1000.0;
@@ -1624,7 +1624,7 @@ void         DungeonObject::do_reflex_injury(std::uint64_t total_damage,boost::s
 	if(reflex_injury <= 0.0){
 		return;
 	}
-	double k = 0.06;
+	double k = 0.03;
 	double total_attack = total_damage * reflex_injury/100.0;
 	double total_defense = attacker->get_total_defense();
 	double relative_rate = Data::DungeonObjectRelative::get_relative(attacker->get_arm_attack_type(),attacker->get_arm_defence_type());

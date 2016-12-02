@@ -1534,7 +1534,7 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 		auto x = static_cast<int>(trap_coord.at(0).get<double>());
 		auto y = static_cast<int>(trap_coord.at(1).get<double>());
 		auto id  =  static_cast<std::uint64_t>(param_array.at(1).get<double>());
-		double k = 0.06;
+		double k = 0.03;
 		const auto trap_data = Data::DungeonTrap::require(DungeonTrapTypeId(id));
 		std::vector<Coord> surrounding;
 		for(unsigned i = 0; i <= trap_data->attack_range;++i){
@@ -2002,7 +2002,7 @@ void Dungeon::do_skill_damage(const boost::shared_ptr<SkillRecycleDamage>& skill
 		auto attack_rate = skill_data->attack_rate;
 		auto attack_fix  = skill_data->attack_fix;
 		auto attack_type = skill_data->attack_type;
-		double k = 0.06;
+		double k = 0.03;
 		auto total_attack = skill_damage->attack*attack_rate + attack_fix;
 		if(skill_damage->skill_id == ID_SKILL_ENERGY_SPHERE){
 			total_attack = attack_rate;
