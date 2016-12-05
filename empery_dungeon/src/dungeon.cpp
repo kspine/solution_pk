@@ -798,7 +798,7 @@ void Dungeon::check_triggers_tag_die(){
 						}
 					}
 					if((count == 0) || (count != params_array.size())){
-						return;
+						continue;
 					}
 				}catch(std::exception &e){
 					LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
