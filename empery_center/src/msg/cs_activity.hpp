@@ -64,8 +64,7 @@ namespace Msg {
 #define MESSAGE_NAME    CS_MapActivityTargetData
 #define MESSAGE_ID      1409
 #define MESSAGE_FIELDS  \
-       FIELD_VUINT         (unique_id) \
-	   FIELD_VUINT         (target)
+       FIELD_VUINT         (unique_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_ClaimMapActivityRank
