@@ -22,6 +22,7 @@ PLAYER_SERVLET(Msg::CS_MapActivityInfo, account, session, /* req */){
 		return Response(Msg::ERR_NO_MAP_ACTIVITY);
 	}
 	map_activity->synchronize_with_player(session);
+	map_activity->synchronize_accumulate_info_with_player(account->get_account_uuid(),session);
 	return Response();
 }
 
@@ -38,9 +39,10 @@ PLAYER_SERVLET(Msg::CS_MapActivityKillSolidersRank, account, session, /* req */)
 	if(utc_now <= activity_kill_solidier_info.available_until){
 		return Response(Msg::ERR_NO_ACTIVITY_FINISH);
 	}
+	const auto account_uuid = account->get_account_uuid();
 	if(session){
 		try {
-			map_activity->synchronize_kill_soliders_rank_with_player(session);
+			map_activity->synchronize_kill_soliders_rank_with_player(account_uuid,session);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
@@ -197,5 +199,102 @@ PLAYER_SERVLET(Msg::CS_ActivityRankAwardData, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_MapActivityTargetData, account, session, req){
+	try{
+		const auto map_activity_data = Data::MapActivity::get(req.unique_id);
+		if(!map_activity_data){
+			LOG_EMPERY_CENTER_WARNING("map activity data null,activity_id = ",req.unique_id);
+			return Response(Msg::ERR_NO_MAP_ACTIVITY);
+		}
+		Msg::SC_MapActivityTargetData msg;
+		const auto &target_reward =  map_activity_data->rewards;
+		for(auto it = target_reward.begin(); it != target_reward.end(); ++it){
+			auto target = it->first;
+			auto &reward = it->second;
+			auto &target_drop = *msg.drop.emplace(msg.drop.end());
+			target_drop.target = target;
+			for(auto itr = reward.begin(); itr != reward.end(); ++itr){
+				auto &reward_item = *target_drop.reward.emplace(target_drop.reward.end());
+				reward_item.item_id = (*itr).first;
+				reward_item.count   = (*itr).second;
+			}
+		}
+		LOG_EMPERY_CENTER_FATAL(msg);
+		session->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_ClaimMapActivityTarget, account, session, req){
+	const auto map_activity = ActivityMap::get_map_activity();
+	if(!map_activity){
+		return Response(Msg::ERR_NO_MAP_ACTIVITY);
+	}
+	const auto map_activity_id = MapActivityId(req.unique_id);
+	MapActivity::MapActivityDetailInfo activity_info = map_activity->get_activity_info(MapActivityId(req.unique_id));
+	if(activity_info.unique_id != map_activity_id.get()){
+		return Response(Msg::ERR_NO_MAP_ACTIVITY);
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	if(utc_now <= activity_info.available_until){
+		return Response(Msg::ERR_NO_ACTIVITY_FINISH);
+	}
+	const auto map_activity_data = Data::MapActivity::get(req.unique_id);
+	if(!map_activity_data){
+		LOG_EMPERY_CENTER_WARNING("map activity data null,activity_id = ",req.unique_id);
+		return Response(Msg::ERR_NO_MAP_ACTIVITY);
+	}
+	auto &rewards = map_activity_data->rewards;
+	auto itd = rewards.find(req.target);
+	if(itd == rewards.end()){
+		LOG_EMPERY_CENTER_WARNING("no such target map_activity_id = ",map_activity_id, " target = ",req.target);
+		return Response(Msg::ERR_MAP_ACTIVITY_NOT_SUCH_TARGET);
+	}
+	const auto account_uuid = account->get_account_uuid();
+	MapActivityAccumulateMap::AccumulateInfo info = MapActivityAccumulateMap::get(account_uuid,map_activity_id,activity_info.available_since);
+	if(info.accumulate_value < req.target){
+		LOG_EMPERY_CENTER_WARNING("no achieve target,account_uuid = ",account_uuid, " map_activity_id = ",map_activity_id, " target = ",req.target);
+		return Response(Msg::ERR_MAP_ACTIVITY_NOT_ACHIEVE_TARGET);
+	}
+	auto itr = info.target_reward.find(req.target);
+	if(itr != info.target_reward.end()){
+		if(itr->second > 0){
+			return Response(Msg::ERR_MAP_ACTIVITY_TARGET_HAVE_REWARD);
+		}
+	}
+	map_activity->reward_target(req.target,std::move(info));
+	return Response();
+}
+
+
+PLAYER_SERVLET(Msg::CS_ClaimMapActivityRank, account, session, req){
+	PROFILE_ME;
+	const auto map_activity = ActivityMap::get_map_activity();
+	if(!map_activity){
+		return Response(Msg::ERR_NO_MAP_ACTIVITY);
+	}
+	const auto account_uuid = account->get_account_uuid();
+	MapActivity::MapActivityDetailInfo activity_kill_solidier_info = map_activity->get_activity_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER));
+	if(activity_kill_solidier_info.unique_id != ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get()){
+		return Response(Msg::ERR_NO_MAP_ACTIVITY);
+	}
+	const auto utc_now = Poseidon::get_utc_time();
+	if(utc_now <= activity_kill_solidier_info.available_until){
+		return Response(Msg::ERR_NO_ACTIVITY_FINISH);
+	}
+	MapActivityRankMap::MapActivityRankInfo info;
+	bool is_in_rank = MapActivityRankMap::get_account_rank_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solidier_info.available_until,account_uuid,info);
+	if(!is_in_rank)
+	{
+		return Response(Msg::ERR_NO_IN_MAP_ACTIVITY_RANK);
+	}
+	if(info.rewarded){
+		return Response(Msg::ERR_MAP_ACTIVITY_RANK_HAVE_REWARDED);
+	}
+	map_activity->reward_rank(account_uuid,std::move(info));
+	return Response();
+}
 
 }

@@ -13,7 +13,8 @@ namespace MySql {
 	FIELD_BIGINT_UNSIGNED   (map_activity_id)\
 	FIELD_DATETIME          (avaliable_since) \
 	FIELD_DATETIME          (avaliable_util) \
-	FIELD_BIGINT_UNSIGNED   (accumulate_value)
+	FIELD_BIGINT_UNSIGNED   (accumulate_value) \
+	FIELD_STRING            (target_reward)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapActivityRank
@@ -23,7 +24,8 @@ namespace MySql {
 	FIELD_DATETIME          (settle_date) \
 	FIELD_INTEGER_UNSIGNED  (rank) \
 	FIELD_BIGINT_UNSIGNED   (accumulate_value)\
-	FIELD_DATETIME          (process_date)
+	FIELD_DATETIME          (process_date)\
+	FIELD_BOOLEAN           (rewarded)
 #include <poseidon/mysql/object_generator.hpp>
 
 #define MYSQL_OBJECT_NAME   Center_MapWorldActivity

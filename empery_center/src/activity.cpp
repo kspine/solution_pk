@@ -191,42 +191,91 @@ bool  MapActivity::settle_kill_soliders_activity(std::uint64_t now){
 		info.rank             = rank;
 		info.accumulate_value = (*it).accumulate_value;
 		info.process_date     = now;
+		info.rewarded         = false;
 		MapActivityRankMap::insert(info);
-		//发送奖励
-		try{
-			Poseidon::enqueue_async_job(
-				[=]() mutable {
-					PROFILE_ME;
-					std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
-					bool is_award_data = Data::ActivityAward::get_activity_rank_award(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),rank,rewards);
-					if(!is_award_data){
-						LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER has no award data, rank:",rank);
-						return;
-					}
-					AccountMap::require_controller_token(info.account_uuid, { });
-					const auto item_box = ItemBoxMap::get(info.account_uuid);
-					if(!item_box){
-						LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER award cann't find item box, account_uuid:",info.account_uuid);
-						return;
-					}
-					std::vector<ItemTransactionElement> transaction;
-					for(auto it = rewards.begin(); it != rewards.end(); ++it){
-						const auto item_id = ItemId(it->first);
-						const auto count = it->second;
-						transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-										ReasonIds::ID_SOLDIER_KILL_RANK,ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),
-										rank,activity_kill_solider_info.available_until);
-					}
-					item_box->commit_transaction(transaction, false);
-				});
-		} catch (std::exception &e){
-			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-		}
 	}
 	return true;
 }
 
-void MapActivity::synchronize_kill_soliders_rank_with_player(const boost::shared_ptr<PlayerSession> &session){
+void MapActivity::reward_target(std::uint64_t target,MapActivityAccumulateMap::AccumulateInfo info){
+	PROFILE_ME;
+	auto it = info.target_reward.find(target);
+	if(it != info.target_reward.end()){
+		if(it->second > 0){
+			LOG_EMPERY_CENTER_WARNING("map activity target has reward,account_uuid = ",info.account_uuid, " activity_id = ",info.activity_id, " target = ",target);
+			return;
+		}
+	}
+	it->second = 1;
+	MapActivityAccumulateMap::update(info,false);
+	const auto map_activity_data = Data::MapActivity::get(info.activity_id.get());
+	if(!map_activity_data){
+		LOG_EMPERY_CENTER_WARNING("map activity data null,activity_id = ",info.activity_id);
+		return ;
+	}
+	auto &target_rewards = map_activity_data->rewards;
+	auto itd = target_rewards.find(target);
+	if(itd == target_rewards.end()){
+		LOG_EMPERY_CENTER_WARNING("no such target map_activity_id = ",info.activity_id, " target = ",target);
+		return;
+	}
+	const auto &rewards =  itd->second;
+	//发送奖励
+	try{
+		const auto item_box = ItemBoxMap::get(info.account_uuid);
+		if(!item_box){
+			LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER award cann't find item box, account_uuid:",info.account_uuid);
+			return;
+		}
+		std::vector<ItemTransactionElement> transaction;
+		for(auto it = rewards.begin(); it != rewards.end(); ++it){
+			const auto item_id = ItemId(it->first);
+			const auto count = it->second;
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+							ReasonIds::ID_MAP_ACTIVITY_ACCUMULATE,info.activity_id.get(),
+							info.avaliable_since,target);
+		}
+		item_box->commit_transaction(transaction, false);
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void MapActivity::reward_rank(AccountUuid account_uuid,MapActivityRankMap::MapActivityRankInfo info){
+	PROFILE_ME;
+	if(info.rewarded){
+		LOG_EMPERY_CENTER_WARNING("map activity rank has reward,account_uuid = ",account_uuid);
+		return;
+	}
+	info.rewarded = true;
+	MapActivityRankMap::update(info);
+	//发送奖励
+	try{
+		std::vector<std::pair<std::uint64_t,std::uint64_t>> rewards;
+		bool is_award_data = Data::ActivityAward::get_activity_rank_award(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),info.rank,rewards);
+		if(!is_award_data){
+			LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER has no award data, rank:",info.rank);
+			return;
+		}
+		const auto item_box = ItemBoxMap::get(account_uuid);
+		if(!item_box){
+			LOG_EMPERY_CENTER_WARNING("ACTIVITY_KILL_SOLDIER award cann't find item box, account_uuid:",info.account_uuid);
+			return;
+		}
+		std::vector<ItemTransactionElement> transaction;
+		for(auto it = rewards.begin(); it != rewards.end(); ++it){
+			const auto item_id = ItemId(it->first);
+			const auto count = it->second;
+			transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+							ReasonIds::ID_SOLDIER_KILL_RANK,ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get(),
+							info.rank,info.settle_date);
+		}
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void MapActivity::synchronize_kill_soliders_rank_with_player(const AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session){
 	PROFILE_ME;
 
 	std::vector<MapActivityRankMap::MapActivityRankInfo> ret;
@@ -240,6 +289,8 @@ void MapActivity::synchronize_kill_soliders_rank_with_player(const boost::shared
 		settle_kill_soliders_activity(utc_now);
 		MapActivityRankMap::get_recent_rank_list(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solider_info.available_until,ret);
 	}
+	MapActivityRankMap::MapActivityRankInfo info;
+	MapActivityRankMap::get_account_rank_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER), activity_kill_solider_info.available_until,account_uuid,info);
 	if(session){
 		try {
 			Msg::SC_MapActivityKillSolidersRank msgRankList;
@@ -259,10 +310,38 @@ void MapActivity::synchronize_kill_soliders_rank_with_player(const boost::shared
 				rank_item.rank              = it->rank;
 				rank_item.accumulate_value  = it->accumulate_value;
 			}
+			msgRankList.rank = info.rank;
+			msgRankList.accumulate_value = info.accumulate_value;
+			msgRankList.rewarded = info.rewarded;
+			LOG_EMPERY_CENTER_FATAL(msgRankList);
 			session->send(msgRankList);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		}
+	}
+}
+
+void MapActivity::synchronize_accumulate_info_with_player(const AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> & /*session*/){
+	PROFILE_ME;
+	MapActivity::MapActivityDetailInfo activity_kill_solider_info =  get_activity_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER));
+	if(activity_kill_solider_info.unique_id != ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER.get()){
+		LOG_EMPERY_CENTER_WARNING("no activity kill solider info");
+	}
+	MapActivityAccumulateMap::AccumulateInfo kill_solider_accumulate_info = MapActivityAccumulateMap::get(account_uuid,MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solider_info.available_since);
+	if(kill_solider_accumulate_info.activity_id == ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER){
+		MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(kill_solider_accumulate_info);
+	}else{
+		LOG_EMPERY_CENTER_WARNING("no activity kill solider accoumulate info, account_uuid = ",account_uuid);
+	}
+	MapActivity::MapActivityDetailInfo activity_castle_damage_info =  get_activity_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE));
+	if(activity_castle_damage_info.unique_id != ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE.get()){
+		LOG_EMPERY_CENTER_WARNING("no activity castle damage info");
+	}
+	MapActivityAccumulateMap::AccumulateInfo castle_damage_accumulate_info = MapActivityAccumulateMap::get(account_uuid,MapActivityId(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE),activity_castle_damage_info.available_since);
+	if(castle_damage_accumulate_info.activity_id == ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE){
+		MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(castle_damage_accumulate_info);
+	}else{
+		LOG_EMPERY_CENTER_WARNING("no activity castle damage accoumulate info, account_uuid = ",account_uuid);
 	}
 }
 

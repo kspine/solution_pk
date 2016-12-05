@@ -61,9 +61,25 @@ namespace Msg {
        FIELD_VUINT         (unique_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapActivityTargetData
+#define MESSAGE_ID      1409
+#define MESSAGE_FIELDS  \
+       FIELD_VUINT         (unique_id) \
+	   FIELD_VUINT         (target)
+#include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ClaimMapActivityRank
+#define MESSAGE_ID      1410
+#define MESSAGE_FIELDS  \
+       //
+#include <poseidon/cbpp/message_generator.hpp>
 
-
+#define MESSAGE_NAME    CS_ClaimMapActivityTarget
+#define MESSAGE_ID      1411
+#define MESSAGE_FIELDS  \
+      FIELD_VUINT         (unique_id) \
+	  FIELD_VUINT         (target)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }
