@@ -51,6 +51,7 @@ namespace {
 			Data::MapObjectType elem = { };
 			csv.get(elem.map_object_type_id,                "arm_id");
 			csv.get(elem.category_id,                       "arm_type");
+			csv.get(elem.map_object_chassis_id,             "arm_class");
 			csv.get(elem.attack,                            "attack");
 			csv.get(elem.defence,                           "defence");
 			csv.get(elem.speed,                             "speed");

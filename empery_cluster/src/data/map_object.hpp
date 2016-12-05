@@ -14,6 +14,7 @@ namespace Data {
 	public:
 		MapObjectTypeId     map_object_type_id;
 		MapObjectWeaponId   category_id;
+		MapObjectChassisId map_object_chassis_id;
 		double              attack;
 		double              defence;
 		double              speed;

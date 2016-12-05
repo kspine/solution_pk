@@ -1289,6 +1289,11 @@ bool  MapObject::is_protectable(){
 }
 
 bool MapObject::is_level_limit(boost::shared_ptr<MapObject> enemy_map_object){
+	const auto map_object_type_data = enemy_map_object->get_map_object_type_data();
+	if(map_object_type_data->map_object_chassis_id == MapObjectChassisId(2605000)){
+		LOG_EMPERY_CLUSTER_WARNING("map_object_class_id = 2605000,level limit ignore");
+		return false;
+	}
 	if(!is_monster() && enemy_map_object->is_monster()){
 		const auto max_account_attack_level  = get_attribute(EmperyCenter::AttributeIds::ID_OWNER_MAX_ATTACK_MONSTER_LEVEL);
 		const auto monster_level = enemy_map_object->get_monster_level();
