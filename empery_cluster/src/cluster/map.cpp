@@ -94,7 +94,7 @@ CLUSTER_SERVLET(Msg::SK_MapAddMapObject, cluster, req){
 		buffs.emplace(BuffId(it->buff_id),std::move(info));
 	}
 
-	if(!map_object || (map_object->get_stamp() != stamp)){
+	if(!map_object || (map_object->get_stamp() != stamp)|| (map_object->get_legion_uuid() != legion_uuid)){
 		LOG_EMPERY_CLUSTER_TRACE("Replacing map object: map_object_uuid = ", map_object_uuid, ", stamp = ", stamp,
 			", map_object_type_id = ", map_object_type_id, ", owner_uuid = ", owner_uuid, ", garrisoned = ", garrisoned, ", coord = ", coord);
 		map_object = boost::make_shared<MapObject>(map_object_uuid, stamp,

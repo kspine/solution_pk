@@ -92,6 +92,8 @@ struct WorldMap {
 	static void set_cluster(const boost::shared_ptr<ClusterSession> &cluster, Coord coord);
 	static void forced_reload_cluster(Coord coord);
 	static void synchronize_cluster(const boost::shared_ptr<ClusterSession> &cluster, Rectangle view) noexcept;
+	//
+	static void synchronize_account_map_object_all(AccountUuid account_uuid) noexcept;
 
 	// 出生点
 	// 限定在指定小地图内。

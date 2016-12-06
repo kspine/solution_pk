@@ -2567,4 +2567,16 @@ _use_hint:
 	return { };
 }
 
+void WorldMap::synchronize_account_map_object_all(AccountUuid owner_uuid) noexcept{
+	PROFILE_ME;
+
+	std::vector<boost::shared_ptr<MapObject>> ret;
+	WorldMap::get_map_objects_by_owner(ret,owner_uuid);
+	for(auto it = ret.begin(); it != ret.end(); ++it){
+		const auto &map_object = *it;
+		const auto coord = map_object->get_coord();
+		synchronize_map_object_all(map_object,coord,coord);
+	}
+}
+
 }

@@ -28,6 +28,7 @@
 #include "../singletons/chat_box_map.hpp"
 #include "../chat_box.hpp"
 #include <poseidon/async_job.hpp>
+#include "../singletons/world_map.hpp"
 
 #include "../legion_log.hpp"
 
@@ -738,6 +739,7 @@ void LegionMemberMap::check_in_waittime()
 	for(auto it = account_map->begin(); it != account_map->end();)
 	{
 		const auto &member = it->member;
+		const auto account_uuid = member->get_account_uuid();
 
 		// 查看member权限
 		bool bdelete = false;
@@ -780,7 +782,6 @@ void LegionMemberMap::check_in_waittime()
 					{
 						// 已经过了完全离开的时间，让玩家离开军团
 						const auto account_uuid = member->get_account_uuid();
-
 						const auto& target_account = AccountMap::get(account_uuid);
 						if(target_account)
 						{
@@ -805,7 +806,6 @@ void LegionMemberMap::check_in_waittime()
 							msg.nick = target_account->get_nick();
 							msg.ext1 = "";
 							legion->sendNoticeMsg(msg);
-
 
 							//军团成员追踪日志：退出，踢出
 							if(!bkick)
@@ -938,6 +938,7 @@ void LegionMemberMap::check_in_waittime()
 		{
 			// 如果需要清空
 			it = account_map->erase(it);
+			WorldMap::synchronize_account_map_object_all(account_uuid);
 		}
 		else
 		{

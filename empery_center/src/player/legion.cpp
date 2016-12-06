@@ -166,6 +166,7 @@ PLAYER_SERVLET(Msg::CS_LegionCreateReqMessage, account, session, req){
 			LOG_EMPERY_CENTER_INFO("CS_LegionCreateReqMessage count:", count);
 
 			legion->synchronize_with_player(account_uuid,session);
+			WorldMap::synchronize_account_map_object_all(account_uuid);
 		});
 
 		if(insuff_item_id)
@@ -462,7 +463,7 @@ PLAYER_SERVLET(Msg::CS_ApplyJoinLegionMessage, account, session, req){
 					msg.ntype = Legion::LEGION_EMAIL_TYPE::LEGION_EMAIL_JOIN;
 					session->send(msg);
 					*/
-
+					WorldMap::synchronize_account_map_object_all(account_uuid);
 					//军团成员追踪日志：申请加入
 					LegionLog::LegionMemberTrace(AccountUuid(account_uuid),
 							LegionUuid(req.legion_uuid),AccountUuid(account_uuid),
@@ -593,7 +594,7 @@ PLAYER_SERVLET(Msg::CS_LegionAuditingResMessage, account, session, req)
 				//		legion->AddMember(AccountUuid(req.account_uuid),Data::Global::as_unsigned(Data::Global::SLOT_LEGION_MEMBER_DEFAULT_POWERID),utc_now,join_account->get_attribute(AccountAttributeIds::ID_DONATE),join_account->get_attribute(AccountAttributeIds::ID_WEEKDONATE),//  // //join_account->get_nick());
 
 						legion->AddMember(join_account,Data::Global::as_unsigned(Data::Global::SLOT_LEGION_MEMBER_DEFAULT_POWERID),utc_now);
-
+						WorldMap::synchronize_account_map_object_all(AccountUuid(req.account_uuid));
 						//军团成员追踪日志：审核加入
 						LegionLog::LegionMemberTrace(AccountUuid(req.account_uuid),
 									LegionUuid(member->get_legion_uuid()),AccountUuid(account_uuid),
@@ -971,6 +972,8 @@ PLAYER_SERVLET(Msg::CS_LegionInviteJoinResMessage, account, session, req)
 					bdeleteAll = true;
 
 					legion->sendmail(join_account,ChatMessageTypeIds::ID_LEVEL_LEGION_JOIN,legion->get_nick());
+					
+					WorldMap::synchronize_account_map_object_all(account_uuid);
 
 					//军团成员追踪日志：邀请加入
 					LegionLog::LegionMemberTrace(AccountUuid(invite->unlocked_get_invited_uuid()),
