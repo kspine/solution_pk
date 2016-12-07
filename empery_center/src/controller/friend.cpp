@@ -47,8 +47,6 @@ CONTROLLER_SERVLET(Msg::TS_FriendPeerCompareExchange, controller, req){
 		if(info.relation == FriendBox::RT_BLACKLIST){
 			return Response(Msg::ERR_FRIEND_BLACKLISTED) <<friend_uuid;
 		}
-	}
-	if(category == FriendBox::CAT_REQUESTING){
 		const auto max_number_of_friends = Data::Global::as_unsigned(Data::Global::SLOT_MAX_NUMBER_OF_FRIENDS);
 		std::vector<FriendBox::FriendInfo> friends;
 		friend_box->get_by_category(friends, FriendBox::CAT_FRIEND);
