@@ -726,7 +726,7 @@ _wounded_done:
 					PROFILE_ME;
 
 					send_battle_notification(attacked_account_uuid, -type, attacking_account_uuid, attacked_coord,
-						attacking_object_type_id, attacked_object_type_id,attacking_object->get_parent_object_uuid());
+						attacking_object_type_id, attacked_castle->get_name(), attacked_castle->get_level(),attacked_castle->get_map_object_uuid());
 				} catch(std::exception &e){
 					LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 				}
