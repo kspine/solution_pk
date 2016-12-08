@@ -79,6 +79,7 @@ namespace {
 			Data::MapObjectType elem = { };
 			csvMonster.get(elem.map_object_type_id,                "arm_id");
 			csvMonster.get(elem.category_id,                       "arm_type");
+			csvMonster.get(elem.map_object_chassis_id,             "arm_class");
 			csvMonster.get(elem.attack,                            "attack");
 			csvMonster.get(elem.defence,                           "defence");
 			csvMonster.get(elem.speed,                             "speed");
