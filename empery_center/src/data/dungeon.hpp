@@ -40,6 +40,7 @@ namespace Data {
 	public:
 		DungeonTaskId dungeon_task_id;
 		boost::container::flat_map<ItemId, std::uint64_t> rewards;
+		boost::container::flat_map<ResourceId, std::uint64_t> rewards_resources;
 	};
 
 	class DungeonTrap {

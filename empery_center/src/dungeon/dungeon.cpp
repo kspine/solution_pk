@@ -588,6 +588,14 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 						ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), dungeon_task_id.get(), 0);
 					tasks_new[dungeon_task_id][item_id] += count;
 				}
+				
+				for(auto it = task_data->rewards_resources.begin(); it != task_data->rewards_resources.end(); ++it){
+					const auto resource_id = it->first;
+					const auto count = it->second;
+					res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, count,
+						ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), dungeon_task_id.get(), 0);
+					rewards_resources[resource_id] += count;
+				}
 			}
 		}
 	}
