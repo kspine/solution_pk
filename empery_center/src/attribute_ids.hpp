@@ -57,11 +57,16 @@ constexpr AttributeId
 	ID_HARVEST_SPEED_ADD                ( 2500164 ),
 	ID_MONSTER_PATROL_DEST_POINT_X      ( 2500165 ),
 	ID_MONSTER_PATROL_DEST_POINT_Y      ( 2500166 ),
-	ID_CORROSION                        ( 2500167 ),
-	ID_REFLEX_INJURY                    ( 2500168 ),
-	ID_RAGE                             ( 2500169 ),
-	ID_DEFENSE_MATRIX                   ( 2500170 ),
-	ID_OWNER_MAX_ATTACK_MONSTER_LEVEL   ( 2500171 );
+	ID_CAPTAIN_BASEID					( 2500167 ),
+	ID_CAPTAIN_ATTACK_ADD				( 2500168 ),
+	ID_CAPTAIN_DEFENSE_ADD				( 2500169 ),
+	ID_CAPTAIN_SOLDIER_COUNT_MAX_ADD    ( 2500170 ),
+ 	ID_OWNER_MAX_ATTACK_MONSTER_LEVEL   ( 2500171 ),
+	ID_CORROSION                        ( 2500172 ),
+	ID_REFLEX_INJURY                    ( 2500173 ),
+	ID_RAGE                             ( 2500174 ),
+	ID_DEFENSE_MATRIX                   ( 2500175 );
+
 }
 
 }
