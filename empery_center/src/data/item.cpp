@@ -419,13 +419,19 @@ namespace Data {
 
 	void unpack_item_trade(std::vector<ItemTransactionElement> &transaction,
 		const boost::shared_ptr<const ItemTrade> &trade_data, std::uint64_t repeat_count,
-		std::int64_t param1)
+		std::int64_t param1,std::uint64_t addition)
 	{
 		PROFILE_ME;
 
 		transaction.reserve(transaction.size() + trade_data->items_consumed.size() + trade_data->items_produced.size());
 		for(auto it = trade_data->items_consumed.begin(); it != trade_data->items_consumed.end(); ++it){
-			transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, checked_mul(it->second, repeat_count),
+			std::uint64_t count = 0;
+			if(it->first == ItemId(2100042)){
+				count = checked_mul(it->second, repeat_count);
+			}else{
+				count = checked_add(checked_mul(it->second, repeat_count),addition);
+			}
+			transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, count,
 				ReasonIds::ID_TRADE_REQUEST, param1, trade_data->trade_id.get(), repeat_count);
 		}
 		for(auto it = trade_data->items_produced.begin(); it != trade_data->items_produced.end(); ++it){

@@ -17,6 +17,7 @@ namespace Msg {
 		ERR_ITEM_TYPE_MISMATCH                  = 71506,
 		ERR_ITEM_NOT_USABLE                     = 71507,
 		ERR_NO_SUCH_TRADE_ID                    = 71508,
+		ERR_NOT_DUNGEON_TRADE                   = 71509,
 	};
 }
 

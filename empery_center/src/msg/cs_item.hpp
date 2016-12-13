@@ -55,6 +55,13 @@ namespace Msg {
 	FIELD_VUINT         (repeat_count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ItemDungeonTrade
+#define MESSAGE_ID      507
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (trade_id)	\
+	FIELD_VUINT         (repeat_count)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

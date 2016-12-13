@@ -206,4 +206,35 @@ PLAYER_SERVLET(Msg::CS_ItemTrade, account, session, req){
 	return Response();
 }
 
+PLAYER_SERVLET(Msg::CS_ItemDungeonTrade, account, session, req){
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	item_box->pump_status();
+
+	const auto repeat_count = req.repeat_count;
+	if(repeat_count == 0){
+		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
+	}
+	
+	if(req.trade_id != 2804026){
+		return Response(Msg::ERR_NOT_DUNGEON_TRADE);
+	}
+	
+	const auto trade_id = TradeId(req.trade_id);
+	const auto trade_data = Data::ItemTrade::get(trade_id);
+	if(!trade_data){
+		return Response(Msg::ERR_NO_SUCH_TRADE_ID) <<trade_id;
+	}
+	const auto dungeon_trade_param = Data::Global::as_unsigned(Data::Global::SLOT_ITEM_DUNGEON_TRAD_PARAM);
+	std::vector<ItemTransactionElement> transaction;
+	for(unsigned i = 0; i < repeat_count; ++i){
+		Data::unpack_item_trade(transaction, trade_data, 1, req.ID,static_cast<std::uint64_t>(dungeon_trade_param*(i+1)));
+	}
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true);
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
+	return Response();
+}
+
 }

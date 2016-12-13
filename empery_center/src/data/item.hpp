@@ -114,7 +114,7 @@ namespace Data {
 
 	extern void unpack_item_trade(std::vector<ItemTransactionElement> &transaction,
 		const boost::shared_ptr<const ItemTrade> &trade_data, std::uint64_t repeat_count,
-		std::int64_t param1);
+		std::int64_t param1,std::uint64_t additon = 0);
 }
 
 }
