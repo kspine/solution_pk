@@ -121,6 +121,8 @@ void MapActivity::synchronize_with_player(const boost::shared_ptr<PlayerSession>
 
 	Msg::SC_MapActivityInfo msg;
 	msg.curr_unique_id  = m_current_activity.get();
+	msg.since = m_available_since;
+	msg.until = m_available_until;
 	for(auto it = m_activitys.begin(); it != m_activitys.end(); ++it){
 		auto &activity = *msg.activitys.emplace(msg.activitys.end());
 		activity.unique_id = (it->second).unique_id;

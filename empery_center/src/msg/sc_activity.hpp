@@ -11,6 +11,8 @@ namespace Msg {
 #define MESSAGE_ID      1499
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (curr_unique_id)	\
+	FIELD_VUINT         (since)	\
+	FIELD_VUINT         (until)	\
 	FIELD_ARRAY         (activitys,	\
 		FIELD_VUINT         (unique_id)	\
 		FIELD_VUINT         (available_since)	\
