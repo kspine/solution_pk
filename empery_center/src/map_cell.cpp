@@ -650,12 +650,6 @@ void MapCell::check_occupation(){
 			return;
 		}
 
-		const auto coord = get_coord();
-		const auto owner_uuid = get_owner_uuid();
-
-		AccountMap::require_controller_token(owner_uuid, { });
-		const auto item_box = ItemBoxMap::require(owner_uuid);
-
 		const auto ticket_item_id = get_ticket_item_id();
 		if(!ticket_item_id){
 			return;
@@ -668,6 +662,13 @@ void MapCell::check_occupation(){
 		if(!castle){
 			return;
 		}
+
+		const auto coord = get_coord();
+		const auto owner_uuid = get_owner_uuid();
+
+		AccountMap::require_controller_token(owner_uuid, { });
+		const auto item_box = ItemBoxMap::require(owner_uuid);
+
 
 		std::vector<boost::shared_ptr<MapObject>> pending_objects;
 		WorldMap::get_map_objects_by_rectangle(pending_objects, Rectangle(coord, 1, 1));
