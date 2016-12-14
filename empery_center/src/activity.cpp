@@ -240,7 +240,7 @@ void MapActivity::reward_target(std::uint64_t target,MapActivityAccumulateMap::A
 		item_box->commit_transaction(transaction, false);
 	} catch (std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-	}
+	}	
 }
 
 void MapActivity::reward_rank(AccountUuid account_uuid,MapActivityRankMap::MapActivityRankInfo info){
@@ -295,6 +295,7 @@ void MapActivity::synchronize_kill_soliders_rank_with_player(const AccountUuid a
 	MapActivityRankMap::get_account_rank_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER), activity_kill_solider_info.available_until,account_uuid,info);
 	if(session){
 		try {
+			
 			Msg::SC_MapActivityKillSolidersRank msgRankList;
 			for(auto it = ret.begin(); it != ret.end(); ++it){
 				auto &rank_item = *msgRankList.rank_list.emplace(msgRankList.rank_list.end());
@@ -330,21 +331,17 @@ void MapActivity::synchronize_accumulate_info_with_player(const AccountUuid acco
 		LOG_EMPERY_CENTER_WARNING("no activity kill solider info");
 	}
 	MapActivityAccumulateMap::AccumulateInfo kill_solider_accumulate_info = MapActivityAccumulateMap::get(account_uuid,MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solider_info.available_since);
-	if(kill_solider_accumulate_info.activity_id == ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER){
-		MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(kill_solider_accumulate_info);
-	}else{
-		LOG_EMPERY_CENTER_WARNING("no activity kill solider accoumulate info, account_uuid = ",account_uuid);
-	}
+	kill_solider_accumulate_info.activity_id = ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER;
+	MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(kill_solider_accumulate_info);
+
+	
 	MapActivity::MapActivityDetailInfo activity_castle_damage_info =  get_activity_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE));
 	if(activity_castle_damage_info.unique_id != ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE.get()){
 		LOG_EMPERY_CENTER_WARNING("no activity castle damage info");
 	}
 	MapActivityAccumulateMap::AccumulateInfo castle_damage_accumulate_info = MapActivityAccumulateMap::get(account_uuid,MapActivityId(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE),activity_castle_damage_info.available_since);
-	if(castle_damage_accumulate_info.activity_id == ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE){
-		MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(castle_damage_accumulate_info);
-	}else{
-		LOG_EMPERY_CENTER_WARNING("no activity castle damage accoumulate info, account_uuid = ",account_uuid);
-	}
+	castle_damage_accumulate_info.activity_id = ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE;//防止取不到同步时错误
+	MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(castle_damage_accumulate_info);
 }
 
 WorldActivity::WorldActivity(std::uint64_t unique_id_,std::uint64_t available_since_,std::uint64_t available_until_)
