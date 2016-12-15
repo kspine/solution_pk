@@ -332,6 +332,7 @@ void MapActivity::synchronize_accumulate_info_with_player(const AccountUuid acco
 	}
 	MapActivityAccumulateMap::AccumulateInfo kill_solider_accumulate_info = MapActivityAccumulateMap::get(account_uuid,MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solider_info.available_since);
 	kill_solider_accumulate_info.activity_id = ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER;
+	kill_solider_accumulate_info.account_uuid = account_uuid;
 	MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(kill_solider_accumulate_info);
 
 	
@@ -341,6 +342,7 @@ void MapActivity::synchronize_accumulate_info_with_player(const AccountUuid acco
 	}
 	MapActivityAccumulateMap::AccumulateInfo castle_damage_accumulate_info = MapActivityAccumulateMap::get(account_uuid,MapActivityId(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE),activity_castle_damage_info.available_since);
 	castle_damage_accumulate_info.activity_id = ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE;//防止取不到同步时错误
+	castle_damage_accumulate_info.account_uuid = account_uuid;
 	MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(castle_damage_accumulate_info);
 }
 

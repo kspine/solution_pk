@@ -117,7 +117,8 @@ namespace {
 	boost::weak_ptr<WorldActivityAccumulateContainer>     g_world_activity_accumulate_map;
 	boost::weak_ptr<WorldActivityRankContainer>           g_world_activity_rank_map;
 	boost::weak_ptr<WorldActivityBossContainer>           g_world_activity_boss_map;
-
+	
+	
 	std::string encode_progress(const MapActivityAccumulateMap::Progress &progress) {
 		PROFILE_ME;
 
@@ -164,8 +165,8 @@ namespace {
 		info.accumulate_value = elem.obj->get_accumulate_value();
 		info.target_reward   = decode_progress(elem.obj->get_target_reward());
 	}
-
-	void fill_map_activity_accumulate_info_message(Msg::SC_MapActivityAccumulateInfo msg,MapActivityAccumulateMap::AccumulateInfo &info){
+	
+	void fill_map_activity_accumulate_info_message(Msg::SC_MapActivityAccumulateInfo &msg,MapActivityAccumulateMap::AccumulateInfo &info){
 		PROFILE_ME;
 		msg.unique_id  = info.activity_id.get();
 		msg.accumulate_value = info.accumulate_value;
@@ -424,7 +425,7 @@ void MapActivityRankMap::get_recent_rank_list(MapActivityId activity_id, std::ui
 }
 bool MapActivityRankMap::get_account_rank_info(MapActivityId activity_id, std::uint64_t settle_date,AccountUuid account_uuid,MapActivityRankInfo &info){
 	PROFILE_ME;
-
+	
 	const auto map_activity_rank_map = g_map_activity_rank_map.lock();
 	if(!map_activity_rank_map){
 		LOG_EMPERY_CENTER_WARNING("map activity rank map is not loaded.");
@@ -568,7 +569,7 @@ WorldActivityAccumulateMap::WorldActivityAccumulateInfo WorldActivityAccumulateM
 
 void WorldActivityAccumulateMap::get_recent_activity_accumulate_info(Coord coord,std::uint64_t since,std::vector<WorldActivityAccumulateInfo> &ret){
 	PROFILE_ME;
-
+	
 	const auto world_activity_accumulate_map = g_world_activity_accumulate_map.lock();
 	if(!world_activity_accumulate_map){
 		LOG_EMPERY_CENTER_WARNING("world activity accumulate map is not loaded.");
