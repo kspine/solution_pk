@@ -207,6 +207,7 @@ PLAYER_SERVLET(Msg::CS_MapActivityTargetData, account, session, req){
 			return Response(Msg::ERR_NO_MAP_ACTIVITY);
 		}
 		Msg::SC_MapActivityTargetData msg;
+		msg.unique_id = req.unique_id;
 		const auto &target_reward =  map_activity_data->rewards;
 		for(auto it = target_reward.begin(); it != target_reward.end(); ++it){
 			auto target = it->first;
