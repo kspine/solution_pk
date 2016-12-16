@@ -1123,7 +1123,7 @@ _wounded_done:
 					task_type_id = TaskTypeIds::ID_DESTROY_SOLDIERS;
 					const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
 					if(attacked_type_data && attacked_type_data->warfare != 0){
-						task_box->check(TaskBox::CAT_NULL,task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_SOLDIERS.get(), attacked_type_data->warfare,castle_category, 0, 0);
+						task_box->check(TaskBox::CAT_NULL,task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_SOLDIERS.get(), attacked_type_data->warfare,castle_category, 0, 0);	
 					}
 				}
 				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
@@ -1724,11 +1724,11 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 			return Response(Msg::ERR_CARRIABLE_RESOURCE_LIMIT_EXCEEDED) <<resource_carriable;
 		}
 	}
-
-	const auto amount_to_harvest = req.amount_harvested;
+	const auto cofficient = Data::Global::as_double(Data::Global::SLOT_ATTACK_RESOURCE_CREATE_COEFFICIENT);
+	const auto amount_to_harvest = req.amount_harvested*cofficient;
 	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: attacking_object_uuid = ", attacking_object_uuid, ", attacking_object_type_id = ", attacking_object_type_id,
-		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack);
+		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack," req.amount_harvested = ",req.amount_harvested," cofficient = ",cofficient);
 	amount_remaining = resource_crate->get_amount_remaining();
 
 	const auto attacked_coord = resource_crate->get_coord();
