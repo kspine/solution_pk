@@ -27,6 +27,7 @@ namespace EmperyCenter
 			csv.get(elem.castle_category, "task_city");
 			csv.get(elem.type, "task_type");
 			csv.get(elem.accumulative, "accumulation");
+			csv.get(elem.task_class_1,  "task_class_1");
 
 			Poseidon::JsonObject object;
 			csv.get(object, "task_need");
@@ -94,7 +95,6 @@ namespace EmperyCenter
 				read_task_abstract(elem, csv);
 
 				csv.get(elem.previous_id, "task_last");
-
 				if (!task_primary_container->emplace(elem.task_id, std::move(elem)).second)
 				{
 					LOG_EMPERY_CENTER_ERROR("Duplicate TaskPrimary: task_id = ", elem.task_id);
@@ -111,8 +111,6 @@ namespace EmperyCenter
 			while (csv.fetch_row())
 			{
 				Data::TaskDaily elem = {};
-				csv.get(elem.task_class_1, "task_class_1");
-
 				read_task_abstract(elem, csv);
 
 				Poseidon::JsonArray array;

@@ -337,7 +337,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		{
 			LOG_EMPERY_CENTER_DEBUG("采集n战略资源*4 * 权重!!!");
 
-			task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionPackageKeyIds::ID_HARVEST_STRATEGIC_RESOURCE.get(), (amount_harvested * 4)* pShared->unit_weight,
+			task_box->check(TaskBox::CAT_LEGION_PACKAGE,TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionPackageKeyIds::ID_HARVEST_STRATEGIC_RESOURCE.get(),static_cast<std::uint64_t>((amount_harvested * 4)* pShared->unit_weight),
 				TaskBox::TCC_ALL, 0, 0);
 		}
 	}
@@ -359,6 +359,18 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 					legion_task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionKeyIds::ID_HARVEST_STRATEGIC_RESOURCE, amount_to_harvest,account_uuid, 0, 0);
 					legion_task_box->pump_status();
 				}
+			}
+		});
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+	//主线，分支，日常等采集指定战略资源(军团礼包任务除外)
+	try{
+		Poseidon::enqueue_async_job([=]{
+			{
+				PROFILE_ME;
+				task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_HARVEST_SPECIFIC_STRATEGIC_RESOURCE,resource_id.get(),  amount_to_harvest,
+				TaskBox::TCC_ALL, 0, 0);
 			}
 		});
 	} catch (std::exception &e){
@@ -1087,13 +1099,11 @@ _wounded_done:
 		try {
 			Poseidon::enqueue_async_job([=]() mutable {
 				PROFILE_ME;
-
 				const auto task_box = TaskBoxMap::get(attacking_account_uuid);
 				if(!task_box){
 					LOG_EMPERY_CENTER_DEBUG("Failed to load task box: attacking_account_uuid = ", attacking_account_uuid);
 					return;
 				}
-
 				const auto primary_castle = WorldMap::require_primary_castle(attacking_account_uuid);
 				const auto primary_castle_uuid = primary_castle->get_map_object_uuid();
 
@@ -1106,8 +1116,23 @@ _wounded_done:
 				if((attacking_object_uuid != primary_castle_uuid) && (parent_object_uuid != primary_castle_uuid)){
 					castle_category = TaskBox::TCC_NON_PRIMARY;
 				}
-				task_box->check(task_type_id, attacked_object_type_id.get(), 1,
+				task_box->check(TaskBox::CAT_NULL,task_type_id, attacked_object_type_id.get(), 1,
 					castle_category, 0, 0);
+				//消灭部队战斗力
+				if(attacked_account_uuid){
+					task_type_id = TaskTypeIds::ID_DESTROY_SOLDIERS;
+					const auto attacked_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
+					if(attacked_type_data && attacked_type_data->warfare != 0){
+						task_box->check(TaskBox::CAT_NULL,task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_SOLDIERS.get(), attacked_type_data->warfare,castle_category, 0, 0);
+					}
+				}
+				const auto monster_type_data = Data::MapObjectTypeMonster::get(attacked_object_type_id);
+				if(monster_type_data){
+					//击杀指定等级野怪任务
+					task_type_id = TaskTypeIds::ID_WIPE_OUT_LEVEL_MONSTER;
+					task_box->check(TaskBox::CAT_NULL,task_type_id, monster_type_data->level, 1,
+					castle_category, 0, 0);
+				}
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
@@ -1136,7 +1161,7 @@ _wounded_done:
 				if (task_type_id == TaskTypeIds::ID_DESTROY_MONSTERS)
 				{
 					const auto monster_data = Data::MapObjectTypeMonster::require(attacked_object_type_id);
-					task_box->check(task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_MONSTERS.get(), monster_data->warfare,
+					task_box->check(TaskBox::CAT_LEGION_PACKAGE,task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_MONSTERS.get(), monster_data->warfare,
 						castle_category, 0, 0);
 				}
 
@@ -1147,7 +1172,7 @@ _wounded_done:
 					const auto map_object_type_data = Data::MapObjectTypeBattalion::get(attacked_object_type_id);
 					if(map_object_type_data)
 					{
-						task_box->check(task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_SOLDIERS.get(), soldiers_damaged*map_object_type_data->warfare,
+						task_box->check(TaskBox::CAT_LEGION_PACKAGE,task_type_id, TaskLegionPackageKeyIds::ID_DESTROY_SOLDIERS.get(), soldiers_damaged*map_object_type_data->warfare,
 							castle_category, 0, 0);
 
 						LOG_EMPERY_CENTER_DEBUG("军团礼包任务 warfare ", map_object_type_data->warfare);

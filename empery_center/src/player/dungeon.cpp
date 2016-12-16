@@ -29,6 +29,7 @@
 #include "../events/dungeon.hpp"
 #include "../task_box.hpp"
 #include "../singletons/task_box_map.hpp"
+#include "../task_type_ids.hpp"
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_DungeonGetAll, account, session, /* req */){
@@ -202,6 +203,8 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 
 			info.entry_count += 1;
 			dungeon_box->set(std::move(info));
+			task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_ENTER_DUNGEON,dungeon_type_id.get(), 1,
+			TaskBox::TCC_ALL, 0, 0);
 			auto  event = boost::make_shared<Events::DungeonCreated>(
 					account_uuid, dungeon_type_id);
 			Poseidon::async_raise_event(event);

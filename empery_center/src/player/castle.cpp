@@ -81,7 +81,6 @@ PLAYER_SERVLET(Msg::CS_CastleQueryInfo, account, session, req){
 		child->pump_status();
 		child->synchronize_with_player(session);
 	}
-	
 	//同步离线升级建筑基础信息
 	CastleOfflineUpgradeBuildingBaseMap::Synchronize_with_player(castle->get_owner_uuid(),map_object_uuid,session);
 
@@ -568,7 +567,7 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 				continue;
 			}
 			try {
-				task_box->check(TaskTypeIds::ID_HARVEST_RESOURCES, resource_id.get(), amount_harvested,
+				task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_HARVEST_RESOURCES, resource_id.get(), amount_harvested,
 					castle, 0, 0);
 			} catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -867,7 +866,6 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceGift, account, session, req){
 		[&]{
 			std::vector<ResourceTransactionElement> res_transaction;
 			for(auto it = trade_data->resource_produced.begin(); it != trade_data->resource_produced.end(); ++it){
-				
 				res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, checked_mul(it->second, count_to_consume),
 				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
 			}
@@ -939,7 +937,7 @@ PLAYER_SERVLET(Msg::CS_CastleBeginSoldierProduction, account, session, req){
 	try
 	{
 		//触发任务：累计建造部队，训练士兵，战力计算
-		task_box->check(TaskTypeIds::ID_BUILD_SOLDIERS, TaskLegionPackageKeyIds::ID_BUILD_SOLDIERS.get(), (count)* map_object_type_data->warfare, TaskBox::TCC_ALL, 0, 0);
+		task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_BUILD_SOLDIERS, TaskLegionPackageKeyIds::ID_BUILD_SOLDIERS.get(), (count)* map_object_type_data->warfare, TaskBox::TCC_ALL, 0, 0);
 	}
 	catch (std::exception &e)
 	{
@@ -1000,7 +998,10 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestSoldier, account, session, req){
 	const auto count_harvested = castle->harvest_soldier(building_base_id);
 
 	try {
-		task_box->check(TaskTypeIds::ID_HARVEST_SOLDIERS, info.map_object_type_id.get(), count_harvested,
+		task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_HARVEST_SOLDIERS, info.map_object_type_id.get(), count_harvested,
+			castle, 0, 0);
+		const auto map_object_battalion = Data::MapObjectTypeBattalion::require(info.map_object_type_id);
+		task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_HARVEST_TYPE_SOLIDERS,map_object_battalion->map_object_weapon_id.get(), count_harvested,
 			castle, 0, 0);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
@@ -2155,7 +2156,7 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),0,amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}else{
 					account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + amount_to_add);
-					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);	
+					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}
 				account->set_attributes(std::move(account_attributes_modifer));
 			}
