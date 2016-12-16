@@ -179,7 +179,9 @@ void MapCell::pump_production(){
 		auto parent_object_uuid = get_parent_object_uuid();
 		if(occupier_object_uuid){
 			auto occupier_object = WorldMap::get_map_object(occupier_object_uuid);
-			parent_object_uuid = occupier_object->get_parent_object_uuid();
+			if(occupier_object){
+				parent_object_uuid = occupier_object->get_parent_object_uuid();
+			}
 		}
 		auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 		if(!castle){
@@ -648,12 +650,6 @@ void MapCell::check_occupation(){
 			return;
 		}
 
-		const auto coord = get_coord();
-		const auto owner_uuid = get_owner_uuid();
-
-		AccountMap::require_controller_token(owner_uuid, { });
-		const auto item_box = ItemBoxMap::require(owner_uuid);
-
 		const auto ticket_item_id = get_ticket_item_id();
 		if(!ticket_item_id){
 			return;
@@ -666,6 +662,13 @@ void MapCell::check_occupation(){
 		if(!castle){
 			return;
 		}
+
+		const auto coord = get_coord();
+		const auto owner_uuid = get_owner_uuid();
+
+		AccountMap::require_controller_token(owner_uuid, { });
+		const auto item_box = ItemBoxMap::require(owner_uuid);
+
 
 		std::vector<boost::shared_ptr<MapObject>> pending_objects;
 		WorldMap::get_map_objects_by_rectangle(pending_objects, Rectangle(coord, 1, 1));
