@@ -180,6 +180,7 @@ PLAYER_SERVLET(Msg::CS_ActivityRankAwardData, account, session, req){
 			LOG_EMPERY_CENTER_WARNING("activity award empty???,activity_id = ",req.unique_id);
 		}
 		Msg::SC_ActivityRankAwardData msg;
+		msg.unique_id = req.unique_id;
 		for(auto it = ret.begin(); it != ret.end(); ++it){
 			auto &rank_award_data = *it;
 			auto &rank_list = *msg.rank_list.emplace(msg.rank_list.end());
@@ -204,7 +205,7 @@ PLAYER_SERVLET(Msg::CS_MapActivityTargetData, account, session, req){
 		const auto map_activity_data = Data::MapActivity::get(req.unique_id);
 		if(!map_activity_data){
 			LOG_EMPERY_CENTER_WARNING("map activity data null,activity_id = ",req.unique_id);
-			return Response(Msg::ERR_NO_MAP_ACTIVITY);
+			return Response(Msg::ERR_NO_MAP_ACTIVITY);  
 		}
 		Msg::SC_MapActivityTargetData msg;
 		msg.unique_id = req.unique_id;
@@ -266,12 +267,14 @@ PLAYER_SERVLET(Msg::CS_ClaimMapActivityTarget, account, session, req){
 		}
 	}
 	map_activity->reward_target(req.target,std::move(info));
+	
 	return Response();
 }
 
 
 PLAYER_SERVLET(Msg::CS_ClaimMapActivityRank, account, session, req){
 	PROFILE_ME;
+	
 	const auto map_activity = ActivityMap::get_map_activity();
 	if(!map_activity){
 		return Response(Msg::ERR_NO_MAP_ACTIVITY);

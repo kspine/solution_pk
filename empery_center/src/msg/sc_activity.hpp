@@ -92,6 +92,7 @@ namespace Msg {
 #define MESSAGE_NAME    SC_ActivityRankAwardData
 #define MESSAGE_ID      1493
 #define MESSAGE_FIELDS  \
+	FIELD_VUINT         (unique_id) \
 	FIELD_ARRAY         (rank_list,	\
 		FIELD_VUINT         (begin)	\
 		FIELD_VUINT         (end)	\
