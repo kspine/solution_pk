@@ -19,6 +19,9 @@
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "singletons/legion_task_box_map.hpp"
+#include "task_box.hpp"
+#include "singletons/task_box_map.hpp"
+#include "task_type_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -116,7 +119,13 @@ void Legion::AddMember(boost::shared_ptr<Account> account,unsigned rank,std::uin
 			msg.ext1 = "";
 			sendNoticeMsg(msg);
 		}
-
+		try{
+			auto task_box = TaskBoxMap::require(account->get_account_uuid());
+			task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_JOIN_LEGION, TaskPrimaryKeyIds::ID_JOIN_LEGION.get(), 1,
+							TaskBox::TCC_PRIMARY, 0, 0);
+		}catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING(e.what());
+		}
 	}
 }
 

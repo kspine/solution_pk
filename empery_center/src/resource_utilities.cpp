@@ -50,7 +50,7 @@ ResourceId try_decrement_resources(const boost::shared_ptr<Castle> &castle, cons
 			if(it->second == 0){
 				continue;
 			}
-			task_box->check(TaskTypeIds::ID_CONSUME_RESOURCES, it->first.get(), it->second,
+			task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_CONSUME_RESOURCES, it->first.get(), it->second,
 				castle, 0, 0);
 		}
 	} catch(std::exception &e){

@@ -23,7 +23,9 @@ namespace EmperyCenter {
 			CAT_NULL = 0,
 			CAT_PRIMARY = 1,
 			CAT_DAILY = 2,
+			CAT_BRANCH  = 3,
 			CAT_LEGION_PACKAGE = 4,
+			CAT_LEGION  = 5,
 		};
 
 		enum CastleCategory {
@@ -76,6 +78,7 @@ namespace EmperyCenter {
 
 		void check_task_dungeon_clearance(std::uint64_t key_dungeon_id,std::uint64_t finish_count);
 		void access_task_dungeon_clearance();
+		void recheck_join_legion_tasks(AccountUuid account_uuid,TaskId task_id);
 
 
 		//建筑升级刷新任务
@@ -91,9 +94,9 @@ namespace EmperyCenter {
 		bool remove(TaskId task_id) noexcept;
 
 		bool has_been_accomplished(TaskId task_id) const;
-		void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+		void check(Category category,TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			CastleCategory castle_category, std::int64_t param1, std::int64_t param2);
-		void check(TaskTypeId type, std::uint64_t key, std::uint64_t count,
+		void check(Category category,TaskTypeId type, std::uint64_t key, std::uint64_t count,
 			const boost::shared_ptr<Castle> &castle, std::int64_t param1, std::int64_t param2);
 
 		void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

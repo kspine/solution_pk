@@ -399,8 +399,7 @@ _wounded_done:
 				if(parent_object_uuid != primary_castle_uuid){
 					castle_category = TaskBox::TCC_NON_PRIMARY;
 				}
-				task_box->check(task_type_id, attacked_object_type_id.get(), 1,
-					castle_category, 0, 0);
+				task_box->check(TaskBox::CAT_NULL,task_type_id, attacked_object_type_id.get(), 1,castle_category, 0, 0);
 			});
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
