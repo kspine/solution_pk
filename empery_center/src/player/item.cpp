@@ -224,11 +224,15 @@ PLAYER_SERVLET(Msg::CS_ItemDungeonTrade, account, session, req){
 	if(!trade_data){
 		return Response(Msg::ERR_NO_SUCH_TRADE_ID) <<trade_id;
 	}
+	const auto item_have_buy_info = item_box->get(ItemIds::ID_DUNGEON_HAVE_BUY_TIMES);
+	
 	const auto dungeon_trade_param = Data::Global::as_unsigned(Data::Global::SLOT_ITEM_DUNGEON_TRAD_PARAM);
 	std::vector<ItemTransactionElement> transaction;
 	for(unsigned i = 0; i < repeat_count; ++i){
-		Data::unpack_item_trade(transaction, trade_data, 1, req.ID,static_cast<std::uint64_t>(dungeon_trade_param*(i+1)));
+		Data::unpack_item_trade(transaction, trade_data, 1, req.ID,static_cast<std::uint64_t>(dungeon_trade_param*(item_have_buy_info.count + i + 1)));
 	}
+	transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_DUNGEON_HAVE_BUY_TIMES, repeat_count,
+				ReasonIds::ID_TRADE_REQUEST, req.ID, trade_id.get(), repeat_count);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
