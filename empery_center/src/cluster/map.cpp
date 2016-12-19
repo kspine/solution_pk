@@ -370,7 +370,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 			{
 				PROFILE_ME;
 				task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_HARVEST_SPECIFIC_STRATEGIC_RESOURCE,resource_id.get(),  amount_to_harvest,
-				TaskBox::TCC_ALL, 0, 0);
+				TaskBox::TCC_PRIMARY, 0, 0);
 			}
 		});
 	} catch (std::exception &e){
