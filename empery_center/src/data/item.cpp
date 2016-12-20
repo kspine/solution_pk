@@ -7,6 +7,7 @@
 #include "../data_session.hpp"
 #include "../transaction_element.hpp"
 #include "../reason_ids.hpp"
+#include "../item_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -26,7 +27,7 @@ namespace {
 	)
 	boost::weak_ptr<const TradeContainer> g_trade_container;
 	const char TRADE_FILE[] = "item_trading";
-	
+
 	MULTI_INDEX_MAP(ResourceTradeContainer, Data::ResourceTrade,
 		UNIQUE_MEMBER_INDEX(trade_id)
 	)
@@ -44,6 +45,12 @@ namespace {
 	)
 	boost::weak_ptr<const ShopContainer> g_shop_container;
 	const char SHOP_FILE[] = "shop";
+
+	MULTI_INDEX_MAP(ResourceTradeUpgradeContainer, Data::ResourceTradeUpgrade,
+		UNIQUE_MEMBER_INDEX(trade_id)
+	)
+	boost::weak_ptr<const ResourceTradeUpgradeContainer> g_resource_trade_upgrade_container;
+	const char RESOUCE_TRADE_UPGRADE_FILE[] = "material_trading";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(ITEM_FILE);
@@ -135,7 +142,7 @@ namespace {
 		handles.push(trade_container);
 		servlet = DataSession::create_servlet(TRADE_FILE, Data::encode_csv_as_json(csv, "trading_id"));
 		handles.push(std::move(servlet));
-		
+
 		csv = Data::sync_load_data(RESOUCE_TRADE_FILE);
 		const auto resource_trade_container = boost::make_shared<ResourceTradeContainer>();
 		while(csv.fetch_row()){
@@ -164,7 +171,7 @@ namespace {
 		handles.push(resource_trade_container);
 		servlet = DataSession::create_servlet(RESOUCE_TRADE_FILE, Data::encode_csv_as_json(csv, "trading_id"));
 		handles.push(std::move(servlet));
-		
+
 		csv = Data::sync_load_data(RECHARGE_FILE);
 		const auto recharge_container = boost::make_shared<RechargeContainer>();
 		while(csv.fetch_row()){
@@ -199,6 +206,47 @@ namespace {
 		g_shop_container = shop_container;
 		handles.push(shop_container);
 		servlet = DataSession::create_servlet(SHOP_FILE, Data::encode_csv_as_json(csv, "shop_id"));
+		handles.push(std::move(servlet));
+
+		csv = Data::sync_load_data(RESOUCE_TRADE_UPGRADE_FILE);
+		const auto resource_trade_upgrade_container = boost::make_shared<ResourceTradeUpgradeContainer>();
+		while(csv.fetch_row()){
+			Data::ResourceTradeUpgrade elem = { };
+
+			csv.get(elem.trade_id, "trading_id");
+
+			Poseidon::JsonObject object;
+			csv.get(object, "consumption_item");
+			elem.items_consumed.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.items_consumed.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate item amount: item_id = ", item_id);
+					DEBUG_THROW(Exception, sslit("Duplicate item amount"));
+				}
+			}
+
+			object.clear();
+			csv.get(object, "obtain_item");
+			elem.resource_produced.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.resource_produced.emplace(resource_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate resource amount: resource_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate item amount"));
+				}
+			}
+
+			if(!resource_trade_upgrade_container->insert(std::move(elem)).second){
+				LOG_EMPERY_CENTER_ERROR("Duplicate trade element: trade_id = ", elem.trade_id);
+				DEBUG_THROW(Exception, sslit("Duplicate trade element"));
+			}
+		}
+		g_resource_trade_upgrade_container = resource_trade_upgrade_container;
+		handles.push(resource_trade_upgrade_container);
+		servlet = DataSession::create_servlet(RESOUCE_TRADE_UPGRADE_FILE, Data::encode_csv_as_json(csv, "trading_id"));
 		handles.push(std::move(servlet));
 	}
 }
@@ -334,7 +382,7 @@ namespace Data {
 		}
 		return ret;
 	}
-	
+
 	boost::shared_ptr<const ResourceTrade> ResourceTrade::get(TradeId trade_id){
 		PROFILE_ME;
 
@@ -361,7 +409,6 @@ namespace Data {
 		}
 		return ret;
 	}
-	
 
 	boost::shared_ptr<const ItemRecharge> ItemRecharge::get(RechargeId recharge_id){
 		PROFILE_ME;
@@ -426,7 +473,7 @@ namespace Data {
 		transaction.reserve(transaction.size() + trade_data->items_consumed.size() + trade_data->items_produced.size());
 		for(auto it = trade_data->items_consumed.begin(); it != trade_data->items_consumed.end(); ++it){
 			std::uint64_t count = 0;
-			if(it->first == ItemId(2100042)){
+			if(it->first == ItemIds::ID_DUNGEON_CAN_BUY_TIMES){
 				count = checked_mul(it->second, repeat_count);
 			}else{
 				count = checked_add(checked_mul(it->second, repeat_count),addition);
@@ -440,6 +487,52 @@ namespace Data {
 		}
 	}
 
+	boost::shared_ptr<const ResourceTradeUpgrade> ResourceTradeUpgrade::get(TradeId trade_id){
+		PROFILE_ME;
+
+		const auto resource_trade_upgrade_container = g_resource_trade_upgrade_container.lock();
+		if(!resource_trade_upgrade_container){
+			LOG_EMPERY_CENTER_WARNING("resource_trade_upgrade_container has not been loaded.");
+			return { };
+		}
+
+		const auto it = resource_trade_upgrade_container->find<0>(trade_id);
+		if(it == resource_trade_upgrade_container->end<0>()){
+			LOG_EMPERY_CENTER_TRACE("ResourceTradeUpgrade not found: trade_id = ", trade_id);
+			return { };
+		}
+		return boost::shared_ptr<const ResourceTradeUpgrade>(resource_trade_upgrade_container, &*it);
+	}
+
+	boost::shared_ptr<const ResourceTradeUpgrade> ResourceTradeUpgrade::require(TradeId trade_id){
+		PROFILE_ME;
+
+		auto ret = get(trade_id);
+		if(!ret){
+			LOG_EMPERY_CENTER_WARNING("ResourceTradeUpgrade not found: trade_id = ", trade_id);
+			DEBUG_THROW(Exception, sslit("ResourceTradeUpgrade not found"));
+		}
+		return ret;
+	}
+
+	void unpack_resource_trade_upgrade(std::vector<ItemTransactionElement> &item_transaction,std::vector<ResourceTransactionElement> &res_transaction,
+		const boost::shared_ptr<const ResourceTradeUpgrade> &trade_data, std::uint64_t repeat_count,
+		std::int64_t param1)
+	{
+		PROFILE_ME;
+
+		item_transaction.reserve(item_transaction.size() + trade_data->items_consumed.size());
+		for(auto it = trade_data->items_consumed.begin(); it != trade_data->items_consumed.end(); ++it){
+			auto count = checked_mul(it->second, repeat_count);
+			item_transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, count,
+				ReasonIds::ID_TRADE_REQUEST, param1, trade_data->trade_id.get(), repeat_count);
+		}
+		res_transaction.reserve(res_transaction.size() + trade_data->resource_produced.size());
+		for(auto it = trade_data->resource_produced.begin(); it != trade_data->resource_produced.end(); ++it){
+			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, checked_mul(it->second, repeat_count),
+				ReasonIds::ID_TRADE_REQUEST, param1, trade_data->trade_id.get(), repeat_count);
+		}
+	}
 }
 
 }

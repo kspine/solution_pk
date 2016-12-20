@@ -329,6 +329,14 @@ namespace Msg {
 	FIELD_VUINT         (map_object_type_id)	\
 	FIELD_VUINT         (count)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    CS_CastleResourceTrade
+#define MESSAGE_ID      444
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (map_object_uuid)	\
+	FIELD_VUINT         (trade_id)	\
+	FIELD_VUINT         (repeat_count)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

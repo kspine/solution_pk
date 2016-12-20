@@ -120,6 +120,7 @@ namespace EmperyCenter {
 				SLOT_FRIEND_RECORD_EXPIRY_DAYS                         = 100147,
 				SLOT_FRIEND_RECENT_EXPIRY_DAYS                         = 100148,
 				SLOT_ITEM_DUNGEON_TRAD_PARAM                           = 100149,
+				SLOT_BUILDING_FREE_UPGRADE_LIMIT                       = 100151,
 			};
 
 		public:
