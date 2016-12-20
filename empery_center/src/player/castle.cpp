@@ -340,16 +340,16 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	const auto free_limit_milliseconds = saturated_mul<std::uint64_t>(free_limit_min, 60000);
 	if(info.mission == Castle::MIS_UPGRADE && free_limit_milliseconds > time_remaining){
 		castle->speed_up_building_mission(building_base_id, UINT64_MAX);
+	}else{
+		const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
+		std::vector<ItemTransactionElement> transaction;
+		Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
+		const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+			[&]{ castle->speed_up_building_mission(building_base_id, UINT64_MAX); });
+		if(insuff_item_id){
+			return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+		}
 	}
-	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
-	std::vector<ItemTransactionElement> transaction;
-	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
-		[&]{ castle->speed_up_building_mission(building_base_id, UINT64_MAX); });
-	if(insuff_item_id){
-		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
-	}
-
 	return Response();
 }
 
@@ -2161,7 +2161,7 @@ PLAYER_SERVLET(Msg::CS_UsePersonalDoateItem, account, session, req){
 					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),0,amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}else{
 					account_attributes_modifer[AccountAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + amount_to_add);
-					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);	
+					LegionLog::LegionPersonalDonateTrace(account->get_account_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + amount_to_add,ReasonIds::ID_LEGION_USE_DONATE_ITEM,item_id.get(),count_to_consume,0);
 				}
 				account->set_attributes(std::move(account_attributes_modifer));
 			}
