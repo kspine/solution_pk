@@ -82,13 +82,23 @@ namespace Data {
 		boost::container::flat_map<ItemId, std::uint64_t> items_consumed;
 		boost::container::flat_map<ItemId, std::uint64_t> items_produced;
 	};
-	
+
 	class ResourceTrade {
 	public:
 		static boost::shared_ptr<const ResourceTrade> get(TradeId trade_id);
 		static boost::shared_ptr<const ResourceTrade> require(TradeId trade_id);
 	public:
 		TradeId trade_id;
+		boost::container::flat_map<ResourceId,std::uint64_t> resource_produced;
+	};
+
+	class ResourceTradeUpgrade{
+		public:
+		static boost::shared_ptr<const ResourceTradeUpgrade> get(TradeId trade_id);
+		static boost::shared_ptr<const ResourceTradeUpgrade> require(TradeId trade_id);
+	public:
+		TradeId trade_id;
+		boost::container::flat_map<ItemId, std::uint64_t>    items_consumed;
 		boost::container::flat_map<ResourceId,std::uint64_t> resource_produced;
 	};
 
@@ -115,6 +125,9 @@ namespace Data {
 	extern void unpack_item_trade(std::vector<ItemTransactionElement> &transaction,
 		const boost::shared_ptr<const ItemTrade> &trade_data, std::uint64_t repeat_count,
 		std::int64_t param1,std::uint64_t additon = 0);
+	extern void unpack_resource_trade_upgrade(std::vector<ItemTransactionElement> &item_transaction,std::vector<ResourceTransactionElement> &res_transaction,
+		const boost::shared_ptr<const ResourceTradeUpgrade> &trade_data, std::uint64_t repeat_count,
+		std::int64_t param1);
 }
 
 }

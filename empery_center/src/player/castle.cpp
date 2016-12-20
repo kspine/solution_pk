@@ -336,6 +336,11 @@ PLAYER_SERVLET(Msg::CS_CastleCompleteBuildingImmediately, account, session, req)
 	const auto trade_id = TradeId(Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_IMMEDIATE_BUILDING_UPGRADE_TRADE_ID));
 	const auto trade_data = Data::ItemTrade::require(trade_id);
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
+	const auto free_limit_min = Data::Global::as_unsigned(Data::Global::SLOT_BUILDING_FREE_UPGRADE_LIMIT);
+	const auto free_limit_milliseconds = saturated_mul<std::uint64_t>(free_limit_min, 60000);
+	if(info.mission == Castle::MIS_UPGRADE && free_limit_milliseconds > time_remaining){
+		castle->speed_up_building_mission(building_base_id, UINT64_MAX);
+	}
 	const auto trade_count = static_cast<std::uint64_t>(std::ceil(time_remaining / 60000.0 - 0.001));
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, trade_count, req.ID);
@@ -719,31 +724,34 @@ PLAYER_SERVLET(Msg::CS_CastleSpeedUpBuildingUpgrade, account, session, req){
 	if(info.mission == Castle::MIS_NONE){
 		return Response(Msg::ERR_NO_BUILDING_MISSION) <<building_base_id;
 	}
-
-	const auto item_id = ItemId(req.item_id);
-	const auto item_data = Data::Item::require(item_id);
-	if(item_data->type.first != Data::Item::CAT_UPGRADE_TURBO){
-		return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_UPGRADE_TURBO;
-	}
-	if((item_data->type.second != 1) && (item_data->type.second != 3)){
-		return Response(Msg::ERR_NOT_BUILDING_UPGRADE_ITEM) <<item_id;
-	}
-	const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
-
 	const auto utc_now = Poseidon::get_utc_time();
-
 	const auto time_remaining = saturated_sub(info.mission_time_end, utc_now);
-	const auto count_to_consume = std::min<std::uint64_t>(req.count,
-		saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
-	std::vector<ItemTransactionElement> transaction;
-	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
-		ReasonIds::ID_SPEED_UP_BUILDING_UPGRADE, info.building_id.get(), info.building_level, 0);
-	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
-		[&]{ castle->speed_up_building_mission(building_base_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
-	if(insuff_item_id){
-		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
-	}
+	const auto free_limit_min = Data::Global::as_unsigned(Data::Global::SLOT_BUILDING_FREE_UPGRADE_LIMIT);
+	const auto free_limit_milliseconds = saturated_mul<std::uint64_t>(free_limit_min, 60000);
+	if(info.mission == Castle::MIS_UPGRADE && free_limit_milliseconds > time_remaining){
+		castle->speed_up_building_mission(building_base_id, UINT64_MAX);
+	}else{
+		const auto item_id = ItemId(req.item_id);
+		const auto item_data = Data::Item::require(item_id);
+		if(item_data->type.first != Data::Item::CAT_UPGRADE_TURBO){
+			return Response(Msg::ERR_ITEM_TYPE_MISMATCH) <<(unsigned)Data::Item::CAT_UPGRADE_TURBO;
+		}
+		if((item_data->type.second != 1) && (item_data->type.second != 3)){
+			return Response(Msg::ERR_NOT_BUILDING_UPGRADE_ITEM) <<item_id;
+		}
+		const auto turbo_milliseconds = saturated_mul<std::uint64_t>(item_data->value, 60000);
 
+		const auto count_to_consume = std::min<std::uint64_t>(req.count,
+			saturated_add(time_remaining, turbo_milliseconds - 1) / turbo_milliseconds);
+		std::vector<ItemTransactionElement> transaction;
+		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, item_id, count_to_consume,
+			ReasonIds::ID_SPEED_UP_BUILDING_UPGRADE, info.building_id.get(), info.building_level, 0);
+		const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, true,
+			[&]{ castle->speed_up_building_mission(building_base_id, saturated_mul(turbo_milliseconds, count_to_consume)); });
+		if(insuff_item_id){
+			return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+		}
+	}
 	return Response();
 }
 
@@ -2200,6 +2208,42 @@ PLAYER_SERVLET(Msg::CS_CastleNewGuideCreateSolider, account, session, req){
 	res_transaction.emplace_back(SoldierTransactionElement::OP_ADD, map_object_type_id, count,
 		ReasonIds::ID_NEW_GUIDE_CREATE_SOLIDER,map_object_type_id.get(), count, 0);
 	castle->commit_soldier_transaction(res_transaction);
+	return Response();
+}
+
+PLAYER_SERVLET(Msg::CS_CastleResourceTrade, account, session, req){
+	const auto map_object_uuid = MapObjectUuid(req.map_object_uuid);
+	const auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(map_object_uuid));
+	if(!castle){
+		return Response(Msg::ERR_NO_SUCH_CASTLE) <<map_object_uuid;
+	}
+	if(castle->get_owner_uuid() != account->get_account_uuid()){
+		return Response(Msg::ERR_NOT_CASTLE_OWNER) <<castle->get_owner_uuid();
+	}
+	const auto item_box = ItemBoxMap::require(account->get_account_uuid());
+	item_box->pump_status();
+
+	const auto repeat_count = req.repeat_count;
+	if(repeat_count == 0){
+		return Response(Msg::ERR_ZERO_REPEAT_COUNT);
+	}
+	const auto trade_id = TradeId(req.trade_id);
+	const auto trade_data = Data::ResourceTradeUpgrade::get(trade_id);
+	if(!trade_data){
+		return Response(Msg::ERR_NO_SUCH_TRADE_ID) <<trade_id;
+	}
+
+	std::vector<ItemTransactionElement> item_transaction;
+	std::vector<ResourceTransactionElement> res_transaction;
+	Data::unpack_resource_trade_upgrade(item_transaction,res_transaction, trade_data, repeat_count, req.ID);
+	const auto insuff_item_id = item_box->commit_transaction_nothrow(item_transaction, false,
+		[&]{
+			castle->commit_resource_transaction(res_transaction);
+		});
+	if(insuff_item_id){
+		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
+	}
+
 	return Response();
 }
 
