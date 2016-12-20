@@ -1362,7 +1362,7 @@ _wounded_done:
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 		}
 	}
-	const auto map_activity_acculate_rewards = [=](MapActivityId activity_id,std::uint64_t delta,ReasonId reason_id){
+	const auto map_activity_acculate_rewards = [=](MapActivityId activity_id,std::uint64_t delta){
 		{
 			const auto map_activity = ActivityMap::get_map_activity();
 			if(map_activity){
@@ -1374,25 +1374,21 @@ _wounded_done:
 			if(map_activity_info.unique_id != activity_id.get()){
 				goto _activity_acculate_done;
 			}
-			std::uint64_t old_accumulate,new_accumulate;
 			boost::container::flat_map<ItemId, std::uint64_t> items_basic;
 			std::vector<std::uint64_t> acculate_condition;
 			MapActivityAccumulateMap::AccumulateInfo info = MapActivityAccumulateMap::get(attacking_account_uuid,activity_id,map_activity_info.available_since);
 			if(info.activity_id != MapActivityId(0) && (info.account_uuid == attacking_account_uuid) && (info.activity_id == activity_id)){
-				old_accumulate = info.accumulate_value;
 				info.accumulate_value += delta;
 				MapActivityAccumulateMap::update(info,false);
-				new_accumulate = info.accumulate_value;
 			}else{
 				info.account_uuid = attacking_account_uuid;
 				info.activity_id = activity_id;
 				info.avaliable_since = map_activity_info.available_since;
 				info.avaliable_util = map_activity_info.available_until;
-				old_accumulate = 0;
 				info.accumulate_value += delta;
 				MapActivityAccumulateMap::insert(info);
-				new_accumulate = info.accumulate_value;
 			}
+			/*
 			boost::shared_ptr<const Data::MapActivity> map_activity_data  = Data::MapActivity::get(activity_id.get());
 			if(!map_activity_data){
 				goto _activity_acculate_done;
@@ -1444,6 +1440,7 @@ _wounded_done:
 					session->shutdown(e.what());
 				}
 			}
+			*/
 	}
 			_activity_acculate_done:
 			;
@@ -1458,7 +1455,7 @@ _wounded_done:
 					if(!attacked_type_data || attacked_type_data->warfare == 0){
 							goto _activity_kill_solider_done;
 					}
-					map_activity_acculate_rewards(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER,attacked_type_data->warfare,ReasonIds::ID_SOLDIER_KILL_ACCUMULATE);
+					map_activity_acculate_rewards(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER,attacked_type_data->warfare);
 				}
 				_activity_kill_solider_done:
 				;
@@ -1473,7 +1470,7 @@ _wounded_done:
 		try{
 			Poseidon::enqueue_async_job([=]{
 				PROFILE_ME;
-				map_activity_acculate_rewards(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE,hp_damaged,ReasonIds::ID_CASTLE_DMAGE_ACCUMULATE);
+				map_activity_acculate_rewards(ActivityIds::ID_MAP_ACTIVITY_CASTLE_DAMAGE,hp_damaged);
 			});
 		} catch (std::exception &e){
 			LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());

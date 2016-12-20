@@ -11,18 +11,21 @@ namespace EmperyCenter {
 class PlayerSession;
 
 struct MapActivityAccumulateMap {
+	using Progress = boost::container::flat_map<std::uint64_t, std::uint64_t>;
 	struct AccumulateInfo {
 		AccountUuid      account_uuid;
 		MapActivityId    activity_id;
 		std::uint64_t    avaliable_since;
 		std::uint64_t    avaliable_util;
 		std::uint64_t    accumulate_value;
+		Progress         target_reward;
 	};
 
 	static AccumulateInfo get(AccountUuid account_uuid, MapActivityId activity_id,std::uint64_t since);
 	static void get_recent(MapActivityId activity_id,std::uint64_t since,std::vector<AccumulateInfo> &ret);
 	static void insert(AccumulateInfo info);
 	static void update(AccumulateInfo info,bool throws_if_not_exists);
+	static void synchronize_map_accumulate_info_with_player(AccumulateInfo info);
 private:
 	MapActivityAccumulateMap() = delete;
 };
@@ -35,9 +38,12 @@ struct MapActivityRankMap {
 		std::uint64_t    rank;
 		std::uint64_t    accumulate_value;
 		std::uint64_t    process_date;
+		bool             rewarded;
 	};
 	static void get_recent_rank_list(MapActivityId activity_id, std::uint64_t settle_date,std::vector<MapActivityRankInfo> &ret);
+	static bool get_account_rank_info(MapActivityId activity_id, std::uint64_t settle_date,AccountUuid account_uuid,MapActivityRankInfo &info);
 	static void insert(MapActivityRankInfo info);
+	static void update(MapActivityRankInfo info);
 private:
 	MapActivityRankMap() = delete;
 };

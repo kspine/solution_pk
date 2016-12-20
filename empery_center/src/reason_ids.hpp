@@ -87,7 +87,7 @@ constexpr ReasonId
 	ID_DUNGEON_RESUSCITATION         ( 674016 ), // 部队 UUID 高位      部队受到伤害        复活率 * 1000
 	ID_FINISH_DUNGEON                ( 674017 ), // 副本类型 ID         掉落表内的 ID       0
 	ID_FINISH_DUNGEON_TASK           ( 674018 ), // 副本类型 ID         副本任务 ID         0
-	ID_SOLDIER_KILL_ACCUMULATE       ( 674019 ), // 满足累计战力        原来累计战力        新累计战力
+	ID_MAP_ACTIVITY_ACCUMULATE       ( 674019 ), // 活动id              活动时间            目标值
 	ID_CASTLE_DMAGE_ACCUMULATE       ( 674020 ), // 满足伤害            原来累计伤害         新累计伤害
 	ID_SOLDIER_KILL_RANK             ( 674021 ), // 活动id              排名                活动开始时间
 	ID_WORLD_ACTIVITY                ( 674022 ), // 活动id              国家坐标x           国家坐标y

@@ -11,6 +11,8 @@ namespace Msg {
 #define MESSAGE_ID      1499
 #define MESSAGE_FIELDS  \
 	FIELD_VUINT         (curr_unique_id)	\
+	FIELD_VUINT         (since)	\
+	FIELD_VUINT         (until)	\
 	FIELD_ARRAY         (activitys,	\
 		FIELD_VUINT         (unique_id)	\
 		FIELD_VUINT         (available_since)	\
@@ -28,7 +30,10 @@ namespace Msg {
 		FIELD_STRING        (leagues)	        \
 		FIELD_VUINT         (rank)	            \
 		FIELD_VUINT         (accumulate_value)	\
-	)
+	)\
+	FIELD_VUINT         (rank)  \
+	FIELD_VUINT         (accumulate_value)  \
+	FIELD_VUINT         (rewarded)
 #include <poseidon/cbpp/message_generator.hpp>
 
 
@@ -87,6 +92,7 @@ namespace Msg {
 #define MESSAGE_NAME    SC_ActivityRankAwardData
 #define MESSAGE_ID      1493
 #define MESSAGE_FIELDS  \
+	FIELD_VUINT         (unique_id) \
 	FIELD_ARRAY         (rank_list,	\
 		FIELD_VUINT         (begin)	\
 		FIELD_VUINT         (end)	\
@@ -96,6 +102,31 @@ namespace Msg {
 		)\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_MapActivityTargetData
+#define MESSAGE_ID      1492
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (unique_id) \
+	FIELD_ARRAY         (drop,	\
+	    FIELD_VUINT         (target)\
+		FIELD_ARRAY         (reward,\
+			FIELD_VUINT        (item_id)\
+			FIELD_VUINT         (count)	\
+		)\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_MapActivityAccumulateInfo
+#define MESSAGE_ID      1491
+#define MESSAGE_FIELDS  \
+	FIELD_VUINT         (unique_id)	\
+	FIELD_VUINT         (accumulate_value)	\
+	FIELD_ARRAY         (reward,	\
+		FIELD_VUINT         (target)	\
+		FIELD_VUINT         (state)	\
+	)
+#include <poseidon/cbpp/message_generator.hpp>
+
 
 }
 

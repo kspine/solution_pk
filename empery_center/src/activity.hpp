@@ -42,7 +42,10 @@ public:
 	void on_activity_change(MapActivityId old_ativity,MapActivityId new_activity);
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	bool settle_kill_soliders_activity(std::uint64_t now);
-	void synchronize_kill_soliders_rank_with_player(const boost::shared_ptr<PlayerSession> &session);
+	void reward_target(std::uint64_t target,MapActivityAccumulateMap::AccumulateInfo info);
+	void reward_rank(AccountUuid account,MapActivityRankMap::MapActivityRankInfo info);
+	void synchronize_kill_soliders_rank_with_player(const AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session);
+	void synchronize_accumulate_info_with_player(const AccountUuid account_uuid,const boost::shared_ptr<PlayerSession> &session);
 public:
 	void set_current_activity(MapActivityId);
 	MapActivityId get_current_activity();

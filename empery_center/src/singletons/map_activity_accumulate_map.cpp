@@ -5,6 +5,10 @@
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/multi_index_map.hpp>
 #include "../mysql/activity.hpp"
+#include "../msg/sc_activity.hpp"
+#include <poseidon/json.hpp>
+#include "player_session_map.hpp"
+#include "../player_session.hpp"
 
 
 namespace EmperyCenter {
@@ -113,6 +117,43 @@ namespace {
 	boost::weak_ptr<WorldActivityAccumulateContainer>     g_world_activity_accumulate_map;
 	boost::weak_ptr<WorldActivityRankContainer>           g_world_activity_rank_map;
 	boost::weak_ptr<WorldActivityBossContainer>           g_world_activity_boss_map;
+	
+	
+	std::string encode_progress(const MapActivityAccumulateMap::Progress &progress) {
+		PROFILE_ME;
+
+		if (progress.empty()) {
+			return{};
+		}
+		Poseidon::JsonObject root;
+		for (auto it = progress.begin(); it != progress.end(); ++it) {
+			const auto key = it->first;
+			const auto count = it->second;
+			char str[256];
+			unsigned len = (unsigned)std::sprintf(str, "%lu", (unsigned long)key);
+			root[SharedNts(str, len)] = count;
+		}
+		std::ostringstream oss;
+		root.dump(oss);
+		return oss.str();
+	}
+	MapActivityAccumulateMap::Progress decode_progress(const std::string &str) {
+		PROFILE_ME;
+
+		MapActivityAccumulateMap::Progress progress;
+		if (str.empty()) {
+			return progress;
+		}
+		std::istringstream iss(str);
+		auto root = Poseidon::JsonParser::parse_object(iss);
+		progress.reserve(root.size());
+		for (auto it = root.begin(); it != root.end(); ++it) {
+			const auto key = boost::lexical_cast<std::uint64_t>(it->first);
+			const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+			progress.emplace(key, count);
+		}
+		return progress;
+	}
 
 	void fill_map_activity_accumulate_info(MapActivityAccumulateMap::AccumulateInfo &info, const MapActivityAccumulateElement &elem){
 		PROFILE_ME;
@@ -122,6 +163,18 @@ namespace {
 		info.avaliable_since  = elem.obj->get_avaliable_since();
 		info.avaliable_util   = elem.obj->get_avaliable_util();
 		info.accumulate_value = elem.obj->get_accumulate_value();
+		info.target_reward   = decode_progress(elem.obj->get_target_reward());
+	}
+	
+	void fill_map_activity_accumulate_info_message(Msg::SC_MapActivityAccumulateInfo &msg,MapActivityAccumulateMap::AccumulateInfo &info){
+		PROFILE_ME;
+		msg.unique_id  = info.activity_id.get();
+		msg.accumulate_value = info.accumulate_value;
+		for(auto it = info.target_reward.begin(); it != info.target_reward.end(); ++it){
+			auto &reward = *msg.reward.emplace(msg.reward.end());
+			reward.target = it->first;
+			reward.state =  it->second;
+		}
 	}
 
 	void fill_map_activity_rank_info(MapActivityRankMap::MapActivityRankInfo &info, const MapActivityRankElement &elem){
@@ -133,6 +186,7 @@ namespace {
 		info.rank             = elem.obj->get_rank();
 		info.process_date     = elem.obj->get_process_date();
 		info.accumulate_value = elem.obj->get_accumulate_value();
+		info.rewarded         = elem.obj->get_rewarded();
 	}
 
 	void fill_world_activity_info(WorldActivityMap::WorldActivityInfo &info, const WorldActivityElement &elem){
@@ -306,9 +360,10 @@ void MapActivityAccumulateMap::insert(AccumulateInfo info){
 		return;
 	}
 	const auto obj = boost::make_shared<MySql::Center_MapActivityAccumulate>(info.account_uuid.get(), info.activity_id.get(),
-		info.avaliable_since, info.avaliable_util, info.accumulate_value);
+		info.avaliable_since, info.avaliable_util, info.accumulate_value,encode_progress(info.target_reward));
 	obj->async_save(true);
 	map_activity_accumulate_map->insert(MapActivityAccumulateElement(std::move(obj)));
+	MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(info);
 }
 
 void MapActivityAccumulateMap::update(AccumulateInfo info,bool throws_if_not_exists){
@@ -331,6 +386,25 @@ void MapActivityAccumulateMap::update(AccumulateInfo info,bool throws_if_not_exi
 	obj->set_avaliable_since(info.avaliable_since);
 	obj->set_avaliable_util(info.avaliable_util);
 	obj->set_accumulate_value(info.accumulate_value);
+	obj->set_target_reward(encode_progress(info.target_reward));
+	MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(info);
+}
+
+void MapActivityAccumulateMap::synchronize_map_accumulate_info_with_player(AccumulateInfo info){
+	PROFILE_ME;
+
+	auto session = PlayerSessionMap::get(info.account_uuid);
+	if(session){
+		try {
+			Msg::SC_MapActivityAccumulateInfo msg;
+			fill_map_activity_accumulate_info_message(msg,info);
+			LOG_EMPERY_CENTER_FATAL(msg);
+			session->send(msg);
+		}
+		catch (std::exception &e) {
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		}
+	}
 }
 
 void MapActivityRankMap::get_recent_rank_list(MapActivityId activity_id, std::uint64_t settle_date,std::vector<MapActivityRankInfo> &ret){
@@ -349,6 +423,22 @@ void MapActivityRankMap::get_recent_rank_list(MapActivityId activity_id, std::ui
 		ret.emplace_back(info);
 	}
 }
+bool MapActivityRankMap::get_account_rank_info(MapActivityId activity_id, std::uint64_t settle_date,AccountUuid account_uuid,MapActivityRankInfo &info){
+	PROFILE_ME;
+	
+	const auto map_activity_rank_map = g_map_activity_rank_map.lock();
+	if(!map_activity_rank_map){
+		LOG_EMPERY_CENTER_WARNING("map activity rank map is not loaded.");
+		return false;
+	}
+	const auto it = map_activity_rank_map->find<0>(std::make_pair(account_uuid,std::make_pair(activity_id, settle_date)));
+	if(it == map_activity_rank_map->end()){
+		LOG_EMPERY_CENTER_WARNING("get_account_rank_info,but the account is not in this rank, account_uuid = ",account_uuid, " activity_id = ",activity_id, " settle_date = ",settle_date);
+		return false;
+	}
+	fill_map_activity_rank_info(info, *it);
+	return true;
+}
 void MapActivityRankMap::insert(MapActivityRankInfo info){
 	PROFILE_ME;
 
@@ -363,9 +453,24 @@ void MapActivityRankMap::insert(MapActivityRankInfo info){
 		return;
 	}
 	const auto obj = boost::make_shared<MySql::Center_MapActivityRank>(info.account_uuid.get(), info.activity_id.get(),
-		info.settle_date, info.rank, info.accumulate_value,info.process_date);
+		info.settle_date, info.rank, info.accumulate_value,info.process_date,info.rewarded);
 	obj->async_save(true);
 	map_activity_rank_map->insert(MapActivityRankElement(std::move(obj)));
+}
+void MapActivityRankMap::update(MapActivityRankInfo info){
+	PROFILE_ME;
+	const auto map_activity_rank_map = g_map_activity_rank_map.lock();
+	if(!map_activity_rank_map){
+		LOG_EMPERY_CENTER_WARNING("map activity rank map is not loaded.");
+		return;
+	}
+	const auto it = map_activity_rank_map->find<0>(std::make_pair(info.account_uuid,std::make_pair(info.activity_id, info.settle_date)));
+	if(it == map_activity_rank_map->end<0>()){
+		LOG_EMPERY_CENTER_WARNING("map activity rank is not exist: account_uuid = ", info.account_uuid, ", activity_id = ", info.activity_id.get(), " settle_date:",info.settle_date);
+		return;
+	}
+	auto &obj = (*it).obj;
+	obj->set_rewarded(info.rewarded);
 }
 
 WorldActivityMap::WorldActivityInfo WorldActivityMap::get(Coord coord, WorldActivityId activity_id,std::uint64_t since){
