@@ -291,7 +291,7 @@ void MapActivity::synchronize_kill_soliders_rank_with_player(const AccountUuid a
 		settle_kill_soliders_activity(utc_now);
 		MapActivityRankMap::get_recent_rank_list(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER),activity_kill_solider_info.available_until,ret);
 	}
-	MapActivityRankMap::MapActivityRankInfo info;
+	MapActivityRankMap::MapActivityRankInfo info = {};
 	MapActivityRankMap::get_account_rank_info(MapActivityId(ActivityIds::ID_MAP_ACTIVITY_KILL_SOLDIER), activity_kill_solider_info.available_until,account_uuid,info);
 	if(session){
 		try {
