@@ -6,6 +6,7 @@
 #include "../msg/err_castle.hpp"
 #include "../msg/err_item.hpp"
 #include "../msg/kill.hpp"
+#include "../msg/sc_battle_record.hpp"
 #include "../resource_utilities.hpp"
 #include "../singletons/world_map.hpp"
 #include "../map_utilities.hpp"
@@ -36,6 +37,46 @@
 #include "../resource_ids.hpp"
 
 namespace EmperyCenter {
+
+namespace {
+	//用的是战斗通知信息，类型不要重复
+	enum FillBattalionNotificationType : int {
+		NOTIFY_FILL_BATTALION     = 7,
+	};
+
+	template<typename ...ParamsT>
+	void send_fill_battalion_notification(AccountUuid account_uuid,const ParamsT &...params)
+	{
+		PROFILE_ME;
+
+		const auto session = PlayerSessionMap::get(account_uuid);
+		if(!session){
+			return;
+		}
+
+		try {
+			const auto utc_now = Poseidon::get_utc_time();
+
+			Msg::SC_BattleRecordNotification msg;
+			msg.type               = static_cast<int>(NOTIFY_FILL_BATTALION);
+			msg.timestamp          = utc_now;
+			msg.other_account_uuid = "";
+			msg.coord_x            = 0;
+			msg.coord_y            = 0;
+			msg.params.reserve(sizeof...(params));
+			std::string param_strs[] = { boost::lexical_cast<std::string>(params)... };
+			for(std::size_t i = 0; i < sizeof...(params); ++i){
+				auto &param = *msg.params.emplace(msg.params.end());
+				param.str = std::move(param_strs[i]);
+			}
+			LOG_EMPERY_CENTER_FATAL(msg);
+			session->send(msg);
+		} catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			session->shutdown(e.what());
+		}
+	}
+}
 
 PLAYER_SERVLET(Msg::CS_MapQueryWorldMap, account, session, /* req */){
 	std::vector<std::pair<Coord, boost::shared_ptr<ClusterSession>>> clusters;
@@ -793,7 +834,10 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 	transaction.emplace_back(SoldierTransactionElement::OP_REMOVE, map_object_type_id, soldier_count,
 		ReasonIds::ID_REFILL_BATTALION, castle_uuid_head, battalion_uuid_head, 0);
 	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
-		[&]{ map_object->set_attributes(std::move(modifiers)); });
+		[&]{
+		map_object->set_attributes(std::move(modifiers));
+		//send_fill_battalion_notification(account->get_account_uuid(),map_object_type_id.get(),soldier_count);
+		});
 	if(insuff_battalion_id){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
 	}
