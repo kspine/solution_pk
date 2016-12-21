@@ -629,19 +629,19 @@ CLUSTER_SERVLET(Msg::KS_MapObjectAttackAction, cluster, req){
 			const auto protection_minutes = Data::Global::as_unsigned(Data::Global::SLOT_CASTLE_SIEGE_PROTECTION_DURATION);
 			const auto protection_duration = saturated_mul<std::uint64_t>(protection_minutes, 60000);
 			attacked_object->set_buff(BuffIds::ID_OCCUPATION_PROTECTION, utc_now, protection_duration);
-		}
-		else if(attacked_object_type_id == MapObjectTypeIds::ID_LEGION_WAREHOUSE)
-		{
+		}else if(attacked_object_type_id == MapObjectTypeIds::ID_LEGION_WAREHOUSE){
 			const auto warehouse = boost::dynamic_pointer_cast<WarehouseBuilding>(attacked_object);
-			if(warehouse)
-			{
+			if(warehouse){
 				// 矿井不消失，给个击毁标识
 				if(warehouse->get_mission() == WarehouseBuilding::MIS_DESTRUCT)
 					return Response(Msg::ERR_NO_SUCH_MAP_OBJECT) << attacked_object_uuid;
 			}
-		}
-		else {
-			attacked_object->delete_from_game();
+		}else {
+			if(attacked_account_uuid){
+				attacked_object->set_garrisoned(true);
+			}else{
+				attacked_object->delete_from_game();
+			}
 		}
 	}
 

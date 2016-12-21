@@ -178,7 +178,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonObjectAttackAction, dungeon, server, req){
 	if(soldiers_remaining <= 0){
 		LOG_EMPERY_CENTER_DEBUG("Map object is dead now: attacked_object_uuid = ", attacked_object_uuid);
 		if(shadow_attacked_map_object){
-			shadow_attacked_map_object->delete_from_game();
+			//shadow_attacked_map_object->delete_from_game();
 		}
 		attacked_object->delete_from_game();
 	}

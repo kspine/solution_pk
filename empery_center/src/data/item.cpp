@@ -50,7 +50,7 @@ namespace {
 		UNIQUE_MEMBER_INDEX(trade_id)
 	)
 	boost::weak_ptr<const ResourceTradeUpgradeContainer> g_resource_trade_upgrade_container;
-	const char RESOUCE_TRADE_UPGRADE_FILE[] = "Resource_purchase";
+	const char RESOUCE_TRADE_UPGRADE_FILE[] = "Resources_purchase";
 
 	MODULE_RAII_PRIORITY(handles, 1000){
 		auto csv = Data::sync_load_data(ITEM_FILE);
