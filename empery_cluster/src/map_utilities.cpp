@@ -182,7 +182,7 @@ bool find_path(std::vector<std::pair<signed char, signed char>> &path,
 					AStarCoordElement elem = { };
 					elem.coord            = coord;
 					const auto result = get_move_result(coord, account_uuid, true);
-					elem.closed           = (result.first != Msg::ST_OK) && (result.first != Msg::ERR_BLOCKED_BY_TROOPS_TEMPORARILY);
+					elem.closed           = (result.first != Msg::ST_OK);
 					elem.distance_from    = UINT64_MAX;
 					elem.distance_to_hint = get_distance_of_coords(coord, to_coord);
 					cit = astar_coords.emplace(coord, elem).first;
