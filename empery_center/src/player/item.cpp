@@ -229,7 +229,7 @@ PLAYER_SERVLET(Msg::CS_ItemDungeonTrade, account, session, req){
 	const auto dungeon_trade_param = Data::Global::as_unsigned(Data::Global::SLOT_ITEM_DUNGEON_TRAD_PARAM);
 	std::vector<ItemTransactionElement> transaction;
 	for(unsigned i = 0; i < repeat_count; ++i){
-		Data::unpack_item_trade(transaction, trade_data, 1, req.ID,static_cast<std::uint64_t>(dungeon_trade_param*(item_have_buy_info.count + i + 1)));
+		Data::unpack_item_trade(transaction, trade_data, 1, req.ID,static_cast<std::uint64_t>(dungeon_trade_param*(item_have_buy_info.count + i)));
 	}
 	transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_DUNGEON_HAVE_BUY_TIMES, repeat_count,
 				ReasonIds::ID_TRADE_REQUEST, req.ID, trade_id.get(), repeat_count);
