@@ -53,6 +53,8 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const 
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		server->shutdown(e.what());
 	}
+	m_stop_count = 0;
+	m_set_way_point_count = 0;
 }
 Dungeon::~Dungeon(){
 	const auto server = m_server.lock();
@@ -476,6 +478,13 @@ void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		dungeon_object->synchronize_with_player(session);
 	}
 	
+}
+
+void Dungeon::increase_stop_count(){
+	m_stop_count += 1;
+}
+void Dungeon::increase_set_way_point_count(){
+	m_set_way_point_count += 1;
 }
 
 }

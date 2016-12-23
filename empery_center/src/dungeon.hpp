@@ -52,6 +52,8 @@ private:
 	std::uint64_t m_expiry_time;
 	std::uint64_t m_finish_count;
 	bool          m_begin;
+	std::uint64_t m_stop_count;
+	std::uint64_t m_set_way_point_count;
 
 	struct Observer {
 		boost::weak_ptr<PlayerSession> session;
@@ -170,6 +172,14 @@ public:
 
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
+	void increase_stop_count();
+	std::uint64_t get_increase_stop_count(){
+		return m_stop_count;
+	}
+	void increase_set_way_point_count();
+	std::uint64_t get_set_wap_point_count(){
+		return m_set_way_point_count;
+	}
 };
 
 }

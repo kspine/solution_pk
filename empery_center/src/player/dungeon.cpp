@@ -260,7 +260,8 @@ PLAYER_SERVLET(Msg::CS_DungeonSetWaypoints, account, session, req){
 	if(!dungeon){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
 	}
-
+	dungeon->increase_set_way_point_count();
+	LOG_EMPERY_CENTER_ERROR("set_way_point_count = ",dungeon->get_set_wap_point_count());
 	const auto server = dungeon->get_server();
 	if(!server){
 		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
@@ -333,7 +334,8 @@ PLAYER_SERVLET(Msg::CS_DungeonStopTroops, account, session, req){
 	if(!dungeon){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
 	}
-
+	dungeon->increase_stop_count();
+	LOG_EMPERY_CENTER_ERROR("stop count = ",dungeon->get_increase_stop_count());
 	const auto server = dungeon->get_server();
 	if(!server){
 		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
@@ -372,6 +374,8 @@ PLAYER_SERVLET(Msg::CS_DungeonStopTroops, account, session, req){
 		auto &elem = *msg.dungeon_objects.emplace(msg.dungeon_objects.end());
 		elem.dungeon_object_uuid = dungeon_object_uuid.str();
 	}
+	LOG_EMPERY_CENTER_FATAL(req);
+	LOG_EMPERY_CENTER_FATAL(msg);
 	session->send(msg);
 
 	return Response();
