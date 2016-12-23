@@ -836,7 +836,9 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
 		[&]{
 		map_object->set_attributes(std::move(modifiers));
-		//send_fill_battalion_notification(account->get_account_uuid(),map_object_type_id.get(),soldier_count);
+		if(req.auto_fill){
+			send_fill_battalion_notification(account->get_account_uuid(),map_object_type_id.get(),soldier_count);
+		}
 		});
 	if(insuff_battalion_id){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;

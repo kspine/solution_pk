@@ -106,7 +106,8 @@ namespace Msg {
 #define MESSAGE_ID      312
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (soldier_count)
+	FIELD_VUINT         (soldier_count) \
+	FIELD_VUINT         (auto_fill)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    CS_MapLoadMinimap
