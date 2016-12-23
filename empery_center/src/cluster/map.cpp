@@ -1723,10 +1723,12 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 	}
 	const auto cofficient = Data::Global::as_double(Data::Global::SLOT_ATTACK_RESOURCE_CREATE_COEFFICIENT);
 	const auto amount_to_harvest = req.amount_harvested*cofficient;
+	const auto interval = req.interval;
 	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: attacking_object_uuid = ", attacking_object_uuid, ", attacking_object_type_id = ", attacking_object_type_id,
 		", amount_to_harvest = ", amount_to_harvest, ", amount_harvested = ", amount_harvested, ", forced_attack = ", forced_attack," req.amount_harvested = ",req.amount_harvested," cofficient = ",cofficient);
 	amount_remaining = resource_crate->get_amount_remaining();
+	attacking_object->set_buff(BuffIds::ID_HARVEST_STATUS, interval);
 
 	const auto attacked_coord = resource_crate->get_coord();
 

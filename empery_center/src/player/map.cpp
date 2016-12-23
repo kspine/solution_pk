@@ -107,7 +107,7 @@ PLAYER_SERVLET(Msg::CS_MapSetView, account, session, req){
 		LOG_EMPERY_CENTER_WARNING("Player view is too large: width = ", width, ", height = ", height);
 		return Response(Msg::ST_FORBIDDEN);
 	}
-
+	WorldMap::refresh_rectange_event(Rectangle(coord, width, height));
 	session->set_view(Rectangle(coord, width, height));
 
 	return Response();

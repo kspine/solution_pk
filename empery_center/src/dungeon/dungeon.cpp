@@ -587,7 +587,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 						ReasonIds::ID_FINISH_DUNGEON_TASK, dungeon_type_id.get(), dungeon_task_id.get(), 0);
 					tasks_new[dungeon_task_id][item_id] += count;
 				}
-				
+
 				for(auto it = task_data->rewards_resources.begin(); it != task_data->rewards_resources.end(); ++it){
 					const auto resource_id = it->first;
 					const auto count = it->second;
@@ -668,6 +668,21 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerLoses, dungeon, server, req){
 	if(!dungeon_box){
 		return Response(Msg::ERR_CONTROLLER_TOKEN_NOT_ACQUIRED);
 	}
+	const auto dungeon_type_id = dungeon->get_dungeon_type_id();
+	const auto dungeon_data = Data::Dungeon::get(dungeon_type_id);
+	if(!dungeon_data){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_ID) <<dungeon_type_id;
+	}
+
+	const auto &entry_cost = dungeon_data->entry_cost;
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(entry_cost.size());
+	for(auto it = entry_cost.begin(); it != entry_cost.end(); ++it){
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
+			ReasonIds::ID_DUNGEON_FAIL, dungeon_type_id.get(), 0, 0);
+	}
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	item_box->commit_transaction(transaction, false);
 	const auto session = PlayerSessionMap::get(account_uuid);
 	if(session){
 		try {

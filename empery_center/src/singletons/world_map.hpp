@@ -61,9 +61,11 @@ struct WorldMap {
 	// MapEventBlock
 	static boost::shared_ptr<MapEventBlock> get_map_event_block(Coord coord);
 	static void get_cluster_map_event_blocks(Coord cluster_coord, std::vector<boost::shared_ptr<MapEventBlock>> &ret);
+	static void get_map_event_blocks_by_rectangle(std::vector<boost::shared_ptr<MapEventBlock>> &ret,Rectangle rectangle);
 	static boost::shared_ptr<MapEventBlock> require_map_event_block(Coord coord);
 	static void insert_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block);
 	static void update_map_event_block(const boost::shared_ptr<MapEventBlock> &map_event_block, bool throws_if_not_exists = true);
+	static void refresh_rectange_event(Rectangle rectangle);
 	static void refresh_activity_event(unsigned map_event_type);
 	static void remove_activity_event(unsigned map_event_type);
 	static void refresh_world_activity_event(Coord cluster_coord,unsigned map_event_type);
