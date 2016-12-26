@@ -206,5 +206,27 @@ DUNGEON_SERVLET(Msg::SD_DungeonBegin, dengeon, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::SD_DungeonOfflineStop, dengeon, req){
+	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
+	if(!expect_dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
+	}
+	LOG_EMPERY_DUNGEON_FATAL(req);
+	expect_dungeon->set_fight_state(Dungeon::FIGHT_PAUSE);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::SD_DungeonReconnectStart, dengeon, req){
+	auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	auto expect_dungeon = DungeonMap::get(dungeon_uuid);
+	if(!expect_dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) << dungeon_uuid;
+	}
+	LOG_EMPERY_DUNGEON_FATAL(req);
+	expect_dungeon->set_fight_state(Dungeon::FIGHT_START);
+	return Response();
+}
+
 
 }

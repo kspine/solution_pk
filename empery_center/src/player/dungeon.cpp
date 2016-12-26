@@ -30,6 +30,7 @@
 #include "../task_box.hpp"
 #include "../singletons/task_box_map.hpp"
 #include "../task_type_ids.hpp"
+#include "../account_attribute_ids.hpp"
 namespace EmperyCenter {
 
 PLAYER_SERVLET(Msg::CS_DungeonGetAll, account, session, /* req */){
@@ -435,5 +436,38 @@ PLAYER_SERVLET(Msg::CS_DungeonBegin, account, session, req){
 	dungeon->set_begin(true);
 	return Response();
 }
+
+PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
+	PROFILE_ME;
+	
+	const auto dungeon_uuid = DungeonUuid(account->get_attribute(AccountAttributeIds::ID_OFFLINE_DUNGEON));
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_DUNGEON_OFFLINE_HAVE_FAILED);
+	}
+
+	const auto account_uuid = account->get_account_uuid();
+	const auto observer_session = dungeon->get_observer(account_uuid);
+	if(observer_session == session){
+		LOG_EMPERY_CENTER_WARNING("not reconnect ????");
+	}
+	if(observer_session != session){
+		Msg::SC_DungeonOffline msg;
+		msg.dungeon_uuid = dungeon_uuid.str();
+		msg.dungeon_type_id = dungeon->get_dungeon_type_id().get();
+		LOG_EMPERY_CENTER_FATAL(msg);
+		session->send(msg);
+		dungeon->update_observer(account_uuid,session);
+		dungeon->synchronize_with_player(session);
+		boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+		modifiers.reserve(1);
+        modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = "";
+		account->set_attributes(std::move(modifiers));
+		return Response();
+	}	
+	return Response(Msg::ERR_DUNGEON_OFFLINE_HAVE_FAILED) << dungeon->get_dungeon_type_id();
+}
+
+
 
 }

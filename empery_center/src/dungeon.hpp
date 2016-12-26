@@ -54,6 +54,8 @@ private:
 	bool          m_begin;
 	std::uint64_t m_stop_count;
 	std::uint64_t m_set_way_point_count;
+	bool          m_offline_stop;
+	std::uint64_t m_last_offline_time;
 
 	struct Observer {
 		boost::weak_ptr<PlayerSession> session;
@@ -149,6 +151,7 @@ public:
 	boost::shared_ptr<PlayerSession> get_observer(AccountUuid account_uuid) const;
 	void get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;
 	void insert_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
+	void update_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
 	bool remove_observer(AccountUuid account_uuid, QuitReason reason, const char *param) noexcept;
 	void clear_observers(QuitReason reason, const char *param) noexcept;
 
@@ -180,6 +183,8 @@ public:
 	std::uint64_t get_set_wap_point_count(){
 		return m_set_way_point_count;
 	}
+	
+	void check_founder_offline();
 };
 
 }

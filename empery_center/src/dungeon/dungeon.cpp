@@ -36,6 +36,10 @@
 #include "../data/dungeon_buff.hpp"
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "../events/dungeon.hpp"
+#include "../singletons/account_map.hpp"
+#include "../singletons/account_map.hpp"
+#include "../account.hpp"
+#include "../account_attribute_ids.hpp"
 
 
 namespace EmperyCenter {
@@ -268,18 +272,6 @@ _wounded_done:
 		attacking_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 	}
 	attacked_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
-
-	// 更新交战状态。
-	try {
-		PROFILE_ME;
-
-		const auto state_persistence_duration = Data::Global::as_double(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
-
-		WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
-		saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-	}
 
 	// 怪物掉落。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
@@ -654,6 +646,14 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
     task_box->check_task_dungeon_clearance(boost::lexical_cast<uint64_t>(dungeon_type_id),info.finish_count);
 
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_WINS, "");
+	const auto account = AccountMap::require(account_uuid);
+	const auto offline_dungeon_uuid = DungeonUuid(account->get_attribute(AccountAttributeIds::ID_OFFLINE_DUNGEON));
+	if(offline_dungeon_uuid){
+		boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+		modifiers.reserve(1);
+        modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = "";
+		account->set_attributes(std::move(modifiers));
+	}
 	const auto utc_now = Poseidon::get_utc_time();
 	LOG_EMPERY_CENTER_FATAL(req);
 	auto event = boost::make_shared<Events::DungeonFinish>(account_uuid,dungeon->get_dungeon_type_id(),dungeon->get_create_time(),utc_now,true);
