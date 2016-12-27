@@ -25,9 +25,6 @@ DefenseMatrix::~DefenseMatrix(){
 void DefenseMatrix::change_defense_matrix(std::uint64_t utc_now){
 	PROFILE_ME;
 
-	if(utc_now < m_next_change_time){
-		return;
-	}
 	auto dungeon = m_owner_dungeon.lock();
 	if(!dungeon){
 		LOG_EMPERY_DUNGEON_WARNING("emptry dungeon");
