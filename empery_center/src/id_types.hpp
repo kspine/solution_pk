@@ -241,6 +241,7 @@ namespace IdTypes {
 	using NoviceGuideStepId         = GenericId<std::uint32_t, 120041>;
 	using DungeonMonsterSkillId     = GenericId<std::uint32_t, 120042>;
 	using TaskPrimaryKeyId          = GenericId<std::uint32_t, 120043>;
+	using SourceId                  = GenericId<std::uint32_t, 120044>;
 
 	using AccountUuid               = GenericUuid<210001>;
 	using MapObjectUuid             = GenericUuid<210002>;

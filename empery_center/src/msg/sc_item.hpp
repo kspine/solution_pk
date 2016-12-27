@@ -10,8 +10,11 @@ namespace Msg {
 #define MESSAGE_NAME    SC_ItemChanged
 #define MESSAGE_ID      599
 #define MESSAGE_FIELDS  \
-	FIELD_VUINT         (item_id)	\
-	FIELD_VUINT         (count)
+	FIELD_VUINT         (source)	\
+	FIELD_ARRAY(items, \
+		FIELD_VUINT         (item_id)	\
+		FIELD_VUINT         (count)     \
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }

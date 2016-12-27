@@ -7,6 +7,7 @@
 #include <boost/function.hpp>
 #include <vector>
 #include "transaction_element_fwd.hpp"
+#include "source_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -200,9 +201,9 @@ public:
 
 	__attribute__((__warn_unused_result__))
 	ResourceId commit_resource_transaction_nothrow(const std::vector<ResourceTransactionElement> &transaction,
-		const boost::function<void ()> &callback = boost::function<void ()>());
+		const boost::function<void ()> &callback = boost::function<void ()>(),const SourceId source_id = SourceIds::ID_COMMON);
 	void commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,
-		const boost::function<void ()> &callback = boost::function<void ()>());
+		const boost::function<void ()> &callback = boost::function<void ()>(),const SourceId source_id = SourceIds::ID_COMMON);
 
 	SoldierInfo get_soldier(MapObjectTypeId map_object_type_id) const;
 	void get_soldiers_all(std::vector<SoldierInfo> &ret) const;
