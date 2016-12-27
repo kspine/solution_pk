@@ -66,6 +66,7 @@ private:
 	boost::container::flat_map<Coord, boost::shared_ptr<DungeonBuff>>               m_dungeon_buffs;
 	Rectangle m_scope;
 	Suspension m_suspension = { };
+	boost::container::flat_map<ItemId, std::uint64_t> m_monster_reward;
 
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
@@ -185,6 +186,8 @@ public:
 	}
 	
 	void check_founder_offline();
+	void add_monster_reward(const boost::container::flat_map<ItemId, std::uint64_t> &items_basic);
+	void get_monster_reward(boost::container::flat_map<ItemId, std::uint64_t> &items_basic);
 };
 
 }

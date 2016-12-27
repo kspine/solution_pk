@@ -308,7 +308,6 @@ _wounded_done:
 				boost::container::flat_map<ItemId, std::uint64_t> items_basic;
 
 				{
-					std::vector<ItemTransactionElement> transaction;
 					const auto &monster_rewards = monster_type_data->monster_rewards;
 					for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
 						const auto &collection_name = rit->first;
@@ -323,18 +322,12 @@ _wounded_done:
 							for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
 								const auto item_id = it->first;
 								const auto count = it->second;
-
-								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-									ReasonIds::ID_DUNGEON_MONSTER_REWARD, attacked_object_type_id.get(),
-									static_cast<std::int64_t>(reward_data->unique_id), 0);
 								items_basic[item_id] += count;
 							}
 						}
 					}
-
-					item_box->commit_transaction(transaction, false);
 				}
-
+				dungeon->add_monster_reward(items_basic);
 				const auto session = PlayerSessionMap::get(attacking_account_uuid);
 				if(session){
 					try {
@@ -589,6 +582,16 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 				}
 			}
 		}
+	}
+	
+	//野怪掉落只在副本胜利发放
+	boost::container::flat_map<ItemId, std::uint64_t> monster_reward;
+	dungeon->get_monster_reward(monster_reward);
+	for(auto it = monster_reward.begin(); it != monster_reward.end(); ++it){
+		const auto item_id = it->first;
+		const auto count = it->second;
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+						ReasonIds::ID_DUNGEON_MONSTER_REWARD, 0, 0, 0);
 	}
 
 	item_box->commit_transaction(transaction, false,

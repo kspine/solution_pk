@@ -510,7 +510,6 @@ void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		const auto &dungeon_object = it->second;
 		dungeon_object->synchronize_with_player(session);
 	}
-	
 }
 
 void Dungeon::increase_stop_count(){
@@ -543,8 +542,8 @@ void Dungeon::check_founder_offline(){
 						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 						server->shutdown(e.what());
 					}
-				}	
-			}	
+				}
+			}
 		}else{
 			if(m_offline_stop){
 				m_offline_stop = false;
@@ -558,11 +557,29 @@ void Dungeon::check_founder_offline(){
 						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 						server->shutdown(e.what());
 					}
-				}	
+				}
 			}
 		}
 	} catch (std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::add_monster_reward(const boost::container::flat_map<ItemId, std::uint64_t> &items_basic){
+	PROFILE_ME;
+
+	for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
+		m_monster_reward[it->first] += it->second;
+	}
+
+}
+
+void Dungeon::get_monster_reward(boost::container::flat_map<ItemId, std::uint64_t> &ret){
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_monster_reward.size());
+	for(auto it = m_monster_reward.begin(); it != m_monster_reward.end(); ++it){
+		ret.emplace(it->first,it->second);
 	}
 }
 
