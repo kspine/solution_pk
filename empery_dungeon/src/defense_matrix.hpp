@@ -27,11 +27,13 @@ public:
 	std::uint64_t get_next_change_time(){
 		return m_next_change_time;
 	}
+	bool is_ignore_die();
 public:
 	boost::weak_ptr<Dungeon> m_owner_dungeon;
 	std::vector<std::string> m_defense_matrix;
 	std::uint64_t            m_next_change_time;
 	std::uint64_t            m_interval;
+	DungeonObjectUuid        m_ignore_object_uuid;
 
 };
 
