@@ -21,6 +21,7 @@ constexpr AccountAttributeId
 	ID_BATTLE_RECORDS_UNREAD          ( 120 ),
 	ID_CRATE_RECORDS_UNREAD           ( 121 ),
 	ID_TAX_RECORDS_UNREAD             ( 122 ),
+	ID_AUTO_FILL_BATTALION            ( 123 ),
 
 	ID_LAST_LOGGED_IN_TIME            ( 200 ),
 	ID_LAST_LOGGED_OUT_TIME           ( 201 ),
