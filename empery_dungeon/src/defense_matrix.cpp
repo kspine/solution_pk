@@ -25,14 +25,12 @@ DefenseMatrix::~DefenseMatrix(){
 void DefenseMatrix::change_defense_matrix(std::uint64_t utc_now){
 	PROFILE_ME;
 
-	if(utc_now < m_next_change_time){
-		return;
-	}
 	auto dungeon = m_owner_dungeon.lock();
 	if(!dungeon){
 		LOG_EMPERY_DUNGEON_WARNING("emptry dungeon");
 		return;
 	}
+	m_ignore_object_uuid = DungeonObjectUuid();
 	std::vector<boost::shared_ptr<DungeonObject>> ret;
 	dungeon->get_objects_all(ret);
 	std::vector<boost::shared_ptr<DungeonObject>> valid_objects;
@@ -58,7 +56,30 @@ void DefenseMatrix::change_defense_matrix(std::uint64_t utc_now){
 		auto dungeon_buff = boost::make_shared<DungeonBuff>(dungeon->get_dungeon_uuid(),ID_BUFF_DEFENSE_MATRIX,dungeon_object_uuid,dungeon_object_owner_account,Coord(0,0),expired_time);
 		dungeon->insert_skill_buff(dungeon_object_uuid,ID_BUFF_DEFENSE_MATRIX,std::move(dungeon_buff));
 	}
+	const auto ingore_object = valid_objects.at(valid_objects.size() - 1);
+	if(!ingore_object){
+		LOG_EMPERY_DUNGEON_WARNING("valid_objects empty");
+		return;
+	}
+	m_ignore_object_uuid = ingore_object->get_dungeon_object_uuid();
+	dungeon->remove_skill_buff(m_ignore_object_uuid,ID_BUFF_DEFENSE_MATRIX);
 	m_next_change_time = utc_now + m_interval*1000;
+}
+
+bool DefenseMatrix::is_ignore_die(){
+	if(!m_ignore_object_uuid){
+		return false;
+	}
+	auto dungeon = m_owner_dungeon.lock();
+	if(!dungeon){
+		LOG_EMPERY_DUNGEON_WARNING("emptry dungeon");
+		return false;
+	}
+   auto ingore_object = dungeon->get_object(m_ignore_object_uuid);
+   if(!ingore_object){
+	   return true;
+   }
+   return false;
 }
 
 }

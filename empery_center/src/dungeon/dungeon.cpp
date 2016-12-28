@@ -993,4 +993,19 @@ DUNGEON_SERVLET(Msg::DS_DungeonSetFootAnnimation, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonObjectClearBuff, dungeon, server, req){
+	const auto dungeon_buff_type_id = DungeonBuffTypeId(req.buff_type_id);
+	const auto dungeon_object_uuid         = DungeonObjectUuid(req.dungeon_object_uuid);
+	const auto buff_data = Data::DungeonBuff::get(dungeon_buff_type_id);
+	if(!buff_data){
+		return Response(Msg::ERR_NO_DUNGEON_BUFF_DATA) <<dungeon_buff_type_id;
+	}
+	auto dungeon_object = dungeon->get_object(dungeon_object_uuid);
+	if(!dungeon_object){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_OBJECT) <<dungeon_object_uuid;
+	}
+	dungeon_object->clear_buff(BuffId(dungeon_buff_type_id.get()));
+	return Response();
+}
+
 }

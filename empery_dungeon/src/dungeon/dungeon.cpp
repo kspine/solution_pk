@@ -49,7 +49,6 @@ DUNGEON_SERVLET(Msg::SD_DungeonObjectInfo, dungeon, req){
 	attributes.reserve(req.attributes.size());
 	for(auto it = req.attributes.begin(); it != req.attributes.end(); ++it){
 		attributes.emplace(AttributeId(it->attribute_id), it->value);
-		LOG_EMPERY_DUNGEON_DEBUG("dungeon object info, dungoen_object_uuid =  ",dungeon_object_uuid," attid = ",it->attribute_id, " value = ",it->value);
 	}
 
 	boost::container::flat_map<BuffId, DungeonObject::BuffInfo> buffs;
