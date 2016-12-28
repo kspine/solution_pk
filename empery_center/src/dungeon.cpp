@@ -522,7 +522,6 @@ void Dungeon::increase_set_way_point_count(){
 void Dungeon::check_founder_offline(){
 	try{
 		const auto account_uuid = get_founder_uuid();
-        LOG_EMPERY_CENTER_WARNING("dungeon pump_status,dungeon_uuid = ",get_dungeon_uuid(), " found_uuid = ",account_uuid);
 		const auto session = PlayerSessionMap::get(account_uuid);
 		if(!session){
 			LOG_EMPERY_CENTER_WARNING("account offline ",account_uuid);
