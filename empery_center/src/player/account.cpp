@@ -288,7 +288,7 @@ PLAYER_SERVLET(Msg::CS_AccountSignIn, account, session, req){
 	std::vector<ItemTransactionElement> transaction;
 	Data::unpack_item_trade(transaction, trade_data, 1, decltype(req)::ID);
 	const auto insuff_item_id = item_box->commit_transaction_nothrow(transaction, false,
-		[&]{ account->set_attributes(std::move(modifiers)); });
+		[&]{ account->set_attributes(std::move(modifiers)); },SourceIds::ID_SIGN_REWARD);
 	if(insuff_item_id){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient item: insuff_item_id = ", insuff_item_id);
 		return Response(Msg::ERR_ALREADY_SIGNED_IN);

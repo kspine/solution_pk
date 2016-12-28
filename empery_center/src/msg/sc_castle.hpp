@@ -24,9 +24,12 @@ namespace Msg {
 #define MESSAGE_NAME    SC_CastleResource
 #define MESSAGE_ID      498
 #define MESSAGE_FIELDS  \
-	FIELD_STRING        (map_object_uuid)	\
-	FIELD_VUINT         (resource_id)	\
-	FIELD_VUINT         (amount)
+	FIELD_VUINT          (source) \
+	FIELD_ARRAY         (resources, \
+		FIELD_STRING        (map_object_uuid) \
+		FIELD_VUINT         (resource_id)	\
+		FIELD_VUINT         (amount) \
+	)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_CastleTech

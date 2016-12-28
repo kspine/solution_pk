@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 #include "id_types.hpp"
 #include "transaction_element_fwd.hpp"
+#include "source_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -53,9 +54,9 @@ public:
 
 	__attribute__((__warn_unused_result__))
 	ItemId commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction, bool tax,
-		const boost::function<void ()> &callback = boost::function<void ()>());
+		const boost::function<void ()> &callback = boost::function<void ()>(),SourceId source_id = SourceIds::ID_COMMON);
 	void commit_transaction(const std::vector<ItemTransactionElement> &transaction, bool tax,
-		const boost::function<void ()> &callback = boost::function<void ()>());
+		const boost::function<void ()> &callback = boost::function<void ()>(),SourceId source_id = SourceIds::ID_COMMON);
 
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 };

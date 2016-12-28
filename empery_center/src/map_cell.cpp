@@ -29,6 +29,7 @@
 #include "map_utilities.hpp"
 #include "singletons/legion_member_map.hpp"
 #include "legion_member.hpp"
+#include "source_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -356,7 +357,7 @@ std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, double a
 		std::vector<ResourceTransactionElement> transaction;
 		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_added,
 			ReasonIds::ID_HARVEST_MAP_CELL, coord.x(), coord.y(), ticket_item_id.get());
-		castle->commit_resource_transaction(transaction);
+		castle->commit_resource_transaction(transaction,{},SourceIds::ID_HARVEST_TERRITORY);
 	}
 	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
 	m_obj->set_resource_amount(saturated_sub(amount_remaining, amount_removed));
