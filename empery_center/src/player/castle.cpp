@@ -52,6 +52,7 @@
 #include "../msg/sc_legion.hpp"
 #include "../singletons/legion_map.hpp"
 #include "../singletons/castle_offline_upgrade_building_base_map.hpp"
+#include "../source_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -557,12 +558,13 @@ PLAYER_SERVLET(Msg::CS_CastleHarvestAllResources, account, session, req){
 
 		std::uint64_t amount_to_harvest = 0;
 		const auto occupier_object_uuid = map_cell->get_occupier_object_uuid();
-		if(occupier_object_uuid){
+		if(occupier_object_uuid && occupier_object_uuid != map_object_uuid){
 			LOG_EMPERY_CENTER_DEBUG("Map cell is occupied: map_object_uuid = ", map_object_uuid,
 				", coord = ", map_cell->get_coord(), ", occupier_object_uuid = ", occupier_object_uuid);
-		} else {
-			amount_to_harvest = map_cell->get_resource_amount();
+				continue;
 		}
+		amount_to_harvest = map_cell->get_resource_amount();
+		amount_to_harvest = map_cell->get_resource_amount();
 		if(amount_to_harvest != 0){
 			const auto resource_id = map_cell->get_production_resource_id();
 			const auto amount_harvested = map_cell->harvest(castle, UINT32_MAX, false);
@@ -833,8 +835,8 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceBox, account, session, req){
 			std::vector<ResourceTransactionElement> res_transaction;
 			res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_to_add,
 				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
-			castle->commit_resource_transaction(res_transaction);
-		});
+			castle->commit_resource_transaction(res_transaction,NULL,SourceIds::ID_USE_ITEM);
+		},SourceIds::ID_USE_ITEM);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}
@@ -877,8 +879,8 @@ PLAYER_SERVLET(Msg::CS_CastleUseResourceGift, account, session, req){
 				res_transaction.emplace_back(ResourceTransactionElement::OP_ADD, it->first, checked_mul(it->second, count_to_consume),
 				ReasonIds::ID_UNPACK_INTO_CASTLE, map_object_uuid_head, item_id.get(), count_to_consume);
 			}
-			castle->commit_resource_transaction(res_transaction);
-		});
+			castle->commit_resource_transaction(res_transaction,NULL,SourceIds::ID_USE_ITEM);
+		},SourceIds::ID_USE_ITEM);
 	if(insuff_item_id){
 		return Response(Msg::ERR_NO_ENOUGH_ITEMS) <<insuff_item_id;
 	}

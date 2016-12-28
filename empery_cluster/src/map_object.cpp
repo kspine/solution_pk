@@ -1016,9 +1016,7 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 	PROFILE_ME;
 
 	if( (m_action != ACT_ATTACK)
-		&&(m_action != ACT_HARVEST_RESOURCE_CRATE)
 		&&(m_action != ACT_ATTACK_TERRITORY)
-		&&(m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE)
 		&&(m_action != ACT_ATTACK_TERRITORY_FORCE)
 	){
 		return true;

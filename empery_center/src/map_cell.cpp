@@ -29,6 +29,7 @@
 #include "map_utilities.hpp"
 #include "singletons/legion_member_map.hpp"
 #include "legion_member.hpp"
+#include "source_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -178,10 +179,7 @@ void MapCell::pump_production(){
 		const auto occupier_object_uuid = get_occupier_object_uuid();
 		auto parent_object_uuid = get_parent_object_uuid();
 		if(occupier_object_uuid){
-			auto occupier_object = WorldMap::get_map_object(occupier_object_uuid);
-			if(occupier_object){
-				parent_object_uuid = occupier_object->get_parent_object_uuid();
-			}
+			parent_object_uuid = occupier_object_uuid;
 		}
 		auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 		if(!castle){
@@ -359,7 +357,7 @@ std::uint64_t MapCell::harvest(const boost::shared_ptr<Castle> &castle, double a
 		std::vector<ResourceTransactionElement> transaction;
 		transaction.emplace_back(ResourceTransactionElement::OP_ADD, resource_id, amount_added,
 			ReasonIds::ID_HARVEST_MAP_CELL, coord.x(), coord.y(), ticket_item_id.get());
-		castle->commit_resource_transaction(transaction);
+		castle->commit_resource_transaction(transaction,{},SourceIds::ID_HARVEST_TERRITORY);
 	}
 	const auto amount_removed = saturated ? rounded_amount_removable : amount_added;
 	m_obj->set_resource_amount(saturated_sub(amount_remaining, amount_removed));

@@ -18,6 +18,7 @@
 #include "../singletons/legion_member_map.hpp"
 #include "../legion_task_reward_box.hpp"
 #include "../singletons/legion_task_reward_box_map.hpp"
+#include "../source_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -80,8 +81,8 @@ PLAYER_SERVLET(Msg::CS_ItemFetchTaskReward, account, session, req){
 						[&]{
 							info.rewarded = true;
 							task_box->update(std::move(info));
-						});
-				});
+						},SourceIds::ID_TASK_REWARD);
+				},SourceIds::ID_TASK_REWARD);
 
 	task_box->check_primary_tasks();
 	task_box->check_daily_tasks_next(task_id);
