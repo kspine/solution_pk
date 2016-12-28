@@ -120,10 +120,11 @@ namespace {
 	}
 	void fill_resource_message(Msg::SC_CastleResource &msg, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
 		PROFILE_ME;
-
-		msg.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
-		msg.resource_id            = obj->get_resource_id();
-		msg.amount                 = obj->get_amount();
+		
+		auto &resources = *msg.resources.emplace(msg.resources.end());
+		resources.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
+		resources.resource_id            = obj->get_resource_id();
+		resources.amount                 = obj->get_amount();
 	}
 	void fill_soldier_message(Msg::SC_CastleSoldier &msg, const boost::shared_ptr<MySql::Center_CastleBattalion> &obj){
 		PROFILE_ME;
@@ -1552,7 +1553,7 @@ void Castle::get_resources_all(std::vector<Castle::ResourceInfo> &ret) const {
 }
 
 ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<ResourceTransactionElement> &transaction,
-	const boost::function<void ()> &callback)
+	const boost::function<void ()> &callback,const SourceId source_id)
 {
 	PROFILE_ME;
 
@@ -1698,11 +1699,14 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
 	if(session){
 		try {
+			Msg::SC_CastleResource msg;
+			msg.source = source_id.get();
 			for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
-				Msg::SC_CastleResource msg;
-				fill_resource_message(msg, it->first);
-				session->send(msg);
+				const auto &obj = it->first;
+				fill_resource_message(msg,obj);
 			}
+			LOG_EMPERY_CENTER_FATAL(msg);
+			session->send(msg);
 			for(auto it = temp_unload_map.begin(); it != temp_unload_map.end(); ++it){
 				Msg::SC_CastleResourceBattalionUnload msg;
 				fill_resource_battalion_unload_message(msg, it->first);
@@ -1717,11 +1721,11 @@ ResourceId Castle::commit_resource_transaction_nothrow(const std::vector<Resourc
 	return { };
 }
 void Castle::commit_resource_transaction(const std::vector<ResourceTransactionElement> &transaction,
-	const boost::function<void ()> &callback)
+	const boost::function<void ()> &callback,const SourceId source_id)
 {
 	PROFILE_ME;
 
-	const auto insuff_id = commit_resource_transaction_nothrow(transaction, callback);
+	const auto insuff_id = commit_resource_transaction_nothrow(transaction, callback,source_id);
 	if(insuff_id != ResourceId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient resources in castle: map_object_uuid = ", get_map_object_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient resources in castle"));
@@ -2633,11 +2637,18 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 		fill_tech_message(msg, it->second, utc_now);
 		session->send(msg);
 	}
-	for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
+	
+	
+	{
 		Msg::SC_CastleResource msg;
-		fill_resource_message(msg, it->second);
+		msg.source = SourceIds::ID_COMMON.get();
+		for(auto it = m_resources.begin(); it != m_resources.end(); ++it){
+			fill_resource_message(msg, it->second);
+		}
+		LOG_EMPERY_CENTER_FATAL(msg);
 		session->send(msg);
 	}
+	
 	for(auto it = m_soldiers.begin(); it != m_soldiers.end(); ++it){
 		Msg::SC_CastleSoldier msg;
 		fill_soldier_message(msg, it->second);

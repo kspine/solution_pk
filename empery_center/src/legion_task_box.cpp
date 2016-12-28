@@ -246,7 +246,7 @@ namespace EmperyCenter {
 						auto legion_task_reward_box = LegionTaskRewardBoxMap::require(account_uuid);
 						LOG_EMPERY_CENTER_FATAL("reset task reward account_uuid = ",account_uuid, " members size:",members.size());
 						if(last_refreshed_time != 0){//第1次创建时不重置。（退出军团加入新的军团，领奖记录保留）
-							legion_task_reward_box->reset();
+							legion_task_reward_box->pump_status();
 							const auto account = AccountMap::get(account_uuid);
 							if(!account){
 								continue;

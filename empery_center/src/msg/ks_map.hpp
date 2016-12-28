@@ -125,7 +125,8 @@ namespace Msg {
 	FIELD_VINT          (attacking_coord_y)	\
 	FIELD_STRING        (resource_crate_uuid)	\
 	FIELD_VUINT         (amount_harvested)	\
-	FIELD_VUINT         (forced_attack)
+	FIELD_VUINT         (forced_attack)	\
+	FIELD_VUINT         (interval)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    KS_MapAttackMapCellAction

@@ -8,6 +8,7 @@
 #include "task_type_ids.hpp"
 #include "account_utilities.hpp"
 #include "msg/sc_task.hpp"
+#include "data/global.hpp"
 
 namespace EmperyCenter {
 	namespace {
@@ -187,6 +188,13 @@ namespace EmperyCenter {
 	void LegionTaskRewardBox::reset() noexcept {
 		PROFILE_ME;
 
+		const auto utc_now = Poseidon::get_utc_time();
+		if (!m_stamps) {
+			auto obj = boost::make_shared<MySql::Center_LegionTaskReward>(get_account_uuid().get(), 0,"",0, 0);
+			obj->async_save(true);
+			m_stamps = std::move(obj);
+		}
+		m_stamps->set_created_time(utc_now);
 		for(auto it = m_tasks.begin(); it != m_tasks.end(); ++it){
 			auto &pair = it->second;
 			auto &obj = pair.first;
@@ -206,6 +214,30 @@ namespace EmperyCenter {
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			}
 		}
+	}
+
+	void LegionTaskRewardBox::check_legion_task_reward(){
+		PROFILE_ME;
+		//退出军团，第二天加入新的军团导致领奖记录并没有重置的情况
+		if (!m_stamps) {
+			auto obj = boost::make_shared<MySql::Center_LegionTaskReward>(get_account_uuid().get(), 0,"",0,0);
+			obj->async_save(true);
+			m_stamps = std::move(obj);
+		}
+		const auto utc_now = Poseidon::get_utc_time();
+		const auto last_refreshed_time = m_stamps->get_created_time();
+		const auto legion_refresh_minutes = Data::Global::as_unsigned(Data::Global::SLOT_LEGION_TASK_DAY_REFRESH);
+		const auto auto_inc_offset = checked_mul<std::uint64_t>(legion_refresh_minutes, 60000);
+		const auto last_refreshed_day = saturated_sub(last_refreshed_time, auto_inc_offset) / 86400000;
+		const auto today = saturated_sub(utc_now, auto_inc_offset) / 86400000;
+		if (last_refreshed_day < today) {
+			reset();
+		}
+	}
+
+	void LegionTaskRewardBox::pump_status(){
+		PROFILE_ME;
+		check_legion_task_reward();
 	}
 	void LegionTaskRewardBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const{
 		PROFILE_ME;

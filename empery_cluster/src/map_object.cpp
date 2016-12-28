@@ -663,7 +663,9 @@ std::uint64_t MapObject::on_attack_goblin(boost::shared_ptr<MapObject> attacker,
 }
 
 std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &result, std::uint64_t now,bool force_attack){
-		PROFILE_ME;
+	PROFILE_ME;
+
+	const auto harvest_interval = get_config<std::uint64_t>("harvest_interval", 1000);
 	const auto map_object_type_data = get_map_object_type_data();
 	if(!map_object_type_data){
 		result = CbppResponse(Msg::ERR_NO_SUCH_MAP_OBJECT_TYPE) << get_map_object_type_id();
@@ -687,32 +689,14 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 	if(m_action != ACT_HARVEST_RESOURCE_CRATE && m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE){
 		return UINT64_MAX;
 	}
-	if(!is_in_attack_scope(target_resource_crate)){
-		return UINT64_MAX;
-	}
+
 	const auto utc_now = Poseidon::get_utc_time();
 	if(target_resource_crate->get_expiry_time() < utc_now){
 		return UINT64_MAX;
 	}
 
-	std::uint64_t damage = 0;
-	double k = 0.35;
-	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;;
-	double total_attack  = map_object_type_data->attack * (1.0 + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_ATTACK_ADD) / 1000.0;
-	double total_defense = resource_crate_data->defence;
-	double relative_rate = Data::MapObjectRelative::get_relative(get_arm_attack_type(),resource_crate_data->defence_type);
-//	std::uint32_t hp =  map_object_type_data->hp ;
-//	hp = (hp == 0 )? 1:hp;
-	auto soldier_count = get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT);
-//	if(soldier_count%hp != 0){
-//		soldier_count = (soldier_count/hp + 1)*hp;
-//	}
-
-	if(attack_rate < 0.0001 && attack_rate > -0.0001){
-		return UINT64_MAX;
-	}
-
-	damage = total_attack * soldier_count * relative_rate * (1 - k *total_defense/(1 + k*total_defense));
+	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
+	std::uint64_t damage = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
 	damage = damage < 1 ? 1 : damage ;
 	const auto amount_remainging = target_resource_crate->get_amount_remaining();
 	damage = (damage > amount_remainging) ? amount_remainging: damage;
@@ -728,6 +712,7 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 	if(force_attack){
 		msg.forced_attack = true;
 	}
+	msg.interval = harvest_interval;
 	auto sresult = cluster->send_and_wait(msg);
 	if(sresult.first != Msg::ST_OK){
 		LOG_EMPERY_CLUSTER_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
@@ -735,8 +720,7 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 		return UINT64_MAX;
 	}
 
-	std::uint64_t attack_delay = static_cast<std::uint64_t>(1000.0 / attack_rate);
-	return attack_delay;
+	return harvest_interval;
 }
 
 std::uint64_t MapObject::attack_territory(std::pair<long, std::string> &result, std::uint64_t now,bool forced_attack){
@@ -960,7 +944,7 @@ void MapObject::troops_attack(boost::shared_ptr<MapObject> target,bool passive){
 	{
 		WorldMap::get_map_objects_by_account(friendly_map_objects,get_owner_uuid());
 	}
-	
+
 	if(friendly_map_objects.empty()){
 		return;
 	}
@@ -1032,9 +1016,7 @@ bool    MapObject::fix_attack_action(std::pair<long, std::string> &result){
 	PROFILE_ME;
 
 	if( (m_action != ACT_ATTACK)
-		&&(m_action != ACT_HARVEST_RESOURCE_CRATE)
 		&&(m_action != ACT_ATTACK_TERRITORY)
-		&&(m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE)
 		&&(m_action != ACT_ATTACK_TERRITORY_FORCE)
 	){
 		return true;

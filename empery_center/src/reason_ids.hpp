@@ -111,7 +111,8 @@ constexpr ReasonId
 	ID_NOVICE_GUIDE_ADD_ARM          ( 675012 ),
 	ID_MODIFY_LEGION                 ( 675013 ),
 	ID_MODIFY_LEAGUE                 ( 675014 ),
-	ID_LEGION_BUILDING_HARVESTED_COUNTS_ITEM(675015);
+	ID_LEGION_BUILDING_HARVESTED_COUNTS_ITEM(675015),
+	ID_DUNGEON_FAIL                ( 675016 ); // 副本 ID             0                   0
 }
 
 }

@@ -170,7 +170,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	transaction.reserve(entry_cost.size());
 	for(auto it = entry_cost.begin(); it != entry_cost.end(); ++it){
 		transaction.emplace_back(ItemTransactionElement::OP_REMOVE, it->first, it->second,
-			ReasonIds::ID_CREATE_DUNGEON, dungeon_type_id.get(), 0, 0);
+			ReasonIds::ID_DUNGEON_FAIL, dungeon_type_id.get(), 0, 0);
 	}
 
 	const auto dungeon_uuid = DungeonUuid(Poseidon::Uuid::random());
@@ -228,6 +228,20 @@ PLAYER_SERVLET(Msg::CS_DungeonQuit, account, session, req){
 	if(observer_session != session){
 		return Response(Msg::ERR_NOT_IN_DUNGEON) <<dungeon_uuid;
 	}
+	const auto dungeon_type_id = dungeon->get_dungeon_type_id();
+	const auto dungeon_data = Data::Dungeon::get(dungeon_type_id);
+	if(!dungeon_data){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON_ID) <<dungeon_type_id;
+	}
+	const auto &entry_cost = dungeon_data->entry_cost;
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(entry_cost.size());
+	for(auto it = entry_cost.begin(); it != entry_cost.end(); ++it){
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, it->second,
+			ReasonIds::ID_DUNGEON_FAIL, dungeon_type_id.get(), 0, 0);
+	}
+	const auto item_box = ItemBoxMap::require(account_uuid);
+	item_box->commit_transaction(transaction, false);
 	const auto utc_now = Poseidon::get_utc_time();
 	try {
 		Msg::SC_DungeonFailed msg;

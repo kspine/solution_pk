@@ -16,6 +16,7 @@
 #include "account_utilities.hpp"
 #include "account_attribute_ids.hpp"
 
+
 namespace EmperyCenter {
 
 namespace {
@@ -28,9 +29,9 @@ namespace {
 
 	void fill_item_message(Msg::SC_ItemChanged &msg, const boost::shared_ptr<MySql::Center_Item> &obj){
 		PROFILE_ME;
-
-		msg.item_id = obj->get_item_id();
-		msg.count   = obj->get_count();
+		auto &item = *msg.items.emplace(msg.items.end());
+		item.item_id = obj->get_item_id();
+		item.count   = obj->get_count();
 	}
 }
 
@@ -189,7 +190,7 @@ void ItemBox::get_all(std::vector<ItemBox::ItemInfo> &ret) const {
 }
 
 ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElement> &transaction, bool tax,
-	const boost::function<void ()> &callback)
+	const boost::function<void ()> &callback,SourceId source_id)
 {
 	PROFILE_ME;
 
@@ -335,11 +336,13 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 	const auto session = PlayerSessionMap::get(get_account_uuid());
 	if(session){
 		try {
+			Msg::SC_ItemChanged msg;
+			msg.source = source_id.get();
 			for(auto it = temp_result_map.begin(); it != temp_result_map.end(); ++it){
-				Msg::SC_ItemChanged msg;
 				fill_item_message(msg, it->first);
-				session->send(msg);
 			}
+			LOG_EMPERY_CENTER_FATAL(msg);
+			session->send(msg);
 		} catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 			session->shutdown(e.what());
@@ -349,11 +352,11 @@ ItemId ItemBox::commit_transaction_nothrow(const std::vector<ItemTransactionElem
 	return { };
 }
 void ItemBox::commit_transaction(const std::vector<ItemTransactionElement> &transaction, bool tax,
-	const boost::function<void ()> &callback)
+	const boost::function<void ()> &callback,SourceId source_id)
 {
 	PROFILE_ME;
 
-	const auto insuff_id = commit_transaction_nothrow(transaction, tax, callback);
+	const auto insuff_id = commit_transaction_nothrow(transaction, tax, callback,source_id);
 	if(insuff_id != ItemId()){
 		LOG_EMPERY_CENTER_DEBUG("Insufficient items in item box: account_uuid = ", get_account_uuid(), ", insuff_id = ", insuff_id);
 		DEBUG_THROW(Exception, sslit("Insufficient items in item box"));
@@ -363,8 +366,8 @@ void ItemBox::commit_transaction(const std::vector<ItemTransactionElement> &tran
 void ItemBox::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
+	Msg::SC_ItemChanged msg;
 	for(auto it = m_items.begin(); it != m_items.end(); ++it){
-		Msg::SC_ItemChanged msg;
 		fill_item_message(msg, it->second);
 		session->send(msg);
 	}

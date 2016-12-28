@@ -107,7 +107,7 @@ PLAYER_SERVLET(Msg::CS_MapSetView, account, session, req){
 		LOG_EMPERY_CENTER_WARNING("Player view is too large: width = ", width, ", height = ", height);
 		return Response(Msg::ST_FORBIDDEN);
 	}
-
+	WorldMap::refresh_rectange_event(Rectangle(coord, width, height));
 	session->set_view(Rectangle(coord, width, height));
 
 	return Response();
@@ -407,6 +407,11 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 		resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_SPRING_WATER, amount_to_cost,
 			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 	}
+	const auto soldiers_previous = static_cast<std::uint64_t>(map_cell->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto soliders_max      = static_cast<std::uint64_t>(map_cell->get_attribute(AttributeIds::ID_SOLDIER_COUNT_MAX));
+	const auto delta             = soliders_max - soldiers_previous;
+	const auto soliers_max_new   = new_ticket_data->soldiers_max;
+	const auto solider_now       = soliers_max_new - delta;
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_LAND_UPGRADE_TICKET, 1,
@@ -417,6 +422,11 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 				const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
 					[&]{
 						map_cell->set_ticket_item_id(new_ticket_item_id);
+						boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+						modifiers.reserve(16);
+						modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(soliers_max_new);
+						modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(solider_now);
+						map_cell->set_attributes(std::move(modifiers));
 					});
 				if(insuff_resource_id){
 					throw insuff_resource_id;
@@ -836,7 +846,9 @@ PLAYER_SERVLET(Msg::CS_MapRefillBattalion, account, session, req){
 	const auto insuff_battalion_id = castle->commit_soldier_transaction_nothrow(transaction,
 		[&]{
 		map_object->set_attributes(std::move(modifiers));
-		//send_fill_battalion_notification(account->get_account_uuid(),map_object_type_id.get(),soldier_count);
+		if(req.auto_fill){
+			send_fill_battalion_notification(account->get_account_uuid(),map_object_type_id.get(),soldier_count);
+		}
 		});
 	if(insuff_battalion_id){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_SOLDIERS) <<insuff_battalion_id;
