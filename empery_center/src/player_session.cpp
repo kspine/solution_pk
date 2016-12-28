@@ -51,7 +51,7 @@ private:
 			return;
 		}
 
-		const auto max_error_count        = get_config<std::uint64_t>("player_session_max_error_count", 10);
+		const auto max_error_count        = get_config<std::uint64_t>("player_session_max_error_count", 30);
 		const auto counter_reset_duration = get_config<std::uint64_t>("player_session_error_counter_reset_duration", 60000);
 
 		const auto now = Poseidon::get_fast_mono_clock();
