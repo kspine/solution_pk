@@ -407,6 +407,11 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 		resource_transaction.emplace_back(ResourceTransactionElement::OP_REMOVE, ResourceIds::ID_SPRING_WATER, amount_to_cost,
 			ReasonIds::ID_CASTLE_PROTECTION, map_object_uuid_head, castle_level, protection_duration);
 	}
+	const auto soldiers_previous = static_cast<std::uint64_t>(map_cell->get_attribute(AttributeIds::ID_SOLDIER_COUNT));
+	const auto soliders_max      = static_cast<std::uint64_t>(map_cell->get_attribute(AttributeIds::ID_SOLDIER_COUNT_MAX));
+	const auto delta             = soliders_max - soldiers_previous;
+	const auto soliers_max_new   = new_ticket_data->soldiers_max;
+	const auto solider_now       = soliers_max_new - delta;
 
 	std::vector<ItemTransactionElement> transaction;
 	transaction.emplace_back(ItemTransactionElement::OP_REMOVE, ItemIds::ID_LAND_UPGRADE_TICKET, 1,
@@ -417,6 +422,11 @@ PLAYER_SERVLET(Msg::CS_MapUpgradeMapCell, account, session, req){
 				const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
 					[&]{
 						map_cell->set_ticket_item_id(new_ticket_item_id);
+						boost::container::flat_map<AttributeId, std::int64_t> modifiers;
+						modifiers.reserve(16);
+						modifiers[AttributeIds::ID_SOLDIER_COUNT_MAX] = static_cast<std::int64_t>(soliers_max_new);
+						modifiers[AttributeIds::ID_SOLDIER_COUNT]     = static_cast<std::int64_t>(solider_now);
+						map_cell->set_attributes(std::move(modifiers));
 					});
 				if(insuff_resource_id){
 					throw insuff_resource_id;
