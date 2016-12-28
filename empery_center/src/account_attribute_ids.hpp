@@ -21,7 +21,6 @@ constexpr AccountAttributeId
 	ID_BATTLE_RECORDS_UNREAD          ( 120 ),
 	ID_CRATE_RECORDS_UNREAD           ( 121 ),
 	ID_TAX_RECORDS_UNREAD             ( 122 ),
-	ID_OFFLINE_DUNGEON                ( 124 ),
 
 	ID_LAST_LOGGED_IN_TIME            ( 200 ),
 	ID_LAST_LOGGED_OUT_TIME           ( 201 ),
@@ -37,6 +36,7 @@ constexpr AccountAttributeId
 	ID_LAST_CHAT_TIME_ALLIANCE        ( 402 ),
 	ID_GOLD_PAYMENT_ENABLED           ( 403 ),
 	ID_LAST_CHAT_TIME_KING            ( 404 ),
+	ID_OFFLINE_DUNGEON                ( 405 ),
 
 	ID_LEGION_UUID            		  ( 410 ),
 	ID_LEAGUE_UUID            		  ( 411 ),
