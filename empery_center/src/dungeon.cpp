@@ -10,6 +10,9 @@
 #include "dungeon_buff.hpp"
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "events/dungeon.hpp"
+#include "singletons/account_map.hpp"
+#include "account.hpp"
+#include "account_attribute_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -39,7 +42,7 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const 
 	AccountUuid founder_uuid, std::uint64_t create_time, std::uint64_t expiry_time,std::uint64_t finish_count)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_server(server)
 	, m_founder_uuid(founder_uuid), m_create_time(create_time), m_expiry_time(expiry_time)
-	, m_finish_count(finish_count), m_begin(false)
+	, m_finish_count(finish_count), m_begin(false),m_stop_count(0),m_set_way_point_count(0),m_offline_stop(false),m_last_offline_time(0)
 {
 	try {
 		Msg::SD_DungeonCreate msg;
@@ -53,8 +56,6 @@ Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const 
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		server->shutdown(e.what());
 	}
-	m_stop_count = 0;
-	m_set_way_point_count = 0;
 }
 Dungeon::~Dungeon(){
 	const auto server = m_server.lock();
@@ -110,6 +111,7 @@ void Dungeon::pump_status(){
 	PROFILE_ME;
 
 	//
+	check_founder_offline();
 }
 
 void Dungeon::set_founder_uuid(AccountUuid founder_uuid) noexcept {
@@ -201,6 +203,37 @@ void Dungeon::insert_observer(AccountUuid account_uuid, const boost::shared_ptr<
 		DEBUG_THROW(Exception, sslit("Observer already exists"));
 	}
 
+	try {
+		Msg::SC_DungeonEntered msg_entered;
+		msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
+		msg_entered.dungeon_type_id = get_dungeon_type_id().get();
+		session->send(msg_entered);
+
+		const auto &scope = get_scope();
+		Msg::SC_DungeonSetScope msg_scope;
+		fill_scope_msg(msg_scope, get_dungeon_uuid(), scope);
+		session->send(msg_scope);
+
+		const auto &suspension = get_suspension();
+		if(suspension.type != 0){
+			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
+			fill_suspension_msg(msg_susp, get_dungeon_uuid(), suspension);
+			session->send(msg_susp);
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		session->shutdown(e.what());
+	}
+}
+
+void Dungeon::update_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
+	PROFILE_ME;
+	auto it = m_observers.find(account_uuid);
+	if(it == m_observers.end()){
+		LOG_EMPERY_CENTER_WARNING("account not in dungeon,account_uuid = ",account_uuid);
+		return;
+	}
+	it->second.session = session;
 	try {
 		Msg::SC_DungeonEntered msg_entered;
 		msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
@@ -477,7 +510,6 @@ void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		const auto &dungeon_object = it->second;
 		dungeon_object->synchronize_with_player(session);
 	}
-	
 }
 
 void Dungeon::increase_stop_count(){
@@ -485,6 +517,70 @@ void Dungeon::increase_stop_count(){
 }
 void Dungeon::increase_set_way_point_count(){
 	m_set_way_point_count += 1;
+}
+
+void Dungeon::check_founder_offline(){
+	try{
+		const auto account_uuid = get_founder_uuid();
+        LOG_EMPERY_CENTER_WARNING("dungeon pump_status,dungeon_uuid = ",get_dungeon_uuid(), " found_uuid = ",account_uuid);
+		const auto session = PlayerSessionMap::get(account_uuid);
+		if(!session){
+			LOG_EMPERY_CENTER_WARNING("account offline ",account_uuid);
+			if(!m_offline_stop){
+				m_offline_stop = true;
+				const auto account = AccountMap::require(account_uuid);
+				boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+				modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = get_dungeon_uuid().str();
+				account->set_attributes(std::move(modifiers));
+				const auto server = m_server.lock();
+				if(server){
+					try {
+						Msg::SD_DungeonOfflineStop msg;
+						msg.dungeon_uuid    = get_dungeon_uuid().str();
+						server->send(msg);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						server->shutdown(e.what());
+					}
+				}
+			}
+		}else{
+			if(m_offline_stop){
+				m_offline_stop = false;
+				const auto server = m_server.lock();
+				if(server){
+					try {
+						Msg::SD_DungeonReconnectStart msg;
+						msg.dungeon_uuid    = get_dungeon_uuid().str();
+						server->send(msg);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						server->shutdown(e.what());
+					}
+				}
+			}
+		}
+	} catch (std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::add_monster_reward(const boost::container::flat_map<ItemId, std::uint64_t> &items_basic){
+	PROFILE_ME;
+
+	for(auto it = items_basic.begin(); it != items_basic.end(); ++it){
+		m_monster_reward[it->first] += it->second;
+	}
+
+}
+
+void Dungeon::get_monster_reward(boost::container::flat_map<ItemId, std::uint64_t> &ret){
+	PROFILE_ME;
+
+	ret.reserve(ret.size() + m_monster_reward.size());
+	for(auto it = m_monster_reward.begin(); it != m_monster_reward.end(); ++it){
+		ret.emplace(it->first,it->second);
+	}
 }
 
 }

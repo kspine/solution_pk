@@ -36,6 +36,10 @@
 #include "../data/dungeon_buff.hpp"
 #include <poseidon/singletons/job_dispatcher.hpp>
 #include "../events/dungeon.hpp"
+#include "../singletons/account_map.hpp"
+#include "../singletons/account_map.hpp"
+#include "../account.hpp"
+#include "../account_attribute_ids.hpp"
 
 
 namespace EmperyCenter {
@@ -269,18 +273,6 @@ _wounded_done:
 	}
 	attacked_object->set_buff(BuffIds::ID_BATTLE_STATUS, utc_now, battle_status_timeout);
 
-	// 更新交战状态。
-	try {
-		PROFILE_ME;
-
-		const auto state_persistence_duration = Data::Global::as_double(Data::Global::SLOT_WAR_STATE_PERSISTENCE_DURATION);
-
-		WarStatusMap::set(attacking_account_uuid, attacked_account_uuid,
-		saturated_add(utc_now, static_cast<std::uint64_t>(state_persistence_duration * 60000)));
-	} catch(std::exception &e){
-		LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-	}
-
 	// 怪物掉落。
 	if(attacking_account_uuid && (soldiers_remaining == 0)){
 		try {
@@ -316,7 +308,6 @@ _wounded_done:
 				boost::container::flat_map<ItemId, std::uint64_t> items_basic;
 
 				{
-					std::vector<ItemTransactionElement> transaction;
 					const auto &monster_rewards = monster_type_data->monster_rewards;
 					for(auto rit = monster_rewards.begin(); rit != monster_rewards.end(); ++rit){
 						const auto &collection_name = rit->first;
@@ -331,18 +322,12 @@ _wounded_done:
 							for(auto it = reward_data->reward_items.begin(); it != reward_data->reward_items.end(); ++it){
 								const auto item_id = it->first;
 								const auto count = it->second;
-
-								transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
-									ReasonIds::ID_DUNGEON_MONSTER_REWARD, attacked_object_type_id.get(),
-									static_cast<std::int64_t>(reward_data->unique_id), 0);
 								items_basic[item_id] += count;
 							}
 						}
 					}
-
-					item_box->commit_transaction(transaction, false);
 				}
-
+				dungeon->add_monster_reward(items_basic);
 				const auto session = PlayerSessionMap::get(attacking_account_uuid);
 				if(session){
 					try {
@@ -598,6 +583,16 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
 			}
 		}
 	}
+	
+	//野怪掉落只在副本胜利发放
+	boost::container::flat_map<ItemId, std::uint64_t> monster_reward;
+	dungeon->get_monster_reward(monster_reward);
+	for(auto it = monster_reward.begin(); it != monster_reward.end(); ++it){
+		const auto item_id = it->first;
+		const auto count = it->second;
+		transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, count,
+						ReasonIds::ID_DUNGEON_MONSTER_REWARD, 0, 0, 0);
+	}
 
 	item_box->commit_transaction(transaction, false,
 		[&]{ dungeon_box->set(std::move(info)); });
@@ -654,6 +649,14 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlayerWins, dungeon, server, req){
     task_box->check_task_dungeon_clearance(boost::lexical_cast<uint64_t>(dungeon_type_id),info.finish_count);
 
 	dungeon->remove_observer(account_uuid, Dungeon::Q_PLAYER_WINS, "");
+	const auto account = AccountMap::require(account_uuid);
+	const auto offline_dungeon_uuid = DungeonUuid(account->get_attribute(AccountAttributeIds::ID_OFFLINE_DUNGEON));
+	if(offline_dungeon_uuid){
+		boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+		modifiers.reserve(1);
+        modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = "";
+		account->set_attributes(std::move(modifiers));
+	}
 	const auto utc_now = Poseidon::get_utc_time();
 	LOG_EMPERY_CENTER_FATAL(req);
 	auto event = boost::make_shared<Events::DungeonFinish>(account_uuid,dungeon->get_dungeon_type_id(),dungeon->get_create_time(),utc_now,true);

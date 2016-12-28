@@ -99,6 +99,18 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SD_DungeonOfflineStop
+#define MESSAGE_ID      50090
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SD_DungeonReconnectStart
+#define MESSAGE_ID      50089
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
