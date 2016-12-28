@@ -2166,7 +2166,8 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							try{
 								Poseidon::enqueue_async_job([=]{
 									PROFILE_ME;
-									auto donate = req.num * 100 / dvalue * mvalue;
+									// auto donate = req.num * 100 / dvalue * mvalue;
+									 auto donate = req.num * 100;
 									const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 									const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
 									LOG_EMPERY_CENTER_FATAL("LEGION DONATE ORIGIN donate:",donate);
