@@ -89,7 +89,7 @@ std::uint64_t StrategicResource::harvest(const boost::shared_ptr<MapObject> &har
 	WorldMap::update_strategic_resource(virtual_shared_from_this<StrategicResource>(), false);
 
 	LOG_EMPERY_CENTER_DEBUG("ResourceCrate::amount_to_harvest = ", amount_to_harvest, ", rounded_amount_to_harvest:",rounded_amount_to_harvest,
-			", rounded_amount_removable:",rounded_amount_removable,", amount_removed:",amount_removed);
+			", rounded_amount_removable:",rounded_amount_removable,", amount_removed:",amount_removed," ,harvest_remainder " ,m_harvest_remainder);
 
 	return amount_removed;
 }
