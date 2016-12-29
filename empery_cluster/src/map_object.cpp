@@ -687,11 +687,13 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 		return UINT64_MAX;
 	}
 	if(m_action != ACT_HARVEST_RESOURCE_CRATE && m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE){
+		LOG_EMPERY_CLUSTER_DEBUG("harvest resouce create ,error action = ",m_action);
 		return UINT64_MAX;
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
 	if(target_resource_crate->get_expiry_time() < utc_now){
+		LOG_EMPERY_CLUSTER_DEBUG("target resource crate expired , coord = ",target_resource_crate->get_coord());
 		return UINT64_MAX;
 	}
 
