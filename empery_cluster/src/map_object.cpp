@@ -687,16 +687,18 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 		return UINT64_MAX;
 	}
 	if(m_action != ACT_HARVEST_RESOURCE_CRATE && m_action != ACT_HARVEST_RESOURCE_CRATE_FORCE){
+		LOG_EMPERY_CLUSTER_DEBUG("harvest resouce create ,error action = ",m_action);
 		return UINT64_MAX;
 	}
 
 	const auto utc_now = Poseidon::get_utc_time();
 	if(target_resource_crate->get_expiry_time() < utc_now){
+		LOG_EMPERY_CLUSTER_DEBUG("target resource crate expired , coord = ",target_resource_crate->get_coord());
 		return UINT64_MAX;
 	}
 
 	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
-	std::uint64_t damage = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
+	std::uint64_t damage = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate*1000.0, 0.0);
 	damage = damage < 1 ? 1 : damage ;
 	const auto amount_remainging = target_resource_crate->get_amount_remaining();
 	damage = (damage > amount_remainging) ? amount_remainging: damage;
@@ -1551,7 +1553,7 @@ std::uint64_t MapObject::on_action_harvest_strategic_resource(std::pair<long, st
 	Msg::KS_MapHarvestStrategicResource sreq;
 	sreq.map_object_uuid = get_map_object_uuid().str();
 	sreq.interval        = harvest_interval;
-	sreq.amount_harvested = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
+	sreq.amount_harvested = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate*1000.0, 0.0);//防止被舍掉，center 中除以1000
 	if(forced_attack){
 		sreq.forced_attack   = true;
 	}
@@ -1597,6 +1599,7 @@ std::uint64_t MapObject::on_action_harvest_resource_crate(std::pair<long, std::s
 	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
 	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
 	if(!target_resource_crate){
+		LOG_EMPERY_CLUSTER_FATAL("no target resouce crate,target_resource_crate_uuid",target_resource_crate_uuid);
 		return UINT64_MAX;
 	}
 	return require_ai_control()->harvest_resource_crate(result,now,forced_attack);

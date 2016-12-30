@@ -2297,6 +2297,36 @@ void WorldMap::forced_reload_cluster(Coord coord){
 		}
 	}
 
+	const auto resource_crate_map = g_resource_crate_map.lock();
+	if(resource_crate_map){
+		LOG_EMPERY_CENTER_INFO("Loading resource crates: scope = ", scope);
+
+		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_ResourceCrate>>>();
+		{
+			std::ostringstream oss;
+			oss <<"SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0 AND "
+				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
+			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
+				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
+					auto obj = boost::make_shared<EmperyCenter::MySql::Center_ResourceCrate>();
+					obj->fetch(conn);
+					obj->enable_auto_saving();
+					sink->emplace_back(std::move(obj));
+				}, "Center_ResourceCrate", oss.str());
+			Poseidon::JobDispatcher::yield(promise, true);
+		}
+		for(const auto &obj : *sink){
+			CONCURRENT_LOAD_BEGIN {
+				auto resource_crate = boost::make_shared<ResourceCrate>(obj);
+				const auto elem = ResourceCrateElement(std::move(resource_crate));
+				const auto result = resource_crate_map->insert(elem);
+				if(!result.second){
+					resource_crate_map->replace(result.first, elem);
+				}
+			} CONCURRENT_LOAD_END;
+		}
+	}
+
 	const auto map_event_block_map = g_map_event_block_map.lock();
 	if(map_event_block_map){
 		LOG_EMPERY_CENTER_INFO("Loading map event block: scope = ", scope);
@@ -2347,36 +2377,6 @@ void WorldMap::forced_reload_cluster(Coord coord){
 				const auto result = map_event_block_map->insert(elem);
 				if(!result.second){
 					map_event_block_map->replace(result.first, elem);
-				}
-			} CONCURRENT_LOAD_END;
-		}
-	}
-
-	const auto resource_crate_map = g_resource_crate_map.lock();
-	if(resource_crate_map){
-		LOG_EMPERY_CENTER_INFO("Loading resource crates: scope = ", scope);
-
-		const auto sink = boost::make_shared<std::vector<boost::shared_ptr<MySql::Center_ResourceCrate>>>();
-		{
-			std::ostringstream oss;
-			oss <<"SELECT * FROM `Center_ResourceCrate` WHERE `amount_remaining` > 0 AND "
-				<<scope.left() <<" <= `x` AND `x` < " <<scope.right() <<"  AND " <<scope.bottom() <<" <= `y` AND `y` < " <<scope.top();
-			const auto promise = Poseidon::MySqlDaemon::enqueue_for_batch_loading(
-				[sink](const boost::shared_ptr<Poseidon::MySql::Connection> &conn){
-					auto obj = boost::make_shared<EmperyCenter::MySql::Center_ResourceCrate>();
-					obj->fetch(conn);
-					obj->enable_auto_saving();
-					sink->emplace_back(std::move(obj));
-				}, "Center_ResourceCrate", oss.str());
-			Poseidon::JobDispatcher::yield(promise, true);
-		}
-		for(const auto &obj : *sink){
-			CONCURRENT_LOAD_BEGIN {
-				auto resource_crate = boost::make_shared<ResourceCrate>(obj);
-				const auto elem = ResourceCrateElement(std::move(resource_crate));
-				const auto result = resource_crate_map->insert(elem);
-				if(!result.second){
-					resource_crate_map->replace(result.first, elem);
 				}
 			} CONCURRENT_LOAD_END;
 		}
