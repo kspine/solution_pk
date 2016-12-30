@@ -1599,6 +1599,7 @@ std::uint64_t MapObject::on_action_harvest_resource_crate(std::pair<long, std::s
 	const auto target_resource_crate_uuid = ResourceCrateUuid(m_action_param);
 	const auto target_resource_crate = WorldMap::get_resource_crate(target_resource_crate_uuid);
 	if(!target_resource_crate){
+		LOG_EMPERY_CLUSTER_FATAL("no target resouce crate,target_resource_crate_uuid",target_resource_crate_uuid);
 		return UINT64_MAX;
 	}
 	return require_ai_control()->harvest_resource_crate(result,now,forced_attack);
