@@ -315,6 +315,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	}
 
 	const auto interval = req.interval;
+	LOG_EMPERY_CENTER_DEBUG(req);
 	const auto amount_to_harvest = req.amount_harvested/1000.0;
 	//地图活动翻倍
 	double activity_add_rate = 1;
@@ -356,7 +357,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 				if (member){
 					const auto legion_uuid = LegionUuid(member->get_legion_uuid());
 					const auto legion_task_box = LegionTaskBoxMap::require(legion_uuid);
-					legion_task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionKeyIds::ID_HARVEST_STRATEGIC_RESOURCE, amount_to_harvest,account_uuid, 0, 0);
+					legion_task_box->check(TaskTypeIds::ID_HARVEST_STRATEGIC_RESOURCE, TaskLegionKeyIds::ID_HARVEST_STRATEGIC_RESOURCE, amount_harvested,account_uuid, 0, 0);
 					legion_task_box->pump_status();
 				}
 			}
@@ -369,7 +370,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 		Poseidon::enqueue_async_job([=]{
 			{
 				PROFILE_ME;
-				task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_HARVEST_SPECIFIC_STRATEGIC_RESOURCE,resource_id.get(),  amount_to_harvest,
+				task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_HARVEST_SPECIFIC_STRATEGIC_RESOURCE,resource_id.get(),  amount_harvested,
 				TaskBox::TCC_PRIMARY, 0, 0);
 			}
 		});
