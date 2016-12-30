@@ -315,7 +315,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 	}
 
 	const auto interval = req.interval;
-	const auto amount_to_harvest = req.amount_harvested;
+	const auto amount_to_harvest = req.amount_harvested/1000.0;
 	//地图活动翻倍
 	double activity_add_rate = 1;
 	const auto map_activity = ActivityMap::get_map_activity();
@@ -401,6 +401,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestStrategicResource, cluster, req){
 				}
 				auto contribute = activity_contribute->contribute*amount_harvested/activity_contribute->factor;
 				if(contribute <= 0){
+					LOG_EMPERY_CENTER_WARNING("world activity contribute zero ,resouce_id = ",resource_id, " activity_contribute->contribute = ",activity_contribute->contribute," amount_harvested = ",amount_harvested, " activity_contribute->factor = ",activity_contribute->factor);
 					goto world_activity_resource_acculate_done;
 				}
 				world_activity->update_world_activity_schedule(attacking_primary_castle_coord,ActivityIds::ID_WORLD_ACTIVITY_RESOURCE,map_object->get_owner_uuid(),contribute);
@@ -1722,7 +1723,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestResourceCrate, cluster, req){
 		}
 	}
 	const auto cofficient = Data::Global::as_double(Data::Global::SLOT_ATTACK_RESOURCE_CREATE_COEFFICIENT);
-	const auto amount_to_harvest = req.amount_harvested*cofficient;
+	const auto amount_to_harvest = req.amount_harvested*cofficient/1000.0;
 	const auto interval = req.interval;
 	const auto amount_harvested = resource_crate->harvest(attacking_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: attacking_object_uuid = ", attacking_object_uuid, ", attacking_object_type_id = ", attacking_object_type_id,
