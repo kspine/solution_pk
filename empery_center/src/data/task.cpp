@@ -118,6 +118,7 @@ namespace EmperyCenter
 				elem.level_limit_min = array.at(0).get<double>();
 				elem.level_limit_max = array.at(1).get<double>();
 				csv.get(elem.task_level, "task_level");
+				csv.get(elem.task_group, "task_group");
 
 				if (!task_daily_container->emplace(elem.task_id, std::move(elem)).second)
 				{

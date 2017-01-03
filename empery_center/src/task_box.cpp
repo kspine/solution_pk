@@ -481,9 +481,9 @@ namespace EmperyCenter {
 		}
 		const auto expect_level = task_data->task_level + 1;
 		const auto max_daily_task_count = Data::Global::as_unsigned(Data::Global::SLOT_MAX_DAILY_TASK_COUNT);
-		std::vector<TaskTypeId> task_type_candidates;
-		task_type_candidates.reserve(max_daily_task_count);
-		task_type_candidates.emplace_back(TaskTypeId(task_data->type));
+		std::vector<std::uint64_t> task_group_candidates;
+		task_group_candidates.reserve(max_daily_task_count);
+		task_group_candidates.emplace_back(task_data->task_group);
 		if (last_refreshed_day == today) {
 			const auto daily_task_refresh_time = (today + 1) * 86400000 + auto_inc_offset;
 
@@ -544,20 +544,20 @@ namespace EmperyCenter {
 				}
 				const auto task_data = Data::TaskDaily::require(it->first);
 				if(!obj->get_rewarded() || task_data->task_level == max_daily_task_level){
-					task_type_candidates.emplace_back(TaskTypeId(task_data->type));
+					task_group_candidates.emplace_back(task_data->task_group);
 				}
 			}
-			if(task_type_candidates.size() != 4){
-				LOG_EMPERY_CENTER_WARNING("SOME LOGIC ERROR");
+			if(task_group_candidates.size() != max_daily_task_count){
+				LOG_EMPERY_CENTER_WARNING("task group candidates size != max_daily_task_count");
 			}
 
 
 			for (auto it = task_candidates.begin(); it != task_candidates.end(); ++it) {
 				const auto task_id = *it;
 				const auto task_data = Data::TaskDaily::require(task_id);
-				const auto task_type = TaskTypeId(task_data->type);
-				auto itt = std::find(task_type_candidates.begin(), task_type_candidates.end(),task_type);
-				if(itt != task_type_candidates.end()){
+				const auto task_group = task_data->task_group;
+				auto itt = std::find(task_group_candidates.begin(), task_group_candidates.end(),task_group);
+				if(itt != task_group_candidates.end()){
 					continue;
 				}
 				if(expect_level == task_data->task_level){
