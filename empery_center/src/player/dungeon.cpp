@@ -455,6 +455,10 @@ PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
 	PROFILE_ME;
 	
 	const auto dungeon_uuid = DungeonUuid(account->get_attribute(AccountAttributeIds::ID_OFFLINE_DUNGEON));
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers.reserve(1);
+	modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = "";
+	account->set_attributes(std::move(modifiers));
 	const auto dungeon = DungeonMap::get(dungeon_uuid);
 	if(!dungeon){
 		return Response(Msg::ERR_DUNGEON_OFFLINE_HAVE_FAILED);
@@ -473,10 +477,6 @@ PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
 		session->send(msg);
 		dungeon->update_observer(account_uuid,session);
 		dungeon->synchronize_with_player(session);
-		boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-		modifiers.reserve(1);
-        modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = "";
-		account->set_attributes(std::move(modifiers));
 		return Response();
 	}	
 	return Response(Msg::ERR_DUNGEON_OFFLINE_HAVE_FAILED) << dungeon->get_dungeon_type_id();
