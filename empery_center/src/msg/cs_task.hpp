@@ -19,6 +19,14 @@ namespace Msg {
 	FIELD_VUINT         (task_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ItemFetchLegionTaskReward
+#define MESSAGE_ID      1202
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (legion_uuid) \
+	FIELD_VUINT          (task_id)	\
+	FIELD_VUINT          (stage)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

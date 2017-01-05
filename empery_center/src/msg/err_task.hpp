@@ -12,6 +12,8 @@ namespace Msg {
 		ERR_NO_SUCH_TASK                        = 72201,
 		ERR_TASK_NOT_ACCOMPLISHED               = 72202,
 		ERR_TASK_REWARD_FETCHED                 = 72203,
+		ERR_TASK_NOT_STAGE_ACCOMPLISHED         = 72204,
+		ERR_TASK_STAGE_REWARD_FETCHED           = 72205,
 	};
 }
 

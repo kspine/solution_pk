@@ -71,6 +71,7 @@ namespace EmperyCenter {
 		bool remove(TaskId task_id) noexcept;
 
 		void check_stage_accomplished(TaskId task_id);
+		bool has_been_stage_accomplished(TaskId task_id,std::uint64_t stage);
 		void check(TaskTypeId type, TaskLegionKeyId key, std::uint64_t count,
 			const AccountUuid account_uuid, std::int64_t param1, std::int64_t param2);
 		void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;

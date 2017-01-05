@@ -432,6 +432,7 @@ namespace EmperyCenter {
 
 	void LegionTaskBox::check_stage_accomplished(TaskId task_id){
 		PROFILE_ME;
+
 		Poseidon::enqueue_async_job([=]() mutable {
 			const auto it = m_tasks.find(task_id);
 			if (it == m_tasks.end()) {
@@ -444,7 +445,6 @@ namespace EmperyCenter {
 			if(obj->get_rewarded() || obj->get_deleted()){
 				return;
 			}
-			const auto utc_now = Poseidon::get_utc_time();
 			const auto task_data = Data::TaskLegion::require(task_id);
 			unsigned stage_size = task_data->stage_reward.size();
 			unsigned stage_accomplished_size = 0;
@@ -504,95 +504,11 @@ namespace EmperyCenter {
 						}else{
 							Attributes[LegionAttributeIds::ID_MONEY] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + legion_donate);
 							LegionLog::LegionMoneyTrace(get_legion_uuid(),boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + legion_donate,ReasonIds::ID_LEGION_TASK_STAGE_REWARD,task_id.get(),its->first,0);
-						
 						//军团自己账本
 						    LegionFinancialMap::make_insert(LegionUuid(get_legion_uuid()),AccountUuid(), ItemId(5500001),
 						    boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate)+legion_donate,(int64_t)legion_donate,1,0,Poseidon::get_utc_time());
 						}
 						legion->set_attributes(Attributes);
-					}
-					//发送个人奖励
-					auto it_personal_reward = task_data->stage_personal_reward.find(its->first);
-					const auto &personal_rewards  = it_personal_reward->second;
-					std::uint64_t personal_donate = 0;
-					for(auto itl = personal_rewards.begin(); itl != personal_rewards.end(); ++itl){
-						auto resource_id = itl->first;
-						if(resource_id.get() == 1103005){
-							personal_donate += itl->second;
-						}
-					}
-
-					//TODO 发送军团成员阶段奖励
-					for(auto it = members.begin(); it != members.end(); ++it)
-					{
-						auto account_uuid = (*it)->get_account_uuid();
-						auto legion_task_reward_box = LegionTaskRewardBoxMap::get(account_uuid);
-						LegionTaskRewardBox::TaskRewardInfo task_reward_info = legion_task_reward_box->get(task_data->type);
-						if(task_reward_info.created_time == 0){
-							task_reward_info.created_time = utc_now;
-							task_reward_info.last_reward_time = utc_now;
-							auto progress = boost::make_shared<LegionTaskRewardBox::Progress>();
-							progress->emplace(its->first,1);
-							task_reward_info.progress = progress;
-							legion_task_reward_box->insert(std::move(task_reward_info));
-						}else{
-							auto &progress = task_reward_info.progress;
-							auto pit = progress->find(its->first);
-							if((pit != progress->end()) && (pit->second > 0)){
-								continue;
-							}
-							task_reward_info.last_reward_time = utc_now;
-							auto new_progress = boost::make_shared<Progress>(*progress);
-							(*new_progress)[its->first] = 1;
-							task_reward_info.progress = new_progress;
-							legion_task_reward_box->update(std::move(task_reward_info));
-						}
-						const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
-						if(legion_member && personal_donate > 0){
-							boost::container::flat_map<LegionMemberAttributeId, std::string> legion_attributes_modifer;
-							std::string donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
-							if(donate.empty()){
-								legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(personal_donate);
-								LegionLog::LegionPersonalDonateTrace(account_uuid,0,personal_donate,ReasonIds::ID_LEGION_TASK_STAGE_REWARD,task_id.get(),its->first,0);
-							}else{
-								legion_attributes_modifer[LegionMemberAttributeIds::ID_DONATE] = boost::lexical_cast<std::string>(boost::lexical_cast<uint64_t>(donate) + personal_donate);
-								LegionLog::LegionPersonalDonateTrace(account_uuid,boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + personal_donate,ReasonIds::ID_LEGION_TASK_STAGE_REWARD,task_id.get(),its->first,0);
-							}
-							legion_member->set_attributes(std::move(legion_attributes_modifer));
-							std::string new_donate = legion_member->get_attribute(LegionMemberAttributeIds::ID_DONATE);
-						}
-						//TODO 发送邮件
-						try {
-							const auto mail_box = MailBoxMap::require(account_uuid);
-							const auto mail_uuid = MailUuid(Poseidon::Uuid::random());
-							const auto language_id = LanguageId(); //
-							std::vector<std::pair<ChatMessageSlotId, std::string>> segments;
-							segments.reserve(5);
-							auto legion_nick = legion->get_nick();
-							segments.emplace_back(ChatMessageSlotIds::ID_LEGEION_NAME, boost::lexical_cast<std::string>(legion_nick));
-							segments.emplace_back(ChatMessageSlotIds::ID_LEGEION_TASK_ID, boost::lexical_cast<std::string>(task_id.get()));
-							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_STAGE, boost::lexical_cast<std::string>(its->first));
-							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_PERSONAL_DONATE_ITEM,"1103005");
-							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_PERSONAL_DONATE_COUNT,boost::lexical_cast<std::string>(personal_donate));
-							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_DONATE_ITMEM,"5500001");
-							segments.emplace_back(ChatMessageSlotIds::ID_LEGION_DONATE_COUNT,boost::lexical_cast<std::string>(legion_donate));
-							const auto &rewards = its->second;
-							boost::container::flat_map<ItemId, std::uint64_t> attachments;
-							attachments.reserve(rewards.size());
-							for(auto itr = rewards.begin(); itr != rewards.end(); ++itr){
-								attachments.emplace(ItemId(itr->first.get()),itr->second);
-							}
-							const auto mail_data = boost::make_shared<MailData>(mail_uuid, language_id, utc_now,
-								ChatMessageTypeIds::ID_LEGION_TASK_REWARD, AccountUuid(), std::string(), std::move(segments),std::move(attachments));
-							MailBoxMap::insert_mail_data(mail_data);
-							MailBox::MailInfo mail_info = { };
-							mail_info.mail_uuid   = mail_uuid;
-							mail_info.expiry_time = UINT64_MAX;
-							mail_info.system      = true;
-							mail_box->insert(std::move(mail_info));
-						} catch(std::exception &e){
-							LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
-						}
 					}
 					// 广播通知
 					Msg::SC_LegionNoticeMsg msg;
@@ -608,6 +524,57 @@ namespace EmperyCenter {
 			}
 		});
 	}
+
+	bool LegionTaskBox::has_been_stage_accomplished(TaskId task_id,std::uint64_t stage){
+		PROFILE_ME;
+
+		const auto it = m_tasks.find(task_id);
+		if (it == m_tasks.end()) {
+			return false;
+		}
+		auto &pair = it->second;
+		auto &obj = pair.first;
+		auto &progress = pair.second.first;
+		if(obj->get_deleted()){
+			LOG_EMPERY_CENTER_DEBUG("legion task box ,task has been deleted,task_id = ",task_id);
+			return false;
+		}
+		if(obj->get_rewarded()){
+			return true;
+		}
+		const auto task_data = Data::TaskLegion::require(task_id);
+		auto its = task_data->stage_reward.find(stage);
+		if(its == task_data->stage_reward.end()){
+			LOG_EMPERY_CENTER_WARNING("legion task error stage,task_id = ",task_id, " stage = ", stage);
+			return false;
+		}
+		unsigned objective_size = task_data->objective.size();
+		if(objective_size == 0){
+			LOG_EMPERY_CENTER_WARNING("legion task objective_size = 0, task_id = ",task_id);
+			return false;
+		}
+		unsigned accomplished_size = 0;
+		for (auto it = task_data->objective.begin(); it != task_data->objective.end(); ++it) {
+			const auto key = it->first;
+			const auto count_finish = static_cast<std::uint64_t>(it->second.at(0));
+			const auto dest = count_finish * stage /100;
+			const auto pit = progress->find(key);
+			if (pit == progress->end()) {
+				LOG_EMPERY_CENTER_DEBUG("Progress element not found: key = ", key);
+				break;
+			}
+			if (pit->second < dest) {
+				LOG_EMPERY_CENTER_DEBUG("Progress element unmet: key = ", key, ", count = ", pit->second, ", dest_finish = ", dest);
+				break;
+			}
+			accomplished_size += 1;
+		}
+		if(accomplished_size == objective_size){
+			return true;
+		}
+		return false;
+	}
+
 	void LegionTaskBox::check(TaskTypeId type, TaskLegionKeyId key, std::uint64_t count,
 			const AccountUuid account_uuid, std::int64_t param1, std::int64_t param2)
 	{
