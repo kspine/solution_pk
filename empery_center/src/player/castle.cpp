@@ -1301,6 +1301,7 @@ PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
 				account->get_account_uuid(), map_object_uuid, std::move(req.name), coord, utc_now);
 			child_castle->check_init_buildings();
 			child_castle->check_init_resources();
+			child_castle->recalculate_attributes(false);
 			child_castle->pump_status();
 			WorldMap::insert_map_object(child_castle);
 			LOG_EMPERY_CENTER_INFO("Created castle: child_castle_uuid = ", child_castle_uuid,
