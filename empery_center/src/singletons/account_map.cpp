@@ -33,6 +33,9 @@
 #include "../msg/sc_friend.hpp"
 #include "player_session_map.hpp"
 #include "../player_session.hpp"
+#include <algorithm>
+#include "friend_private_msg_box_map.hpp"
+#include "../friend_private_msg_box.hpp"
 
 
 namespace EmperyCenter {
@@ -796,14 +799,38 @@ void AccountMap::synchronize_account_online_state_with_relate_player_all(Account
 		msg.friend_uuid = account_uuid.str();
 		msg.online      = online;
 		msg.timestamp   = utc_now;
+		std::vector<AccountUuid> sync_friend;
 		for(auto it = ret.begin(); it != ret.end(); ++it){
 			try {
 				auto &info = *it;
 				auto friend_uuid = info.friend_uuid;
 				auto session = PlayerSessionMap::get(friend_uuid);
 				if(session){
+					sync_friend.emplace_back(friend_uuid);
 					session->send(msg);
 					LOG_EMPERY_CENTER_FATAL("send online state change to friend_uuid = ",friend_uuid," ",msg);
+				}
+			}catch(std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
+		//最近联系人
+		const auto friend_private_msg_box = FriendPrivateMsgBoxMap::require(account_uuid);
+		friend_private_msg_box->pump_status();
+		boost::container::flat_map<AccountUuid, std::uint64_t> recent_contact;
+		friend_private_msg_box->get_recent_contact(recent_contact);
+		for(auto it = recent_contact.begin(); it != recent_contact.end(); ++it)
+		{
+			try{
+				auto friend_uuid     = it->first;
+				auto its = std::find(sync_friend.begin(),sync_friend.end(),friend_uuid);
+				if(its == sync_friend.end()){
+					auto session = PlayerSessionMap::get(friend_uuid);
+					if(session){
+						sync_friend.emplace_back(friend_uuid);
+						session->send(msg);
+						LOG_EMPERY_CENTER_FATAL("send online state change to recent_contacts friend_uuid = ",friend_uuid," ",msg);
+					}
 				}
 			}catch(std::exception &e){
 				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
