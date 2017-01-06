@@ -1124,6 +1124,9 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 		if(is_monster()&&map_object->is_building()){
 			continue;
 		}
+		if(is_building() && map_object->is_monster()){
+			continue;
+		}
 		if(map_object->get_owner_uuid() == owner_uuid){
 			auto distance = get_distance_of_coords(get_coord(),map_object->get_coord());
 			if(distance < min_distance){
