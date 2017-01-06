@@ -408,7 +408,7 @@ namespace Msg {
 #define MESSAGE_ID      1566
 #define MESSAGE_FIELDS  \
 	FIELD_STRING        (dungeon_uuid)	\
-	FIELD_VINT          (sound_id)
+	FIELD_VUINT          (sound_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
 }
