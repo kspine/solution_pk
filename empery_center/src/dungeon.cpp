@@ -546,17 +546,6 @@ void Dungeon::check_founder_offline(){
 		}else{
 			if(m_offline_stop){
 				m_offline_stop = false;
-				const auto server = m_server.lock();
-				if(server){
-					try {
-						Msg::SD_DungeonReconnectStart msg;
-						msg.dungeon_uuid    = get_dungeon_uuid().str();
-						server->send(msg);
-					} catch(std::exception &e){
-						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
-						server->shutdown(e.what());
-					}
-				}
 			}
 		}
 	} catch (std::exception &e){

@@ -470,15 +470,31 @@ PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
 		LOG_EMPERY_CENTER_WARNING("not reconnect ????");
 	}
 	if(observer_session != session){
-		Msg::SC_DungeonOffline msg;
-		msg.dungeon_uuid = dungeon_uuid.str();
-		msg.dungeon_type_id = dungeon->get_dungeon_type_id().get();
-		LOG_EMPERY_CENTER_FATAL(msg);
-		session->send(msg);
-		dungeon->update_observer(account_uuid,session);
-		dungeon->synchronize_with_player(session);
+		try{
+			Msg::SC_DungeonOffline msg;
+			msg.dungeon_uuid = dungeon_uuid.str();
+			msg.dungeon_type_id = dungeon->get_dungeon_type_id().get();
+			LOG_EMPERY_CENTER_FATAL(msg);
+			session->send(msg);
+			dungeon->update_observer(account_uuid,session);
+			dungeon->synchronize_with_player(session);
+		}catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ",e.what());
+		}
+
+		try{
+			const auto server = dungeon->get_server();
+			if(!server){
+				return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
+			}
+			Msg::SD_DungeonReconnectStart msg;
+			msg.dungeon_uuid    = dungeon_uuid.str();
+			server->send(msg);
+		}catch(std::exception &e){
+			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ",e.what());
+		}
 		return Response();
-	}	
+	}
 	return Response(Msg::ERR_DUNGEON_OFFLINE_HAVE_FAILED) << dungeon->get_dungeon_type_id();
 }
 
