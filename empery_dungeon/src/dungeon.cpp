@@ -928,6 +928,10 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 		//TODO
 		on_triggers_dungeon_set_foot_annimation(action);
 	}
+	ON_TRIGGER_ACTION(TriggerAction::A_PLAY_SOUND){
+		//TODO
+		on_triggers_dungeon_play_sound(action);
+	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
 		}
@@ -1943,6 +1947,38 @@ void Dungeon::on_triggers_dungeon_set_foot_annimation(const TriggerAction &actio
 					auto &monsters = *msg.monsters.emplace(msg.monsters.end());
 					monsters.monster_uuid = valid_monsters.at(i)->get_dungeon_object_uuid().str();
 				}
+				dungeon_client->send(msg);
+			} catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+				dungeon_client->shutdown(e.what());
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_play_sound(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_PLAY_SOUND){
+			return;
+		}
+		std::istringstream iss_param(action.params);
+		auto param_array = Poseidon::JsonParser::parse_array(iss_param);
+		if(param_array.size() != 1){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon play sound param error,size != 1",action.params);
+			return;
+		}
+		auto sound_id   =  static_cast<std::uint64_t>(param_array.at(0).get<double>());
+
+		const auto dungeon_client = get_dungeon_client();
+		if(dungeon_client){
+			try {
+				Msg::DS_DungeonPlaySound msg;
+				msg.dungeon_uuid    = get_dungeon_uuid().str();
+				msg.sound_id        = sound_id;
 				dungeon_client->send(msg);
 			} catch(std::exception &e){
 				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());

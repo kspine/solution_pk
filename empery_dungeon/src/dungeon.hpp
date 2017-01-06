@@ -167,6 +167,7 @@ public:
 	void on_triggers_dungeon_unhide_coords(const TriggerAction &action);
 	void on_triggers_dungeon_defense_matrix(const TriggerAction &action);
 	void on_triggers_dungeon_set_foot_annimation(const TriggerAction &action);
+	void on_triggers_dungeon_play_sound(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 
 	//
