@@ -1170,6 +1170,9 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 	if(is_monster()&&enemy_map_object->is_building()){
 		return;
 	}
+	if(is_building()&&enemy_map_object->is_monster()){
+		return;
+	}
 	if(is_in_attack_scope(enemy_map_object)){
 			set_action(get_coord(), m_waypoints, static_cast<MapObject::Action>(ACT_ATTACK),enemy_map_object->get_map_object_uuid().str());
 		}else{
