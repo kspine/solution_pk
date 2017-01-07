@@ -986,6 +986,7 @@ void Castle::synchronize_building_with_player(BuildingBaseId building_base_id, c
 
 	Msg::SC_CastleBuildingBase msg;
 	fill_building_message(msg, it->second, utc_now);
+	LOG_EMPERY_CENTER_ERROR("synchronize_building,account_uuid = ",get_owner_uuid(),"building info = ", msg);
 	session->send(msg);
 }
 
@@ -2630,6 +2631,7 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 	for(auto it = m_buildings.begin(); it != m_buildings.end(); ++it){
 		Msg::SC_CastleBuildingBase msg;
 		fill_building_message(msg, it->second, utc_now);
+		LOG_EMPERY_CENTER_ERROR("synchronize_building,account_uuid = ",get_owner_uuid(),"building info = ", msg);
 		session->send(msg);
 	}
 	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
