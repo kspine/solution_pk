@@ -26,6 +26,7 @@ namespace Msg {
 	FIELD_VINT          (y)	\
 	FIELD_STRING        (parent_object_uuid)	\
 	FIELD_STRING        (owner_uuid)	\
+    FIELD_STRING        (map_name) \
 	FIELD_VUINT         (acceleration_card_applied)	\
 	FIELD_VUINT         (ticket_item_id)	\
 	FIELD_VUINT         (production_resource_id)	\

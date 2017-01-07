@@ -30,9 +30,10 @@
 #include "singletons/legion_member_map.hpp"
 #include "legion_member.hpp"
 #include "source_ids.hpp"
+#include "account_attribute_ids.hpp"
+#include "data/map_country.hpp"
 
 namespace EmperyCenter {
-
 namespace {
 	void fill_buff_info(MapCell::BuffInfo &info, const boost::shared_ptr<MySql::Center_MapCellBuff> &obj){
 		PROFILE_ME;
@@ -768,11 +769,35 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			AccountMap::cached_synchronize_account_with_player_all(occupier_owner_uuid, session);
 		}
 
+		const  auto accounts    = AccountMap::require(AccountUuid(owner_uuid));
+		const auto &map_name  = accounts->get_attribute(AccountAttributeIds::ID_MAP_COUNTRY);
+		if(map_name.empty())
+		{
+			const auto primary_castle =  WorldMap::get_primary_castle(AccountUuid(owner_uuid));
+			if(primary_castle)
+			{
+				const auto scope = WorldMap::get_cluster_scope(primary_castle->get_coord());
+
+				std::int64_t numerical_x = scope.left() / static_cast<std::int64_t>(scope.width());
+				std::int64_t numerical_y = scope.bottom() / static_cast<std::int64_t>(scope.height());
+				std::string map_id = boost::lexical_cast<std::string>(numerical_x) + ","+ boost::lexical_cast<std::string>(numerical_y);
+
+				std::string map_names =  Data::MapCountry::get_map_name(map_id);
+
+				boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+				modifiers.reserve(1);
+				modifiers[AccountAttributeIds::ID_MAP_COUNTRY]  = map_names;
+				accounts->set_attributes(std::move(modifiers)); 
+			}
+		}
+
+
 		Msg::SC_MapCellInfo msg;
 		msg.x                         = get_coord().x();
 		msg.y                         = get_coord().y();
 		msg.parent_object_uuid        = parent_object_uuid.str();
 		msg.owner_uuid                = owner_uuid.str();
+        msg.map_name                  = accounts->get_attribute(AccountAttributeIds::ID_MAP_COUNTRY);
 		msg.acceleration_card_applied = is_acceleration_card_applied();
 		msg.ticket_item_id            = get_ticket_item_id().get();
 		msg.production_resource_id    = get_production_resource_id().get();
