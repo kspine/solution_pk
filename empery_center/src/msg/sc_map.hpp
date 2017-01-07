@@ -71,7 +71,8 @@ namespace Msg {
 		FIELD_VUINT         (buff_id)	\
 		FIELD_VUINT         (duration)	\
 		FIELD_VUINT         (time_remaining)	\
-	)
+	)\
+	FIELD_STRING        (legion_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectRemoved

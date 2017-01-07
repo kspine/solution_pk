@@ -701,6 +701,22 @@ void MapObject::synchronize_with_player(const boost::shared_ptr<PlayerSession> &
 			buff.duration       = it->second->get_duration();
 			buff.time_remaining = saturated_sub(it->second->get_time_end(), utc_now);
 		}
+		if(get_map_object_type_id() == MapObjectTypeIds::ID_LEGION_WAREHOUSE)
+		{
+			const auto& obj = LegionBuildingMap::find_by_map_object_uuid(get_map_object_uuid());
+			if(obj)
+			{
+				msg.legion_uuid = obj->get_legion_uuid().str();
+			}
+		}
+		else
+		{
+			const auto& member = LegionMemberMap::get_by_account_uuid(get_owner_uuid());
+			if(member)
+			{
+				msg.legion_uuid		   = member->get_legion_uuid().str();
+			}
+		}
 		session->send(msg);
 
 		synchronize_with_player_additional(session);
