@@ -35,6 +35,8 @@
 #include "../map_utilities_center.hpp"
 #include "../buff_ids.hpp"
 #include "../resource_ids.hpp"
+#include "../singletons/legion_member_map.hpp"
+#include "../legion_member.hpp"
 
 namespace EmperyCenter {
 
@@ -878,6 +880,12 @@ PLAYER_SERVLET(Msg::CS_MapLoadMinimap, account, session, req){
 		elem.x          = map_object->get_coord().x();
 		elem.y          = map_object->get_coord().y();
 		elem.owner_uuid = map_object->get_owner_uuid().str();
+		elem.legion_uuid = "";
+		const auto& member = LegionMemberMap::get_by_account_uuid(map_object->get_owner_uuid());
+		if(member)
+		{
+			elem.legion_uuid		   = member->get_legion_uuid().str();
+		}
 	}
 	session->send(msg);
 

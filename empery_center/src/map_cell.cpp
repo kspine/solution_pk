@@ -803,6 +803,12 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			msg.occupier_y            = occupier_object->get_coord().y();
 			msg.occupier_name         = occupier_object->get_name();
 		}
+		msg.legion_uuid = "";
+		const auto& member = LegionMemberMap::get_by_account_uuid(get_owner_uuid());
+		if(member)
+		{
+			msg.legion_uuid		   = member->get_legion_uuid().str();
+		}
 		session->send(msg);
 	}
 }

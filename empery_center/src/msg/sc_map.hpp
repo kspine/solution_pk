@@ -47,7 +47,8 @@ namespace Msg {
 	FIELD_STRING        (occupier_owner_uuid)	\
 	FIELD_VINT          (occupier_x)	\
 	FIELD_VINT          (occupier_y)	\
-	FIELD_STRING        (occupier_name)
+	FIELD_STRING        (occupier_name) \
+	FIELD_STRING        (legion_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_MapObjectInfo
@@ -160,6 +161,7 @@ namespace Msg {
 		FIELD_VINT          (x)	\
 		FIELD_VINT          (y)	\
 		FIELD_STRING        (owner_uuid)	\
+		FIELD_STRING        (legion_uuid)	\
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
