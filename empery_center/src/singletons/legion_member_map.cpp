@@ -876,6 +876,20 @@ void LegionMemberMap::check_in_waittime()
 									Attributes[LegionMemberAttributeIds::ID_TITLEID] = "1";
 
 									target_member->set_attributes(Attributes);
+									// 如果有禁言，解除禁言标识
+									const auto speak_flag = target_member->get_attribute(LegionMemberAttributeIds::ID_SPEAKFLAG);
+									if(speak_flag == "1"){
+										boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes;
+										Attributes[LegionMemberAttributeIds::ID_SPEAKFLAG] = "0";
+										target_member->set_attributes(Attributes);
+										const auto target_account = AccountMap::require(AccountUuid(target_uuid));
+										// 广播给军团其他成员
+										Msg::SC_LegionNoticeMsg msg;
+										msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_SPEACK;
+										msg.nick = target_account->get_nick();
+										msg.ext1 = "0";
+										legion->sendNoticeMsg(msg);
+									}
 
 									// 设置原来团长为团员
 									boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
