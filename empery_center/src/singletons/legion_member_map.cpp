@@ -29,8 +29,9 @@
 #include "../chat_box.hpp"
 #include <poseidon/async_job.hpp>
 #include "../singletons/world_map.hpp"
-
 #include "../legion_log.hpp"
+#include "../msg/sl_league.hpp"
+#include "../singletons/league_client.hpp"
 
 namespace EmperyCenter {
 
@@ -896,7 +897,7 @@ void LegionMemberMap::check_in_waittime()
 									Attributes1[LegionMemberAttributeIds::ID_TITLEID] = boost::lexical_cast<std::string>(Data::Global::as_unsigned(Data::Global::SLOT_LEGION_MEMBER_DEFAULT_POWERID));
 
 									member->set_attributes(Attributes1);
-
+									
 									// 广播给军团其他成员
 									const auto target_account = AccountMap::get(target_member->get_account_uuid());
 									if(target_account && account)
@@ -911,6 +912,13 @@ void LegionMemberMap::check_in_waittime()
 										msg.ext1 = account->get_nick();
 										legion->sendNoticeMsg(msg);
 									}
+									//广播到联盟的其他军团
+									Msg::SL_AttornLegionNotice msg;
+									msg.account_uuid = member->get_account_uuid().str();
+									msg.target_uuid  = target_member->get_account_uuid().str();
+									msg.legion_uuid  = member->get_legion_uuid().str();;
+									const auto league = LeagueClient::require();
+									league->send(msg);
 
 									LOG_EMPERY_CENTER_DEBUG("成功转让=============================== ",member->get_account_uuid(), "  目标对象：",target_member->get_account_uuid());
 									// 转让成功，重置转让等待时间

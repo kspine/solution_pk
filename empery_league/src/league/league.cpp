@@ -1772,4 +1772,54 @@ LEAGUE_SERVLET(Msg::SL_ModifyLeagueSwitchStatusReq, league_session, req){
 
 	return Response(Msg::ST_OK);
 }
+
+LEAGUE_SERVLET(Msg::SL_AttornLegionNotice, league_session, req){
+	PROFILE_ME;
+
+	const auto legion_uuid = LegionUuid(req.legion_uuid);
+
+	const auto& member = LeagueMemberMap::get_by_legion_uuid(legion_uuid);
+
+	if(!member)
+	{
+		// 没加入联盟
+		return Response(Msg::ERR_LEAGUE_NOT_JOIN);
+	}
+	else
+	{
+		// 查看联盟是否存在
+		const auto &league = LeagueMap::get(member->get_league_uuid());
+		if(league)
+		{
+				EmperyCenter::Msg::LS_AttornLegionNotice msg;
+				msg.account_uuid = req.account_uuid;
+				msg.target_uuid  = req.target_uuid;
+				msg.legion_uuid  = req.legion_uuid;
+
+				// 找到联盟中的军团
+				std::vector<boost::shared_ptr<LeagueMember>> members;
+				LeagueMemberMap::get_by_league_uuid(members, member->get_league_uuid());
+
+				msg.legions.reserve(members.size());
+				for(auto it = members.begin(); it != members.end(); ++it )
+				{
+					auto &elem = *msg.legions.emplace(msg.legions.end());
+					auto info = *it;
+
+					elem.legion_uuid = info->get_legion_uuid().str();
+
+				}
+
+				league_session->send(msg);
+			}
+			else
+			{
+				return Response(Msg::ERR_LEAGUE_NO_POWER);
+			}
+
+		}
+	
+	return Response();
+}
+
 }

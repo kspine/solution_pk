@@ -231,6 +231,13 @@ namespace Msg {
 	FIELD_VUINT         (switchstatus)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SL_AttornLegionNotice
+#define MESSAGE_ID      58826
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (account_uuid)	\
+	FIELD_STRING        (target_uuid)	\
+	FIELD_STRING        (legion_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }
