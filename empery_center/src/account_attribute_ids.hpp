@@ -22,7 +22,7 @@ constexpr AccountAttributeId
 	ID_CRATE_RECORDS_UNREAD           ( 121 ),
 	ID_TAX_RECORDS_UNREAD             ( 122 ),
 	ID_AUTO_FILL_BATTALION            ( 123 ),
-
+	ID_IN_NOVICE_PERIOD               ( 124 ),
 	ID_LAST_LOGGED_IN_TIME            ( 200 ),
 	ID_LAST_LOGGED_OUT_TIME           ( 201 ),
 	ID_AVATAR                         ( 202 ),
