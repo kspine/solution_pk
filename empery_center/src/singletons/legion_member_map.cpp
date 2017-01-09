@@ -890,7 +890,6 @@ void LegionMemberMap::check_in_waittime()
 										msg.ext1 = "0";
 										legion->sendNoticeMsg(msg);
 									}
-
 									// 设置原来团长为团员
 									boost::container::flat_map<LegionMemberAttributeId, std::string> Attributes1;
 
@@ -902,6 +901,10 @@ void LegionMemberMap::check_in_waittime()
 									const auto target_account = AccountMap::get(target_member->get_account_uuid());
 									if(target_account && account)
 									{
+										boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+										modifiers.reserve(1);
+								        modifiers[AccountAttributeIds::ID_LEAGUE_CAHT_FALG]             = "0";
+										target_account->set_attributes(std::move(modifiers));
 										Msg::SC_LegionNoticeMsg msg;
 										msg.msgtype = Legion::LEGION_NOTICE_MSG_TYPE::LEGION_NOTICE_MSG_TYPE_ATTORN;
 										msg.nick = target_account->get_nick();
