@@ -61,6 +61,9 @@ public:
 	void get_attributes(boost::container::flat_map<AccountAttributeId, std::string> &ret) const;
 	void set_attributes(boost::container::flat_map<AccountAttributeId, std::string> modifiers);
 
+	void add_vip_exp(std::uint64_t exp);
+	void on_vip_level_changed(unsigned old_level,unsigned new_level);
+
 	template<typename T, typename DefaultT = T>
 	T cast_attribute(AccountAttributeId account_attribute_id, const DefaultT def = DefaultT()){
 		const auto &str = get_attribute(account_attribute_id);

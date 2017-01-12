@@ -8,6 +8,13 @@
 #include <poseidon/singletons/mysql_daemon.hpp>
 #include "singletons/player_session_map.hpp"
 #include "player_session.hpp"
+#include "data/vip.hpp"
+#include "account_attribute_ids.hpp"
+#include "item_box.hpp"
+#include "singletons/item_box_map.hpp"
+#include "item_ids.hpp"
+#include "transaction_element.hpp"
+#include "reason_ids.hpp"
 
 namespace EmperyCenter {
 
@@ -140,6 +147,71 @@ void Account::set_attributes(boost::container::flat_map<AccountAttributeId, std:
 
 	AccountMap::update(virtual_shared_from_this<Account>(), false);
 }
+
+void Account::add_vip_exp(std::uint64_t exp){
+	PROFILE_ME;
+
+	if(exp == 0){
+		LOG_EMPERY_CENTER_WARNING("add exp zero, account_uuid = ",get_account_uuid());
+		return;
+	}
+	const auto vip_exp = cast_attribute<std::uint64_t>(AccountAttributeIds::ID_VIP_EXP);
+	const auto vip_level = cast_attribute<unsigned>(AccountAttributeIds::ID_VIP_LEVEL);
+	const auto vip_data = Data::Vip::get(vip_level+1);
+	if(!vip_data){
+		LOG_EMPERY_CENTER_WARNING("no vip data,vip_level ",vip_level + 1);
+		return;
+	}
+	LOG_EMPERY_CENTER_DEBUG("before add vip exp,account_uuid = ",get_account_uuid()," old_vip_level = ",vip_level, " old_vip_exp = ",vip_exp," delta = ",exp);
+	auto total_exp = vip_exp + exp;
+	auto next_level_exp = vip_data->vip_exp;
+	auto new_vip_level = vip_level;
+	while((total_exp > next_level_exp) && (next_level_exp > 0)){
+		total_exp -= next_level_exp;
+		new_vip_level += 1;
+		const auto vip_data = Data::Vip::get(new_vip_level+1);
+		if(vip_data){
+			next_level_exp = vip_data->vip_exp;
+		}else{
+			LOG_EMPERY_CENTER_WARNING("no vip data,vip_level = ",new_vip_level + 1);
+			next_level_exp = 0;
+		}
+	}
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers.reserve(2);
+	modifiers[AccountAttributeIds::ID_VIP_LEVEL] = boost::lexical_cast<std::string>(new_vip_level);
+	modifiers[AccountAttributeIds::ID_VIP_EXP]   = boost::lexical_cast<std::string>(total_exp);;
+	set_attributes(std::move(modifiers));
+	LOG_EMPERY_CENTER_DEBUG("end add vip exp,account_uuid = ",get_account_uuid()," new_vip_level = ",new_vip_level, " new_vip_exp = ",total_exp);
+	if(vip_level != new_vip_level){
+		on_vip_level_changed(vip_level,new_vip_level);
+	}
+}
+
+void Account::on_vip_level_changed(unsigned old_level,unsigned new_level){
+	PROFILE_ME;
+	if(old_level >= new_level){
+		LOG_EMPERY_CENTER_WARNING("on vip level changed , old_vip_level = ",old_level, " new_vip_level = ",new_level);
+		return;
+	}
+
+	//增加副本进入次数
+	auto item_box = ItemBoxMap::require(get_account_uuid());
+	std::vector<ItemTransactionElement> transaction;
+	transaction.reserve(1);
+	std::uint64_t delta = 0;
+	for(unsigned i = old_level + 1;i <= new_level;++i){
+		const auto vip_data = Data::Vip::get(i);
+		if(!vip_data){
+			LOG_EMPERY_CENTER_WARNING("no vip data,vip level = ",i);
+		}
+		delta += vip_data->dungeon_count;
+	}
+	transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_DUNGEON_ENTER_COUNT, delta,
+			ReasonIds::ID_DUNGEON_COUNT_VIP_CHANGED, old_level, new_level, 0);
+	item_box->commit_transaction(transaction, false);
+}
+
 
 void Account::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;

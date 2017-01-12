@@ -23,6 +23,7 @@
 #include "singletons/account_map.hpp"
 #include "account.hpp"
 #include "account_attribute_ids.hpp"
+#include "data/vip.hpp"
 
 namespace EmperyCenter {
 
@@ -122,7 +123,6 @@ namespace {
 	}
 	void fill_resource_message(Msg::SC_CastleResource &msg, const boost::shared_ptr<MySql::Center_CastleResource> &obj){
 		PROFILE_ME;
-		
 		auto &resources = *msg.resources.emplace(msg.resources.end());
 		resources.map_object_uuid        = obj->unlocked_get_map_object_uuid().to_string();
 		resources.resource_id            = obj->get_resource_id();
@@ -565,7 +565,6 @@ void Castle::pump_population_production(){
 					static_cast<std::uint64_t>(std::ceil(static_cast<double>(consumption_minutes) * soldier_count * rit->second - 0.001)));
 			}
 		}
-		
 		std::vector<ResourceTransactionElement> transaction;
 		transaction.reserve(resources_to_consume.size());
 		for(auto it = resources_to_consume.begin(); it != resources_to_consume.end(); ++it){
@@ -1457,6 +1456,9 @@ void Castle::check_auto_inc_resources(){
 	std::vector<boost::shared_ptr<const Data::CastleResource>> resources_to_check;
 	Data::CastleResource::get_auto_inc(resources_to_check);
 	boost::container::flat_map<boost::shared_ptr<MySql::Center_CastleResource>, std::uint64_t> new_timestamps;
+	const auto account = AccountMap::require(get_owner_uuid());
+	const auto vip_level = account->cast_attribute<unsigned>(AccountAttributeIds::ID_VIP_LEVEL);
+	const auto vip_data  = Data::Vip::require(vip_level);
 	for(auto dit = resources_to_check.begin(); dit != resources_to_check.end(); ++dit){
 		const auto &resource_data = *dit;
 		const auto resource_id = resource_data->resource_id;
@@ -1528,7 +1530,17 @@ void Castle::check_auto_inc_resources(){
 					ReasonIds::ID_AUTO_INCREMENT, resource_data->auto_inc_type, resource_data->auto_inc_offset, 0);
 			}
 		}
-		const auto new_updated_time = saturated_add(old_updated_time, saturated_mul(auto_inc_period, interval_count));
+		auto new_updated_time = saturated_add(old_updated_time, saturated_mul(auto_inc_period, interval_count));
+		//vip 搜查令时间减免
+		//vip 加成
+		if(vip_level > 0){
+			if(resource_id == ResourceIds::ID_MONSTER_REWARD_COUNT){
+				if(vip_data->search_time > 0){
+					new_updated_time = saturated_sub(new_updated_time, static_cast<std::uint64_t>(vip_data->search_time*60*1000));
+					LOG_EMPERY_CENTER_DEBUG("time free for monster reward count auto incing of vip, free_time ",vip_data->search_time*60*1000.0," account_uuid = ",get_owner_uuid());
+				}
+			}
+		}
 		new_timestamps.emplace(obj, new_updated_time);
 	}
 	commit_resource_transaction(transaction,
@@ -2649,8 +2661,6 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 		fill_tech_message(msg, it->second, utc_now);
 		session->send(msg);
 	}
-	
-	
 	{
 		Msg::SC_CastleResource msg;
 		msg.source = SourceIds::ID_COMMON.get();
@@ -2660,7 +2670,6 @@ void Castle::synchronize_with_player(const boost::shared_ptr<PlayerSession> &ses
 		LOG_EMPERY_CENTER_FATAL(msg);
 		session->send(msg);
 	}
-	
 	for(auto it = m_soldiers.begin(); it != m_soldiers.end(); ++it){
 		Msg::SC_CastleSoldier msg;
 		fill_soldier_message(msg, it->second);

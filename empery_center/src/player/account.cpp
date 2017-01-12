@@ -141,7 +141,6 @@ namespace {
 	session->send(Msg::SC_AccountLoginSuccess(account_uuid.str()));
 	AccountMap::synchronize_account_with_player_all(account_uuid, session, true, true, true, { });
 	AccountMap::synchronize_account_online_state_with_relate_player_all(account_uuid,true,utc_now);
-
 	return Response();
 }
 // ============================================================================

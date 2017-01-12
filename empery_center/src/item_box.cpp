@@ -15,6 +15,7 @@
 #include "account.hpp"
 #include "account_utilities.hpp"
 #include "account_attribute_ids.hpp"
+#include "data/vip.hpp"
 
 
 namespace EmperyCenter {
@@ -78,7 +79,9 @@ void ItemBox::check_auto_inc_items(){
 	LOG_EMPERY_CENTER_TRACE("Checking auto increment items: account_uuid = ", get_account_uuid());
 
 	const auto utc_now = Poseidon::get_utc_time();
-
+	const auto account = AccountMap::require(get_account_uuid());
+	const auto vip_level = account->cast_attribute<unsigned>(AccountAttributeIds::ID_VIP_LEVEL);
+	const auto vip_data  = Data::Vip::require(vip_level);
 	std::vector<ItemTransactionElement> transaction;
 	std::vector<boost::shared_ptr<const Data::Item>> items_to_check;
 	Data::Item::get_auto_inc(items_to_check);
@@ -143,6 +146,16 @@ void ItemBox::check_auto_inc_items(){
 					", old_count = ", old_count, ", new_count = ", new_count);
 				transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, new_count - old_count,
 					ReasonIds::ID_AUTO_INCREMENT, item_data->auto_inc_type, item_data->auto_inc_offset, 0);
+			}
+			//vip 加成
+			if(vip_level > 0){
+				if(item_id == ItemIds::ID_DUNGEON_ENTER_COUNT){
+					if(vip_data->dungeon_count > 0){
+						transaction.emplace_back(ItemTransactionElement::OP_ADD, item_id, vip_data->dungeon_count,
+					ReasonIds::ID_DUNGEON_COUNT_VIP_ADD, vip_level, 0, 0);
+						LOG_EMPERY_CENTER_DEBUG("vip add dungeon enter count, item_id = ",item_id," vip_level = ",vip_level, " dungeon_count = ",vip_data->dungeon_count);
+					}
+				}
 			}
 		} else {
 			if(old_count > item_data->auto_inc_bound){

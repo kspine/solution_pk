@@ -15,6 +15,10 @@ namespace Data {
 		unsigned vip_level;
 		double production_turbo;
 		unsigned max_castle_count;
+		std::uint64_t vip_exp;
+		std::uint64_t building_free_update_time;
+		std::uint64_t dungeon_count;
+		double search_time;
 	};
 }
 

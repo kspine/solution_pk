@@ -227,11 +227,14 @@ PLAYER_SERVLET(Msg::CS_CastleUpgradeBuilding, account, session, req){
 			return Response(Msg::ERR_PREREQUISITE_NOT_MET) <<it->first;
 		}
 	}
-	const auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));
+	auto duration = static_cast<std::uint64_t>(std::ceil(upgrade_data->upgrade_duration * 60000.0 - 0.001));      const auto vip_level = account->cast_attribute<unsigned>(AccountAttributeIds::ID_VIP_LEVEL);
+	const auto vip_data = Data::Vip::require(vip_level);
+	const auto real_duration = checked_sub(duration, vip_data->building_free_update_time*60000);
+	LOG_EMPERY_CENTER_DEBUG("upgrade bulding,duration = ",duration, " vip_level = ",vip_level, " vip_free_time = ",vip_data->building_free_update_time*60000," real_duration = ",real_duration);
 
 	const auto insuff_resource_id = try_decrement_resources(castle, task_box, upgrade_data->upgrade_cost,
 		ReasonIds::ID_UPGRADE_BUILDING, building_data->building_id.get(), upgrade_data->building_level, 0,
-		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, duration, BuildingId()); });
+		[&]{ castle->create_building_mission(building_base_id, Castle::MIS_UPGRADE, real_duration, BuildingId()); });
 	if(insuff_resource_id){
 		return Response(Msg::ERR_CASTLE_NO_ENOUGH_RESOURCES) <<insuff_resource_id;
 	}
@@ -1278,7 +1281,8 @@ PLAYER_SERVLET(Msg::CS_CastleCreateChildCastle, account, session, req){
 			", other_object_uuid = ", other_object->get_map_object_uuid(), ", other_object_type_id = ", other_object_type_id);
 		++immigrant_group_count;
 	}
-	const auto vip_data = Data::Vip::require(account->get_promotion_level());
+	const auto vip_level = account->cast_attribute<unsigned>(AccountAttributeIds::ID_VIP_LEVEL);
+	const auto vip_data = Data::Vip::require(vip_level);
 	if(immigrant_group_count >= vip_data->max_castle_count + 1){
 		return Response(Msg::ERR_ACCOUNT_MAX_IMMIGRANT_GROUPS) <<vip_data->max_castle_count;
 	}
