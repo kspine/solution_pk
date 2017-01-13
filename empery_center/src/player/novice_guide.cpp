@@ -38,8 +38,10 @@ namespace EmperyCenter
        std::uint64_t  step_id = NoviceGuideMap::get_step_id(account_uuid,TaskId(task_id));
        if(step_id == (std::uint64_t)0)
        {
-         step_id = 1;
+         step_id = 2;
        }
+
+       LOG_EMPERY_CENTER_ERROR("Msg::CS_GetTaskStepInfoReqMessage2000-2002:taskid:",task_id,"step_id:",step_id);
        Msg::SC_GetTaskStepInfoResMessage msg;
        msg.task_id = task_id;
        msg.step_id = step_id;
@@ -54,17 +56,15 @@ namespace EmperyCenter
        const auto task_id = req.task_id;
        const auto step_id = req.step_id;
        const auto task_box = TaskBoxMap::require(account_uuid);
-       
+
+       LOG_EMPERY_CENTER_ERROR("Msg::CS_GuideTaskStepReqMessage2001:taskid:",task_id,"step_id:",step_id);
+
        TaskId task_ids = TaskId(task_id);
        std::uint64_t stepid = (std::uint64_t)step_id;
 
-       auto obj = boost::make_shared<MySql::Center_NoviceGuide>(
-       account_uuid.get(),task_ids.get(),step_id);
 
-       obj->enable_auto_saving();
-       Poseidon::MySqlDaemon::enqueue_for_saving(obj,true, true);
-       NoviceGuideMap::insert(obj);
-       
+       NoviceGuideMap::make_insert(account_uuid,task_ids,stepid);
+
        auto pshare = Data::NoviceGuideSetup::require(stepid);
 
        //item_rewards

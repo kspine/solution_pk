@@ -18,8 +18,7 @@ namespace EmperyCenter
 
 	struct NoviceGuideMap
 	{
-	   static void insert(const boost::shared_ptr<MySql::Center_NoviceGuide> &novice_guide_);
-	   static boost::shared_ptr<MySql::Center_NoviceGuide> find(AccountUuid account_uuid,TaskId task_id);
+	   static void make_insert(AccountUuid account_uuid,TaskId task_id,std::uint64_t step_id);
 	   static std::uint64_t get_step_id(AccountUuid account_uuid,TaskId task_id);
 	   public:
 	   		enum EIndex
