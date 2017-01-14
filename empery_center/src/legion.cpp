@@ -5,6 +5,7 @@
 #include "singletons/legion_map.hpp"
 #include "singletons/legion_building_map.hpp"
 #include "msg/cs_legion.hpp"
+#include "msg/sc_league.hpp"
 #include "player_session.hpp"
 #include "legion.hpp"
 #include "legion_attribute_ids.hpp"
@@ -429,6 +430,24 @@ void Legion::set_member_league_uuid(std::string str_league_uuid)
 		auto member = *it;
 
 		member->set_league_uuid(str_league_uuid);
+	}
+}
+
+
+void Legion::send_legion_approve_hot_push_msg(){
+
+	if(get_attribute(LegionAttributeIds::ID_AUTOJOIN) == "1"){
+	   Msg::SC_LegionApproveHotPushMsg msg;
+		send_msg_by_power(msg,LEGION_POWER_APPROVE);
+	}
+}
+
+void Legion::send_league_approve_hot_push_msg(){
+	const auto account_uuid = (AccountUuid(get_attribute(LegionAttributeIds::ID_LEADER)));
+	const auto session = PlayerSessionMap::get(account_uuid);
+	if(session){
+	  Msg::SC_LeagueApproveHotPushMsg msg;
+	  session->send(msg);
 	}
 }
 

@@ -167,6 +167,12 @@ PLAYER_SERVLET(Msg::CS_LegionCreateReqMessage, account, session, req){
 
 			legion->synchronize_with_player(account_uuid,session);
 			WorldMap::synchronize_account_map_object_all(account_uuid);
+            
+			// 如果还请求加入过其他军团，也需要做善后操作，删除其他所有加入请求
+			LegionApplyJoinMap::deleteInfo(LegionUuid(legion->get_legion_uuid()),account_uuid,true);
+
+			// 别人邀请加入的也要清空
+			LegionInviteJoinMap::deleteInfo_by_invited_uuid(account_uuid);
 		});
 
 		if(insuff_item_id)
@@ -482,6 +488,9 @@ PLAYER_SERVLET(Msg::CS_ApplyJoinLegionMessage, account, session, req){
 
 					LOG_EMPERY_CENTER_DEBUG("CS_ApplyJoinLegionMessage apply_count = ",LegionApplyJoinMap::get_apply_count(account_uuid));
 
+
+					// legion approve hot push
+					legion->send_legion_approve_hot_push_msg();
 
 					return Response(Msg::ST_OK);
 				}
@@ -1739,6 +1748,17 @@ PLAYER_SERVLET(Msg::CS_banChatLegionReqMessage, account, session, req)
 				{
 					return Response(Msg::ERR_LEGION_NO_POWER);
 				}
+
+                if(othermember->get_attribute(LegionMemberAttributeIds::ID_SPEAKFLAG) == "1" )
+				{
+					return Response(Msg::ERR_LEGION_BAN_CHAT);
+				}
+
+                if(othermember->get_attribute(LegionMemberAttributeIds::ID_SPEAKFLAG) == "0" )
+				{
+					return Response(Msg::ERR_LEGION_OPEN_CHAT);
+				}
+				
 				const auto titleid= boost::lexical_cast<uint>(othermember->get_attribute(LegionMemberAttributeIds::ID_TITLEID));
 				if( titleid > boost::lexical_cast<uint>(member->get_attribute(LegionMemberAttributeIds::ID_TITLEID)))
 				{
@@ -2485,6 +2505,12 @@ PLAYER_SERVLET(Msg::CS_ModifyLegionNameReqMessage, account, session, req){
         return Response(Msg::ERR_LEGION_NO_POWER);
     }
 
+    std::vector<boost::shared_ptr<Legion>> other_legiones;
+	  LegionMap::get_by_nick(other_legiones,std::move(name));
+	  if(!other_legiones.empty())
+	  {
+		   return Response(Msg::ERR_LEGION_CREATE_HOMONYM);
+	  }
    const auto  item_box = ItemBoxMap::require(account_uuid);
    std::vector<ItemTransactionElement> transaction;
    const auto& info = Data::Global::as_object(Data::Global::SLOT_LEGION_MODIFY_NAME);
@@ -2560,7 +2586,7 @@ PLAYER_SERVLET(Msg::CS_ModifyLegionIconReqMessage, account, session, req){
    item_box->commit_transaction(transaction, false);
 
    boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-   Attributes[LegionAttributeIds::ID_ICON] = std::move(icon);
+   Attributes[LegionAttributeIds::ID_ICON] = std::move(boost::lexical_cast<std::string>(icon));
    legion->set_attributes(Attributes);
 
    Msg::SC_LegionNoticeMsg msg;
@@ -2596,7 +2622,7 @@ PLAYER_SERVLET(Msg::CS_ModifyLegionLanguageReqMessage, account, session, req){
     }
 
     boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-    Attributes[LegionAttributeIds::ID_LANAGE] = std::move(language);
+    Attributes[LegionAttributeIds::ID_LANAGE] = std::move(boost::lexical_cast<std::string>(language));
     legion->set_attributes(Attributes);
 
     Msg::SC_LegionNoticeMsg msg;
@@ -2633,7 +2659,7 @@ PLAYER_SERVLET(Msg::CS_ModifyLegionSwitchStatusReqMessage, account, session, req
         return Response(Msg::ERR_LEGION_NO_POWER);
     }
     boost::container::flat_map<LegionAttributeId, std::string> Attributes;
-    Attributes[LegionAttributeIds::ID_AUTOJOIN] = std::move(switchstatus);
+    Attributes[LegionAttributeIds::ID_AUTOJOIN] = std::move(boost::lexical_cast<std::string>(switchstatus));
     legion->set_attributes(Attributes);
 
     Msg::SC_LegionNoticeMsg msg;

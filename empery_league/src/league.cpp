@@ -364,4 +364,11 @@ void League::synchronize_with_other_player(const boost::shared_ptr<LeagueSession
 
 }
 
+void League::send_league_approve_hot_push_msg(){
+	    EmperyCenter::Msg::LS_LeagueApproveHotPushMsg msg;
+        msg.legion_uuid	= get_attribute(LeagueAttributeIds::ID_LEADER);
+
+		if(get_controller())
+		  get_controller()->send(msg);
+	}
 }

@@ -969,5 +969,16 @@ LEAGUE_SERVLET(Msg::LS_AttornLegionNotice, server, req){
 	return Response();
 }
 
+LEAGUE_SERVLET(Msg::LS_LeagueApproveHotPushMsg, server, req){
+	PROFILE_ME;
+
+	auto legion_uuid = req.legion_uuid;
+
+	const auto& legion = LegionMap::get(LegionUuid(legion_uuid));
+	if(legion){
+		legion->send_league_approve_hot_push_msg();
+	}
+	return Response();
+}
 
 }

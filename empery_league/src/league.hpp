@@ -135,6 +135,9 @@ public:
 		return m_league_client.lock();
 	}
 	*/
+
+	// league approve hot push
+	void send_league_approve_hot_push_msg();
 };
 
 }

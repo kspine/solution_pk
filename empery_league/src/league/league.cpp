@@ -478,6 +478,9 @@ LEAGUE_SERVLET(Msg::SL_ApplyJoinLeague, league_session, req){
 
 					LOG_EMPERY_LEAGUE_DEBUG("CS_ApplyJoinLegionMessage apply_count = ",LeagueApplyJoinMap::get_apply_count(legion_uuid));
 
+					// league approve hot push 
+					league->send_league_approve_hot_push_msg();
+
 					return Response(Msg::ST_OK);
 				}
 			}

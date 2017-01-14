@@ -182,6 +182,11 @@ public:
 			}
 		}
 	}
+
+
+	// league legion  Hot push 
+	void send_legion_approve_hot_push_msg();
+	void send_league_approve_hot_push_msg();
 };
 
 }
