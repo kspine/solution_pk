@@ -87,14 +87,18 @@ LEAGUE_SERVLET(Msg::LS_LeagueInfo, server, req){
 				msg.league_notice = req.league_notice;
 				msg.league_level = req.league_level;
 				msg.league_max_member = req.league_max_member;
-				msg.leader_uuid = req.leader_legion_uuid;
+				//msg.leader_uuid = req.leader_legion_uuid;
+			    msg.leader_uuid = "";
 				msg.leader_name = "";
 				const auto& leader_legion = LegionMap::get(LegionUuid(req.leader_legion_uuid));
 				if(leader_legion)
 				{
 					const auto& leader_account = AccountMap::get(AccountUuid(leader_legion->get_attribute(LegionAttributeIds::ID_LEADER)));
 					if(leader_account)
-						msg.leader_name = leader_account->get_nick();
+					{
+					  msg.leader_uuid = boost::lexical_cast<std::string>(leader_account->get_account_uuid());	
+					  msg.leader_name = leader_account->get_nick();
+					}
 				}
 
 				/*
