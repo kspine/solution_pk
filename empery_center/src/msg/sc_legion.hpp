@@ -20,7 +20,9 @@ namespace Msg {
 	FIELD_STRING         (legion_money)	\
 	FIELD_STRING         (legion_titleid)	\
 	FIELD_STRING         (legion_donate)	\
-	FIELD_STRING         (legion_member_count)
+	FIELD_STRING         (legion_member_count)	\
+	FIELD_STRING         (bautojoin) \
+	FIELD_STRING         (language)
 #include <poseidon/cbpp/message_generator.hpp>
 
 #define MESSAGE_NAME    SC_LegionMembers
@@ -166,6 +168,10 @@ namespace Msg {
 	FIELD_STRING        (other_account_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_LegionApproveHotPushMsg
+#define MESSAGE_ID      1665
+#define MESSAGE_FIELDS
+#include <poseidon/cbpp/message_generator.hpp>
 
 }
 

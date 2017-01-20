@@ -56,6 +56,7 @@ namespace Msg {
 		ERR_LEGION_UPGRADE_GRUBE_LEFT						= 73044,		// 升级货仓时，货仓中有剩余资源，不可升级
 		ERR_LEGION_GATHER_IN_LEAVE_TIME						= 73045,		// 处于离开等待时，不能采集
 		ERR_LEGION_BUILDING_HARVEST_LIMITED                 = 73046,        // 军团货仓采集已达上限
+		ERR_LEGION_OPEN_CHAT							    = 73047,        // 已经解禁
 	};
 }
 

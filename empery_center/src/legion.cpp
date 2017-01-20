@@ -70,6 +70,7 @@ void Legion::InitAttributes(AccountUuid accountid,std::string content, std::stri
 	modifiers.emplace(LegionAttributeIds::ID_LEVEL, "1");
 	modifiers.emplace(LegionAttributeIds::ID_CONTENT, std::move(content));
 	modifiers.emplace(LegionAttributeIds::ID_ICON, std::move(icon));
+	LOG_EMPERY_CENTER_ERROR("Legion::InitAttributes:", std::move(language));
 	modifiers.emplace(LegionAttributeIds::ID_LANAGE, std::move(language));
 	if(bshenhe)
 	{
@@ -263,6 +264,10 @@ void Legion::synchronize_with_player(AccountUuid account_uuid,const boost::share
 
 	// 军团成员数量
 	msg.legion_member_count     = 	boost::lexical_cast<std::string>(LegionMemberMap::get_legion_member_count(get_legion_uuid()));
+	
+	msg.bautojoin     		    = 	get_attribute(LegionAttributeIds::ID_AUTOJOIN);
+	
+	msg.language                =   get_attribute(LegionAttributeIds::ID_LANAGE);
 
 	LOG_EMPERY_CENTER_INFO("legion members size==============================================",msg.legion_member_count);
 
@@ -432,7 +437,6 @@ void Legion::set_member_league_uuid(std::string str_league_uuid)
 		member->set_league_uuid(str_league_uuid);
 	}
 }
-
 
 void Legion::send_legion_approve_hot_push_msg(){
 
