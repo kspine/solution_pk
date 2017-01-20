@@ -62,6 +62,7 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/singletons/novice_guide_map.cpp \
 	src/singletons/friend_record_box_map.cpp \
 	src/singletons/friend_private_msg_box_map.cpp \
+	src/singletons/legion_donate_box_map.cpp \
 	src/data/common.cpp	\
 	src/data/global.cpp	\
 	src/data/castle.cpp	\
@@ -200,4 +201,5 @@ lib_libposeidon_empery_center_la_SOURCES = \
 	src/friend_record_box.cpp \
 	src/friend_private_msg_data.cpp \
 	src/friend_private_msg_box.cpp \
+	src/legion_donate_box.cpp \
 	src/mmain.cpp

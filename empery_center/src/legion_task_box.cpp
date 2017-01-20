@@ -37,8 +37,10 @@
 #include "msg/sc_legion.hpp"
 #include "legion_log.hpp"
 #include "reason_ids.hpp"
-
 #include "singletons/legion_financial_map.hpp"
+#include "legion_donate_box.hpp"
+#include "singletons/legion_donate_box_map.hpp"
+
 
 namespace EmperyCenter {
 	namespace {
@@ -269,6 +271,21 @@ namespace EmperyCenter {
 					const auto dt = Poseidon::break_down_time(utc_now);
 					if(CaculateWeekDay(dt.yr, dt.mon,dt.day) == Data::Global::as_unsigned(Data::Global::SLOT_LEGION_TASK_WEEK_REFRESH)){
 						legion_task_contribution_box->reset_week_contribution(utc_now);
+					}
+				});
+			}catch (std::exception &e){
+				LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+			}
+			
+			//更新军团捐献钻石记录
+			//周二 更新军团捐献钻石每周记录
+			try{
+				Poseidon::enqueue_async_job([=]() mutable {
+					auto legion_donate_box = LegionDonateBoxMap::require(get_legion_uuid());
+					legion_donate_box->reset_day_donate(utc_now);
+					const auto dt = Poseidon::break_down_time(utc_now);
+					if(CaculateWeekDay(dt.yr, dt.mon,dt.day) == Data::Global::as_unsigned(Data::Global::SLOT_LEGION_TASK_WEEK_REFRESH)){
+						legion_donate_box->reset_week_donate(utc_now);
 					}
 				});
 			}catch (std::exception &e){
@@ -587,7 +604,7 @@ namespace EmperyCenter {
 				const auto utc_now = Poseidon::get_utc_time();
 				const auto legion = LegionMap::require(get_legion_uuid());
 				const auto task_contribution_data = Data::TaskLegionContribution::require(key);
-				auto legion_task_contribution_box = LegionTaskContributionBoxMap::require(get_legion_uuid());
+				//auto legion_task_contribution_box = LegionTaskContributionBoxMap::require(get_legion_uuid());
 				for (auto it = m_tasks.begin(); it != m_tasks.end(); ++it) {
 					const auto task_id = it->first;
 					auto &pair = it->second;
@@ -665,7 +682,7 @@ namespace EmperyCenter {
 					if(total_contribution > person_contribution_finish){
 						person_contribution = person_contribution_finish - day_personal_contribution;
 					}
-					legion_task_contribution_box->update(account_uuid,delta,person_contribution);
+					//legion_task_contribution_box->update(account_uuid,delta);
 					const auto legion_member = LegionMemberMap::get_by_account_uuid(account_uuid);
 					if(legion_member && (person_contribution > 0) && should_award_personal_contribution){
 						boost::container::flat_map<LegionMemberAttributeId, std::string> legion_attributes_modifer;

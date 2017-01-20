@@ -173,6 +173,21 @@ namespace Msg {
 #define MESSAGE_FIELDS
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_LegionDonates
+#define MESSAGE_ID      1666
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (legion_uuid)	\
+	FIELD_ARRAY         (donates,	\
+		FIELD_STRING        (account_uuid)	\
+		FIELD_STRING        (account_nick)	\
+		FIELD_VUINT         (day_donate)	\
+		FIELD_VUINT         (week_donate)	\
+		FIELD_VUINT         (total_donate) \
+	)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
+
 }
 
 }

@@ -47,11 +47,12 @@
 #include "../singletons/legion_task_contribution_box_map.hpp"
 #include "../msg/sl_league.hpp"
 #include "../singletons/league_client.hpp"
-
 #include "../legion_log.hpp"
-
-
 #include "../singletons/legion_financial_map.hpp"
+#include "../legion_task_contribution_box.hpp"
+#include "../singletons/legion_task_contribution_box_map.hpp"
+#include "../legion_donate_box.hpp"
+#include "../singletons/legion_donate_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -2172,6 +2173,12 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 								LegionFinancialMap::make_insert(LegionUuid(member->get_legion_uuid()),account_uuid, ItemId(5500001),
 								                             old_count,new_count,static_cast<std::int64_t>(new_count - old_count),
 								                             0,action_count, Poseidon::get_utc_time());
+							   //军团贡献统计
+							   auto legion_task_contribution_box = LegionTaskContributionBoxMap::require(member->get_legion_uuid());
+							   legion_task_contribution_box->update(account_uuid,action_count);
+							   //军团捐献统计
+							   auto legion_donate_box = LegionDonateBoxMap::require(member->get_legion_uuid());
+							   legion_donate_box->update(account_uuid,req.num);
 							}
 
 
@@ -2669,6 +2676,53 @@ PLAYER_SERVLET(Msg::CS_ModifyLegionSwitchStatusReqMessage, account, session, req
     legion->sendNoticeMsg(msg);
 
     return Response(Msg::ST_OK);
+}
+
+PLAYER_SERVLET(Msg::CS_LegionDonateInfo, account, session, req){
+	PROFILE_ME;
+	const auto account_uuid = account->get_account_uuid();
+
+	// 判断自己是否加入军团
+	const auto member = LegionMemberMap::get_by_account_uuid(account_uuid);
+	if(member)
+	{
+		// 检查军团是否存在
+		const auto legion_uuid = LegionUuid(member->get_legion_uuid());
+		const auto legion = LegionMap::get(legion_uuid);
+		std::vector<boost::shared_ptr<LegionMember>> members;
+		LegionMemberMap::get_by_legion_uuid(members,legion_uuid);
+		if(legion)
+		{
+	        Msg::SC_LegionDonates msg;
+			msg.legion_uuid = legion_uuid.str();
+			auto legion_donate_box = LegionDonateBoxMap::get(legion_uuid);
+			if(legion_donate_box){
+				msg.donates.reserve(members.size());
+				for(auto it = members.begin(); it != members.end(); ++it){
+					auto &elem = *msg.donates.emplace(msg.donates.end());
+					auto account_uuid = (*it)->get_account_uuid();
+					LegionDonateBox::DonateInfo info = legion_donate_box->get(account_uuid);
+					elem.account_uuid = account_uuid.str();
+					const auto temp_account = AccountMap::get(account_uuid);
+					elem.account_nick = temp_account->get_nick();
+					elem.day_donate = info.day_donate;
+					elem.week_donate = info.week_donate;
+					elem.total_donate = info.total_donate;
+				}
+			}
+			LOG_EMPERY_CENTER_DEBUG("SC_LegionDonatess:",msg);
+			session->send(msg);
+
+			return Response(Msg::ST_OK);
+		}
+		else
+		{
+			return Response(Msg::ERR_LEGION_CANNOT_FIND);
+		}
+	}else{
+		return Response(Msg::ERR_LEGION_NOT_JOIN);
+	}
+	return Response();
 }
 
 }

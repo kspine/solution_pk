@@ -24,6 +24,8 @@
 #include "../legion_member_attribute_ids.hpp"
 #include "../msg/sc_legion.hpp"
 #include "../singletons/legion_map.hpp"
+#include "../legion_task_contribution_box.hpp"
+#include "../singletons/legion_task_contribution_box_map.hpp"
 
 namespace EmperyCenter {
 
@@ -168,6 +170,8 @@ PLAYER_SERVLET(Msg::CS_ItemFetchLegionTaskReward, account, session, req){
 			LegionLog::LegionPersonalDonateTrace(account_uuid,boost::lexical_cast<uint64_t>(donate),boost::lexical_cast<uint64_t>(donate) + personal_donate,ReasonIds::ID_LEGION_TASK_STAGE_REWARD,task_id.get(),stage,0);
 		}
 		legion_member->set_attributes(std::move(legion_attributes_modifer));
+		auto legion_task_contribution_box = LegionTaskContributionBoxMap::require(legion_uuid);
+		legion_task_contribution_box->update(account_uuid,personal_donate);
 		// 广播通知
 		const auto legion = LegionMap::require(legion_uuid);
 		Msg::SC_LegionNoticeMsg msg;

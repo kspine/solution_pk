@@ -97,6 +97,17 @@ namespace EmperyCenter {
     FIELD_INTEGER_UNSIGNED   (action_count) \
     FIELD_DATETIME           (created_time)
 #include <poseidon/mysql/object_generator.hpp>
+
+#define MYSQL_OBJECT_NAME   Center_LegionDonate
+#define MYSQL_OBJECT_FIELDS \
+	FIELD_UUID              (legion_uuid) \
+	FIELD_UUID              (account_uuid) \
+	FIELD_INTEGER_UNSIGNED  (day_donate)	\
+	FIELD_INTEGER_UNSIGNED  (week_donate)	\
+	FIELD_INTEGER_UNSIGNED  (total_donate)	\
+	FIELD_DATETIME          (last_update_time)
+#include <poseidon/mysql/object_generator.hpp>
+
 }
 }
 

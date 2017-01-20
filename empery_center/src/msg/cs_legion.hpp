@@ -226,6 +226,13 @@ namespace Msg {
 	FIELD_VUINT          (switchstatus)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_LegionDonateInfo
+#define MESSAGE_ID      1643
+#define MESSAGE_FIELDS  \
+	FIELD_STRING         (legion_uuid)
+
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

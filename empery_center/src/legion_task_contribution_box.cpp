@@ -60,7 +60,7 @@ namespace EmperyCenter {
 			ret.emplace_back(std::move(info));
 		}
 	}
-	void LegionTaskContributionBox::update(AccountUuid account_uuid,std::uint64_t delta,std::uint64_t personal_contribute) {
+	void LegionTaskContributionBox::update(AccountUuid account_uuid,std::uint64_t delta) {
 		PROFILE_ME;
 		const auto utc_now = Poseidon::get_utc_time();
 		const auto it = m_contributions.find(account_uuid);
