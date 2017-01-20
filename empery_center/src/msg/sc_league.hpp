@@ -252,6 +252,11 @@ namespace Msg {
 	)\
 	FIELD_STRING        (other_account_uuid)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_LeagueApproveHotPushMsg
+#define MESSAGE_ID      1859
+#define MESSAGE_FIELDS
+#include <poseidon/cbpp/message_generator.hpp>
 }
 
 }

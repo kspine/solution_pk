@@ -231,6 +231,13 @@ namespace Msg {
 	)
 #include <poseidon/cbpp/message_generator.hpp>
 
+
+#define MESSAGE_NAME    LS_LeagueApproveHotPushMsg
+#define MESSAGE_ID      51018
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (legion_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
