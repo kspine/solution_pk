@@ -1111,7 +1111,7 @@ bool    MapObject::get_new_enemy(AccountUuid owner_uuid,boost::shared_ptr<MapObj
 		if(is_level_limit(map_object)){
 			continue;
 		}
-		if(is_castle() && map_object->is_castle()){
+		if(is_building() && map_object->is_building()){
 			continue;
 		}
 		std::pair<long, std::string> reason;
@@ -1164,6 +1164,10 @@ void  MapObject::attack_new_target(boost::shared_ptr<MapObject> enemy_map_object
 	}
 	std::pair<long, std::string> reason;
 	if(!enemy_map_object->attacked_able(reason)){
+		return;
+	}
+	
+	if(is_building()&&enemy_map_object->is_building()){
 		return;
 	}
 
