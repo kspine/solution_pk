@@ -2141,7 +2141,7 @@ CLUSTER_SERVLET(Msg::KS_MapHarvestLegionResource, cluster, req)
 
 	*/
 //	const auto interval = req.interval;
-	const auto amount_to_harvest = req.amount_harvested;
+	const auto amount_to_harvest = req.amount_harvested/1000.0;
 	const auto amount_harvested = target_object->harvest(map_object, amount_to_harvest / unit_weight, forced_attack);
 	LOG_EMPERY_CENTER_DEBUG("Harvest: map_object_uuid = ", map_object_uuid, 
 		", harvest_speed = ", harvest_speed, ",  amount_to_harvest = ", amount_to_harvest, ",  unit_weight = ", unit_weight,",  amount_harvested = ", amount_harvested,

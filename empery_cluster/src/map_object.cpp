@@ -1586,7 +1586,7 @@ std::uint64_t MapObject::on_action_harvest_legion_resource(std::pair<long, std::
 	Msg::KS_MapHarvestLegionResource sreq;
 	sreq.map_object_uuid = get_map_object_uuid().str();
 	sreq.interval        = harvest_interval;
-	sreq.amount_harvested = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate, 0.0);
+	sreq.amount_harvested = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate*1000.0, 0.0);
 	if(forced_attack){
 		sreq.forced_attack   = true;
 	}
