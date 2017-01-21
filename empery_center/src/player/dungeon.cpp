@@ -448,9 +448,6 @@ PLAYER_SERVLET(Msg::CS_DungeonBegin, account, session, req){
 		return std::move(dresult);
 	}
 	dungeon->set_begin(true);
-	const auto scope = dungeon->get_scope();
-	dungeon->set_scope(scope);
-	
 	return Response();
 }
 
@@ -486,6 +483,19 @@ PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
 		return Response();
 	}
 	return Response(Msg::ERR_DUNGEON_OFFLINE_HAVE_FAILED) << dungeon->get_dungeon_type_id();
+}
+
+PLAYER_SERVLET(Msg::CS_ReconnResetScope, account, session, req){
+	PROFILE_ME;
+	
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON);
+	}
+	const auto scope = dungeon->get_scope();
+	dungeon->set_scope(scope);
+	return Response();
 }
 
 

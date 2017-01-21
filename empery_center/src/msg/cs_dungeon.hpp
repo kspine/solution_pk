@@ -69,6 +69,12 @@ namespace Msg {
 	//
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_ReconnResetScope
+#define MESSAGE_ID      1508
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }
