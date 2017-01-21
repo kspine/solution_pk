@@ -448,6 +448,9 @@ PLAYER_SERVLET(Msg::CS_DungeonBegin, account, session, req){
 		return std::move(dresult);
 	}
 	dungeon->set_begin(true);
+	const auto scope = dungeon->get_scope();
+	dungeon->set_scope(scope);
+	
 	return Response();
 }
 
