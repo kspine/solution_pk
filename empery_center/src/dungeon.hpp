@@ -42,6 +42,17 @@ public:
 		std::uint64_t wounded;
 	};
 
+	struct DungeonPicture {
+		std::string picture_url;
+		std::uint64_t picture_id;
+		std::int64_t type;
+		std::int64_t layer;
+		std::int64_t tween;
+		std::int64_t time;
+		std::int64_t x;
+		std::int64_t y;
+	};
+
 private:
 	const DungeonUuid m_dungeon_uuid;
 	const DungeonTypeId m_dungeon_type_id;
@@ -64,6 +75,8 @@ private:
 	boost::container::flat_map<AccountUuid, Observer> m_observers;
 	boost::container::flat_map<DungeonObjectUuid, boost::shared_ptr<DungeonObject>> m_objects;
 	boost::container::flat_map<Coord, boost::shared_ptr<DungeonBuff>>               m_dungeon_buffs;
+	boost::container::flat_map<std::uint64_t, boost::shared_ptr<DungeonPicture>>    m_dungeon_pictures;
+	std::set<Coord>                                                                 m_dungeon_block_coords;
 	Rectangle m_scope;
 	Suspension m_suspension = { };
 	boost::container::flat_map<ItemId, std::uint64_t> m_monster_reward;
@@ -128,11 +141,11 @@ public:
 		return m_expiry_time;
 	}
 	void set_expiry_time(std::uint64_t expiry_time) noexcept;
-	
+
 	std::uint64_t get_create_time() const {
 		return m_create_time;
 	}
-	
+
 	bool is_begin() const {
 		return m_begin;
 	}
@@ -175,6 +188,12 @@ public:
 	void insert_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff);
 	void update_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_buff, bool throws_if_not_exists = true);
 
+	void insert_dungeon_picture(std::uint64_t picture_id,const boost::shared_ptr<DungeonPicture> &dungeon_picture);
+	void remove_dungeon_picture(std::uint64_t picture_id);
+
+	void insert_dungeon_block_coord(Coord coord);
+	void remove_dungeon_block_coord(Coord coord);
+
 	bool is_virtually_removed() const;
 	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
 	void increase_stop_count();
@@ -185,7 +204,7 @@ public:
 	std::uint64_t get_set_wap_point_count(){
 		return m_set_way_point_count;
 	}
-	
+
 	void check_founder_offline();
 	void add_monster_reward(const boost::container::flat_map<ItemId, std::uint64_t> &items_basic);
 	void get_monster_reward(boost::container::flat_map<ItemId, std::uint64_t> &items_basic);

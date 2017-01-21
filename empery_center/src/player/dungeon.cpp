@@ -407,7 +407,7 @@ PLAYER_SERVLET(Msg::CS_DungeonPlayerConfirmation, account, session, req){
 	if(!server){
 		return Response(Msg::ERR_DUNGEON_SERVER_CONNECTION_LOST);
 	}
-
+	
 	Msg::SD_DungeonPlayerConfirmation dreq;
 	dreq.dungeon_uuid = dungeon_uuid.str();
 	dreq.context      = std::move(req.context);
@@ -416,7 +416,7 @@ PLAYER_SERVLET(Msg::CS_DungeonPlayerConfirmation, account, session, req){
 		LOG_EMPERY_CENTER_DEBUG("Dungeon server returned an error: code = ", dresult.first, ", msg = ", dresult.second);
 		return std::move(dresult);
 	}
-
+	dungeon->clear_suspension();
 	return Response();
 }
 
@@ -477,7 +477,6 @@ PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
 			LOG_EMPERY_CENTER_FATAL(msg);
 			session->send(msg);
 			dungeon->update_observer(account_uuid,session);
-			dungeon->synchronize_with_player(session);
 		}catch(std::exception &e){
 			LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ",e.what());
 		}

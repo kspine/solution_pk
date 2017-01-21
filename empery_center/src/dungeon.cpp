@@ -13,6 +13,7 @@
 #include "singletons/account_map.hpp"
 #include "account.hpp"
 #include "account_attribute_ids.hpp"
+#include <set>
 
 namespace EmperyCenter {
 
@@ -209,22 +210,7 @@ void Dungeon::insert_observer(AccountUuid account_uuid, const boost::shared_ptr<
 	}
 
 	try {
-		Msg::SC_DungeonEntered msg_entered;
-		msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
-		msg_entered.dungeon_type_id = get_dungeon_type_id().get();
-		session->send(msg_entered);
-
-		const auto &scope = get_scope();
-		Msg::SC_DungeonSetScope msg_scope;
-		fill_scope_msg(msg_scope, get_dungeon_uuid(), scope);
-		session->send(msg_scope);
-
-		const auto &suspension = get_suspension();
-		if(!suspension.context.empty()){
-			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
-			fill_suspension_msg(msg_susp, get_dungeon_uuid(), suspension);
-			session->send(msg_susp);
-		}
+		synchronize_with_player(session);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		session->shutdown(e.what());
@@ -240,22 +226,7 @@ void Dungeon::update_observer(AccountUuid account_uuid, const boost::shared_ptr<
 	}
 	it->second.session = session;
 	try {
-		Msg::SC_DungeonEntered msg_entered;
-		msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
-		msg_entered.dungeon_type_id = get_dungeon_type_id().get();
-		session->send(msg_entered);
-
-		const auto &scope = get_scope();
-		Msg::SC_DungeonSetScope msg_scope;
-		fill_scope_msg(msg_scope, get_dungeon_uuid(), scope);
-		session->send(msg_scope);
-
-		const auto &suspension = get_suspension();
-		if(!suspension.context.empty()){
-			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
-			fill_suspension_msg(msg_susp, get_dungeon_uuid(), suspension);
-			session->send(msg_susp);
-		}
+		synchronize_with_player(session);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		session->shutdown(e.what());
@@ -505,15 +476,105 @@ void Dungeon::update_dungeon_buff(const boost::shared_ptr<DungeonBuff> &dungeon_
 	synchronize_with_dungeon_server(dungeon_buff);
 }
 
+void Dungeon::insert_dungeon_picture(std::uint64_t picture_id,const boost::shared_ptr<DungeonPicture> &dungeon_picture){
+	PROFILE_ME;
+	const auto result = m_dungeon_pictures.emplace(picture_id, dungeon_picture);
+	if(!result.second){
+		LOG_EMPERY_CENTER_WARNING("Dungeon picture already exists: picture_id = ", picture_id);
+	}
+
+}
+void Dungeon::remove_dungeon_picture(std::uint64_t picture_id){
+	PROFILE_ME;
+	const auto it = m_dungeon_pictures.find(picture_id);
+	if(it == m_dungeon_pictures.end()){
+		LOG_EMPERY_CENTER_WARNING("Dungeon picture is not exists", picture_id);
+	}
+	m_dungeon_pictures.erase(it);
+}
+
+void Dungeon::insert_dungeon_block_coord(Coord coord){
+	PROFILE_ME;
+	const auto result = m_dungeon_block_coords.insert(coord);
+	if(!result.second){
+		LOG_EMPERY_CENTER_WARNING("Dungeon block coord already exists: coord = ", coord);
+	}
+}
+void Dungeon::remove_dungeon_block_coord(Coord coord){
+	PROFILE_ME;
+	const auto it = m_dungeon_block_coords.find(coord);
+	if(it == m_dungeon_block_coords.end()){
+		LOG_EMPERY_CENTER_WARNING("Dungeon block coord is not exists, coord = ", coord);
+	}
+	m_dungeon_block_coords.erase(it);
+}
+
 bool Dungeon::is_virtually_removed() const {
 	return get_expiry_time() == 0;
 }
 void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
 	PROFILE_ME;
 
-	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
-		const auto &dungeon_object = it->second;
-		dungeon_object->synchronize_with_player(session);
+	try {
+		Msg::SC_DungeonEntered msg_entered;
+		msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
+		msg_entered.dungeon_type_id = get_dungeon_type_id().get();
+		session->send(msg_entered);
+
+		const auto &scope = get_scope();
+		Msg::SC_DungeonSetScope msg_scope;
+		fill_scope_msg(msg_scope, get_dungeon_uuid(), scope);
+		session->send(msg_scope);
+
+		const auto &suspension = get_suspension();
+		if(!suspension.context.empty()){
+			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
+			fill_suspension_msg(msg_susp, get_dungeon_uuid(), suspension);
+			session->send(msg_susp);
+		}else{
+			const auto server = m_server.lock();
+				if(server){
+					try {
+						Msg::SD_DungeonReconnectStart msg;
+						msg.dungeon_uuid    = get_dungeon_uuid().str();
+						server->send(msg);
+					} catch(std::exception &e){
+						LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+						server->shutdown(e.what());
+					}
+				}
+		}
+
+		for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+			const auto &dungeon_object = it->second;
+			dungeon_object->synchronize_with_player(session);
+		}
+
+		for(auto it = m_dungeon_pictures.begin(); it != m_dungeon_pictures.end(); ++it){
+			const auto &dungeon_picture = it->second;
+			Msg::SC_DungeonShowPicture msg;
+			msg.dungeon_uuid      = get_dungeon_uuid().str();
+			msg.picture_url       = dungeon_picture->picture_url;
+			msg.picture_id        = dungeon_picture->picture_id;
+			msg.type              = dungeon_picture->type;
+			msg.layer             = dungeon_picture->layer;
+			msg.tween             = dungeon_picture->tween;
+			msg.time              = dungeon_picture->time;
+			msg.x                 = dungeon_picture->x;
+			msg.y                 = dungeon_picture->y;
+			session->send(msg);
+		}
+		Msg::SC_DungeonCreateBlocks msg_blocks;
+		msg_blocks.dungeon_uuid      = get_dungeon_uuid().str();
+		for(auto it = m_dungeon_block_coords.begin(); it != m_dungeon_block_coords.end(); ++it){
+			auto &blocks = *msg_blocks.blocks.emplace(msg_blocks.blocks.end());
+			blocks.x = (*it).x();
+			blocks.y = (*it).y();
+		}
+		session->send(msg_blocks);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		session->shutdown(e.what());
 	}
 }
 

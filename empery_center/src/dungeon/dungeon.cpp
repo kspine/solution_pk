@@ -777,7 +777,18 @@ DUNGEON_SERVLET(Msg::DS_DungeonShowPicture, dungeon, server, req){
 	msg.x                 = req.x;
 	msg.y                 = req.y;
 	dungeon->broadcast_to_observers(msg);
-
+	auto new_dungeon_picture = boost::make_shared<Dungeon::DungeonPicture>();
+	if(new_dungeon_picture){
+		new_dungeon_picture->picture_url = req.picture_url;
+		new_dungeon_picture->picture_id  = req.picture_id;
+		new_dungeon_picture->type        = req.type;
+		new_dungeon_picture->layer       = req.layer;
+		new_dungeon_picture->tween       = req.tween;
+		new_dungeon_picture->time        = req.time;
+		new_dungeon_picture->x           = req.x;
+		new_dungeon_picture->y           = req.y;
+		dungeon->insert_dungeon_picture(req.picture_id,new_dungeon_picture);
+	}
 	return Response();
 }
 
@@ -788,7 +799,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonRemovePicture, dungeon, server, req){
 	msg.tween             = req.tween;
 	msg.time              = req.time;
 	dungeon->broadcast_to_observers(msg);
-
+	dungeon->remove_dungeon_picture(req.picture_id);
 	return Response();
 }
 
@@ -825,6 +836,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateBlocks, dungeon, server, req){
 		auto &blocks = *msg.blocks.emplace(msg.blocks.end());
 		blocks.x = it->x;
 		blocks.y = it->y;
+		dungeon->insert_dungeon_block_coord(Coord(it->x,it->y));
 	}
 	dungeon->broadcast_to_observers(msg);
 	return Response();
@@ -837,6 +849,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonRemoveBlocks, dungeon, server, req){
 		auto &blocks = *msg.blocks.emplace(msg.blocks.end());
 		blocks.x = it->x;
 		blocks.y = it->y;
+		dungeon->remove_dungeon_block_coord(Coord(it->x,it->y));
 	}
 	dungeon->broadcast_to_observers(msg);
 
