@@ -436,11 +436,21 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateMonster, dungeon, server, req){
 }
 
 DUNGEON_SERVLET(Msg::DS_DungeonWaitForPlayerConfirmation, dungeon, server, req){
+	/*
 	const auto &suspension = dungeon->get_suspension();
 	if(suspension.type != 0){
 		return Response(Msg::ERR_DUNGEON_SUSPENDED);
 	}
-
+	*/
+	Dungeon::Suspension suspension;
+	suspension.context = req.context;
+	suspension.type    = req.type;
+	suspension.param1  = req.param1;
+	suspension.param2  = req.param2;
+	suspension.param3  = req.param3;
+	dungeon->set_suspension(suspension);
+	
+	/*
 	Msg::SC_DungeonWaitForPlayerConfirmation msg;
 	msg.dungeon_uuid = dungeon->get_dungeon_uuid().str();
 	msg.context      = std::move(req.context);
@@ -449,6 +459,7 @@ DUNGEON_SERVLET(Msg::DS_DungeonWaitForPlayerConfirmation, dungeon, server, req){
 	msg.param2       = req.param2;
 	msg.param3       = std::move(req.param3);
 	dungeon->broadcast_to_observers(msg);
+	*/
 
 	return Response();
 }

@@ -148,6 +148,7 @@ public:
 		return m_suspension;
 	}
 	void set_suspension(Suspension suspension);
+	void clear_suspension();
 
 	boost::shared_ptr<PlayerSession> get_observer(AccountUuid account_uuid) const;
 	void get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;

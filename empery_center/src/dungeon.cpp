@@ -166,6 +166,11 @@ void Dungeon::set_suspension(Suspension suspension){
 	}
 }
 
+void Dungeon::clear_suspension(){
+	PROFILE_ME;
+	m_suspension = {};
+}
+
 boost::shared_ptr<PlayerSession> Dungeon::get_observer(AccountUuid account_uuid) const {
 	PROFILE_ME;
 
@@ -215,7 +220,7 @@ void Dungeon::insert_observer(AccountUuid account_uuid, const boost::shared_ptr<
 		session->send(msg_scope);
 
 		const auto &suspension = get_suspension();
-		if(suspension.type != 0){
+		if(!suspension.context.empty()){
 			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
 			fill_suspension_msg(msg_susp, get_dungeon_uuid(), suspension);
 			session->send(msg_susp);
@@ -246,7 +251,7 @@ void Dungeon::update_observer(AccountUuid account_uuid, const boost::shared_ptr<
 		session->send(msg_scope);
 
 		const auto &suspension = get_suspension();
-		if(suspension.type != 0){
+		if(!suspension.context.empty()){
 			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
 			fill_suspension_msg(msg_susp, get_dungeon_uuid(), suspension);
 			session->send(msg_susp);
