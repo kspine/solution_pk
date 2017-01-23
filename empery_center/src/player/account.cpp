@@ -244,6 +244,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
 		boost::shared_ptr<ItemBox> other_item_box;
 		const bool wants_items              = Poseidon::has_any_flags_of(it->detail_flags, FL_ITEMS);
 		if(wants_items){
+			AccountMap::require_controller_token(other_account_uuid, { });
 			other_item_box = ItemBoxMap::require(other_account_uuid);
 		}
 
