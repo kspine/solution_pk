@@ -773,7 +773,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
                 const  auto accounts    = AccountMap::get(AccountUuid(owner_uuid));
                 if(!accounts)
                 {
-                   const auto scope = WorldMap::get_cluster_scope(primary_castle->get_coord());
+                   const auto scope = WorldMap::get_cluster_scope(get_coord());
                    std::int64_t numerical_x = scope.left() / static_cast<std::int64_t>(scope.width());
                    std::int64_t numerical_y = scope.bottom() / static_cast<std::int64_t>(scope.height());
                    std::string map_id = boost::lexical_cast<std::string>(numerical_x) + ","+ boost::lexical_cast<std::string>(numerical_y);

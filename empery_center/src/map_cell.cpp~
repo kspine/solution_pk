@@ -769,7 +769,6 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			AccountMap::cached_synchronize_account_with_player_all(occupier_owner_uuid, session);
 		}
 
-		const  auto accounts    = AccountMap::get(AccountUuid(owner_uuid));
                 std::string mapname("");
                 const  auto accounts    = AccountMap::get(AccountUuid(owner_uuid));
                 if(!accounts)
