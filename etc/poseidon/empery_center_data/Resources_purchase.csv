@@ -1,3 +1,2 @@
-trading_id,consumption_item,obtain_item,
-2920001,"{""1103003"":10}","{""1105001"":1}",
-,,,
+trading_id,consumption_item,obtain_item
+2920001,"{""1103003"":1000}","{""1105001"":1}"

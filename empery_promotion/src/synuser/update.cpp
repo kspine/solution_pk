@@ -1,13 +1,14 @@
 #include "../precompiled.hpp"
 #include "common.hpp"
-#include "../mmain.hpp"
 #include <poseidon/hash.hpp>
 #include <poseidon/http/utilities.hpp>
+#include "../mmain.hpp"
 #include "../singletons/account_map.hpp"
 #include "../data/promotion.hpp"
 #include "../msg/err_account.hpp"
 #include "../singletons/item_map.hpp"
 #include "../item_ids.hpp"
+#include "../events/synuser.hpp"
 
 namespace EmperyPromotion {
 
@@ -45,6 +46,9 @@ SYNUSER_SERVLET("update", session, params){
 		root[sslit("errorcode")] = "sign_invalid";
 		return root;
 	}
+
+	Poseidon::async_raise_event(boost::make_shared<Events::SynUser>(session->get_remote_info().ip.get(), "update",
+		Poseidon::Http::url_encoded_from_optional_map(params)));
 
 	auto info = AccountMap::get_by_login_name(login_name);
 	if(Poseidon::has_none_flags_of(info.flags, AccountMap::FL_VALID)){
@@ -130,12 +134,12 @@ SYNUSER_SERVLET("update", session, params){
 	if(!nick.empty()){
 		AccountMap::set_nick(info.account_id, std::move(nick));
 	}
-	if(!password.empty()){
-		AccountMap::set_password(info.account_id, std::move(password));
-	}
-	if(!deal_password.empty()){
-		AccountMap::set_deal_password(info.account_id, std::move(deal_password));
-	}
+//	if(!password.empty()){
+//		AccountMap::set_password(info.account_id, std::move(password));
+//	}
+//	if(!deal_password.empty()){
+//		AccountMap::set_deal_password(info.account_id, std::move(deal_password));
+//	}
 	if(full_access && !banned_until.empty()){
 		AccountMap::set_banned_until(info.account_id, boost::lexical_cast<std::uint64_t>(banned_until));
 	}

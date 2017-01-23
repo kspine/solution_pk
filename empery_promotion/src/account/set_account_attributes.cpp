@@ -5,6 +5,8 @@
 #include "../msg/err_account.hpp"
 #include "../singletons/item_map.hpp"
 #include "../item_ids.hpp"
+#include "../events/admin.hpp"
+#include <poseidon/http/utilities.hpp>
 
 namespace EmperyPromotion {
 
@@ -29,6 +31,9 @@ ACCOUNT_SERVLET("setAccountAttributes", session, params){
 	auto is_auction_center_enabled    = params.get("isAuctionCenterEnabled");
 	auto is_shared_recharge_enabled   = params.get("isSharedRechargeEnabled");
 	auto forced_update                = !params.get("forcedUpdate").empty();
+
+	Poseidon::async_raise_event(boost::make_shared<Events::Admin>(session->get_remote_info().ip.get(), "setAccountAttributes",
+		Poseidon::Http::url_encoded_from_optional_map(params)));
 
 	Poseidon::JsonObject ret;
 	auto info = AccountMap::get_by_login_name(login_name);

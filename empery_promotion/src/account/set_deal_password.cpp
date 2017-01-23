@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "../singletons/account_map.hpp"
 #include "../msg/err_account.hpp"
+#include "../mmain.hpp"
 
 namespace EmperyPromotion {
 

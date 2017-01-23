@@ -434,10 +434,10 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 
 	LOG_EMPERY_PROMOTION_DEBUG("Sell acceleration cards: buyer_id = ", buyer_id, ", unit_price = ", unit_price, ", cards_to_sell = ", cards_to_sell);
 
-	std::vector<ItemTransactionElement> transaction;
 	std::uint64_t cards_sold = 0;
 
 	for(std::uint64_t i = 0; i < cards_to_sell; ++i){
+		std::vector<ItemTransactionElement> transaction;
 		const auto state = GlobalStatus::fetch_add(GlobalStatus::SLOT_ACC_CARD_STATE, 1);
 		const auto sale_alt = (g_acceleration_card_alt_wrap != 0) && ((state % g_acceleration_card_alt_wrap) < g_acceleration_card_alt_count);
 
@@ -546,8 +546,8 @@ std::uint64_t sell_acceleration_cards(AccountId buyer_id, std::uint64_t unit_pri
 		_end:
 			;
 		}
+		ItemMap::commit_transaction(transaction.data(), transaction.size());
 	}
-	ItemMap::commit_transaction(transaction.data(), transaction.size());
 	return cards_sold;
 }
 std::uint64_t sell_acceleration_cards_internal(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell){
@@ -566,10 +566,10 @@ std::uint64_t sell_acceleration_cards_internal(AccountId buyer_id, std::uint64_t
 
 	LOG_EMPERY_PROMOTION_DEBUG("Sell acceleration cards: buyer_id = ", buyer_id, ", unit_price = ", unit_price, ", cards_to_sell = ", cards_to_sell);
 
-	std::vector<ItemTransactionElement> transaction;
 	std::uint64_t cards_sold = 0;
 
 	for(std::uint64_t i = 0; i < cards_to_sell; ++i){
+		std::vector<ItemTransactionElement> transaction;
 		for(auto qit = queue.begin(); qit != queue.end(); ++qit){
 			if(qit->account_id == buyer_id){
 				continue;
@@ -632,8 +632,8 @@ std::uint64_t sell_acceleration_cards_internal(AccountId buyer_id, std::uint64_t
 			Events::ItemChanged::R_BUY_MORE_CARDS, buyer_id.get(), unit_price, 0, std::string());
 		transaction.emplace_back(buyer_id, ItemTransactionElement::OP_REMOVE, ItemIds::ID_ACCOUNT_BALANCE, unit_price,
 			Events::ItemChanged::R_BUY_MORE_CARDS, buyer_id.get(), unit_price, 0, std::string());
+		ItemMap::commit_transaction(transaction.data(), transaction.size());
 	}
-	ItemMap::commit_transaction(transaction.data(), transaction.size());
 	return cards_sold;
 }
 std::uint64_t sell_acceleration_cards_mojinpai(AccountId buyer_id, std::uint64_t unit_price, std::uint64_t cards_to_sell){
@@ -652,10 +652,10 @@ std::uint64_t sell_acceleration_cards_mojinpai(AccountId buyer_id, std::uint64_t
 
 	LOG_EMPERY_PROMOTION_DEBUG("Sell acceleration cards: buyer_id = ", buyer_id, ", unit_price = ", unit_price, ", cards_to_sell = ", cards_to_sell);
 
-	std::vector<ItemTransactionElement> transaction;
 	std::uint64_t cards_sold = 0;
 
 	for(std::uint64_t i = 0; i < cards_to_sell; ++i){
+		std::vector<ItemTransactionElement> transaction;
 		for(auto qit = queue.begin(); qit != queue.end(); ++qit){
 			const auto card_count = ItemMap::get_count(qit->account_id, ItemIds::ID_ACCELERATION_CARDS);
 			LOG_EMPERY_PROMOTION_DEBUG("> Path upward: account_id = ", qit->account_id, ", card_count = ", card_count);
@@ -709,8 +709,8 @@ std::uint64_t sell_acceleration_cards_mojinpai(AccountId buyer_id, std::uint64_t
 		}
 	_end:
 		;
+		ItemMap::commit_transaction(transaction.data(), transaction.size());
 	}
-	ItemMap::commit_transaction(transaction.data(), transaction.size());
 	return cards_sold;
 }
 

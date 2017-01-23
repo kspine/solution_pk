@@ -18,4 +18,6 @@ lib_LTLIBRARIES = \
 lib_libposeidon_empery_promotion_log_la_SOURCES = \
 	src/singletons/account_listeners.cpp	\
 	src/singletons/item_listeners.cpp	\
+	src/singletons/admin_listeners.cpp	\
+	src/singletons/synuser_listeners.cpp	\
 	src/mmain.cpp

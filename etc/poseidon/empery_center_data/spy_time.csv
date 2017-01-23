@@ -1,0 +1,5 @@
+spy_id,spy_rangemin,spy_rangemax,spy_time,spy_fronttime
+130401,0,10,1,0
+130402,11,50,2,10
+130403,51,100,3,88
+130404,101,999999,4,235
