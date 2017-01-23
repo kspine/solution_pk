@@ -2176,10 +2176,11 @@ PLAYER_SERVLET(Msg::CS_LegionDonateMessage, account, session, req)
 							   //军团贡献统计
 							   auto legion_task_contribution_box = LegionTaskContributionBoxMap::require(member->get_legion_uuid());
 							   legion_task_contribution_box->update(account_uuid,action_count);
-							   //军团捐献统计
-							   auto legion_donate_box = LegionDonateBoxMap::require(member->get_legion_uuid());
-							   legion_donate_box->update(account_uuid,req.num);
 							}
+							
+							//军团捐献统计
+							auto legion_donate_box = LegionDonateBoxMap::require(member->get_legion_uuid());
+							legion_donate_box->update(account_uuid,req.num);
 
 
 							// 广播给军团其他成员
