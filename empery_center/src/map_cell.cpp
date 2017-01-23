@@ -33,6 +33,10 @@
 #include "account_attribute_ids.hpp"
 #include "data/map_country.hpp"
 
+
+#include "account_attribute_ids.hpp"
+#include "data/map_country.hpp"
+
 namespace EmperyCenter {
 namespace {
 	void fill_buff_info(MapCell::BuffInfo &info, const boost::shared_ptr<MySql::Center_MapCellBuff> &obj){
@@ -184,8 +188,8 @@ void MapCell::pump_production(){
 		}
 		auto castle = boost::dynamic_pointer_cast<Castle>(WorldMap::get_map_object(parent_object_uuid));
 		if(!castle){
-			LOG_EMPERY_CENTER_DEBUG("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
-			DEBUG_THROW(Exception, sslit("No parent castle"));
+			LOG_EMPERY_CENTER_WARNING("No parent castle: coord = ", coord, ", parent_object_uuid = ", get_parent_object_uuid());
+			return;
 		}
 		const auto account = AccountMap::require(castle->get_owner_uuid());
 
@@ -668,7 +672,6 @@ void MapCell::check_occupation(){
 		AccountMap::require_controller_token(owner_uuid, { });
 		const auto item_box = ItemBoxMap::require(owner_uuid);
 
-
 		std::vector<boost::shared_ptr<MapObject>> pending_objects;
 		WorldMap::get_map_objects_by_rectangle(pending_objects, Rectangle(coord, 1, 1));
 		for(auto it = pending_objects.begin(); it != pending_objects.end(); ++it){
@@ -769,53 +772,54 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			AccountMap::cached_synchronize_account_with_player_all(occupier_owner_uuid, session);
 		}
 
-                std::string mapname("");
-                const  auto accounts    = AccountMap::get(AccountUuid(owner_uuid));
-                if(!accounts)
-                {
-                   const auto scope = WorldMap::get_cluster_scope(get_coord());
-                   std::int64_t numerical_x = scope.left() / static_cast<std::int64_t>(scope.width());
-                   std::int64_t numerical_y = scope.bottom() / static_cast<std::int64_t>(scope.height());
-                   std::string map_id = boost::lexical_cast<std::string>(numerical_x) + ","+ boost::lexical_cast<std::string>(numerical_y);
+		 std::string mapname(""); 
+		 const  auto accounts    = AccountMap::get(AccountUuid(owner_uuid));
+		 if(!accounts)
+		 {
+            const auto scope = WorldMap::get_cluster_scope(get_coord());
+            std::int64_t numerical_x = scope.left() / static_cast<std::int64_t>(scope.width());
+			std::int64_t numerical_y = scope.bottom() / static_cast<std::int64_t>(scope.height());
+			std::string map_id = boost::lexical_cast<std::string>(numerical_x) + ","+ boost::lexical_cast<std::string>(numerical_y);
 
-                   mapname =  Data::MapCountry::get_map_name(map_id);
-                }
-                else
-                {
-		     const auto &map_name  = accounts->get_attribute(AccountAttributeIds::ID_MAP_COUNTRY);
-		     if(map_name.empty())
-		     {
-			const auto primary_castle =  WorldMap::get_primary_castle(AccountUuid(owner_uuid));
-			if(primary_castle)
-			{
-			   const auto scope = WorldMap::get_cluster_scope(primary_castle->get_coord());
+		    mapname =  Data::MapCountry::get_map_name(map_id);
+		 }
+		 else
+		 {
+			 const auto &map_name  = accounts->get_attribute(AccountAttributeIds::ID_MAP_COUNTRY);
+			 if(map_name.empty())
+			 {
+				 const auto primary_castle =  WorldMap::get_primary_castle(AccountUuid(owner_uuid));
+				 if(primary_castle)
+				 {
+					 const auto scope = WorldMap::get_cluster_scope(primary_castle->get_coord());
 
-			   std::int64_t numerical_x = scope.left() / static_cast<std::int64_t>(scope.width());
-			   std::int64_t numerical_y = scope.bottom() / static_cast<std::int64_t>(scope.height());
-			   std::string map_id = boost::lexical_cast<std::string>(numerical_x) + ","+ boost::lexical_cast<std::string>(numerical_y);
+					 std::int64_t numerical_x = scope.left() / static_cast<std::int64_t>(scope.width());
+					 std::int64_t numerical_y = scope.bottom() / static_cast<std::int64_t>(scope.height());
+					 std::string map_id = boost::lexical_cast<std::string>(numerical_x) + ","+ boost::lexical_cast<std::string>(numerical_y);
 
-			   std::string map_names =  Data::MapCountry::get_map_name(map_id);
+					 std::string map_names =  Data::MapCountry::get_map_name(map_id);
+					 //update account attributive 
+					 boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+					 modifiers.reserve(1);
+					 modifiers[AccountAttributeIds::ID_MAP_COUNTRY]  = map_names;
+					 accounts->set_attributes(std::move(modifiers)); 
 
-			   boost::container::flat_map<AccountAttributeId, std::string> modifiers;
-			   modifiers.reserve(1);
-			   modifiers[AccountAttributeIds::ID_MAP_COUNTRY]  = map_names;
-			   accounts->set_attributes(std::move(modifiers)); 
-
-                            mapname = map_names;
-			}
-		    }
-                    else
-                    {
-                      mapname = map_name;
-                    }
-                }
+					 mapname = map_names;
+				 }
+		     }
+			 else
+			 {
+				 mapname = map_name;
+			 }
+		 }
 
 		Msg::SC_MapCellInfo msg;
+
 		msg.x                         = get_coord().x();
 		msg.y                         = get_coord().y();
 		msg.parent_object_uuid        = parent_object_uuid.str();
 		msg.owner_uuid                = owner_uuid.str();
-                msg.map_name                  = map_name;
+		msg.map_name                  = mapname;
 		msg.acceleration_card_applied = is_acceleration_card_applied();
 		msg.ticket_item_id            = get_ticket_item_id().get();
 		msg.production_resource_id    = get_production_resource_id().get();
