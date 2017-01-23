@@ -233,7 +233,7 @@ PLAYER_SERVLET(Msg::CS_AccountQueryAttributes, account, session, req){
 		elem.error_code   = Msg::ERR_NO_SUCH_ACCOUNT;
 
 		const auto &other_account = AccountMap::get(other_account_uuid);
-		if(other_account){
+		if(!other_account){
 			continue;
 		}
 
