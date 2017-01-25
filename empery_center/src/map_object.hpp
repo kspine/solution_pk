@@ -127,6 +127,7 @@ public:
 	std::uint64_t get_resource_amount_carried() const;
 	std::uint64_t load_resource(ResourceId resource_id, std::uint64_t amount_to_add, bool ignore_limit, bool use_alt_id);
 	void unload_resources(const boost::shared_ptr<Castle> &castle);
+	void discard_resources();
 
 	unsigned get_action() const {
 		return m_action;

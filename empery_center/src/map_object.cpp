@@ -649,6 +649,30 @@ void MapObject::unload_resources(const boost::shared_ptr<Castle> &castle){
 		});
 }
 
+void MapObject::discard_resources(){
+	PROFILE_ME;
+
+	std::vector<boost::shared_ptr<MySql::Center_MapObjectAttribute>> attribute_objs;
+	for(auto it = m_attributes.begin(); it != m_attributes.end(); ++it){
+		const auto attribute_id = it->first;
+		const auto &obj = it->second;
+		const auto value = obj->get_value();
+		if(value <= 0){
+			continue;
+		}
+		const auto resource_data = Data::CastleResource::get_by_carried_attribute_id(attribute_id);
+		if(!resource_data){
+			continue;
+		}
+		attribute_objs.emplace_back(obj);
+	}
+
+	for(auto it = attribute_objs.begin(); it != attribute_objs.end(); ++it){
+		const auto &obj = *it;
+		obj->set_value(0);
+	}
+}
+
 void MapObject::set_action(unsigned action, std::string action_param){
 	PROFILE_ME;
 

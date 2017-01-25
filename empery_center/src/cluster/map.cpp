@@ -1336,6 +1336,10 @@ _wounded_done:
 						auto &amount = resources_dropped[resource_id];
 						amount = checked_add(amount, amount_dropped);
 					}
+					if(attacked_account_uuid){
+						attacked_object->discard_resources();
+						attacked_object->clear_buff(BuffIds::ID_HARVEST_STATUS);	
+					}
 				}
 			_create_crates:
 				;
