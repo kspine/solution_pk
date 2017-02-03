@@ -22,14 +22,20 @@ namespace Data {
 	public:
 		static boost::shared_ptr<const MapCellTicket> get(ItemId ticket_item_id);
 		static boost::shared_ptr<const MapCellTicket> require(ItemId ticket_item_id);
+		static boost::shared_ptr<const MapCellTicket> get_by_terrain_level(TerrainId terrain_id,std::uint64_t level);
 
 	public:
 		ItemId ticket_item_id;
+		TerrainId terrain_id;
+		std::uint64_t level;
+		std::pair<TerrainId,std::uint64_t> terrain_level;
 		double production_rate_modifier;
 		double capacity_modifier;
 		std::uint64_t soldiers_max;
 		double self_healing_rate;
 		bool protectable;
+		boost::container::flat_map<ItemId, std::uint64_t> need_items;
+        boost::container::flat_map<ResourceId, std::uint64_t> need_resources;
 	};
 
 	class MapTerrain {

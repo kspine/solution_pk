@@ -122,6 +122,8 @@ namespace EmperyCenter {
 				SLOT_ITEM_DUNGEON_TRAD_PARAM                           = 100149,
 				SLOT_BUILDING_FREE_UPGRADE_LIMIT                       = 100151,
 				SLOT_ATTACK_RESOURCE_CREATE_COEFFICIENT                = 100152,
+				SLOT_MAP_CELL_ITEM_REBATE_RATE                         = 100154,
+				SLOT_MAP_CELL_RESOURCE_REBATE_RATE                     = 100155,
 			};
 
 		public:

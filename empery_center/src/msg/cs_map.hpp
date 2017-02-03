@@ -194,6 +194,13 @@ namespace Msg {
 	FIELD_VUINT         (soldier_count)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    CS_MapDestoryMapCell
+#define MESSAGE_ID      325
+#define MESSAGE_FIELDS  \
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

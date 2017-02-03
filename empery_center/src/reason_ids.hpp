@@ -114,7 +114,8 @@ constexpr ReasonId
 	ID_LEGION_BUILDING_HARVESTED_COUNTS_ITEM(675015),
 	ID_DUNGEON_FAIL                ( 675016 ),// 副本 ID             0                   0
 	ID_DUNGEON_COUNT_VIP_CHANGED     ( 675017 ), // 旧等级           新等级              0
-	ID_DUNGEON_COUNT_VIP_ADD         ( 675018 ); // vip 等级
+	ID_DUNGEON_COUNT_VIP_ADD         ( 675018 ), // vip 等级
+	ID_MAP_CELL_DESTORY              ( 675019 ); // x                 y                   0
 }
 
 }

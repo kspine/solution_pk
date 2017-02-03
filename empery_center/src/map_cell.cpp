@@ -702,13 +702,31 @@ void MapCell::check_occupation(){
 		const auto protection_duration = checked_mul<std::uint64_t>(protection_minutes, 60000);
 
 		std::vector<ItemTransactionElement> transaction;
+		std::vector<ResourceTransactionElement> resource_transaction;
 		bool ticket_reclaimed = false;
 		const auto castle_level = castle->get_level();
 		const auto updrade_data = Data::CastleUpgradePrimary::require(castle_level);
 		const auto distance = get_distance_of_coords(coord, castle->get_coord());
 		if(distance > updrade_data->max_map_cell_distance){
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, ticket_item_id, 1,
+			const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
+			const auto item_rebate_rate = Data::Global::as_double(Data::Global::SLOT_MAP_CELL_ITEM_REBATE_RATE);
+			const auto resource_rebate_rate = Data::Global::as_double(Data::Global::SLOT_MAP_CELL_RESOURCE_REBATE_RATE);
+			for(auto it = ticket_data->need_items.begin(); it != ticket_data->need_items.end(); ++it){
+				const auto rebate = static_cast<std::uint64_t>(it->second * item_rebate_rate);
+				if(rebate <= 0 ){
+					continue;
+				}
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, rebate,
 				ReasonIds::ID_OCCUPATION_END_RELOCATED, coord.x(), coord.y(), 0);
+			}
+			for(auto it = ticket_data->need_resources.begin(); it != ticket_data->need_resources.end(); ++it){
+				const auto rebate = static_cast<std::uint64_t>(it->second * resource_rebate_rate);
+				if(rebate <= 0 ){
+					continue;
+				}
+				resource_transaction.emplace_back(ResourceTransactionElement::OP_ADD,it->first, rebate,
+				ReasonIds::ID_OCCUPATION_END_RELOCATED, coord.x(), coord.y(), 0);
+			}
 			if(is_acceleration_card_applied()){
 				transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, 1,
 					ReasonIds::ID_OCCUPATION_END_RELOCATED, coord.x(), coord.y(), 0);
@@ -717,14 +735,17 @@ void MapCell::check_occupation(){
 		}
 		item_box->commit_transaction(transaction, false,
 			[&]{
-				set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
-				clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
-				set_occupier_object({ });
+					castle->commit_resource_transaction_nothrow(resource_transaction,
+					[&]{
+						set_buff(BuffIds::ID_OCCUPATION_PROTECTION, protection_duration);
+						clear_buff(BuffIds::ID_OCCUPATION_MAP_CELL);
+						set_occupier_object({ });
 
-				if(ticket_reclaimed){
-					set_parent_object({ }, { }, { });
-					set_acceleration_card_applied(false);
-				}
+						if(ticket_reclaimed){
+							set_parent_object({ }, { }, { });
+							set_acceleration_card_applied(false);
+						}
+					});
 			});
 	};
 
@@ -772,7 +793,7 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 			AccountMap::cached_synchronize_account_with_player_all(occupier_owner_uuid, session);
 		}
 
-		 std::string mapname(""); 
+		 std::string mapname("");
 		 const  auto accounts    = AccountMap::get(AccountUuid(owner_uuid));
 		 if(!accounts)
 		 {
@@ -798,11 +819,11 @@ void MapCell::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 					 std::string map_id = boost::lexical_cast<std::string>(numerical_x) + ","+ boost::lexical_cast<std::string>(numerical_y);
 
 					 std::string map_names =  Data::MapCountry::get_map_name(map_id);
-					 //update account attributive 
+					 //update account attributive
 					 boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 					 modifiers.reserve(1);
 					 modifiers[AccountAttributeIds::ID_MAP_COUNTRY]  = map_names;
-					 accounts->set_attributes(std::move(modifiers)); 
+					 accounts->set_attributes(std::move(modifiers));
 
 					 mapname = map_names;
 				 }

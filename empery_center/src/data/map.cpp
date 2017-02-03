@@ -17,6 +17,7 @@ namespace {
 
 	MULTI_INDEX_MAP(TicketContainer, Data::MapCellTicket,
 		UNIQUE_MEMBER_INDEX(ticket_item_id)
+		UNIQUE_MEMBER_INDEX(terrain_level)
 	)
 	boost::weak_ptr<const TicketContainer> g_ticket_container;
 	const char TICKET_FILE[] = "Territory_levelup";
@@ -71,11 +72,36 @@ namespace {
 			Data::MapCellTicket elem = { };
 
 			csv.get(elem.ticket_item_id,           "territory_certificate");
+			csv.get(elem.terrain_id,               "territory_terrain");
+			csv.get(elem.level,                    "territory_level");
+			elem.terrain_level = std::make_pair(elem.terrain_id,elem.level);
 			csv.get(elem.production_rate_modifier, "output_multiple");
 			csv.get(elem.capacity_modifier,        "resource_multiple");
 			csv.get(elem.soldiers_max,             "territory_hp");
 			csv.get(elem.self_healing_rate,        "recovery_hp");
 			csv.get(elem.protectable,              "protect");
+			Poseidon::JsonObject object;
+			csv.get(object, "territory_need_item");
+			elem.need_items.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto item_id = boost::lexical_cast<ItemId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.need_items.emplace(item_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate upgrade cell need: item_id = ", item_id);
+					DEBUG_THROW(Exception, sslit("Duplicate upgrade cell need item"));
+				}
+			}
+			object.clear();
+			csv.get(object, "territory_need");
+			elem.need_resources.reserve(object.size());
+			for(auto it = object.begin(); it != object.end(); ++it){
+				const auto resource_id = boost::lexical_cast<ResourceId>(it->first);
+				const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+				if(!elem.need_resources.emplace(resource_id, count).second){
+					LOG_EMPERY_CENTER_ERROR("Duplicate upgrade cell need: resouce_id = ", resource_id);
+					DEBUG_THROW(Exception, sslit("Duplicate upgrade cell need resource"));
+				}
+			}
 
 			if(!ticket_container->insert(std::move(elem)).second){
 				LOG_EMPERY_CENTER_ERROR("Duplicate ContainerCellTicket: ticket_item_id = ", elem.ticket_item_id);
@@ -209,6 +235,23 @@ namespace Data {
 			DEBUG_THROW(Exception, sslit("MapCellTicket not found"));
 		}
 		return ret;
+	}
+
+	boost::shared_ptr<const MapCellTicket> MapCellTicket::get_by_terrain_level(TerrainId terrain_id,std::uint64_t level){
+		PROFILE_ME;
+
+		const auto ticket_container = g_ticket_container.lock();
+		if(!ticket_container){
+			LOG_EMPERY_CENTER_WARNING("MapCellTicketContainer has not been loaded.");
+			return { };
+		}
+
+		const auto it = ticket_container->find<1>(std::make_pair(terrain_id,level));
+		if(it == ticket_container->end<1>()){
+			LOG_EMPERY_CENTER_TRACE("MapCellTicket not found: terrain_id = ", terrain_id," level = ",level);
+			return { };
+		}
+		return boost::shared_ptr<const MapCellTicket>(ticket_container, &*it);
 	}
 
 	boost::shared_ptr<const MapTerrain> MapTerrain::get(TerrainId terrain_id){

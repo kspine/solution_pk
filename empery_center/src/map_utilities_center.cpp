@@ -423,6 +423,8 @@ try {
 		}
 
 		// 回收所有领地。
+		const auto item_rebate_rate = Data::Global::as_double(Data::Global::SLOT_MAP_CELL_ITEM_REBATE_RATE);
+		const auto resource_rebate_rate = Data::Global::as_double(Data::Global::SLOT_MAP_CELL_RESOURCE_REBATE_RATE);
 		for(auto it = map_cells.begin(); it != map_cells.end(); ++it){
 			const auto &map_cell = *it;
 
@@ -434,11 +436,27 @@ try {
 			map_cell->harvest(castle, UINT32_MAX, true);
 
 			const auto ticket_item_id = map_cell->get_ticket_item_id();
-
+			const auto ticket_data = Data::MapCellTicket::require(ticket_item_id);
 			std::vector<ItemTransactionElement> transaction;
-			transaction.emplace_back(ItemTransactionElement::OP_ADD, ticket_item_id, 1,
+			std::vector<ResourceTransactionElement> resource_transaction; 
+			for(auto it = ticket_data->need_items.begin(); it != ticket_data->need_items.end(); ++it){
+				const auto rebate = static_cast<std::uint64_t>(it->second * item_rebate_rate);
+				if(rebate <= 0 ){
+					continue;
+				}
+				transaction.emplace_back(ItemTransactionElement::OP_ADD, it->first, rebate,
 				ReasonIds::ID_HANG_UP_CASTLE, castle_uuid_head, 0, 0);
-			items_regained[ticket_item_id] += 1;
+				items_regained[it->first] += rebate;
+			}
+			for(auto it = ticket_data->need_resources.begin(); it != ticket_data->need_resources.end(); ++it){
+				const auto rebate = static_cast<std::uint64_t>(it->second * resource_rebate_rate);
+				if(rebate <= 0 ){
+					continue;
+				}
+				resource_transaction.emplace_back(ResourceTransactionElement::OP_ADD,it->first, rebate,
+				ReasonIds::ID_HANG_UP_CASTLE, castle_uuid_head, 0, 0);
+			}
+
 			if(map_cell->is_acceleration_card_applied()){
 				transaction.emplace_back(ItemTransactionElement::OP_ADD, ItemIds::ID_ACCELERATION_CARD, 1,
 					ReasonIds::ID_HANG_UP_CASTLE, castle_uuid_head, 0, 0);
@@ -446,17 +464,12 @@ try {
 			}
 			item_box->commit_transaction(transaction, false,
 				[&]{
-					map_cell->clear_buff(BuffIds::ID_OCCUPATION_PROTECTION);
-					map_cell->set_parent_object({ }, { }, { });
-					map_cell->set_acceleration_card_applied(false);
-					for(auto it = child_objects.begin(); it != child_objects.end(); ++it){
-						const auto &child_object = *it;
-						const auto map_object_type_id = child_object->get_map_object_type_id();
-						if(map_object_type_id == MapObjectTypeIds::ID_CASTLE){
-							continue;
-						}
-						child_object->set_coord(new_coord);
-					}
+					castle->commit_resource_transaction_nothrow(resource_transaction,
+					[&]{
+						map_cell->clear_buff(BuffIds::ID_OCCUPATION_PROTECTION);
+						map_cell->set_parent_object({ }, { }, { });
+						map_cell->set_acceleration_card_applied(false);
+					});
 				});
 		}
 
