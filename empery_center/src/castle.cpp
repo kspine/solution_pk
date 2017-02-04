@@ -383,6 +383,7 @@ void Castle::pump_status(){
 	if(dirty){
 		recalculate_attributes(true);
 		async_recheck_building_level_tasks(get_owner_uuid());
+		async_recheck_tech_level_tasks(get_owner_uuid());
 	}
 
 	pump_population_production();
@@ -1257,6 +1258,7 @@ void Castle::create_tech_mission(TechId tech_id, Castle::Mission mission, std::u
 
 	if(check_tech_mission(obj, utc_now)){
 		recalculate_attributes(true);
+		async_recheck_tech_level_tasks(get_owner_uuid());
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -1330,6 +1332,7 @@ void Castle::speed_up_tech_mission(TechId tech_id, std::uint64_t delta_duration)
 
 	if(check_tech_mission(obj, utc_now)){
 		recalculate_attributes(true);
+		async_recheck_tech_level_tasks(get_owner_uuid());
 	}
 
 	const auto session = PlayerSessionMap::get(get_owner_uuid());
@@ -1394,6 +1397,7 @@ void Castle::pump_tech_status(TechId tech_id){
 
 	if(check_tech_mission(it->second, utc_now)){
 		recalculate_attributes(true);
+		async_recheck_tech_level_tasks(get_owner_uuid());
 	}
 }
 unsigned Castle::get_tech_queue_size() const {
@@ -1424,6 +1428,20 @@ void Castle::synchronize_tech_with_player(TechId tech_id, const boost::shared_pt
 	Msg::SC_CastleTech msg;
 	fill_tech_message(msg, it->second, utc_now);
 	session->send(msg);
+}
+
+void Castle::accumulate_tech_levels(boost::container::flat_map<TechId, boost::container::flat_map<unsigned, std::size_t>> &ret) const{
+	PROFILE_ME;
+
+	for(auto it = m_techs.begin(); it != m_techs.end(); ++it){
+		const auto tech_id = TechId(it->second->get_tech_id());
+		if(!tech_id){
+			continue;
+		}
+		const unsigned level = it->second->get_tech_level();
+		auto &count = ret[tech_id][level];
+		++count;
+	}
 }
 
 void Castle::check_init_resources(){

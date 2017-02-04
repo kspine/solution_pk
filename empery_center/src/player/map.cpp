@@ -346,6 +346,9 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 
 	map_cell->pump_status();
 
+	const auto task_box = TaskBoxMap::require(account->get_account_uuid());
+	task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_BUILD_RESOURCES_POINT, resource_id.get(), 1,
+							TaskBox::TCC_PRIMARY, 0, 0);
 	return Response();
 }
 

@@ -24,7 +24,9 @@ namespace EmperyCenter {
 			ID_JOIN_LEGION(15),//加入军团
 			ID_HARVEST_TYPE_SOLIDERS(16),//arm_type  数量
 			ID_HARVEST_SPECIFIC_STRATEGIC_RESOURCE(17),// 资源id 数量
-			ID_ENTER_DUNGEON(18);//副本id 数量
+			ID_ENTER_DUNGEON(18),//副本id 数量
+			ID_BUILD_RESOURCES_POINT(19),//资源ID 数量
+			ID_UPGRADE_TECH_TO_LEVEL(20);//科技ID 数量  科技等级
 	}
 
 	namespace TaskPrimaryKeyIds{

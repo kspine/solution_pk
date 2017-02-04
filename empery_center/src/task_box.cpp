@@ -798,6 +798,9 @@ namespace EmperyCenter {
 		if (task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL) {
 			async_recheck_building_level_tasks(get_account_uuid());
 		}
+		if (task_data->type == TaskTypeIds::ID_UPGRADE_TECH_TO_LEVEL) {
+			async_recheck_tech_level_tasks(get_account_uuid());
+		}
 
 		if(task_data->type == TaskTypeIds::ID_DUNGEON_CLEARANCE){
             access_task_dungeon_clearance();
@@ -859,6 +862,10 @@ namespace EmperyCenter {
 
 		if (task_data->type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL) {
 			async_recheck_building_level_tasks(get_account_uuid());
+		}
+
+		if (task_data->type == TaskTypeIds::ID_UPGRADE_TECH_TO_LEVEL) {
+			async_recheck_tech_level_tasks(get_account_uuid());
 		}
 
         if(task_data->type == TaskTypeIds::ID_DUNGEON_CLEARANCE){
@@ -956,6 +963,12 @@ namespace EmperyCenter {
 			}
 
 			if (type == TaskTypeIds::ID_UPGRADE_BUILDING_TO_LEVEL) {
+				if (param1 < static_cast<std::int64_t>(oit->second.at(1))) {
+					continue;
+				}
+			}
+
+			if (type == TaskTypeIds::ID_UPGRADE_TECH_TO_LEVEL) {
 				if (param1 < static_cast<std::int64_t>(oit->second.at(1))) {
 					continue;
 				}

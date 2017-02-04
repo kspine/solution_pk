@@ -179,4 +179,76 @@ try {
 	LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
 }
 
+void async_recheck_tech_level_tasks(AccountUuid account_uuid) noexcept
+try {
+	Poseidon::enqueue_async_job(
+		[=]() mutable {
+			PROFILE_ME;
+
+			AccountMap::require_controller_token(account_uuid, { });
+
+			const auto task_box = TaskBoxMap::require(account_uuid);
+
+			using TechLevelMap = boost::container::flat_map<TechId, boost::container::flat_map<unsigned, std::size_t>>;
+
+			TechLevelMap tech_levels_primary, tech_levels_non_primary;
+
+			const auto primary_castle = WorldMap::require_primary_castle(account_uuid);
+
+			std::vector<boost::shared_ptr<MapObject>> map_objects;
+			WorldMap::get_map_objects_by_owner(map_objects, account_uuid);
+			for(auto it = map_objects.begin(); it != map_objects.end(); ++it){
+				const auto &map_object = *it;
+				if(map_object->get_map_object_type_id() != MapObjectTypeIds::ID_CASTLE){
+					continue;
+				}
+				const auto castle = boost::dynamic_pointer_cast<Castle>(map_object);
+				if(!castle){
+					continue;
+				}
+				if(castle == primary_castle){
+					castle->accumulate_tech_levels(tech_levels_primary);
+				} else {
+					castle->accumulate_tech_levels(tech_levels_non_primary);
+				}
+			}
+
+			const auto accumulate_all = [&](TechLevelMap &levels){
+				for(auto it = levels.begin(); it != levels.end(); ++it){
+					std::size_t virtual_count = 0;
+					for(auto lvit = it->second.rbegin(); lvit != it->second.rend(); ++lvit){
+						virtual_count += lvit->second;
+						lvit->second = virtual_count;
+					}
+				}
+			};
+
+			accumulate_all(tech_levels_primary);
+			accumulate_all(tech_levels_non_primary);
+
+			const auto check_all = [&](const TechLevelMap &levels, TaskBox::CastleCategory castle_category){
+				for(auto it = levels.begin(); it != levels.end(); ++it){
+					for(auto lvit = it->second.rbegin(); lvit != it->second.rend(); ++lvit){
+			//			LOG_EMPERY_CENTER_DEBUG("Checking task: account_uuid = ", account_uuid, ", castle_category = ", (unsigned)castle_category,
+			//				", tech_id = ", it->first, ", count = ", lvit->second, ", level = ", lvit->first);
+						task_box->check(TaskBox::CAT_NULL,TaskTypeIds::ID_UPGRADE_TECH_TO_LEVEL, it->first.get(), lvit->second,
+							castle_category, lvit->first, 0);
+					}
+				}
+			};
+
+			check_all(tech_levels_primary,     TaskBox::TCC_PRIMARY);
+			check_all(tech_levels_non_primary, TaskBox::TCC_NON_PRIMARY);
+
+			for(auto it = tech_levels_non_primary.begin(); it != tech_levels_non_primary.end(); ++it){
+				for(auto lvit = it->second.rbegin(); lvit != it->second.rend(); ++lvit){
+					tech_levels_primary[it->first][lvit->first] += lvit->second;
+				}
+			}
+			check_all(tech_levels_primary,     TaskBox::TCC_ALL);
+		});
+} catch(std::exception &e){
+	LOG_EMPERY_CENTER_ERROR("std::exception thrown: what = ", e.what());
+}
+
 }

@@ -193,6 +193,9 @@ public:
 	unsigned get_tech_queue_size() const;
 	void synchronize_tech_with_player(TechId tech_id, const boost::shared_ptr<PlayerSession> &session) const;
 
+	// <科技 ID, <等级, 数量>>
+	void accumulate_tech_levels(boost::container::flat_map<TechId, boost::container::flat_map<unsigned, std::size_t>> &ret) const;
+
 	void check_init_resources();
 	void check_auto_inc_resources();
 
