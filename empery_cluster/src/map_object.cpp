@@ -700,8 +700,6 @@ std::uint64_t MapObject::harvest_resource_crate(std::pair<long, std::string> &re
 	double attack_rate = map_object_type_data->harvest_speed*(1 + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_BONUS) / 1000.0) + get_attribute(EmperyCenter::AttributeIds::ID_HARVEST_SPEED_ADD) / 1000.0;
 	std::uint64_t damage = (std::uint64_t)std::max(harvest_interval / 60000.0 * get_attribute(EmperyCenter::AttributeIds::ID_SOLDIER_COUNT) * attack_rate*1000.0, 0.0);
 	damage = damage < 1 ? 1 : damage ;
-	const auto amount_remainging = target_resource_crate->get_amount_remaining();
-	damage = (damage > amount_remainging) ? amount_remainging: damage;
 
 	Msg::KS_MapHarvestResourceCrate msg;
 	msg.attacking_account_uuid = get_owner_uuid().str();
