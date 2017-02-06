@@ -87,6 +87,14 @@ PLAYER_SERVLET(Msg::CS_ItemFetchTaskReward, account, session, req){
 					}
 					castle->commit_resource_transaction(transaction_res,
 						[&]{
+							std::vector<SoldierTransactionElement> transaction_solider;
+							const auto operation = SoldierTransactionElement::OP_ADD;
+							transaction_solider.reserve(task_data->rewards_soliders.size());
+							for(auto it = task_data->rewards_soliders.begin(); it != task_data->rewards_soliders.end(); ++it){
+								transaction_solider.emplace_back(operation, it->first, it->second,
+								ReasonIds::ID_TASK_REWARD, task_id.get(), 0, 0);
+							}
+							castle->commit_soldier_transaction(transaction_solider);
 							info.rewarded = true;
 							task_box->update(std::move(info));
 						},SourceIds::ID_TASK_REWARD);

@@ -77,6 +77,20 @@ namespace EmperyCenter
 						DEBUG_THROW(Exception, sslit("Duplicate task reward"));
 					}
 				}
+
+				object.clear();
+				csv.get(object, "task_reward_solider");
+				elem.rewards_soliders.reserve(object.size());
+				for (auto it = object.begin(); it != object.end(); ++it)
+				{
+					const auto map_object_type_id = boost::lexical_cast<MapObjectTypeId>(it->first);
+					const auto count = static_cast<std::uint64_t>(it->second.get<double>());
+					if (!elem.rewards_soliders.emplace(map_object_type_id, count).second)
+					{
+						LOG_EMPERY_CENTER_ERROR("Duplicate task reward: map_object_type_id = ", map_object_type_id);
+						DEBUG_THROW(Exception, sslit("Duplicate task reward soliders"));
+					}
+				}
 			}
 		}
 

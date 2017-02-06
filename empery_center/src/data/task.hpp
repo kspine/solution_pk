@@ -33,6 +33,7 @@ namespace EmperyCenter
 			boost::container::flat_map<std::uint64_t, std::vector<double>> objective;
 			boost::container::flat_map<ItemId, std::uint64_t> rewards;
 			boost::container::flat_map<ResourceId, std::uint64_t> rewards_resources;
+			boost::container::flat_map<MapObjectTypeId, std::uint64_t> rewards_soliders;
 		};
 
 		class TaskPrimary : public TaskAbstract
