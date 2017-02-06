@@ -273,7 +273,6 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 		return Response(Msg::ERR_MAP_CELL_IS_TOO_FAR_AWAY) <<distance;
 	}
 
-	const auto ticket_item_id = ItemId(req.ticket_item_id);
 	/*
 	const auto ticket_item_data = Data::Item::get(ticket_item_id);
 	if(!ticket_item_data){
@@ -332,7 +331,7 @@ PLAYER_SERVLET(Msg::CS_MapPurchaseMapCell, account, session, req){
 			[&]{
 				const auto insuff_resource_id = castle->commit_resource_transaction_nothrow(resource_transaction,
 					[&]{
-						map_cell->set_parent_object(castle, resource_id, ticket_item_id);
+						map_cell->set_parent_object(castle, resource_id, ticket_data->ticket_item_id);
 					});
 				if(insuff_resource_id){
 					throw insuff_resource_id;
