@@ -50,6 +50,8 @@ public:
 		A_DEFENSE_MATRIX         = 24,//防御矩阵
 		A_SET_FOOT_ANNIMATION    = 25,//野怪脚底动画
 		A_PLAY_SOUND             = 26,//播放声音
+		A_CREATE_BATTALION       = 27,//刷部队
+		A_TARGET_MOVE            = 28,//向指定目标移动
 	};
 
 	Type                     type;

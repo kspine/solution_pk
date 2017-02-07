@@ -17,6 +17,7 @@ class DungeonObject;
 class PlayerSession;
 class DungeonSession;
 class DungeonBuff;
+class MapObject;
 
 class Dungeon : NONCOPYABLE, public virtual Poseidon::VirtualSharedFromThis {
 public:
@@ -79,7 +80,8 @@ private:
 	std::set<Coord>                                                                 m_dungeon_block_coords;
 	Rectangle m_scope;
 	Suspension m_suspension = { };
-	boost::container::flat_map<ItemId, std::uint64_t> m_monster_reward;
+	boost::container::flat_map<ItemId, std::uint64_t>                               m_monster_reward;
+	std::vector<std::pair<boost::shared_ptr<MapObject>,bool>>                       m_dungeon_battalions;//加入的部队
 
 public:
 	Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
@@ -208,6 +210,12 @@ public:
 	void check_founder_offline();
 	void add_monster_reward(const boost::container::flat_map<ItemId, std::uint64_t> &items_basic);
 	void get_monster_reward(boost::container::flat_map<ItemId, std::uint64_t> &items_basic);
+	
+	void set_dungeon_battalions(std::vector<std::pair<boost::shared_ptr<MapObject>,bool>> battalions);
+	std::vector<std::pair<boost::shared_ptr<MapObject>,bool>> & get_dungeon_battalions(){
+		return m_dungeon_battalions;
+	}
+	
 };
 
 }

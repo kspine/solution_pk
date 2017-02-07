@@ -21,6 +21,7 @@ public:
 	virtual std::uint64_t on_action_patrol(std::pair<long, std::string> &result, std::uint64_t now);
 	virtual std::uint64_t on_action_skill_singing(std::pair<long, std::string> &result, std::uint64_t now);
 	virtual std::uint64_t on_action_skill_casting(std::pair<long, std::string> &result, std::uint64_t now);
+	virtual std::uint64_t on_action_target_move(std::pair<long, std::string> &result, std::uint64_t now);
 public:
 	std::uint64_t            get_ai_id();
 public:

@@ -14,6 +14,7 @@
 #include "account.hpp"
 #include "account_attribute_ids.hpp"
 #include <set>
+#include "map_object.hpp"
 
 namespace EmperyCenter {
 
@@ -635,6 +636,10 @@ void Dungeon::get_monster_reward(boost::container::flat_map<ItemId, std::uint64_
 	for(auto it = m_monster_reward.begin(); it != m_monster_reward.end(); ++it){
 		ret.emplace(it->first,it->second);
 	}
+}
+
+void Dungeon::set_dungeon_battalions(std::vector<std::pair<boost::shared_ptr<MapObject>,bool>> battalions){
+	m_dungeon_battalions = std::move(battalions);
 }
 
 }

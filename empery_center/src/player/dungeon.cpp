@@ -89,7 +89,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 	if(req.battalions.size() > start_points.size()){
 		return Response(Msg::ERR_DUNGEON_TOO_MANY_BATTALIONS) <<start_points.size();
 	}
-	std::vector<boost::shared_ptr<MapObject>> battalions;
+	std::vector<std::pair<boost::shared_ptr<MapObject>,bool>> battalions;
 	battalions.reserve(start_points.size());
 	for(auto it = req.battalions.begin(); it != req.battalions.end(); ++it){
 		const auto map_object_uuid = MapObjectUuid(it->map_object_uuid);
@@ -163,7 +163,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 			return Response(Msg::ERR_BATTALION_TYPE_FORBIDDEN) <<map_object_uuid;
 		}
 
-		battalions.emplace_back(std::move(map_object));
+		battalions.emplace_back(std::make_pair(std::move(map_object),false));
 	}
 
 	const auto &entry_cost = dungeon_data->entry_cost;
@@ -184,6 +184,8 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 		[&]{
 			const auto dungeon = boost::make_shared<Dungeon>(dungeon_uuid, dungeon_type_id, server, account_uuid,utc_now, expiry_time,info.finish_count);
 			dungeon->insert_observer(account_uuid, session);
+			dungeon->set_dungeon_battalions(std::move(battalions));
+			/*
 			for(std::size_t i = 0; i < battalions.size(); ++i){
 				const auto &map_object = battalions.at(i);
 				const auto map_object_uuid = map_object->get_map_object_uuid();
@@ -200,6 +202,7 @@ PLAYER_SERVLET(Msg::CS_DungeonCreate, account, session, req){
 				dungeon_object->recalculate_attributes(false);
 				dungeon->insert_object(std::move(dungeon_object));
 			}
+			*/
 			DungeonMap::insert(std::move(dungeon));
 
 			info.entry_count += 1;

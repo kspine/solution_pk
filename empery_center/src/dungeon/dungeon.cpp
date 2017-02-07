@@ -1044,4 +1044,69 @@ DUNGEON_SERVLET(Msg::DS_DungeonPlaySound, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonCreateBattalion, dungeon, server, req){
+	PROFILE_ME;
+	auto &battalions = dungeon->get_dungeon_battalions();
+	auto tag = boost::lexical_cast<std::uint64_t>(req.tag);
+	auto index = tag%1000;
+	if(index == 0){
+		//出生点走副本配置,将未刷新的全部刷新
+		const auto dungeon_data = Data::Dungeon::get(dungeon->get_dungeon_type_id());
+		if(!dungeon_data){
+			return Response(Msg::ERR_NO_SUCH_DUNGEON_ID) <<dungeon->get_dungeon_type_id();
+		}
+		const auto &start_points = dungeon_data->start_points;
+		if(battalions.size() > start_points.size()){
+			return Response(Msg::ERR_DUNGEON_TOO_MANY_BATTALIONS) <<start_points.size();
+		}
+		for(std::size_t i = 0; i < battalions.size(); ++i){
+			const auto &map_object = battalions.at(i).first;
+			const auto &is_create = battalions.at(i).second;
+			if(is_create){
+				LOG_EMPERY_CENTER_WARNING("dungeon index battalions have already created");
+				continue;
+			}
+			const auto map_object_uuid = map_object->get_map_object_uuid();
+			const auto map_object_type_id = map_object->get_map_object_type_id();
+
+			const auto &start_point = start_points.at(i);
+			const auto start_coord = Coord(start_point.first, start_point.second);
+			LOG_EMPERY_CENTER_DEBUG("@@ New dungeon object: dungeon_uuid = ", dungeon->get_dungeon_uuid(),
+				", map_object_uuid = ", map_object_uuid, ", start_coord = ", start_coord);
+
+			auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), DungeonObjectUuid(map_object_uuid.get()),
+				map_object_type_id, dungeon->get_founder_uuid(), std::string(), start_coord);
+			dungeon_object->pump_status();
+			dungeon_object->recalculate_attributes(false);
+			dungeon->insert_object(std::move(dungeon_object));
+			battalions.at(i).second = true;
+		}	
+	}else{
+	   if(index > battalions.size()){
+		   LOG_EMPERY_CENTER_WARNING("not enough battalion to create,index = ", index, " battalions size = ",battalions.size());
+		   return Response(Msg::ERR_DUNGEON_NOT_ENOUGH_BATTALION) << index;
+	   }
+	   const auto &map_object = battalions.at(index - 1).first;
+		const auto &is_create = battalions.at(index - 1).second;
+		if(is_create){
+			LOG_EMPERY_CENTER_WARNING("dungeon index battalions have already created,index = ",index);
+			return Response(Msg::ERR_DUNGEON_BATTALION_HAVE_CREATED) << index;
+		}
+		const auto map_object_uuid = map_object->get_map_object_uuid();
+		const auto map_object_type_id = map_object->get_map_object_type_id();
+
+		const auto start_coord = Coord(req.x, req.y);
+		LOG_EMPERY_CENTER_DEBUG("@@ New dungeon object: dungeon_uuid = ", dungeon->get_dungeon_uuid(),
+			", map_object_uuid = ", map_object_uuid, ", start_coord = ", start_coord);
+
+		auto dungeon_object = boost::make_shared<DungeonObject>(dungeon->get_dungeon_uuid(), DungeonObjectUuid(map_object_uuid.get()),
+				map_object_type_id, dungeon->get_founder_uuid(), req.tag, start_coord);
+		dungeon_object->pump_status();
+		dungeon_object->recalculate_attributes(false);
+		dungeon->insert_object(std::move(dungeon_object));
+		battalions.at(index - 1).second = true;  
+	}
+	return Response();
+}
+
 }

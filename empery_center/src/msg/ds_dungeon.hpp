@@ -341,6 +341,16 @@ namespace Msg {
 	FIELD_STRING        (dungeon_uuid)	\
 	FIELD_VUINT          (sound_id)
 #include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    DS_DungeonCreateBattalion
+#define MESSAGE_ID      50030
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VINT          (x)	\
+	FIELD_VINT          (y)	\
+	FIELD_STRING        (tag)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

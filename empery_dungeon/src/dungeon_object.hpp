@@ -25,6 +25,7 @@ public:
 		ACT_MONSTER_PATROL                    = 4,
 		ACT_SKILL_SING                        = 5,//吟唱
 		ACT_SKILL_CAST                        = 6,//施法
+		ACT_TARGET_MOVE                       = 7,//移动到目标
 	};
 
 	enum AttackImpact {
@@ -179,6 +180,7 @@ public:
 	std::uint64_t on_monster_patrol();
 	std::uint64_t on_skill_singing_finish(std::pair<long, std::string> &result, std::uint64_t now);
 	std::uint64_t on_skilling_casting_finish(std::pair<long, std::string> &result, std::uint64_t now);
+	std::uint64_t on_action_target_move(std::pair<long, std::string> &result, std::uint64_t now);
 private:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const DungeonObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);
@@ -208,6 +210,8 @@ public:
 	bool           can_reflex_injury();
 	void           do_reflex_injury(std::uint64_t total_damage,boost::shared_ptr<DungeonObject> attacker);
 	void           do_die_skill();
+public:
+    void          target_move(const Coord target_coord,const std::string params);
 };
 
 }

@@ -119,6 +119,7 @@ public:
 	bool check_all_die(bool is_monster);
 	bool check_valid_coord_for_birth(const Coord &src_coord);
 	bool get_monster_birth_coord(const Coord &src_coord,Coord &dest_coord);
+	boost::shared_ptr<DungeonObject> get_object_by_tag(std::string tag);
 
 	//副本中触发器buff相关操作
 	boost::shared_ptr<DungeonBuff> get_dungeon_buff(const Coord coord) const;
@@ -168,8 +169,11 @@ public:
 	void on_triggers_dungeon_defense_matrix(const TriggerAction &action);
 	void on_triggers_dungeon_set_foot_annimation(const TriggerAction &action);
 	void on_triggers_dungeon_play_sound(const TriggerAction &action);
+	void on_triggers_dungeon_create_battalion(const TriggerAction &action);
+	void on_triggers_dungeon_target_move(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
-
+	//开启，并且次数满足的时候执行1次
+	void activate_trigger(std::uint64_t trigger_id);
 	//
 	virtual void pump_skill_damage();
 	void do_skill_damage(const boost::shared_ptr<SkillRecycleDamage>& damage);

@@ -111,6 +111,16 @@ std::uint64_t AiControl::on_action_skill_casting(std::pair<long, std::string> &r
 	return parent_object->on_skilling_casting_finish(result,now);
 }
 
+std::uint64_t AiControl::on_action_target_move(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+
+	const auto parent_object = m_parent_object.lock();
+	if(!parent_object){
+		return UINT64_MAX;
+	}
+	return parent_object->on_action_target_move(result,now);
+}
+
 AiControlMonsterAutoSearch::AiControlMonsterAutoSearch(std::uint64_t unique_id,boost::weak_ptr<DungeonObject> parent):AiControl(unique_id,parent){
 }
 

@@ -9,6 +9,7 @@
 #include <poseidon/singletons/timer_daemon.hpp>
 #include <poseidon/cbpp/status_codes.hpp>
 #include <poseidon/random.hpp>
+#include <poseidon/json.hpp>
 #include "../../empery_center/src/msg/sc_dungeon.hpp"
 #include "../../empery_center/src/msg/sd_dungeon.hpp"
 #include "../../empery_center/src/msg/ds_dungeon.hpp"
@@ -113,6 +114,9 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 	}
 	ON_ACTION(ACT_SKILL_CAST){
 		return require_ai_control()->on_action_skill_casting(result,now);
+	}
+	ON_ACTION(ACT_TARGET_MOVE){
+		return require_ai_control()->on_action_target_move(result,now);
 	}
 //=============================================================================
 #undef ON_ACTION
@@ -1413,6 +1417,42 @@ std::uint64_t DungeonObject::on_skilling_casting_finish(std::pair<long, std::str
 	return delay;
 }
 
+std::uint64_t DungeonObject::on_action_target_move(std::pair<long, std::string> &result, std::uint64_t now){
+	PROFILE_ME;
+	try{
+		std::istringstream iss_effect_param(m_action_param);
+		auto effect_param_array = Poseidon::JsonParser::parse_array(iss_effect_param);
+		if(effect_param_array.size() != 3){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon object action target move param error,size != 3",m_action_param);
+			return UINT64_MAX;
+		}
+		auto tag =  boost::lexical_cast<std::string>(effect_param_array.at(0).get<double>());
+		auto &target       = effect_param_array.at(1).get<Poseidon::JsonArray>();
+		auto trigger_id   =  static_cast<std::uint64_t>(effect_param_array.at(2).get<double>());
+		if(target.size() != 2){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon object action target move params error target size != 2,target =  ",target.dump());
+			return UINT64_MAX;
+		}
+		auto x = static_cast<int>(target.at(0).get<double>());
+		auto y = static_cast<int>(target.at(1).get<double>());
+		if(Coord(x,y) == get_coord()){
+			set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_GUARD),"");
+			const auto dungeon = DungeonMap::get(get_dungeon_uuid());
+			if(!dungeon){
+				return UINT64_MAX;
+			}
+			dungeon->activate_trigger(trigger_id);
+			LOG_EMPERY_DUNGEON_FATAL("action target move sucess,try to open a trigger");
+		}else{
+			target_move(Coord(x,y),m_action_param);
+		}
+	}catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+	return stand_by_interval;
+}
+
 void          DungeonObject::check_current_skill(std::uint64_t now){
 	PROFILE_ME;
 
@@ -1665,4 +1705,23 @@ void           DungeonObject::do_die_skill(){
 		skill->do_effects();
 	}
 }
+
+void          DungeonObject::target_move(const Coord target_coord,const std::string params){
+	PROFILE_ME;
+	if(target_coord == get_coord()){
+		LOG_EMPERY_DUNGEON_WARNING("dungeon object is now in the target coord = ",target_coord);
+		return;
+	}
+	std::deque<std::pair<signed char, signed char>> waypoints;
+	if(!find_way_points(waypoints,get_coord(),target_coord,true)){
+		LOG_EMPERY_DUNGEON_WARNING("target move find way points fail, target_coord = ", target_coord, " params = ", params, " waypoints.size() = ",waypoints.size());
+	}
+	if(!waypoints.empty()){
+		set_action(get_coord(), waypoints, static_cast<DungeonObject::Action>(ACT_TARGET_MOVE),params);
+	}else{	
+		LOG_EMPERY_DUNGEON_WARNING("target move find way points is empty,reset action to ACT_GUARD ");	
+		set_action(get_coord(), {}, static_cast<DungeonObject::Action>(ACT_GUARD),{});
+	}
+}
+
 }
