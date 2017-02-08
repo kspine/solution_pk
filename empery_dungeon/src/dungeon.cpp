@@ -232,6 +232,17 @@ void Dungeon::get_dungeon_objects_by_account(std::vector<boost::shared_ptr<Dunge
 	}
 }
 
+void Dungeon::get_dungeon_objects_exclude_account(std::vector<boost::shared_ptr<DungeonObject>> &ret,AccountUuid account_uuid){
+	PROFILE_ME;
+
+	for(auto it = m_objects.begin(); it != m_objects.end(); ++it){
+		auto &dungeon_object = it->second;
+		if(dungeon_object->get_owner_uuid() != account_uuid){
+			ret.emplace_back(it->second);
+		}
+	}
+}
+
 void Dungeon::insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object){
 	PROFILE_ME;
 
@@ -950,6 +961,10 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 	ON_TRIGGER_ACTION(TriggerAction::A_TARGET_MOVE){
 		//TODO
 		on_triggers_dungeon_target_move(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_CONTROL_BUFF){
+		//TODO
+		on_triggers_dungeon_control_buff(action);
 	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
@@ -2069,7 +2084,6 @@ void Dungeon::on_triggers_dungeon_target_move(const TriggerAction &action){
 		}
 		auto tag =  boost::lexical_cast<std::string>(effect_param_array.at(0).get<double>());
 		auto &target       = effect_param_array.at(1).get<Poseidon::JsonArray>();
-		//auto trigger_id   =  static_cast<std::uint64_t>(effect_param_array.at(2).get<double>());
 		if(target.size() != 2){
 			LOG_EMPERY_DUNGEON_WARNING("dungeon target move params error target size != 2,target =  ",target.dump());
 			return;
@@ -2083,6 +2097,78 @@ void Dungeon::on_triggers_dungeon_target_move(const TriggerAction &action){
 		}
 		dungeon_object->target_move(Coord(x,y),action.params);
 		
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_control_buff(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_CONTROL_BUFF){
+			return;
+		}
+		std::istringstream iss_effect_param(action.params);
+		auto effect_param_array = Poseidon::JsonParser::parse_array(iss_effect_param);
+		if(effect_param_array.size() != 4){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon control buff param error,size != 2",action.params);
+			return;
+		}
+		auto is_add  =  static_cast<std::uint64_t>(effect_param_array.at(0).get<double>());
+		auto buff_id =  static_cast<std::uint64_t>(effect_param_array.at(1).get<double>());
+		auto target  =  static_cast<std::uint64_t>(effect_param_array.at(2).get<double>());
+		auto tags_array =  effect_param_array.at(3).get<Poseidon::JsonArray>();
+		std::vector<boost::shared_ptr<DungeonObject>> applicable_objects;
+		if(target == 0){
+			get_objects_all(applicable_objects);
+		}else if(target == 1){
+			get_dungeon_objects_by_account(applicable_objects,get_founder_uuid());
+		}else if(target == 2){
+			get_dungeon_objects_exclude_account(applicable_objects,get_founder_uuid());
+		}else{
+			for(unsigned i = 0 ; i < tags_array.size(); ++i){
+				const auto tag = boost::lexical_cast<std::string>(tags_array.at(i).get<double>());
+				auto dungeon_object = get_object_by_tag(tag);
+				if(!dungeon_object){
+					LOG_EMPERY_DUNGEON_WARNING("the tag object is not exist ,maybe it is die now, tag = ", tag);
+					continue;
+				}
+				applicable_objects.emplace_back(dungeon_object);
+			}
+		}
+		if(applicable_objects.empty()){
+			LOG_EMPERY_DUNGEON_WARNING("there is no a applicable object to add or remove buff,buff_id = ",buff_id);
+			return;
+		}
+		const auto dungeon_client = get_dungeon_client();
+		if(!dungeon_client){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon control buff,!dungeon client");
+			return;
+		}
+		for(auto it = applicable_objects.begin(); it != applicable_objects.end(); ++it){
+			try{
+				auto &dungeon_object = *it;
+				if(!dungeon_object){
+					continue;
+				}
+				if(is_add){
+					Msg::DS_DungeonObjectAddBuff msg;
+					msg.dungeon_uuid        = get_dungeon_uuid().str();
+					msg.dungeon_object_uuid = dungeon_object->get_dungeon_object_uuid().str();
+					msg.buff_type_id        = buff_id;
+					dungeon_client->send(msg);
+				}else{
+					Msg::DS_DungeonObjectClearBuff msg;
+					msg.dungeon_uuid        = get_dungeon_uuid().str();
+					msg.dungeon_object_uuid = dungeon_object->get_dungeon_object_uuid().str();
+					msg.buff_type_id        = buff_id;
+					dungeon_client->send(msg);
+				}
+			}catch(std::exception &e){
+				LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+			}
+		}
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}

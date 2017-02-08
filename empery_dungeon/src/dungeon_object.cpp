@@ -60,6 +60,13 @@ std::uint64_t DungeonObject::pump_action(std::pair<long, std::string> &result, s
 		const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 		return stand_by_interval;
 	}
+	
+	//待机
+	if(is_buff_in_effect(BuffIds::ID_DUNGEON_STANDBY)){
+		LOG_EMPERY_DUNGEON_DEBUG("dungeon object is in standby...,tag = ",get_tag());
+		const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+		return stand_by_interval;
+	}
 
 	const auto dungeon_object_type_data = get_dungeon_object_type_data();
 	if(!dungeon_object_type_data){
@@ -781,6 +788,10 @@ std::uint64_t DungeonObject::attack(std::pair<long, std::string> &result, std::u
 	msg.attacked_coord_y = target_object->get_coord().y();
 	msg.result_type = result_type;
 	msg.soldiers_damaged = damage;
+	if(target_object->is_buff_in_effect(BuffIds::ID_DUNGEON_FREE_DAMAGE)){
+		LOG_EMPERY_DUNGEON_WARNING("attack,dungeon object is in free damage,tag = ",target_object->get_tag());
+		msg.soldiers_damaged = 0;
+	}
 	auto sresult = dungeon_client->send_and_wait(msg);
 	if(sresult.first != Msg::ST_OK){
 		LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);
@@ -1684,6 +1695,10 @@ void         DungeonObject::do_reflex_injury(std::uint64_t total_damage,boost::s
 		msg.attacked_coord_y = attacker->get_coord().y();
 		msg.result_type = IMPACT_NORMAL;
 		msg.soldiers_damaged = damage;
+		if(attacker->is_buff_in_effect(BuffIds::ID_DUNGEON_FREE_DAMAGE)){
+			LOG_EMPERY_DUNGEON_WARNING("reflex damage ,dungeon object is in free damage,tag = ",attacker->get_tag());
+			msg.soldiers_damaged = 0;
+		}
 		auto sresult = dungeon_client->send_and_wait(msg);
 		if(sresult.first != Msg::ST_OK){
 			LOG_EMPERY_DUNGEON_DEBUG("Center server returned an error: code = ", sresult.first, ", msg = ", sresult.second);

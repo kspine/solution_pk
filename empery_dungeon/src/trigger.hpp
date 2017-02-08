@@ -52,6 +52,7 @@ public:
 		A_PLAY_SOUND             = 26,//播放声音
 		A_CREATE_BATTALION       = 27,//刷部队
 		A_TARGET_MOVE            = 28,//向指定目标移动
+		A_CONTROL_BUFF           = 29,//控制buff,根据buffId不同，控制待机，血条显示，免伤
 	};
 
 	Type                     type;

@@ -112,6 +112,7 @@ public:
 	void get_objects_all(std::vector<boost::shared_ptr<DungeonObject>> &ret) const;
 	void get_dungeon_objects_by_rectangle(std::vector<boost::shared_ptr<DungeonObject>> &ret,Rectangle rectangle) const;
 	void get_dungeon_objects_by_account(std::vector<boost::shared_ptr<DungeonObject>> &ret,AccountUuid account_uuid);
+	void get_dungeon_objects_exclude_account(std::vector<boost::shared_ptr<DungeonObject>> &ret,AccountUuid account_uuid);
 	void insert_object(const boost::shared_ptr<DungeonObject> &dungeon_object);
 	void update_object(const boost::shared_ptr<DungeonObject> &dungeon_object, bool throws_if_not_exists = true);
 	void replace_dungeon_object_no_synchronize(const boost::shared_ptr<DungeonObject> &dungeon_object);
@@ -171,6 +172,7 @@ public:
 	void on_triggers_dungeon_play_sound(const TriggerAction &action);
 	void on_triggers_dungeon_create_battalion(const TriggerAction &action);
 	void on_triggers_dungeon_target_move(const TriggerAction &action);
+	void on_triggers_dungeon_control_buff(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 	//开启，并且次数满足的时候执行1次
 	void activate_trigger(std::uint64_t trigger_id);

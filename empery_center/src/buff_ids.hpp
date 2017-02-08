@@ -18,8 +18,11 @@ constexpr BuffId
 	ID_HARVEST_STATUS                   ( 2700011 ),
 	ID_LEGION_WAREHOUSE_BUFF1           ( 2700012 ),
 	ID_LEGION_WAREHOUSE_BUFF2           ( 2700013 ),
-	ID_LEGION_WAREHOUSE_BUFF3           ( 2700014 );
-
+	ID_LEGION_WAREHOUSE_BUFF3           ( 2700014 ),
+	ID_DUNGEON_STANDBY                  ( 6411001 ),
+	ID_DUNGEON_HIDE_HP                  ( 6412001 ),
+	ID_DUNGEON_FREE_DAMAGE              ( 6413001 ),
+	ID_DUNGEON_HIDE_PATH                ( 6414001 );
 }
 
 }
