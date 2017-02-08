@@ -68,6 +68,16 @@ ACCOUNT_SERVLET("create", session, params){
 		return ret;
 	}
 
+	const auto synuser_top = get_config<std::string>("synuser_top");
+	if(!synuser_top.empty()){
+		auto prev_referrer_info = AccountMap::get(referrer_info.referrer_id);
+		if(Poseidon::has_any_flags_of(prev_referrer_info.flags, AccountMap::FL_VALID) && (prev_referrer_info.login_name == synuser_top)){
+			ret[sslit("errorCode")] = (int)Msg::ERR_NO_SUCH_REFERRER;
+			ret[sslit("errorMessage")] = "Cannot create subordinates of subordinates of mojingpai";
+			return ret;
+		}
+	}
+
 	boost::shared_ptr<const Data::Promotion> promotion_data;
 	if(level != 0){
 		promotion_data = Data::Promotion::get(level);

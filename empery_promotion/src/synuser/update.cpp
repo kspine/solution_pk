@@ -57,6 +57,13 @@ SYNUSER_SERVLET("update", session, params){
 		return root;
 	}
 
+	const auto forbidden = get_config_v<std::string>("synuser_forbidden");
+	if(std::find(forbidden.begin(), forbidden.end(), info.login_name) != forbidden.end()){
+		root[sslit("state")] = "failed";
+		root[sslit("errorcode")] = "access_denied";
+		return root;
+	}
+
 	bool full_access = false;
 	if(info.referrer_id){
 		const auto &synuser_top = get_config<std::string>("synuser_top");
@@ -128,7 +135,7 @@ SYNUSER_SERVLET("update", session, params){
 	if(full_access && !new_login_name.empty()){
 		AccountMap::set_login_name(info.account_id, std::move(new_login_name));
 	}
-	if(full_access && !phone_number.empty()){
+	if(phone_number.empty()){
 		AccountMap::set_phone_number(info.account_id, std::move(phone_number));
 	}
 	if(!nick.empty()){
