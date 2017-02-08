@@ -135,7 +135,7 @@ SYNUSER_SERVLET("update", session, params){
 	if(full_access && !new_login_name.empty()){
 		AccountMap::set_login_name(info.account_id, std::move(new_login_name));
 	}
-	if(phone_number.empty()){
+	if(!phone_number.empty()){
 		AccountMap::set_phone_number(info.account_id, std::move(phone_number));
 	}
 	if(!nick.empty()){
