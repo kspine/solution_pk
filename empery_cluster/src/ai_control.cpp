@@ -120,8 +120,8 @@ std::uint64_t AiControlMonsterCommon::move(std::pair<long, std::string> &result)
 	if(!parent_object){
 		return UINT64_MAX;
 	}
-	if(!parent_object->is_in_monster_active_scope()&&parent_object->is_lost_attacked_target()){
-		return parent_object->search_attack();
+	if(!parent_object->is_in_monster_active_scope()){
+		return parent_object->monster_regress();
 	}
 	return AiControl::move(result);
 }

@@ -132,7 +132,7 @@ public:
 	void          notify_way_points(const std::deque<std::pair<signed char, signed char>> &waypoints,const MapObject::Action &action, const std::string &action_param);
 	bool          fix_attack_action(std::pair<long, std::string> &result);
 	bool          find_way_points(std::deque<std::pair<signed char, signed char>> &waypoints,Coord from_coord,Coord target_coord,bool precise = false);
-	void          monster_regress();
+	std::uint64_t  monster_regress();
 	bool          is_monster();
 	bool          is_building();
 	bool          is_castle();

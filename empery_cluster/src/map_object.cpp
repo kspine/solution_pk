@@ -1201,7 +1201,7 @@ std::uint64_t MapObject::lost_target_monster(){
 	return stand_by_interval;
 }
 
-void   MapObject::monster_regress(){
+std::uint64_t  MapObject::monster_regress(){
 	PROFILE_ME;
 
 	auto birth_x = get_attribute(EmperyCenter::AttributeIds::ID_MONSTER_START_POINT_X);
@@ -1224,6 +1224,8 @@ void   MapObject::monster_regress(){
 			cluster->shutdown(e.what());
 		}
 	}
+	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
+	return stand_by_interval;
 }
 
 bool  MapObject::is_monster(){
