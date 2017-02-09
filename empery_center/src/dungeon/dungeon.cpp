@@ -1109,4 +1109,18 @@ DUNGEON_SERVLET(Msg::DS_DungeonCreateBattalion, dungeon, server, req){
 	return Response();
 }
 
+DUNGEON_SERVLET(Msg::DS_DungeonDisableOperation, dungeon, server, req){
+	PROFILE_ME;
+
+	dungeon->set_disable_operation(req.disable);
+	return Response();
+}
+
+DUNGEON_SERVLET(Msg::DS_DungeonHideUi, dungeon, server, req){
+	PROFILE_ME;
+	
+	dungeon->set_hide_ui(req.hide);
+	return Response();
+}
+
 }

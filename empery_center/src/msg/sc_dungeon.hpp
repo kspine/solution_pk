@@ -411,6 +411,20 @@ namespace Msg {
 	FIELD_VUINT          (sound_id)
 #include <poseidon/cbpp/message_generator.hpp>
 
+#define MESSAGE_NAME    SC_DungeonDisableOperation
+#define MESSAGE_ID      1565
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (disable)
+#include <poseidon/cbpp/message_generator.hpp>
+
+#define MESSAGE_NAME    SC_DungeonHideUi
+#define MESSAGE_ID      1564
+#define MESSAGE_FIELDS  \
+	FIELD_STRING        (dungeon_uuid)	\
+	FIELD_VUINT         (hide)
+#include <poseidon/cbpp/message_generator.hpp>
+
 }
 
 }

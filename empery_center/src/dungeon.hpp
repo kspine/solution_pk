@@ -68,6 +68,8 @@ private:
 	std::uint64_t m_set_way_point_count;
 	bool          m_offline_stop;
 	std::uint64_t m_last_offline_time;
+	bool          m_disable_operation;
+	bool          m_hide_ui;
 
 	struct Observer {
 		boost::weak_ptr<PlayerSession> session;
@@ -159,6 +161,17 @@ public:
 	}
 	void set_scope(Rectangle scope);
 
+	bool get_disable_operation() const {
+		return m_disable_operation;
+	}
+	void set_disable_operation(bool disable_operation);
+
+	bool get_hide_ui() const {
+		return m_hide_ui;
+	}
+
+	void set_hide_ui(bool hide_ui);
+
 	const Suspension &get_suspension() const {
 		return m_suspension;
 	}
@@ -210,12 +223,10 @@ public:
 	void check_founder_offline();
 	void add_monster_reward(const boost::container::flat_map<ItemId, std::uint64_t> &items_basic);
 	void get_monster_reward(boost::container::flat_map<ItemId, std::uint64_t> &items_basic);
-	
 	void set_dungeon_battalions(std::vector<std::pair<boost::shared_ptr<MapObject>,bool>> battalions);
 	std::vector<std::pair<boost::shared_ptr<MapObject>,bool>> & get_dungeon_battalions(){
 		return m_dungeon_battalions;
 	}
-	
 };
 
 }

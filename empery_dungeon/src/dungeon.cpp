@@ -966,6 +966,18 @@ void Dungeon::on_triggers_action(const TriggerAction &action){
 		//TODO
 		on_triggers_dungeon_control_buff(action);
 	}
+	ON_TRIGGER_ACTION(TriggerAction::A_TARGET_ATTACK){
+		//TODO
+		on_triggers_dungeon_target_attack(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_DISABLE_OPERATE){
+		//TODO
+		on_triggers_dungeon_disable_operation(action);
+	}
+	ON_TRIGGER_ACTION(TriggerAction::A_HIDE_UI){
+		//TODO
+		on_triggers_dungeon_hide_ui(action);
+	}
 //=============================================================================
 #undef ON_TRIGGER_ACTION
 		}
@@ -1088,6 +1100,10 @@ void Dungeon::do_triggers_damage(const boost::shared_ptr<TriggerDamage>& trigger
 						msg.attacked_coord_y = (*itt)->get_coord().y();
 						msg.result_type = 1;
 						msg.soldiers_damaged = trigger_damage->damage;
+						if((*itt)->is_buff_in_effect(BuffIds::ID_DUNGEON_FREE_DAMAGE)){
+							LOG_EMPERY_DUNGEON_WARNING("trigger damage ,dungeon object is in free damage,tag = ",(*itt)->get_tag());
+							msg.soldiers_damaged = 0;
+						}
 						auto sresult = dungeon_client->send_and_wait(msg);
 						if(sresult.first != Poseidon::Cbpp::ST_OK){
 							LOG_EMPERY_DUNGEON_DEBUG("trigger damage fail", sresult.first, ", msg = ", sresult.second);
@@ -1614,6 +1630,10 @@ void Dungeon::on_triggers_dungeon_range_damage(const TriggerAction &action){
 						msg.attacked_coord_y = target_object->get_coord().y();
 						msg.result_type = 1;
 						msg.soldiers_damaged = damage;
+						if(target_object->is_buff_in_effect(BuffIds::ID_DUNGEON_FREE_DAMAGE)){
+							LOG_EMPERY_DUNGEON_WARNING("dungeon range damage ,dungeon object is in free damage,tag = ",target_object->get_tag());
+							msg.soldiers_damaged = 0;
+						}
 						auto sresult = dungeon_client->send_and_wait(msg);
 						if(sresult.first != Poseidon::Cbpp::ST_OK){
 							LOG_EMPERY_DUNGEON_DEBUG("trap damge fail", sresult.first, ", msg = ", sresult.second);
@@ -2096,7 +2116,6 @@ void Dungeon::on_triggers_dungeon_target_move(const TriggerAction &action){
 			return;
 		}
 		dungeon_object->target_move(Coord(x,y),action.params);
-		
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}
@@ -2174,9 +2193,10 @@ void Dungeon::on_triggers_dungeon_control_buff(const TriggerAction &action){
 	}
 }
 
+
 void Dungeon::activate_trigger(std::uint64_t trigger_id){
 	PROFILE_ME;
-	
+
 	try{
 		const auto utc_now = Poseidon::get_utc_time();
 		auto itt = m_triggers.find(trigger_id);
@@ -2192,6 +2212,106 @@ void Dungeon::activate_trigger(std::uint64_t trigger_id){
 		}else{
 			LOG_EMPERY_DUNGEON_WARNING("can't find the trigger, trigger_id = ", trigger_id);
 		}
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_target_attack(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_TARGET_ATTACK){
+			return;
+		}
+		std::istringstream iss_effect_param(action.params);
+		auto effect_param_array = Poseidon::JsonParser::parse_array(iss_effect_param);
+		if(effect_param_array.size() != 3){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon target attacker param error,size != 2",action.params);
+			return;
+		}
+		auto open = effect_param_array.at(0).get<double>();
+		auto &attackers      = effect_param_array.at(1).get<Poseidon::JsonArray>();
+		if(attackers.empty()){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon target attacker empty ");
+			return;
+		}
+		auto attacked_tag = boost::lexical_cast<std::string>(effect_param_array.at(2).get<double>());
+		auto attacked_object = get_object_by_tag(attacked_tag);
+		if(!attacked_object){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon target attack error,attacked object may be die, tag = ",attacked_tag);
+			return;
+		}
+		for(unsigned i = 0;i < attackers.size(); ++i){
+			auto tag = boost::lexical_cast<std::string>(attackers.at(i).get<double>());
+			auto dungeon_object = get_object_by_tag(tag);
+			if(!dungeon_object){
+				LOG_EMPERY_DUNGEON_WARNING("the tag object is not exist ,maybe it is die now, tag = ", tag);
+				continue;
+			}
+			if(open){
+				dungeon_object->attack_new_target(attacked_object);
+			}else{
+				dungeon_object->lost_target_common();
+				attacked_object->lost_target_common();
+			}
+		}
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+
+void Dungeon::on_triggers_dungeon_disable_operation(const TriggerAction &action){
+	PROFILE_ME;
+
+	try{
+		if(action.type != TriggerAction::A_DISABLE_OPERATE){
+			return;
+		}
+		std::istringstream iss_effect_param(action.params);
+		auto effect_param_array = Poseidon::JsonParser::parse_array(iss_effect_param);
+		if(effect_param_array.size() != 1){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon disable operation param error,size != 1",action.params);
+			return;
+		}
+		auto &disable      = effect_param_array.at(0).get<double>();
+		const auto dungeon_client = get_dungeon_client();
+		if(!dungeon_client){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon disable operation,!dungeon client");
+			return;
+		}
+
+		Msg::DS_DungeonDisableOperation msg;
+		msg.dungeon_uuid        = get_dungeon_uuid().str();
+		msg.disable             = disable;
+		dungeon_client->send(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
+	}
+}
+void Dungeon::on_triggers_dungeon_hide_ui(const TriggerAction &action){
+	PROFILE_ME;
+	try{
+		if(action.type != TriggerAction::A_HIDE_UI){
+			return;
+		}
+		std::istringstream iss_effect_param(action.params);
+		auto effect_param_array = Poseidon::JsonParser::parse_array(iss_effect_param);
+		if(effect_param_array.size() != 1){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon hide ui  param error,size != 1",action.params);
+			return;
+		}
+		auto &hide      = effect_param_array.at(0).get<double>();
+		const auto dungeon_client = get_dungeon_client();
+		if(!dungeon_client){
+			LOG_EMPERY_DUNGEON_WARNING("dungeon hide ui,!dungeon client");
+			return;
+		}
+
+		Msg::DS_DungeonHideUi msg;
+		msg.dungeon_uuid        = get_dungeon_uuid().str();
+		msg.hide                = hide;
+		dungeon_client->send(msg);
 	} catch(std::exception &e){
 		LOG_EMPERY_DUNGEON_WARNING("std::exception thrown: what = ", e.what());
 	}
@@ -2287,6 +2407,10 @@ void Dungeon::do_skill_damage(const boost::shared_ptr<SkillRecycleDamage>& skill
 							msg.attacked_coord_y = target_object->get_coord().y();
 							msg.result_type = 1;
 							msg.soldiers_damaged = damage;
+							if(target_object->is_buff_in_effect(BuffIds::ID_DUNGEON_FREE_DAMAGE)){
+								LOG_EMPERY_DUNGEON_WARNING("skill damage ,dungeon object is in free damage,tag = ",target_object->get_tag());
+								msg.soldiers_damaged = 0;
+							}
 							LOG_EMPERY_DUNGEON_FATAL(msg);
 							auto sresult = dungeon_client->send_and_wait(msg);
 							if(sresult.first != Poseidon::Cbpp::ST_OK){

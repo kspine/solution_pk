@@ -869,11 +869,16 @@ std::uint64_t DungeonObject::on_attack_common(boost::shared_ptr<DungeonObject> a
 	return UINT64_MAX;
 }
 std::uint64_t DungeonObject::lost_target_common(){
+	PROFILE_ME;
+
+	m_waypoints.clear();
 	set_action(get_coord(), m_waypoints, static_cast<DungeonObject::Action>(ACT_GUARD),"");
 	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 	return stand_by_interval;
 }
 std::uint64_t DungeonObject::lost_target_monster(){
+	PROFILE_ME;
+
 	monster_regress();
 	const auto stand_by_interval = get_config<std::uint64_t>("stand_by_interval", 1000);
 	return stand_by_interval;

@@ -38,13 +38,27 @@ namespace {
 		msg.param2       = susp.param2;
 		msg.param3       = susp.param3;
 	}
+
+	void fill_disable_operation_msg(Msg::SC_DungeonDisableOperation &msg, DungeonUuid dungeon_uuid,bool disable_operation){
+		PROFILE_ME;
+
+		msg.dungeon_uuid = dungeon_uuid.str();
+		msg.disable      = disable_operation;
+	}
+
+	void fill_hide_ui_msg(Msg::SC_DungeonHideUi &msg, DungeonUuid dungeon_uuid,bool hide_ui){
+		PROFILE_ME;
+
+		msg.dungeon_uuid = dungeon_uuid.str();
+		msg.hide         = hide_ui;
+	}
 }
 
 Dungeon::Dungeon(DungeonUuid dungeon_uuid, DungeonTypeId dungeon_type_id, const boost::shared_ptr<DungeonSession> &server,
 	AccountUuid founder_uuid, std::uint64_t create_time, std::uint64_t expiry_time,std::uint64_t finish_count)
 	: m_dungeon_uuid(dungeon_uuid), m_dungeon_type_id(dungeon_type_id), m_server(server)
 	, m_founder_uuid(founder_uuid), m_create_time(create_time), m_expiry_time(expiry_time)
-	, m_finish_count(finish_count), m_begin(false),m_stop_count(0),m_set_way_point_count(0),m_offline_stop(false),m_last_offline_time(0)
+	, m_finish_count(finish_count), m_begin(false),m_stop_count(0),m_set_way_point_count(0),m_offline_stop(false),m_last_offline_time(0),m_disable_operation(0),m_hide_ui(0)
 {
 	try {
 		Msg::SD_DungeonCreate msg;
@@ -171,6 +185,36 @@ void Dungeon::set_suspension(Suspension suspension){
 void Dungeon::clear_suspension(){
 	PROFILE_ME;
 	m_suspension = {};
+}
+
+void Dungeon::set_disable_operation(bool disable_operation ){
+	PROFILE_ME;
+	m_disable_operation = disable_operation;
+	try {
+		Msg::SC_DungeonDisableOperation msg;
+		fill_disable_operation_msg(msg,get_dungeon_uuid(),m_disable_operation);
+		LOG_EMPERY_CENTER_DEBUG("SC_DungeonDisableOperation: dungeon_uuid = ", get_dungeon_uuid(),
+			", msg = ",msg);
+		broadcast_to_observers(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		clear_observers(Q_INTERNAL_ERROR, e.what());
+	}
+}
+
+void Dungeon::set_hide_ui(bool hide_ui){
+	PROFILE_ME;
+	m_hide_ui = hide_ui;
+	try {
+		Msg::SC_DungeonHideUi msg;
+		fill_hide_ui_msg(msg,get_dungeon_uuid(),m_hide_ui);
+		LOG_EMPERY_CENTER_DEBUG("SC_DungeonHideUi: dungeon_uuid = ", get_dungeon_uuid(),
+			", msg = ",msg);
+		broadcast_to_observers(msg);
+	} catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
+		clear_observers(Q_INTERNAL_ERROR, e.what());
+	}
 }
 
 boost::shared_ptr<PlayerSession> Dungeon::get_observer(AccountUuid account_uuid) const {
@@ -527,6 +571,16 @@ void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &se
 		fill_scope_msg(msg_scope, get_dungeon_uuid(), scope);
 		session->send(msg_scope);
 
+		Msg::SC_DungeonDisableOperation msg_operation;
+		const auto &disable_operation = get_disable_operation();
+		fill_disable_operation_msg(msg_operation,get_dungeon_uuid(),disable_operation);
+		session->send(msg_operation);
+
+		Msg::SC_DungeonHideUi msg_hide_ui;
+		const auto &hide_ui = get_hide_ui();
+		fill_hide_ui_msg(msg_hide_ui,get_dungeon_uuid(),hide_ui);
+		session->send(msg_hide_ui);
+
 		const auto &suspension = get_suspension();
 		if(!suspension.context.empty()){
 			Msg::SC_DungeonWaitForPlayerConfirmation msg_susp;
@@ -639,6 +693,8 @@ void Dungeon::get_monster_reward(boost::container::flat_map<ItemId, std::uint64_
 }
 
 void Dungeon::set_dungeon_battalions(std::vector<std::pair<boost::shared_ptr<MapObject>,bool>> battalions){
+	PROFILE_ME;
+
 	m_dungeon_battalions = std::move(battalions);
 }
 

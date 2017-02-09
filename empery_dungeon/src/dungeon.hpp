@@ -173,6 +173,9 @@ public:
 	void on_triggers_dungeon_create_battalion(const TriggerAction &action);
 	void on_triggers_dungeon_target_move(const TriggerAction &action);
 	void on_triggers_dungeon_control_buff(const TriggerAction &action);
+	void on_triggers_dungeon_target_attack(const TriggerAction &action);
+	void on_triggers_dungeon_disable_operation(const TriggerAction &action);
+	void on_triggers_dungeon_hide_ui(const TriggerAction &action);
 	void notify_triggers_executive(const boost::shared_ptr<Trigger> &trigger);
 	//开启，并且次数满足的时候执行1次
 	void activate_trigger(std::uint64_t trigger_id);
@@ -184,7 +187,6 @@ public:
 	//副本中技能产生的buff
 	void insert_skill_buff(DungeonObjectUuid dungeon_object_uuid,DungeonBuffTypeId buff_id,const boost::shared_ptr<DungeonBuff> dungeon_buff);
 	void remove_skill_buff(DungeonObjectUuid dungeon_object_uuid,DungeonBuffTypeId buff_id);
-	
 	//
 	virtual void pump_defense_matrix();
 };
