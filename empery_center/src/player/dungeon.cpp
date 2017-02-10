@@ -490,7 +490,7 @@ PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_ReconnResetScope, account, session, req){
 	PROFILE_ME;
-	
+
 	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	const auto dungeon = DungeonMap::get(dungeon_uuid);
 	if(!dungeon){
@@ -500,7 +500,30 @@ PLAYER_SERVLET(Msg::CS_ReconnResetScope, account, session, req){
 	dungeon->set_scope(scope);
 	return Response();
 }
+//副本中断线复刷
+PLAYER_SERVLET(Msg::CS_RefreshDungeon, account, session, req){
+	PROFILE_ME;
 
-
+	const auto dungeon_uuid = DungeonUuid(account->get_attribute(AccountAttributeIds::ID_OFFLINE_DUNGEON));
+	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
+	modifiers.reserve(1);
+	modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = "";
+	account->set_attributes(std::move(modifiers));
+	const auto dungeon = DungeonMap::get(dungeon_uuid);
+	if(!dungeon){
+		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
+	}
+	const auto account_uuid = account->get_account_uuid();
+	const auto observer_session = dungeon->get_observer(account_uuid);
+	if(observer_session == session){
+		LOG_EMPERY_CENTER_WARNING("not reconnect ????");
+	}
+	try{
+		dungeon->update_observer(account_uuid,session);
+	}catch(std::exception &e){
+		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ",e.what());
+	}
+	return Response();
+}
 
 }
