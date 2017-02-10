@@ -262,7 +262,7 @@ void Dungeon::insert_observer(AccountUuid account_uuid, const boost::shared_ptr<
 	}
 }
 
-void Dungeon::update_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session){
+void Dungeon::update_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,bool enter){
 	PROFILE_ME;
 	auto it = m_observers.find(account_uuid);
 	if(it == m_observers.end()){
@@ -271,7 +271,7 @@ void Dungeon::update_observer(AccountUuid account_uuid, const boost::shared_ptr<
 	}
 	it->second.session = session;
 	try {
-		synchronize_with_player(session);
+		synchronize_with_player(session,enter);
 	} catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ", e.what());
 		session->shutdown(e.what());
@@ -557,15 +557,16 @@ void Dungeon::remove_dungeon_block_coord(Coord coord){
 bool Dungeon::is_virtually_removed() const {
 	return get_expiry_time() == 0;
 }
-void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const {
+void Dungeon::synchronize_with_player(const boost::shared_ptr<PlayerSession> &session,bool enter) const {
 	PROFILE_ME;
 
 	try {
-		Msg::SC_DungeonEntered msg_entered;
-		msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
-		msg_entered.dungeon_type_id = get_dungeon_type_id().get();
-		session->send(msg_entered);
-
+		if(enter){
+			Msg::SC_DungeonEntered msg_entered;
+			msg_entered.dungeon_uuid    = get_dungeon_uuid().str();
+			msg_entered.dungeon_type_id = get_dungeon_type_id().get();
+			session->send(msg_entered);
+		}
 		const auto &scope = get_scope();
 		Msg::SC_DungeonSetScope msg_scope;
 		fill_scope_msg(msg_scope, get_dungeon_uuid(), scope);

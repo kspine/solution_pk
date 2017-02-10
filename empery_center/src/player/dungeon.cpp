@@ -490,7 +490,7 @@ PLAYER_SERVLET(Msg::CS_ReconnDungeon, account, session, req){
 
 PLAYER_SERVLET(Msg::CS_ReconnResetScope, account, session, req){
 	PROFILE_ME;
-
+	
 	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	const auto dungeon = DungeonMap::get(dungeon_uuid);
 	if(!dungeon){
@@ -504,11 +504,11 @@ PLAYER_SERVLET(Msg::CS_ReconnResetScope, account, session, req){
 PLAYER_SERVLET(Msg::CS_RefreshDungeon, account, session, req){
 	PROFILE_ME;
 
-	const auto dungeon_uuid = DungeonUuid(account->get_attribute(AccountAttributeIds::ID_OFFLINE_DUNGEON));
 	boost::container::flat_map<AccountAttributeId, std::string> modifiers;
 	modifiers.reserve(1);
 	modifiers[AccountAttributeIds::ID_OFFLINE_DUNGEON] = "";
 	account->set_attributes(std::move(modifiers));
+	const auto dungeon_uuid = DungeonUuid(req.dungeon_uuid);
 	const auto dungeon = DungeonMap::get(dungeon_uuid);
 	if(!dungeon){
 		return Response(Msg::ERR_NO_SUCH_DUNGEON) <<dungeon_uuid;
@@ -519,7 +519,7 @@ PLAYER_SERVLET(Msg::CS_RefreshDungeon, account, session, req){
 		LOG_EMPERY_CENTER_WARNING("not reconnect ????");
 	}
 	try{
-		dungeon->update_observer(account_uuid,session);
+		dungeon->update_observer(account_uuid,session,false);
 	}catch(std::exception &e){
 		LOG_EMPERY_CENTER_WARNING("std::exception thrown: what = ",e.what());
 	}

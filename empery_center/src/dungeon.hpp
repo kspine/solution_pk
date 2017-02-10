@@ -181,7 +181,7 @@ public:
 	boost::shared_ptr<PlayerSession> get_observer(AccountUuid account_uuid) const;
 	void get_observers_all(std::vector<std::pair<AccountUuid, boost::shared_ptr<PlayerSession>>> &ret) const;
 	void insert_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
-	void update_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session);
+	void update_observer(AccountUuid account_uuid, const boost::shared_ptr<PlayerSession> &session,bool enter = true);
 	bool remove_observer(AccountUuid account_uuid, QuitReason reason, const char *param) noexcept;
 	void clear_observers(QuitReason reason, const char *param) noexcept;
 
@@ -210,7 +210,7 @@ public:
 	void remove_dungeon_block_coord(Coord coord);
 
 	bool is_virtually_removed() const;
-	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session) const;
+	void synchronize_with_player(const boost::shared_ptr<PlayerSession> &session,bool enter = true) const;
 	void increase_stop_count();
 	std::uint64_t get_increase_stop_count(){
 		return m_stop_count;
