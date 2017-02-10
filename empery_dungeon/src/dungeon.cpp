@@ -2068,7 +2068,8 @@ void Dungeon::on_triggers_dungeon_create_battalion(const TriggerAction &action){
 					auto birth_y                        = static_cast<int>(birth.at(1).get<double>());
 					Coord default_birth_coord(birth_x,birth_y);
 					Coord valid_birth_coord(0,0);
-					if(!get_monster_birth_coord(default_birth_coord,valid_birth_coord)){
+					auto tag = boost::lexical_cast<std::string>(elem.at(0).get<double>());
+					if(!get_monster_birth_coord(default_birth_coord,valid_birth_coord)&&(tag!="1000")){
 						LOG_EMPERY_DUNGEON_WARNING("server can not find a valid for battalion, default_birth_coord = ",default_birth_coord);
 						continue;
 					}
@@ -2076,7 +2077,7 @@ void Dungeon::on_triggers_dungeon_create_battalion(const TriggerAction &action){
 					msgCreateBattalion.dungeon_uuid       = get_dungeon_uuid().str();
 					msgCreateBattalion.x                  = valid_birth_coord.x();
 					msgCreateBattalion.y                  = valid_birth_coord.y();
-					msgCreateBattalion.tag                =  boost::lexical_cast<std::string>(elem.at(0).get<double>());
+					msgCreateBattalion.tag                = tag;
 					dungeon_client->send(msgCreateBattalion);
 					LOG_EMPERY_DUNGEON_DEBUG("msg create battalion:",msgCreateBattalion);
 				} catch(std::exception &e){
